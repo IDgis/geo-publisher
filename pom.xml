@@ -9,9 +9,45 @@
     <version>0.0.1-SNAPSHOT</version>
     
     <packaging>pom</packaging>
+    
+    <properties>
+        <scala.version>2.10</scala.version>
+    </properties>
+    
+   <dependencyManagement>
+       <dependencies>
+           <dependency>
+               <groupId>nl.idgis.publisher</groupId>
+               <artifactId>publisher-commons</artifactId>
+               <version>${project.version}</version>
+           </dependency>
+           <dependency>
+               <groupId>com.typesafe.akka</groupId>
+               <artifactId>akka-actor_${scala.version}</artifactId>
+               <version>2.3.3</version>
+           </dependency>
+       </dependencies>
+   </dependencyManagement>
 
     <modules>
+        <module>publisher-commons</module>
         <module>publisher-provider</module>
         <module>publisher-harvester</module>
     </modules>
+    
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                        <encoding>utf-8</encoding>                        
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>

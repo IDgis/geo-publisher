@@ -4,7 +4,6 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     
-    <groupId>nl.idgis.publisher</groupId>
     <artifactId>publisher-harvester</artifactId>
     
     <parent>
@@ -13,5 +12,15 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     
-    <packaging>pom</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>nl.idgis.publisher</groupId>
+            <artifactId>publisher-commons</artifactId>            
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_${scala.version}</artifactId>            
+        </dependency>        
+    </dependencies>
+    
 </project>
