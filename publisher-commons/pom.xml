@@ -12,4 +12,11 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     
+    <dependencies>
+    	<dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_${scala.version}</artifactId>            
+        </dependency>
+    </dependencies>
+    
 </project>
