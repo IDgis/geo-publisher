@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.protocol.Message;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -20,7 +18,7 @@ public class Harvester extends UntypedActor {
 	public void preStart() {
 		Map<String, ActorRef> actors = Collections.singletonMap("harvester", getSelf());
 		
-		Props serverProps = Props.create(Server.class, actors);		
+		Props serverProps = Props.create(Server.class, getSelf(), actors);		
 		getContext().actorOf(serverProps, "server");
 	}
 
@@ -29,7 +27,8 @@ public class Harvester extends UntypedActor {
 		if(msg instanceof Hello) {
 			log.debug(msg.toString());
 			
-			getSender().tell(new Message("provider", new Hello("My data harvester")), getSelf());
+			Props handlerProps = Props.create(ClientHandler.class, getSender());
+			getContext().actorOf(handlerProps);
 		} else {
 			unhandled(msg);
 		}

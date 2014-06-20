@@ -20,14 +20,15 @@ public class ConnectionHandler extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	private final Serialization serialization = SerializationExtension.get(getContext().system());
 	
-	private final ActorRef connection;
+	private final ActorRef connection, listener;
 	private final Map<String, ActorRef> targets;
 	
 	private ByteString data = ByteString.empty();
 	
-	public ConnectionHandler(ActorRef connection, Map<String, ActorRef> targets) {
+	public ConnectionHandler(ActorRef connection, ActorRef listener, Map<String, ActorRef> targets) {
 		this.connection = connection;
-		this.targets = targets;
+		this.listener = listener;
+		this.targets = targets;	
 	}
 
 	@Override
@@ -64,6 +65,7 @@ public class ConnectionHandler extends UntypedActor {
 		} else if(msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
 			
+			listener.tell(msg, getSelf());			
 			getContext().stop(getSelf());
 		} else if(msg instanceof Message) {
 			final byte[] messageBytes = serialization.serialize(msg).get();

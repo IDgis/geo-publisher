@@ -41,7 +41,7 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("connected");			
 			
-			final Props handlerProps = Props.create(ConnectionHandler.class, getSender(), targets); 
+			final Props handlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets); 
 			final ActorRef handler = getContext().actorOf(handlerProps, "handler");
 
 			getSender().tell(TcpMessage.register(handler), getSelf());

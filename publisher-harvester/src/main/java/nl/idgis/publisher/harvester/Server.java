@@ -9,17 +9,19 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.io.Tcp;
 import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
-import akka.io.Tcp;
 import akka.io.TcpMessage;
 
 public class Server extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	private final ActorRef listener;
 	private final Map<String, ActorRef> targets;
 	
-	public Server(Map<String, ActorRef> targets) {
+	public Server(ActorRef listener, Map<String, ActorRef> targets) {
+		this.listener = listener;
 		this.targets = targets;
 	}
 	
@@ -38,8 +40,8 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			Props handlerProps = Props.create(ConnectionHandler.class, getSender(), targets);
-			final ActorRef handler = getContext().actorOf(handlerProps, "handler");
+			Props handlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets);
+			final ActorRef handler = getContext().actorOf(handlerProps);
 			
 			getSender().tell(TcpMessage.register(handler), getSelf());
 		} else {
