@@ -48,7 +48,7 @@ public class ConnectionHandler extends UntypedActor {
 					
 					Message receivedMessage = serialization.deserialize(message.toArray(), Message.class).get();
 					
-					log.debug("message received");
+					log.debug("message received: "+ receivedMessage);
 					
 					final String targetName = receivedMessage.getTargetName();
 					if(targets.containsKey(targetName)) {
@@ -78,7 +78,7 @@ public class ConnectionHandler extends UntypedActor {
 			ByteString data = ByteString.fromByteBuffer(buffer);
 			connection.tell(TcpMessage.write(data), getSelf());
 			
-			log.debug("message sent");
+			log.debug("message sent: " + msg);
 		} else {
 			unhandled(msg);
 		}

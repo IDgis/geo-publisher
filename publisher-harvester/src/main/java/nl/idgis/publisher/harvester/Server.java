@@ -1,6 +1,7 @@
 package nl.idgis.publisher.harvester;
 
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionHandler;
@@ -18,11 +19,11 @@ public class Server extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	private final ActorRef listener;
-	private final Map<String, ActorRef> targets;
 	
-	public Server(ActorRef listener, Map<String, ActorRef> targets) {
-		this.listener = listener;
-		this.targets = targets;
+	private long clientCount = 0;
+	
+	public Server(ActorRef listener) {
+		this.listener = listener;		
 	}
 	
 	@Override
@@ -40,10 +41,15 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			Props handlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets);
-			final ActorRef handler = getContext().actorOf(handlerProps);
+			Props clientHandlerProps = Props.create(ClientHandler.class);
+			ActorRef clientHandler = getContext().actorOf(clientHandlerProps, "client" + clientCount++);
 			
-			getSender().tell(TcpMessage.register(handler), getSelf());
+			Map<String, ActorRef> targets = Collections.singletonMap("harvester", clientHandler);			
+
+			Props connectionHandlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets);
+			ActorRef connectionHandler = getContext().actorOf(connectionHandlerProps);
+			
+			getSender().tell(TcpMessage.register(connectionHandler), getSelf());
 		} else {
 			unhandled(msg);
 		}

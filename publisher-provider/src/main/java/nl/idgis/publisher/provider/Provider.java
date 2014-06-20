@@ -23,6 +23,7 @@ public class Provider extends UntypedActor {
 	public void preStart() {
 		actors = new HashMap<String, ActorRef>();
 		actors.put("provider", getSelf());
+		actors.put("metadata", getContext().actorOf(Props.create(Metadata.class)));
 		
 		connect();
 	}
