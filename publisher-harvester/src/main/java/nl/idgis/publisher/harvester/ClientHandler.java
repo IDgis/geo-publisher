@@ -5,6 +5,8 @@ import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.Message;
 import nl.idgis.publisher.protocol.metadata.EndOfList;
 import nl.idgis.publisher.protocol.metadata.GetList;
+import nl.idgis.publisher.protocol.metadata.Item;
+import nl.idgis.publisher.protocol.metadata.NextItem;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -65,6 +67,10 @@ public class ClientHandler extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Harvest) {
 					log.debug("already harvesting");
+				} else if(msg instanceof Item) {
+					log.debug("item harvested: " + msg);
+					
+					getSender().tell(new Message("metadata", new NextItem()), getSelf());
 				} else if(msg instanceof EndOfList) {
 					log.debug("harvesting finished");
 					
