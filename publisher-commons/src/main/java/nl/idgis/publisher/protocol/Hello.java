@@ -18,6 +18,6 @@ public class Hello implements Serializable {
 
 	@Override
 	public String toString() {
-		return "ClientHello [name=" + name + "]";
+		return "Hello [name=" + name + "]";
 	}
 }

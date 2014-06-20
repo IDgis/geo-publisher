@@ -1,22 +1,28 @@
 package nl.idgis.publisher.harvester;
 
-import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.Map;
 
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.Message;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.io.Tcp;
-import akka.io.TcpMessage;
 
 public class Harvester extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	@Override
+	public void preStart() {
+		Map<String, ActorRef> actors = Collections.singletonMap("harvester", getSelf());
+		
+		Props serverProps = Props.create(Server.class, actors);		
+		getContext().actorOf(serverProps, "server");
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -27,22 +33,5 @@ public class Harvester extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
-	}
-
-	public static void main(String[] args) {
-		final ActorSystem actorSystem = ActorSystem.create("harvester");
-
-		final ActorRef harvester = actorSystem.actorOf(
-				Props.create(Harvester.class), "harvester");
-		final ActorRef server = actorSystem.actorOf(
-				Props.create(Server.class,
-						Collections.singletonMap("harvester", harvester)),
-				"server");
-
-		final ActorRef tcp = Tcp.get(actorSystem).manager();
-		tcp.tell(TcpMessage.bind(server, new InetSocketAddress(2014), 100),
-				server);
-
-		actorSystem.log().debug("started");
 	}
 }

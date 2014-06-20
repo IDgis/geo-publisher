@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionHandler;
@@ -10,6 +11,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
+import akka.io.Tcp;
 import akka.io.TcpMessage;
 
 public class Server extends UntypedActor {
@@ -20,20 +22,26 @@ public class Server extends UntypedActor {
 	public Server(Map<String, ActorRef> targets) {
 		this.targets = targets;
 	}
+	
+	@Override
+	public void preStart() {
+		final ActorRef tcp = Tcp.get(getContext().system()).manager();
+		tcp.tell(TcpMessage.bind(getSelf(), new InetSocketAddress(2014), 100), getSelf());
+	}
 
 	@Override
 	public void onReceive(final Object msg) throws Exception {
 		if (msg instanceof CommandFailed) {
+			log.error(msg.toString());
+			
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
-			final ActorRef connection = getSender();
-
 			log.debug("client connected");
-
-			final ActorRef handler = getContext().actorOf(
-					Props.create(ConnectionHandler.class, connection, targets),
-					"handler");
-			connection.tell(TcpMessage.register(handler), getSelf());
+			
+			Props handlerProps = Props.create(ConnectionHandler.class, getSender(), targets);
+			final ActorRef handler = getContext().actorOf(handlerProps, "handler");
+			
+			getSender().tell(TcpMessage.register(handler), getSelf());
 		} else {
 			unhandled(msg);
 		}
