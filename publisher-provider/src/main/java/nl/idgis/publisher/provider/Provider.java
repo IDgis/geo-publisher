@@ -5,6 +5,8 @@ import java.util.Map;
 
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.Message;
+import nl.idgis.publisher.provider.messages.CreateConnection;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -18,6 +20,7 @@ public class Provider extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private Map<String, ActorRef> actors;
+	private ActorRef client;
 	
 	@Override
 	public void preStart() {
@@ -25,14 +28,9 @@ public class Provider extends UntypedActor {
 		actors.put("provider", getSelf());
 		actors.put("metadata", getContext().actorOf(Props.create(Metadata.class)));
 		
-		connect();
-	}
-	
-	private void connect() {
-		log.debug("connecting");		
-		
-		final Props clientProps = Props.create(Client.class, getSelf(), actors);		
-		getContext().actorOf(clientProps, "client");
+		Props clientProps = Props.create(Client.class, getSelf(), actors);		
+		client = getContext().actorOf(clientProps, "client");		
+		client.tell(new CreateConnection(), getSelf());
 	}
 
 	@Override
@@ -46,7 +44,7 @@ public class Provider extends UntypedActor {
 		} else if (msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
 			
-			connect();
+			client.tell(new CreateConnection(), getSelf());					
 		} else {
 			unhandled(msg);
 		}

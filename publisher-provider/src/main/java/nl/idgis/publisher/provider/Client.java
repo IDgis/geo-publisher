@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionHandler;
+import nl.idgis.publisher.provider.messages.CreateConnection;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -27,14 +28,13 @@ public class Client extends UntypedActor {
 	}
 	
 	@Override
-	public void preStart() {
-		final ActorRef tcp = Tcp.get(getContext().system()).manager();
-		tcp.tell(TcpMessage.connect(new InetSocketAddress("localhost", 2014)), getSelf());
-	}
-
-	@Override
 	public void onReceive(Object msg) throws Exception {
-		if (msg instanceof CommandFailed) {
+		if (msg instanceof CreateConnection) {
+			log.debug("connecting");
+			
+			ActorRef tcp = Tcp.get(getContext().system()).manager();
+			tcp.tell(TcpMessage.connect(new InetSocketAddress("localhost", 2014)), getSelf());
+		} else if (msg instanceof CommandFailed) {
 			log.error(msg.toString());
 			
 			getContext().stop(getSelf());
