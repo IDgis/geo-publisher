@@ -1,9 +1,8 @@
 package nl.idgis.publisher.provider;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
 
-import nl.idgis.publisher.protocol.ConnectionHandler;
+import nl.idgis.publisher.protocol.MessageProtocolHandler;
 import nl.idgis.publisher.provider.messages.CreateConnection;
 
 import akka.actor.ActorRef;
@@ -11,9 +10,9 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.io.Tcp;
 import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
-import akka.io.Tcp;
 import akka.io.TcpMessage;
 
 public class Client extends UntypedActor {
@@ -21,15 +20,13 @@ public class Client extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private final ActorRef listener;
-	private final Map<String, ActorRef> targets;
 
-	public Client(ActorRef listener, Map<String, ActorRef> targets) {
-		this.listener = listener;
-		this.targets = targets;
+	public Client(ActorRef listener) {
+		this.listener = listener;		
 	}
 	
-	public static Props props(ActorRef listener, Map<String, ActorRef> targets) {
-		return Props.create(Client.class, listener, targets);
+	public static Props props(ActorRef listener) {
+		return Props.create(Client.class, listener);
 	}
 	
 	@Override
@@ -46,9 +43,9 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("connected");
 			
-			final ActorRef handler = getContext().actorOf(ConnectionHandler.props(getSender(), listener, targets), "handler");
+			final ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "handler");
 			getSender().tell(TcpMessage.register(handler), getSelf());
 			listener.tell(msg, handler);
-		}
+		} 
 	}
 }

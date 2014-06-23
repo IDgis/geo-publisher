@@ -6,6 +6,8 @@ import java.util.Map;
 
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.Message;
+import nl.idgis.publisher.protocol.MessageDispatcher;
+import nl.idgis.publisher.protocol.MessagePackager;
 import nl.idgis.publisher.provider.messages.CreateConnection;
 
 import akka.actor.ActorRef;
@@ -19,16 +21,11 @@ public class Provider extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private Map<String, ActorRef> actors;
-	private ActorRef client;
+	private ActorRef client, dispatcher;
 	
 	@Override
-	public void preStart() {
-		actors = new HashMap<String, ActorRef>();
-		actors.put("provider", getSelf());
-		actors.put("metadata", getContext().actorOf(Metadata.props(new File("."))));
-				
-		client = getContext().actorOf(Client.props(getSelf(), actors), "client");		
+	public void preStart() {		
+		client = getContext().actorOf(Client.props(getSelf()), "client");		
 		client.tell(new CreateConnection(), getSelf());
 	}
 
@@ -37,13 +34,27 @@ public class Provider extends UntypedActor {
 		if (msg instanceof Connected) {
 			log.debug("connected");
 			
-			getSender().tell(new Message("harvester", new Hello("My data provider")), getSelf());			
+			ActorRef remoteHarvester = getContext().actorOf(MessagePackager.props("harvester", getSender()));
+			
+			Map<String, ActorRef> localActors = new HashMap<String, ActorRef>();
+			localActors.put("provider", getSelf());
+			localActors.put("metadata", getContext().actorOf(Metadata.props(new File("."), remoteHarvester)));
+			
+			dispatcher = getContext().actorOf(MessageDispatcher.props(localActors));
+			
+			remoteHarvester.tell(new Hello("My data provider"), getSelf());			
 		} else if (msg instanceof Hello) {
 			log.debug(msg.toString());
 		} else if (msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
 			
-			client.tell(new CreateConnection(), getSelf());					
+			client.tell(new CreateConnection(), getSelf());
+		} else if (msg instanceof Message) {
+			if(dispatcher == null) {
+				throw new IllegalStateException("Not connected");
+			}
+			
+			dispatcher.tell(msg, getSender());
 		} else {
 			unhandled(msg);
 		}

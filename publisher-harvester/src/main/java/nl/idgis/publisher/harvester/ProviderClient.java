@@ -2,7 +2,6 @@ package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.protocol.Message;
 import nl.idgis.publisher.protocol.metadata.EndOfList;
 import nl.idgis.publisher.protocol.metadata.GetList;
 import nl.idgis.publisher.protocol.metadata.Item;
@@ -16,18 +15,19 @@ import akka.event.LoggingAdapter;
 import akka.io.Tcp.ConnectionClosed;
 import akka.japi.Procedure;
 
-public class ClientHandler extends UntypedActor {
+public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private ActorRef connection;
+	private final ActorRef provider, metadata;
 	
-	public ClientHandler() {
-		
+	public ProviderClient(ActorRef provider, ActorRef metadata) {
+		this.provider = provider;
+		this.metadata = metadata;
 	}
 	
-	public static Props props() {
-		return Props.create(ClientHandler.class);
+	public static Props props(ActorRef provider, ActorRef metadata) {
+		return Props.create(ProviderClient.class, provider, metadata);
 	}
 
 	@Override
@@ -35,8 +35,7 @@ public class ClientHandler extends UntypedActor {
 		if(msg instanceof Hello) {
 			log.debug(msg.toString());
 			
-			connection = getSender();			
-			connection.tell(new Message("provider", new Hello("My data harvester")), getSelf());
+			provider.tell(new Hello("My data harvester"), getSelf());
 			getContext().become(active(), false);
 		} else {
 			defaultActions(msg);
@@ -61,7 +60,7 @@ public class ClientHandler extends UntypedActor {
 				if(msg instanceof Harvest) {
 					log.debug("harvesting started");
 					
-					connection.tell(new Message("metadata", new GetList()), getSelf());			
+					metadata.tell(new GetList(), getSelf());			
 					getContext().become(harvesting(), false);
 				} else {
 					defaultActions(msg);
@@ -80,7 +79,7 @@ public class ClientHandler extends UntypedActor {
 				} else if(msg instanceof Item) {
 					log.debug("item harvested: " + msg);
 					
-					getSender().tell(new Message("metadata", new NextItem()), getSelf());
+					metadata.tell(new NextItem(), getSelf());
 				} else if(msg instanceof EndOfList) {
 					log.debug("harvesting finished");
 					

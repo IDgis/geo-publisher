@@ -1,9 +1,9 @@
 package nl.idgis.publisher.protocol;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 
 import nl.idgis.publisher.protocol.Message;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -16,24 +16,22 @@ import akka.serialization.Serialization;
 import akka.serialization.SerializationExtension;
 import akka.util.ByteString;
 
-public class ConnectionHandler extends UntypedActor {
+public class MessageProtocolHandler extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	private final Serialization serialization = SerializationExtension.get(getContext().system());
 	
-	private final ActorRef connection, listener;
-	private final Map<String, ActorRef> targets;
+	private final ActorRef connection, listener;	
 	
 	private ByteString data = ByteString.empty();
 	
-	public ConnectionHandler(ActorRef connection, ActorRef listener, Map<String, ActorRef> targets) {
+	public MessageProtocolHandler(ActorRef connection, ActorRef listener) {
 		this.connection = connection;
-		this.listener = listener;
-		this.targets = targets;	
+		this.listener = listener;	
 	}
 	
-	public static Props props(ActorRef connection, ActorRef listener, Map<String, ActorRef> targets) {
-		return Props.create(ConnectionHandler.class, connection, listener, targets);
+	public static Props props(ActorRef connection, ActorRef listener) {
+		return Props.create(MessageProtocolHandler.class, connection, listener);
 	}
 
 	@Override
@@ -51,16 +49,10 @@ public class ConnectionHandler extends UntypedActor {
 					data = data.drop(4);
 					ByteString message = data.take(length);
 					
-					Message receivedMessage = serialization.deserialize(message.toArray(), Message.class).get();
-					
+					Message receivedMessage = serialization.deserialize(message.toArray(), Message.class).get();					
 					log.debug("message received: "+ receivedMessage);
 					
-					final String targetName = receivedMessage.getTargetName();
-					if(targets.containsKey(targetName)) {
-						targets.get(targetName).tell(receivedMessage.getContent(), getSelf());
-					} else {
-						throw new IllegalArgumentException("Unknown target: " + targetName);
-					}
+					listener.tell(receivedMessage, getSelf());
 					
 					data = data.drop(length);
 				}

@@ -4,12 +4,12 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import nl.idgis.publisher.protocol.Message;
 import nl.idgis.publisher.protocol.metadata.EndOfList;
 import nl.idgis.publisher.protocol.metadata.GetList;
 import nl.idgis.publisher.protocol.metadata.Item;
 import nl.idgis.publisher.protocol.metadata.NextItem;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -20,19 +20,21 @@ public class Metadata extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final File metadataDirectory;
+	private final ActorRef harvester;
 	
 	private Iterator<File> fileIterator;
 	
-	public Metadata(File metadataDirectory) {
+	public Metadata(File metadataDirectory, ActorRef harvester) {
 		if(!metadataDirectory.isDirectory()) {
 			throw new IllegalArgumentException("metadataDirectory is not a directory");
 		}
 		
 		this.metadataDirectory = metadataDirectory;
+		this.harvester = harvester;
 	}
 	
-	public static Props props(File metadataDirectory) {
-		return Props.create(Metadata.class, metadataDirectory);
+	public static Props props(File metadataDirectory, ActorRef harvester) {
+		return Props.create(Metadata.class, metadataDirectory, harvester);
 	}
 
 	@Override
@@ -60,15 +62,11 @@ public class Metadata extends UntypedActor {
 			throw new IllegalStateException("fileIterator == null");
 		}
 		
-		final Object response;
 		if(fileIterator.hasNext()) {			
-			response = new Item(fileIterator.next().getName());			
+			harvester.tell(new Item(fileIterator.next().getName()), getSelf());			
 		} else {
-			response = new EndOfList();
+			harvester.tell(new EndOfList(), getSelf());
 			fileIterator = null;
 		}
-		
-		log.debug("sending next item response");		
-		getSender().tell(new Message("harvester", response), getSelf());
 	}
 }

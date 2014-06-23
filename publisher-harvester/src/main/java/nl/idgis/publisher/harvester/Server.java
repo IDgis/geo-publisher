@@ -1,10 +1,8 @@
 package nl.idgis.publisher.harvester;
 
 import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.Map;
 
-import nl.idgis.publisher.protocol.ConnectionHandler;
+import nl.idgis.publisher.protocol.MessageProtocolHandler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -17,18 +15,19 @@ import akka.io.Tcp.Connected;
 import akka.io.TcpMessage;
 
 public class Server extends UntypedActor {
-
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	private final ActorRef listener;
 	
 	private long clientCount = 0;
+
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	public Server(ActorRef listener) {
-		this.listener = listener;		
+	private final Props listenerProps;
+	
+	public Server(Props listenerProps) {
+		this.listenerProps = listenerProps;
 	}
 	
-	public static Props props(ActorRef listener) {
-		return Props.create(Server.class, listener);
+	public static Props props(Props listenerProps) {
+		return Props.create(Server.class, listenerProps);
 	}
 	
 	@Override
@@ -46,11 +45,10 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			ActorRef clientHandler = getContext().actorOf(ClientHandler.props(), "client" + clientCount++);
-			
-			Map<String, ActorRef> targets = Collections.singletonMap("harvester", clientHandler);			
-			ActorRef connectionHandler = getContext().actorOf(ConnectionHandler.props(getSender(), listener, targets));			
-			getSender().tell(TcpMessage.register(connectionHandler), getSelf());
+			ActorRef listener = getContext().actorOf(listenerProps, "client" + clientCount++);
+			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "handler");
+			getSender().tell(TcpMessage.register(handler), getSelf());
+			listener.tell(msg, handler);
 		} else {
 			unhandled(msg);
 		}
