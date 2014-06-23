@@ -5,6 +5,7 @@ import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionHandler;
 import nl.idgis.publisher.provider.messages.CreateConnection;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -27,6 +28,10 @@ public class Client extends UntypedActor {
 		this.targets = targets;
 	}
 	
+	public static Props props(ActorRef listener, Map<String, ActorRef> targets) {
+		return Props.create(Client.class, listener, targets);
+	}
+	
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof CreateConnection) {
@@ -39,11 +44,9 @@ public class Client extends UntypedActor {
 			
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
-			log.debug("connected");			
+			log.debug("connected");
 			
-			final Props handlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets); 
-			final ActorRef handler = getContext().actorOf(handlerProps, "handler");
-
+			final ActorRef handler = getContext().actorOf(ConnectionHandler.props(getSender(), listener, targets), "handler");
 			getSender().tell(TcpMessage.register(handler), getSelf());
 			listener.tell(msg, handler);
 		}

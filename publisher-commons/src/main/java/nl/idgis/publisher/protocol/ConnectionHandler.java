@@ -5,6 +5,7 @@ import java.util.Map;
 
 import nl.idgis.publisher.protocol.Message;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -29,6 +30,10 @@ public class ConnectionHandler extends UntypedActor {
 		this.connection = connection;
 		this.listener = listener;
 		this.targets = targets;	
+	}
+	
+	public static Props props(ActorRef connection, ActorRef listener, Map<String, ActorRef> targets) {
+		return Props.create(ConnectionHandler.class, connection, listener, targets);
 	}
 
 	@Override

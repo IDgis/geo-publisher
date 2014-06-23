@@ -7,7 +7,9 @@ import nl.idgis.publisher.protocol.metadata.EndOfList;
 import nl.idgis.publisher.protocol.metadata.GetList;
 import nl.idgis.publisher.protocol.metadata.Item;
 import nl.idgis.publisher.protocol.metadata.NextItem;
+
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -19,6 +21,14 @@ public class ClientHandler extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private ActorRef connection;
+	
+	public ClientHandler() {
+		
+	}
+	
+	public static Props props() {
+		return Props.create(ClientHandler.class);
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {

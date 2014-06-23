@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionHandler;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -26,6 +27,10 @@ public class Server extends UntypedActor {
 		this.listener = listener;		
 	}
 	
+	public static Props props(ActorRef listener) {
+		return Props.create(Server.class, listener);
+	}
+	
 	@Override
 	public void preStart() {
 		final ActorRef tcp = Tcp.get(getContext().system()).manager();
@@ -41,14 +46,10 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			Props clientHandlerProps = Props.create(ClientHandler.class);
-			ActorRef clientHandler = getContext().actorOf(clientHandlerProps, "client" + clientCount++);
+			ActorRef clientHandler = getContext().actorOf(ClientHandler.props(), "client" + clientCount++);
 			
 			Map<String, ActorRef> targets = Collections.singletonMap("harvester", clientHandler);			
-
-			Props connectionHandlerProps = Props.create(ConnectionHandler.class, getSender(), listener, targets);
-			ActorRef connectionHandler = getContext().actorOf(connectionHandlerProps);
-			
+			ActorRef connectionHandler = getContext().actorOf(ConnectionHandler.props(getSender(), listener, targets));			
 			getSender().tell(TcpMessage.register(connectionHandler), getSelf());
 		} else {
 			unhandled(msg);

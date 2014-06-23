@@ -7,8 +7,8 @@ import java.util.Map;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.Message;
 import nl.idgis.publisher.provider.messages.CreateConnection;
+
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -27,9 +27,8 @@ public class Provider extends UntypedActor {
 		actors = new HashMap<String, ActorRef>();
 		actors.put("provider", getSelf());
 		actors.put("metadata", getContext().actorOf(Metadata.props(new File("."))));
-		
-		Props clientProps = Props.create(Client.class, getSelf(), actors);		
-		client = getContext().actorOf(clientProps, "client");		
+				
+		client = getContext().actorOf(Client.props(getSelf(), actors), "client");		
 		client.tell(new CreateConnection(), getSelf());
 	}
 

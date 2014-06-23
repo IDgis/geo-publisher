@@ -2,7 +2,9 @@ package nl.idgis.publisher.harvester;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -19,6 +21,10 @@ public class Initiator extends UntypedActor {
 		this.path = path;
 		this.interval = interval;
 		this.message = message;
+	}
+	
+	public static Props props(String path, FiniteDuration interval, Object message) {
+		return Props.create(Initiator.class, path, interval, message);
 	}
 	
 	@Override
