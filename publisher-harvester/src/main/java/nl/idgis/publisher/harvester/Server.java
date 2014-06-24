@@ -45,10 +45,12 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			ActorRef listener = getContext().actorOf(listenerProps, "client" + clientCount++);
-			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "handler");
+			ActorRef listener = getContext().actorOf(listenerProps, "client" + clientCount);
+			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "handler" + clientCount);
 			getSender().tell(TcpMessage.register(handler), getSelf());
 			listener.tell(msg, handler);
+			
+			clientCount++;
 		} else {
 			unhandled(msg);
 		}

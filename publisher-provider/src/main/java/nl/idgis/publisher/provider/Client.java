@@ -3,8 +3,8 @@ package nl.idgis.publisher.provider;
 import java.net.InetSocketAddress;
 
 import nl.idgis.publisher.protocol.MessageProtocolHandler;
-import nl.idgis.publisher.provider.messages.CreateConnection;
-
+import nl.idgis.publisher.provider.messages.ConnectFailed;
+import nl.idgis.publisher.provider.messages.Connect;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -19,31 +19,33 @@ public class Client extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	private final ActorRef listener;
+	private final ActorRef app;
+	private final Props listenerProps;
 
-	public Client(ActorRef listener) {
-		this.listener = listener;		
+	public Client(ActorRef app, Props listenerProps) {
+		this.app = app;
+		this.listenerProps = listenerProps;		
 	}
 	
-	public static Props props(ActorRef listener) {
-		return Props.create(Client.class, listener);
+	public static Props props(ActorRef app, Props listenerProps) {
+		return Props.create(Client.class, app, listenerProps);
 	}
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if (msg instanceof CreateConnection) {
+		if (msg instanceof Connect) {
 			log.debug("connecting");
 			
 			ActorRef tcp = Tcp.get(getContext().system()).manager();
 			tcp.tell(TcpMessage.connect(new InetSocketAddress("localhost", 2014)), getSelf());
 		} else if (msg instanceof CommandFailed) {
 			log.error(msg.toString());
-			
-			getContext().stop(getSelf());
+			app.tell(new ConnectFailed((CommandFailed) msg), getSelf());
 		} else if (msg instanceof Connected) {
 			log.debug("connected");
 			
-			final ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "handler");
+			ActorRef listener = getContext().actorOf(listenerProps);
+			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener));
 			getSender().tell(TcpMessage.register(handler), getSelf());
 			listener.tell(msg, handler);
 		} 
