@@ -3,9 +3,8 @@ package nl.idgis.publisher.harvester;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
-
+import nl.idgis.publisher.utils.Initiator;
 import scala.concurrent.duration.Duration;
-
 import akka.actor.UntypedActor;
 
 public class Harvester extends UntypedActor {

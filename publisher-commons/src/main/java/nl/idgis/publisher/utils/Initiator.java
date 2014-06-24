@@ -1,4 +1,4 @@
-package nl.idgis.publisher.harvester;
+package nl.idgis.publisher.utils;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
