@@ -46,9 +46,9 @@ public class Metadata extends
 	}
 
 	@Override
-	protected void next(Iterator<File> i, StreamHandle<MetadataItem> handle) throws Exception {
-		File file = i.next();		
-		AsynchronousFileChannel channel = AsynchronousFileChannel.open(file
+	protected void next(Iterator<File> i, final StreamHandle<MetadataItem> handle) throws Exception {
+		final File file = i.next();		
+		final AsynchronousFileChannel channel = AsynchronousFileChannel.open(file
 				.toPath());
 
 		ByteBuffer bytes = ByteBuffer.allocate(8192);
