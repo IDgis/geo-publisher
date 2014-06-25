@@ -17,20 +17,24 @@ public class Database extends StreamProvider<ResultSet, FetchTable, Record> {
 	
 	private Connection connection;
 	
-	private final String url, user, password;
+	private final String driver, url, user, password;
 	
-	public Database(String url, String user, String password) {
+	public Database(String driver, String url, String user, String password) {
+		this.driver = driver;
 		this.url = url;
 		this.user = user;
 		this.password = password;
 	}
 	
-	public static Props props(String url, String user, String password) {
-		return Props.create(Database.class, url, user, password);
+	public static Props props(String driver, String url, String user, String password) {
+		return Props.create(Database.class, driver, url, user, password);
 	}
 	
 	@Override
-	public void preStart() throws SQLException {
+	public void preStart() throws SQLException, ClassNotFoundException {
+		if(driver != null) {
+			Class.forName(driver);
+		}
 		connection = DriverManager.getConnection(url, user, password);
 	}
 	

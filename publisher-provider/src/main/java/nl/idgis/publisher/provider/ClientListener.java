@@ -31,7 +31,15 @@ public class ClientListener extends ConnectionListener {
 
 		Config database = config.getConfig("database");
 		ActorBuilder databaseBuilder = addActor("database");
-		databaseBuilder.actorOf(Database.props(database.getString("url"),
+		
+		String driver;
+		if(database.hasPath("driver")) {
+			driver = database.getString("driver");
+		} else {
+			driver = null;
+		}
+		
+		databaseBuilder.actorOf(Database.props(driver, database.getString("url"),
 				database.getString("user"), database.getString("password")));
 
 		LocalActorRef providerRef = addActor("provider", app);
