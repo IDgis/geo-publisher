@@ -1,33 +1,33 @@
 package nl.idgis.publisher.protocol.stream;
 
-import java.util.Iterator;
-
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.japi.Procedure;
 
-public abstract class StreamProvider<T, U extends Iterator<T>, V extends Start, W extends Item>
+public abstract class StreamProvider<T, U extends Start, V extends Item>
 		extends UntypedActor {
 
-	protected abstract U start(V msg);
+	protected abstract T start(U msg);
 
-	protected void stop(U i) {
+	protected void stop(T i) {
 		
 	}
+	
+	protected abstract boolean hasNext(T u);
 
-	protected abstract void process(T t, StreamHandle<W> handle) throws Exception;
+	protected abstract void next(T u, StreamHandle<V> handle) throws Exception;
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public final void onReceive(Object msg) throws Exception {
 		if (msg instanceof Start) {
-			getContext().become(active(start((V) msg)), false);
+			getContext().become(active(start((U) msg)), false);
 		} else {
 			unhandled(msg);
 		}
 	}
 
-	private Procedure<Object> active(final U i) {
+	private Procedure<Object> active(final T i) {
 		return new Procedure<Object>() {
 			
 			{
@@ -35,14 +35,14 @@ public abstract class StreamProvider<T, U extends Iterator<T>, V extends Start, 
 			}
 
 			void nextItem() {
-				if (i.hasNext()) {
+				if (hasNext(i)) {
 					try {
-						process(i.next(), new StreamHandle<W>() {
+						next(i, new StreamHandle<V>() {
 							
 							private final ActorRef sender = getSender();
 
 							@Override
-							public void item(W t) {
+							public void item(V t) {
 								sender.tell(t, getSelf());
 							}
 							

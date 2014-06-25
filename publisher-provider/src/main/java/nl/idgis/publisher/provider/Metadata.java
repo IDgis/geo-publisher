@@ -23,7 +23,7 @@ import com.fasterxml.aalto.AsyncXMLInputFactory;
 import com.fasterxml.aalto.AsyncXMLStreamReader;
 
 public class Metadata extends
-		StreamProvider<File, Iterator<File>, GetMetadata, MetadataItem> {
+		StreamProvider<Iterator<File>, GetMetadata, MetadataItem> {
 
 	private final File metadataDirectory;
 
@@ -46,7 +46,8 @@ public class Metadata extends
 	}
 
 	@Override
-	protected void process(File file, StreamHandle<MetadataItem> handle) throws Exception {
+	protected void next(Iterator<File> i, StreamHandle<MetadataItem> handle) throws Exception {
+		File file = i.next();		
 		AsynchronousFileChannel channel = AsynchronousFileChannel.open(file
 				.toPath());
 
@@ -125,5 +126,10 @@ public class Metadata extends
 		};
 
 		channel.read(bytes, 0, bytes, handler);
+	}
+
+	@Override
+	protected boolean hasNext(Iterator<File> u) { 
+		return u.hasNext();
 	}
 }
