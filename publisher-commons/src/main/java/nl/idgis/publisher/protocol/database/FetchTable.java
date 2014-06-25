@@ -2,7 +2,9 @@ package nl.idgis.publisher.protocol.database;
 
 import java.io.Serializable;
 
-public class FetchTable implements Serializable {
+import nl.idgis.publisher.protocol.stream.Start;
+
+public class FetchTable extends Start implements Serializable {
 	
 	private static final long serialVersionUID = 3870743003841842250L;
 	

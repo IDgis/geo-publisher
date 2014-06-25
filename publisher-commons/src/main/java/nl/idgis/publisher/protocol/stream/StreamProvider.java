@@ -7,13 +7,13 @@ import akka.japi.Procedure;
 public abstract class StreamProvider<T, U extends Start, V extends Item>
 		extends UntypedActor {
 
-	protected abstract T start(U msg);
+	protected abstract T start(U msg) throws Exception;
 
-	protected void stop(T i) {
+	protected void stop(T i) throws Exception {
 		
 	}
 	
-	protected abstract boolean hasNext(T u);
+	protected abstract boolean hasNext(T u) throws Exception;
 
 	protected abstract void next(T u, StreamHandle<V> handle) throws Exception;
 
@@ -27,14 +27,14 @@ public abstract class StreamProvider<T, U extends Start, V extends Item>
 		}
 	}
 
-	private Procedure<Object> active(final T i) {
+	private Procedure<Object> active(final T i) throws Exception {
 		return new Procedure<Object>() {
 			
 			{
 				nextItem();
 			}
 
-			void nextItem() {
+			void nextItem() throws Exception {
 				if (hasNext(i)) {
 					try {
 						next(i, new StreamHandle<V>() {
@@ -57,6 +57,7 @@ public abstract class StreamProvider<T, U extends Start, V extends Item>
 						getContext().unbecome();
 					}
 				} else {
+					stop(i);
 					getSender().tell(new End(), getSelf());
 					getContext().unbecome();
 				}
