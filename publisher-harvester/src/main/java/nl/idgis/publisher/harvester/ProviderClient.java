@@ -3,10 +3,10 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.metadata.EndOfList;
+import nl.idgis.publisher.protocol.metadata.Failure;
 import nl.idgis.publisher.protocol.metadata.GetList;
 import nl.idgis.publisher.protocol.metadata.Item;
 import nl.idgis.publisher.protocol.metadata.NextItem;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -82,6 +82,10 @@ public class ProviderClient extends UntypedActor {
 					metadata.tell(new NextItem(), getSelf());
 				} else if(msg instanceof EndOfList) {
 					log.debug("harvesting finished");
+					
+					getContext().unbecome();
+				} else if(msg instanceof Failure) {
+					log.error(msg.toString());
 					
 					getContext().unbecome();
 				} else {
