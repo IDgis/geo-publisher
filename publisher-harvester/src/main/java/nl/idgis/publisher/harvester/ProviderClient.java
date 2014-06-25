@@ -1,7 +1,11 @@
 package nl.idgis.publisher.harvester;
 
+import com.typesafe.config.Config;
+
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
+import nl.idgis.publisher.protocol.database.FetchTable;
+import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.protocol.stream.End;
@@ -19,15 +23,18 @@ public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef provider, metadata;
+	private final ActorRef metadata, database;
 	
-	public ProviderClient(ActorRef provider, ActorRef metadata) {
-		this.provider = provider;
+	private final Config conf;
+	
+	public ProviderClient(ActorRef metadata, ActorRef database, Config conf) {		
 		this.metadata = metadata;
+		this.database = database;
+		this.conf = conf;
 	}
 	
-	public static Props props(ActorRef provider, ActorRef metadata) {
-		return Props.create(ProviderClient.class, provider, metadata);
+	public static Props props(ActorRef metadata, ActorRef database, Config conf) {
+		return Props.create(ProviderClient.class, metadata, database, conf);
 	}
 
 	@Override
@@ -35,7 +42,7 @@ public class ProviderClient extends UntypedActor {
 		if(msg instanceof Hello) {
 			log.debug(msg.toString());
 			
-			provider.tell(new Hello("My data harvester"), getSelf());
+			getSender().tell(new Hello("My data harvester"), getSelf());
 			getContext().become(active(), false);
 		} else {
 			defaultActions(msg);
@@ -69,6 +76,27 @@ public class ProviderClient extends UntypedActor {
 		};
 	}
 	
+	private Procedure<Object> receivingData() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Record) {
+					log.debug("record received");
+					
+					database.tell(new NextItem(), getSelf());
+				} else if(msg instanceof End) {
+					log.debug("data retrieval finished");
+					
+					metadata.tell(new NextItem(), getSelf());					
+					getContext().unbecome();
+				} else {
+					unhandled(msg);
+				}
+			}			
+		};
+	}
+	
 	private Procedure<Object> harvesting() {
 		return new Procedure<Object>() {
 
@@ -79,7 +107,8 @@ public class ProviderClient extends UntypedActor {
 				} else if(msg instanceof MetadataItem) {
 					log.debug("item harvested: " + msg);
 					
-					metadata.tell(new NextItem(), getSelf());
+					database.tell(new FetchTable(conf.getString("tableName")), getSelf());
+					getContext().become(receivingData(), false);
 				} else if(msg instanceof End) {
 					log.debug("harvesting finished");
 					

@@ -34,10 +34,12 @@ public class Client extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof Connect) {
-			log.debug("connecting");
+			InetSocketAddress address = ((Connect) msg).getAddress();
+			
+			log.debug("connecting to " + address);
 			
 			ActorRef tcp = Tcp.get(getContext().system()).manager();
-			tcp.tell(TcpMessage.connect(new InetSocketAddress("localhost", 2014)), getSelf());
+			tcp.tell(TcpMessage.connect(address), getSelf());
 		} else if (msg instanceof CommandFailed) {
 			log.error(msg.toString());
 			app.tell(new ConnectFailed((CommandFailed) msg), getSelf());

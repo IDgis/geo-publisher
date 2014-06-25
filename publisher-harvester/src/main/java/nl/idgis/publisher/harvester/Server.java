@@ -21,19 +21,22 @@ public class Server extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Props listenerProps;
+
+	private int harvesterPort;
 	
-	public Server(Props listenerProps) {
+	public Server(Props listenerProps, int harvesterPort) {
 		this.listenerProps = listenerProps;
+		this.harvesterPort = harvesterPort;
 	}
 	
-	public static Props props(Props listenerProps) {
-		return Props.create(Server.class, listenerProps);
+	public static Props props(Props listenerProps, int harvesterPort) {
+		return Props.create(Server.class, listenerProps, harvesterPort);
 	}
 	
 	@Override
 	public void preStart() {
 		final ActorRef tcp = Tcp.get(getContext().system()).manager();
-		tcp.tell(TcpMessage.bind(getSelf(), new InetSocketAddress(2014), 100), getSelf());
+		tcp.tell(TcpMessage.bind(getSelf(), new InetSocketAddress(harvesterPort), 100), getSelf());
 	}
 
 	@Override
