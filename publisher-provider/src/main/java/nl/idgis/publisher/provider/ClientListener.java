@@ -1,8 +1,6 @@
 package nl.idgis.publisher.provider;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import nl.idgis.publisher.protocol.ConnectionListener;
 import nl.idgis.publisher.protocol.Hello;
@@ -23,16 +21,12 @@ public class ClientListener extends ConnectionListener {
 	}
 
 	@Override
-	protected Map<String, ActorRef> connected() {
-		ActorRef remoteHarvester = getRemoteRef("harvester");
+	protected void connected() {
+		ActorBuilder metadataBuilder = addActor("metadata");		
+		metadataBuilder.actorOf(Metadata.props(new File(".")));
 		
-		Map<String, ActorRef> localActors = new HashMap<String, ActorRef>();
-		localActors.put("provider", app);
-		localActors.put("metadata", getContext().actorOf(Metadata.props(new File("."), remoteHarvester)));
-		
-		remoteHarvester.tell(new Hello("My data provider"), getSelf());
-
-		return localActors;
+		LocalActorRef providerRef = addActor("provider", app);
+		providerRef.getRemoteRef("harvester").tell(new Hello("My data provider"), getSelf());		
 	}
 
 	@Override

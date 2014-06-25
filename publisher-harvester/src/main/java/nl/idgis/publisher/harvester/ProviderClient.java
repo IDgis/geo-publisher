@@ -2,11 +2,11 @@ package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.protocol.metadata.EndOfList;
-import nl.idgis.publisher.protocol.metadata.Failure;
-import nl.idgis.publisher.protocol.metadata.GetList;
-import nl.idgis.publisher.protocol.metadata.Item;
-import nl.idgis.publisher.protocol.metadata.NextItem;
+import nl.idgis.publisher.protocol.metadata.GetMetadata;
+import nl.idgis.publisher.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.protocol.stream.End;
+import nl.idgis.publisher.protocol.stream.Failure;
+import nl.idgis.publisher.protocol.stream.NextItem;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -60,7 +60,7 @@ public class ProviderClient extends UntypedActor {
 				if(msg instanceof Harvest) {
 					log.debug("harvesting started");
 					
-					metadata.tell(new GetList(), getSelf());			
+					metadata.tell(new GetMetadata(), getSelf());			
 					getContext().become(harvesting(), false);
 				} else {
 					defaultActions(msg);
@@ -76,11 +76,11 @@ public class ProviderClient extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Harvest) {
 					log.debug("already harvesting");
-				} else if(msg instanceof Item) {
+				} else if(msg instanceof MetadataItem) {
 					log.debug("item harvested: " + msg);
 					
 					metadata.tell(new NextItem(), getSelf());
-				} else if(msg instanceof EndOfList) {
+				} else if(msg instanceof End) {
 					log.debug("harvesting finished");
 					
 					getContext().unbecome();

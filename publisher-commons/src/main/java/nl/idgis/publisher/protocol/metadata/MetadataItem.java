@@ -2,13 +2,15 @@ package nl.idgis.publisher.protocol.metadata;
 
 import java.io.Serializable;
 
-public class Item implements Serializable {
+import nl.idgis.publisher.protocol.stream.Item;
+
+public class MetadataItem extends Item implements Serializable {
 	
 	private static final long serialVersionUID = 8571729379042373915L;
 	
 	public final String identification, title;
 	
-	public Item(String identification, String title) {
+	public MetadataItem(String identification, String title) {
 		this.identification = identification;
 		this.title = title;
 	}
@@ -23,7 +25,7 @@ public class Item implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Item [identification=" + identification + ", title=" + title
+		return "MetadataItem [identification=" + identification + ", title=" + title
 				+ "]";
 	}
 }
