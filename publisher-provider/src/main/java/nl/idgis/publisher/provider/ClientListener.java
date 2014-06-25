@@ -25,6 +25,9 @@ public class ClientListener extends ConnectionListener {
 		ActorBuilder metadataBuilder = addActor("metadata");		
 		metadataBuilder.actorOf(Metadata.props(new File(".")));
 		
+		ActorBuilder databaseBuilder = addActor("database");
+		databaseBuilder.actorOf(Database.props());
+		
 		LocalActorRef providerRef = addActor("provider", app);
 		providerRef.getRemoteRef("harvester").tell(new Hello("My data provider"), getSelf());		
 	}
