@@ -4,13 +4,13 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import nl.idgis.publisher.provider.messages.Connect;
+import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
@@ -19,25 +19,32 @@ import akka.event.LoggingAdapter;
 
 public class Provider extends UntypedActor {
 
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(),
-			this);
+	private final Config config;
+	private final LoggingAdapter log;	
 
 	private ActorRef client;
 	private Connect connectMessage;
 
+	public Provider(Config config) {
+		log = Logging.getLogger(getContext().system(), this);
+
+		this.config = config;
+	}
+
 	@Override
 	public void preStart() {
-		Config conf = ConfigFactory.load();
-		
-		Config providerConfig = conf.getConfig("publisher.provider");		
-		
-		Config harvesterConfig = providerConfig.getConfig("harvester");
+		Config harvesterConfig = config.getConfig("harvester");
 		String harvesterHost = harvesterConfig.getString("host");
 		int harvesterPort = harvesterConfig.getInt("port");
-		
-		connectMessage = new Connect(new InetSocketAddress(harvesterHost, harvesterPort));
-		
-		client = getContext().actorOf(Client.props(getSelf(), ClientListener.props(providerConfig, getSelf())), "client");		
+
+		connectMessage = new Connect(new InetSocketAddress(harvesterHost,
+				harvesterPort));
+
+		client = getContext()
+				.actorOf(
+						Client.props(getSelf(),
+								ClientListener.props(config, getSelf())),
+						"client");
 		client.tell(connectMessage, getSelf());
 	}
 
@@ -57,5 +64,9 @@ public class Provider extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	public static void main(String[] args) {
+		Boot.startPublisher("provider", Provider.class);
 	}
 }
