@@ -4,13 +4,13 @@ import java.io.File;
 
 import com.typesafe.config.Config;
 
-import nl.idgis.publisher.protocol.ConnectionListener;
+import nl.idgis.publisher.protocol.MessageListener;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class ClientListener extends ConnectionListener {
+public class ClientListener extends MessageListener {
 
 	private ActorRef app;
 	private Config config;
@@ -25,13 +25,9 @@ public class ClientListener extends ConnectionListener {
 	}
 
 	@Override
-	protected void connected() {
-		ActorBuilder metadataBuilder = addActor("metadata");
-		metadataBuilder.actorOf(Metadata.props(new File(config.getString("metadata.folder"))));
-
+	protected void connected(LocalActorFactory actorFactory) {
 		Config database = config.getConfig("database");
-		ActorBuilder databaseBuilder = addActor("database");
-		
+
 		String driver;
 		if(database.hasPath("driver")) {
 			driver = database.getString("driver");
@@ -39,11 +35,21 @@ public class ClientListener extends ConnectionListener {
 			driver = null;
 		}
 		
-		databaseBuilder.actorOf(Database.props(driver, database.getString("url"),
-				database.getString("user"), database.getString("password")));
+		actorFactory
+			.newActor("metadata")
+			.actorOf(Metadata.props(
+					new File(config.getString("metadata.folder"))))
+			
+			.newActor("database")
+			.actorOf(Database.props(
+					driver, 
+					database.getString("url"),
+					database.getString("user"), 
+					database.getString("password")))
+					
+			.existingActor("provider", app);
 
-		LocalActorRef providerRef = addActor("provider", app);
-		providerRef.getRemoteRef("harvester").tell(
+		actorFactory.getRemoteRef("harvester").tell(
 				new Hello("My data provider"), getSelf());
 	}
 

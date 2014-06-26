@@ -21,6 +21,8 @@ public class Client extends UntypedActor {
 
 	private final ActorRef app;
 	private final Props listenerProps;
+	
+	private long sessionCount = 0;
 
 	public Client(ActorRef app, Props listenerProps) {
 		this.app = app;
@@ -46,10 +48,12 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("connected");
 			
-			ActorRef listener = getContext().actorOf(listenerProps);
-			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener));
+			ActorRef listener = getContext().actorOf(listenerProps, "messageListener" + sessionCount);
+			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(getSender(), listener), "protocolHandler" + sessionCount);
 			getSender().tell(TcpMessage.register(handler), getSelf());
 			listener.tell(msg, handler);
+			
+			sessionCount++;
 		} 
 	}
 }
