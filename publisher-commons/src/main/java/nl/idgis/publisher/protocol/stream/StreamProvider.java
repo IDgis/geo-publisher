@@ -1,8 +1,13 @@
 package nl.idgis.publisher.protocol.stream;
 
+import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
+import akka.dispatch.Mapper;
+import akka.dispatch.OnComplete;
 import akka.japi.Procedure;
+import akka.pattern.Patterns;
 
 public abstract class StreamProvider<T, U extends Start, V extends Item>
 		extends UntypedActor {
@@ -15,7 +20,23 @@ public abstract class StreamProvider<T, U extends Start, V extends Item>
 	
 	protected abstract boolean hasNext(T u) throws Exception;
 
-	protected abstract void next(T u, StreamHandle<V> handle) throws Exception;
+	protected abstract Future<V> next(T u);
+	
+	@SuppressWarnings("unchecked")
+	protected Future<V> askActor(ActorRef actorRef, Object msg, long timeout) {
+		return Patterns.ask(actorRef, msg, timeout).map(new Mapper<Object, V>() {
+			
+			@Override
+			public V checkedApply(Object parameter) throws Throwable {
+				if(parameter instanceof Failure) {
+					throw ((Failure)parameter).getCause();
+				}
+				
+				return (V)parameter;
+			}
+			
+		}, getContext().system().dispatcher());
+	}
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -35,27 +56,20 @@ public abstract class StreamProvider<T, U extends Start, V extends Item>
 			}
 
 			void nextItem() throws Exception {
-				if (hasNext(i)) {
-					try {
-						next(i, new StreamHandle<V>() {
-							
-							private final ActorRef sender = getSender();
+				if (hasNext(i)) {										
+					next(i).onComplete(new OnComplete<V>() {
+						
+						private final ActorRef sender = getSender();
 
-							@Override
-							public void item(V t) {
-								sender.tell(t, getSelf());
+						@Override
+						public void onComplete(Throwable t, V v) throws Throwable {
+							if(t != null) {
+								sender.tell(new Failure(t), sender);
+							} else {
+								sender.tell(v, getSelf());
 							}
-							
-							@Override
-							public void failure(String message) {
-								sender.tell(new Failure(message), sender);
-							}
-						});
-					} catch (Exception e) {
-						getSender()
-								.tell(new Failure(e.getMessage()), getSelf());
-						getContext().unbecome();
-					}
+						}
+					}, getContext().system().dispatcher());
 				} else {
 					stop(i);
 					getSender().tell(new End(), getSelf());

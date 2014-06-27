@@ -6,18 +6,18 @@ public class Failure implements Serializable {
 	
 	private static final long serialVersionUID = -7132830504795101059L;
 	
-	private final String message;
+	private final Throwable cause;
 	
-	public Failure(String message) {
-		this.message = message;
+	public Failure(Throwable cause) {
+		this.cause = cause;
 	}
 	
-	public String getMessage() {
-		return message;
+	public Throwable getCause() {
+		return cause;
 	}
 
 	@Override
 	public String toString() {
-		return "Error [message=" + message + "]";
+		return "Failure [cause=" + cause + "]";
 	}
 }
