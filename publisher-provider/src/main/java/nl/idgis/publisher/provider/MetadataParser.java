@@ -33,9 +33,10 @@ public class MetadataParser extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		final ActorRef sender = getSender();
-		
 		if(msg instanceof File) {
+			getContext().stop(getSelf());
+			
+			final ActorRef sender = getSender();			
 			final File file = (File)msg;
 			final AsynchronousFileChannel channel = AsynchronousFileChannel.open(file.toPath());
 			
@@ -96,22 +97,19 @@ public class MetadataParser extends UntypedActor {
 						}
 
 						if (filePosition == fileLength) {
-							sender.tell(new MetadataItem(file.getName(), title.toString()), getSelf());
-							getContext().stop(getSelf());
+							sender.tell(new MetadataItem(file.getName(), title.toString()), getSelf());							
 						} else {
 							attachment.position(0);
 							channel.read(attachment, filePosition, attachment, this);
 						}
 					} catch (Exception e) {
-						sender.tell(new Failure(e), getSelf());
-						getContext().stop(getSelf());
+						sender.tell(new Failure(e), getSelf());						
 					}
 				}
 
 				@Override
 				public void failed(Throwable t, ByteBuffer attachment) {
-					sender.tell(new Failure(t), getSelf());
-					getContext().stop(getSelf());
+					sender.tell(new Failure(t), getSelf());					
 				}
 			};
 
