@@ -9,8 +9,7 @@ import akka.dispatch.OnComplete;
 import akka.japi.Procedure;
 import akka.pattern.Patterns;
 
-public abstract class StreamProvider<T, U extends Start, V extends Item>
-		extends UntypedActor {
+public abstract class StreamProvider<T, U extends Start, V extends Item> extends UntypedActor {
 
 	protected abstract T start(U msg) throws Exception;
 
