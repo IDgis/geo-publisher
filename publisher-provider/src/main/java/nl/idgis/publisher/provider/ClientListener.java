@@ -12,16 +12,17 @@ import akka.actor.Props;
 
 public class ClientListener extends MessageListener {
 
-	private ActorRef app;
+	private ActorRef app, monitor;
 	private Config config;
 
-	public ClientListener(Config config, ActorRef app) {
+	public ClientListener(Config config, ActorRef app, ActorRef monitor) {
 		this.config = config;
 		this.app = app;
+		this.monitor = monitor;
 	}
 
-	public static Props props(Config config, ActorRef app) {
-		return Props.create(ClientListener.class, config, app);
+	public static Props props(Config config, ActorRef app, ActorRef monitor) {
+		return Props.create(ClientListener.class, config, app, monitor);
 	}
 
 	@Override
@@ -47,9 +48,10 @@ public class ClientListener extends MessageListener {
 					database.getString("user"), 
 					database.getString("password")))
 					
-			.existingActor("provider", app);
-
-		actorFactory.getRemoteRef("harvester").tell(
+			.existingActor("monitor", monitor)
+			.existingActor("provider", app)
+			
+			.getRemoteRef("harvester").tell(
 				new Hello("My data provider"), getSelf());
 	}
 

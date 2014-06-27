@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import nl.idgis.publisher.monitor.messages.GetResources;
+import nl.idgis.publisher.monitor.messages.GetTree;
 import nl.idgis.publisher.monitor.messages.NewResource;
 import nl.idgis.publisher.monitor.messages.ResourceDestroyed;
 import nl.idgis.publisher.monitor.messages.ResourceRef;
@@ -59,6 +60,8 @@ public class Monitor extends UntypedActor {
 			Set<Object> resources =  new HashSet<>(getResourcesOfType(resourceType));
 			
 			getSender().tell(resources, getSender());
+		} else if(msg instanceof GetTree) {
+			getContext().actorSelection("*").tell(msg, getSender());
 		} else {
 			unhandled(msg);
 		}

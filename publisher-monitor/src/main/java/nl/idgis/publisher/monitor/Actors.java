@@ -14,12 +14,12 @@ import nl.idgis.publisher.monitor.messages.Node;
 import nl.idgis.publisher.monitor.messages.ParentNode;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.monitor.messages.ValueNode;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 
 public class Actors extends UntypedActor {
 	
@@ -72,7 +72,10 @@ public class Actors extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GetTree) {
-			monitor.tell(new GetResources(UntypedActor.class), getSelf());
+			Patterns.pipe(
+					Patterns.ask(monitor, new GetResources(UntypedActor.class), 1000),
+					getContext().system().dispatcher())
+				.pipeTo(getSelf(), getSender());
 		} else if(msg instanceof Set) {
 			@SuppressWarnings("unchecked")
 			Set<ActorRef> actorRefs = (Set<ActorRef>)msg;

@@ -7,15 +7,22 @@ import com.typesafe.config.Config;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.Initiator;
+
 import scala.concurrent.duration.Duration;
+
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 public class Harvester extends UntypedActor {
 	
-	private final Config config;
+	private final Config config;	
 
 	public Harvester(Config config) {
-		this.config = config;
+		this.config = config;		
+	}
+	
+	public static Props props(Config config) {
+		return Props.create(Harvester.class, config);
 	}
 
 	@Override
@@ -35,6 +42,7 @@ public class Harvester extends UntypedActor {
 	}
 	
 	public static void main(String[] args) {
-		Boot.startPublisher("harvester", Harvester.class);
+		Boot boot = Boot.init("harvester");
+		boot.startPublisher(Harvester.props(boot.getConfig()));
 	}
 }

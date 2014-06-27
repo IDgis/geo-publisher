@@ -2,6 +2,7 @@ package nl.idgis.publisher.utils;
 
 import java.io.File;
 
+import nl.idgis.publisher.monitor.InactiveMonitor;
 import nl.idgis.publisher.monitor.Monitor;
 import nl.idgis.publisher.monitor.MonitorAspect;
 
@@ -53,8 +54,17 @@ public class Boot {
 		}
 	}
 	
-	public static void startPublisher(String name, Class<?> clazz) {
-		
+	private final Config config;
+	private final ActorSystem actorSystem;
+	private final ActorRef monitor;		
+	
+	public Boot(Config config, ActorSystem actorSystem, ActorRef monitor) {		
+		this.config = config;
+		this.actorSystem = actorSystem;
+		this.monitor = monitor;		
+	}
+	
+	public static Boot init(String name) {
 		Config defaultConf = ConfigFactory.load();
 		
 		Config conf;
@@ -69,14 +79,29 @@ public class Boot {
 		
 		ActorSystem actorSystem = ActorSystem.create(name, appConfig);
 		
+		ActorRef monitor;
 		if(Aspects.hasAspect(MonitorAspect.class)) {
-			ActorRef monitor = actorSystem.actorOf(Monitor.props(), "monitor");
+			monitor = actorSystem.actorOf(Monitor.props(), "monitor");
 			
 			MonitorAspect monitorAspect = Aspects.aspectOf(MonitorAspect.class);
 			monitorAspect.setMonitor(monitor);
+		} else {
+			monitor = actorSystem.actorOf(InactiveMonitor.props(), "monitor");
 		}
 		
-		ActorRef app = actorSystem.actorOf(Props.create(clazz, appConfig), "app");
+		return new Boot(appConfig, actorSystem, monitor);
+	} 
+	
+	public Config getConfig() {
+		return config;
+	}
+	
+	public ActorRef getMonitor() {
+		return monitor;
+	}
+	
+	public void startPublisher(Props props) {
+		ActorRef app = actorSystem.actorOf(props, "app");
 		actorSystem.actorOf(Terminator.props(app), "app-terminator");
 	}
 }
