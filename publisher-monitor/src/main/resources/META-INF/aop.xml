@@ -1,0 +1,5 @@
+<aspectj>
+	<aspects>
+		<aspect name="nl.idgis.publisher.monitor.MonitorAspect" />
+	</aspects>
+</aspectj>

@@ -1,6 +1,15 @@
 package nl.idgis.publisher.utils;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
+
+import nl.idgis.publisher.monitor.Monitor;
+import nl.idgis.publisher.monitor.MonitorAspect;
+import nl.idgis.publisher.monitor.messages.GetStatus;
+
+import org.aspectj.lang.Aspects;
+
+import scala.concurrent.duration.Duration;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -49,6 +58,7 @@ public class Boot {
 	}
 	
 	public static void startPublisher(String name, Class<?> clazz) {
+		
 		Config defaultConf = ConfigFactory.load();
 		
 		Config conf;
@@ -65,5 +75,15 @@ public class Boot {
 		
 		ActorRef app = actorSystem.actorOf(Props.create(clazz, appConfig), "app");
 		actorSystem.actorOf(Terminator.props(app), "app-terminator");
+		
+		if(Aspects.hasAspect(MonitorAspect.class)) {
+			ActorRef monitor = actorSystem.actorOf(Monitor.props());
+			
+			MonitorAspect monitorAspect = Aspects.aspectOf(MonitorAspect.class);
+			monitorAspect.setMonitor(monitor);
+			
+			actorSystem.scheduler().schedule(Duration.Zero(), Duration.create(10, TimeUnit.SECONDS), 
+					monitor, new GetStatus(), actorSystem.dispatcher(), ActorRef.noSender());
+		}
 	}
 }
