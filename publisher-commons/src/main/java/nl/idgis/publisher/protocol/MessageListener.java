@@ -3,6 +3,8 @@ package nl.idgis.publisher.protocol;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -49,8 +51,11 @@ public abstract class MessageListener extends UntypedActor {
 
 			log.debug(getSender().toString());
 
-			return getContext().actorOf(
-					MessagePackager.props(targetName, name, getSender()));
+			Props remoteRefProps = MessagePackager.props(targetName, name, getSender());
+			String actorName = "remote"
+					+ StringUtils.capitalize(name)
+					+ StringUtils.capitalize(targetName);
+			return getContext().actorOf(remoteRefProps, actorName);
 		}
 
 		public LocalActorFactory actorOf(Props props) {
@@ -114,9 +119,11 @@ public abstract class MessageListener extends UntypedActor {
 			} else {
 				log.debug("creating remote ref: " + targetName + " -> " + sourceName);
 				
-				returnPackager = getContext().actorOf(
-						MessagePackager.props(sourceName, targetName,
-								getSender()));
+				Props returnProps = MessagePackager.props(sourceName, targetName, getSender());
+				String actorName = "return"
+						+ StringUtils.capitalize(targetName)
+						+ StringUtils.capitalize(sourceName);						
+				returnPackager = getContext().actorOf(returnProps, actorName);
 				localActor.packagers.put(sourceName, returnPackager);
 			}
 
