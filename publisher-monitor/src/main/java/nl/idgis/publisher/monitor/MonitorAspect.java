@@ -39,11 +39,11 @@ public class MonitorAspect {
 
 	@Before("target(untypedActor) && call(* akka.actor.Actor.preStart(..))")
 	public void preStart(UntypedActor untypedActor) {
-		newResource(untypedActor.getClass(), untypedActor.getSelf());
+		newResource(UntypedActor.class, untypedActor.getSelf());
 	}
 	
 	@After("target(untypedActor) && call(* akka.actor.Actor.postStop(..))")
 	public void postStop(UntypedActor untypedActor) {
-		resourceDestroyed(untypedActor.getClass(), untypedActor.getSelf());
+		resourceDestroyed(UntypedActor.class, untypedActor.getSelf());
 	}
 }

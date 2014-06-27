@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import nl.idgis.publisher.monitor.messages.GetStatus;
+import nl.idgis.publisher.monitor.messages.GetResources;
 import nl.idgis.publisher.monitor.messages.NewResource;
 import nl.idgis.publisher.monitor.messages.ResourceDestroyed;
 import nl.idgis.publisher.monitor.messages.ResourceRef;
@@ -30,11 +30,11 @@ public class Monitor extends UntypedActor {
 	@Override
 	public void preStart() {
 		log.debug("monitor started");
+		
+		getContext().actorOf(Actors.props(getSelf()), "actors");
 	}
 	
-	private Set<Object> getResourcesOfType(ResourceRef resourceRef) {
-		Object resourceType = resourceRef.getResourceType();
-		
+	private Set<Object> getResourcesOfType(Object resourceType) {
 		if(allResources.containsKey(resourceType)) {
 			return allResources.get(resourceType);
 		} else {
@@ -47,17 +47,18 @@ public class Monitor extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ResourceRef) {
-			Set<Object> resources = getResourcesOfType((ResourceRef) msg);
+			Set<Object> resources = getResourcesOfType(((ResourceRef) msg).getResourceType());
 			
 			if(msg instanceof NewResource) {
 				resources.add(((ResourceRef) msg).getResource());
 			} else if(msg instanceof ResourceDestroyed) {
 				resources.remove(((ResourceRef) msg).getResource());
-			}
+			}			
+		} else if(msg instanceof GetResources) {
+			Object resourceType = ((GetResources) msg).getResourceType();
+			Set<Object> resources =  new HashSet<>(getResourcesOfType(resourceType));
 			
-		} else if(msg instanceof GetStatus) {
-			System.out.println("Resources:");
-			System.out.println(allResources);
+			getSender().tell(resources, getSender());
 		} else {
 			unhandled(msg);
 		}

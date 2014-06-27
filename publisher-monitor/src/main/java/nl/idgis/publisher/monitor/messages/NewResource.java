@@ -9,5 +9,11 @@ public class NewResource extends ResourceRef implements Serializable {
 	public NewResource(Object resourceType, Object resource) {
 		super(resourceType, resource);		
 	}
+
+	@Override
+	public String toString() {
+		return "NewResource [resourceType=" + resourceType + ", resource="
+				+ resource + "]";
+	}
 	
 }

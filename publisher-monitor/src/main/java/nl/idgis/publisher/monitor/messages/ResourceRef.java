@@ -2,7 +2,7 @@ package nl.idgis.publisher.monitor.messages;
 
 public abstract class ResourceRef {
 
-	private final Object resourceType, resource;
+	protected final Object resourceType, resource;
 	
 	public ResourceRef(Object resourceType, Object resource) {
 		this.resourceType = resourceType;

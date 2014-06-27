@@ -9,5 +9,11 @@ public class ResourceDestroyed extends ResourceRef implements Serializable {
 	public ResourceDestroyed(Object resourceType, Object resource) {
 		super(resourceType, resource);		
 	}
+
+	@Override
+	public String toString() {
+		return "ResourceDestroyed [resourceType=" + resourceType
+				+ ", resource=" + resource + "]";
+	}
 	
 }
