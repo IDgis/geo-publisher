@@ -19,18 +19,19 @@
 		<dependency>
 			<groupId>com.fasterxml</groupId>
 			<artifactId>aalto-xml</artifactId>
-			<version>0.9.9</version>
 		</dependency>
 		<dependency>
 			<groupId>postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>9.1-901-1.jdbc4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
-			<version>1.8.0</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc7</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -57,7 +58,7 @@
 							</transformers>
 						</configuration>
 					</execution>
-				</executions>				
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

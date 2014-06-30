@@ -13,6 +13,37 @@
 		<scala.version>2.10</scala.version>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>idgis-public</id>
+			<url>http://nexus.idgis.eu/content/groups/public/</url>
+			<releases>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>idgis-thirdparty</id>
+			<url>http://nexus.idgis.eu/content/repositories/thirdparty/</url>
+			<releases>
+				<updatePolicy>never</updatePolicy>
+			</releases>			
+		</repository>
+	</repositories>
+
+	<distributionManagement>
+		<repository>
+			<id>idgis-releases</id>
+			<url>http://nexus.idgis.eu/content/repositories/releases/</url>
+		</repository>
+		<snapshotRepository>
+			<id>idgis-snapshots</id>
+			<url>http://nexus.idgis.eu/content/repositories/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -34,6 +65,27 @@
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
 				<version>3.3.2</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml</groupId>
+				<artifactId>aalto-xml</artifactId>
+				<version>0.9.9</version>
+			</dependency>
+			<dependency>
+				<groupId>postgresql</groupId>
+				<artifactId>postgresql</artifactId>
+				<version>9.1-901-1.jdbc4</version>
+			</dependency>
+			<dependency>
+				<groupId>org.aspectj</groupId>
+				<artifactId>aspectjweaver</artifactId>
+				<version>1.8.0</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>com.oracle</groupId>
+				<artifactId>ojdbc7</artifactId>
+				<version>12.1.0.1.0</version>				
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -60,7 +112,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-shade-plugin</artifactId>
-					<version>2.3</version>					
+					<version>2.3</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
