@@ -52,6 +52,7 @@ public class MetadataParser extends UntypedActor {
 						.createAsyncXMLStreamReader();
 
 				final StringBuilder title = new StringBuilder();
+				final StringBuilder alternateTitle = new StringBuilder();
 				final Stack<QName> position = new Stack<QName>();
 
 				final List<QName> titlePath = Arrays
@@ -66,6 +67,21 @@ public class MetadataParser extends UntypedActor {
 										"CI_Citation"),
 								new QName("http://www.isotc211.org/2005/gmd",
 										"title"), new QName(
+										"http://www.isotc211.org/2005/gco",
+										"CharacterString"));
+				
+				final List<QName> alternateTitlePath = Arrays
+						.asList(new QName("http://www.isotc211.org/2005/gmd",
+								"MD_Metadata"), new QName(
+								"http://www.isotc211.org/2005/gmd",
+								"identificationInfo"), new QName(
+								"http://www.isotc211.org/2005/gmd",
+								"MD_DataIdentification"), new QName(
+								"http://www.isotc211.org/2005/gmd", "citation"),
+								new QName("http://www.isotc211.org/2005/gmd",
+										"CI_Citation"),
+								new QName("http://www.isotc211.org/2005/gmd",
+										"alternateTitle"), new QName(
 										"http://www.isotc211.org/2005/gco",
 										"CharacterString"));
 
@@ -90,14 +106,17 @@ public class MetadataParser extends UntypedActor {
 								position.push(reader.getName());
 							} else if (reader.isEndElement()) {
 								position.pop();
-							} else if (reader.isCharacters()
-									&& position.equals(titlePath)) {
-								title.append(reader.getText());
+							} else if (reader.isCharacters()) {
+								if(position.equals(titlePath)) {
+									title.append(reader.getText());
+								} else if(position.equals(alternateTitlePath)) {
+									alternateTitle.append(reader.getText());
+								}
 							}
 						}
 
 						if (filePosition == fileLength) {
-							sender.tell(new MetadataItem(file.getName(), title.toString()), getSelf());							
+							sender.tell(new MetadataItem(file.getName(), title.toString(), alternateTitle.toString()), getSelf());							
 						} else {
 							attachment.position(0);
 							channel.read(attachment, filePosition, attachment, this);

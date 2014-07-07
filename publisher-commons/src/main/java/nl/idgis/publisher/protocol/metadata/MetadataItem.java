@@ -8,11 +8,12 @@ public class MetadataItem extends Item implements Serializable {
 	
 	private static final long serialVersionUID = 8571729379042373915L;
 	
-	public final String identification, title;
+	public final String identification, title, alternateTitle;
 	
-	public MetadataItem(String identification, String title) {
+	public MetadataItem(String identification, String title, String alternateTitle) {
 		this.identification = identification;
 		this.title = title;
+		this.alternateTitle = alternateTitle;
 	}
 	
 	public String getIdentification() {
@@ -22,10 +23,14 @@ public class MetadataItem extends Item implements Serializable {
 	public String getTitle() {
 		return title;
 	}
+	
+	public String getAlternateTitle() {
+		return alternateTitle;
+	}
 
 	@Override
 	public String toString() {
-		return "MetadataItem [identification=" + identification + ", title=" + title
-				+ "]";
-	}
+		return "MetadataItem [identification=" + identification + ", title="
+				+ title + ", alternateTitle=" + alternateTitle + "]";
+	}	
 }
