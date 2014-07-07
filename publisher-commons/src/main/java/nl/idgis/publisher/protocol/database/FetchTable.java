@@ -17,4 +17,9 @@ public class FetchTable extends Start implements Serializable {
 	public String getTableName() {
 		return tableName;
 	}
+
+	@Override
+	public String toString() {
+		return "FetchTable [tableName=" + tableName + "]";
+	}
 }
