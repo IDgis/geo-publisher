@@ -3,7 +3,6 @@ package nl.idgis.publisher.protocol;
 import java.nio.ByteBuffer;
 
 import nl.idgis.publisher.protocol.Message;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -21,17 +20,27 @@ public class MessageProtocolHandler extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	private final Serialization serialization = SerializationExtension.get(getContext().system());
 	
-	private final ActorRef connection, listener;	
+	private final boolean isServer;
+	private final ActorRef connection, listener;
 	
 	private ByteString data = ByteString.empty();
+	private ActorRef ssl;
 	
-	public MessageProtocolHandler(ActorRef connection, ActorRef listener) {
+	public MessageProtocolHandler(boolean isServer, ActorRef connection, ActorRef listener) {
+		this.isServer = isServer;
 		this.connection = connection;
 		this.listener = listener;	
 	}
 	
-	public static Props props(ActorRef connection, ActorRef listener) {
-		return Props.create(MessageProtocolHandler.class, connection, listener);
+	public static Props props(boolean isServer, ActorRef connection, ActorRef listener) {
+		return Props.create(MessageProtocolHandler.class, isServer, connection, listener);
+	}
+	
+	@Override
+	public void preStart() throws Exception {
+		ssl = getContext().actorOf(SSLHandler.props(isServer, connection, getSelf()), "ssl");
+		
+		connection.tell(TcpMessage.register(ssl), getSelf());
 	}
 
 	@Override
@@ -73,7 +82,7 @@ public class MessageProtocolHandler extends UntypedActor {
 			buffer.flip();
 						
 			ByteString data = ByteString.fromByteBuffer(buffer);
-			connection.tell(TcpMessage.write(data), getSelf());
+			ssl.tell(TcpMessage.write(data), getSelf());
 			
 			log.debug("message sent: " + msg);
 		} else {
