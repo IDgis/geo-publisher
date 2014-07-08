@@ -2,6 +2,8 @@ package nl.idgis.publisher.harvester;
 
 import java.net.InetSocketAddress;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -16,20 +18,22 @@ public class Server extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private int harvesterPort;
+	private final int port;
+	private final Config sslConfig;
 	
-	public Server(int harvesterPort) {
-		this.harvesterPort = harvesterPort;
+	public Server(int port, Config sslConfig) {
+		this.port = port;
+		this.sslConfig = sslConfig;
 	}
 	
-	public static Props props(int harvesterPort) {
-		return Props.create(Server.class, harvesterPort);
+	public static Props props(int port, Config sslConfig) {
+		return Props.create(Server.class, port, sslConfig);
 	}
 	
 	@Override
 	public void preStart() {
 		final ActorRef tcp = Tcp.get(getContext().system()).manager();
-		tcp.tell(TcpMessage.bind(getSelf(), new InetSocketAddress(harvesterPort), 100), getSelf());
+		tcp.tell(TcpMessage.bind(getSelf(), new InetSocketAddress(port), 100), getSelf());
 	}
 
 	@Override
@@ -41,7 +45,7 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			getContext().actorOf(ServerListener.props(getSender()));
+			getContext().actorOf(ServerListener.props(sslConfig, getSender()));
 		} else {
 			unhandled(msg);
 		}

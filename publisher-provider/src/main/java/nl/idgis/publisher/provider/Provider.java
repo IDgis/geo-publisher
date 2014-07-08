@@ -7,7 +7,6 @@ import com.typesafe.config.Config;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.monitor.messages.GetTree;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
@@ -52,10 +51,6 @@ public class Provider extends UntypedActor {
 				
 		client = getContext().actorOf(Client.props(config, getSelf(), monitor), "client");
 		client.tell(connectMessage, getSelf());
-		
-		ActorSystem system = getContext().system();
-		system.scheduler().schedule(Duration.Zero(), Duration.create(10, TimeUnit.SECONDS), 
-				monitor, new GetTree(), system.dispatcher(), getSelf());
 	}
 
 	@Override
@@ -80,6 +75,6 @@ public class Provider extends UntypedActor {
 
 	public static void main(String[] args) {
 		Boot boot = Boot.init("provider");
-		boot.startPublisher(Provider.props(boot.getConfig(), boot.getMonitor()));
+		boot.startApplication(Provider.props(boot.getConfig(), boot.getMonitor()));
 	}
 }

@@ -5,12 +5,13 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import akka.io.Tcp.ConnectionClosed;
 
 public abstract class MessageListener extends UntypedActor {
@@ -87,18 +88,20 @@ public abstract class MessageListener extends UntypedActor {
 	protected abstract void connectionClosed();
 	
 	private final boolean isServer;
+	private final Config sslConfig;
 	private final ActorRef connection;
 	
 	private ActorRef messageHandler;
 	
-	protected MessageListener(boolean isServer, ActorRef connection) {
+	protected MessageListener(boolean isServer, Config sslConfig, ActorRef connection) {
 		this.isServer = isServer;
+		this.sslConfig = sslConfig;
 		this.connection = connection;
 	}
 	
 	@Override
 	public final void preStart() {
-		messageHandler = getContext().actorOf(MessageProtocolHandler.props(isServer, connection, getSelf()), "messages");
+		messageHandler = getContext().actorOf(MessageProtocolHandler.props(isServer, sslConfig, connection, getSelf()), "messages");
 		
 		connected(new LocalActorFactory());
 	}

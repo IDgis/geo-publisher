@@ -7,6 +7,7 @@ import com.typesafe.config.Config;
 import nl.idgis.publisher.protocol.MessageListener;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
+import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -16,7 +17,7 @@ public class ClientListener extends MessageListener {
 	private Config config;
 
 	public ClientListener(ActorRef connection, Config config, ActorRef app, ActorRef monitor) {
-		super(false, connection);
+		super(false, ConfigUtils.getOptionalConfig(config, "ssl"), connection);
 		
 		this.config = config;
 		this.app = app;

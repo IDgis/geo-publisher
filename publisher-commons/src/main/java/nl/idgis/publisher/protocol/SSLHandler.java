@@ -3,7 +3,10 @@ package nl.idgis.publisher.protocol;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -12,7 +15,11 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -30,6 +37,7 @@ public class SSLHandler extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final Config config;
 	private final boolean isServer;
 	private final ActorRef connection, listener;
 	
@@ -37,36 +45,79 @@ public class SSLHandler extends UntypedActor {
 	private ByteBuffer netOutput, appInput;
 	private ByteString netInput, appOutput;
 	
-	public SSLHandler(boolean isServer, ActorRef connection, ActorRef listener) {
+	public SSLHandler(Config config, boolean isServer, ActorRef connection, ActorRef listener) {
+		this.config = config;
 		this.isServer = isServer;		
 		this.connection = connection;
 		this.listener = listener;
 	}
 	
-	public static Props props(boolean isServer, ActorRef connection, ActorRef listener) {
-		return Props.create(SSLHandler.class, isServer, connection, listener);
+	public static Props props(Config config, boolean isServer, ActorRef connection, ActorRef listener) {
+		return Props.create(SSLHandler.class, config, isServer, connection, listener);
+	}
+	
+	private static KeyStore loadKeyStore(Config config) throws Exception {		
+		try(FileInputStream inputStream = new FileInputStream(config.getString("file"))) {
+			KeyStore keyStore = KeyStore.getInstance("JKS");
+			
+			keyStore.load(inputStream, config.getString("password").toCharArray());
+			return keyStore;
+		}		
 	}
 	
 	@Override
 	public void preStart() throws Exception {
+		log.debug("ssl init");
 		SSLContext sslContext = SSLContext.getInstance("TLS");
 		
-		KeyStore keyStore = KeyStore.getInstance("JKS");
-		keyStore.load(new FileInputStream("publisher.jks"), "publisher".toCharArray());
+		log.debug("loading private keys");
+		KeyStore privateKeys = loadKeyStore(config.getConfig("private"));
 		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-		keyManagerFactory.init(keyStore, "publisher".toCharArray());
+		keyManagerFactory.init(privateKeys, config.getString("private.password").toCharArray());
+		KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 		
-		TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-        trustManagerFactory.init(keyStore);
+		final TrustManager[] trustManagers;
+		if(config.hasPath("trusted")) {
+			log.debug("loading trusted keys");
+			KeyStore trustedKeys = loadKeyStore(config.getConfig("trusted"));
+			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+	        trustManagerFactory.init(trustedKeys);
+	        trustManagers = trustManagerFactory.getTrustManagers();
+		} else {
+			log.warning("no trusted keys configured");
+			trustManagers = new TrustManager[] {
+					new X509TrustManager() {
+
+						@Override
+						public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+							
+						}
+
+						@Override
+						public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+							
+						}
+
+						@Override
+						public X509Certificate[] getAcceptedIssuers() {
+							return new X509Certificate[0];
+						}
+					}
+			};
+		}
 		
-		sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+        log.debug("initializing ssl context");
+		sslContext.init(keyManagers, trustManagers, null);
 		
+		log.debug("creating ssl engine");
 		sslEngine = sslContext.createSSLEngine();
 		sslEngine.setUseClientMode(!isServer);
-		sslEngine.setNeedClientAuth(true);
+		sslEngine.setWantClientAuth(false);
 		
 		SSLSession sslSession = sslEngine.getSession();
 		int bufferSize = sslSession.getApplicationBufferSize() + 50;
+		
+		log.debug("allocating buffers, size: " + bufferSize);
 		
 		netInput = ByteString.empty();
 		netOutput = ByteBuffer.allocate(bufferSize);
