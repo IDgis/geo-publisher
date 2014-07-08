@@ -1,65 +1,45 @@
 package nl.idgis.publisher.provider;
 
-import java.io.File;
+import nl.idgis.publisher.protocol.ListenerInit;
+import nl.idgis.publisher.protocol.MessageProtocolHandler;
+import nl.idgis.publisher.utils.ConfigUtils;
 
 import com.typesafe.config.Config;
 
-import nl.idgis.publisher.protocol.MessageListener;
-import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.provider.messages.ConnectionClosed;
-import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.io.Tcp.Connected;
 
-public class ClientListener extends MessageListener {
-
-	private ActorRef app, monitor;
-	private Config config;
-
-	public ClientListener(ActorRef connection, Config config, ActorRef app, ActorRef monitor) {
-		super(false, ConfigUtils.getOptionalConfig(config, "ssl"), connection);
-		
+public class ClientListener extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final Config config;
+	
+	public ClientListener(Config config) {
 		this.config = config;
-		this.app = app;
-		this.monitor = monitor;
 	}
-
-	public static Props props(ActorRef connection, Config config, ActorRef app, ActorRef monitor) {
-		return Props.create(ClientListener.class, connection, config, app, monitor);
+	
+	public static Props props(Config config) {
+		return Props.create(ClientListener.class, config);
 	}
 
 	@Override
-	protected void connected(LocalActorFactory actorFactory) {
-		Config database = config.getConfig("database");
-
-		String driver;
-		if(database.hasPath("driver")) {
-			driver = database.getString("driver");
+	public void onReceive(Object msg) throws Exception {
+		if(msg instanceof Connected) {
+			log.debug("connected");
+			
+			ActorRef actors = getContext().actorOf(ClientActors.props(config), "clientActors");
+			
+			Config sslConfig = ConfigUtils.getOptionalConfig(config, "ssl");
+			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(false, sslConfig, getSender(), actors), "messages");
+			
+			actors.tell(new ListenerInit(messageProtocolHandler), getSelf());
 		} else {
-			driver = null;
+			unhandled(msg);
 		}
-		
-		actorFactory
-			.newActor("metadata")
-			.actorOf(Metadata.props(
-					new File(config.getString("metadata.folder"))))
-			
-			.newActor("database")
-			.actorOf(Database.props(
-					driver, 
-					database.getString("url"),
-					database.getString("user"), 
-					database.getString("password")))
-					
-			.existingActor("monitor", monitor)
-			.existingActor("provider", app)
-			
-			.getRemoteRef("harvester").tell(
-				new Hello("My data provider"), getSelf());
-	}
-
-	@Override
-	protected void connectionClosed() {
-		app.tell(new ConnectionClosed(), getSelf());
 	}
 }

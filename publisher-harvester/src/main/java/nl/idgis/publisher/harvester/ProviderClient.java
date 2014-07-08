@@ -39,6 +39,8 @@ public class ProviderClient extends UntypedActor {
 			
 			getSender().tell(new Hello("My data harvester"), getSelf());
 			getContext().become(active(), false);
+			
+			getSelf().tell(new Harvest(), getSelf());
 		} else {
 			defaultActions(msg);
 		}

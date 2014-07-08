@@ -23,16 +23,15 @@ public class Client extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private final Config config;
-	private final ActorRef app, monitor;	
+	private final ActorRef app;	
 	
-	public Client(Config config, ActorRef app, ActorRef monitor) {
+	public Client(Config config, ActorRef app) {
 		this.config = config;
 		this.app = app;
-		this.monitor = monitor;
 	}
 	
-	public static Props props(Config config, ActorRef app, ActorRef monitor) {
-		return Props.create(Client.class, config, app, monitor);
+	public static Props props(Config config, ActorRef app) {
+		return Props.create(Client.class, config, app);
 	}
 	
 	@Override
@@ -48,9 +47,8 @@ public class Client extends UntypedActor {
 			log.error(msg.toString());
 			app.tell(new ConnectFailed((CommandFailed) msg), getSelf());
 		} else if (msg instanceof Connected) {
-			log.debug("connected");
-			
-			getContext().actorOf(ClientListener.props(getSender(), config, app, monitor));			
-		} 
+			ActorRef listener = getContext().actorOf(ClientListener.props(config));
+			listener.tell(msg, getSender());
+		}
 	}
 }

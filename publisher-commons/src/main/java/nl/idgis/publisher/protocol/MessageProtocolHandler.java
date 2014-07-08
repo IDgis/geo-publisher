@@ -31,32 +31,35 @@ public class MessageProtocolHandler extends UntypedActor {
 	
 	private final boolean isServer;
 	private final Config sslConfig;
-	private final ActorRef connection, listener;
+	private final ActorRef connection, container;
 	
 	private ByteString data = ByteString.empty();
-	private ActorRef target;
+	private ActorRef messageTarget, messagePackagerProvider, messageDispatcher;
 	
-	public MessageProtocolHandler(boolean isServer, Config sslConfig, ActorRef connection, ActorRef listener) {
+	public MessageProtocolHandler(boolean isServer, Config sslConfig, ActorRef connection, ActorRef container) {
 		this.isServer = isServer;
 		this.sslConfig = sslConfig;
 		this.connection = connection;
-		this.listener = listener;	
+		this.container = container;
 	}
 	
-	public static Props props(boolean isServer, Config sslConfig, ActorRef connection, ActorRef listener) {
-		return Props.create(MessageProtocolHandler.class, isServer, sslConfig, connection, listener);
+	public static Props props(boolean isServer, Config sslConfig, ActorRef connection, ActorRef container) {
+		return Props.create(MessageProtocolHandler.class, isServer, sslConfig, connection, container);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		if(sslConfig != null) {
-			target = getContext().actorOf(SSLHandler.props(sslConfig, isServer, connection, getSelf()), "ssl");
-			getContext().watch(target);
-			connection.tell(TcpMessage.register(target), getSelf());
+			messageTarget = getContext().actorOf(SSLHandler.props(sslConfig, isServer, connection, getSelf()), "ssl");
+			getContext().watch(messageTarget);
+			connection.tell(TcpMessage.register(messageTarget), getSelf());
 		} else {
-			target = connection;
+			messageTarget = connection;
 			connection.tell(TcpMessage.register(getSelf()), getSelf());
 		}
+		
+		messagePackagerProvider = getContext().actorOf(MessagePackagerProvider.props(getSelf()), "packagerProvider");
+		messageDispatcher = getContext().actorOf(MessageDispatcher.props(messagePackagerProvider, container), "dispatcher");		
 	}
 
 	@Override
@@ -77,7 +80,7 @@ public class MessageProtocolHandler extends UntypedActor {
 					Message receivedMessage = serialization.deserialize(message.toArray(), Message.class).get();					
 					log.debug("message received: "+ receivedMessage);
 					
-					listener.tell(receivedMessage, getSelf());
+					messageDispatcher.tell(receivedMessage, getSelf());
 					
 					data = data.drop(length);
 				}
@@ -87,10 +90,10 @@ public class MessageProtocolHandler extends UntypedActor {
 		} else if(msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
 			
-			listener.tell(msg, getSelf());
+			messageDispatcher.tell(msg, getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Terminated) {
-			if(((Terminated) msg).getActor().equals(target)) {
+			if(((Terminated) msg).getActor().equals(messageTarget)) {
 				log.debug("target actor terminated");
 				getContext().stop(getSelf());
 			} 
@@ -103,9 +106,12 @@ public class MessageProtocolHandler extends UntypedActor {
 			buffer.flip();
 						
 			ByteString data = ByteString.fromByteBuffer(buffer);
-			target.tell(TcpMessage.write(data), getSelf());
+			messageTarget.tell(TcpMessage.write(data), getSelf());
 			
 			log.debug("message sent: " + msg);
+		} else if (msg instanceof GetMessagePackager) {
+			log.debug("forwarding message: " + msg);
+			messagePackagerProvider.tell(msg, getSender());
 		} else {
 			unhandled(msg);
 		}

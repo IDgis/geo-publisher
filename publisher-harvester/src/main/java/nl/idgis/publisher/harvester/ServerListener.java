@@ -2,31 +2,39 @@ package nl.idgis.publisher.harvester;
 
 import com.typesafe.config.Config;
 
-import nl.idgis.publisher.protocol.MessageListener;
+import nl.idgis.publisher.protocol.ListenerInit;
+import nl.idgis.publisher.protocol.MessageProtocolHandler;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.io.Tcp.Connected;
 
-public class ServerListener extends MessageListener {
+public class ServerListener extends UntypedActor {
 	
-	public ServerListener(Config sslConfig, ActorRef connection) {
-		super(true, sslConfig, connection);
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final Config sslConfig;
+	
+	public ServerListener(Config sslConfig) {
+		this.sslConfig = sslConfig;
 	}
-
-	public static Props props(Config sslConfig, ActorRef connection) {
-		return Props.create(ServerListener.class, sslConfig, connection);
-	}
-
-	@Override
-	protected void connected(LocalActorFactory actorFactory) {
-		actorFactory
-			.newActor("harvester")
-			.actorOf(ProviderClient.props(
-					actorFactory.getRemoteRef("metadata"), 
-					actorFactory.getRemoteRef("database")));
+	
+	public static Props props(Config sslConfig) {
+		return Props.create(ServerListener.class, sslConfig);
 	}
 
 	@Override
-	protected void connectionClosed() {
-
+	public void onReceive(Object msg) throws Exception {
+		if(msg instanceof Connected) {
+			log.debug("client connected");
+			
+			ActorRef actors = getContext().actorOf(ServerActors.props(), "serverActors");
+			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(true, sslConfig, getSender(), actors), "messages");			
+			
+			actors.tell(new ListenerInit(messageProtocolHandler), getSelf());
+		}
 	}
+
 }

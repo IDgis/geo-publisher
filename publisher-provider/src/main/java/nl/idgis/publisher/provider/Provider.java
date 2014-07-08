@@ -8,7 +8,6 @@ import com.typesafe.config.Config;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.monitor.messages.Tree;
-import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import nl.idgis.publisher.provider.messages.Connect;
@@ -23,22 +22,20 @@ import akka.event.LoggingAdapter;
 
 public class Provider extends UntypedActor {
 
-	private final Config config;
-	private final ActorRef monitor;
+	private final Config config;	
 	private final LoggingAdapter log;	
 
 	private ActorRef client;
 	private Connect connectMessage;
 
-	public Provider(Config config, ActorRef monitor) {
+	public Provider(Config config) {
 		log = Logging.getLogger(getContext().system(), this);
 
-		this.config = config;
-		this.monitor = monitor;
+		this.config = config;		
 	}
 	
-	public static Props props(Config config, ActorRef monitor) {
-		return Props.create(Provider.class, config, monitor);
+	public static Props props(Config config) {
+		return Props.create(Provider.class, config);
 	}
 
 	@Override
@@ -49,15 +46,13 @@ public class Provider extends UntypedActor {
 
 		connectMessage = new Connect(new InetSocketAddress(harvesterHost, harvesterPort));
 				
-		client = getContext().actorOf(Client.props(config, getSelf(), monitor), "client");
+		client = getContext().actorOf(Client.props(config, getSelf()), "client");
 		client.tell(connectMessage, getSelf());
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if (msg instanceof Hello) {
-			log.info(msg.toString());
-		} else if (msg instanceof Tree) {
+		if (msg instanceof Tree) {
 			log.debug(msg.toString());
 		} else if (msg instanceof ConnectFailed) {
 			log.error(msg.toString());
@@ -75,6 +70,6 @@ public class Provider extends UntypedActor {
 
 	public static void main(String[] args) {
 		Boot boot = Boot.init("provider");
-		boot.startApplication(Provider.props(boot.getConfig(), boot.getMonitor()));
+		boot.startApplication(Provider.props(boot.getConfig()));
 	}
 }

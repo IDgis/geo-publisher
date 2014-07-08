@@ -43,9 +43,8 @@ public class Server extends UntypedActor {
 			
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
-			log.debug("client connected");
-			
-			getContext().actorOf(ServerListener.props(sslConfig, getSender()));
+			ActorRef listener = getContext().actorOf(ServerListener.props(sslConfig));
+			listener.tell(msg, getSender());
 		} else {
 			unhandled(msg);
 		}
