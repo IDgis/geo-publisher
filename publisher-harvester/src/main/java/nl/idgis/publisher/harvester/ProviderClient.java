@@ -81,14 +81,20 @@ public class ProviderClient extends UntypedActor {
 					
 					database.tell(new NextItem(), getSelf());
 				} else if(msg instanceof End) {
-					log.debug("data retrieval finished");
-					
-					metadata.tell(new NextItem(), getSelf());					
-					getContext().unbecome();
+					log.debug("data retrieval finished");					
+					finish();
+				} else if(msg instanceof Failure) {
+					log.error("data retrieval failure: " + msg);
+					finish();
 				} else {
 					unhandled(msg);
 				}
-			}			
+			}	
+			
+			void finish() {
+				metadata.tell(new NextItem(), getSelf());					
+				getContext().unbecome();
+			}
 		};
 	}
 	
@@ -104,12 +110,16 @@ public class ProviderClient extends UntypedActor {
 					
 					MetadataItem metadataItem = (MetadataItem)msg;
 					String alternateTitle = metadataItem.getAlternateTitle();
-					if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {
+					if(alternateTitle != null 
+							&& !alternateTitle.trim().isEmpty() 
+							&& alternateTitle.contains(" ")) {
 						final String tableName = alternateTitle.substring(0, alternateTitle.indexOf(" "));
 						
 						log.debug("requesting table: " + tableName);						
 						database.tell(new FetchTable(tableName), getSelf());
-						getContext().become(receivingData(), false);
+						getContext().become(receivingData(), false);						 
+					} else {
+						metadata.tell(new NextItem(), getSelf());
 					}
 				} else if(msg instanceof End) {
 					log.debug("harvesting finished");

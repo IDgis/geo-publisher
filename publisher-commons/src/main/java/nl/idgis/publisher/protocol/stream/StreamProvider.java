@@ -41,7 +41,12 @@ public abstract class StreamProvider<T, U extends Start, V extends Item> extends
 	@SuppressWarnings("unchecked")
 	public final void onReceive(Object msg) throws Exception {
 		if (msg instanceof Start) {
-			getContext().become(active(start((U) msg)), false);
+			try {
+				T i = start((U) msg);			
+				getContext().become(active(i), false);
+			} catch(Exception e) {
+				getSender().tell(new Failure(e), getSelf());
+			}
 		} else {
 			unhandled(msg);
 		}
@@ -63,15 +68,20 @@ public abstract class StreamProvider<T, U extends Start, V extends Item> extends
 						@Override
 						public void onComplete(Throwable t, V v) throws Throwable {
 							if(t != null) {
-								sender.tell(new Failure(t), sender);
+								sender.tell(new Failure(t), getSelf());
 							} else {
 								sender.tell(v, getSelf());
 							}
 						}
 					}, getContext().system().dispatcher());
 				} else {
-					stop(i);
-					getSender().tell(new End(), getSelf());
+					try {
+						stop(i);
+						getSender().tell(new End(), getSelf());
+					} catch(Exception e) {
+						getSender().tell(new Failure(e), getSelf());
+					}
+					
 					getContext().unbecome();
 				}
 			}
