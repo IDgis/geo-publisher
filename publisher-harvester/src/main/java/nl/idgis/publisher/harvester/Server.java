@@ -2,8 +2,6 @@ package nl.idgis.publisher.harvester;
 
 import java.net.InetSocketAddress;
 
-import nl.idgis.publisher.protocol.MessageProtocolHandler;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -16,21 +14,16 @@ import akka.io.TcpMessage;
 
 public class Server extends UntypedActor {
 	
-	private long clientCount = 0;
-
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Props listenerProps;
-
 	private int harvesterPort;
 	
-	public Server(Props listenerProps, int harvesterPort) {
-		this.listenerProps = listenerProps;
+	public Server(int harvesterPort) {
 		this.harvesterPort = harvesterPort;
 	}
 	
-	public static Props props(Props listenerProps, int harvesterPort) {
-		return Props.create(Server.class, listenerProps, harvesterPort);
+	public static Props props(int harvesterPort) {
+		return Props.create(Server.class, harvesterPort);
 	}
 	
 	@Override
@@ -48,11 +41,7 @@ public class Server extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("client connected");
 			
-			ActorRef listener = getContext().actorOf(listenerProps, "client" + clientCount);
-			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(true, getSender(), listener), "handler" + clientCount);			
-			listener.tell(msg, handler);
-			
-			clientCount++;
+			getContext().actorOf(ServerListener.props(getSender()));
 		} else {
 			unhandled(msg);
 		}

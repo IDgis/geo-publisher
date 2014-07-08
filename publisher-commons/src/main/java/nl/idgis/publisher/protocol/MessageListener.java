@@ -10,7 +10,7 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.io.Tcp.Connected;
+
 import akka.io.Tcp.ConnectionClosed;
 
 public abstract class MessageListener extends UntypedActor {
@@ -47,11 +47,9 @@ public abstract class MessageListener extends UntypedActor {
 				throw new IllegalStateException("No actor");
 			}
 			
-			log.debug("creating remote ref: " + name + " -> " + targetName);
+			log.debug("creating remote ref: " + name + " -> " + targetName);			
 
-			log.debug(getSender().toString());
-
-			Props remoteRefProps = MessagePackager.props(targetName, name, getSender());
+			Props remoteRefProps = MessagePackager.props(targetName, name, messageHandler);
 			String actorName = "remote"
 					+ StringUtils.capitalize(name)
 					+ StringUtils.capitalize(targetName);
@@ -87,14 +85,27 @@ public abstract class MessageListener extends UntypedActor {
 	protected abstract void connected(LocalActorFactory actorFactory);
 
 	protected abstract void connectionClosed();
+	
+	private final boolean isServer;
+	private final ActorRef connection;
+	
+	private ActorRef messageHandler;
+	
+	protected MessageListener(boolean isServer, ActorRef connection) {
+		this.isServer = isServer;
+		this.connection = connection;
+	}
+	
+	@Override
+	public final void preStart() {
+		messageHandler = getContext().actorOf(MessageProtocolHandler.props(isServer, connection, getSelf()), "messages");
+		
+		connected(new LocalActorFactory());
+	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
-		if (msg instanceof Connected) {
-			log.debug("connected");
-
-			connected(new LocalActorFactory());
-		} else if (msg instanceof ConnectionClosed) {
+		if (msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
 
 			connectionClosed();

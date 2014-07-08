@@ -2,14 +2,17 @@ package nl.idgis.publisher.provider;
 
 import java.net.InetSocketAddress;
 
-import nl.idgis.publisher.protocol.MessageProtocolHandler;
+import com.typesafe.config.Config;
+
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.Connect;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import akka.io.Tcp;
 import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
@@ -19,18 +22,17 @@ public class Client extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	private final ActorRef app;
-	private final Props listenerProps;
+	private final Config config;
+	private final ActorRef app, monitor;	
 	
-	private long sessionCount = 0;
-
-	public Client(ActorRef app, Props listenerProps) {
+	public Client(Config config, ActorRef app, ActorRef monitor) {
+		this.config = config;
 		this.app = app;
-		this.listenerProps = listenerProps;		
+		this.monitor = monitor;
 	}
 	
-	public static Props props(ActorRef app, Props listenerProps) {
-		return Props.create(Client.class, app, listenerProps);
+	public static Props props(Config config, ActorRef app, ActorRef monitor) {
+		return Props.create(Client.class, config, app, monitor);
 	}
 	
 	@Override
@@ -48,11 +50,7 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.debug("connected");
 			
-			ActorRef listener = getContext().actorOf(listenerProps, "messageListener" + sessionCount);
-			ActorRef handler = getContext().actorOf(MessageProtocolHandler.props(false, getSender(), listener), "protocolHandler" + sessionCount);			
-			listener.tell(msg, handler);
-			
-			sessionCount++;
+			getContext().actorOf(ClientListener.props(getSender(), config, app, monitor));			
 		} 
 	}
 }

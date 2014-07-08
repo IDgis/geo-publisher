@@ -1,7 +1,5 @@
 package nl.idgis.publisher.harvester;
 
-import com.typesafe.config.Config;
-
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.database.FetchTable;
@@ -24,17 +22,14 @@ public class ProviderClient extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef metadata, database;
-	
-	private final Config conf;
-	
-	public ProviderClient(ActorRef metadata, ActorRef database, Config conf) {		
+		
+	public ProviderClient(ActorRef metadata, ActorRef database) {		
 		this.metadata = metadata;
 		this.database = database;
-		this.conf = conf;
 	}
 	
-	public static Props props(ActorRef metadata, ActorRef database, Config conf) {
-		return Props.create(ProviderClient.class, metadata, database, conf);
+	public static Props props(ActorRef metadata, ActorRef database) {
+		return Props.create(ProviderClient.class, metadata, database);
 	}
 
 	@Override
@@ -107,8 +102,15 @@ public class ProviderClient extends UntypedActor {
 				} else if(msg instanceof MetadataItem) {
 					log.debug("item harvested: " + msg);
 					
-					database.tell(new FetchTable(conf.getString("tableName")), getSelf());
-					getContext().become(receivingData(), false);
+					MetadataItem metadataItem = (MetadataItem)msg;
+					String alternateTitle = metadataItem.getAlternateTitle();
+					if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {
+						final String tableName = alternateTitle.substring(0, alternateTitle.indexOf(" "));
+						
+						log.debug("requesting table: " + tableName);						
+						database.tell(new FetchTable(tableName), getSelf());
+						getContext().become(receivingData(), false);
+					}
 				} else if(msg instanceof End) {
 					log.debug("harvesting finished");
 					

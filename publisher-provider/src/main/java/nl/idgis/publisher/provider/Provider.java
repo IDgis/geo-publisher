@@ -49,9 +49,8 @@ public class Provider extends UntypedActor {
 		int harvesterPort = harvesterConfig.getInt("port");
 
 		connectMessage = new Connect(new InetSocketAddress(harvesterHost, harvesterPort));
-		
-		Props clientListenerProps = ClientListener.props(config, getSelf(), monitor);		
-		client = getContext().actorOf(Client.props(getSelf(), clientListenerProps), "client");
+				
+		client = getContext().actorOf(Client.props(config, getSelf(), monitor), "client");
 		client.tell(connectMessage, getSelf());
 		
 		ActorSystem system = getContext().system();

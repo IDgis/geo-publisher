@@ -15,14 +15,16 @@ public class ClientListener extends MessageListener {
 	private ActorRef app, monitor;
 	private Config config;
 
-	public ClientListener(Config config, ActorRef app, ActorRef monitor) {
+	public ClientListener(ActorRef connection, Config config, ActorRef app, ActorRef monitor) {
+		super(false, connection);
+		
 		this.config = config;
 		this.app = app;
 		this.monitor = monitor;
 	}
 
-	public static Props props(Config config, ActorRef app, ActorRef monitor) {
-		return Props.create(ClientListener.class, config, app, monitor);
+	public static Props props(ActorRef connection, Config config, ActorRef app, ActorRef monitor) {
+		return Props.create(ClientListener.class, connection, config, app, monitor);
 	}
 
 	@Override
