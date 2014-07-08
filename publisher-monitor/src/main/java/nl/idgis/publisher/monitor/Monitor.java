@@ -47,7 +47,9 @@ public class Monitor extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ResourceRef) {
+		if(msg instanceof ResourceRef) {	
+			log.debug(msg.toString());
+			
 			Set<Object> resources = getResourcesOfType(((ResourceRef) msg).getResourceType());
 			
 			if(msg instanceof NewResource) {

@@ -1,12 +1,15 @@
 package nl.idgis.publisher.utils;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.monitor.InactiveMonitor;
 import nl.idgis.publisher.monitor.Monitor;
 import nl.idgis.publisher.monitor.MonitorAspect;
+import nl.idgis.publisher.monitor.messages.GetTree;
 
 import org.aspectj.lang.Aspects;
+
+import scala.concurrent.duration.Duration;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -65,28 +68,28 @@ public class Boot {
 	}
 	
 	public static Boot init(String name) {
-		Config defaultConf = ConfigFactory.load();
+		final Config defaultConf = ConfigFactory.load();
 		
-		Config conf;
-		File confFile = new File(name + ".conf");
+		final Config conf;
+		final File confFile = new File(name + ".conf");
 		if(confFile.exists()) {
 			conf = ConfigFactory.parseFile(confFile).withFallback(defaultConf);
 		} else {
 			conf = defaultConf;
 		}
 		
-		Config appConfig = conf.getConfig("publisher." + name);
+		final Config appConfig = conf.getConfig("publisher." + name);
 		
-		ActorSystem actorSystem = ActorSystem.create(name, appConfig);
+		final ActorSystem actorSystem = ActorSystem.create(name, appConfig);
 		
-		ActorRef monitor;
+		final ActorRef monitor;
 		if(Aspects.hasAspect(MonitorAspect.class)) {
 			monitor = actorSystem.actorOf(Monitor.props(), "monitor");
 			
 			MonitorAspect monitorAspect = Aspects.aspectOf(MonitorAspect.class);
 			monitorAspect.setMonitor(monitor);
 		} else {
-			monitor = actorSystem.actorOf(InactiveMonitor.props(), "monitor");
+			monitor = null;
 		}
 		
 		return new Boot(appConfig, actorSystem, monitor);
@@ -100,8 +103,17 @@ public class Boot {
 		return monitor;
 	}
 	
-	public void startPublisher(Props props) {
-		ActorRef app = actorSystem.actorOf(props, "app");
+	public void startApplication(Props props) {
+		final ActorRef app = actorSystem.actorOf(props, "app");
+		
+		if(monitor != null) {
+			Config monitorConfig = config.getConfig("monitor");
+			if(monitorConfig.getBoolean("showTrees")) {		
+				actorSystem.scheduler().schedule(Duration.Zero(), Duration.create(10, TimeUnit.SECONDS), 
+					monitor, new GetTree(), actorSystem.dispatcher(), app);
+			}
+		}
+		
 		actorSystem.actorOf(Terminator.props(app), "app-terminator");
 	}
 }
