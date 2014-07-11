@@ -10,16 +10,17 @@ public class MessagePackager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final String targetName;
+	private final String targetName, pathPrefix;
 	private final ActorRef messageTarget;
 
-	public MessagePackager(String targetName, ActorRef messageTarget) {
+	public MessagePackager(String targetName, ActorRef messageTarget, String pathPrefix) {
 		this.targetName = targetName;		
 		this.messageTarget = messageTarget;
+		this.pathPrefix = pathPrefix;
 	}
 	
-	public static Props props(String targetName, ActorRef messageTarget) {
-		return Props.create(MessagePackager.class, targetName, messageTarget);
+	public static Props props(String targetName, ActorRef messageTarget, String pathPrefix) {
+		return Props.create(MessagePackager.class, targetName, messageTarget, pathPrefix);
 	}
 
 	@Override
@@ -32,7 +33,13 @@ public class MessagePackager extends UntypedActor {
 			sourceName = null;
 		} else {			
 			log.debug("sender: " + sender);
-			sourceName = sender.path().name();			
+			String sourcePath = sender.path().toString();
+			if(sourcePath.startsWith(pathPrefix)) {
+				sourceName = sourcePath.substring(pathPrefix.length());
+			} else {
+				log.debug("sourcePath: " + sourcePath + " pathPrefix: " + pathPrefix);
+				throw new IllegalStateException("sender is not a child of container actor");
+			}
 		}
 		
 		messageTarget.tell(new Message(targetName, msg, sourceName), getSelf());

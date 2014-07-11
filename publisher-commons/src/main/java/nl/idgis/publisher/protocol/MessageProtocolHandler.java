@@ -56,10 +56,7 @@ public class MessageProtocolHandler extends UntypedActor {
 		} else {
 			messageTarget = connection;
 			connection.tell(TcpMessage.register(getSelf()), getSelf());
-		}
-		
-		messagePackagerProvider = getContext().actorOf(MessagePackagerProvider.props(getSelf()), "packagerProvider");
-		messageDispatcher = getContext().actorOf(MessageDispatcher.props(messagePackagerProvider, container), "dispatcher");		
+		}		
 	}
 
 	@Override
@@ -109,9 +106,15 @@ public class MessageProtocolHandler extends UntypedActor {
 			messageTarget.tell(TcpMessage.write(data), getSelf());
 			
 			log.debug("message sent: " + msg);
-		} else if (msg instanceof GetMessagePackager) {
-			log.debug("forwarding message: " + msg);
-			messagePackagerProvider.tell(msg, getSender());
+		} else if (msg instanceof Register) {
+			log.debug("actors registered");
+			
+			ActorRef messageProtocolActors = ((Register) msg).getMessageProtocolActors();
+			
+			messagePackagerProvider = getContext().actorOf(MessagePackagerProvider.props(getSelf(), messageProtocolActors.path().toString()), "packagerProvider");
+			messageDispatcher = getContext().actorOf(MessageDispatcher.props(messagePackagerProvider, container), "dispatcher");
+			
+			getSender().tell(new Registered(messagePackagerProvider), getSender());
 		} else {
 			unhandled(msg);
 		}

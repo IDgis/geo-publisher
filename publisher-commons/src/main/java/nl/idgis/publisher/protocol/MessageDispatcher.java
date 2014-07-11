@@ -37,16 +37,22 @@ public class MessageDispatcher extends UntypedActor {
 			ActorPath targetPath = container.path().descendant(Arrays.asList(message.getTargetName().split("/")));
 			final ActorSelection actorSelection = getContext().actorSelection(targetPath);
 		
+			log.debug("target: " + actorSelection);
+			
 			if(sourceName == null) {
+				log.debug("dispatched without sender");
 				actorSelection.tell(message.getContent(), ActorRef.noSender());
-			} else {			
+			} else {
+				log.debug("requesting packager for source: " + sourceName);
+				
 				GetMessagePackager request = new GetMessagePackager(message.getSourceName());
 				Future<Object> packager = Patterns.ask(messagePackagerProvider, request, 10);
 			
 				packager.onComplete(new OnReceive<ActorRef>(log, ActorRef.class) {
 	
 					@Override
-					protected void onReceive(ActorRef packager) {					
+					protected void onReceive(ActorRef packager) {
+						log.debug("dispatched");
 						actorSelection.tell(message.getContent(), packager);
 					}
 				}, getContext().system().dispatcher());

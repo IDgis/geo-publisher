@@ -8,8 +8,6 @@ import nl.idgis.publisher.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.protocol.stream.StreamProvider;
 
-import scala.concurrent.Future;
-
 import akka.actor.Props;
 
 public class Metadata extends StreamProvider<Iterator<File>, GetMetadata, MetadataItem> {
@@ -17,6 +15,8 @@ public class Metadata extends StreamProvider<Iterator<File>, GetMetadata, Metada
 	private final File metadataDirectory;
 
 	public Metadata(File metadataDirectory) {
+		super(MetadataCursor.class);
+		
 		if (!metadataDirectory.isDirectory()) {
 			throw new IllegalArgumentException("metadataDirectory is not a directory");
 		}
@@ -31,15 +31,5 @@ public class Metadata extends StreamProvider<Iterator<File>, GetMetadata, Metada
 	@Override
 	protected Iterator<File> start(GetMetadata msg) {
 		return Arrays.asList(metadataDirectory.listFiles()).iterator();
-	}
-
-	@Override
-	protected Future<MetadataItem> next(Iterator<File> i) {
-		return askActor(getContext().actorOf(MetadataParser.props()), i.next(), 1000);		
-	}
-
-	@Override
-	protected boolean hasNext(Iterator<File> u) { 
-		return u.hasNext();
-	}
+	}	
 }

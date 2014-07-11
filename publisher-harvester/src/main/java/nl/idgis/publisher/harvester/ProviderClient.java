@@ -73,7 +73,7 @@ public class ProviderClient extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> receivingData() {
+	private Procedure<Object> receivingData(final ActorRef metadataCursor) {
 		return new Procedure<Object>() {
 
 			@Override
@@ -81,7 +81,7 @@ public class ProviderClient extends UntypedActor {
 				if(msg instanceof Record) {
 					log.debug("record received");
 					
-					database.tell(new NextItem(), getSelf());
+					getSender().tell(new NextItem(), getSelf());
 				} else if(msg instanceof End) {
 					log.debug("data retrieval finished");					
 					finish();
@@ -94,7 +94,7 @@ public class ProviderClient extends UntypedActor {
 			}	
 			
 			void finish() {
-				metadata.tell(new NextItem(), getSelf());					
+				metadataCursor.tell(new NextItem(), getSelf());					
 				getContext().unbecome();
 			}
 		};
@@ -119,9 +119,9 @@ public class ProviderClient extends UntypedActor {
 						
 						log.debug("requesting table: " + tableName);						
 						database.tell(new FetchTable(tableName), getSelf());
-						getContext().become(receivingData(), false);						 
+						getContext().become(receivingData(getSender()), false);						 
 					} else {
-						metadata.tell(new NextItem(), getSelf());
+						getSender().tell(new NextItem(), getSelf());
 					}
 				} else if(msg instanceof End) {
 					log.debug("harvesting finished");

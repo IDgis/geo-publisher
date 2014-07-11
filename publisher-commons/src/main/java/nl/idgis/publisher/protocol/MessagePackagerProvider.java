@@ -9,16 +9,18 @@ import akka.actor.UntypedActor;
 
 public class MessagePackagerProvider extends UntypedActor {
 	
+	private final String pathPrefix;
 	private final ActorRef messageTarget;
 	
 	private Map<String, ActorRef> messagePackagers;
 	
-	private MessagePackagerProvider(ActorRef messageTarget) {
+	private MessagePackagerProvider(ActorRef messageTarget, String pathPrefix) {
 		this.messageTarget = messageTarget;
+		this.pathPrefix = pathPrefix;
 	}
 	
-	public static Props props(ActorRef messageTarget) {
-		return Props.create(MessagePackagerProvider.class, messageTarget);
+	public static Props props(ActorRef messageTarget, String pathPrefix) {
+		return Props.create(MessagePackagerProvider.class, messageTarget, pathPrefix);
 	}
 	
 	@Override
@@ -36,7 +38,7 @@ public class MessagePackagerProvider extends UntypedActor {
 			if(messagePackagers.containsKey(targetName)) {
 				packager = messagePackagers.get(targetName);
 			} else {
-				packager = getContext().actorOf(MessagePackager.props(targetName, messageTarget));
+				packager = getContext().actorOf(MessagePackager.props(targetName, messageTarget, pathPrefix));
 				messagePackagers.put(targetName, packager);
 			}
 			
