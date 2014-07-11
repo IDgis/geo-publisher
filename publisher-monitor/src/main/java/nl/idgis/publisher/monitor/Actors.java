@@ -40,27 +40,28 @@ public class Actors extends UntypedActor {
 		log.debug("actors tree generator started");
 	}
 	
-	private Node getChild(Map<String, Set<String>> parentChild, Map<String, Object> values, String child, String path) {
+	private Node getChild(Map<String, Set<String>> parentChild, Map<String, Object> values, String path) {
 		Object value = values.get(path);
 		
-		if(parentChild.containsKey(child)) {
-			return new ParentNode(child, value, getChildren(parentChild, values, child, path));
+		String child = path.substring(path.lastIndexOf("/") + 1);
+		if(parentChild.containsKey(path)) {
+			return new ParentNode(child, value, getChildren(parentChild, values, path));
 		} else {
 			return new ValueNode(child, value);
 		}
 	}
 	
 	
-	private Node[] getChildren(Map<String, Set<String>> parentChild, Map<String, Object> values, String parent, String path) {
-		if(parentChild.containsKey(parent)) {
-			List<String> children = new ArrayList<String>(parentChild.get(parent));
+	private Node[] getChildren(Map<String, Set<String>> parentChild, Map<String, Object> values, String path) {
+		if(parentChild.containsKey(path)) {
+			List<String> children = new ArrayList<String>(parentChild.get(path));
 			Collections.sort(children);
 			
 			int i = 0;
 			Node[] retval = new Node[children.size()];
 			
 			for(String child : children) {
-				retval[i++] = getChild(parentChild, values, child, path + "/" + child);
+				retval[i++] = getChild(parentChild, values, path + "/" + child);
 			}
 			
 			return retval;
@@ -84,28 +85,29 @@ public class Actors extends UntypedActor {
 			Map<String, Set<String>> parentChild = new HashMap<>();
 			
 			for(ActorRef actorRef : actorRefs) {
-				String path = actorRef.path().toStringWithoutAddress();
+				String path = actorRef.path().toStringWithoutAddress().substring(1);
 				
 				values.put(path, actorRef);
 				
-				String[] pathItems = path.substring(1).split("/");
-				for(int i = 0; i < pathItems.length - 1; i++) {
-					String parent = pathItems[i], child = pathItems[i + 1];
-					
+				String currentPath = "";
+				String[] pathItems = path.split("/");
+				for(String pathItem : pathItems) {					
 					Set<String> children;
-					if(parentChild.containsKey(parent)) {
-						children = parentChild.get(parent);
+					if(parentChild.containsKey(currentPath)) {
+						children = parentChild.get(currentPath);
 					} else {
 						children = new HashSet<>();
-						parentChild.put(parent, children);
+						parentChild.put(currentPath, children);
 					}
 					
-					children.add(child);
+					children.add(pathItem);					
+					
+					currentPath += "/" + pathItem;
 				}
-				
-				Tree actorTree = new Tree("Actors", getChildren(parentChild, values, "user", "/user")); 
-				getSender().tell(actorTree, getSelf());
 			}
+			
+			Tree actorTree = new Tree("Actors", getChildren(parentChild, values, "")); 
+			getSender().tell(actorTree, getSelf());
 		} else {
 			unhandled(msg);
 		}
