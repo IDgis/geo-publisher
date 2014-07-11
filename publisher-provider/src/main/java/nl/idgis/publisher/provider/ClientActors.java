@@ -5,12 +5,10 @@ import java.io.File;
 import nl.idgis.publisher.protocol.GetMessagePackager;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
-import nl.idgis.publisher.utils.OnReceive;
-
 import scala.concurrent.Future;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -55,10 +53,11 @@ public class ClientActors extends MessageProtocolActors {
 		final ActorRef provider = null;
 								
 		Future<Object> harvesterPackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("harvester"), 1000);
-		harvesterPackager.onComplete(new OnReceive<ActorRef>(log, ActorRef.class) {
+		harvesterPackager.onSuccess(new OnSuccess<Object>() {
 
 			@Override
-			protected void onReceive(ActorRef harvester) {
+			public void onSuccess(Object msg) {
+				ActorRef harvester = (ActorRef)msg;
 				harvester.tell(new Hello("My data provider"), provider);
 			}
 		}, getContext().system().dispatcher());

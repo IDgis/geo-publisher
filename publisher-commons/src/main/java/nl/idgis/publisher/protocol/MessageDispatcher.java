@@ -2,13 +2,13 @@ package nl.idgis.publisher.protocol;
 
 import java.util.Arrays;
 
-import nl.idgis.publisher.utils.OnReceive;
 import scala.concurrent.Future;
 import akka.actor.ActorPath;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -47,14 +47,17 @@ public class MessageDispatcher extends UntypedActor {
 				
 				GetMessagePackager request = new GetMessagePackager(message.getSourceName());
 				Future<Object> packager = Patterns.ask(messagePackagerProvider, request, 10);
-			
-				packager.onComplete(new OnReceive<ActorRef>(log, ActorRef.class) {
-	
+				
+				packager.onSuccess(new OnSuccess<Object>() {
+
 					@Override
-					protected void onReceive(ActorRef packager) {
-						log.debug("dispatched");
+					public void onSuccess(Object msg) throws Throwable {
+						ActorRef packager = (ActorRef)msg;						
 						actorSelection.tell(message.getContent(), packager);
+						
+						log.debug("dispatched");
 					}
+					
 				}, getContext().system().dispatcher());
 			}
 		} else {

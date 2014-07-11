@@ -2,13 +2,13 @@ package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.protocol.GetMessagePackager;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
-import nl.idgis.publisher.utils.OnReceive;
 
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -29,14 +29,16 @@ public class ServerActors extends MessageProtocolActors {
 		
 		Future<Object> databasePackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("database"), 1000);
 		final Future<Object> metadataPackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("metadata"), 1000);
-		databasePackager.onComplete(new OnReceive<ActorRef>(log, ActorRef.class) {
+		databasePackager.onSuccess(new OnSuccess<Object>() {
 
 			@Override
-			protected void onReceive(final ActorRef database) {					
-				metadataPackager.onComplete(new OnReceive<ActorRef>(log, ActorRef.class) {
+			public void onSuccess(Object msg) {
+				final ActorRef database = (ActorRef)msg;
+				metadataPackager.onSuccess(new OnSuccess<Object>() {
 
 					@Override
-					protected void onReceive(ActorRef metadata) {
+					public void onSuccess(Object msg) {
+						ActorRef metadata = (ActorRef)msg;
 						getContext().actorOf(ProviderClient.props(metadata, database), "harvester");							
 					}
 				}, dispatcher);
