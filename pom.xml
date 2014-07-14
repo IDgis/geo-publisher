@@ -10,7 +10,12 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<scala.version>2.10</scala.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	
+		<scala.version>2.11.1</scala.version>
+        <play2.version>2.3.1</play2.version>
+        <scala.abi.version>2.11</scala.abi.version>
 	</properties>
 
 	<repositories>
@@ -58,7 +63,7 @@
 			</dependency>
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
-				<artifactId>akka-actor_${scala.version}</artifactId>
+				<artifactId>akka-actor_${scala.abi.version}</artifactId>
 				<version>2.3.3</version>
 			</dependency>
 			<dependency>
@@ -95,6 +100,7 @@
 		<module>publisher-provider</module>
 		<module>publisher-harvester</module>
 		<module>publisher-monitor</module>
+		<module>publisher-web</module>
 	</modules>
 	
 	<reporting>
