@@ -16,6 +16,7 @@
 		<scala.version>2.11.1</scala.version>
         <play2.version>2.3.1</play2.version>
         <scala.abi.version>2.11</scala.abi.version>
+		<deegree.version>3.4-pre13</deegree.version>
 	</properties>
 
 	<repositories>
@@ -36,6 +37,16 @@
 				<updatePolicy>never</updatePolicy>
 			</releases>			
 		</repository>
+		<repository>
+	      <id>deegree-repo</id>
+	      <url>http://repo.deegree.org/content/groups/public/</url>
+	      <releases>
+	        <updatePolicy>never</updatePolicy>
+	      </releases>
+	      <snapshots>
+	        <enabled>true</enabled>
+	      </snapshots>
+	    </repository>
 	</repositories>
 
 	<distributionManagement>
@@ -91,6 +102,16 @@
 				<groupId>com.oracle</groupId>
 				<artifactId>ojdbc7</artifactId>
 				<version>12.1.0.1.0</version>				
+			</dependency>
+			<dependency>
+				<groupId>org.deegree</groupId>
+				<artifactId>deegree-sqldialect-oracle</artifactId>
+				<version>${deegree.version}</version>
+  			</dependency>
+  			<dependency>
+				<groupId>org.deegree</groupId>
+				<artifactId>deegree-core-geometry</artifactId>
+				<version>${deegree.version}</version>			
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

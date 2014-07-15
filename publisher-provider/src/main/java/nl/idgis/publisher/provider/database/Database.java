@@ -1,26 +1,24 @@
-package nl.idgis.publisher.provider;
+package nl.idgis.publisher.provider.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import nl.idgis.publisher.protocol.database.FetchTable;
 import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.stream.StreamProvider;
-
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class Database extends StreamProvider<ResultSet, FetchTable, Record> {
+public class Database extends StreamProvider<FetchTable, Record> {
 	
 	private Connection connection;
+	private ActorRef converter;
 	
 	private final String driver, url, user, password;
 	
 	public Database(String driver, String url, String user, String password) {
-		super(DatabaseCursor.class);
-		
 		this.driver = driver;
 		this.url = url;
 		this.user = user;
@@ -37,6 +35,8 @@ public class Database extends StreamProvider<ResultSet, FetchTable, Record> {
 			Class.forName(driver);
 		}
 		connection = DriverManager.getConnection(url, user, password);
+		
+		converter = getContext().actorOf(OracleConverter.props());
 	}
 	
 	@Override
@@ -45,8 +45,8 @@ public class Database extends StreamProvider<ResultSet, FetchTable, Record> {
 	}
 
 	@Override
-	protected ResultSet start(FetchTable msg) throws SQLException {		
+	protected Props start(FetchTable msg) throws SQLException {		
 		Statement stmt = connection.createStatement();
-		return stmt.executeQuery("select * from " + msg.getTableName());
+		return DatabaseCursor.props(stmt.executeQuery("select * from " + msg.getTableName()), converter);
 	}
 }

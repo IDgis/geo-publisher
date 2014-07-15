@@ -1,26 +1,28 @@
 package nl.idgis.publisher.protocol.database;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import nl.idgis.publisher.protocol.stream.Item;
 
 public class Record extends Item implements Serializable {
-
-	private static final long serialVersionUID = 144062896128532148L;
 	
-	private final Object[] values;
+	private static final long serialVersionUID = 5011984818623444511L;
 	
-	public Record(Object[] values) {
+	private final List<Object> values;
+	
+	public Record(List<Object> values) {
 		this.values = values;
 	}
 	
-	public Object[] getValues() {
-		return this.values;
+	public List<Object> getValues() {
+		return Collections.unmodifiableList(this.values);
 	}
 
 	@Override
 	public String toString() {
-		return "Record [values=" + Arrays.toString(values) + "]";
+		return "Record [values=" + values + "]";
 	}
+	
 }
