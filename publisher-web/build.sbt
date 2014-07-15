@@ -10,5 +10,8 @@ libraryDependencies ++= Seq(
   javaJdbc,
   javaEbean,
   cache,
-  javaWs
+  javaWs,
+  "org.webjars" %% "webjars-play" % "2.3.0",  
+  "org.webjars" % "bootstrap" % "3.2.0",
+  "org.webjars" % "dojo" % "1.10.0"
 )
