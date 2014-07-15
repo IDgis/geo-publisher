@@ -15,3 +15,5 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.2.0",
   "org.webjars" % "dojo" % "1.10.0"
 )
+
+includeFilter in (Assets, LessKeys.less) := "*.less"
