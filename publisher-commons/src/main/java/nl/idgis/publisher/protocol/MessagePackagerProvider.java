@@ -1,18 +1,23 @@
 package nl.idgis.publisher.protocol;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public class MessagePackagerProvider extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final String pathPrefix;
 	private final ActorRef messageTarget;
 	
-	private Map<String, ActorRef> messagePackagers;
+	private BiMap<String, ActorRef> messagePackagers;
 	
 	private MessagePackagerProvider(ActorRef messageTarget, String pathPrefix) {
 		this.messageTarget = messageTarget;
@@ -25,7 +30,7 @@ public class MessagePackagerProvider extends UntypedActor {
 	
 	@Override
 	public void preStart() {
-		messagePackagers = new HashMap<String, ActorRef>();
+		messagePackagers = HashBiMap.create();
 	}
 
 	@Override
@@ -34,15 +39,41 @@ public class MessagePackagerProvider extends UntypedActor {
 			GetMessagePackager gmp = (GetMessagePackager)msg;
 			String targetName = gmp.getTargetName();
 			
+			log.debug("message packager requested for: " + targetName);
+			
 			final ActorRef packager;			
 			if(messagePackagers.containsKey(targetName)) {
+				log.debug("existing packager found");
 				packager = messagePackagers.get(targetName);
 			} else {
+				log.debug("creating new packager");				
 				packager = getContext().actorOf(MessagePackager.props(targetName, messageTarget, pathPrefix));
+				getContext().watch(packager);
 				messagePackagers.put(targetName, packager);
 			}
 			
 			getSender().tell(packager, getSelf());
+		} else if(msg instanceof Terminated) {
+			ActorRef packager = ((Terminated) msg).getActor();
+			String targetName = messagePackagers.inverse().remove(packager);
+			
+			if(targetName == null) {
+				throw new IllegalStateException("Couldn't find packager in map");
+			}
+			
+			log.debug("packager for target '" + targetName + "' terminated");			
+		} else if(msg instanceof Unreachable) {
+			String targetName = ((Unreachable) msg).getTargetName();
+			
+			log.debug("remote target unreachable: " + targetName);
+			if(messagePackagers.containsKey(targetName)) {
+				log.debug("stopping packager for target: " + targetName);
+				
+				ActorRef packager = messagePackagers.get(targetName);
+				getContext().stop(packager);
+			} else {
+				log.warning("no packager for target: " + targetName);
+			}
 		} else {
 			unhandled(msg);
 		}

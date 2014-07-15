@@ -2,35 +2,17 @@ package nl.idgis.publisher.protocol;
 
 import java.io.Serializable;
 
-public class Message implements Serializable {	
+public abstract class Message implements Serializable {
 	
-	private static final long serialVersionUID = -6624873515941732598L;
+	private static final long serialVersionUID = 2640413079987990030L;
 	
-	private final String targetName, sourceName;
-	private final Object content;
+	protected final String targetName;
 	
-	public Message(String targetName, Object content, String sourceName) {
+	public Message(String targetName) {
 		this.targetName = targetName;
-		this.content = content;
-		this.sourceName = sourceName;
 	}
 	
 	public String getTargetName() {
-		return targetName;		
+		return targetName;
 	}
-	
-	public Object getContent() {
-		return content;
-	}
-	
-	public String getSourceName() {
-		return sourceName;
-	}
-
-	@Override
-	public String toString() {
-		return "Message [targetName=" + targetName + ", sourceName="
-				+ sourceName + ", content=" + content + "]";
-	}
-	
 }
