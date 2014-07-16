@@ -10,12 +10,12 @@
 	<packaging>pom</packaging>
 
 	<properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-	
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
 		<scala.version>2.11.1</scala.version>
-        <play2.version>2.3.1</play2.version>
-        <scala.abi.version>2.11</scala.abi.version>
+		<play2.version>2.3.1</play2.version>
+		<scala.abi.version>2.11</scala.abi.version>
 		<deegree.version>3.4-pre13</deegree.version>
 	</properties>
 
@@ -35,18 +35,18 @@
 			<url>http://nexus.idgis.eu/content/repositories/thirdparty/</url>
 			<releases>
 				<updatePolicy>never</updatePolicy>
-			</releases>			
+			</releases>
 		</repository>
 		<repository>
-	      <id>deegree-repo</id>
-	      <url>http://repo.deegree.org/content/groups/public/</url>
-	      <releases>
-	        <updatePolicy>never</updatePolicy>
-	      </releases>
-	      <snapshots>
-	        <enabled>true</enabled>
-	      </snapshots>
-	    </repository>
+			<id>deegree-repo</id>
+			<url>http://repo.deegree.org/content/groups/public/</url>
+			<releases>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
 	<distributionManagement>
@@ -101,17 +101,17 @@
 			<dependency>
 				<groupId>com.oracle</groupId>
 				<artifactId>ojdbc7</artifactId>
-				<version>12.1.0.1.0</version>				
+				<version>12.1.0.1.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.deegree</groupId>
 				<artifactId>deegree-sqldialect-oracle</artifactId>
 				<version>${deegree.version}</version>
-  			</dependency>
-  			<dependency>
+			</dependency>
+			<dependency>
 				<groupId>org.deegree</groupId>
 				<artifactId>deegree-core-geometry</artifactId>
-				<version>${deegree.version}</version>			
+				<version>${deegree.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -123,7 +123,7 @@
 		<module>publisher-monitor</module>
 		<module>publisher-web</module>
 	</modules>
-	
+
 	<reporting>
 		<plugins>
 			<plugin>
