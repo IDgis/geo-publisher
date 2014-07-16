@@ -1,0 +1,5 @@
+@(bodyClass: String = null, scripts: Array[String] = null, bodyTag: String = "body")(content: Html)
+<@bodyTag@if(bodyClass != null){ class="@bodyClass"}>
+	@content
+	@foot(scripts = scripts)
+</@bodyTag>

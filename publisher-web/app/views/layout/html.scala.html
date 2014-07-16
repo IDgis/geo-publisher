@@ -1,0 +1,7 @@
+@(title: String, lang: String = "en", bodyClass: String = null, stylesheets: Array[String] = null, scripts: Array[String] = null, headContent: Html = Html(""))(content: Html)
+<!DOCTYPE html>
+<html lang="@lang">
+	@head(title = title, stylesheets = stylesheets, headContent = headContent)
+	
+	@body(bodyClass = bodyClass, scripts = scripts)(content = content)
+</html>

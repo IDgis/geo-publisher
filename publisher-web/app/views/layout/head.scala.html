@@ -1,0 +1,21 @@
+@(title: String, stylesheets: Array[String] = null, headContent: Html = Html(""))
+<head>
+	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-transluscent">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	
+	<title>@title</title>
+	
+	@if(stylesheets != null) {
+		@for(stylesheet <- stylesheets) {
+			<link rel="stylesheet" type="text/css" href="@stylesheet">
+		}
+	}
+	@headContent
+	
+	@if(request.getHeader("User-Agent") != null && (request.getHeader("User-Agent").contains("MSIE 8") || request.getHeader("User-Agent").contains("MSIE 7"))) { 
+		<script src="@controllers.routes.Assets.at("js/html5shiv.js")"></script>
+		<script src="@controllers.routes.Assets.at("js/respond.min.js")"></script>
+	}
+</head>

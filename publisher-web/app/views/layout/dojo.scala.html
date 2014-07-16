@@ -1,0 +1,14 @@
+@()
+@doWriteDojo(prefix: String) = {
+<script type="text/javascript" src="@routes.WebJarAssets.at(WebJarAssets.locate("dojo/dojo.js"))" 
+	data-dojo-config="has: { 'config-dojo-loader-catches': true }, parseOnLoad: false, async: true, isDebug: true, deferredInstrumentation: true, useDeferredInstrumentation: true, locale: 'nl-nl', async: true, packages: [ { name: 'idgis', location: '@routes.Assets.at(prefix + "/idgis")' }, { name: 'put-selector', location: '@routes.Assets.at(prefix + "/put-selector")' }]"></script>
+@if(play.api.Mode.Dev == play.api.Play.maybeApplication.map(_.mode).getOrElse(play.api.Mode.Dev)) {
+<script type="text/javascript">
+// Catch and report loader errors in dev mode:
+require.on ('error', function (error) {
+	console.log ('Loader error: ', error.info[1]);
+});
+</script>
+}
+}
+@doWriteDojo(if(play.api.Mode.Prod == play.api.Play.maybeApplication.map(_.mode).getOrElse(play.api.Mode.Dev)) "js-min" else "js")

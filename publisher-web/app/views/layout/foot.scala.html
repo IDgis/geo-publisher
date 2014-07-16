@@ -1,0 +1,13 @@
+@(scripts: Array[String] = null)
+
+@dojo()
+
+@if(scripts != null) {
+	@for(script <- scripts) {
+		@if(play.api.Mode.Prod == play.api.Play.maybeApplication.map(_.mode).getOrElse(play.api.Mode.Dev)) {
+			<script type="text/javascript" src="@{script.replace("/js/", "/js-min/")}"></script>
+		} else {
+			<script type="text/javascript" src="@script"></script>
+		}
+	}
+}

@@ -1,0 +1,94 @@
+@(title: String)(content: Html)
+
+@html(
+	title = title, 
+	stylesheets = Array(
+		routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css")).url,
+		routes.Assets.at("stylesheets/layout.css").url,
+		routes.Assets.at("stylesheets/sb-admin.css").url
+	),
+	scripts = Array(
+		routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js")).url,
+		routes.WebJarAssets.at(WebJarAssets.locate("js/bootstrap.min.js")).url,
+		routes.Assets.at("js/layout.js").url
+	)
+) {
+	
+	<div class="wrapper">
+		<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<button class="navbar-toggle" data-target=".sidebar-collapse" data-toggle="collapse" type="button">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="#">GIS publicatieomgeving</a>
+				</div>
+				
+				@* Top links: *@
+				<ul class="nav navbar-top-links navbar-right">
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge">3</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li class="dropdown-header">3 nieuwe meldingen</li>
+							<li><a href="#">Bericht 1</a></li>
+							<li><a href="#">Bericht 2</a></li>
+							<li><a href="#">Bericht 3</a></li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Taken"><span class="glyphicon glyphicon-tasks"></span> <span class="badge">3</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li class="dropdown-header">3 taken</li>
+							<li><a href="#">Taak 1</a></li>
+							<li><a href="#">Taak 2</a></li>
+							<li><a href="#">Taak 3</a></li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge">3</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li class="dropdown-header">3 nieuwe fouten</li>
+							<li><a href="#">Fout 1</a></li>
+							<li><a href="#">Fout 2</a></li>
+							<li><a href="#">Fout 3</a></li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Admin Istrator <b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li><a href="#"><span class="glyphicon glyphicon-user"></span> Profiel</a></li>
+							<li class="divider"></a>
+							<li><a href="#"><span class="glyphicon glyphicon-log-out"></span> Afmelden</a></li>
+						</ul>
+					</li>
+				</ul>
+		
+			</div>
+		</nav>
+		
+		@* Sidebar: *@
+		<nav class="navbar-default navbar-static-side" role="navigation">
+			<div class="sidebar-collapse">
+				<ul class="nav" id="side-menu">
+					<li class="active"><a href="#"><span class="glyphicon glyphicon-dashboard"></span> Dashboard</a></li>
+					<li><a href="#"><span class="glyphicon glyphicon-th-list"></span> Datasets</a></li>
+					<li><a href="#">Item 3</a></li>
+					<li><a href="#">Item 4</a></li>
+					<li><a href="#">Item 5</a></li>
+				</ul>
+			</div>
+		</nav>
+		
+		<div id="page-wrapper">
+			<div class="row">
+				<div class="col-lg-12">
+					@content
+				</div>
+			</div>
+		</div>
+	</div>
+}
+	
