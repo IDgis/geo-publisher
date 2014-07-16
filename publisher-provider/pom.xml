@@ -21,10 +21,6 @@
 			<artifactId>aalto-xml</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
 			<scope>provided</scope>
@@ -32,6 +28,24 @@
 		<dependency>
 			<groupId>com.oracle</groupId>
 			<artifactId>ojdbc7</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.deegree</groupId>
+			<artifactId>deegree-sqldialect-oracle</artifactId>
+			<exclusions>
+			<exclusion>
+				<artifactId>deegree-sqldialect-commons</artifactId>
+				<groupId>org.deegree</groupId>
+			</exclusion>
+			<exclusion>
+				<artifactId>deegree-core-db</artifactId>
+				<groupId>org.deegree</groupId>
+			</exclusion>
+			</exclusions>
+  		</dependency>
+		<dependency>
+			<groupId>org.deegree</groupId>
+			<artifactId>deegree-core-geometry</artifactId>			
 		</dependency>
 	</dependencies>
 
