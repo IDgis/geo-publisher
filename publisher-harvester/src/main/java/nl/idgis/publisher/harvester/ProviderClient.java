@@ -86,7 +86,7 @@ public class ProviderClient extends UntypedActor {
 					log.debug("data retrieval finished");					
 					finish();
 				} else if(msg instanceof Failure) {
-					log.error("data retrieval failure: " + msg);
+					log.error(((Failure) msg).getCause(), "data retrieval failure");
 					finish();
 				} else {
 					unhandled(msg);

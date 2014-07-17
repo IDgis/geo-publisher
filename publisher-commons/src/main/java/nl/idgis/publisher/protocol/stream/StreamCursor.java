@@ -69,6 +69,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 					@Override
 					public void onComplete(Throwable t, V v) throws Throwable {
 						if(t != null) {
+							log.warning("next returned exception: " + t.getMessage());
 							sender.tell(new Failure(t), getSelf());
 						} else {
 							sender.tell(v, getSelf());

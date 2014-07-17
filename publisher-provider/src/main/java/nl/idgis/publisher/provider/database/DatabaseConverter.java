@@ -6,8 +6,12 @@ import nl.idgis.publisher.provider.database.messages.Convert;
 import nl.idgis.publisher.provider.database.messages.Converted;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public class DatabaseConverter extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private static final Class<?>[] NO_CONVERSION_NEEDED = 
 			new Class<?>[]{String.class, Number.class};
@@ -35,6 +39,7 @@ public class DatabaseConverter extends UntypedActor {
 			try {
 				response = new Converted(convert(convert.getValue()));
 			} catch(Exception e) {
+				log.warning("couldn't convert value");
 				response = new Failure(e);
 			}
 			
