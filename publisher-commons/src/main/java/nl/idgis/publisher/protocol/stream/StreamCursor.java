@@ -2,6 +2,7 @@ package nl.idgis.publisher.protocol.stream;
 
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.Failure;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;

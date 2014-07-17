@@ -10,8 +10,8 @@ import java.util.Stack;
 
 import javax.xml.namespace.QName;
 
+import nl.idgis.publisher.protocol.Failure;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.protocol.stream.Failure;
 
 import com.fasterxml.aalto.AsyncInputFeeder;
 import com.fasterxml.aalto.AsyncXMLInputFactory;

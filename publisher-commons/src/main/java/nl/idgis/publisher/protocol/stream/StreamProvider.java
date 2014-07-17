@@ -1,5 +1,6 @@
 package nl.idgis.publisher.protocol.stream;
 
+import nl.idgis.publisher.protocol.Failure;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
