@@ -2,13 +2,14 @@ package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.protocol.database.FetchTable;
+import nl.idgis.publisher.protocol.database.DescribeTable;
 import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.protocol.stream.End;
 import nl.idgis.publisher.protocol.stream.Failure;
 import nl.idgis.publisher.protocol.stream.NextItem;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -117,8 +118,8 @@ public class ProviderClient extends UntypedActor {
 							&& alternateTitle.contains(" ")) {
 						final String tableName = alternateTitle.substring(0, alternateTitle.indexOf(" "));
 						
-						log.debug("requesting table: " + tableName);						
-						database.tell(new FetchTable(tableName), getSelf());
+						log.debug("requesting table structure: " + tableName);						
+						database.tell(new DescribeTable(tableName), getSelf());
 						getContext().become(receivingData(getSender()), false);						 
 					} else {
 						getSender().tell(new NextItem(), getSelf());

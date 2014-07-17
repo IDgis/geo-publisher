@@ -3,20 +3,20 @@ package nl.idgis.publisher.provider.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 
+import nl.idgis.publisher.protocol.database.DescribeTable;
 import nl.idgis.publisher.protocol.database.FetchTable;
-import nl.idgis.publisher.protocol.database.Record;
-import nl.idgis.publisher.protocol.stream.StreamProvider;
+import nl.idgis.publisher.provider.database.messages.Query;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
 
-public class Database extends StreamProvider<FetchTable, Record> {
-	
-	private Connection connection;
-	private ActorRef converter;
+public class Database extends UntypedActor {	
 	
 	private final String driver, url, user, password;
+	
+	private Connection connection;
+	private ActorRef content;
 	
 	public Database(String driver, String url, String user, String password) {
 		this.driver = driver;
@@ -36,7 +36,7 @@ public class Database extends StreamProvider<FetchTable, Record> {
 		}
 		connection = DriverManager.getConnection(url, user, password);
 		
-		converter = getContext().actorOf(OracleConverter.props());
+		content = getContext().actorOf(DatabaseContent.props(connection), "content");
 	}
 	
 	@Override
@@ -45,8 +45,30 @@ public class Database extends StreamProvider<FetchTable, Record> {
 	}
 
 	@Override
-	protected Props start(FetchTable msg) throws SQLException {		
-		Statement stmt = connection.createStatement();
-		return DatabaseCursor.props(stmt.executeQuery("select * from " + msg.getTableName()), converter);
-	}
+	public void onReceive(Object msg) throws Exception {
+		if(msg instanceof FetchTable) {
+			content.tell(new Query("select * from " + ((FetchTable)msg).getTableName()), getSender());
+		} else if(msg instanceof DescribeTable) {
+			String requestedTableName = ((DescribeTable) msg).getTableName();
+			
+			final String sql;
+			int separatorIndex = requestedTableName.indexOf(".");
+			if(separatorIndex == -1) {
+				sql = "select column_name, data_type from user_tab_columns "
+						+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
+						+ "order by column_id";
+			} else {
+				String owner = requestedTableName.substring(0, separatorIndex);
+				String tableName = requestedTableName.substring(separatorIndex + 1);
+				
+				sql = "select column_name, data_type from all_tab_columns "
+						+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
+						+ "' " + "order by column_id";
+			}
+			
+			content.tell(new Query(sql), getSender());
+		} else {
+			unhandled(msg);
+		}
+	}	
 }
