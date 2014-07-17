@@ -62,7 +62,10 @@ public class MessageProtocolHandler extends UntypedActor {
 	@Override
 	public void onReceive(final Object msg) throws Exception {
 		if(msg instanceof Received) {
-			data = data.concat(((Received)msg).data());
+			ByteString newData = ((Received)msg).data();
+			log.debug("new data received: " + newData.size());
+			
+			data = data.concat(newData);
 			
 			while(data.size() > 4) {
 				ByteString lengthField = data.take(4);
@@ -70,7 +73,8 @@ public class MessageProtocolHandler extends UntypedActor {
 				
 				log.debug("receiving message, length: " + length);
 				
-				if(data.size() >= length + 4) {
+				int requiredSize = length + 4;
+				if(data.size() >= requiredSize) {
 					data = data.drop(4);
 					ByteString message = data.take(length);
 					
@@ -80,6 +84,9 @@ public class MessageProtocolHandler extends UntypedActor {
 					messageDispatcher.tell(receivedMessage, getSelf());
 					
 					data = data.drop(length);
+				} else {
+					log.debug("not enough bytes received yet: " + data.size() + "/" + requiredSize);
+					break;
 				}
 			}
 		} else if(msg instanceof Close) {
