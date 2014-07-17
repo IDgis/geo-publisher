@@ -8,7 +8,11 @@ import views.html.datasets.form;
 public class Datasets extends Controller {
 
 	public static Result list () {
-		return ok (list.render ());
+		return ok (list.render (false));
+	}
+	
+	public static Result listWithMessages () {
+		return ok (list.render (true));
 	}
 	
 	public static Result createForm () {

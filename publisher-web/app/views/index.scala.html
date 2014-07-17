@@ -2,5 +2,184 @@
 
 @layout.application(title = "GIS publicatieomgeving") {
 
-	<h1 class="page-header">GIS publicatieomgeving</h1>
+	<div class="jumbotron">
+		<div class="row">
+			<div class="col-lg-8">
+				<h1>GIS publicatieomgeving</h1>
+			</div>
+			<div class="col-lg-2">
+				<div class="well">
+					<a href="http://www.idgis.nl">
+						<img class="img-responsive" alt="IDgis" src="@routes.Assets.at("images/logo-idgis-large.png")">
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="page-content">
+		<div class="row">
+
+			<div class="col-lg-3">
+				<div class="panel panel-success">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-4">
+								<p class="announcement-heading">
+									<span class="glyphicon glyphicon-cloud"></span>
+								</p>
+							</div>
+							<div class="col-xs-8 text-right">
+								<p class="announcement-heading">1</p>
+								<p class="announcement-text">Actieve gegevensbron</p>
+							</div>
+						</div>
+					</div>
+					<ul class="list-group">
+						<li class="list-group-item">
+							<span class="text-success"><span class="glyphicon glyphicon-ok"></span></span> Provincie Overijssel Oracle
+						</li>
+					</ul>
+					<a href="#">
+						<div class="panel-footer">
+							<div class="row">
+								<div class="col-xs-10">
+									Bekijk status
+								</div>
+								<div class="col-xs-2 text-right">
+									<span class="glyphicon glyphicon-circle-arrow-right"></span>
+								</div>
+							</div>
+						</div>
+					</a>
+				</div>
+			</div>
+					
+			<div class="col-lg-3">
+				<div class="panel panel-info">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-6">
+								<p class="announcement-heading">
+									<span class="glyphicon glyphicon-bell"></span>
+								</p>
+							</div>
+							<div class="col-xs-6 text-right">
+								<p class="announcement-heading">1</p>
+								<p class="announcement-text">Melding</p>
+							</div>
+						</div>
+					</div>
+					<ul class="list-group">
+						<li class="list-group-item">
+							<a href="#">
+								Structuurwijziging: Sterrenwachten
+							</a>
+						</li>
+					</ul>
+					<a href="#">
+						<div class="panel-footer">
+							<div class="row">
+								<div class="col-xs-10">
+									Alle datatasets met meldingen
+								</div>
+								<div class="col-xs-2 text-right">
+									<span class="glyphicon glyphicon-circle-arrow-right"></span>
+								</div>
+							</div>
+						</div>
+					</a>
+				</div>
+			</div>
+			
+			<div class="col-lg-3">
+				<div class="panel panel-success">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-6">
+								<p class="announcement-heading">
+									<span class="glyphicon glyphicon-tasks"></span>
+								</p>
+							</div>
+							<div class="col-xs-6 text-right">
+								<p class="announcement-heading">1</p>
+								<p class="announcement-text">Actieve taak</p>
+								
+							</div>
+						</div>
+					</div>
+					<ul class="list-group">
+						<li class="list-group-item">
+							<div>
+								<p>
+									<strong>Werkgelegenheid</strong>
+									<span class="pull-right text-muted">Bezig met bijwerken</span>
+								</p>
+								<div class="progress progress-striped active">
+									<div class="progress-bar progress-bar-success" style="width: 100%">
+									</div>
+								</div>
+							</div>
+						</li>
+					</ul>
+					<a href="#">
+						<div class="panel-footer">
+							<div class="row">
+								<div class="col-xs-10">
+									Bekijk logboek
+								</div>
+								<div class="col-xs-2 text-right">
+									<span class="glyphicon glyphicon-circle-arrow-right"></span>
+								</div>
+							</div>
+						</div>
+					</a>
+				</div>
+			</div>
+			
+			<div class="col-lg-3">
+				<div class="panel panel-warning">
+					<div class="panel-heading">
+						<div class="row">
+							<div class="col-xs-6">
+								<p class="announcement-heading">
+									<span class="glyphicon glyphicon-warning-sign"></span>
+								</p>
+							</div>
+							<div class="col-xs-6 text-right">
+								<p class="announcement-heading">1</p>
+								<p class="announcement-text">Foutmelding</p>
+								
+							</div>
+						</div>
+					</div>
+					<ul class="list-group">
+						<li class="list-group-item">
+							<div>
+								<p>
+									<strong>Fout tijdens bijwerken</strong>
+									<span class="pull-right">1 dag geleden</span>
+								</p>
+							</div>
+							<p>
+								<span class="text-muted">Dataset</span> Geluidszone bedrijventerrein  
+							</p>
+						</li>
+					</ul>
+					<a href="#">
+						<div class="panel-footer">
+							<div class="row">
+								<div class="col-xs-10">
+									Bekijk foutlogboek
+								</div>
+								<div class="col-xs-2 text-right">
+									<span class="glyphicon glyphicon-circle-arrow-right"></span>
+								</div>
+							</div>
+						</div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
 }

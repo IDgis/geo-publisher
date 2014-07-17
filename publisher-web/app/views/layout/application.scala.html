@@ -24,36 +24,72 @@
 						<span class="icon-bar"></span>
 						<span class="icon-bar"></span>
 					</button>
-					<a class="navbar-brand" href="#">GIS publicatieomgeving</a>
+					<a class="navbar-brand" href="#"><span class="glyphicon glyphicon-cloud"></span> GIS publicatieomgeving</a>
 				</div>
 				
 				@* Top links: *@
 				<ul class="nav navbar-top-links navbar-right">
 					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge">3</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu">
-							<li class="dropdown-header">3 nieuwe meldingen</li>
-							<li><a href="#">Bericht 1</a></li>
-							<li><a href="#">Bericht 2</a></li>
-							<li><a href="#">Bericht 3</a></li>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge">1</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu dropdown-messages">
+							<li class="dropdown-header">1 dataset met structuurwijziging</li>
+							<li class="divider"></li>
+							<li>
+								<a href="#">
+									<strong>Structuurwijziging: dataset Sterrenwachten</strong>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<a class="text-center" href="@routes.Datasets.listWithMessages()">Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
+							</li>
 						</ul>
 					</li>
 					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Taken"><span class="glyphicon glyphicon-tasks"></span> <span class="badge">3</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu">
-							<li class="dropdown-header">3 taken</li>
-							<li><a href="#">Taak 1</a></li>
-							<li><a href="#">Taak 2</a></li>
-							<li><a href="#">Taak 3</a></li>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Taken"><span class="glyphicon glyphicon-tasks"></span> <span class="badge">1</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu dropdown-tasks">
+							<li class="dropdown-header">1 actieve taak</li>
+							<li class="divider"></li>
+							<li>
+								<a href="#">
+									<div>
+										<p>
+											<strong>Werkgelegenheid</strong>
+											<span class="pull-right text-muted">Bezig met bijwerken</span>
+										</p>
+										<div class="progress progress-striped active">
+											<div class="progress-bar progress-bar-success" style="width: 100%">
+											</div>
+										</div>
+									</div>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<a href="#" class="text-center">Bekijk logboek <span class="glyphicon glyphicon-chevron-right"></span></a>
+							</li>
 						</ul>
 					</li>
 					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge">3</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu">
-							<li class="dropdown-header">3 nieuwe fouten</li>
-							<li><a href="#">Fout 1</a></li>
-							<li><a href="#">Fout 2</a></li>
-							<li><a href="#">Fout 3</a></li>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge">1</span> <b class="caret"></b></a>
+						<ul class="dropdown-menu dropdown-alerts">
+							<li class="dropdown-header">1 nieuwe fout</li>
+							<li class="divider"></li>
+							<li>
+								<a href="#">
+									<div>
+										<p>
+											<strong>Fout tijdens bijwerken</strong>
+											<span class="pull-right">1 dag geleden</span>
+										</p>
+									</div>
+									<p>
+										<span class="text-muted">Dataset</span> Geluidszone bedrijventerrein  
+									</p>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li><a href="#" class="text-center">Bekijk foutlogboek <span class="glyphicon glyphicon-chevron-right"></span></a></li>
 						</ul>
 					</li>
 					<li class="dropdown">
@@ -61,7 +97,7 @@
 						<ul class="dropdown-menu">
 							<li><a href="#"><span class="glyphicon glyphicon-user"></span> Profiel</a></li>
 							<li class="divider"></a>
-							<li><a href="#"><span class="glyphicon glyphicon-log-out"></span> Afmelden</a></li>
+							<li><a href="#"><span class="glyphicon glyphicon-off"></span> Afmelden</a></li>
 						</ul>
 					</li>
 				</ul>
@@ -80,11 +116,7 @@
 		</nav>
 		
 		<div id="page-wrapper">
-			<div class="row">
-				<div class="col-lg-12">
-					@content
-				</div>
-			</div>
+			@content
 		</div>
 	</div>
 }
