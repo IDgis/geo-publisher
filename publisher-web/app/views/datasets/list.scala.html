@@ -1,0 +1,260 @@
+@(onlyWithMessages: Boolean = false)
+
+@layout.application(
+	title = "Datasets"
+) {
+
+	<div class="page-content">
+		<h1 class="page-header">Datasets</h1>
+		
+		<div class="row">
+		
+			@* Filters: *@
+			<div class="col-lg-3 col-lg-push-9">
+				<form class="form-horizontal" role="form">
+					@* New dataset button: *@
+					<div class="form-group">
+						<div class="col-sm-12">
+							<a href="@routes.Datasets.createForm()" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> Maak een nieuwe dataset ...</a>
+						</div>
+					</div>
+				
+					@* Search dataset input: *@
+					<div class="form-group has-feedback">
+						<div class="col-sm-12">
+							<input type="text" class="form-control col-sm-12" placeholder="Datasetnaam ...">
+							<span class="glyphicon glyphicon-search form-control-feedback"></span>
+						</div>
+					</div>
+					
+				</form>
+				
+				@* Filters: *@
+				<div class="panel-group" id="filters-accordion">
+				
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-tags">
+									Categorie
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-tags" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(!onlyWithMessages){ class="active"}><a href="@routes.Datasets.list()">Alle datasets</a></li>
+									<li><a href="@routes.Datasets.list()">Bodem</a></li>
+									<li><a href="@routes.Datasets.list()">Cultuur</a></li>
+									<li><a href="@routes.Datasets.list()">Economie</a></li>
+									<li><a href="@routes.Datasets.list()">Milieu</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-status">
+									Status
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-status" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li><a href="@routes.Datasets.list()">Geïmporteerd</a></li>
+									<li@if(onlyWithMessages){ class="active"}><a href="@routes.Datasets.listWithMessages()">Structuurwijzigingen</a></li>
+									<li><a href="@routes.Datasets.list()">Fouten bij importeren</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			</div>
+		
+			@* List of datasets: *@	
+			<div class="col-lg-9 col-lg-pull-3">
+				<div class="list-group">
+				
+					@if(!onlyWithMessages) {
+					<div class="list-group-item">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Bedrijventerreinen </h4>
+								
+								<span class="label label-info">Economie</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					}
+					
+					<div class="list-group-item list-group-item-warning">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Sterrenwachten</h4>
+								
+								<span class="label label-info">Milieu</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens</span>
+								</p>
+								<p>
+									<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					@if(!onlyWithMessages) {
+					<div class="list-group-item list-group-item-danger">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Geluidszone bedrijventerrein</h4>
+								
+								<span class="label label-info">Milieu</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-danger"><span class="glyphicon glyphicon-exclamation-sign"></span> Bijwerken mislukt: <strong>16-07-2014 15:54</strong></span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					}
+					
+					@if(!onlyWithMessages) {
+					<div class="list-group-item">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Grondgebruik</h4>
+								
+								<span class="label label-info">Bodem</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					}
+					
+					@if(!onlyWithMessages) {
+					<div class="list-group-item">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Gebouwde monumenten</h4>
+								
+								<span class="label label-info">Cultuur</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					}
+					
+					@if(!onlyWithMessages) {
+					<div class="list-group-item">
+						<div class="row">
+							<div class="col-md-5">
+								<h4 class="list-group-item-heading">Werkgelegenheid </h4>
+								
+								<span class="label label-info">Economie</span>
+							</div>
+							<div class="col-md-5">
+								<p>
+									<span class="text-info"><span class="glyphicon glyphicon-tasks"></span> Bezig met bijwerken ...</span>
+								</p>
+								<p>
+									<a href="#">Logboek ...</a>
+								</p>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+									<a href="#" class="btn btn-default disabled" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+								</div>
+							</div>
+						</div>
+					</div>
+					}
+					
+				</div>
+				
+				<ul class="pagination">
+					<li><a href="#">&laquo;</a></li>
+					<li><a href="#">1</a></li>
+					<li><a href="#">2</a></li>
+					<li><a href="#">3</a></li>
+					<li><a href="#">4</a></li>
+					<li><a href="#">5</a></li>
+					<li><a href="#">&raquo;</a></li>
+				</ul>
+							
+			</div>
+		</div>
+	</div>
+}
