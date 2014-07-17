@@ -1,26 +1,65 @@
 package nl.idgis.publisher.protocol.stream;
 
+import java.util.concurrent.TimeUnit;
+
+import nl.idgis.publisher.protocol.Failure;
 import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Cancellable;
 import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
 public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
 	protected final T t;
+	private final FiniteDuration timeoutDuration;
+		
+	private Cancellable timeoutCancellable = null;
 	
 	public StreamCursor(T t) {
 		this.t = t;
+		
+		timeoutDuration = Duration.create(30, TimeUnit.SECONDS);
 	}
 	
 	protected abstract boolean hasNext() throws Exception;
 
 	protected abstract Future<V> next();
+	
+	@Override
+	public final void preStart() throws Exception {
+		scheduleTimeout();
+	}
+	
+	private void scheduleTimeout() {
+		if(timeoutCancellable != null) {
+			timeoutCancellable.cancel();
+		}
+		
+		ActorSystem system = getContext().system();
+		timeoutCancellable = system.scheduler().scheduleOnce(timeoutDuration, new Runnable() {
+
+			@Override
+			public void run() {
+				log.warning("cursor timeout");
+				getContext().stop(getSelf());
+			}
+		}, system.dispatcher());
+	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
+		scheduleTimeout();
+		
 		if (msg instanceof NextItem) {
 			if(hasNext()) {
 				next().onComplete(new OnComplete<V>() {
@@ -30,6 +69,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 					@Override
 					public void onComplete(Throwable t, V v) throws Throwable {
 						if(t != null) {
+							log.warning("next returned exception: " + t.getMessage());
 							sender.tell(new Failure(t), getSelf());
 						} else {
 							sender.tell(v, getSelf());

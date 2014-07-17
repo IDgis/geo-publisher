@@ -1,10 +1,15 @@
 package nl.idgis.publisher.protocol.stream;
 
+import nl.idgis.publisher.protocol.Failure;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public abstract class StreamProvider<T extends Start, U extends Item> extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	protected abstract Props start(T msg) throws Exception;
 	
@@ -16,6 +21,7 @@ public abstract class StreamProvider<T extends Start, U extends Item> extends Un
 				ActorRef cursor = getContext().actorOf(start((T) msg));
 				cursor.tell(new NextItem(), getSender());
 			} catch(Exception e) {
+				log.warning("couldn't create cursor: " + e.getMessage());
 				getSender().tell(new Failure(e), getSelf());
 			}
 		} else {

@@ -1,13 +1,13 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
+import nl.idgis.publisher.protocol.Failure;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.database.DescribeTable;
 import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.protocol.stream.End;
-import nl.idgis.publisher.protocol.stream.Failure;
 import nl.idgis.publisher.protocol.stream.NextItem;
 
 import akka.actor.ActorRef;
@@ -87,7 +87,7 @@ public class ProviderClient extends UntypedActor {
 					log.debug("data retrieval finished");					
 					finish();
 				} else if(msg instanceof Failure) {
-					log.error("data retrieval failure: " + msg);
+					log.error(((Failure) msg).getCause(), "data retrieval failure");
 					finish();
 				} else {
 					unhandled(msg);

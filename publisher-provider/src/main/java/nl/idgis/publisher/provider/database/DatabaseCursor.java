@@ -12,9 +12,11 @@ import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.japi.Function2;
 import akka.pattern.Patterns;
+import nl.idgis.publisher.protocol.Failure;
 import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.stream.StreamCursor;
 import nl.idgis.publisher.provider.database.messages.Convert;
+import nl.idgis.publisher.provider.database.messages.Converted;
 
 public class DatabaseCursor extends StreamCursor<ResultSet, Record> {
 	
@@ -42,7 +44,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Record> {
 				if(o == null) {
 					valueFutures.add(Futures.successful(null));
 				} else {
-					valueFutures.add(Patterns.ask(converter, new Convert(o), 100));
+					valueFutures.add(Patterns.ask(converter, new Convert(o), 1000));
 				}
 			}
 			
@@ -50,7 +52,12 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Record> {
 
 				@Override
 				public List<Object> apply(List<Object> values, Object value) throws Exception {
-					values.add(value);
+					if(value instanceof Converted) {
+						values.add(((Converted) value).getValue());
+					} else if(value instanceof Failure) {
+						throw new Exception(((Failure) value).getCause());
+					}
+					
 					return values;
 				}				
 			}, getContext().dispatcher()).map(new Mapper<List<Object>, Record>() {
