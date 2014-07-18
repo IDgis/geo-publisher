@@ -3,11 +3,12 @@ package nl.idgis.publisher.protocol.stream;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.Failure;
+
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
@@ -45,15 +46,8 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			timeoutCancellable.cancel();
 		}
 		
-		ActorSystem system = getContext().system();
-		timeoutCancellable = system.scheduler().scheduleOnce(timeoutDuration, new Runnable() {
-
-			@Override
-			public void run() {
-				log.warning("cursor timeout");
-				getContext().stop(getSelf());
-			}
-		}, system.dispatcher());
+		timeoutCancellable = getContext().system().scheduler().scheduleOnce(timeoutDuration, 
+			getSelf(), new Stop(), getContext().dispatcher(), getSelf());
 	}
 
 	@Override
@@ -61,6 +55,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 		scheduleTimeout();
 		
 		if (msg instanceof NextItem) {
+			log.debug("next");
 			if(hasNext()) {
 				next().onComplete(new OnComplete<V>() {
 					
@@ -80,7 +75,8 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 				getSender().tell(new End(), getSelf());
 				getContext().stop(getSelf());
 			}
-		} else if (msg instanceof Stop) {			
+		} else if (msg instanceof Stop) {
+			log.debug("stopped");
 			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
