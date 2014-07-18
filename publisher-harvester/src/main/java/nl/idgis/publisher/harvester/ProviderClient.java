@@ -1,14 +1,14 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
-import nl.idgis.publisher.protocol.Failure;
-import nl.idgis.publisher.protocol.Hello;
-import nl.idgis.publisher.protocol.database.DescribeTable;
-import nl.idgis.publisher.protocol.database.TableDescription;
-import nl.idgis.publisher.protocol.metadata.GetMetadata;
-import nl.idgis.publisher.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.protocol.stream.End;
-import nl.idgis.publisher.protocol.stream.NextItem;
+import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.provider.protocol.database.DescribeTable;
+import nl.idgis.publisher.provider.protocol.database.TableDescription;
+import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
+import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.NextItem;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

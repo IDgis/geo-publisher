@@ -3,6 +3,10 @@ package nl.idgis.publisher.protocol;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.messages.Envelope;
+import nl.idgis.publisher.protocol.messages.GetMessagePackager;
+import nl.idgis.publisher.protocol.messages.Message;
+import nl.idgis.publisher.protocol.messages.Unreachable;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;

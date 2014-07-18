@@ -1,5 +1,8 @@
 package nl.idgis.publisher.protocol;
 
+import nl.idgis.publisher.protocol.messages.GetMessagePackager;
+import nl.idgis.publisher.protocol.messages.Unreachable;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 

@@ -1,5 +1,8 @@
 package nl.idgis.publisher.protocol;
 
+import nl.idgis.publisher.protocol.messages.ListenerInit;
+import nl.idgis.publisher.protocol.messages.Register;
+import nl.idgis.publisher.protocol.messages.Registered;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnSuccess;
