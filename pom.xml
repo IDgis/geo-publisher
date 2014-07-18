@@ -17,6 +17,12 @@
 		<play2.version>2.3.1</play2.version>
 		<scala.abi.version>2.11</scala.abi.version>
 		<deegree.version>3.4-pre13</deegree.version>
+		
+		<!-- 
+		Versions of dependencies that are shared with Play. These versions should match the ones used by Play.
+		-->
+		<jackson.version>2.3.3</jackson.version>
+		<jodatime.version>2.3</jodatime.version>
 	</properties>
 
 	<repositories>
@@ -113,6 +119,18 @@
 				<artifactId>deegree-core-geometry</artifactId>
 				<version>${deegree.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>joda-time</groupId>
+				<artifactId>joda-time</artifactId>
+				<version>${jodatime.version}</version>
+			</dependency>
+			
+			<!-- Jackson dependencies: -->
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -122,6 +140,7 @@
 		<module>publisher-harvester</module>
 		<module>publisher-monitor</module>
 		<module>publisher-web</module>
+		<module>publisher-domain</module>
 	</modules>
 
 	<reporting>
