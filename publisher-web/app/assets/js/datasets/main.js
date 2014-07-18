@@ -1,0 +1,3 @@
+require (['dojo/domReady!'], function () {
+	
+});
