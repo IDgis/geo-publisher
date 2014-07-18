@@ -1,7 +1,8 @@
 @(onlyWithMessages: Boolean = false)
 
 @layout.application(
-	title = "Datasets"
+	title = "Datasets",
+	jsMain = routes.Assets.at("js/datasets/main.js").url
 ) {
 
 	<div class="page-content">
@@ -64,7 +65,7 @@
 						<div id="collapse-filter-status" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li><a href="@routes.Datasets.list()">Geïmporteerd</a></li>
+									<li><a href="@routes.Datasets.list()">Ge�mporteerd</a></li>
 									<li@if(onlyWithMessages){ class="active"}><a href="@routes.Datasets.listWithMessages()">Structuurwijzigingen</a></li>
 									<li><a href="@routes.Datasets.list()">Fouten bij importeren</a></li>
 								</ul>

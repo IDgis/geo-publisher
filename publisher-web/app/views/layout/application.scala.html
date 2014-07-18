@@ -1,4 +1,4 @@
-@(title: String)(content: Html)
+@(title: String, jsMain: String = null)(content: Html)
 
 @html(
 	title = title, 
@@ -11,7 +11,7 @@
 		routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js")).url,
 		routes.WebJarAssets.at(WebJarAssets.locate("js/bootstrap.min.js")).url,
 		routes.Assets.at("js/layout.js").url
-	)
+	) ++ (if(jsMain==null) Array[String]() else  Array[String](jsMain))
 ) {
 	
 	<div class="wrapper">
