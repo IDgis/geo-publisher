@@ -11,19 +11,19 @@ import akka.event.LoggingAdapter;
 
 import com.typesafe.config.Config;
 
-public class Harvester extends UntypedActor {	
+public class App extends UntypedActor {	
 	
 	private final Config config;
 	private final LoggingAdapter log;
 
-	public Harvester(Config config) {
+	public App(Config config) {
 		this.config = config;
 		
 		log = Logging.getLogger(getContext().system(), this);
 	}
 	
 	public static Props props(Config config) {
-		return Props.create(Harvester.class, config);
+		return Props.create(App.class, config);
 	}
 
 	@Override
@@ -45,6 +45,6 @@ public class Harvester extends UntypedActor {
 	
 	public static void main(String[] args) {
 		Boot boot = Boot.init("harvester");
-		boot.startApplication(Harvester.props(boot.getConfig()));
+		boot.startApplication(App.props(boot.getConfig()));
 	}
 }
