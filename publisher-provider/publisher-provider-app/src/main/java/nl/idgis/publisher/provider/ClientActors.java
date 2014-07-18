@@ -6,6 +6,7 @@ import nl.idgis.publisher.protocol.MessageProtocolActors;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.database.Database;
+import nl.idgis.publisher.provider.metadata.Metadata;
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;

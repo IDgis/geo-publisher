@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider;
+package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
 import java.util.Arrays;
