@@ -2,7 +2,7 @@ package nl.idgis.publisher.provider.protocol.metadata;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.protocol.stream.Item;
+import nl.idgis.publisher.stream.messages.Item;
 
 public class MetadataItem extends Item implements Serializable {
 	

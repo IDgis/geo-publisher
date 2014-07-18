@@ -2,7 +2,7 @@ package nl.idgis.publisher.provider.protocol.database;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.protocol.stream.Start;
+import nl.idgis.publisher.stream.messages.Start;
 
 public class FetchTable extends Start implements Serializable {
 	

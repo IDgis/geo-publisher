@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-import nl.idgis.publisher.protocol.stream.Item;
+import nl.idgis.publisher.stream.messages.Item;
 
 public class Record extends Item implements Serializable {
 	

@@ -1,13 +1,15 @@
-package nl.idgis.publisher.protocol.stream;
+package nl.idgis.publisher.stream;
 
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.Failure;
-
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Stop;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.UntypedActor;

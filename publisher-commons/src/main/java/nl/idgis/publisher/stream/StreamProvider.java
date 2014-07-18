@@ -1,6 +1,9 @@
-package nl.idgis.publisher.protocol.stream;
+package nl.idgis.publisher.stream;
 
 import nl.idgis.publisher.protocol.Failure;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Start;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

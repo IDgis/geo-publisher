@@ -13,10 +13,10 @@ import akka.dispatch.Mapper;
 import akka.japi.Function2;
 import akka.pattern.Patterns;
 import nl.idgis.publisher.protocol.Failure;
-import nl.idgis.publisher.protocol.stream.StreamCursor;
 import nl.idgis.publisher.provider.database.messages.Convert;
 import nl.idgis.publisher.provider.database.messages.Converted;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.stream.StreamCursor;
 
 public class DatabaseCursor extends StreamCursor<ResultSet, Record> {
 	

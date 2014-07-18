@@ -3,9 +3,9 @@ package nl.idgis.publisher.provider;
 import java.io.File;
 import java.util.Arrays;
 
-import nl.idgis.publisher.protocol.stream.StreamProvider;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.stream.StreamProvider;
 import akka.actor.Props;
 
 public class Metadata extends StreamProvider<GetMetadata, MetadataItem> {

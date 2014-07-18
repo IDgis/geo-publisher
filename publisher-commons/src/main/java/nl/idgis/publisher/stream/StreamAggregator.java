@@ -1,9 +1,14 @@
-package nl.idgis.publisher.protocol.stream;
+package nl.idgis.publisher.stream;
 
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.Failure;
+import nl.idgis.publisher.stream.messages.AggregateStream;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Start;
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
