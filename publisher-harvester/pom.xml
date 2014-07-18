@@ -16,6 +16,10 @@
 			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-commons</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-provider-protocol</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

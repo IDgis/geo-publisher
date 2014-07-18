@@ -1,6 +1,6 @@
 package nl.idgis.publisher.provider.database;
 
-import nl.idgis.publisher.protocol.database.WKBGeometry;
+import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
 
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;

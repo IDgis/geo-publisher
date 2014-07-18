@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import scala.concurrent.Future;
-import nl.idgis.publisher.protocol.database.Column;
-import nl.idgis.publisher.protocol.database.DescribeTable;
-import nl.idgis.publisher.protocol.database.FetchTable;
-import nl.idgis.publisher.protocol.database.Record;
-import nl.idgis.publisher.protocol.database.TableDescription;
 import nl.idgis.publisher.protocol.stream.StreamAggregator;
 import nl.idgis.publisher.provider.database.messages.Query;
+import nl.idgis.publisher.provider.protocol.database.Column;
+import nl.idgis.publisher.provider.protocol.database.DescribeTable;
+import nl.idgis.publisher.provider.protocol.database.FetchTable;
+import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

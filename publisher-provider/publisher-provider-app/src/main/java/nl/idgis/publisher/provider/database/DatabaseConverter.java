@@ -1,9 +1,9 @@
 package nl.idgis.publisher.provider.database;
 
 import nl.idgis.publisher.protocol.Failure;
-import nl.idgis.publisher.protocol.database.UnsupportedType;
 import nl.idgis.publisher.provider.database.messages.Convert;
 import nl.idgis.publisher.provider.database.messages.Converted;
+import nl.idgis.publisher.provider.protocol.database.UnsupportedType;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;

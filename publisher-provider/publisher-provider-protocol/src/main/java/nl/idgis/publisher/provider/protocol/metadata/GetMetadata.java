@@ -1,4 +1,4 @@
-package nl.idgis.publisher.protocol.metadata;
+package nl.idgis.publisher.provider.protocol.metadata;
 
 import java.io.Serializable;
 

@@ -8,9 +8,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import nl.idgis.publisher.protocol.database.Record;
 import nl.idgis.publisher.protocol.stream.StreamProvider;
 import nl.idgis.publisher.provider.database.messages.Query;
+import nl.idgis.publisher.provider.protocol.database.Record;
 
 public class DatabaseContent extends StreamProvider<Query, Record> {
 	
