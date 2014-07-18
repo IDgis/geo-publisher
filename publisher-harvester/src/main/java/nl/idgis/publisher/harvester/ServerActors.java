@@ -1,11 +1,9 @@
 package nl.idgis.publisher.harvester;
 
-import nl.idgis.publisher.protocol.GetMessagePackager;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
-
+import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.OnSuccess;

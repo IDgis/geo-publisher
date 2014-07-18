@@ -2,9 +2,9 @@ package nl.idgis.publisher.provider;
 
 import java.io.File;
 
-import nl.idgis.publisher.protocol.GetMessagePackager;
-import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
+import nl.idgis.publisher.protocol.messages.GetMessagePackager;
+import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.database.Database;
 import scala.concurrent.Future;
 import akka.actor.ActorRef;

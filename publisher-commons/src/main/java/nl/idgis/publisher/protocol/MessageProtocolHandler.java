@@ -6,7 +6,10 @@ import scala.concurrent.duration.Duration;
 
 import com.typesafe.config.Config;
 
-import nl.idgis.publisher.protocol.Message;
+import nl.idgis.publisher.protocol.messages.Close;
+import nl.idgis.publisher.protocol.messages.Message;
+import nl.idgis.publisher.protocol.messages.Register;
+import nl.idgis.publisher.protocol.messages.Registered;
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;

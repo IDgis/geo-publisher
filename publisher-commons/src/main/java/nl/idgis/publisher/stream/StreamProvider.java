@@ -1,6 +1,6 @@
 package nl.idgis.publisher.stream;
 
-import nl.idgis.publisher.protocol.Failure;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Start;

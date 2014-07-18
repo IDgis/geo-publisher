@@ -1,8 +1,8 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
-import nl.idgis.publisher.protocol.Failure;
-import nl.idgis.publisher.protocol.Hello;
+import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;

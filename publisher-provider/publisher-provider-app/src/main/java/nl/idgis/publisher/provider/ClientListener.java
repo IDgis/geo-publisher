@@ -1,7 +1,7 @@
 package nl.idgis.publisher.provider;
 
-import nl.idgis.publisher.protocol.ListenerInit;
 import nl.idgis.publisher.protocol.MessageProtocolHandler;
+import nl.idgis.publisher.protocol.messages.ListenerInit;
 import nl.idgis.publisher.utils.ConfigUtils;
 
 import com.typesafe.config.Config;

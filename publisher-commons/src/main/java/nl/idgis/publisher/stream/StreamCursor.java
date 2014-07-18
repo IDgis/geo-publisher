@@ -2,7 +2,7 @@ package nl.idgis.publisher.stream;
 
 import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.protocol.Failure;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;

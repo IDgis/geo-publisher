@@ -2,6 +2,8 @@ package nl.idgis.publisher.protocol;
 
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.messages.Envelope;
+import nl.idgis.publisher.protocol.messages.IsAlive;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import akka.actor.ActorRef;

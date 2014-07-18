@@ -2,8 +2,8 @@ package nl.idgis.publisher.harvester;
 
 import com.typesafe.config.Config;
 
-import nl.idgis.publisher.protocol.ListenerInit;
 import nl.idgis.publisher.protocol.MessageProtocolHandler;
+import nl.idgis.publisher.protocol.messages.ListenerInit;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

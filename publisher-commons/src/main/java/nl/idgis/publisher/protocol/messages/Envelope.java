@@ -1,4 +1,5 @@
-package nl.idgis.publisher.protocol;
+package nl.idgis.publisher.protocol.messages;
+
 
 public class Envelope extends Message {	
 	

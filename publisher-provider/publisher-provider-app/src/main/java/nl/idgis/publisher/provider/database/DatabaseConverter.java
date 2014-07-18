@@ -1,6 +1,6 @@
 package nl.idgis.publisher.provider.database;
 
-import nl.idgis.publisher.protocol.Failure;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.database.messages.Convert;
 import nl.idgis.publisher.provider.database.messages.Converted;
 import nl.idgis.publisher.provider.protocol.database.UnsupportedType;
