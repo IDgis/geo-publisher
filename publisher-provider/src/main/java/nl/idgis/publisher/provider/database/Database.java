@@ -3,13 +3,22 @@ package nl.idgis.publisher.provider.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
+import scala.concurrent.Future;
+import nl.idgis.publisher.protocol.database.Column;
 import nl.idgis.publisher.protocol.database.DescribeTable;
 import nl.idgis.publisher.protocol.database.FetchTable;
+import nl.idgis.publisher.protocol.database.Record;
+import nl.idgis.publisher.protocol.database.TableDescription;
+import nl.idgis.publisher.protocol.stream.StreamAggregator;
 import nl.idgis.publisher.provider.database.messages.Query;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Mapper;
+import akka.pattern.Patterns;
 
 public class Database extends UntypedActor {	
 	
@@ -66,7 +75,25 @@ public class Database extends UntypedActor {
 						+ "' " + "order by column_id";
 			}
 			
-			content.tell(new Query(sql), getSender());
+			Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
+			Future<TableDescription> tableDescription = records.map(new Mapper<ArrayList<Record>, TableDescription>() {
+						
+						@Override
+						public TableDescription apply(ArrayList<Record> records) {
+							Column[] columns = new Column[records.size()];
+							
+							int i = 0;
+							for(Record record : records) {
+								List<Object> values = record.getValues();
+								columns[i++] = new Column((String)values.get(0), (String)values.get(1));
+							}
+							
+							return new TableDescription(columns);				
+						}
+					}, getContext().dispatcher());
+			
+			Patterns.pipe(tableDescription, getContext().dispatcher())
+				.pipeTo(getSender(), getSelf());
 		} else {
 			unhandled(msg);
 		}

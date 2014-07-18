@@ -4,12 +4,11 @@ import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.protocol.Failure;
 import nl.idgis.publisher.protocol.Hello;
 import nl.idgis.publisher.protocol.database.DescribeTable;
-import nl.idgis.publisher.protocol.database.Record;
+import nl.idgis.publisher.protocol.database.TableDescription;
 import nl.idgis.publisher.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.protocol.stream.End;
 import nl.idgis.publisher.protocol.stream.NextItem;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -74,17 +73,13 @@ public class ProviderClient extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> receivingData(final ActorRef metadataCursor) {
+	private Procedure<Object> requestingTableDescription(final ActorRef metadataCursor) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof Record) {
-					log.debug("record received");
-					
-					getSender().tell(new NextItem(), getSelf());
-				} else if(msg instanceof End) {
-					log.debug("data retrieval finished");					
+				if(msg instanceof TableDescription) {
+					log.debug(msg.toString());
 					finish();
 				} else if(msg instanceof Failure) {
 					log.error(((Failure) msg).getCause(), "data retrieval failure");
@@ -120,7 +115,7 @@ public class ProviderClient extends UntypedActor {
 						
 						log.debug("requesting table structure: " + tableName);						
 						database.tell(new DescribeTable(tableName), getSelf());
-						getContext().become(receivingData(getSender()), false);						 
+						getContext().become(requestingTableDescription(getSender()), false);						 
 					} else {
 						getSender().tell(new NextItem(), getSelf());
 					}
