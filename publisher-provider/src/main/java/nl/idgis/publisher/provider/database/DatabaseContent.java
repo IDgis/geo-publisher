@@ -30,7 +30,7 @@ public class DatabaseContent extends StreamProvider<Query, Record> {
 	
 	@Override
 	public void preStart() throws Exception {
-		converter = getContext().actorOf(OracleConverter.props());
+		converter = getContext().actorOf(OracleConverter.props(), "converter");
 	}
 	
 	@Override
