@@ -20,7 +20,7 @@ public class DatabaseTest {
 	@Test
 	public void testVersion() throws Exception {
 		Properties properties = new Properties();
-		properties.load(new FileInputStream("target/db.properties"));
+		properties.load(new FileInputStream("target/database/publisher.properties"));
 		
 		Class.forName((String)properties.get("database.driver"));
 		

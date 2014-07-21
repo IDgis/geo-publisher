@@ -13,7 +13,8 @@
 
 	<properties>
 		<database.driver>org.h2.Driver</database.driver>
-		<database.url>jdbc:h2:${project.build.directory}/db</database.url>
+		<database.directory>${project.build.directory}/database</database.directory>
+		<database.url>jdbc:h2:${database.directory}/publisher</database.url>
 		<database.user>sa</database.user>
 		<database.password></database.password>
 		<h2.version>1.4.180</h2.version>
@@ -56,6 +57,7 @@
 						<configuration>
 							<target>
 								<echo>initializing database</echo>
+								<delete dir="${database.directory}" failonerror="false"/>
 								<sql 
 									driver="${database.driver}" 
 									url="${database.url}" 
@@ -82,7 +84,7 @@
 						<configuration>
 							<target>
 								<echo>exporting database properties</echo>
-								<propertyfile file="${basedir}/target/db.properties">
+								<propertyfile file="${database.directory}/publisher.properties">
 									<entry key="database.driver" value="${database.driver}"/>
 									<entry key="database.url" value="${database.url}"/>
 									<entry key="database.user" value="${database.user}"/>
