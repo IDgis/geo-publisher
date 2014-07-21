@@ -145,6 +145,7 @@
 		<module>publisher-monitor</module>
 		<module>publisher-web</module>
 		<module>publisher-database</module>
+		<module>publisher-service</module>
 	</modules>
 
 	<reporting>
