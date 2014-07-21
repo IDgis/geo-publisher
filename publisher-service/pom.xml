@@ -24,6 +24,10 @@
 			<groupId>postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 		</dependency>
+		<dependency>
+		  <groupId>com.typesafe.akka</groupId>
+		  <artifactId>akka-remote_${scala.abi.version}</artifactId>  
+		</dependency>
 	</dependencies>
 
 	<build>
