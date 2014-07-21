@@ -9,7 +9,6 @@ import java.util.Properties;
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
-import com.mysema.query.sql.PostgresTemplates;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLTemplates;
 
@@ -29,10 +28,8 @@ public class DatabaseTest {
 		String password = (String)properties.get("database.password");
 		Connection connection = DriverManager.getConnection(url, user, password);
 		
-		SQLTemplates dialect = new PostgresTemplates() {{
-			setPrintSchema(true);
-		}};
-		SQLQuery query = new SQLQuery(connection, dialect);
+		SQLTemplates templates = new ExtendedPostgresTemplates();
+		SQLQuery query = new SQLQuery(connection, templates);
 		for(Tuple tuple : query.from(version).list(version.id, version.createTime)) {
 			Integer id = tuple.get(version.id);
 			Timestamp createTime = tuple.get(version.createTime);

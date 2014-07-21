@@ -7,7 +7,6 @@ import nl.idgis.publisher.utils.ConfigUtils;
 
 import com.typesafe.config.Config;
 
-import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 public abstract class JdbcDatabase extends UntypedActor {
@@ -21,10 +20,6 @@ public abstract class JdbcDatabase extends UntypedActor {
 		url = config.getString("url");
 		user = config.getString("user");
 		password = config.getString("password");
-	}
-	
-	public static Props props(Config config) {
-		return Props.create(JdbcDatabase.class, config);
 	}
 	
 	@Override
