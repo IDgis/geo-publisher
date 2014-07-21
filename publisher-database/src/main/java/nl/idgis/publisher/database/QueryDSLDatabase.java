@@ -6,21 +6,21 @@ import com.typesafe.config.Config;
 
 public abstract class QueryDSLDatabase extends JdbcDatabase {
 	
-	private final String dialect;
+	private final String templatesClassName;
 	
 	private SQLTemplates templates;
 
 	public QueryDSLDatabase(Config config) {
 		super(config);
 		
-		dialect = config.getString("dialect");
+		templatesClassName = config.getString("templates");
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		super.preStart();
 		
-		templates = Class.forName(dialect).asSubclass(SQLTemplates.class).newInstance();
+		templates = Class.forName(templatesClassName).asSubclass(SQLTemplates.class).newInstance();
 	}
 	
 	protected SQLQuery query() {

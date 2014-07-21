@@ -76,6 +76,11 @@
 			</dependency>
 			<dependency>
 				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-database</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
 				<artifactId>publisher-provider-protocol</artifactId>
 				<version>${project.version}</version>
 			</dependency>
