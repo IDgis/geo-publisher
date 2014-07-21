@@ -16,6 +16,7 @@ public final class Dataset extends Identifiable {
 	private final Category category;
 	private final Status currentStatus;
 	private final List<Notification> activeNotifications;
+	private final EntityRef sourceDataset;
 	
 	@JsonCreator
 	public Dataset (
@@ -23,7 +24,8 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("name") String name,
 			final @JsonProperty("category") Category category,
 			final @JsonProperty("currentStatus") Status currentStatus,
-			final @JsonProperty("activeNotifications") List<Notification> activeNotifications) {
+			final @JsonProperty("activeNotifications") List<Notification> activeNotifications,
+			final @JsonProperty("sourceDataset") EntityRef sourceDataset) {
 		
 		super (id);
 		
@@ -31,6 +33,7 @@ public final class Dataset extends Identifiable {
 		this.category = category;
 		this.currentStatus = currentStatus;
 		this.activeNotifications = activeNotifications == null ? Collections.<Notification>emptyList () : new ArrayList<> (activeNotifications);
+		this.sourceDataset = sourceDataset;
 	}
 	
 	@JsonGetter
@@ -51,5 +54,10 @@ public final class Dataset extends Identifiable {
 	@JsonGetter
 	public List<Notification> activeNotifications () {
 		return Collections.unmodifiableList (this.activeNotifications);
+	}
+	
+	@JsonGetter
+	public EntityRef sourceDataset () {
+		return this.sourceDataset;
 	}
 }
