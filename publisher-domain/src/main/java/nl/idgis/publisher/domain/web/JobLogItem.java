@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class JobLogItem extends Entity {
 
+	private static final long serialVersionUID = -3782702321732548788L;
+	
 	private final EntityRef job;
 	private final LogItem logItem;
 	
