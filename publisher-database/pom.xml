@@ -28,6 +28,16 @@
 			<groupId>com.mysema.querydsl</groupId>
 			<artifactId>querydsl-sql</artifactId>	
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>			
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>${h2.version}</version>
+			<scope>test</scope>				
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -37,6 +47,7 @@
 				<artifactId>maven-antrun-plugin</artifactId>
 				<executions>
 					<execution>
+						<id>create-db</id>
 						<phase>initialize</phase>
 						<configuration>
 							<target>
@@ -55,6 +66,25 @@
 									</path>
 								</sql>
 								<echo>finished</echo>
+							</target>
+						</configuration>						
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>export-properties</id>
+						<phase>generate-test-resources</phase>
+						<configuration>
+							<target>
+								<echo>exporting database properties</echo>
+								<propertyfile file="${basedir}/target/db.properties">
+									<entry key="database.driver" value="${database.driver}"/>
+									<entry key="database.url" value="${database.url}"/>
+									<entry key="database.user" value="${database.user}"/>
+									<entry key="database.password" value="${database.password}"/>
+								</propertyfile>
+    							<echo>finished</echo>
 							</target>
 						</configuration>
 						<goals>
