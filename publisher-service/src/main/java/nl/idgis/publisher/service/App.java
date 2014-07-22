@@ -4,6 +4,8 @@ import scala.concurrent.Future;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.Version;
+import nl.idgis.publisher.harvester.Harvester;
+import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -21,6 +23,8 @@ public class App extends UntypedActor {
 	
 	private final Config config;
 	
+	private ActorRef database, harvester;
+	
 	public App(Config config) {
 		this.config = config;
 	}
@@ -32,7 +36,10 @@ public class App extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		Config databaseConfig = config.getConfig("database");
-		final ActorRef database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
+		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
+		
+		Config harvesterConfig = config.getConfig("harvester");
+		harvester = getContext().actorOf(Harvester.props(harvesterConfig), "harvester");
 		
 		Future<Object> versionFuture = Patterns.ask(database, new GetVersion(), 15000);
 		versionFuture.onSuccess(new OnSuccess<Object>() {
@@ -42,7 +49,7 @@ public class App extends UntypedActor {
 				Version version = (Version)msg;
 				log.debug("database version: " + version);
 				
-				getContext().actorOf(Admin.props(database), "admin");
+				getContext().actorOf(Admin.props(database, harvester), "admin");
 			}
 			
 		}, getContext().dispatcher());
@@ -50,7 +57,11 @@ public class App extends UntypedActor {
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		
+		if(msg instanceof Tree) {
+			log.debug(msg.toString());
+		} else {
+			unhandled(msg);
+		}
 	}
 
 	public static void main(String[] args) {

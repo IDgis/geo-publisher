@@ -1,7 +1,5 @@
 package nl.idgis.publisher.harvester;
 
-import nl.idgis.publisher.monitor.messages.Tree;
-import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.ConfigUtils;
 
 import akka.actor.Props;
@@ -11,19 +9,19 @@ import akka.event.LoggingAdapter;
 
 import com.typesafe.config.Config;
 
-public class App extends UntypedActor {	
+public class Harvester extends UntypedActor {	
 	
 	private final Config config;
 	private final LoggingAdapter log;
 
-	public App(Config config) {
+	public Harvester(Config config) {
 		this.config = config;
 		
 		log = Logging.getLogger(getContext().system(), this);
 	}
 	
 	public static Props props(Config config) {
-		return Props.create(App.class, config);
+		return Props.create(Harvester.class, config);
 	}
 
 	@Override
@@ -36,15 +34,6 @@ public class App extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Tree) {
-			log.debug(msg.toString());
-		} else {
-			unhandled(msg);
-		}
-	}
-	
-	public static void main(String[] args) {
-		Boot boot = Boot.init("harvester");
-		boot.startApplication(App.props(boot.getConfig()));
+		
 	}
 }
