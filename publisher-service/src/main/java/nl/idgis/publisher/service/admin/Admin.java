@@ -6,16 +6,15 @@ import akka.actor.UntypedActor;
 
 public class Admin extends UntypedActor {
 	
-	private final ActorRef database, harvester, loader;
+	private final ActorRef database, harvester;
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
+	public Admin(ActorRef database, ActorRef harvester) {
 		this.database = database;
-		this.harvester = harvester;
-		this.loader = loader;
+		this.harvester = harvester;		
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
-		return Props.create(Admin.class, database, harvester, loader);
+	public static Props props(ActorRef database, ActorRef harvester) {
+		return Props.create(Admin.class, database, harvester);
 	}
 
 	@Override
