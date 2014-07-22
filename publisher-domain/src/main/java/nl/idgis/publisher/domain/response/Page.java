@@ -1,5 +1,6 @@
 package nl.idgis.publisher.domain.response;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -37,5 +38,47 @@ public final class Page<T extends Entity> {
 	
 	public long pageCount () {
 		return hasPageCount () ? pageCount : (currentPage + (hasMorePages ? 1 : 0) + 1);
+	}
+	
+	public static class Builder<A extends Entity> {
+		private final List<A> list = new ArrayList<A> ();
+		private long currentPage = 0;
+		private boolean hasMorePages = false;
+		private Long pageCount = null;
+		
+		public long getCurrentPage() {
+			return currentPage;
+		}
+		
+		public Builder<A> setCurrentPage(long currentPage) {
+			this.currentPage = currentPage;
+			return this;
+		}
+		
+		public boolean isHasMorePages() {
+			return hasMorePages;
+		}
+		
+		public Builder<A> setHasMorePages(boolean hasMorePages) {
+			this.hasMorePages = hasMorePages;
+			return this;
+		}
+		
+		public Long getPageCount() {
+			return pageCount;
+		}
+		
+		public Builder<A> setPageCount(Long pageCount) {
+			this.pageCount = pageCount;
+			return this;
+		}
+		
+		public void add (final A value) {
+			list.add (value);
+		}
+		
+		public Page<A> build () {
+			return new Page<A> (list, currentPage, hasMorePages, pageCount);
+		}
 	}
 }
