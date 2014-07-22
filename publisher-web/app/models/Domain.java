@@ -1,8 +1,8 @@
 package models;
 
 import static akka.pattern.Patterns.ask;
-import static play.libs.F.Promise.wrap;
 import static play.libs.F.Promise.sequence;
+import static play.libs.F.Promise.wrap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,15 +19,15 @@ import play.libs.F.Function;
 import play.libs.F.Function2;
 import play.libs.F.Function3;
 import play.libs.F.Promise;
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 
 public class Domain {
 
-	public static DomainInstance from (final ActorRef domainActor) {
+	public static DomainInstance from (final ActorSelection domainActor) {
 		return from (domainActor, 15000);
 	}
 	
-	public static DomainInstance from (final ActorRef domainActor, final int timeout) {
+	public static DomainInstance from (final ActorSelection domainActor, final int timeout) {
 		return new DomainInstance (domainActor, timeout);
 	}
 	
@@ -46,10 +46,10 @@ public class Domain {
 	}
 	
 	public final static class DomainInstance implements Queryable {
-		protected final ActorRef domainActor;
+		protected final ActorSelection domainActor;
 		protected final int timeout;
 		
-		public DomainInstance (final ActorRef domainActor, final int timeout) {
+		public DomainInstance (final ActorSelection domainActor, final int timeout) {
 			if (domainActor == null) {
 				throw new NullPointerException ("domainActor cannot be null");
 			}
@@ -58,7 +58,7 @@ public class Domain {
 			this.timeout = timeout;
 		}
 		
-		public ActorRef domainActor () {
+		public ActorSelection domainActor () {
 			return this.domainActor;
 		}
 
@@ -133,7 +133,7 @@ public class Domain {
 			return new Query2<A, T> (this, domainQuery);
 		}
 		
-		public <R> Promise<R> execute (final Function<A, R> callback, final Function<Throwable, R> errorCallback) {
+		public <R> Promise<R> execute (final Function<A, R> callback) {
 			final Promise<Object> promise =
 					wrap (
 						ask (
@@ -151,8 +151,11 @@ public class Domain {
 						final A value = (A)a;
 						return callback.apply (value);
 					}
-				})
-				.recover (new Function<Throwable, R> () {
+				});
+		}
+		
+		public <R> Promise<R> execute (final Function<A, R> callback, final Function<Throwable, R> errorCallback) {
+			return execute (callback).recover (new Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
