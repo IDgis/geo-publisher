@@ -24,6 +24,7 @@
 		-->
 		<jackson.version>2.3.3</jackson.version>
 		<jodatime.version>2.3</jodatime.version>
+		<akka.version>2.3.3</akka.version>
 	</properties>
 
 	<repositories>
@@ -70,6 +71,12 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.11</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
 				<groupId>nl.idgis.publisher</groupId>
 				<artifactId>publisher-commons</artifactId>
 				<version>${project.version}</version>
@@ -80,9 +87,59 @@
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-database</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-harvester</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-monitor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-provider</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-provider-app</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-provider-protocol</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-web</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>com.typesafe.akka</groupId>
 				<artifactId>akka-actor_${scala.abi.version}</artifactId>
-				<version>2.3.3</version>
+				<version>${akka.version}</version>
+			</dependency>
+			<dependency>
+			  <groupId>com.typesafe.akka</groupId>
+			  <artifactId>akka-remote_${scala.abi.version}</artifactId>
+			  <version>${akka.version}</version>  
 			</dependency>
 			<dependency>
 				<groupId>org.apache.commons</groupId>
