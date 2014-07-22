@@ -23,16 +23,18 @@ public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final String harvesterName;
 	private final ActorRef harvester, metadata, database;
 		
-	public ProviderClient(ActorRef harvester, ActorRef metadata, ActorRef database) {
+	public ProviderClient(String harvesterName, ActorRef harvester, ActorRef metadata, ActorRef database) {
+		this.harvesterName = harvesterName;
 		this.harvester = harvester;
 		this.metadata = metadata;
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef harvester, ActorRef metadata, ActorRef database) {
-		return Props.create(ProviderClient.class, harvester, metadata, database);
+	public static Props props(String harvesterName, ActorRef harvester, ActorRef metadata, ActorRef database) {
+		return Props.create(ProviderClient.class, harvesterName, harvester, metadata, database);
 	}
 
 	@Override
@@ -40,7 +42,7 @@ public class ProviderClient extends UntypedActor {
 		if(msg instanceof Hello) {
 			log.debug(msg.toString());
 			
-			getSender().tell(new Hello("My data harvester"), getSelf());
+			getSender().tell(new Hello(harvesterName), getSelf());
 			getContext().become(active(), false);
 			harvester.tell(new DataSourceConnected(((Hello) msg).getName()), getSelf());
 		} else {

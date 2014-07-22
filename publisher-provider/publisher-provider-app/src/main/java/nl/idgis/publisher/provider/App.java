@@ -23,7 +23,7 @@ import akka.event.LoggingAdapter;
 public class App extends UntypedActor {
 
 	private final Config config;	
-	private final LoggingAdapter log;	
+	private final LoggingAdapter log;
 
 	private ActorRef client;
 	private Connect connectMessage;

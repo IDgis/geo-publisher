@@ -16,14 +16,16 @@ public class ServerActors extends MessageProtocolActors {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final String harvesterName;
 	private final ActorRef harvester;
 	
-	public ServerActors(ActorRef harvester) {
+	public ServerActors(String harvesterName, ActorRef harvester) {
+		this.harvesterName = harvesterName;
 		this.harvester = harvester;
 	}
 
-	public static Props props(ActorRef harvester) {
-		return Props.create(ServerActors.class, harvester);
+	public static Props props(String harvesterName, ActorRef harvester) {
+		return Props.create(ServerActors.class, harvesterName, harvester);
 	}	
 
 	@Override
@@ -44,7 +46,7 @@ public class ServerActors extends MessageProtocolActors {
 					@Override
 					public void onSuccess(Object msg) {
 						ActorRef metadata = (ActorRef)msg;
-						getContext().actorOf(ProviderClient.props(harvester, metadata, database), "harvester");
+						getContext().actorOf(ProviderClient.props(harvesterName, harvester, metadata, database), "harvester");
 					}
 				}, dispatcher);
 			}

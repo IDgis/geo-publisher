@@ -15,16 +15,18 @@ public class ServerListener extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Config sslConfig;
+	private final Config sslConfig;	
 	private final ActorRef harvester;
+	private final String harvesterName;
 	
-	public ServerListener(ActorRef harvester, Config sslConfig) {
+	public ServerListener(String harvesterName, ActorRef harvester, Config sslConfig) {
+		this.harvesterName = harvesterName;
 		this.harvester = harvester;
 		this.sslConfig = sslConfig;
 	}
 	
-	public static Props props(ActorRef harvester, Config sslConfig) {
-		return Props.create(ServerListener.class, harvester, sslConfig);
+	public static Props props(String harvesterName, ActorRef harvester, Config sslConfig) {
+		return Props.create(ServerListener.class, harvesterName, harvester, sslConfig);
 	}
 
 	@Override
@@ -32,7 +34,7 @@ public class ServerListener extends UntypedActor {
 		if(msg instanceof Connected) {
 			log.debug("client connected");
 			
-			ActorRef actors = getContext().actorOf(ServerActors.props(harvester), "serverActors");
+			ActorRef actors = getContext().actorOf(ServerActors.props(harvesterName, harvester), "serverActors");
 			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(true, sslConfig, getSender(), actors), "messages");			
 			
 			actors.tell(new ListenerInit(messageProtocolHandler), getSelf());

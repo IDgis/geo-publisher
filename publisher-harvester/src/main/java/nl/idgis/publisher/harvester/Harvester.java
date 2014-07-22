@@ -4,13 +4,14 @@ import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
@@ -42,9 +43,12 @@ public class Harvester extends UntypedActor {
 
 	@Override
 	public void preStart() {
+		final String name = config.getString("name");		
 		final int port = config.getInt("port");
-		final Config sslConfig = ConfigUtils.getOptionalConfig(config, "ssl");		
-		getContext().actorOf(Server.props(getSelf(), port, sslConfig), "server");
+		
+		final Config sslConfig = ConfigUtils.getOptionalConfig(config, "ssl");
+		
+		getContext().actorOf(Server.props(name, getSelf(), port, sslConfig), "server");
 		
 		dataSources = HashBiMap.create();
 		
