@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.web;
 
-import java.time.LocalDateTime;
+import org.joda.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;

@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.web;
 
-import java.time.LocalDateTime;
+import org.joda.time.LocalDateTime;
 
 import nl.idgis.publisher.domain.StatusType;
 
