@@ -1,6 +1,7 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.ProviderConnected;
+import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;

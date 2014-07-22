@@ -1,4 +1,4 @@
-package nl.idgis.publisher.harvester;
+package nl.idgis.publisher.harvester.server;
 
 import com.typesafe.config.Config;
 

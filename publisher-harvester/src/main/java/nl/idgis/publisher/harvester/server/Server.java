@@ -1,4 +1,4 @@
-package nl.idgis.publisher.harvester;
+package nl.idgis.publisher.harvester.server;
 
 import java.net.InetSocketAddress;
 
