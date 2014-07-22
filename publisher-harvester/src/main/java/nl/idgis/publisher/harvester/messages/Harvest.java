@@ -6,23 +6,23 @@ public class Harvest implements Serializable {
 		
 	private static final long serialVersionUID = 1557912124784652506L;
 	
-	private final String dataSourceName;
+	private final String dataSourceId;
 	
 	public Harvest() {
 		this(null);
 	}
 	
-	public Harvest(String name) {
-		this.dataSourceName = name;
+	public Harvest(String dataSourceId) {
+		this.dataSourceId = dataSourceId;
 	}
 	
-	public String getDataSourceName() {
-		return dataSourceName;
+	public String getDataSourceId() {
+		return dataSourceId;
 	}
 
 	@Override
 	public String toString() {
-		return "Harvest [getSourceName=" + dataSourceName + "]";
+		return "Harvest [dataSourceId=" + dataSourceId + "]";
 	}
 	
 }

@@ -6,18 +6,18 @@ public class DataSourceConnected implements Serializable {
 	
 	private static final long serialVersionUID = -6107698322151511761L;
 	
-	private final String dataSourceName;
+	private final String dataSourceId;
 	
-	public DataSourceConnected(String dataSourceName) {
-		this.dataSourceName = dataSourceName;
+	public DataSourceConnected(String dataSourceId) {
+		this.dataSourceId = dataSourceId;
 	}
 
-	public String getDataSourceName() {
-		return dataSourceName;
+	public String getDataSourceId() {
+		return dataSourceId;
 	}
 
 	@Override
 	public String toString() {
-		return "DataSourceConnected [dataSourceName=" + dataSourceName + "]";
+		return "DataSourceConnected [dataSourceId=" + dataSourceId + "]";
 	}
 }
