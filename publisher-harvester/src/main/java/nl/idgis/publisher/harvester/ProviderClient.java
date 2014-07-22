@@ -1,6 +1,7 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.harvester.messages.Harvest;
+import nl.idgis.publisher.harvester.messages.ProviderConnected;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -21,15 +22,16 @@ public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef metadata, database;
+	private final ActorRef harvester, metadata, database;
 		
-	public ProviderClient(ActorRef metadata, ActorRef database) {		
+	public ProviderClient(ActorRef harvester, ActorRef metadata, ActorRef database) {
+		this.harvester = harvester;
 		this.metadata = metadata;
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef metadata, ActorRef database) {
-		return Props.create(ProviderClient.class, metadata, database);
+	public static Props props(ActorRef harvester, ActorRef metadata, ActorRef database) {
+		return Props.create(ProviderClient.class, harvester, metadata, database);
 	}
 
 	@Override
@@ -39,8 +41,7 @@ public class ProviderClient extends UntypedActor {
 			
 			getSender().tell(new Hello("My data harvester"), getSelf());
 			getContext().become(active(), false);
-			
-			getSelf().tell(new Harvest(), getSelf());
+			harvester.tell(new ProviderConnected(((Hello) msg).getName()), getSelf());
 		} else {
 			defaultActions(msg);
 		}

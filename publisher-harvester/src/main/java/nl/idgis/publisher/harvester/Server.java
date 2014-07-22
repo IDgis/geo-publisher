@@ -18,16 +18,18 @@ public class Server extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final ActorRef harvester;
 	private final int port;
 	private final Config sslConfig;
 	
-	public Server(int port, Config sslConfig) {
+	public Server(ActorRef harvester, int port, Config sslConfig) {
+		this.harvester = harvester;
 		this.port = port;
 		this.sslConfig = sslConfig;
 	}
 	
-	public static Props props(int port, Config sslConfig) {
-		return Props.create(Server.class, port, sslConfig);
+	public static Props props(ActorRef harvester, int port, Config sslConfig) {
+		return Props.create(Server.class, harvester, port, sslConfig);
 	}
 	
 	@Override
@@ -43,7 +45,7 @@ public class Server extends UntypedActor {
 			
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
-			ActorRef listener = getContext().actorOf(ServerListener.props(sslConfig));
+			ActorRef listener = getContext().actorOf(ServerListener.props(harvester, sslConfig));
 			listener.tell(msg, getSender());
 		} else {
 			unhandled(msg);
