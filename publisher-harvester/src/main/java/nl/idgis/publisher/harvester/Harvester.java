@@ -13,21 +13,23 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 
-public class Harvester extends UntypedActor {	
+public class Harvester extends UntypedActor {
 	
 	private final Config config;
-	private final LoggingAdapter log;
+	private final ActorRef database;
+	private final LoggingAdapter log;	
 	
 	private BiMap<String, ActorRef> providerClients;
 
-	public Harvester(Config config) {
+	public Harvester(ActorRef database, Config config) {
+		this.database = database;
 		this.config = config;
 		
 		log = Logging.getLogger(getContext().system(), this);
 	}
 	
-	public static Props props(Config config) {
-		return Props.create(Harvester.class, config);
+	public static Props props(ActorRef database, Config config) {
+		return Props.create(Harvester.class, database, config);
 	}
 
 	@Override

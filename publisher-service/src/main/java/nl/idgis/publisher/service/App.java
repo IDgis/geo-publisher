@@ -38,9 +38,6 @@ public class App extends UntypedActor {
 		Config databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		Config harvesterConfig = config.getConfig("harvester");
-		harvester = getContext().actorOf(Harvester.props(harvesterConfig), "harvester");
-		
 		Future<Object> versionFuture = Patterns.ask(database, new GetVersion(), 15000);
 		versionFuture.onSuccess(new OnSuccess<Object>() {
 
@@ -48,6 +45,9 @@ public class App extends UntypedActor {
 			public void onSuccess(Object msg) throws Throwable {
 				Version version = (Version)msg;
 				log.debug("database version: " + version);
+				
+				Config harvesterConfig = config.getConfig("harvester");
+				harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
 				
 				getContext().actorOf(Admin.props(database, harvester), "admin");
 			}
