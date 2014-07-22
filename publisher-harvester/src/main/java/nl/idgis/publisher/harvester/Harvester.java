@@ -1,16 +1,20 @@
 package nl.idgis.publisher.harvester;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import nl.idgis.publisher.harvester.messages.DataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetList;
+import nl.idgis.publisher.harvester.sources.messages.Dataset;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -74,18 +78,28 @@ public class Harvester extends UntypedActor {
 			if(dataSourceId == null) {
 				log.debug("Initializing harvesting for all dataSources");
 				for(ActorRef dataSource : dataSources.values()) {
-					dataSource.tell(new GetDatasetList(), getSelf());
+					dataSource.tell(new GetDatasets(), getSelf());
 				}
 			} else {
 				if(dataSources.containsKey(dataSourceId)) {
 					log.debug("Initializing harvesting for dataSource: " + dataSourceId);
 				} else {
-					dataSources.get(dataSourceId).tell(new GetDatasetList(), getSelf());
+					dataSources.get(dataSourceId).tell(new GetDatasets(), getSelf());
 				}
 			}
 		} else if(msg instanceof GetDataSources) {
 			log.debug("connected datasources requested");
 			getSender().tell(new DataSources(dataSources.keySet()), getSelf());
+		} else if(msg instanceof Dataset) {
+			log.debug("dataset received");
+			
+			Map<ActorRef, String> dataSourcesInv = dataSources.inverse();
+			if(dataSourcesInv.containsKey(getSender())) {
+				String dataSourceId = dataSourcesInv.get(getSender());
+				log.debug("dataSourceId: " + dataSourceId + " dataset: " + msg);
+			} else {
+				log.error("dataset received from unregistered dataSource");
+			}
 		} else {
 			unhandled(msg);
 		}
