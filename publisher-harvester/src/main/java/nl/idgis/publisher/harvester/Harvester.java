@@ -8,7 +8,7 @@ import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetList;
 import nl.idgis.publisher.utils.ConfigUtils;
 
 import akka.actor.ActorRef;
@@ -74,13 +74,13 @@ public class Harvester extends UntypedActor {
 			if(dataSourceName == null) {
 				log.debug("Initializing harvesting for all dataSources");
 				for(ActorRef dataSource : dataSources.values()) {
-					dataSource.tell(new GetDatasets(), getSelf());
+					dataSource.tell(new GetDatasetList(), getSelf());
 				}
 			} else {
 				if(dataSources.containsKey(dataSourceName)) {
 					log.debug("Initializing harvesting for dataSource: " + dataSourceName);
 				} else {
-					dataSources.get(dataSourceName).tell(new GetDatasets(), getSelf());
+					dataSources.get(dataSourceName).tell(new GetDatasetList(), getSelf());
 				}
 			}
 		} else {

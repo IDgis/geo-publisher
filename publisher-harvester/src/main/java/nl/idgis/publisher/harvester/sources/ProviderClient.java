@@ -1,7 +1,7 @@
 package nl.idgis.publisher.harvester.sources;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetList;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -65,7 +65,7 @@ public class ProviderClient extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof GetDatasets) {
+				if(msg instanceof GetDatasetList) {
 					log.debug("retrieving datasets from provider");
 					
 					metadata.tell(new GetMetadata(), getSelf());			
@@ -105,7 +105,7 @@ public class ProviderClient extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof GetDatasets) {
+				if(msg instanceof GetDatasetList) {
 					log.debug("already retrieving datasets");
 				} else if(msg instanceof MetadataItem) {
 					log.debug("item harvested: " + msg);
