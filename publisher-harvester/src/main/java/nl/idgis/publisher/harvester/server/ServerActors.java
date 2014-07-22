@@ -1,5 +1,6 @@
-package nl.idgis.publisher.harvester;
+package nl.idgis.publisher.harvester.server;
 
+import nl.idgis.publisher.harvester.sources.ProviderClient;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import scala.concurrent.ExecutionContextExecutor;
@@ -14,9 +15,17 @@ import akka.pattern.Patterns;
 public class ServerActors extends MessageProtocolActors {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final String harvesterName;
+	private final ActorRef harvester;
+	
+	public ServerActors(String harvesterName, ActorRef harvester) {
+		this.harvesterName = harvesterName;
+		this.harvester = harvester;
+	}
 
-	public static Props props() {
-		return Props.create(ServerActors.class);
+	public static Props props(String harvesterName, ActorRef harvester) {
+		return Props.create(ServerActors.class, harvesterName, harvester);
 	}	
 
 	@Override
@@ -37,7 +46,7 @@ public class ServerActors extends MessageProtocolActors {
 					@Override
 					public void onSuccess(Object msg) {
 						ActorRef metadata = (ActorRef)msg;
-						getContext().actorOf(ProviderClient.props(metadata, database), "harvester");							
+						getContext().actorOf(ProviderClient.props(harvesterName, harvester, metadata, database), "harvester");
 					}
 				}, dispatcher);
 			}

@@ -60,7 +60,7 @@ public class ClientActors extends MessageProtocolActors {
 			@Override
 			public void onSuccess(Object msg) {
 				ActorRef harvester = (ActorRef)msg;
-				harvester.tell(new Hello("My data provider"), provider);
+				harvester.tell(new Hello(config.getString("name")), provider);
 			}
 		}, getContext().system().dispatcher());
 	}

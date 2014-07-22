@@ -21,6 +21,10 @@
 			<artifactId>publisher-database</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-harvester</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 		</dependency>

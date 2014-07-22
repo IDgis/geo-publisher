@@ -8,7 +8,7 @@ public class MetadataItem extends Item implements Serializable {
 	
 	private static final long serialVersionUID = 8571729379042373915L;
 	
-	public final String identification, title, alternateTitle;
+	private final String identification, title, alternateTitle;
 	
 	public MetadataItem(String identification, String title, String alternateTitle) {
 		this.identification = identification;
