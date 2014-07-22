@@ -13,9 +13,14 @@ libraryDependencies ++= Seq(
   javaWs,
   "org.webjars" %% "webjars-play" % "2.3.0",  
   "org.webjars" % "bootstrap" % "3.2.0",
-  "org.webjars" % "dojo" % "1.10.0"
+  "org.webjars" % "dojo" % "1.10.0",
+  "nl.idgis.publisher" % "publisher-domain" % "0.0.1-SNAPSHOT"
 )
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
 
 pipelineStages := Seq(rjs)
+
+resolvers += "idgis-public" at "http://nexus.idgis.eu/content/groups/public/"
+
+resolvers += "idgis-thirdparty" at "http://nexus.idgis.eu/content/repositories/thirdparty/"
