@@ -1,20 +1,20 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.load;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
-public class Admin extends UntypedActor {
+public class Loader extends UntypedActor {
 	
-	private final ActorRef database, harvester;
-	
-	public Admin(ActorRef database, ActorRef harvester) {
+	private ActorRef database, harvester;
+
+	public Loader(ActorRef database, ActorRef harvester) {
 		this.database = database;
 		this.harvester = harvester;
 	}
 	
 	public static Props props(ActorRef database, ActorRef harvester) {
-		return Props.create(Admin.class, database, harvester);
+		return Props.create(Loader.class, database, harvester);
 	}
 
 	@Override
