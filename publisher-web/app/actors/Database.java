@@ -1,15 +1,14 @@
 package actors;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import play.Logger;
 import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Status;
+
+import org.joda.time.LocalDateTime;
+
+import play.Logger;
 import akka.actor.UntypedActor;
 
 public class Database extends UntypedActor {

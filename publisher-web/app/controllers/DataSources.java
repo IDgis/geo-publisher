@@ -3,7 +3,6 @@ package controllers;
 import models.Domain;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.DataSource;
-import play.Logger;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Function;

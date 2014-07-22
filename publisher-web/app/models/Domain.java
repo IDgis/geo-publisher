@@ -204,7 +204,7 @@ public class Domain {
 			return new Query3<> (this, domainQuery);
 		}
 		
-		public <R> Promise<R> execute (final Function2<A, B, R> callback, final Function<Throwable, R> errorCallback) {
+		public <R> Promise<R> execute (final Function2<A, B, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					wrap (
@@ -237,8 +237,11 @@ public class Domain {
 						
 						return callback.apply (a, b);
 					}
-				})
-				.recover (new Function<Throwable, R> () {
+				});
+		}
+		
+		public <R> Promise<R> execute (final Function2<A, B, R> callback, final Function<Throwable, R> errorCallback) {
+			return execute (callback).recover (new Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -287,7 +290,7 @@ public class Domain {
 			return new Query4<> (this, domainQuery);
 		}
 		
-		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
+		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					wrap (
@@ -332,8 +335,11 @@ public class Domain {
 						
 						return callback.apply (a, b, c);
 					}
-				})
-				.recover (new Function<Throwable, R> () {
+				});
+		}
+		
+		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
+			return execute (callback).recover (new Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -351,7 +357,7 @@ public class Domain {
 			this.query = query;
 		}
 		
-		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
+		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					wrap (
@@ -405,8 +411,12 @@ public class Domain {
 						
 						return callback.apply (a, b, c);
 					}
-				})
-				.recover (new Function<Throwable, R> () {
+				});
+		}
+		
+		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
+			
+			return execute (callback).recover (new Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
