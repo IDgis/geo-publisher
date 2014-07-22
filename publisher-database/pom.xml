@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>publisher-database</artifactId>	
+
+	<parent>
+		<groupId>nl.idgis.publisher</groupId>
+		<artifactId>publisher</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<properties>
+		<database.driver>org.h2.Driver</database.driver>
+		<database.directory>${project.build.directory}/database</database.directory>
+		<database.url>jdbc:h2:${database.directory}/publisher</database.url>
+		<database.user>sa</database.user>
+		<database.password></database.password>
+		<h2.version>1.4.180</h2.version>
+	</properties>
+	
+	<dependencies>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-commons</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.mysema.querydsl</groupId>
+			<artifactId>querydsl-core</artifactId>			
+		</dependency>
+		<dependency>
+			<groupId>com.mysema.querydsl</groupId>
+			<artifactId>querydsl-sql</artifactId>	
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>			
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>${h2.version}</version>
+			<scope>test</scope>				
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>create-db</id>
+						<phase>initialize</phase>
+						<configuration>
+							<target>
+								<echo>initializing database</echo>
+								<delete dir="${database.directory}" failonerror="false"/>
+								<sql 
+									driver="${database.driver}" 
+									url="${database.url}" 
+									userid="${database.user}"
+									password="${database.password}">
+									<path>
+										<sort>
+											<fileset dir="${basedir}/src/main/resources/nl/idgis/publisher/database">
+												<include name="*.sql" />
+											</fileset>
+										</sort>
+									</path>
+								</sql>
+								<echo>finished</echo>
+							</target>
+						</configuration>						
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>export-properties</id>
+						<phase>generate-test-resources</phase>
+						<configuration>
+							<target>
+								<echo>exporting database properties</echo>
+								<propertyfile file="${database.directory}/publisher.properties">
+									<entry key="database.driver" value="${database.driver}"/>
+									<entry key="database.url" value="${database.url}"/>
+									<entry key="database.user" value="${database.user}"/>
+									<entry key="database.password" value="${database.password}"/>
+								</propertyfile>
+    							<echo>finished</echo>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.h2database</groupId>
+						<artifactId>h2</artifactId>
+						<version>${h2.version}</version>						
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>com.mysema.querydsl</groupId>
+				<artifactId>querydsl-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>export</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<jdbcDriver>${database.driver}</jdbcDriver>
+					<jdbcUrl>${database.url}</jdbcUrl>
+					<jdbcUser>${database.user}</jdbcUser>
+					<jdbcPassword>${database.password}</jdbcPassword>
+					<packageName>nl.idgis.publisher.database</packageName>
+					<targetFolder>${project.basedir}/target/generated-sources/java</targetFolder>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>com.h2database</groupId>
+						<artifactId>h2</artifactId>
+						<version>${h2.version}</version>				
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>com.mysema.maven</groupId>
+				<artifactId>apt-maven-plugin</artifactId>
+				<version>1.0.9</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>target/generated-sources/java</outputDirectory>
+							<processor>com.mysema.query.apt.QuerydslAnnotationProcessor</processor>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.mysema.querydsl</groupId>
+						<artifactId>querydsl-apt</artifactId>
+						<version>${querydsl.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

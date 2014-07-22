@@ -4,6 +4,8 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>publisher-provider</artifactId>
+	
+	<packaging>pom</packaging>
 
 	<parent>
 		<groupId>nl.idgis.publisher</groupId>
@@ -11,70 +13,9 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
-	<dependencies>
-		<dependency>
-			<groupId>nl.idgis.publisher</groupId>
-			<artifactId>publisher-commons</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml</groupId>
-			<artifactId>aalto-xml</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.aspectj</groupId>
-			<artifactId>aspectjweaver</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.oracle</groupId>
-			<artifactId>ojdbc7</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.deegree</groupId>
-			<artifactId>deegree-sqldialect-oracle</artifactId>
-			<exclusions>
-			<exclusion>
-				<artifactId>deegree-sqldialect-commons</artifactId>
-				<groupId>org.deegree</groupId>
-			</exclusion>
-			<exclusion>
-				<artifactId>deegree-core-db</artifactId>
-				<groupId>org.deegree</groupId>
-			</exclusion>
-			</exclusions>
-  		</dependency>
-		<dependency>
-			<groupId>org.deegree</groupId>
-			<artifactId>deegree-core-geometry</artifactId>			
-		</dependency>
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<createDependencyReducedPom>false</createDependencyReducedPom>
-							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>nl.idgis.publisher.provider.Provider</mainClass>
-								</transformer>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-									<resource>reference.conf</resource>
-								</transformer>
-							</transformers>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
+	<modules>
+		<module>publisher-provider-app</module>
+		<module>publisher-provider-protocol</module>
+	</modules>
 
 </project>
