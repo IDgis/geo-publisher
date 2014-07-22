@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
+import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.harvester.messages.DataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
@@ -97,6 +98,9 @@ public class Harvester extends UntypedActor {
 			if(dataSourcesInv.containsKey(getSender())) {
 				String dataSourceId = dataSourcesInv.get(getSender());
 				log.debug("dataSourceId: " + dataSourceId + " dataset: " + msg);
+				
+				Dataset dataset = (Dataset)msg;
+				database.tell(new RegisterSourceDataset(dataSourceId, dataset.getId(), dataset.getName()), getSelf());
 			} else {
 				log.error("dataset received from unregistered dataSource");
 			}

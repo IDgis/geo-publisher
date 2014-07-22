@@ -49,7 +49,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		connectionPool.close();		
 	}
 	
-	protected abstract Object executeQuery(Connection connection, Query msg) throws Exception;
+	protected abstract void executeQuery(JdbcContext context, Query query) throws Exception;
 	
 	@Override
 	public final void onReceive(final Object msg) throws Exception {
@@ -69,11 +69,11 @@ public abstract class JdbcDatabase extends UntypedActor {
 						return;
 					}
 					
+					JdbcContext context = new JdbcContext(connection, sender, self);
+					
 					log.debug("executing query");
 					try {						
-						Object queryResult = executeQuery(connection, (Query) msg);
-						log.debug("sending query result");
-						sender.tell(queryResult, self);						
+						executeQuery(context, (Query) msg);												
 					} catch(Exception e) {
 						log.error(e, "couldn't execute query");						
 					}

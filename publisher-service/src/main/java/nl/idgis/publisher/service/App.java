@@ -53,7 +53,7 @@ public class App extends UntypedActor {
 				
 				loader = getContext().actorOf(Loader.props(database, harvester), "loader");
 				
-				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
+				getContext().actorOf(Admin.props(database, harvester), "admin");
 			}
 			
 		}, getContext().dispatcher());

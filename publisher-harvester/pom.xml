@@ -18,6 +18,10 @@
 		</dependency>
 		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-database</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-provider-protocol</artifactId>
 		</dependency>
 	</dependencies>	
