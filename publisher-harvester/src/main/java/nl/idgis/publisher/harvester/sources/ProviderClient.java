@@ -1,7 +1,7 @@
-package nl.idgis.publisher.harvester;
+package nl.idgis.publisher.harvester.sources;
 
-import nl.idgis.publisher.harvester.messages.Harvest;
-import nl.idgis.publisher.harvester.messages.ProviderConnected;
+import nl.idgis.publisher.harvester.messages.DataSourceConnected;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -10,6 +10,7 @@ import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -41,7 +42,7 @@ public class ProviderClient extends UntypedActor {
 			
 			getSender().tell(new Hello("My data harvester"), getSelf());
 			getContext().become(active(), false);
-			harvester.tell(new ProviderConnected(((Hello) msg).getName()), getSelf());
+			harvester.tell(new DataSourceConnected(((Hello) msg).getName()), getSelf());
 		} else {
 			defaultActions(msg);
 		}
@@ -62,11 +63,11 @@ public class ProviderClient extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof Harvest) {
-					log.debug("harvesting started");
+				if(msg instanceof GetDatasets) {
+					log.debug("retrieving datasets from provider");
 					
 					metadata.tell(new GetMetadata(), getSelf());			
-					getContext().become(harvesting(), false);
+					getContext().become(retrievingDatasets(), false);
 				} else {
 					defaultActions(msg);
 				}
@@ -74,7 +75,7 @@ public class ProviderClient extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> requestingTableDescription(final ActorRef metadataCursor) {
+	private Procedure<Object> retrievingTableDescription(final ActorRef metadataCursor) {
 		return new Procedure<Object>() {
 
 			@Override
@@ -97,13 +98,13 @@ public class ProviderClient extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> harvesting() {
+	private Procedure<Object> retrievingDatasets() {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof Harvest) {
-					log.debug("already harvesting");
+				if(msg instanceof GetDatasets) {
+					log.debug("already retrieving datasets");
 				} else if(msg instanceof MetadataItem) {
 					log.debug("item harvested: " + msg);
 					
@@ -116,12 +117,12 @@ public class ProviderClient extends UntypedActor {
 						
 						log.debug("requesting table structure: " + tableName);						
 						database.tell(new DescribeTable(tableName), getSelf());
-						getContext().become(requestingTableDescription(getSender()), false);						 
+						getContext().become(retrievingTableDescription(getSender()), false);						 
 					} else {
 						getSender().tell(new NextItem(), getSelf());
 					}
 				} else if(msg instanceof End) {
-					log.debug("harvesting finished");
+					log.debug("all datasets retrieved");
 					
 					getContext().unbecome();
 				} else if(msg instanceof Failure) {

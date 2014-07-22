@@ -5,8 +5,9 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.harvester.messages.Harvest;
-import nl.idgis.publisher.harvester.messages.ProviderConnected;
+import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.server.Server;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -26,7 +27,7 @@ public class Harvester extends UntypedActor {
 	private final ActorRef database;
 	private final LoggingAdapter log;	
 	
-	private BiMap<String, ActorRef> providerClients;
+	private BiMap<String, ActorRef> dataSources;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
@@ -45,7 +46,7 @@ public class Harvester extends UntypedActor {
 		final Config sslConfig = ConfigUtils.getOptionalConfig(config, "ssl");		
 		getContext().actorOf(Server.props(getSelf(), port, sslConfig), "server");
 		
-		providerClients = HashBiMap.create();
+		dataSources = HashBiMap.create();
 		
 		FiniteDuration interval = Duration.create(10, TimeUnit.SECONDS);
 		getContext().system().scheduler().schedule(Duration.Zero(), interval, getSelf(), new Harvest(), getContext().dispatcher(), getSelf());
@@ -53,21 +54,30 @@ public class Harvester extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ProviderConnected) {
-			String providerName = ((ProviderConnected) msg).getName();
-			log.debug("Provider connected: " + providerName);
+		if(msg instanceof DataSourceConnected) {
+			String dataSourceName = ((DataSourceConnected) msg).getDataSourceName();
+			log.debug("DataSource connected: " + dataSourceName);
 			
 			getContext().watch(getSender());
-			providerClients.put(providerName, getSender());
-		} else if (msg instanceof Terminated){
-			String providerName = providerClients.inverse().remove(((Terminated) msg).getActor());
-			if(providerName != null) {
-				log.debug("Connection lost, provider: " + providerName);
+			dataSources.put(dataSourceName, getSender());
+		} else if (msg instanceof Terminated) {
+			String dataSourceName = dataSources.inverse().remove(((Terminated) msg).getActor());
+			if(dataSourceName != null) {
+				log.debug("Connection lost, dataSource: " + dataSourceName);
 			}
 		} else if (msg instanceof Harvest) {
-			log.debug("starting harvesting");
-			for(ActorRef providerClient : providerClients.values()) {
-				providerClient.tell(msg, getSelf());
+			String dataSourceName = ((Harvest) msg).getDataSourceName();
+			if(dataSourceName == null) {
+				log.debug("Initializing harvesting for all dataSources");
+				for(ActorRef dataSource : dataSources.values()) {
+					dataSource.tell(new GetDatasets(), getSelf());
+				}
+			} else {
+				if(dataSources.containsKey(dataSourceName)) {
+					log.debug("Initializing harvesting for dataSource: " + dataSourceName);
+				} else {
+					dataSources.get(dataSourceName).tell(new GetDatasets(), getSelf());
+				}
 			}
 		} else {
 			unhandled(msg);
