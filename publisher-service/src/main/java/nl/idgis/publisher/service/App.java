@@ -1,9 +1,6 @@
 package nl.idgis.publisher.service;
 
 import scala.concurrent.Future;
-
-import com.typesafe.config.Config;
-
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.Version;
@@ -15,6 +12,8 @@ import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
+
+import com.typesafe.config.Config;
 
 public class App extends UntypedActor {
 	
@@ -33,14 +32,17 @@ public class App extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		Config databaseConfig = config.getConfig("database");
-		ActorRef database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
-		Future<Object> version = Patterns.ask(database, new GetVersion(), 15000);
-		version.onSuccess(new OnSuccess<Object>() {
+		final ActorRef database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
+		
+		Future<Object> versionFuture = Patterns.ask(database, new GetVersion(), 15000);
+		versionFuture.onSuccess(new OnSuccess<Object>() {
 
 			@Override
 			public void onSuccess(Object msg) throws Throwable {
 				Version version = (Version)msg;
-				log.debug(version.toString());
+				log.debug("database version: " + version);
+				
+				getContext().actorOf(Admin.props(database), "admin");
 			}
 			
 		}, getContext().dispatcher());
