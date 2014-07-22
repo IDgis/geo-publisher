@@ -10,6 +10,9 @@ GET		/datasets						controllers.Datasets.list()
 GET		/datasets/status/with-messages	controllers.Datasets.listWithMessages()
 GET		/datasets/create				controllers.Datasets.createForm()
 
+# Datasources
+GET		/datasources					controllers.DataSources.list()
+
 # User
 GET		/login							controllers.User.login()
 

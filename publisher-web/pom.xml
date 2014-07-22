@@ -105,6 +105,11 @@
 			<version>1.10.0</version>
 		</dependency>
 		
+		<!-- Publisher dependencies: -->
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-domain</artifactId>
+		</dependency>
     </dependencies>
     
     <build>

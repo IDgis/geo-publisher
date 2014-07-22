@@ -1,0 +1,7 @@
+@(dataSources: List[nl.idgis.publisher.domain.web.DataSource])
+
+<ul>
+@for(dataSource <- dataSources){
+	<li>@dataSource.name: @dataSource.id</li>
+}
+</ul>
