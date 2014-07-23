@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.query;
 
-public interface DomainQuery <T> {
+import java.io.Serializable;
+
+public interface DomainQuery <T> extends Serializable {
 
 }

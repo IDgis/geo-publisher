@@ -4,6 +4,8 @@ import nl.idgis.publisher.domain.web.Identifiable;
 
 public final class PutEntity<T extends Identifiable> implements DomainQuery<Boolean> {
 
+	private static final long serialVersionUID = 3056189862216804454L;
+	
 	private final T value;
 	
 	public PutEntity (final T value) {

@@ -3,7 +3,9 @@ package nl.idgis.publisher.domain.query;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
 
-public class ListEntity<T extends Entity> implements DomainQuery<Page<T>> {
+public final class ListEntity<T extends Entity> implements DomainQuery<Page<T>> {
+	
+	private static final long serialVersionUID = -3354031274806663714L;
 	
 	private final Class<T> cls;
 	private final long page;
