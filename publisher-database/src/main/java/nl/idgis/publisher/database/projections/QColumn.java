@@ -1,6 +1,6 @@
 package nl.idgis.publisher.database.projections;
 
-import nl.idgis.publisher.domain.Column;
+import nl.idgis.publisher.domain.service.Column;
 
 import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;

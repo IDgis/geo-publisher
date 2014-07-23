@@ -1,6 +1,6 @@
 package nl.idgis.publisher.database.messages;
 
-import nl.idgis.publisher.domain.Dataset;
+import nl.idgis.publisher.domain.service.Dataset;
 
 public class RegisterSourceDataset extends Query {
 	

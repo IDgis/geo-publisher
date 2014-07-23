@@ -1,25 +1,34 @@
 package nl.idgis.publisher.service.admin;
 
-import nl.idgis.publisher.domain.DataSourceStatusType;
+import java.util.List;
+import java.util.Set;
+
+import nl.idgis.publisher.database.messages.DataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
+import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 
 import org.joda.time.LocalDateTime;
 
+import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 
 public class Admin extends UntypedActor {
 	
@@ -68,12 +77,46 @@ public class Admin extends UntypedActor {
 	private void handleListDataSources (final ListEntity<?> listEntity) {
 		log.debug ("List received for: " + listEntity.cls ().getCanonicalName ());
 		
-		final DataSource dataSource = new DataSource ("ds-1", "DataSource: ds-1", new Status (DataSourceStatusType.OK, LocalDateTime.now ()));
-		final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
+		final ActorRef sender = getSender(), self = getSelf();
 		
-		pageBuilder.add (dataSource);
+		final Future<Object> activeDataSources = Patterns.ask(harvester, new GetActiveDataSources(), 15000);
+		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
 		
-		sender ().tell (pageBuilder.build (), self ());
+		activeDataSources.onSuccess(new OnSuccess<Object>() {
+			
+			@Override
+			@SuppressWarnings("unchecked")
+			public void onSuccess(Object msg) throws Throwable {
+				final Set<String> activeDataSources = (Set<String>)msg;
+				log.debug("active data sources received");
+				
+				dataSourceInfo.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						List<DataSourceInfo> dataSourceInfoList = (List<DataSourceInfo>)msg;
+						log.debug("data sources info received");
+						
+						final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
+						
+						for(DataSourceInfo dataSourceInfo : dataSourceInfoList) {
+							final String id = dataSourceInfo.getId();
+							final DataSource dataSource = new DataSource (
+									id, 
+									dataSourceInfo.getName(),
+									new Status (activeDataSources.contains(id) 
+											? DataSourceStatusType.OK
+											: DataSourceStatusType.NOT_CONNECTED, LocalDateTime.now ()));
+							
+							pageBuilder.add (dataSource);
+						}
+						
+						log.debug("sending data source page");
+						sender.tell (pageBuilder.build (), self);
+					}
+				}, getContext().dispatcher());
+			}			
+		}, getContext().dispatcher());
 	}
 	
 	private void handleListCategories (final ListEntity<?> listEntity) {

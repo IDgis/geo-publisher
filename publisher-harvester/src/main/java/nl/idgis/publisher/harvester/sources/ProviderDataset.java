@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import scala.concurrent.Future;
-import nl.idgis.publisher.domain.Column;
-import nl.idgis.publisher.domain.Dataset;
-import nl.idgis.publisher.domain.Table;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;

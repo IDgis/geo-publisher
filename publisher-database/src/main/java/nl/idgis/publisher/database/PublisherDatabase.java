@@ -8,15 +8,16 @@ import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColu
 import java.sql.Timestamp;
 import java.util.List;
 
+import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
+import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.projections.QColumn;
-import nl.idgis.publisher.domain.Column;
-import nl.idgis.publisher.domain.Dataset;
-import nl.idgis.publisher.domain.Table;
-
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.Table;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -124,6 +125,11 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					insertSourceDatasetColumns(context, id, table.getColumns());
 				}
 			}
+		} else if(query instanceof GetDataSourceInfo) {
+			context.answer(
+				context.query().from(dataSource)
+					.orderBy(dataSource.identification.asc())
+					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
