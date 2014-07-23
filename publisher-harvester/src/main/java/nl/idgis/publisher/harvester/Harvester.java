@@ -5,17 +5,15 @@ import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.domain.Dataset;
 import nl.idgis.publisher.harvester.messages.DataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.Dataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -100,7 +98,7 @@ public class Harvester extends UntypedActor {
 				log.debug("dataSourceId: " + dataSourceId + " dataset: " + msg);
 				
 				Dataset dataset = (Dataset)msg;
-				database.tell(new RegisterSourceDataset(dataSourceId, dataset.getId(), dataset.getName()), getSelf());
+				database.tell(new RegisterSourceDataset(dataSourceId, dataset), getSelf());
 			} else {
 				log.error("dataset received from unregistered dataSource");
 			}

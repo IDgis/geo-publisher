@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import scala.concurrent.Future;
-import nl.idgis.publisher.harvester.sources.messages.Column;
-import nl.idgis.publisher.harvester.sources.messages.Dataset;
+import nl.idgis.publisher.domain.Column;
+import nl.idgis.publisher.domain.Dataset;
+import nl.idgis.publisher.domain.Table;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
@@ -19,7 +20,6 @@ import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 public class ProviderDataset extends UntypedActor {
 	
@@ -80,7 +80,9 @@ public class ProviderDataset extends UntypedActor {
 								columns.add(new Column(column.getName(), column.getType()));
 							}
 							
-							harvester.tell(new Dataset(metadataItem.getIdentification(), metadataItem.getTitle(), columns), getContext().parent());
+							Table table = new Table(metadataItem.getTitle(), columns);
+							
+							harvester.tell(new Dataset(metadataItem.getIdentification(), table), getContext().parent());
 						}
 						
 						sender.tell(new NextItem(), self);

@@ -28,6 +28,10 @@
 			<artifactId>publisher-commons</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-domain</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>com.mysema.querydsl</groupId>
 			<artifactId>querydsl-core</artifactId>			
 		</dependency>
