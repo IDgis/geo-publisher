@@ -6,6 +6,7 @@ import static play.libs.F.Promise.wrap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
@@ -15,6 +16,11 @@ import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
+import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.Status;
+import play.Logger;
+import play.i18n.Lang;
+import play.i18n.Messages;
 import play.libs.F;
 import play.libs.F.Promise;
 import akka.actor.ActorSelection;
@@ -514,5 +520,48 @@ public class Domain {
 					timeout
 				)
 			);
+    }
+    
+    private static Lang getLang (){
+        final Lang lang;
+        
+        if (play.mvc.Http.Context.current.get () != null) {
+            lang = play.mvc.Http.Context.current ().lang ();
+        } else {
+            Locale defaultLocale = Locale.getDefault ();
+            lang = new Lang (new play.api.i18n.Lang (defaultLocale.getLanguage (), defaultLocale.getCountry ()));
+        }
+        
+        return lang;
+    }
+    
+    public static String message (final Status status) {
+    	return message (getLang (), status);
+    }
+    
+    public static String message (final Lang lang, final Status status) {
+    	if (status.type () instanceof Enum<?>) {
+    		return messageForEnumValue (lang, (Enum<?>) status.type ());
+    	}
+    	
+    	return Messages.get (lang, status.type ().getClass ().getCanonicalName ());
+    }
+    
+    public static String message (final Message message) {
+    	return message (getLang (), message);
+    }
+    
+    public static String message (final Lang lang, final Message message) {
+    	if (message.type () instanceof Enum<?>) {
+    		return messageForEnumValue (lang, (Enum<?>) message.type ());
+    	}
+    	
+    	return Messages.get (lang, message.type ().getClass ().getCanonicalName ());
+    }
+    
+    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue) {
+    	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
+    	
+    	return Messages.get (lang, key);
     }
 }
