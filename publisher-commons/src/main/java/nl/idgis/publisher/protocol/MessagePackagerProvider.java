@@ -1,5 +1,7 @@
 package nl.idgis.publisher.protocol;
 
+import java.net.URLEncoder;
+
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Unreachable;
 
@@ -50,7 +52,7 @@ public class MessagePackagerProvider extends UntypedActor {
 				packager = messagePackagers.get(targetName);
 			} else {
 				log.debug("creating new packager");				
-				packager = getContext().actorOf(MessagePackager.props(targetName, messageTarget, pathPrefix));
+				packager = getContext().actorOf(MessagePackager.props(targetName, messageTarget, pathPrefix), URLEncoder.encode(targetName, "utf-8"));
 				getContext().watch(packager);
 				messagePackagers.put(targetName, packager);
 			}
