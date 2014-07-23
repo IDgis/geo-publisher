@@ -16,10 +16,16 @@ import nl.idgis.publisher.domain.web.Status;
 import org.joda.time.LocalDateTime;
 
 import play.Logger;
+import play.Play;
+import play.libs.Akka;
+import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 public class Database extends UntypedActor {
 
+	public final static ActorRef instance = Akka.system().actorOf (Props.create (Database.class), "database");
+	
 	public enum DataSourceStatusType implements StatusType {
 		OK;
 
