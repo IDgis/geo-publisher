@@ -1,4 +1,4 @@
-package nl.idgis.publisher.domain;
+package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
 import java.util.List;
