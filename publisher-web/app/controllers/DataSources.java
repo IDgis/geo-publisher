@@ -13,10 +13,13 @@ import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 import views.html.datasources.list;
+import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
 
+@Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 

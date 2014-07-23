@@ -1,10 +1,13 @@
 package controllers;
 
+import actions.DefaultAuthenticator;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 import views.html.datasets.list;
 import views.html.datasets.form;
 
+@Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
 
 	public static Result list () {
