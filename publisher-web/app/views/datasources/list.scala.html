@@ -1,7 +1,147 @@
-@(dataSources: List[nl.idgis.publisher.domain.web.DataSource])
+@(sourceDatasets: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.SourceDatasetStats], 
+	dataSources: List[nl.idgis.publisher.domain.web.DataSource],
+	categories: List[nl.idgis.publisher.domain.web.Category],
+	currentDataSource: nl.idgis.publisher.domain.web.DataSource,
+	currentCategory: nl.idgis.publisher.domain.web.Category)
 
-<ul>
-@for(dataSource <- dataSources){
-	<li>@dataSource.name: @dataSource.id</li>
+@import nl.idgis.publisher.domain.web._
+
+@dataSourceLink(ds: DataSource, cls: String = null) = {
+	@if(currentCategory == null) {
+		<a href="@routes.DataSources.listByDataSource(ds.id)"@if(cls != null){ class="@cls"}>@ds.name</a>
+	} else {
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@ds.name</a>
+	}
 }
-</ul>
+
+@dataSourceRefLink(ref: EntityRef, cls: String = null) = {
+	@if(currentCategory == null) {
+		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+	} else {
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+	}
+}
+
+@allDataSourcesLink() = {
+	@if(currentCategory == null) {
+		<a href="@routes.DataSources.list()">Alle gegevensbronnen</a>
+	} else {
+		<a href="@routes.DataSources.listByCategory(currentCategory.id)">Alle gegevensbronnen</a>
+	}
+}
+
+@categoryLink(cat: Category, cls: String = null) = {
+	@if(currentDataSource == null) {
+		<a href="@routes.DataSources.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+	} else {
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+	}
+}
+
+@allCategoriesLink() = {
+	@if(currentDataSource == null) {
+		<a href="@routes.DataSources.list()">Alle categori&euml;n</a>
+	} else {
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">Alle categori&euml;n</a>
+	}
+}
+
+@layout.application(
+	title = "Gegevensbronnen",
+	jsMain = routes.Assets.at("js/datasources/main.js").url
+) {
+	<div class="page-content">
+		<h1 class="page-header">Brongegevens</h1>
+		
+		<div class="row">
+		
+			@* Filters: *@
+			<div class="col-lg-3 col-lg-push-9">
+				<div class="panel-group" id="filters-accordion">
+				
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-datasources">
+									Gegevensbronnen
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-datasources" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(currentDataSource == null){ class="active"}>@allDataSourcesLink()</li>
+									@for(dataSource <- dataSources) {
+										<li@if(dataSource.equals(currentDataSource)){ class="active"}>@dataSourceLink(dataSource)</li>
+									}
+								</ul>
+							</div>
+						</div>
+					</div>
+			
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-categories">
+									Categori&euml;n
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-categories" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(currentCategory == null){ class="active"}>@allCategoriesLink()</li>
+									@for(category <- categories) {
+										<li@if(category.equals(currentCategory)){ class="active"}>@categoryLink(category)</li>
+									}
+								</ul>
+							</div>
+						</div>
+					</div>
+				
+				</div>
+			</div>
+			
+			@* List of datasources: *@
+			<div class="col-lg-9 col-lg-pull-3">
+				@if(sourceDatasets.values.isEmpty) {
+					<div class="alert alert-info">
+						Er zijn geen brongegevens gevonden die voldoen aan de criteria. Pas de criteria aan
+						of toon <a href="@routes.DataSources.list()">alle brongegevens</a>.
+					</div>
+				} else {
+					<div class="list-group">
+						@for(dataset <- sourceDatasets.values) {
+							<div class="list-group-item">
+								<div class="row">
+									<div class="col-md-5">
+										<h4 class="list-group-item-heading">@dataset.sourceDataset.name</h4>
+										@categoryLink(dataset.sourceDataset.category, "label label-info")
+										@dataSourceRefLink(dataset.sourceDataset.dataSource, "label label-info")
+									</div>
+									<div class="col-md-5">
+										<p>
+											@if(dataset.datasetCount == 0) {
+												<span class="glyphicon glyphicon-th-list"></span> Er zijn geen gekoppelde datasets.
+											} else {
+												@if(dataset.datasetCount == 1) {
+													<span class="glyphicon glyphicon-th-list"></span> Er is <strong>1</strong> dataset gekoppeld.
+												} else {
+													<span class="glyphicon glyphicon-th-list"></span> Er zijn <strong>@dataset.datasetCount</strong> datasets gekoppeld.
+												}
+											}
+										</p>
+									</div>
+									<div class="col-md-2">
+									</div>
+								</div>
+							</div>
+						}
+					
+					</div>
+				}
+			</div>			
+				
+		</div>
+	</div>
+}

@@ -4,6 +4,8 @@ import nl.idgis.publisher.domain.web.Entity;
 
 public final class GetEntity<T extends Entity> implements DomainQuery<T> {
 
+	private static final long serialVersionUID = -1525247897394477556L;
+	
 	private final Class<T> cls;
 	private final String id;
 	

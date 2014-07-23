@@ -1,4 +1,4 @@
-@(message: String)
+@(dataSources: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.DataSource])
 
 @layout.application(title = "GIS publicatieomgeving", jsMain = routes.Assets.at("js/dashboard/main.js").url) {
 
@@ -30,15 +30,30 @@
 								</p>
 							</div>
 							<div class="col-xs-8 text-right">
-								<p class="announcement-heading">1</p>
-								<p class="announcement-text">Actieve gegevensbron</p>
+								<p class="announcement-heading">
+									@if(dataSources.values.isEmpty) {
+										geen
+									} else {
+										@dataSources.values.size
+									}
+								</p>
+								<p class="announcement-text">
+									Actieve gegevensbron@if(dataSources.values.size != 1){nen}
+								</p>
 							</div>
 						</div>
 					</div>
 					<ul class="list-group">
-						<li class="list-group-item">
-							<span class="text-success"><span class="glyphicon glyphicon-ok"></span></span> Provincie Overijssel Oracle
-						</li>
+						@for(dataSource <- dataSources.values) {
+							<li class="list-group-item">
+								<div>
+									<strong>@dataSource.name</strong>
+								</div>
+								<div>
+									@helper.status(dataSource.status)
+								</div>
+							</li>
+						}
 					</ul>
 					<a href="#">
 						<div class="panel-footer">

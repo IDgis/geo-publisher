@@ -3,19 +3,22 @@
 # ~~~~
 
 # Dashboard
-GET		/								controllers.Dashboard.index()
+GET		/												controllers.Dashboard.index()
 
 # Datasets
-GET		/datasets						controllers.Datasets.list()
-GET		/datasets/status/with-messages	controllers.Datasets.listWithMessages()
-GET		/datasets/create				controllers.Datasets.createForm()
+GET		/datasets										controllers.Datasets.list()
+GET		/datasets/status/with-messages					controllers.Datasets.listWithMessages()
+GET		/datasets/create								controllers.Datasets.createForm()
 
 # Datasources
-GET		/datasources					controllers.DataSources.list()
+GET		/datasources									controllers.DataSources.list()
+GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String)
+GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String)
+GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String)
 
 # User
-GET		/login							controllers.User.login()
+GET		/login											controllers.User.login()
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               	controllers.Assets.at(path="/public", file)
-GET		/lib/*file						controllers.WebJarAssets.at(file)
+GET     /assets/*file               					controllers.Assets.at(path="/public", file)
+GET		/lib/*file										controllers.WebJarAssets.at(file)

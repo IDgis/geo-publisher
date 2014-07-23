@@ -4,6 +4,8 @@ import nl.idgis.publisher.domain.web.Identifiable;
 
 public final class DeleteEntity<T extends Identifiable> implements DomainQuery<Boolean> {
 	
+	private static final long serialVersionUID = -6784635917720446736L;
+	
 	private final Class<T> cls;
 	private final String id;
 	

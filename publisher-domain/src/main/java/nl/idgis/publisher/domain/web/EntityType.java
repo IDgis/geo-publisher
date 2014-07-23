@@ -5,5 +5,6 @@ public enum EntityType {
 	NOTIFICATION,
 	CATEGORY,
 	JOB,
-	LOG_ITEM
+	LOG_ITEM,
+	DATA_SOURCE
 }

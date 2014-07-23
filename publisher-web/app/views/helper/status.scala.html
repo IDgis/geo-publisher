@@ -1,0 +1,24 @@
+@(status: nl.idgis.publisher.domain.web.Status)
+
+@import nl.idgis.publisher.domain.web.Status
+@import nl.idgis.publisher.domain.StatusType
+@import nl.idgis.publisher.domain.StatusType.StatusCategory
+
+@doStatus(status: Status, textClass: String, iconClass: String) = {
+	<span class="@textClass"><span class="@iconClass"></span> @{status.`type`.toString}</span>
+}
+
+@if(status.`type`.statusCategory == StatusCategory.INFO) {
+	@doStatus(status, "text-info", "glyphicon glyphicon-info-sign")
+}
+@if(status.`type`.statusCategory == StatusCategory.SUCCESS) {
+	@doStatus(status, "text-success", "glyphicon glyphicon-ok-sign")
+}
+@if(status.`type`.statusCategory == StatusCategory.WARNING) {
+	@doStatus(status, "text-warning", "glyphicon glyphicon-exclamation-sign")
+
+}
+@if(status.`type`.statusCategory == StatusCategory.ERROR) {
+	@doStatus(status, "text-danger", "glyphicon glyphicon-remove-sign")
+
+}
