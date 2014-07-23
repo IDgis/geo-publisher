@@ -1,33 +1,31 @@
 package nl.idgis.publisher.database.messages;
 
+import nl.idgis.publisher.domain.Dataset;
+
 public class RegisterSourceDataset extends Query {
 	
-	private static final long serialVersionUID = -2882277132031271108L;
+	private static final long serialVersionUID = 1L;
 	
-	private final String dataSource, id, name;
+	private final String dataSource;
+	private final Dataset dataset;
 	
-	public RegisterSourceDataset(String dataSource, String id, String name) {
+	public RegisterSourceDataset(String dataSource, Dataset dataset) {
 		this.dataSource = dataSource;
-		this.id = id;
-		this.name = name;
+		this.dataset = dataset;
 	}
 
 	public String getDataSource() {
 		return dataSource;
 	}
 
-	public String getId() {
-		return id;
-	}
-
-	public String getName() {
-		return name;
+	public Dataset getDataset() {
+		return dataset;
 	}
 
 	@Override
 	public String toString() {
-		return "RegisterSourceDataset [dataSource="
-				+ dataSource + ", id="
-				+ id + ", name=" + name + "]";
+		return "RegisterSourceDataset [dataSource=" + dataSource + ", dataset="
+				+ dataset + "]";
 	}
+	
 }
