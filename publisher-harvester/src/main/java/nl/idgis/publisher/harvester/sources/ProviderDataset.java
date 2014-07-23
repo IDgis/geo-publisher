@@ -1,15 +1,25 @@
 package nl.idgis.publisher.harvester.sources;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import scala.concurrent.Future;
+import nl.idgis.publisher.harvester.sources.messages.Column;
 import nl.idgis.publisher.harvester.sources.messages.Dataset;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.provider.protocol.database.DescribeTable;
+import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.Ask;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 
 public class ProviderDataset extends UntypedActor {
 	
@@ -25,17 +35,58 @@ public class ProviderDataset extends UntypedActor {
 	public static Props props(ActorRef harvester, ActorRef database) {
 		return Props.create(ProviderDataset.class, harvester, database);
 	}
+	
+	private String getTableName(MetadataItem metadataItem) {
+		String alternateTitle = metadataItem.getAlternateTitle();
+		
+		if(alternateTitle != null 
+			&& !alternateTitle.trim().isEmpty() 
+			&& alternateTitle.contains(" ")) {
+			
+			return alternateTitle.substring(0, alternateTitle.indexOf(" "));
+		}
+		
+		return null;
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataItem) {
 			log.debug("metadata item received");
 			
-			MetadataItem metadataItem = (MetadataItem)msg;
+			final MetadataItem metadataItem = (MetadataItem)msg;			
+			final ActorRef sender = getSender(), self = getSelf();			
 			
-			final ActorRef sender = getSender(), self = getSelf();
-			harvester.tell(new Dataset(metadataItem.getIdentification(), metadataItem.getTitle()), getContext().parent());
-			sender.tell(new NextItem(), self);
+			final String tableName = getTableName(metadataItem);			
+			if(tableName == null) {
+				log.warning("couldn't determine table name");
+				
+				sender.tell(new NextItem(), self);
+			} else {
+				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
+				tableDescriptionFuture.onComplete(new OnComplete<Object>() {
+	
+					@Override
+					public void onComplete(Throwable t, Object msg) throws Throwable {
+						if(t != null) {
+							log.error("couldn't fetch table description: " + t);
+						} else {
+							log.debug("table description received");
+							
+							TableDescription tableDescription = (TableDescription)msg;
+							
+							List<Column> columns = new ArrayList<Column>();
+							for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
+								columns.add(new Column(column.getName(), column.getType()));
+							}
+							
+							harvester.tell(new Dataset(metadataItem.getIdentification(), metadataItem.getTitle(), columns), getContext().parent());
+						}
+						
+						sender.tell(new NextItem(), self);
+					}
+				}, getContext().dispatcher());
+			}			
 		} else if(msg instanceof End) {	
 			log.debug("dataset retrieval completed");
 			
