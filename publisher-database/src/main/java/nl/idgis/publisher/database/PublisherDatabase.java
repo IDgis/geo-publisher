@@ -3,6 +3,9 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+
+import java.sql.Timestamp;
+
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
@@ -11,8 +14,10 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
+import com.mysema.query.types.expr.DateTimeExpression;
 import com.typesafe.config.Config;
 
 public class PublisherDatabase extends QueryDSLDatabase {
@@ -42,13 +47,29 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			
 			RegisterSourceDataset rsd = (RegisterSourceDataset)query;
 			
-			if(context.query().from(sourceDataset)
-				.join(dataSource)
-					.on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.where(sourceDataset.identification.eq(rsd.getId())
-					.and(dataSource.identification.eq(rsd.getDataSource())))
-				.exists()) {
-				log.debug("dataset already registered");
+			Tuple currentSourceDataset = 
+				context.query().from(sourceDataset)
+					.join(dataSource)
+						.on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.where(sourceDataset.identification.eq(rsd.getId())
+						.and(dataSource.identification.eq(rsd.getDataSource())))
+					.singleResult(sourceDataset.id, sourceDataset.name, sourceDataset.deleteTime);
+			
+			if(currentSourceDataset != null) {
+				String currentName = currentSourceDataset.get(sourceDataset.name);
+				boolean isDeleted = currentSourceDataset.get(sourceDataset.deleteTime) != null;
+				
+				if(currentName.equals(rsd.getName()) && !isDeleted) {
+					log.debug("dataset already registered");
+				} else {
+					context.update(sourceDataset)
+						.set(sourceDataset.name, rsd.getName())
+						.setNull(sourceDataset.deleteTime)						
+						.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
+						.where(sourceDataset.id.eq(currentSourceDataset.get(sourceDataset.id)))
+						.execute();
+					log.debug("dataset updated");
+				}
 			} else {
 				if(context.insert(sourceDataset)
 					.columns(sourceDataset.dataSourceId, sourceDataset.identification, sourceDataset.name)
