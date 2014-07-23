@@ -1,12 +1,15 @@
 package nl.idgis.publisher.domain.response;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import nl.idgis.publisher.domain.web.Entity;
 
-public final class Page<T extends Entity> {
+public final class Page<T extends Entity> implements Serializable {
+	
+	private static final long serialVersionUID = 6206734086529244167L;
 	
 	private final List<T> values;
 	private final long currentPage;
