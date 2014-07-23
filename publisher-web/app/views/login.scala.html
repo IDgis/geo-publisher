@@ -1,4 +1,4 @@
-@()
+@(form: Form[controllers.User.Login])
 
 @layout.applicationCentered("Inloggen") {
 
@@ -15,15 +15,23 @@
 			<h3 class="panel-title">Inloggen</h3>
 		</div>
 		<div class="panel-body">
-			<form role="form">
+		
+			@if(form.hasGlobalErrors) {
+				<div class="alert alert-danger">
+					<strong>Inloggen mislukt.</strong> @form.globalError.message
+				</div>
+			}
+			
+			<form role="form" method="POST" action="@routes.User.authenticate()">
+				<input type="hidden" name="returnUrl" value="@form("returnUrl").value">
 				<fieldset>
 					<div class="form-group">
-						<input class="form-control" type="email" autofocus name="email" placeholder="E-mail">
+						<input class="form-control" type="email" autofocus name="username" placeholder="E-mail" value="@form("username").value">
 					</div>
 					<div class="form-group">
 						<input class="form-control" type="password" name="password" placeholder="Wachtwoord">
 					</div>
-					<a class="btn btn-lg btn-success btn-block" href="@routes.Dashboard.index()">Inloggen</a>
+					<button class="btn btn-lg btn-success btn-block" href="@routes.Dashboard.index()" type="submit">Inloggen</a>
 				</fieldset>
 			</form>
 		</div>
