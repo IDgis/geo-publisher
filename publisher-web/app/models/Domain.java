@@ -64,7 +64,7 @@ public class Domain {
 
 		@Override
 		public <T extends Entity> Query1<T> get (final Class<T> cls, final String id) {
-			return query (new GetEntity<> (cls, id));
+			return query (id == null ? null : new GetEntity<> (cls, id));
 		}
 
 		@Override
@@ -105,7 +105,7 @@ public class Domain {
 		
 		@Override
 		public <T extends Entity> Query2<A, T> get (final Class<T> cls, final String id) {
-			return query (new GetEntity<> (cls, id));
+			return query (id == null ? null : new GetEntity<> (cls, id));
 		}
 		
 		@Override
@@ -135,12 +135,10 @@ public class Domain {
 		
 		public <R> Promise<R> execute (final Function<A, R> callback) {
 			final Promise<Object> promise =
-					wrap (
-						ask (
-							domainInstance.domainActor, 
-							query, 
-							domainInstance.timeout
-						)
+					askDomain (
+						domainInstance.domainActor, 
+						query, 
+						domainInstance.timeout
 					);
 
 			return promise
@@ -176,7 +174,7 @@ public class Domain {
 		
 		@Override
 		public <T extends Entity> Query3<A, B, T> get (final Class<T> cls, final String id) {
-			return query (new GetEntity<> (cls, id));
+			return query (id == null ? null : new GetEntity<> (cls, id));
 		}
 		
 		@Override
@@ -207,21 +205,17 @@ public class Domain {
 		public <R> Promise<R> execute (final Function2<A, B, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.domainInstance.domainActor, 
-							baseQuery.query, 
-							baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.domainInstance.domainActor, 
+						baseQuery.query, 
+						baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.domainInstance.domainActor, 
-							query, 
-							baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.domainInstance.domainActor, 
+						query, 
+						baseQuery.domainInstance.timeout
 					)
 				);
 
@@ -233,7 +227,7 @@ public class Domain {
 						final A a = (A)list.get (0);
 						
 						@SuppressWarnings("unchecked")
-						final B b = (B)list.get (0);
+						final B b = (B)list.get (1);
 						
 						return callback.apply (a, b);
 					}
@@ -262,7 +256,7 @@ public class Domain {
 		
 		@Override
 		public <T extends Entity> Query4<A, B, C, T> get (final Class<T> cls, final String id) {
-			return query (new GetEntity<> (cls, id));
+			return query (id == null ? null : new GetEntity<> (cls, id));
 		}
 		
 		@Override
@@ -293,30 +287,24 @@ public class Domain {
 		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.domainInstance.domainActor, 
-							baseQuery.baseQuery.query, 
-							baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.domainInstance.domainActor, 
-							baseQuery.query, 
-							baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.query, 
+						baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.domainInstance.domainActor, 
-							query, 
-							baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.domainInstance.domainActor, 
+						query, 
+						baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			
@@ -328,10 +316,10 @@ public class Domain {
 						final A a = (A)list.get (0);
 						
 						@SuppressWarnings("unchecked")
-						final B b = (B)list.get (0);
+						final B b = (B)list.get (1);
 						
 						@SuppressWarnings("unchecked")
-						final C c = (C)list.get (0);
+						final C c = (C)list.get (2);
 						
 						return callback.apply (a, b, c);
 					}
@@ -357,42 +345,34 @@ public class Domain {
 			this.query = query;
 		}
 		
-		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
+		public <R> Promise<R> execute (final Function4<A, B, C, D, R> callback) {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
-							baseQuery.baseQuery.baseQuery.query, 
-							baseQuery.baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
-							baseQuery.baseQuery.query, 
-							baseQuery.baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
-							baseQuery.query, 
-							baseQuery.baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			promises.add (
-					wrap (
-						ask (
-							baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
-							query, 
-							baseQuery.baseQuery.baseQuery.domainInstance.timeout
-						)
+					askDomain (
+						baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						query, 
+						baseQuery.baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
 			
@@ -404,17 +384,20 @@ public class Domain {
 						final A a = (A)list.get (0);
 						
 						@SuppressWarnings("unchecked")
-						final B b = (B)list.get (0);
+						final B b = (B)list.get (1);
 						
 						@SuppressWarnings("unchecked")
-						final C c = (C)list.get (0);
+						final C c = (C)list.get (2);
 						
-						return callback.apply (a, b, c);
+						@SuppressWarnings("unchecked")
+						final D d = (D)list.get (3);
+						
+						return callback.apply (a, b, c, d);
 					}
 				});
 		}
 		
-		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
+		public <R> Promise<R> execute (final Function4<A, B, C, D, R> callback, final Function<Throwable, R> errorCallback) {
 			
 			return execute (callback).recover (new Function<Throwable, R> () {
 					@Override
@@ -427,5 +410,19 @@ public class Domain {
 	
     public static interface Function4<A, B, C, D, R> {
         public R apply (A a, B b, C c, D d) throws Throwable;
+    }
+    
+    private static Promise<Object> askDomain (final ActorSelection actorSelection, final DomainQuery<?> query, final long timeout) {
+    	if (query == null) {
+    		return Promise.<Object>pure (null);
+    	}
+    	
+		return wrap (
+				ask (
+					actorSelection, 
+					query, 
+					timeout
+				)
+			);
     }
 }
