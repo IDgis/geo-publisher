@@ -3,9 +3,14 @@ package actors;
 import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
+import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.EntityRef;
+import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.SourceDataset;
+import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 
 import org.joda.time.LocalDateTime;
@@ -46,6 +51,8 @@ public class Database extends UntypedActor {
 			} else {
 				sender ().tell (null, self ());
 			}
+		} else if (message instanceof ListSourceDatasets) {
+			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else {
 			unhandled (message);
 		}
@@ -90,5 +97,27 @@ public class Database extends UntypedActor {
 		final Category category = new Category (getEntity.id (), "Category: " + getEntity.id ());
 		
 		sender ().tell (category, self ());
+	}
+	
+	private void handleListSourceDatasets (final ListSourceDatasets message) {
+		final Page.Builder<SourceDatasetStats> builder = new Page.Builder<> ();
+		
+		if (message.categoryId () == null || "cat-1".equals (message.categoryId ())) {
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-1", "SourceDataset: sds-1", new Category ("cat-1", "Category: cat-1"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 1));
+		}
+		if (message.categoryId () == null || "cat-2".equals (message.categoryId ())) {
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-2", "SourceDataset: sds-2", new Category ("cat-2", "Category: cat-2"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 10));
+		}
+		if (message.categoryId () == null || "cat-3".equals (message.categoryId ())) {
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-3", "SourceDataset: sds-3", new Category ("cat-3", "Category: cat-3"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 0));
+		}
+		if (message.categoryId () == null || "cat-4".equals (message.categoryId ())) {
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-4", "SourceDataset: sds-4", new Category ("cat-4", "Category: cat-4"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 4));
+		}
+		if (message.categoryId () == null || "cat-5".equals (message.categoryId ())) {
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-5", "SourceDataset: sds-5", new Category ("cat-5", "Category: cat-5"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 42));
+		}
+		
+		sender ().tell (builder.build (), self ());
 	}
 }

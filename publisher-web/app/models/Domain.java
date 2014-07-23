@@ -15,9 +15,7 @@ import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
-import play.libs.F.Function;
-import play.libs.F.Function2;
-import play.libs.F.Function3;
+import play.libs.F;
 import play.libs.F.Promise;
 import akka.actor.ActorSelection;
 
@@ -132,17 +130,19 @@ public class Domain {
 		public <T> Query2<A, T> query (final DomainQuery<T> domainQuery) {
 			return new Query2<A, T> (this, domainQuery);
 		}
-		
-		public <R> Promise<R> execute (final Function<A, R> callback) {
-			final Promise<Object> promise =
+
+		private Promise<Object> promise () {
+			return
 					askDomain (
 						domainInstance.domainActor, 
 						query, 
 						domainInstance.timeout
 					);
-
-			return promise
-				.map (new Function<Object, R> () {
+		}
+		
+		public <R> Promise<R> execute (final Function<A, R> callback) {
+			return promise ()
+				.map (new F.Function<Object, R> () {
 					@Override
 					public R apply (final Object a) throws Throwable {
 						@SuppressWarnings("unchecked")
@@ -152,8 +152,20 @@ public class Domain {
 				});
 		}
 		
+		public <R> Promise<R> executeFlat (final Function<A, Promise<R>> callback) {
+			return promise ()
+				.flatMap (new F.Function<Object, F.Promise<R>> () {
+					@Override
+					public Promise<R> apply (final Object a) throws Throwable {
+						@SuppressWarnings("unchecked")
+						final A value = (A)a;
+						return callback.apply (value);
+					}
+				});
+		}
+		
 		public <R> Promise<R> execute (final Function<A, R> callback, final Function<Throwable, R> errorCallback) {
-			return execute (callback).recover (new Function<Throwable, R> () {
+			return execute (callback).recover (new F.Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -202,7 +214,7 @@ public class Domain {
 			return new Query3<> (this, domainQuery);
 		}
 		
-		public <R> Promise<R> execute (final Function2<A, B, R> callback) {
+		private List<Promise<Object>> promises () {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					askDomain (
@@ -218,9 +230,13 @@ public class Domain {
 						baseQuery.domainInstance.timeout
 					)
 				);
-
-			return sequence (promises)
-				.map (new Function<List<Object>, R> () {
+			
+			return promises;
+		}
+		
+		public <R> Promise<R> execute (final Function2<A, B, R> callback) {
+			return sequence (promises ())
+				.map (new F.Function<List<Object>, R> () {
 					@Override
 					public R apply (final List<Object> list) throws Throwable {
 						@SuppressWarnings("unchecked")
@@ -234,8 +250,24 @@ public class Domain {
 				});
 		}
 		
+		public <R> Promise<R> executeFlat (final Function2<A, B, Promise<R>> callback) {
+			return sequence (promises ())
+				.flatMap (new F.Function<List<Object>, Promise<R>> () {
+					@Override
+					public Promise<R> apply (final List<Object> list) throws Throwable {
+						@SuppressWarnings("unchecked")
+						final A a = (A)list.get (0);
+						
+						@SuppressWarnings("unchecked")
+						final B b = (B)list.get (1);
+						
+						return callback.apply (a, b);
+					}
+				});
+		}
+		
 		public <R> Promise<R> execute (final Function2<A, B, R> callback, final Function<Throwable, R> errorCallback) {
-			return execute (callback).recover (new Function<Throwable, R> () {
+			return execute (callback).recover (new F.Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -284,7 +316,7 @@ public class Domain {
 			return new Query4<> (this, domainQuery);
 		}
 		
-		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
+		private List<Promise<Object>> promises () {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					askDomain (
@@ -307,9 +339,13 @@ public class Domain {
 						baseQuery.baseQuery.domainInstance.timeout
 					)
 				);
-			
-			return sequence (promises)
-				.map (new Function<List<Object>, R> () {
+
+			return promises;
+		}
+		
+		public <R> Promise<R> execute (final Function3<A, B, C, R> callback) {
+			return sequence (promises ())
+				.map (new F.Function<List<Object>, R> () {
 					@Override
 					public R apply (final List<Object> list) throws Throwable {
 						@SuppressWarnings("unchecked")
@@ -326,8 +362,27 @@ public class Domain {
 				});
 		}
 		
+		public <R> Promise<R> executeFlat (final Function3<A, B, C, Promise<R>> callback) {
+			return sequence (promises ())
+					.flatMap (new F.Function<List<Object>, Promise<R>> () {
+						@Override
+						public Promise<R> apply (final List<Object> list) throws Throwable {
+							@SuppressWarnings("unchecked")
+							final A a = (A)list.get (0);
+							
+							@SuppressWarnings("unchecked")
+							final B b = (B)list.get (1);
+							
+							@SuppressWarnings("unchecked")
+							final C c = (C)list.get (2);
+							
+							return callback.apply (a, b, c);
+						}
+					});
+		}
+		
 		public <R> Promise<R> execute (final Function3<A, B, C, R> callback, final Function<Throwable, R> errorCallback) {
-			return execute (callback).recover (new Function<Throwable, R> () {
+			return execute (callback).recover (new F.Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -345,7 +400,7 @@ public class Domain {
 			this.query = query;
 		}
 		
-		public <R> Promise<R> execute (final Function4<A, B, C, D, R> callback) {
+		private List<Promise<Object>> promises () {
 			final List<Promise<Object>> promises = new ArrayList<> ();
 			promises.add (
 					askDomain (
@@ -376,8 +431,12 @@ public class Domain {
 					)
 				);
 			
-			return sequence (promises)
-				.map (new Function<List<Object>, R> () {
+			return promises;
+		}
+		
+		public <R> Promise<R> execute (final Function4<A, B, C, D, R> callback) {
+			return sequence (promises ())
+				.map (new F.Function<List<Object>, R> () {
 					@Override
 					public R apply (final List<Object> list) throws Throwable {
 						@SuppressWarnings("unchecked")
@@ -397,9 +456,31 @@ public class Domain {
 				});
 		}
 		
+		public <R> Promise<R> executeFlat (final Function4<A, B, C, D, Promise<R>> callback) {
+			return sequence (promises ())
+					.flatMap (new F.Function<List<Object>, Promise<R>> () {
+						@Override
+						public Promise<R> apply (final List<Object> list) throws Throwable {
+							@SuppressWarnings("unchecked")
+							final A a = (A)list.get (0);
+							
+							@SuppressWarnings("unchecked")
+							final B b = (B)list.get (1);
+							
+							@SuppressWarnings("unchecked")
+							final C c = (C)list.get (2);
+							
+							@SuppressWarnings("unchecked")
+							final D d = (D)list.get (3);
+							
+							return callback.apply (a, b, c, d);
+						}
+					});
+		}
+		
 		public <R> Promise<R> execute (final Function4<A, B, C, D, R> callback, final Function<Throwable, R> errorCallback) {
 			
-			return execute (callback).recover (new Function<Throwable, R> () {
+			return execute (callback).recover (new F.Function<Throwable, R> () {
 					@Override
 					public R apply (final Throwable a) throws Throwable {
 						return errorCallback.apply (a);
@@ -408,8 +489,17 @@ public class Domain {
 		}
 	}
 	
+	public static interface Function<A, R> {
+        R apply (A a) throws Throwable;
+	}
+	public static interface Function2<A, B, R> {
+        R apply (A a, B b) throws Throwable;
+	}
+	public static interface Function3<A, B, C, R> {
+        R apply (A a, B b, C c) throws Throwable;
+	}
     public static interface Function4<A, B, C, D, R> {
-        public R apply (A a, B b, C c, D d) throws Throwable;
+        R apply (A a, B b, C c, D d) throws Throwable;
     }
     
     private static Promise<Object> askDomain (final ActorSelection actorSelection, final DomainQuery<?> query, final long timeout) {
