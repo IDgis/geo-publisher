@@ -5,7 +5,7 @@
 @import nl.idgis.publisher.domain.StatusType.StatusCategory
 
 @doStatus(status: Status, textClass: String, iconClass: String) = {
-	<span class="@textClass"><span class="@iconClass"></span> @{status.`type`.toString}</span>
+	<span class="@textClass"><span class="@iconClass"></span> @Domain.message(status)</span>
 }
 
 @if(status.`type`.statusCategory == StatusCategory.INFO) {
