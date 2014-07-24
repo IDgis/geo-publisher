@@ -32,6 +32,14 @@
 		  <groupId>com.typesafe.akka</groupId>
 		  <artifactId>akka-remote_${scala.abi.version}</artifactId>  
 		</dependency>
+		<dependency>
+		  <groupId>com.typesafe.akka</groupId>
+		  <artifactId>akka-slf4j_${scala.abi.version}</artifactId>  
+		</dependency>
+		<dependency>
+		  <groupId>ch.qos.logback</groupId>
+		  <artifactId>logback-classic</artifactId>		  
+		</dependency>
 	</dependencies>
 
 	<build>

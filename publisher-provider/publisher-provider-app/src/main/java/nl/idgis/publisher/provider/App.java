@@ -40,6 +40,8 @@ public class App extends UntypedActor {
 
 	@Override
 	public void preStart() {
+		log.info("starting");
+		
 		Config harvesterConfig = config.getConfig("harvester");
 		String harvesterHost = harvesterConfig.getString("host");
 		int harvesterPort = harvesterConfig.getInt("port");

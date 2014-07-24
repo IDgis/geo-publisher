@@ -10,7 +10,9 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
+import nl.idgis.publisher.harvester.messages.RequestDataset;
 import nl.idgis.publisher.harvester.server.Server;
+import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
@@ -28,15 +30,13 @@ public class Harvester extends UntypedActor {
 	
 	private final Config config;
 	private final ActorRef database;
-	private final LoggingAdapter log;	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
 	
 	private BiMap<String, ActorRef> dataSources;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
 		this.config = config;
-		
-		log = Logging.getLogger(getContext().system(), this);
 	}
 	
 	public static Props props(ActorRef database, Config config) {
@@ -81,8 +81,9 @@ public class Harvester extends UntypedActor {
 			} else {
 				if(dataSources.containsKey(dataSourceId)) {
 					log.debug("Initializing harvesting for dataSource: " + dataSourceId);
-				} else {
 					dataSources.get(dataSourceId).tell(new GetDatasets(), getSelf());
+				} else {
+					log.debug("dataSource not connected: " + dataSourceId);
 				}
 			}
 		} else if(msg instanceof GetActiveDataSources) {
@@ -100,6 +101,21 @@ public class Harvester extends UntypedActor {
 				database.tell(new RegisterSourceDataset(dataSourceId, dataset), getSelf());
 			} else {
 				log.error("dataset received from unregistered dataSource");
+			}
+		} else if(msg instanceof RequestDataset) {
+			RequestDataset requestDataset = (RequestDataset)msg;
+			
+			log.debug("dataset requested");			
+			String dataSourceId = requestDataset.getDataSourceId();
+			if(dataSources.containsKey(dataSourceId)) {
+				log.debug("requesting dataSource to send data");
+				
+				ActorRef dataSource = dataSources.get(dataSourceId);
+				dataSource.tell(new GetDataset(
+						requestDataset.getSourceDatasetId(), 
+						requestDataset.getSink()), getSelf());
+			} else {
+				log.warning("dataSource not connected: " + dataSourceId);
 			}
 		} else {
 			unhandled(msg);
