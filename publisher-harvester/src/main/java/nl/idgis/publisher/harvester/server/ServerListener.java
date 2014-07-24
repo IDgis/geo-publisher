@@ -6,6 +6,7 @@ import nl.idgis.publisher.protocol.MessageProtocolHandler;
 import nl.idgis.publisher.protocol.messages.ListenerInit;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -35,9 +36,15 @@ public class ServerListener extends UntypedActor {
 			log.debug("client connected");
 			
 			ActorRef actors = getContext().actorOf(ServerActors.props(harvesterName, harvester), "serverActors");
-			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(true, sslConfig, getSender(), actors), "messages");			
+			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(true, sslConfig, getSender(), actors), "messages");
+			
+			getContext().watch(messageProtocolHandler);
 			
 			actors.tell(new ListenerInit(messageProtocolHandler), getSelf());
+		} else if(msg instanceof Terminated) {
+			getContext().stop(getSelf());
+		} else {
+			unhandled(msg);
 		}
 	}
 
