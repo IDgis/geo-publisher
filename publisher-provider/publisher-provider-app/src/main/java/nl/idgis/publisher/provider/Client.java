@@ -47,6 +47,8 @@ public class Client extends UntypedActor {
 			log.error(msg.toString());
 			app.tell(new ConnectFailed((CommandFailed) msg), getSelf());
 		} else if (msg instanceof Connected) {
+			log.info("connected");
+			
 			ActorRef listener = getContext().actorOf(ClientListener.props(config));
 			listener.tell(msg, getSender());
 			
