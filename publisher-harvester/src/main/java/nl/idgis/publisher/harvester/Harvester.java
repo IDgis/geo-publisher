@@ -28,15 +28,13 @@ public class Harvester extends UntypedActor {
 	
 	private final Config config;
 	private final ActorRef database;
-	private final LoggingAdapter log;	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
 	
 	private BiMap<String, ActorRef> dataSources;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
 		this.config = config;
-		
-		log = Logging.getLogger(getContext().system(), this);
 	}
 	
 	public static Props props(ActorRef database, Config config) {
