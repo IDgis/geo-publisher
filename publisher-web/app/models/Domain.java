@@ -18,7 +18,6 @@ import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Status;
-import play.Logger;
 import play.i18n.Lang;
 import play.i18n.Messages;
 import play.libs.F;
