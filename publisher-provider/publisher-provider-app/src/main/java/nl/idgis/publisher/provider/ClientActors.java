@@ -52,7 +52,7 @@ public class ClientActors extends MessageProtocolActors {
 		getContext().actorOf(Metadata.props(
 				new File(config.getString("metadata.folder"))), "metadata");
 		
-		final ActorRef provider = getContext().actorOf(Provider.props());
+		final ActorRef provider = getContext().actorOf(Provider.props(), "provider");
 								
 		Future<Object> harvesterPackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("harvester"), 1000);
 		harvesterPackager.onSuccess(new OnSuccess<Object>() {
