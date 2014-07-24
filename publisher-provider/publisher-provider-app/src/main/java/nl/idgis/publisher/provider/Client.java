@@ -6,13 +6,13 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.Connect;
-
+import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import akka.io.Tcp;
 import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
@@ -49,6 +49,13 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			ActorRef listener = getContext().actorOf(ClientListener.props(config));
 			listener.tell(msg, getSender());
+			
+			getContext().watch(listener);
+		} else if(msg instanceof Terminated) {
+			log.warning("connection closed");
+			app.tell(new ConnectionClosed(), getSelf());
+		} else {
+			unhandled(msg);
 		}
 	}
 }

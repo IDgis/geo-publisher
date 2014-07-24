@@ -96,8 +96,6 @@ public class MessageProtocolHandler extends UntypedActor {
 			connection.tell(TcpMessage.close(), getSelf());
 		} else if(msg instanceof ConnectionClosed) {
 			log.debug("disconnected");
-			
-			messageDispatcher.tell(msg, getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Terminated) {
 			if(((Terminated) msg).getActor().equals(messageTarget)) {
