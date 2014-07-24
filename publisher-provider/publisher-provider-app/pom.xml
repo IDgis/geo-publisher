@@ -36,21 +36,11 @@
 		<dependency>
 			<groupId>org.deegree</groupId>
 			<artifactId>deegree-sqldialect-oracle</artifactId>
-			<exclusions>
-			<exclusion>
-				<artifactId>deegree-sqldialect-commons</artifactId>
-				<groupId>org.deegree</groupId>
-			</exclusion>
-			<exclusion>
-				<artifactId>deegree-core-db</artifactId>
-				<groupId>org.deegree</groupId>
-			</exclusion>
-			</exclusions>
   		</dependency>
-		<dependency>
+  		<dependency>
 			<groupId>org.deegree</groupId>
-			<artifactId>deegree-core-geometry</artifactId>			
-		</dependency>
+			<artifactId>deegree-core-geometry</artifactId>
+  		</dependency>
 		<dependency>
 		  <groupId>com.typesafe.akka</groupId>
 		  <artifactId>akka-slf4j_${scala.abi.version}</artifactId>  

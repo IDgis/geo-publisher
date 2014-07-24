@@ -35,24 +35,6 @@ public class ProviderDataset extends UntypedActor {
 	public static Props props(ActorRef harvester, ActorRef database) {
 		return Props.create(ProviderDataset.class, harvester, database);
 	}
-	
-	private String getTableName(MetadataItem metadataItem) {
-		String alternateTitle = metadataItem.getAlternateTitle();
-		
-		if(alternateTitle != null 
-			&& !alternateTitle.trim().isEmpty()) {			 
-		
-			if(alternateTitle.contains(" ")) {
-				return alternateTitle.substring(0, alternateTitle.indexOf(" ")).trim();
-			} else {
-				return alternateTitle.trim();
-			}
-		}
-		
-		log.warning("couldn't determine table name: " + alternateTitle);
-		
-		return null;
-	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -62,8 +44,10 @@ public class ProviderDataset extends UntypedActor {
 			final MetadataItem metadataItem = (MetadataItem)msg;			
 			final ActorRef sender = getSender(), self = getSelf();			
 			
-			final String tableName = getTableName(metadataItem);			
+			final String tableName = ProviderUtils.getTableName(metadataItem);			
 			if(tableName == null) {
+				log.warning("couldn't determine table name: " + metadataItem.getAlternateTitle());
+				
 				sender.tell(new NextItem(), self);
 			} else {
 				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);

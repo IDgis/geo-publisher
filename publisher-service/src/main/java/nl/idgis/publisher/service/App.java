@@ -7,7 +7,7 @@ import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
-import nl.idgis.publisher.service.load.Loader;
+import nl.idgis.publisher.service.loader.Loader;
 import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
 import akka.actor.Props;

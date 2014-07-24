@@ -2,15 +2,22 @@ package nl.idgis.publisher.provider.protocol.metadata;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.stream.messages.Start;
-
-public class GetMetadata extends Start implements Serializable {
+public class GetMetadata implements Serializable {
 	
-	private static final long serialVersionUID = -8610001910316843276L;
+	private static final long serialVersionUID = -5754311358265214678L;
+	
+	private final String identification;
+	
+	public GetMetadata(String identification) {
+		this.identification = identification;
+	}
+
+	public String getIdentification() {
+		return identification;
+	}
 
 	@Override
 	public String toString() {
-		return "GetMetadata []";
+		return "GetMetadata [identification=" + identification + "]";
 	}
-	
 }
