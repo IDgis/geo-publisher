@@ -61,7 +61,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					.limit(1)
 					.singleResult(new QVersion(version.id, version.createTime)));
 		} else if(query instanceof RegisterSourceDataset) {
-			log.debug("registering source dataset");
+			log.debug("registering source dataset: " + query);
 			
 			RegisterSourceDataset rsd = (RegisterSourceDataset)query;
 			Dataset dataset = rsd.getDataset();
@@ -99,7 +99,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.where(sourceDatasetColumn.sourceDatasetId.eq(id))
 						.execute();
 					
-					insertSourceDatasetColumns(context, id, columns);
+					insertSourceDatasetColumns(context, id, table.getColumns());
 					
 					log.debug("dataset updated");
 				}
