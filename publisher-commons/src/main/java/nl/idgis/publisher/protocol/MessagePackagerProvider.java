@@ -3,7 +3,7 @@ package nl.idgis.publisher.protocol;
 import java.net.URLEncoder;
 
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
-import nl.idgis.publisher.protocol.messages.Unreachable;
+import nl.idgis.publisher.protocol.messages.StopPackager;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -67,10 +67,10 @@ public class MessagePackagerProvider extends UntypedActor {
 			}
 			
 			log.debug("packager for target '" + targetName + "' terminated");			
-		} else if(msg instanceof Unreachable) {
-			String targetName = ((Unreachable) msg).getTargetName();
+		} else if(msg instanceof StopPackager) {			
+			String targetName = ((StopPackager) msg).getTargetName();			
 			
-			log.debug("remote target unreachable: " + targetName);
+			log.debug("stop requested: " + targetName);
 			if(messagePackagers.containsKey(targetName)) {
 				log.debug("stopping packager for target: " + targetName);
 				
