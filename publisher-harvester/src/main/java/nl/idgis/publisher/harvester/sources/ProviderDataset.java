@@ -46,6 +46,8 @@ public class ProviderDataset extends UntypedActor {
 			return alternateTitle.substring(0, alternateTitle.indexOf(" "));
 		}
 		
+		log.warning("couldn't determine table name: " + alternateTitle);
+		
 		return null;
 	}
 
@@ -59,8 +61,6 @@ public class ProviderDataset extends UntypedActor {
 			
 			final String tableName = getTableName(metadataItem);			
 			if(tableName == null) {
-				log.warning("couldn't determine table name");
-				
 				sender.tell(new NextItem(), self);
 			} else {
 				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
