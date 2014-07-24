@@ -79,7 +79,7 @@ public class MessageDispatcher extends UntypedActor {
 	
 						@Override
 						public void onSuccess(final ActorRef actorRef) throws Throwable {
-							log.warning("actorRef lookup succeeded");
+							log.debug("actorRef lookup succeeded");
 							
 							getContext().watch(actorRef);
 							
