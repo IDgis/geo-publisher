@@ -40,10 +40,13 @@ public class ProviderDataset extends UntypedActor {
 		String alternateTitle = metadataItem.getAlternateTitle();
 		
 		if(alternateTitle != null 
-			&& !alternateTitle.trim().isEmpty() 
-			&& alternateTitle.contains(" ")) {
-			
-			return alternateTitle.substring(0, alternateTitle.indexOf(" "));
+			&& !alternateTitle.trim().isEmpty()) {			 
+		
+			if(alternateTitle.contains(" ")) {
+				return alternateTitle.substring(0, alternateTitle.indexOf(" ")).trim();
+			} else {
+				return alternateTitle.trim();
+			}
 		}
 		
 		log.warning("couldn't determine table name: " + alternateTitle);
