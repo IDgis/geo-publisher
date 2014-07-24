@@ -5,21 +5,21 @@ public class Unreachable extends Message {
 	
 	private static final long serialVersionUID = 8727161192928993324L;
 	
-	private final Throwable cause;
+	private final String causeMessage;
 
-	public Unreachable(String targetName, Throwable cause) {
+	public Unreachable(String targetName, String causeMessage) {
 		super(targetName);
 		
-		this.cause = cause;
+		this.causeMessage = causeMessage;
 	}
 	
-	public Throwable getCause() {
-		return cause;
+	public String getMessageCause() {
+		return causeMessage;
 	}
 
 	@Override
 	public String toString() {
-		return "Unreachable [cause=" + cause + ", targetName=" + targetName
+		return "Unreachable [causeMessage=" + causeMessage + ", targetName=" + targetName
 				+ "]";
 	}
 	
