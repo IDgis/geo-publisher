@@ -1,1 +1,2 @@
-actors.Database.DataSourceStatusType.OK=Ok
+nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
+nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
