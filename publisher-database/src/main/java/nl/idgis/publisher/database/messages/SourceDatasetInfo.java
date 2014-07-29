@@ -12,10 +12,10 @@ public class SourceDatasetInfo implements Serializable {
 	
 	private String dataSourceId, dataSourceName;
 	private final String id, name;
-	private Integer count;
+	private Long count;
 	
 	@QueryProjection
-	public SourceDatasetInfo(String dsId, String dsName, String id, String name, Integer count) {
+	public SourceDatasetInfo(String dsId, String dsName, String id, String name, Long count) {
 		this.dataSourceId = dsId;
 		this.dataSourceName = dsName;
 		this.id = id;
@@ -39,7 +39,7 @@ public class SourceDatasetInfo implements Serializable {
 		return name;
 	}
 
-	public Integer getCount(){
+	public Long getCount(){
 		return count;
 	}
 	

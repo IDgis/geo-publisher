@@ -139,9 +139,10 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			context.answer(
 				context.query().from(sourceDataset)
 					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.where (dataSource.id.eq (sourceDataset.dataSourceId))
+					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+					.groupBy(dataSource.identification).groupBy(dataSource.name).groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
 					.orderBy(sourceDataset.identification.asc())
-					.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name,NumberPath.random().multiply(100).intValue()))
+					.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name, dataset.count()))
 			);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
