@@ -176,7 +176,27 @@ public class Admin extends UntypedActor {
 									new Category ("cat-3", "Category: cat-333"),
 									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
 							);
-							pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+							// filter on datasource and category
+							if (message.categoryId() == null){
+								if (message.dataSourceId() == null ){
+									pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+								} else {
+									if (message.dataSourceId().equals(sourceDataset.dataSource().id())){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								}
+							} else {
+								if (message.dataSourceId() == null){
+									if (message.categoryId().equals(sourceDataset.category().id())){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								} else {
+									if ((message.dataSourceId().equals(sourceDataset.dataSource().id())) && 
+											(message.categoryId().equals(sourceDataset.category().id())) ){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								}
+							}
 						}
 						
 						log.debug("sending data source page");
