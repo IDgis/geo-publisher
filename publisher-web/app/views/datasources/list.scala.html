@@ -24,9 +24,9 @@
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.list()">Alle gegevensbronnen (@currentDataSource)</a>
+		<a href="@routes.DataSources.list()">Alle gegevensbronnen</a>
 	} else {
-		<a href="@routes.DataSources.listByCategory(currentCategory.id)">Alle gegevensbronnen (@currentDataSource)</a>
+		<a href="@routes.DataSources.listByCategory(currentCategory.id)">Alle gegevensbronnen</a>
 	}
 }
 
@@ -40,9 +40,9 @@
 
 @allCategoriesLink() = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.list()">Alle categori&euml;n (@currentCategory)</a>
+		<a href="@routes.DataSources.list()">Alle categori&euml;n</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">Alle categori&euml;n (@currentCategory)</a>
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">Alle categori&euml;n</a>
 	}
 }
 
