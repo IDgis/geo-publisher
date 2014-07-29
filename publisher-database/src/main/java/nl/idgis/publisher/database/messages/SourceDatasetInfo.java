@@ -2,8 +2,6 @@ package nl.idgis.publisher.database.messages;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.domain.web.DataSource;
-
 import com.mysema.query.annotations.QueryProjection;
 
 public class SourceDatasetInfo implements Serializable {

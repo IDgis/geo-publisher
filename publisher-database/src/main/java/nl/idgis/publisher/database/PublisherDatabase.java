@@ -1,10 +1,11 @@
 package nl.idgis.publisher.database;
 
-import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
+import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QCategory.category;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -21,14 +22,14 @@ import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.types.expr.DateTimeExpression;
-import com.mysema.query.types.expr.NumberExpression;
-import com.mysema.query.types.path.NumberPath;
 import com.typesafe.config.Config;
 
 public class PublisherDatabase extends QueryDSLDatabase {
@@ -136,13 +137,30 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					.orderBy(dataSource.identification.asc())
 					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
 		} else if(query instanceof GetSourceDatasetInfo) {
-			context.answer(
-				context.query().from(sourceDataset)
+			GetSourceDatasetInfo sdi = (GetSourceDatasetInfo)query;
+			log.debug(sdi.toString());
+			
+			String categoryId = sdi.getCategoryId();
+			String dataSourceId = sdi.getDataSourceId();
+			
+			SQLQuery baseQuery = context.query().from(sourceDataset)
 					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.groupBy(dataSource.identification).groupBy(dataSource.name).groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
-					.orderBy(sourceDataset.identification.asc())
-					.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name, dataset.count()))
+					.join (category).on(sourceDataset.categoryId.eq(category.id))
+					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+			
+			if(categoryId != null) {
+				baseQuery = baseQuery.where(category.identification.eq(categoryId));
+			}
+			
+			if(dataSourceId != null) {
+				baseQuery = baseQuery.where(dataSource.identification.eq(dataSourceId));
+			}
+			
+			context.answer(				
+					baseQuery					
+						.groupBy(dataSource.identification).groupBy(dataSource.name).groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+						.orderBy(sourceDataset.identification.asc())
+						.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name, dataset.count()))
 			);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
