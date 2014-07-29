@@ -5,6 +5,8 @@ import java.util.Set;
 
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -150,24 +152,57 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleListSourceDatasets (final ListSourceDatasets message) {
-		final Page.Builder<SourceDatasetStats> builder = new Page.Builder<> ();
 		
-		if (message.categoryId () == null || "cat-1".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-1", "SourceDataset: sds-1", new Category ("cat-1", "Category: cat-1"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 1));
-		}
-		if (message.categoryId () == null || "cat-2".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-2", "SourceDataset: sds-2", new Category ("cat-2", "Category: cat-2"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 10));
-		}
-		if (message.categoryId () == null || "cat-3".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-3", "SourceDataset: sds-3", new Category ("cat-3", "Category: cat-3"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 0));
-		}
-		if (message.categoryId () == null || "cat-4".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-4", "SourceDataset: sds-4", new Category ("cat-4", "Category: cat-4"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 4));
-		}
-		if (message.categoryId () == null || "cat-5".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-5", "SourceDataset: sds-5", new Category ("cat-5", "Category: cat-5"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 42));
-		}
+		log.debug ("handleListSourceDatasets");
 		
-		sender ().tell (builder.build (), self ());
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(), 15000);
+		
+				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
+
+					@SuppressWarnings("unchecked")
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						List<SourceDatasetInfo> sourceDatasetInfoList = (List<SourceDatasetInfo>)msg;
+						log.debug("data sources info received");
+						
+						final Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
+						
+						for(SourceDatasetInfo sourceDatasetInfo : sourceDatasetInfoList) {
+							final SourceDataset sourceDataset = new SourceDataset (
+									sourceDatasetInfo.getId(), 
+									sourceDatasetInfo.getName(),
+									new Category ("cat-3", "Category: cat-333"),
+									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+							);
+							// filter on datasource and category
+							if (message.categoryId() == null){
+								if (message.dataSourceId() == null ){
+									pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+								} else {
+									if (message.dataSourceId().equals(sourceDataset.dataSource().id())){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								}
+							} else {
+								if (message.dataSourceId() == null){
+									if (message.categoryId().equals(sourceDataset.category().id())){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								} else {
+									if ((message.dataSourceId().equals(sourceDataset.dataSource().id())) && 
+											(message.categoryId().equals(sourceDataset.category().id())) ){
+										pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+									}
+								}
+							}
+						}
+						
+						log.debug("sending data source page");
+						sender.tell (pageBuilder.build (), self);
+					}
+				}, getContext().dispatcher());
+		
 	}
 }
