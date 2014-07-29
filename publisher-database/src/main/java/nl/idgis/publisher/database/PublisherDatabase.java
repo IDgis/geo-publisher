@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
@@ -9,8 +10,10 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -24,6 +27,8 @@ import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.expr.DateTimeExpression;
+import com.mysema.query.types.expr.NumberExpression;
+import com.mysema.query.types.path.NumberPath;
 import com.typesafe.config.Config;
 
 public class PublisherDatabase extends QueryDSLDatabase {
@@ -130,6 +135,14 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				context.query().from(dataSource)
 					.orderBy(dataSource.identification.asc())
 					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
+		} else if(query instanceof GetSourceDatasetInfo) {
+			context.answer(
+				context.query().from(sourceDataset)
+					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.where (dataSource.id.eq (sourceDataset.dataSourceId))
+					.orderBy(sourceDataset.identification.asc())
+					.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name,NumberPath.random().multiply(100).intValue()))
+			);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
