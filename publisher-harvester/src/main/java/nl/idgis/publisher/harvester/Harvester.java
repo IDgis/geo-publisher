@@ -97,8 +97,7 @@ public class Harvester extends UntypedActor {
 				
 				ActorRef dataSource = dataSources.get(dataSourceId);
 				dataSource.tell(new GetDataset(
-						requestDataset.getSourceDatasetId(), 
-						requestDataset.getSink()), getSelf());
+						requestDataset.getSourceDatasetId()), getSender());
 			} else {
 				log.warning("dataSource not connected: " + dataSourceId);
 			}		 

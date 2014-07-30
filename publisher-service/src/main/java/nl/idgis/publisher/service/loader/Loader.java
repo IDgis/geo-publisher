@@ -1,17 +1,17 @@
 package nl.idgis.publisher.service.loader;
 
+import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.domain.log.GenericEvent;
+import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.harvester.messages.RequestDataset;
-import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.service.loader.messages.ImportDataset;
-import nl.idgis.publisher.stream.messages.End;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
+import akka.pattern.Patterns;
 
 public class Loader extends UntypedActor {
 	
@@ -36,33 +36,22 @@ public class Loader extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ImportDataset) {
-			ImportDataset importDataset = (ImportDataset)msg;
+			log.debug("data import requested: " + msg);
+			
+			final ImportDataset importDataset = (ImportDataset)msg;
+			
+			ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, ((ImportDataset) msg).getDatasetId());
+			Patterns.ask(database, new StoreLog(logLine), 15000)
+				.onSuccess(new OnSuccess<Object>() {
 
-			harvester.tell(new RequestDataset(importDataset.getDataSourceId(), importDataset.getSourceDatasetId(), getSelf()), getSelf());
-			getContext().become(importing(), true);
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						ActorRef session = getContext().actorOf(LoaderSession.props(database));
+						harvester.tell(new RequestDataset(importDataset.getDataSourceId(), importDataset.getSourceDatasetId()), session);
+					}
+				}, getContext().dispatcher());
 		} else {
 			unhandled(msg);
 		}
-	}
-
-	private Procedure<Object> importing() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {			
-				if(msg instanceof Record) {
-					log.debug("record received: " + msg);
-					
-				} else if(msg instanceof Failure) {
-					log.error("import failed: " + ((Failure) msg).getCause());
-					
-					getContext().unbecome();
-				} else if(msg instanceof End) {
-					log.info("import completed");
-					
-					getContext().unbecome();
-				}
-			}
-		};
-	}
+	}	
 }

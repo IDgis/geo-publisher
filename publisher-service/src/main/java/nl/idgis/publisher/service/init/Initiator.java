@@ -4,13 +4,14 @@ import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
+import nl.idgis.publisher.database.messages.GetNextImportJob;
 import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.service.init.messages.Initiate;
-
+import nl.idgis.publisher.service.loader.messages.ImportDataset;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -61,6 +62,25 @@ public class Initiator extends UntypedActor {
 						}
 					}					
 				}, getContext().dispatcher());
+			
+			Patterns.ask(database, new GetNextImportJob(), 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						if(msg instanceof NoJob) {
+							log.debug("no import job pending");
+						} else {						
+							log.debug("import job received");
+							
+							ImportJob importJob = (ImportJob)msg;							
+							loader.tell(new ImportDataset(
+								importJob.getDataSourceId(), 
+								importJob.getSourceDatasetId(), 
+								importJob.getDatasetId()), getSelf());
+						}
+					}
+				}, getContext().dispatcher());			
 		} else {
 			unhandled(msg);
 		}

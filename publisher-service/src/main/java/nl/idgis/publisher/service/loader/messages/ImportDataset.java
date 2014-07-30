@@ -6,11 +6,12 @@ public class ImportDataset implements Serializable {
 	
 	private static final long serialVersionUID = 3244417913532187724L;
 	
-	private final String dataSourceId, sourceDatasetId;
+	private final String dataSourceId, sourceDatasetId, datasetId;
 	
-	public ImportDataset(String dataSourceId, String sourceDatasetId) {
+	public ImportDataset(String dataSourceId, String sourceDatasetId, String datasetId) {
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
+		this.datasetId = datasetId;
 	}
 
 	public String getDataSourceId() {
@@ -20,10 +21,16 @@ public class ImportDataset implements Serializable {
 	public String getSourceDatasetId() {
 		return sourceDatasetId;
 	}
+	
+	public String getDatasetId() {
+		return datasetId;
+	}
 
 	@Override
 	public String toString() {
-		return "ImportTable [dataSourceId=" + dataSourceId
-				+ ", sourceDatasetId=" + sourceDatasetId + "]";
+		return "ImportDataset [dataSourceId=" + dataSourceId
+				+ ", sourceDatasetId=" + sourceDatasetId + ", datasetId="
+				+ datasetId + "]";
 	}
+	
 }
