@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.web;
 
 public enum EntityType {
+	SOURCE_DATASET,
 	DATASET,
 	NOTIFICATION,
 	CATEGORY,
