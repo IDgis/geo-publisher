@@ -3,7 +3,10 @@ package nl.idgis.publisher.service.admin;
 import java.util.List;
 import java.util.Set;
 
+import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
+import nl.idgis.publisher.database.messages.GetCategoryInfo;
+import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
@@ -122,15 +125,28 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleListCategories (final ListEntity<?> listEntity) {
-		final Page.Builder<Category> builder = new Page.Builder<> ();
+		log.debug ("handleCategoryList");
 		
-		builder.add (new Category ("cat-1", "Category: cat1"));
-		builder.add (new Category ("cat-2", "Category: cat2"));
-		builder.add (new Category ("cat-3", "Category: cat3"));
-		builder.add (new Category ("cat-4", "Category: cat4"));
-		builder.add (new Category ("cat-5", "Category: cat5"));
+		final ActorRef sender = getSender(), self = getSelf();
 		
-		sender ().tell (builder.build (), self ());
+		final Future<Object> categoryListInfo = Patterns.ask(database, new GetCategoryListInfo(), 15000);
+				categoryListInfo.onSuccess(new OnSuccess<Object>() {
+					@SuppressWarnings("unchecked")
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						List<CategoryInfo> categoryListInfoList = (List<CategoryInfo>)msg;
+						log.debug("data sources info received");
+						
+						final Page.Builder<Category> pageBuilder = new Page.Builder<> ();
+						
+						for(CategoryInfo categoryInfo : categoryListInfoList) {
+							pageBuilder.add (new Category (categoryInfo.getId(), categoryInfo.getName()));
+						}
+						
+						log.debug("sending category list");
+						sender.tell (pageBuilder.build (), self);
+					}
+				}, getContext().dispatcher());
 	}
 	
 	private void handleEmptyList (final ListEntity<?> listEntity) {
@@ -146,9 +162,21 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleGetCategory (final GetEntity<?> getEntity) {
-		final Category category = new Category (getEntity.id (), "Category: " + getEntity.id ());
+		log.debug ("handleCategory");
 		
-		sender ().tell (category, self ());
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(getEntity.id ()), 15000);
+				categoryInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						CategoryInfo categoryInfo = (CategoryInfo)msg;
+						log.debug("category info received");
+						Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
+						log.debug("sending category: " + category);
+						sender.tell (category, self);
+					}
+				}, getContext().dispatcher());
 	}
 	
 	private void handleListSourceDatasets (final ListSourceDatasets message) {
@@ -173,7 +201,7 @@ public class Admin extends UntypedActor {
 							final SourceDataset sourceDataset = new SourceDataset (
 									sourceDatasetInfo.getId(), 
 									sourceDatasetInfo.getName(),
-									new Category ("cat-3", "Category: cat-333"),
+									new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
 									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
 							);
 							

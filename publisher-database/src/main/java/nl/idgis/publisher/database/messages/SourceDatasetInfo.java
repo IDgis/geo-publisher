@@ -10,25 +10,31 @@ public class SourceDatasetInfo implements Serializable {
 	
 	private String dataSourceId, dataSourceName;
 	private final String id, name;
+	private final String categoryId, categoryName;
 	private Long count;
-	
+
 	@QueryProjection
-	public SourceDatasetInfo(String dsId, String dsName, String id, String name, Long count) {
-		this.dataSourceId = dsId;
-		this.dataSourceName = dsName;
+	public SourceDatasetInfo(String id, String name, String dataSourceId,
+			String dataSourceName, String categoryId, String categoryName,
+			Long count) {
+		super();
 		this.id = id;
 		this.name = name;
+		this.dataSourceId = dataSourceId;
+		this.dataSourceName = dataSourceName;
+		this.categoryId = categoryId;
+		this.categoryName = categoryName;
 		this.count = count;
 	}
 
 	public String getDataSourceId() {
 		return dataSourceId;
 	}
-	
+
 	public String getDataSourceName() {
 		return dataSourceName;
 	}
-	
+
 	public String getId() {
 		return id;
 	}
@@ -37,12 +43,17 @@ public class SourceDatasetInfo implements Serializable {
 		return name;
 	}
 
-	public Long getCount(){
+	public String getCategoryId() {
+		return categoryId;
+	}
+
+	public String getCategoryName() {
+		return categoryName;
+	}
+
+	public Long getCount() {
 		return count;
 	}
 	
-	@Override
-	public String toString() {
-		return "SourceDatasetInfo [id=" + id + ", name=" + name + "]";
-	}
+	
 }

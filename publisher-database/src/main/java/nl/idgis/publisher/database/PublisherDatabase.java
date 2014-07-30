@@ -1,18 +1,21 @@
 package nl.idgis.publisher.database;
 
+import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QCategory.category;
 
 import java.sql.Timestamp;
 import java.util.List;
 
+import nl.idgis.publisher.database.messages.GetCategoryInfo;
+import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
+import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
@@ -22,7 +25,6 @@ import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -131,6 +133,17 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					insertSourceDatasetColumns(context, id, table.getColumns());
 				}
 			}
+		} else if(query instanceof GetCategoryListInfo) {
+			context.answer(
+					context.query().from(category)
+					.orderBy(category.identification.asc())
+					.list(new QCategoryInfo(category.identification,category.name)));
+		} else if(query instanceof GetCategoryInfo) {
+			context.answer(
+					context.query().from(category)
+					.where(category.identification.eq( ((GetCategoryInfo)query).getId() ))
+					.singleResult(new QCategoryInfo(category.identification,category.name)));
+			
 		} else if(query instanceof GetDataSourceInfo) {
 			context.answer(
 				context.query().from(dataSource)
@@ -158,9 +171,14 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			
 			context.answer(				
 					baseQuery					
-						.groupBy(dataSource.identification).groupBy(dataSource.name).groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+						.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+						.groupBy(dataSource.identification).groupBy(dataSource.name)
+						.groupBy(category.identification).groupBy(category.name)
 						.orderBy(sourceDataset.identification.asc())
-						.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name, dataset.count()))
+						.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+								dataSource.identification, dataSource.name,
+								category.identification,category.name,
+								dataset.count()))
 			);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
