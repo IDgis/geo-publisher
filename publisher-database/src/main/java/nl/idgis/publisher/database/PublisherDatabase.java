@@ -22,7 +22,6 @@ import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -56,6 +55,23 @@ public class PublisherDatabase extends QueryDSLDatabase {
 		}
 	}
 	
+	private int getCatagoryId(QueryDSLContext context, String identification) {
+		Integer id = context.query().from(category)
+			.where(category.identification.eq(identification))
+			.singleResult(category.id);
+		
+		if(id == null) {
+			context.insert(category)
+				.set(category.identification, identification)
+				.set(category.name, identification)
+				.execute();
+			
+			return getCatagoryId(context, identification);
+		} else {
+			return id;
+		}
+	}
+	
 	@Override
 	protected void executeQuery(QueryDSLContext context, Query query) throws Exception {
 		if(query instanceof GetVersion) {
@@ -77,25 +93,32 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				context.query().from(sourceDataset)
 					.join(dataSource)
 						.on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.join(category)
+						.on(category.id.eq(sourceDataset.categoryId))
 					.where(sourceDataset.identification.eq(dataset.getId())
 						.and(dataSource.identification.eq(rsd.getDataSource())))
-					.singleResult(sourceDataset.id, sourceDataset.name, sourceDataset.deleteTime);
+					.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime);
 			
 			if(existing != null) {
 				Integer id = existing.get(sourceDataset.id);
-				String name = existing.get(sourceDataset.name);
-				Timestamp deleteTime = existing.get(sourceDataset.deleteTime);
+				String existingName = existing.get(sourceDataset.name);
+				String existingCategoryId = existing.get(category.identification);
+				Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 				
-				List<Column> columns = context.query().from(sourceDatasetColumn)
+				List<Column> existingColumns = context.query().from(sourceDatasetColumn)
 					.where(sourceDatasetColumn.sourceDatasetId.eq(id))
 					.orderBy(sourceDatasetColumn.index.asc())
 					.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType));
 				
-				if(name.equals(table.getName()) && deleteTime == null && columns.equals(table.getColumns())) {
+				if(existingName.equals(table.getName())
+						&& existingCategoryId.equals(dataset.getCategoryId())
+						&& existingDeleteTime == null
+						&& existingColumns.equals(table.getColumns())) {
 					log.debug("dataset already registered");
 				} else {
 					context.update(sourceDataset)
 						.set(sourceDataset.name, table.getName())
+						.set(sourceDataset.categoryId, getCatagoryId(context, dataset.getCategoryId()))
 						.setNull(sourceDataset.deleteTime)						
 						.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
 						.where(sourceDataset.id.eq(id))
@@ -121,6 +144,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.set(sourceDataset.dataSourceId, dataSourceId)
 						.set(sourceDataset.identification, dataset.getId())
 						.set(sourceDataset.name, table.getName())
+						.set(sourceDataset.categoryId, getCatagoryId(context, dataset.getCategoryId()))
 						.execute();
 					
 					Integer id = context.query().from(sourceDataset)

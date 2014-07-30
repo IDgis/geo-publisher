@@ -44,37 +44,44 @@ public class ProviderDataset extends UntypedActor {
 			final MetadataItem metadataItem = (MetadataItem)msg;			
 			final ActorRef sender = getSender(), self = getSelf();			
 			
-			final String tableName = ProviderUtils.getTableName(metadataItem);			
+			final String tableName = ProviderUtils.getTableName(metadataItem);
 			if(tableName == null) {
-				log.warning("couldn't determine table name: " + metadataItem.getAlternateTitle());
+				log.warning("couldn't determine table name: " + metadataItem);
 				
 				sender.tell(new NextItem(), self);
 			} else {
-				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
-				tableDescriptionFuture.onComplete(new OnComplete<Object>() {
-	
-					@Override
-					public void onComplete(Throwable t, Object msg) throws Throwable {
-						if(t != null) {
-							log.error("couldn't fetch table description: " + t);
-						} else {
-							log.debug("table description received");
-							
-							TableDescription tableDescription = (TableDescription)msg;
-							
-							List<Column> columns = new ArrayList<Column>();
-							for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
-								columns.add(new Column(column.getName(), column.getType()));
+				final String categoryId = ProviderUtils.getCategoryId(metadataItem);
+				if(categoryId == null) {
+					log.warning("couldn't determine category id: " + metadataItem);
+					
+					sender.tell(new NextItem(), self);
+				} else {				
+					Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
+					tableDescriptionFuture.onComplete(new OnComplete<Object>() {
+		
+						@Override
+						public void onComplete(Throwable t, Object msg) throws Throwable {
+							if(t != null) {
+								log.error("couldn't fetch table description: " + t);
+							} else {
+								log.debug("table description received");
+								
+								TableDescription tableDescription = (TableDescription)msg;
+								
+								List<Column> columns = new ArrayList<Column>();
+								for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
+									columns.add(new Column(column.getName(), column.getType()));
+								}
+								
+								Table table = new Table(metadataItem.getTitle(), columns);
+								
+								harvester.tell(new Dataset(metadataItem.getIdentification(), categoryId, table), getContext().parent());
 							}
 							
-							Table table = new Table(metadataItem.getTitle(), columns);
-							
-							harvester.tell(new Dataset(metadataItem.getIdentification(), table), getContext().parent());
+							sender.tell(new NextItem(), self);
 						}
-						
-						sender.tell(new NextItem(), self);
-					}
-				}, getContext().dispatcher());
+					}, getContext().dispatcher());
+				}
 			}			
 		} else if(msg instanceof End) {	
 			log.debug("dataset retrieval completed");
