@@ -12,10 +12,12 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.QStoredHarvestLogLine;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -33,6 +35,7 @@ import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
+import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.DateTimeExpression;
 import com.typesafe.config.Config;
 
@@ -213,6 +216,42 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			} else {
 				log.error("unknown log line type");
 			}
+		} else if(query instanceof GetHarvestLog) {
+			GetHarvestLog ghl = (GetHarvestLog)query;
+			
+			String dataSourceId = ghl.getDataSourceId();
+			Order order = ghl.getOrder();
+			Long limit = ghl.getLimit();
+			Long offset = ghl.getOffset();
+			
+			SQLQuery baseQuery = context.query().from(harvestLog)
+				.join(dataSource)
+					.on(dataSource.id.eq(harvestLog.datasourceId));
+			
+			if(dataSourceId != null) {
+				baseQuery = baseQuery.where(dataSource.identification.eq(dataSourceId));
+			}
+					
+			if(order != null) {
+				if(order == Order.ASC) {
+					baseQuery.orderBy(harvestLog.createTime.asc());
+				} else {
+					baseQuery.orderBy(harvestLog.createTime.desc());
+				}
+			}
+			
+			if(limit != null) {
+				baseQuery = baseQuery.limit(limit);
+			}
+			
+			if(offset != null) {
+				baseQuery = baseQuery.offset(offset);
+			}
+				
+			baseQuery.list(new QStoredHarvestLogLine(
+				harvestLog.event,
+				dataSource.identification, 
+				harvestLog.createTime));
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
