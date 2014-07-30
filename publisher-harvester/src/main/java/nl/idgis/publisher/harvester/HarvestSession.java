@@ -3,10 +3,11 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
+import nl.idgis.publisher.domain.log.HarvestEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
-
+import nl.idgis.publisher.protocol.messages.Ack;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -35,10 +36,32 @@ public class HarvestSession extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Dataset) {
 			log.debug("dataset received");
-				
-			Patterns.pipe(
-				Patterns.ask(database, new RegisterSourceDataset(dataSourceId, (Dataset)msg), 15000),
-				getContext().dispatcher()).pipeTo(getSender(), getSelf());
+			
+			final ActorRef self = getSelf(), sender = getSender();
+			Patterns.ask(database, new RegisterSourceDataset(dataSourceId, (Dataset)msg), 15000)
+				.onSuccess(new OnSuccess<Object>() {
+					
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						log.debug("dataset registered");
+						
+						HarvestLogLine logLine = new HarvestLogLine(
+								HarvestEvent.SOURCE_DATASET_REGISTERED, 
+								dataSourceId);
+						
+						Patterns.ask(database, new StoreLog(logLine), 15000)
+							.onSuccess(new OnSuccess<Object>() {
+								
+								@Override
+								public void onSuccess(Object msg) throws Throwable {
+									log.debug("dataset registration logged");
+									
+									sender.tell(new Ack(), self);
+								}
+							}, getContext().dispatcher());
+					}
+				}, getContext().dispatcher());
+			
 		} else if(msg instanceof Finished) {
 			log.debug("harvesting finished");
 			
