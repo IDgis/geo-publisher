@@ -7,6 +7,7 @@ import scala.concurrent.Future;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
@@ -19,8 +20,10 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 
 public class ProviderDataset extends UntypedActor {
 	
@@ -64,13 +67,15 @@ public class ProviderDataset extends UntypedActor {
 						public void onComplete(Throwable t, Object msg) throws Throwable {
 							if(t != null) {
 								log.error("couldn't fetch table description: " + t);
+								sender.tell(new NextItem(), self);
 							} else {
-								log.debug("table description received");
-								
 								if(msg instanceof TableNotFound) {
 									log.error("table doesn't exist: " + tableName);
+									sender.tell(new NextItem(), self);
 								} else {								
 									TableDescription tableDescription = (TableDescription)msg;
+									
+									log.debug("table description received");
 									
 									List<Column> columns = new ArrayList<Column>();
 									for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
@@ -79,11 +84,18 @@ public class ProviderDataset extends UntypedActor {
 									
 									Table table = new Table(metadataItem.getTitle(), columns);
 									
-									harvester.tell(new Dataset(metadataItem.getIdentification(), categoryId, table), getContext().parent());
+									Patterns.ask(harvester, new Dataset(metadataItem.getIdentification(), categoryId, table), 15000)
+										.onSuccess(new OnSuccess<Object>() {
+
+											@Override
+											public void onSuccess(Object msg) throws Throwable {
+												log.debug("dataset provided to harvester " + msg.toString());
+												
+												sender.tell(new NextItem(), self);
+											}
+										}, getContext().dispatcher());
 								}
 							}
-							
-							sender.tell(new NextItem(), self);
 						}
 					}, getContext().dispatcher());
 				}
@@ -91,13 +103,18 @@ public class ProviderDataset extends UntypedActor {
 		} else if(msg instanceof End) {	
 			log.debug("dataset retrieval completed");
 			
-			getContext().stop(getSelf());
+			finish();
 		} else if(msg instanceof Failure) {
 			log.error(msg.toString());
 			
-			getContext().stop(getSelf());
+			finish();
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private void finish() {
+		harvester.tell(new Finished(), getSelf());
+		getContext().stop(getSelf());
 	}
 }

@@ -128,6 +128,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						&& existingCategoryId.equals(dataset.getCategoryId())
 						&& existingDeleteTime == null
 						&& existingColumns.equals(table.getColumns())) {
+					context.ack();
 					log.debug("dataset already registered");
 				} else {
 					context.update(sourceDataset)
@@ -143,6 +144,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.execute();
 					
 					insertSourceDatasetColumns(context, id, table.getColumns());
+					context.ack();
 					
 					log.debug("dataset updated");
 				}
@@ -166,7 +168,10 @@ public class PublisherDatabase extends QueryDSLDatabase {
 							.and(sourceDataset.identification.eq(dataset.getId())))
 						.singleResult(sourceDataset.id);
 					
-					insertSourceDatasetColumns(context, id, table.getColumns());
+					insertSourceDatasetColumns(context, id, table.getColumns());					
+					context.ack();
+					
+					log.debug("dataSource inserted");
 				}
 			}
 		} else if(query instanceof GetDataSourceInfo) {
@@ -217,6 +222,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					log.error("couldn't store log line");
 				} else {
 					log.debug("log line stored");
+					context.ack();
 				}
 			} else {
 				log.error("unknown log line type");

@@ -73,7 +73,8 @@ public abstract class JdbcDatabase extends UntypedActor {
 					
 					log.debug("executing query");
 					try {						
-						executeQuery(context, (Query) msg);												
+						executeQuery(context, (Query) msg);
+						context.finish();
 					} catch(Exception e) {
 						log.error(e, "couldn't execute query");						
 					}

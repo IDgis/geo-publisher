@@ -1,13 +1,8 @@
 package nl.idgis.publisher.harvester;
 
-import java.util.Map;
-import java.util.Map.Entry;
-
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
-import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
@@ -21,8 +16,10 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -90,23 +87,10 @@ public class Harvester extends UntypedActor {
 		} else if(msg instanceof GetActiveDataSources) {
 			log.debug("connected datasources requested");
 			getSender().tell(dataSources.keySet(), getSelf());
-		} else if(msg instanceof Dataset) {
-			log.debug("dataset received");
-			
-			Map<ActorRef, String> dataSourcesInv = dataSources.inverse();
-			if(dataSourcesInv.containsKey(getSender())) {
-				String dataSourceId = dataSourcesInv.get(getSender());
-				log.debug("dataSourceId: " + dataSourceId + " dataset: " + msg);
-				
-				Dataset dataset = (Dataset)msg;
-				database.tell(new RegisterSourceDataset(dataSourceId, dataset), getSelf());
-			} else {
-				log.error("dataset received from unregistered dataSource");
-			}
 		} else if(msg instanceof RequestDataset) {
 			RequestDataset requestDataset = (RequestDataset)msg;
 			
-			log.debug("dataset requested");			
+			log.debug("dataset requested");
 			String dataSourceId = requestDataset.getDataSourceId();
 			if(dataSources.containsKey(dataSourceId)) {
 				log.debug("requesting dataSource to send data");
@@ -117,15 +101,24 @@ public class Harvester extends UntypedActor {
 						requestDataset.getSink()), getSelf());
 			} else {
 				log.warning("dataSource not connected: " + dataSourceId);
-			}
+			}		 
 		} else {
 			unhandled(msg);
 		}
 	}
 
-	private void startHarvesting(String dataSourceId) {
+	private void startHarvesting(final String dataSourceId) {
 		HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, dataSourceId);
-		database.tell(new StoreLog(logLine), getSelf());
-		dataSources.get(dataSourceId).tell(new GetDatasets(), getSelf());
+		Patterns.ask(database, new StoreLog(logLine), 150000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("starting harvesting for dataSource: " + dataSourceId);
+					
+					ActorRef session = getContext().actorOf(HarvestSession.props(database, dataSourceId));
+					dataSources.get(dataSourceId).tell(new GetDatasets(), session);
+				}
+			}, getContext().dispatcher());
 	}
 }
