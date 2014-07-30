@@ -1,14 +1,11 @@
 package nl.idgis.publisher.service.loader;
 
-import java.util.concurrent.TimeUnit;
-
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.harvester.messages.RequestDataset;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.service.loader.messages.ImportDataset;
 import nl.idgis.publisher.stream.messages.End;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -33,8 +30,7 @@ public class Loader extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		FiniteDuration interval = Duration.create(10, TimeUnit.SECONDS);
-		getContext().system().scheduler().scheduleOnce(interval, getSelf(), new ImportDataset("my-provider-name", "400483ec-feee-4bab-92f2-073ffe6c9be7.xml"), getContext().dispatcher(), getSelf());
+		
 	}
 
 	@Override

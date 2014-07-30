@@ -13,8 +13,11 @@ import java.util.List;
 
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
+import nl.idgis.publisher.database.messages.GetNextHarvestJob;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
+import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QStoredHarvestLogLine;
@@ -24,6 +27,7 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.log.Events;
+import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
 import nl.idgis.publisher.domain.log.LogLine;
 import nl.idgis.publisher.domain.service.Column;
@@ -35,6 +39,8 @@ import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.DateTimeExpression;
 import com.typesafe.config.Config;
@@ -200,14 +206,13 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			LogLine logLine = ((StoreLog) query).getLogLine();
 			
 			if(logLine instanceof HarvestLogLine) {
-				String datasetId = ((HarvestLogLine) logLine).getDataSourceId();
+				String dataSourceId = ((HarvestLogLine) logLine).getDataSourceId();
 				
 				if(context.insert(harvestLog)
-					.set(harvestLog.datasourceId, 
-						context.query().from(dataset)
-							.where(dataset.identification.eq(datasetId))
-							.singleResult(dataset.id))
-					.set(harvestLog.event, Events.toString(logLine.getEvent()))
+					.columns(harvestLog.datasourceId, harvestLog.event)
+					.select(new SQLSubQuery().from(dataSource)							
+							.where(dataSource.identification.eq(dataSourceId))
+							.list(dataSource.id, Expressions.constant(Events.toString(logLine.getEvent()))))					
 					.execute() == 0) {
 					log.error("couldn't store log line");
 				} else {
@@ -248,10 +253,35 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				baseQuery = baseQuery.offset(offset);
 			}
 				
-			baseQuery.list(new QStoredHarvestLogLine(
-				harvestLog.event,
-				dataSource.identification, 
-				harvestLog.createTime));
+			context.answer(
+					baseQuery.list(new QStoredHarvestLogLine(
+						harvestLog.event,
+						dataSource.identification, 
+						harvestLog.createTime)));
+		} else if (query instanceof GetNextHarvestJob){
+			QHarvestLog harvestLogSub = new QHarvestLog("subHarvestLog");
+			
+			String dataSourceName = 
+				context.query().from(harvestLog)
+					.join(dataSource)
+						.on(dataSource.id.eq(harvestLog.datasourceId))
+					.orderBy(harvestLog.createTime.asc())
+					.where(
+						harvestLog.event.eq(Events.toString(GenericEvent.REQUESTED))
+						.and(new SQLSubQuery().from(harvestLogSub)
+								.where(
+									harvestLogSub.datasourceId.eq(harvestLog.datasourceId)
+									.and(harvestLogSub.createTime.after(harvestLog.createTime))
+									.and(harvestLogSub.event.eq(Events.toString(GenericEvent.STARTED))))										
+								.notExists()))
+					.limit(1)
+					.singleResult(dataSource.identification);
+			
+			if(dataSourceName == null) {
+				context.answer(new NoJob());
+			} else {
+				context.answer(new HarvestJob(dataSourceName)); 
+			}
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}

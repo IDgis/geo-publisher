@@ -7,6 +7,7 @@ import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
+import nl.idgis.publisher.service.init.Initiator;
 import nl.idgis.publisher.service.loader.Loader;
 import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
@@ -54,6 +55,8 @@ public class App extends UntypedActor {
 				loader = getContext().actorOf(Loader.props(database, harvester), "loader");
 				
 				getContext().actorOf(Admin.props(database, harvester), "admin");
+				
+				getContext().actorOf(Initiator.props(database, harvester, loader), "init");
 			}
 			
 		}, getContext().dispatcher());

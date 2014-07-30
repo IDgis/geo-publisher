@@ -75,18 +75,14 @@ public class Harvester extends UntypedActor {
 			
 			if(dataSourceId == null) {
 				log.debug("Initializing harvesting for all dataSources");
-				for(Entry<String, ActorRef> dataSourceEntry : dataSources.entrySet()) {
-					String currentDataSourceId = dataSourceEntry.getKey();
-					ActorRef currentDataSource = dataSourceEntry.getValue();
-					
-					HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, currentDataSourceId);
-					database.tell(new StoreLog(logLine), getSelf());
-					currentDataSource.tell(new GetDatasets(), getSelf());
+				for(String currentDataSourceId : dataSources.keySet()) {
+					startHarvesting(currentDataSourceId);
 				}
 			} else {
 				if(dataSources.containsKey(dataSourceId)) {
 					log.debug("Initializing harvesting for dataSource: " + dataSourceId);
-					dataSources.get(dataSourceId).tell(new GetDatasets(), getSelf());
+					
+					startHarvesting(dataSourceId);
 				} else {
 					log.debug("dataSource not connected: " + dataSourceId);
 				}
@@ -125,5 +121,11 @@ public class Harvester extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void startHarvesting(String dataSourceId) {
+		HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, dataSourceId);
+		database.tell(new StoreLog(logLine), getSelf());
+		dataSources.get(dataSourceId).tell(new GetDatasets(), getSelf());
 	}
 }
