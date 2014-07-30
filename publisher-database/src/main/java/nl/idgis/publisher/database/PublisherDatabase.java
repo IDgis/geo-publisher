@@ -13,10 +13,13 @@ import java.util.List;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetInfo;
+import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
@@ -143,6 +146,35 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					context.query().from(category)
 					.where(category.identification.eq( ((GetCategoryInfo)query).getId() ))
 					.singleResult(new QCategoryInfo(category.identification,category.name)));
+			
+		} else if(query instanceof GetDatasetListInfo) {
+			GetDatasetListInfo dli = (GetDatasetListInfo)query;
+			String categoryId = dli.getCategoryId();
+			
+			SQLQuery baseQuery = context.query().from(dataset)
+				.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+				.leftJoin (category).on(sourceDataset.categoryId.eq(category.id));
+			
+			if(categoryId != null) {
+				baseQuery = baseQuery.where(category.identification.eq(categoryId));
+			}
+			
+			context.answer(
+					baseQuery
+					.orderBy(dataset.identification.asc())
+					.list(new QDatasetInfo(dataset.identification, dataset.identification, 
+							sourceDataset.identification, sourceDataset.name,
+							category.identification,category.name))
+			);
+		} else if(query instanceof GetDatasetInfo) {
+			context.answer(
+					context.query().from(dataset)
+					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
+					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
+					.singleResult(new QDatasetInfo(dataset.identification, dataset.identification, 
+							sourceDataset.identification, sourceDataset.name,
+							category.identification,category.name)));
 			
 		} else if(query instanceof GetDataSourceInfo) {
 			context.answer(

@@ -5,18 +5,24 @@ import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
+import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetInfo;
+import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
+import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.SourceDataset;
@@ -59,6 +65,8 @@ public class Admin extends UntypedActor {
 				handleListDataSources (listEntity);
 			} else if (listEntity.cls ().equals (Category.class)) {
 				handleListCategories (listEntity);
+			} else if (listEntity.cls ().equals (Dataset.class)) {
+				handleListDatasets (null);
 			} else {
 				handleEmptyList (listEntity);
 			}
@@ -69,11 +77,15 @@ public class Admin extends UntypedActor {
 				handleGetDataSource (getEntity);
 			} else if (getEntity.cls ().equals (Category.class)) {
 				handleGetCategory (getEntity);
+			} else if (getEntity.cls ().equals (Dataset.class)) {
+				handleGetDataset(getEntity);
 			} else {
 				sender ().tell (null, self ());
 			}
 		} else if (message instanceof ListSourceDatasets) {
 			handleListSourceDatasets ((ListSourceDatasets)message);
+		} else if (message instanceof ListDatasets) {
+			handleListDatasets (((ListDatasets)message).categoryId());
 		} else {
 			unhandled (message);
 		}
@@ -179,6 +191,30 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 	}
 	
+	private void handleGetDataset (final GetEntity<?> getEntity) {
+		log.debug ("handleDataset");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> datasetInfo = Patterns.ask(database, new GetDatasetInfo(getEntity.id ()), 15000);
+				datasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						DatasetInfo datasetInfo = (DatasetInfo)msg;
+						log.debug("dataset info received");
+						Dataset dataset = 
+								new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+										new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+										new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
+										null, // notification list
+										new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
+								);
+						log.debug("sending dataset: " + dataset);
+						sender.tell (dataset, self);
+					}
+				}, getContext().dispatcher());
+	}
+	
 	private void handleListSourceDatasets (final ListSourceDatasets message) {
 		
 		log.debug ("handleListSourceDatasets");
@@ -214,4 +250,41 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 		
 	}
+
+	private void handleListDatasets (String categoryId) {
+		
+		log.debug ("handleListDatasets categoryId=" + categoryId);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> datasetInfo = Patterns.ask(database, new GetDatasetListInfo(categoryId), 15000);
+		
+				datasetInfo.onSuccess(new OnSuccess<Object>() {
+
+					@SuppressWarnings("unchecked")
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						List<DatasetInfo> datasetInfoList = (List<DatasetInfo>)msg;
+						log.debug("data sources info received");
+						
+						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
+						
+						for(DatasetInfo datasetInfo : datasetInfoList) {
+							final Dataset dataset =  new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
+									null, // notification list
+									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
+							);
+							
+							pageBuilder.add (dataset);
+						}
+						
+						log.debug("sending dataset page");
+						sender.tell (pageBuilder.build (), self);
+					}
+				}, getContext().dispatcher());
+		
+	}
+
 }
