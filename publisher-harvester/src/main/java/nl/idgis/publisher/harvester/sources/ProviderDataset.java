@@ -10,6 +10,7 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
+import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -66,16 +67,20 @@ public class ProviderDataset extends UntypedActor {
 							} else {
 								log.debug("table description received");
 								
-								TableDescription tableDescription = (TableDescription)msg;
-								
-								List<Column> columns = new ArrayList<Column>();
-								for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
-									columns.add(new Column(column.getName(), column.getType()));
+								if(msg instanceof TableNotFound) {
+									log.error("table doesn't exist: " + tableName);
+								} else {								
+									TableDescription tableDescription = (TableDescription)msg;
+									
+									List<Column> columns = new ArrayList<Column>();
+									for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
+										columns.add(new Column(column.getName(), column.getType()));
+									}
+									
+									Table table = new Table(metadataItem.getTitle(), columns);
+									
+									harvester.tell(new Dataset(metadataItem.getIdentification(), categoryId, table), getContext().parent());
 								}
-								
-								Table table = new Table(metadataItem.getTitle(), columns);
-								
-								harvester.tell(new Dataset(metadataItem.getIdentification(), categoryId, table), getContext().parent());
 							}
 							
 							sender.tell(new NextItem(), self);

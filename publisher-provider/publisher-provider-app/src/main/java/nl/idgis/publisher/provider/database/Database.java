@@ -13,6 +13,7 @@ import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
+import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 import nl.idgis.publisher.stream.StreamAggregator;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -76,11 +77,16 @@ public class Database extends UntypedActor {
 			}
 			
 			Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
-			Future<TableDescription> tableDescription = records.map(new Mapper<ArrayList<Record>, TableDescription>() {
+			Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
 						
 						@Override
-						public TableDescription apply(ArrayList<Record> records) {
-							Column[] columns = new Column[records.size()];
+						public Object apply(ArrayList<Record> records) {
+							int recordCount = records.size();
+							if(recordCount == 0) {
+								return new TableNotFound();
+							} 
+							
+							Column[] columns = new Column[recordCount];
 							
 							int i = 0;
 							for(Record record : records) {
@@ -92,7 +98,7 @@ public class Database extends UntypedActor {
 						}
 					}, getContext().dispatcher());
 			
-			Patterns.pipe(tableDescription, getContext().dispatcher())
+			Patterns.pipe(response, getContext().dispatcher())
 				.pipeTo(getSender(), getSelf());
 		} else {
 			unhandled(msg);
