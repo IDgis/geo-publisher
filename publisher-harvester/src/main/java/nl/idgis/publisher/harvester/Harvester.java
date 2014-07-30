@@ -1,11 +1,12 @@
 package nl.idgis.publisher.harvester;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Map.Entry;
 
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.domain.log.GenericEvent;
+import nl.idgis.publisher.domain.log.HarvestLogLine;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
@@ -15,6 +16,7 @@ import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -53,9 +55,6 @@ public class Harvester extends UntypedActor {
 		getContext().actorOf(Server.props(name, getSelf(), port, sslConfig), "server");
 		
 		dataSources = HashBiMap.create();
-		
-		FiniteDuration interval = Duration.create(10, TimeUnit.SECONDS);
-		getContext().system().scheduler().schedule(Duration.Zero(), interval, getSelf(), new Harvest(), getContext().dispatcher(), getSelf());
 	}
 
 	@Override
@@ -73,10 +72,16 @@ public class Harvester extends UntypedActor {
 			}
 		} else if (msg instanceof Harvest) {
 			String dataSourceId = ((Harvest) msg).getDataSourceId();
+			
 			if(dataSourceId == null) {
 				log.debug("Initializing harvesting for all dataSources");
-				for(ActorRef dataSource : dataSources.values()) {
-					dataSource.tell(new GetDatasets(), getSelf());
+				for(Entry<String, ActorRef> dataSourceEntry : dataSources.entrySet()) {
+					String currentDataSourceId = dataSourceEntry.getKey();
+					ActorRef currentDataSource = dataSourceEntry.getValue();
+					
+					HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, currentDataSourceId);
+					database.tell(new StoreLog(logLine), getSelf());
+					currentDataSource.tell(new GetDatasets(), getSelf());
 				}
 			} else {
 				if(dataSources.containsKey(dataSourceId)) {

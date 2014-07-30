@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QHarvestLog.harvestLog;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -18,7 +19,11 @@ import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.projections.QColumn;
+import nl.idgis.publisher.domain.log.Events;
+import nl.idgis.publisher.domain.log.HarvestLogLine;
+import nl.idgis.publisher.domain.log.LogLine;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
@@ -186,6 +191,28 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.orderBy(sourceDataset.identification.asc())
 						.list(new QSourceDatasetInfo(dataSource.identification, dataSource.name, sourceDataset.identification, sourceDataset.name, dataset.count()))
 			);
+		} else if (query instanceof StoreLog) {
+			log.debug("storing log line: " + query);
+			
+			LogLine logLine = ((StoreLog) query).getLogLine();
+			
+			if(logLine instanceof HarvestLogLine) {
+				String datasetId = ((HarvestLogLine) logLine).getDataSourceId();
+				
+				if(context.insert(harvestLog)
+					.set(harvestLog.datasourceId, 
+						context.query().from(dataset)
+							.where(dataset.identification.eq(datasetId))
+							.singleResult(dataset.id))
+					.set(harvestLog.event, Events.toString(logLine.getEvent()))
+					.execute() == 0) {
+					log.error("couldn't store log line");
+				} else {
+					log.debug("log line stored");
+				}
+			} else {
+				log.error("unknown log line type");
+			}
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
