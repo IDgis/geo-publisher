@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester;
 
+import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
@@ -43,22 +44,28 @@ public class HarvestSession extends UntypedActor {
 					
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						log.debug("dataset registered");
-						
-						HarvestLogLine logLine = new HarvestLogLine(
-								HarvestEvent.SOURCE_DATASET_REGISTERED, 
-								dataSourceId);
-						
-						Patterns.ask(database, new StoreLog(logLine), 15000)
-							.onSuccess(new OnSuccess<Object>() {
-								
-								@Override
-								public void onSuccess(Object msg) throws Throwable {
-									log.debug("dataset registration logged");
+						if(msg instanceof AlreadyRegistered) {
+							log.debug("already registered");
+							
+							sender.tell(new Ack(), self);
+						} else {						
+							log.debug("dataset registered");
+							
+							HarvestLogLine logLine = new HarvestLogLine(
+									HarvestEvent.SOURCE_DATASET_REGISTERED, 
+									dataSourceId);
+							
+							Patterns.ask(database, new StoreLog(logLine), 15000)
+								.onSuccess(new OnSuccess<Object>() {
 									
-									sender.tell(new Ack(), self);
-								}
-							}, getContext().dispatcher());
+									@Override
+									public void onSuccess(Object msg) throws Throwable {
+										log.debug("dataset registration logged");
+										
+										sender.tell(new Ack(), self);
+									}
+								}, getContext().dispatcher());
+						}
 					}
 				}, getContext().dispatcher());
 			

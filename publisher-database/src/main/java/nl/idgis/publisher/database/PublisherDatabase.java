@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QHarvestLog.harvestLog;
 import java.sql.Timestamp;
 import java.util.List;
 
+import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
@@ -24,6 +25,7 @@ import nl.idgis.publisher.database.messages.QStoredHarvestLogLine;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.log.Events;
@@ -128,7 +130,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						&& existingCategoryId.equals(dataset.getCategoryId())
 						&& existingDeleteTime == null
 						&& existingColumns.equals(table.getColumns())) {
-					context.ack();
+					context.answer(new AlreadyRegistered());
 					log.debug("dataset already registered");
 				} else {
 					context.update(sourceDataset)
@@ -144,7 +146,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.execute();
 					
 					insertSourceDatasetColumns(context, id, table.getColumns());
-					context.ack();
+					context.answer(new Registered());
 					
 					log.debug("dataset updated");
 				}
@@ -169,7 +171,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.singleResult(sourceDataset.id);
 					
 					insertSourceDatasetColumns(context, id, table.getColumns());					
-					context.ack();
+					context.answer(new Registered());
 					
 					log.debug("dataSource inserted");
 				}
