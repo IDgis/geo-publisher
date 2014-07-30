@@ -21,7 +21,11 @@
 		<div class="row">
 
 			<div class="col-lg-3">
-				<div class="panel panel-success">
+				@if(dataSources.values.size == 0){
+					<div class="panel panel-warning">
+				}else{
+					<div class="panel panel-success">
+				}
 					<div class="panel-heading">
 						<div class="row">
 							<div class="col-xs-4">
@@ -92,7 +96,7 @@
 							</a>
 						</li>
 					</ul>
-					<a href="#">
+					<a href="@routes.Datasets.listWithMessages()">
 						<div class="panel-footer">
 							<div class="row">
 								<div class="col-xs-10">

@@ -16,11 +16,12 @@
 
 @dataSourceRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>Gegevensbron: @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>Gegevensbron: @ref.name</a>
 	}
 }
+
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
@@ -40,9 +41,9 @@
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>Categorie: @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>@ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>Categorie: @ref.name</a>
 	}
 }
 
