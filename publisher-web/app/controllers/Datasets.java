@@ -48,7 +48,7 @@ public class Datasets extends Controller {
 	}
 	
 	
-	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages, long page) {
+	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
