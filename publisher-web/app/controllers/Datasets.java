@@ -25,22 +25,22 @@ import views.html.datasets.form;
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
-	public static Promise<Result> list () {
-		return listByCategoryAndMessages(null, false);
+	public static Promise<Result> list (long page) {
+		return listByCategoryAndMessages(null, false, page);
 	}
 	
 	
-	public static Promise<Result> listWithMessages () {
-		return listByCategoryAndMessages(null, true);
+	public static Promise<Result> listWithMessages (long page) {
+		return listByCategoryAndMessages(null, true, page);
 	}
 	
-	public static Promise<Result> listByCategory (String categoryId) {
-		return listByCategoryAndMessages(categoryId, false);
+	public static Promise<Result> listByCategory (String categoryId, long page) {
+		return listByCategoryAndMessages(categoryId, false, page);
 	}
 	
 	
-	public static Promise<Result> listByCategoryWithMessages (String categoryId) {
-		return listByCategoryAndMessages(categoryId, true);
+	public static Promise<Result> listByCategoryWithMessages (String categoryId, long page) {
+		return listByCategoryAndMessages(categoryId, true, page);
 	}
 	
 	public static Result createForm () {
@@ -48,7 +48,7 @@ public class Datasets extends Controller {
 	}
 	
 	
-	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages) {
+	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages, long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -64,7 +64,7 @@ public class Datasets extends Controller {
 				public Promise<Result> apply (final Page<Category> categories, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListDatasets (currentCategory))
+							.query (new ListDatasets (currentCategory, page))
 							.execute (new Function<Page<Dataset>, Result> () {
 								@Override
 								public Result apply (final Page<Dataset> datasets) throws Throwable {

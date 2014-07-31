@@ -1,14 +1,15 @@
 @import runtime.RichLong
+@import play.api.mvc.Call
 
-@(page: nl.idgis.publisher.domain.response.Page[_], pageWindow: Long = 5)
+@(page: nl.idgis.publisher.domain.response.Page[_], pageRef: (Long) => Call, pageWindow: Long = 5)
 
 @doPage(pageNumber: Long, isActive: Boolean = false) = {
-	<li@if(isActive){ class="active" }><a href="#">@pageNumber</a></li>
+	<li@if(isActive){ class="active" }><a href="@pageRef(pageNumber)">@pageNumber</a></li>
 }
 
 @doPagination(firstPage: RichLong, lastPage: Long) = {
 	<ul class="pagination">
-		<li@if(page.currentPage == 1){ class="disabled" }><a href="#">&laquo;</a></li>							
+		<li@if(page.currentPage == 1){ class="disabled" }><a href="@pageRef(page.currentPage - 1)">&laquo;</a></li>							
 		@if(firstPage > 1) {
 			@doPage(1)
 			<li class="disabled"><a href="#">...</a></li>
@@ -20,7 +21,7 @@
 			<li class="disabled"><a href="#">...</a></li>
 			@doPage(page.pageCount)
 		}
-		<li@if(page.currentPage == page.pageCount){ class="disabled" }><a href="#">&raquo;</a></li>		
+		<li@if(page.currentPage == page.pageCount){ class="disabled" }><a href="@pageRef(page.currentPage + 1)">&raquo;</a></li>		
 	</ul>
 }
 

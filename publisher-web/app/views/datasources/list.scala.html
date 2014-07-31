@@ -55,6 +55,19 @@
 	}
 }
 
+@pageRef(targetPage: Long) = @{	  
+	if(currentCategory == null)
+		if(currentDataSource == null)
+			routes.DataSources.list(targetPage)
+		else
+			routes.DataSources.listByDataSource(currentDataSource.id, targetPage) 
+	else
+		if(currentDataSource == null)
+			routes.DataSources.listByCategory(currentCategory.id, targetPage)
+		else
+			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, targetPage)
+}
+
 @layout.application(
 	title = "Gegevensbronnen",
 	jsMain = routes.Assets.at("js/datasources/main.js").url
@@ -149,7 +162,7 @@
 					
 					</div>
 					
-					@helper.pagination(sourceDatasets)
+					@helper.pagination(sourceDatasets, pageRef)
 				}
 			</div>			
 				

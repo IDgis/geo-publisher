@@ -23,19 +23,19 @@ import akka.actor.ActorSelection;
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
-	public static Promise<Result> list () {
-		return listByDataSourceAndCategory (null, null);
+	public static Promise<Result> list (final long page) {
+		return listByDataSourceAndCategory (null, null, page);
 	}
 	
-	public static Promise<Result> listByDataSource (final String dataSourceId) {
-		return listByDataSourceAndCategory (dataSourceId, null);
+	public static Promise<Result> listByDataSource (final String dataSourceId, final long page) {
+		return listByDataSourceAndCategory (dataSourceId, null, page);
 	}
 	
-	public static Promise<Result> listByCategory (final String categoryId) {
-		return listByDataSourceAndCategory (null, categoryId);
+	public static Promise<Result> listByCategory (final String categoryId, final long page) {
+		return listByDataSourceAndCategory (null, categoryId, page);
 	}
 	
-	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId) {
+	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -53,7 +53,7 @@ public class DataSources extends Controller {
 				public Promise<Result> apply (final Page<DataSource> dataSources, final Page<Category> categories, final DataSource currentDataSource, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListSourceDatasets (currentDataSource, currentCategory))
+							.query (new ListSourceDatasets (currentDataSource, currentCategory, page))
 							.execute (new Function<Page<SourceDatasetStats>, Result> () {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {

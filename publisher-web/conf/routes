@@ -6,17 +6,17 @@
 GET		/												controllers.Dashboard.index()
 
 # Datasets
-GET		/datasets										controllers.Datasets.list()
-GET		/datasets/status/with-messages					controllers.Datasets.listWithMessages()
-GET		/datasets/category/:categoryId						controllers.Datasets.listByCategory(categoryId: String)
-GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.listByCategoryWithMessages(categoryId: String)
+GET		/datasets										controllers.Datasets.list(page: Long ?= 1)
+GET		/datasets/status/with-messages					controllers.Datasets.listWithMessages(page: Long ?= 1)
+GET		/datasets/category/:categoryId						controllers.Datasets.listByCategory(categoryId: String, page: Long ?= 1)
+GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.listByCategoryWithMessages(categoryId: String, page: Long ?= 1)
 GET		/datasets/create								controllers.Datasets.createForm()
 
 # Datasources
-GET		/datasources									controllers.DataSources.list()
-GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String)
-GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String)
-GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String)
+GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
+GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)
 
 # User
 GET		/user/login										controllers.User.login(r: String)
