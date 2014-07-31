@@ -22,6 +22,8 @@ import nl.idgis.publisher.database.messages.GetNextHarvestJob;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.InfoList;
+import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
@@ -32,6 +34,7 @@ import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.log.Events;
@@ -41,7 +44,6 @@ import nl.idgis.publisher.domain.log.LogLine;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -51,6 +53,7 @@ import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Order;
+import com.mysema.query.types.expr.ComparableExpressionBase;
 import com.mysema.query.types.expr.DateTimeExpression;
 import com.typesafe.config.Config;
 
@@ -93,6 +96,30 @@ public class PublisherDatabase extends QueryDSLDatabase {
 		} else {
 			return id;
 		}
+	}
+	
+	private <T extends Comparable<? super T>> SQLQuery applyListParams(SQLQuery query, ListQuery listQuery, ComparableExpressionBase<T> orderBy) {
+		Order order = listQuery.getOrder();
+		Long limit = listQuery.getLimit();
+		Long offset = listQuery.getOffset();
+		
+		if(order != null) {
+			if(order == Order.ASC) {
+				query = query.orderBy(orderBy.asc());
+			} else {
+				query = query.orderBy(orderBy.desc());
+			}
+		}
+		
+		if(limit != null) {
+			query = query.limit(limit);
+		}
+		
+		if(offset != null) {
+			query = query.offset(offset);
+		}
+		
+		return query;
 	}
 	
 	@Override
@@ -203,7 +230,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				.leftJoin (category).on(sourceDataset.categoryId.eq(category.id));
 			
 			if(categoryId != null) {
-				baseQuery = baseQuery.where(category.identification.eq(categoryId));
+				baseQuery.where(category.identification.eq(categoryId));
 			}
 			
 			context.answer(
@@ -237,28 +264,36 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			
 			SQLQuery baseQuery = context.query().from(sourceDataset)
 					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.join (category).on(sourceDataset.categoryId.eq(category.id))
+					.join (category).on(sourceDataset.categoryId.eq(category.id));
+			
+			if(categoryId != null) {				
+				baseQuery.where(category.identification.eq(categoryId));
+			}
+			
+			if(dataSourceId != null) {				
+				baseQuery.where(dataSource.identification.eq(dataSourceId));
+			}
+			
+			SQLQuery listQuery = baseQuery.clone()					
 					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 			
-			if(categoryId != null) {
-				baseQuery = baseQuery.where(category.identification.eq(categoryId));
-			}
+			applyListParams(listQuery, sdi, sourceDataset.name);
 			
-			if(dataSourceId != null) {
-				baseQuery = baseQuery.where(dataSource.identification.eq(dataSourceId));
-			}
-			
-			context.answer(				
-					baseQuery					
+			context.answer(
+				new InfoList<SourceDatasetInfo>(			
+					listQuery					
 						.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
 						.groupBy(dataSource.identification).groupBy(dataSource.name)
-						.groupBy(category.identification).groupBy(category.name)
-						.orderBy(sourceDataset.identification.asc())
+						.groupBy(category.identification).groupBy(category.name)						
 						.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
 								dataSource.identification, dataSource.name,
 								category.identification,category.name,
-								dataset.count()))
+								dataset.count())),
+								
+					baseQuery.count()
+				)
 			);
+			
 		} else if (query instanceof StoreLog) {
 			log.debug("storing log line: " + query);
 			
@@ -285,9 +320,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			GetHarvestLog ghl = (GetHarvestLog)query;
 			
 			String dataSourceId = ghl.getDataSourceId();
-			Order order = ghl.getOrder();
-			Long limit = ghl.getLimit();
-			Long offset = ghl.getOffset();
+			
 			
 			SQLQuery baseQuery = context.query().from(harvestLog)
 				.join(dataSource)
@@ -296,22 +329,8 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			if(dataSourceId != null) {
 				baseQuery = baseQuery.where(dataSource.identification.eq(dataSourceId));
 			}
-					
-			if(order != null) {
-				if(order == Order.ASC) {
-					baseQuery.orderBy(harvestLog.createTime.asc());
-				} else {
-					baseQuery.orderBy(harvestLog.createTime.desc());
-				}
-			}
 			
-			if(limit != null) {
-				baseQuery = baseQuery.limit(limit);
-			}
-			
-			if(offset != null) {
-				baseQuery = baseQuery.offset(offset);
-			}
+			baseQuery = applyListParams(baseQuery, ghl, harvestLog.createTime);
 				
 			context.answer(
 					baseQuery.list(new QStoredHarvestLogLine(

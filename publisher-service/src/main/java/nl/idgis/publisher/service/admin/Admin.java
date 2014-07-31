@@ -12,8 +12,8 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
-import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -42,6 +42,8 @@ import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
 public class Admin extends UntypedActor {
+	
+	private final long ITEMS_PER_PAGE = 20;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -85,7 +87,7 @@ public class Admin extends UntypedActor {
 		} else if (message instanceof ListSourceDatasets) {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
-			handleListDatasets (((ListDatasets)message).categoryId());
+			handleListDatasets (((ListDatasets)message));
 		} else {
 			unhandled (message);
 		}
@@ -221,19 +223,20 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId()), 15000);
+		final long page = message.getPage();
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
 		
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 
 					@SuppressWarnings("unchecked")
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						List<SourceDatasetInfo> sourceDatasetInfoList = (List<SourceDatasetInfo>)msg;
+						InfoList<SourceDatasetInfo> sourceDatasetInfoList = (InfoList<SourceDatasetInfo>)msg;
 						log.debug("data sources info received");
 						
 						final Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
 						
-						for(SourceDatasetInfo sourceDatasetInfo : sourceDatasetInfoList) {
+						for(SourceDatasetInfo sourceDatasetInfo : sourceDatasetInfoList.getList()) {
 							final SourceDataset sourceDataset = new SourceDataset (
 									sourceDatasetInfo.getId(), 
 									sourceDatasetInfo.getName(),
@@ -244,6 +247,17 @@ public class Admin extends UntypedActor {
 							pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
 						}
 						
+						long count = sourceDatasetInfoList.getCount();
+						long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
+						
+						if(pages > 1) {
+							pageBuilder
+								.setHasMorePages(true)
+								.setPageCount(pages)
+								.setCurrentPage(page);
+						}
+						
+						
 						log.debug("sending data source page");
 						sender.tell (pageBuilder.build (), self);
 					}
@@ -251,8 +265,8 @@ public class Admin extends UntypedActor {
 		
 	}
 
-	private void handleListDatasets (String categoryId) {
-		
+	private void handleListDatasets (final ListDatasets listDatasets) {
+		String categoryId = listDatasets.categoryId();
 		log.debug ("handleListDatasets categoryId=" + categoryId);
 		
 		final ActorRef sender = getSender(), self = getSelf();
