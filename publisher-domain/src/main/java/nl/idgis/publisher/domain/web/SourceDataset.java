@@ -9,14 +9,14 @@ public final class SourceDataset extends Identifiable {
 	private static final long serialVersionUID = 3117616774767959933L;
 	
 	private final String name;
-	private final Category category;
+	private final EntityRef category;
 	private final EntityRef dataSource;
 	
 	@JsonCreator
 	public SourceDataset (
 			final @JsonProperty("id") String id, 
 			final @JsonProperty("name") String name, 
-			final @JsonProperty("category") Category category,
+			final @JsonProperty("category") EntityRef category,
 			final @JsonProperty("dataSource") EntityRef dataSource) {
 		super(id);
 		
@@ -31,7 +31,7 @@ public final class SourceDataset extends Identifiable {
 	}
 	
 	@JsonGetter
-	public Category category () {
+	public EntityRef category () {
 		return this.category;
 	}
 	
