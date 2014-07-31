@@ -7,24 +7,41 @@
 	<li@if(isActive){ class="active" }><a href="@pageRef(pageNumber)">@pageNumber</a></li>
 }
 
-@doPagination(firstPage: RichLong, lastPage: Long) = {
+@doPaginationWindow(firstPage: RichLong, lastPage: Long) = {	
 	<ul class="pagination">
 		<li@if(page.currentPage == 1){ class="disabled" }><a href="@pageRef(page.currentPage - 1)">&laquo;</a></li>							
 		@if(firstPage > 1) {
 			@doPage(1)
-			<li class="disabled"><a href="#">...</a></li>
+			@if(firstPage > 2) {
+				<li class="disabled"><a href="#">...</a></li>
+			}
 		}
 		@for(pageNumber <- firstPage to lastPage) {
 			@doPage(pageNumber, pageNumber == page.currentPage)
 		}
 		@if(lastPage < page.pageCount) {
-			<li class="disabled"><a href="#">...</a></li>
+			@if(lastPage < page.pageCount - 1) {
+				<li class="disabled"><a href="#">...</a></li>
+			}
 			@doPage(page.pageCount)
 		}
 		<li@if(page.currentPage == page.pageCount){ class="disabled" }><a href="@pageRef(page.currentPage + 1)">&raquo;</a></li>		
 	</ul>
 }
 
+@doPagination() = @{
+	val nearbyPages = pageWindow - 1;
+	
+	val firstPage = 1l max (page.currentPage - nearbyPages)
+	val lastPage = (page.currentPage + nearbyPages) min page.pageCount
+	
+	val excessPages = 0l max ((lastPage - firstPage + 1) - pageWindow)
+	val excessLeft = excessPages / 2;
+	val excessRight = excessPages - excessLeft;
+
+	doPaginationWindow(firstPage + excessLeft, lastPage - excessRight)
+}
+
 @if(page.hasMorePages) {
-	@doPagination(1l max (page.currentPage - pageWindow), (page.currentPage + pageWindow) min page.pageCount)
+	@doPagination()
 }
