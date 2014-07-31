@@ -1,0 +1,29 @@
+@import runtime.RichLong
+
+@(page: nl.idgis.publisher.domain.response.Page[_], pageWindow: Long = 5)
+
+@doPage(pageNumber: Long, isActive: Boolean = false) = {
+	<li@if(isActive){ class="active" }><a href="#">@pageNumber</a></li>
+}
+
+@doPagination(firstPage: RichLong, lastPage: Long) = {
+	<ul class="pagination">
+		<li@if(page.currentPage == 1){ class="disabled" }><a href="#">&laquo;</a></li>							
+		@if(firstPage > 1) {
+			@doPage(1)
+			<li class="disabled"><a href="#">...</a></li>
+		}
+		@for(pageNumber <- firstPage to lastPage) {
+			@doPage(pageNumber, pageNumber == page.currentPage)
+		}
+		@if(lastPage < page.pageCount) {
+			<li class="disabled"><a href="#">...</a></li>
+			@doPage(page.pageCount)
+		}
+		<li@if(page.currentPage == page.pageCount){ class="disabled" }><a href="#">&raquo;</a></li>		
+	</ul>
+}
+
+@if(page.hasMorePages) {
+	@doPagination(1l max (page.currentPage - pageWindow), (page.currentPage + pageWindow) min page.pageCount)
+}
