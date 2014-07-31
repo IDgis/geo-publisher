@@ -10,10 +10,27 @@ public class ProviderUtils {
 		if(alternateTitle != null 
 			&& !alternateTitle.trim().isEmpty()) {			 
 		
+			final String tableName;
 			if(alternateTitle.contains(" ")) {
-				return alternateTitle.substring(0, alternateTitle.indexOf(" ")).trim();
+				tableName = alternateTitle.substring(0, alternateTitle.indexOf(" ")).trim();
 			} else {
-				return alternateTitle.trim();
+				tableName = alternateTitle.trim();
+			}
+			
+			return tableName.toUpperCase();
+		}
+		
+		return null;
+	}
+	
+	public static String getCategoryId(MetadataItem metadataItem) {
+		String tableName = getTableName(metadataItem);
+		
+		if(tableName != null) {
+			int separator = tableName.indexOf(".");
+			if(separator != -1) {
+				String schemaName = tableName.substring(0, separator);
+				return schemaName;
 			}
 		}
 		

@@ -116,7 +116,10 @@ public class MetadataParser extends UntypedActor {
 						}
 
 						if (filePosition == fileLength) {
-							sender.tell(new MetadataItem(file.getName(), title.toString(), alternateTitle.toString()), getSelf());							
+							String fileName = file.getName();
+							String id = fileName.substring(0, fileName.lastIndexOf("."));
+							
+							sender.tell(new MetadataItem(id, title.toString(), alternateTitle.toString()), getSelf());							
 						} else {
 							attachment.position(0);
 							channel.read(attachment, filePosition, attachment, this);

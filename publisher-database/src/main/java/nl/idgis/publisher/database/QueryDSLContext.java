@@ -41,4 +41,8 @@ class QueryDSLContext {
 	void answer(Object msg) {
 		jdbcContext.answer(msg);
 	}
+	
+	void ack() {
+		jdbcContext.ack();
+	}
 }

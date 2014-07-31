@@ -6,16 +6,21 @@ public class Dataset implements Serializable {
 
 	private static final long serialVersionUID = -6901956185305992907L;
 	
-	private final String id;
+	private final String id, categoryId;	
 	private final Table table;
 	
-	public Dataset(String id, Table table) {
+	public Dataset(String id, String categoryId, Table table) {
 		this.id = id;
+		this.categoryId = categoryId;
 		this.table = table;
 	}
 
 	public String getId() {
 		return id;
+	}
+	
+	public String getCategoryId() {
+		return categoryId;
 	}
 
 	public Table getTable() {

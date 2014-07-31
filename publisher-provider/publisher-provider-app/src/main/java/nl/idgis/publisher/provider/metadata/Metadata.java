@@ -44,7 +44,7 @@ public class Metadata extends UntypedActor {
 			String id = ((GetMetadata) msg).getIdentification();
 			
 			log.debug("fetching single metadata document: " + id);
-			File document = new File(metadataDirectory, id);
+			File document = new File(metadataDirectory, id + ".xml");
 			getContext().actorOf(MetadataParser.props()).tell(document, getSender());
 		} else {
 			unhandled(msg);

@@ -60,7 +60,7 @@ public class ProviderClient extends UntypedActor {
 				if(msg instanceof GetDatasets) {
 					log.debug("retrieving datasets from provider");
 					
-					ActorRef providerDataset = getContext().actorOf(ProviderDataset.props(harvester, database));
+					ActorRef providerDataset = getContext().actorOf(ProviderDataset.props(getSender(), database));
 					metadata.tell(new GetAllMetadata(), providerDataset);
 				} else if(msg instanceof ConnectionClosed) {
 					log.debug("disconnected");
