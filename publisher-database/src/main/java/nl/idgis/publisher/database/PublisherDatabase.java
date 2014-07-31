@@ -78,7 +78,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 		}
 	}
 	
-	private int getCatagoryId(QueryDSLContext context, String identification) {
+	private int getCategoryId(QueryDSLContext context, String identification) {
 		Integer id = context.query().from(category)
 			.where(category.identification.eq(identification))
 			.singleResult(category.id);
@@ -89,7 +89,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				.set(category.name, identification)
 				.execute();
 			
-			return getCatagoryId(context, identification);
+			return getCategoryId(context, identification);
 		} else {
 			return id;
 		}
@@ -142,7 +142,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				} else {
 					context.update(sourceDataset)
 						.set(sourceDataset.name, table.getName())
-						.set(sourceDataset.categoryId, getCatagoryId(context, dataset.getCategoryId()))
+						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
 						.setNull(sourceDataset.deleteTime)						
 						.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
 						.where(sourceDataset.id.eq(id))
@@ -169,7 +169,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 						.set(sourceDataset.dataSourceId, dataSourceId)
 						.set(sourceDataset.identification, dataset.getId())
 						.set(sourceDataset.name, table.getName())
-						.set(sourceDataset.categoryId, getCatagoryId(context, dataset.getCategoryId()))
+						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
 						.execute();
 					
 					Integer id = context.query().from(sourceDataset)
