@@ -15,7 +15,6 @@ POST	/datasets/create								controllers.Datasets.create()
 
 # Datasources
 GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
-GET		/datasources.json								controllers.DataSources.listJson()
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
