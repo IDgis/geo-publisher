@@ -17,6 +17,7 @@ GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId/:sourceDatasetId/columns.json	controllers.DataSources.listColumnsJson(dataSourceId: String, sourceDatasetId: String)					
 
 # User
 GET		/user/login										controllers.User.login(r: String)

@@ -11,10 +11,12 @@ import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
+import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -88,11 +90,19 @@ public class Admin extends UntypedActor {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
 			handleListDatasets (((ListDatasets)message));
+		} else if (message instanceof ListColumns) {
+			handleListColumns ((ListColumns) message);
 		} else {
 			unhandled (message);
 		}
 	}
 	
+	private void handleListColumns (final ListColumns listColumns) {
+		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
+		
+		database.tell(di, getSender());
+	}
+
 	private void handleListDataSources (final ListEntity<?> listEntity) {
 		log.debug ("List received for: " + listEntity.cls ().getCanonicalName ());
 		
@@ -224,7 +234,7 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final long page = message.getPage();
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetListInfo(message.dataSourceId(), message.categoryId(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
 		
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 

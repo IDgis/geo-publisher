@@ -1,15 +1,21 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.List;
+
 import models.Domain.Function;
 import models.Domain.Function4;
+import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import play.Play;
 import play.libs.Akka;
+import play.libs.Json;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -64,5 +70,21 @@ public class DataSources extends Controller {
 							});
 				}
 			});
+	}
+	
+	public static Promise<Result> listColumnsJson(final String dataSourceId, final String sourceDatasetId) {
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return 
+			from(database)
+				.query(new ListColumns(dataSourceId, sourceDatasetId))
+				.execute(new Function<List<Column>, Result>() {
+	
+					@Override
+					public Result apply(List<Column> columns) throws Throwable {
+						return ok(Json.toJson(columns));
+					}
+				});
 	}
 }

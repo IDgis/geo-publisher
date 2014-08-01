@@ -19,10 +19,11 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJob;
 import nl.idgis.publisher.database.messages.InfoList;
+import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
@@ -255,8 +256,8 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				context.query().from(dataSource)
 					.orderBy(dataSource.identification.asc())
 					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
-		} else if(query instanceof GetSourceDatasetInfo) {
-			GetSourceDatasetInfo sdi = (GetSourceDatasetInfo)query;
+		} else if(query instanceof GetSourceDatasetListInfo) {
+			GetSourceDatasetListInfo sdi = (GetSourceDatasetListInfo)query;
 			log.debug(sdi.toString());
 			
 			String categoryId = sdi.getCategoryId();
@@ -361,6 +362,16 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			} else {
 				context.answer(new HarvestJob(dataSourceName)); 
 			}
+		} else if(query instanceof GetSourceDatasetColumns) {
+			GetSourceDatasetColumns di = (GetSourceDatasetColumns)query;
+			
+			context.answer(
+				context.query().from(sourceDatasetColumn)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetColumn.sourceDatasetId))
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.where(sourceDataset.identification.eq(di.getSourceDatasetId())
+					.and(dataSource.identification.eq(di.getDataSourceId())))
+				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
