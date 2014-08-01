@@ -233,8 +233,18 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final long page = message.getPage();
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetListInfo(message.dataSourceId(), message.categoryId(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
+		final Long page = message.getPage();
+		
+		final Long offset, limit;		 
+		if(page == null) {
+			offset = null;
+			limit = null;
+		} else {
+			offset = (page - 1) * ITEMS_PER_PAGE;
+			limit = ITEMS_PER_PAGE;
+		}
+		
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetListInfo(message.dataSourceId(), message.categoryId(), offset, limit), 15000);
 		
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 
@@ -257,14 +267,16 @@ public class Admin extends UntypedActor {
 							pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
 						}
 						
-						long count = sourceDatasetInfoList.getCount();
-						long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
-						
-						if(pages > 1) {
-							pageBuilder
-								.setHasMorePages(true)
-								.setPageCount(pages)
-								.setCurrentPage(page);
+						if(page != null) {
+							long count = sourceDatasetInfoList.getCount();
+							long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
+							
+							if(pages > 1) {
+								pageBuilder
+									.setHasMorePages(true)
+									.setPageCount(pages)
+									.setCurrentPage(page);
+							}
 						}
 						
 						

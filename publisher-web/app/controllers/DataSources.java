@@ -16,6 +16,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import play.Play;
 import play.libs.Akka;
@@ -25,6 +26,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.datasources.list;
+import views.html.datasources.columns;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -73,6 +75,37 @@ public class DataSources extends Controller {
 		return listByDataSourceAndCategory (null, categoryId, page);
 	}
 	
+	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new ListSourceDatasets (dataSourceId, categoryId))
+			.execute(new Function<Page<SourceDatasetStats>, Result>() {
+
+				@Override
+				public Result apply(Page<SourceDatasetStats> sourceDatasetsStats) throws Throwable {
+					List<ObjectNode> jsonSourceDatasets = new ArrayList<ObjectNode>();
+					
+					for(SourceDatasetStats sourceDatasetStats : sourceDatasetsStats.values()) {
+						SourceDataset sourceDataset = sourceDatasetStats.sourceDataset();
+						
+						ObjectNode jsonSourceDataset = Json.newObject();
+						jsonSourceDataset.put("id", sourceDataset.id());
+						jsonSourceDataset.put("name", sourceDataset.name());
+						jsonSourceDataset.put("count", sourceDatasetStats.datasetCount());						
+						
+						jsonSourceDatasets.add(jsonSourceDataset);
+					}
+					
+					ObjectNode result = Json.newObject();
+					result.put("sourceDatasets", Json.toJson(jsonSourceDatasets));					
+					
+					return ok(result);
+				}				
+			});
+	}
+	
 	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
@@ -104,7 +137,7 @@ public class DataSources extends Controller {
 			});
 	}
 	
-	public static Promise<Result> listColumnsJson(final String dataSourceId, final String sourceDatasetId) {
+	public static Promise<Result> listColumns(final String dataSourceId, final String sourceDatasetId) {
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -114,11 +147,8 @@ public class DataSources extends Controller {
 				.execute(new Function<List<Column>, Result>() {
 	
 					@Override
-					public Result apply(List<Column> columns) throws Throwable {
-						ObjectNode result = Json.newObject();
-						result.put("columns", Json.toJson(columns));
-						
-						return ok(result);
+					public Result apply(List<Column> c) throws Throwable {
+						return ok(columns.render(c));
 					}
 				});
 	}
