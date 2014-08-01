@@ -261,6 +261,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			
 			String categoryId = sdi.getCategoryId();
 			String dataSourceId = sdi.getDataSourceId();
+			String searchStr = sdi.getSearchString();
 			
 			SQLQuery baseQuery = context.query().from(sourceDataset)
 					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
@@ -274,6 +275,10 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				baseQuery.where(dataSource.identification.eq(dataSourceId));
 			}
 			
+			if (!(searchStr == null || searchStr.isEmpty())){
+				baseQuery.where(sourceDataset.name.containsIgnoreCase(searchStr)); 				
+			}
+				
 			SQLQuery listQuery = baseQuery.clone()					
 					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 			
