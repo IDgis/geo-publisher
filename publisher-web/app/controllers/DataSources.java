@@ -115,7 +115,10 @@ public class DataSources extends Controller {
 	
 					@Override
 					public Result apply(List<Column> columns) throws Throwable {
-						return ok(Json.toJson(columns));
+						ObjectNode result = Json.newObject();
+						result.put("columns", Json.toJson(columns));
+						
+						return ok(result);
 					}
 				});
 	}
