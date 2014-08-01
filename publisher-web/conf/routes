@@ -14,6 +14,7 @@ GET		/datasets/create								controllers.Datasets.createForm()
 
 # Datasources
 GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
+GET		/datasources.json								controllers.DataSources.listJson()
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)

@@ -2,7 +2,11 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import models.Domain.Function;
 import models.Domain.Function4;
@@ -28,6 +32,34 @@ import akka.actor.ActorSelection;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
+	
+	public static Promise<Result> listJson () {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.list(DataSource.class)
+			.execute(new Function<Page<DataSource>, Result>() {
+
+				@Override
+				public Result apply(Page<DataSource> page) throws Throwable {
+					List<JsonNode> jsonDataSources = new ArrayList<JsonNode>();
+					
+					for(DataSource dataSource : page.values()) {
+						 ObjectNode jsonDataSource = Json.newObject();
+						 jsonDataSource.put("id", dataSource.id());
+						 jsonDataSource.put("name", dataSource.name());
+						 
+						 jsonDataSources.add(jsonDataSource);
+					}
+					
+					ObjectNode result = Json.newObject();
+					result.put("dataSources", Json.toJson(jsonDataSources));
+					
+					return ok(result);
+				}
+				
+			});
+	}
 
 	public static Promise<Result> list (final long page) {
 		return listByDataSourceAndCategory (null, null, page);
