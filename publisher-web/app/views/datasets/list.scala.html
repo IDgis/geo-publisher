@@ -17,6 +17,13 @@
 	<a href="@routes.Datasets.list()">Alle categori&euml;n</a>
 }
 
+@pageRef(targetPage: Long) = @{	  
+	if(currentCategory == null) 
+		routes.Datasets.list(targetPage)
+	else
+		routes.Datasets.listByCategory(currentCategory.id, targetPage)		
+}
+
 @layout.application(
 	title = "Datasets",
 	jsMain = routes.Assets.at("js/datasets/main.js").url
@@ -164,15 +171,7 @@
 					
 				</div>
 				
-				<ul class="pagination">
-					<li><a href="#">&laquo;</a></li>
-					<li><a href="#">1</a></li>
-					<li><a href="#">2</a></li>
-					<li><a href="#">3</a></li>
-					<li><a href="#">4</a></li>
-					<li><a href="#">5</a></li>
-					<li><a href="#">&raquo;</a></li>
-				</ul>
+				@helper.pagination(datasets, pageRef)
 				}
 			</div>
 		</div>

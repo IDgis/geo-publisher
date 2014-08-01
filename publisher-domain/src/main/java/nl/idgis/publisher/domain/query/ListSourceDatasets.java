@@ -11,10 +11,12 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	
 	private final String dataSourceId;
 	private final String categoryId;
+	private final long page;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category) {
+	public ListSourceDatasets (final DataSource dataSource, final Category category, final long page) {
 		this.dataSourceId = dataSource == null ? null : dataSource.id ();
 		this.categoryId = category == null ? null : category.id ();
+		this.page = page;
 	}
 	
 	public String dataSourceId () {
@@ -23,5 +25,9 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	
 	public String categoryId () {
 		return this.categoryId;
+	}
+	
+	public long getPage () {
+		return this.page;
 	}
 }
