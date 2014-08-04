@@ -168,6 +168,9 @@ public class Datasets extends Controller {
 		private String name;
 
 		@Constraints.Required
+		private String dataSourceId;
+		
+		@Constraints.Required
 		private String categoryId;
 		
 		@Constraints.Required
@@ -183,6 +186,14 @@ public class Datasets extends Controller {
 			this.name = name;
 		}
 		
+		public String getDataSourceId () {
+			return dataSourceId;
+		}
+
+		public void setDataSourceId (final String dataSourceId) {
+			this.dataSourceId = dataSourceId;
+		}
+
 		public String getCategoryId() {
 			return categoryId;
 		}

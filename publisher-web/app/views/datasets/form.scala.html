@@ -34,48 +34,42 @@
 								'_help -> "De naam van de dataset"
 							)
 							
-							@*
-							<div class="form-group">
-								<label for="input-name" class="col-sm-3 control-label">Naam</label>
-								<div class="col-sm-9">
-									<input name="name" type="text" class="form-control" id="input-name" placeholder="Naam ...">
-								</div>
-							</div>
-							*@
+							@helper.select(
+								datasetForm("dataSourceId"),
+								helper.options(
+									"" -> "Selecteer een gegevensbron ..."
+								) ++
+								dataSources.values.map (dataSource => { dataSource.id -> dataSource.name }),
+								'_label -> "Gegegensbron",
+								'id -> "input-datasource",
+								'class -> "form-control",
+								'_help -> "De gegevensbron die de gegevens voor deze dataset bevat"
+							)
 							
-							<div class="form-group">
-								<label for="input-datasource" class="col-sm-3 control-label">Gegevensbron</label>
-								<div class="col-sm-9">
-									<select name="dataSourceId" id="input-datasource" class="form-control">
-										<option value="">Selecteer een gegevensbron ...</option>										
-										@for(dataSource <- dataSources.values) {
-											<option value="@dataSource.id">@dataSource.name</option>
-										}
-									</select>									
-								</div>
-							</div>
-							
-							<div class="form-group">
-								<label for="input-category" class="col-sm-3 control-label">Categorie</label>
-								<div class="col-sm-9">
-									<select name="categoryId" id="input-category" class="form-control">
-										<option value="">Selecteer een categorie ...</option>
-										@for(category <- categories.values) {
-											<option value="@category.id">@category.name</option>
-										}
-									</select>
-								</div>
-							</div>
-							
-							<div class="form-group">
-								<label for="input-source-dataset" class="col-sm-3 control-label">Dataset</label>
-								<div class="col-sm-9">
-									<select name="sourceDatasetId" id="input-source-dataset" class="form-control" disabled>
-										<option value="">Selecteer een dataset ...</option>
-									</select>
-								</div>
-							</div>
-							
+							@helper.select(
+								datasetForm("categoryId"),
+								helper.options(
+									"" -> "Selecteer een categorie ..."
+								) ++
+								categories.values.map (category => { category.id -> category.name }),
+								'_label -> "Categorie",
+								'id -> "input-category",
+								'class -> "form-control",
+								'_help -> "De categorie van de dataset"
+							)
+
+							@helper.select(
+								datasetForm("sourceDatasetId"),
+								helper.options(
+									"" -> "Selecteer een dataset ..."
+								),
+								Symbol("data-original-value") -> (if(datasetForm("sourceDatasetId").value == null) "" else datasetForm("sourceDatasetId").value),
+								'disabled -> "disabled",
+								'_label -> "Dataset",
+								'id -> "input-source-dataset",
+								'class -> "form-control",
+								'_help -> "De dataset uit de brongegevens waar deze dataset op is gebaseerd."
+							)
 						</div>						
 					</div>
 				</div>
