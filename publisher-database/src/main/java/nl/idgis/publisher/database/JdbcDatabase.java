@@ -24,12 +24,14 @@ public abstract class JdbcDatabase extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final String poolName;
 	protected final Config config;
 	
 	private BoneCP connectionPool;
 	
-	public JdbcDatabase(Config config) {
+	public JdbcDatabase(Config config, String poolName) {
 		this.config = config;
+		this.poolName = poolName;
 	}
 	
 	@Override
@@ -43,6 +45,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		boneCpConfig.setJdbcUrl(config.getString("url"));
 		boneCpConfig.setUsername(config.getString("user"));
 		boneCpConfig.setPassword(config.getString("password"));
+		boneCpConfig.setPoolName(poolName);
 		
 		log.debug("creating database pool");
 		connectionPool = new BoneCP(boneCpConfig); 

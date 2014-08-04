@@ -3,6 +3,7 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
@@ -410,7 +411,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 									.and(importLogSub.createTime.after(importLog.createTime))
 									.and(importLogSub.event.eq(Events.toString(GenericEvent.STARTED))))										
 								.notExists()))
-				.singleResult(
+				.singleResult(					
+					dataset.id,
 					dataSource.identification, 
 					sourceDataset.identification, 
 					dataset.identification);
@@ -418,10 +420,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			if(t == null) {
 				context.answer(new NoJob());
 			} else {
-				context.answer(new ImportJob(
+				List<Column> columns = context.query().from(datasetColumn)	
+					.where(datasetColumn.datasetId.eq(t.get(dataset.id)))
+					.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
+				
+				context.answer(new ImportJob(					
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification), 
-					t.get(dataset.identification)));
+					t.get(dataset.identification), columns));
 			}
 		} else {
 			throw new IllegalArgumentException("Unknown query");

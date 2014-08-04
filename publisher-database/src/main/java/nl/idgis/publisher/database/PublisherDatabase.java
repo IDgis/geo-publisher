@@ -9,7 +9,7 @@ import com.typesafe.config.Config;
 public class PublisherDatabase extends JdbcDatabase {
 
 	public PublisherDatabase(Config config) {
-		super(config);		
+		super(config, "publisher");		
 	}
 	
 	public static Props props(Config config) {

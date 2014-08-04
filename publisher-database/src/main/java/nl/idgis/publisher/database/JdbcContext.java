@@ -1,6 +1,8 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import akka.actor.ActorRef;
@@ -29,6 +31,12 @@ class JdbcContext {
 			sender.tell(msg, self);
 			answered = true;
 		}
+	}
+	
+	void execute(String sql) throws SQLException {
+		Statement stmt = connection.createStatement();
+		stmt.execute(sql);
+		stmt.close();
 	}
 	
 	void ack() {

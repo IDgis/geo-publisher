@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service;
 
 import scala.concurrent.Future;
+import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.Version;
@@ -26,7 +27,7 @@ public class App extends UntypedActor {
 	
 	private final Config config;
 	
-	private ActorRef database, harvester, loader;
+	private ActorRef geometryDatabase, database, harvester, loader;
 	
 	public App(Config config) {
 		this.config = config;
@@ -38,6 +39,9 @@ public class App extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
+		Config geometryDatabaseConfig = config.getConfig("geometry-database");
+		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		
 		Config databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
@@ -52,7 +56,7 @@ public class App extends UntypedActor {
 				Config harvesterConfig = config.getConfig("harvester");
 				harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
 				
-				loader = getContext().actorOf(Loader.props(database, harvester), "loader");
+				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 				
 				getContext().actorOf(Admin.props(database, harvester), "admin");
 				
