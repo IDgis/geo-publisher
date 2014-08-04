@@ -19,6 +19,7 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJob;
@@ -250,6 +251,34 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					.singleResult(new QDatasetInfo(dataset.identification, dataset.identification, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name)));
+			
+		} else if(query instanceof GetSourceDatasetInfo) {
+			GetSourceDatasetInfo sdi = (GetSourceDatasetInfo)query;
+			log.debug(sdi.toString());
+			String sourceDatasetId = sdi.getId();
+			
+			SQLQuery baseQuery = context.query().from(sourceDataset)
+					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.join (category).on(sourceDataset.categoryId.eq(category.id));
+			
+			if(sourceDatasetId != null) {				
+				baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
+			}
+				
+			SQLQuery listQuery = baseQuery.clone()					
+					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+			
+			context.answer(
+				listQuery					
+					.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+					.groupBy(dataSource.identification).groupBy(dataSource.name)
+					.groupBy(category.identification).groupBy(category.name)						
+					.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+							dataSource.identification, dataSource.name,
+							category.identification,category.name,
+							dataset.count())
+				)
+			);
 			
 		} else if(query instanceof GetDataSourceInfo) {
 			context.answer(
