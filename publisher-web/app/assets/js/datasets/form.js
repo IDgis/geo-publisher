@@ -5,7 +5,7 @@ require ([
 	'dojo/dom-class',
 	'dojo/query', 
 	'dojo/on', 
-	'dojo/_base/xhr', 
+	'dojo/request/xhr', 
 	
 	'dojo/domReady!'], 
 	
@@ -23,20 +23,19 @@ require ([
 			
 		if(category !== '' && dataSource !== '') {
 			var route = jsRoutes.controllers.DataSources.listByDataSourceAndCategoryJson(dataSource, category, 1);
-			xhr.get({
-				url: route.url, handleAs: 'json',
-				load: function(data) {
-					for(var i = 0; i < data.sourceDatasets.length; i++) {
-						var dataset = data.sourceDatasets[i];
-						
-						domConstruct.create('option', {
-							value: dataset.id,
-							innerHTML: dataset.name
-						}, datasetSelect);	
-					}
+			xhr.get(route.url, {
+				handleAs: 'json'
+			}).then (function(data) {
+				for(var i = 0; i < data.sourceDatasets.length; i++) {
+					var dataset = data.sourceDatasets[i];
 					
-					domAttr.remove(datasetSelect, 'disabled');
+					domConstruct.create('option', {
+						value: dataset.id,
+						innerHTML: dataset.name
+					}, datasetSelect);	
 				}
+				
+				domAttr.remove(datasetSelect, 'disabled');
 			});
 		} else {
 			domAttr.set(datasetSelect, 'disabled', 'disabled');
@@ -74,15 +73,13 @@ require ([
 		domConstruct.empty(columnList);
 		
 		if(id !== '') {
-			var route = jsRoutes.controllers.DataSources.listColumns(dataSource, id);
-			xhr.get({
-				url: route.url, handleAs: 'text',
-				load: function(data) {					
-					
-					columnList.innerHTML = data;
-					
-					updateColumnCount();
-				}
+			var route = jsRoutes.controllers.Datasets.listColumns(dataSource, id);
+			xhr.get(route.url, {
+				handleAs: 'text'
+			}).then (function(data) {					
+				columnList.innerHTML = data;
+				
+				updateColumnCount();
 			});
 		
 			tabs.forEach(function(tab) {

@@ -1,12 +1,10 @@
-@import nl.idgis.publisher.domain.service.Column
-
-@(columns: List[Column])
+@(columns: List[service.Column])
 
 @for(column <- columns) {
 	<label class="list-group-item">
 		<div class="row">
 			<div class="col-sm-1 text-center">
-				<input name="column.@column.getName()" type="checkbox" checked>
+				<input name="columns[@column.getName()]" type="checkbox" checked>
 			</div>
 			<div class="col-sm-11">
 				<div>@column.getName()</div>

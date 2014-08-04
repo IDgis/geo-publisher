@@ -1,0 +1,15 @@
+@(title: String, form: Form[_], submitAction: play.api.mvc.Call, cancelAction: play.api.mvc.Call)(content: Html)
+
+<h1>@title</h1>
+
+@if(form.hasGlobalErrors) {
+	<div class="alert alert-error">
+		<strong>@form.globalError.message</strong>
+	</div>
+}
+	
+@helper.form(action = submitAction, 'class -> "form-horizontal") {
+	@content
+	
+	@helper.bootstrap.saveCancel(cancelAction)
+}

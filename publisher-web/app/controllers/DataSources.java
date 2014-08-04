@@ -115,20 +115,4 @@ public class DataSources extends Controller {
 				}
 			});
 	}
-	
-	public static Promise<Result> listColumns(final String dataSourceId, final String sourceDatasetId) {
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return 
-			from(database)
-				.query(new ListColumns(dataSourceId, sourceDatasetId))
-				.execute(new Function<List<Column>, Result>() {
-	
-					@Override
-					public Result apply(List<Column> c) throws Throwable {
-						return ok(columns.render(c));
-					}
-				});
-	}
 }

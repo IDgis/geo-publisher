@@ -1,7 +1,6 @@
-@import nl.idgis.publisher.domain.web._
-@import nl.idgis.publisher.domain.response._
+@(dataSources: Page[web.DataSource], categories: Page[web.Category], datasetForm: Form[controllers.Datasets.DatasetForm])
 
-@(dataSources: Page[DataSource], categories: Page[Category])
+@implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
 @layout.application(
 	title = "Nieuwe dataset toevoegen",
@@ -10,7 +9,7 @@
 	<div class="page-content">
 		<h1 class="page-header">Nieuwe dataset toevoegen</h1>
 		
-		<form action="@routes.Datasets.create()" method="post" class="form-horizontal" role="form">
+		<form action="@routes.Datasets.submitCreate()" method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
@@ -23,12 +22,23 @@
 				<div class="tab-pane active" id="dataset-details">
 					<div class="row">
 						<div class="col-lg-8">
+							@helper.inputText(
+								datasetForm("name"), 
+								'_label -> "Naam", 
+								'id -> "input-name", 
+								'class -> "form-control", 
+								'placeholder -> "Naam ...", 
+								'_help -> "De naam van de dataset"
+							)
+							
+							@*
 							<div class="form-group">
 								<label for="input-name" class="col-sm-3 control-label">Naam</label>
 								<div class="col-sm-9">
 									<input name="name" type="text" class="form-control" id="input-name" placeholder="Naam ...">
 								</div>
 							</div>
+							*@
 							
 							<div class="form-group">
 								<label for="input-datasource" class="col-sm-3 control-label">Gegevensbron</label>
