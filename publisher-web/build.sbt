@@ -22,8 +22,6 @@ includeFilter in (Assets, LessKeys.less) := "*.less"
 
 pipelineStages := Seq(rjs)
 
-TwirlKeys.templateImports ++= Seq("nl.idgis.publisher.domain._", "nl.idgis.publisher.domain.response._")
-
 resolvers += "idgis-public" at "http://nexus.idgis.eu/content/groups/public/"
 
 resolvers += "idgis-thirdparty" at "http://nexus.idgis.eu/content/repositories/thirdparty/"

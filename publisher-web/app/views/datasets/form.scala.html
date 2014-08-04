@@ -1,4 +1,7 @@
-@(dataSources: Page[web.DataSource], categories: Page[web.Category], datasetForm: Form[controllers.Datasets.DatasetForm])
+@import nl.idgis.publisher.domain.web._
+@import nl.idgis.publisher.domain.response._
+
+@(dataSources: Page[DataSource], categories: Page[Category], datasetForm: Form[controllers.Datasets.DatasetForm])
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 

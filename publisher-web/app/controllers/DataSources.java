@@ -25,7 +25,6 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.datasources.list;
-import views.html.datasources.columns;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;

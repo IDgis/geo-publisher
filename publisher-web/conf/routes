@@ -15,6 +15,7 @@ GET		/datasets/create								controllers.Datasets.createForm()
 POST	/datasets/create								controllers.Datasets.submitCreate()
 GET		/datasets/:datasetId/edit						controllers.Datasets.editForm(datasetId: String)
 POST	/datasets/:datasetId/edit						controllers.Datasets.submitEdit(datasetId: String)
+GET 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId : String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden

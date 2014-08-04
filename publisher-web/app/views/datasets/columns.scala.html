@@ -1,4 +1,6 @@
-@(columns: List[service.Column])
+@import nl.idgis.publisher.domain.service._
+
+@(columns: List[Column])
 
 @for(column <- columns) {
 	<label class="list-group-item">
