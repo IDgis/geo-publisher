@@ -68,9 +68,8 @@ public class ProviderClient extends UntypedActor {
 				} else if(msg instanceof GetDataset) {
 					log.debug("retrieving data from provider");
 					
-					final ActorRef sender = getSender();
-					final GetDataset getDataset = (GetDataset)msg;					
-					Ask.ask(getContext(), metadata, new GetMetadata(getDataset.getId()), 15000)
+					final GetDataset gd = (GetDataset)msg;					
+					Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
 						.onSuccess(new OnSuccess<Object>() {
 
 							@Override
@@ -84,7 +83,7 @@ public class ProviderClient extends UntypedActor {
 								} else {
 									log.debug("requesting table");
 									
-									ActorRef receiver = getContext().actorOf(ProviderDataset.props(sender));
+									ActorRef receiver = getContext().actorOf(gd.getReceiverProps());									
 									database.tell(new FetchTable(tableName), receiver); 
 								}
 							}

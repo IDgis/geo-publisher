@@ -3,6 +3,7 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
+import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
@@ -88,16 +89,27 @@ public class Harvester extends UntypedActor {
 			log.debug("connected datasources requested");
 			getSender().tell(dataSources.keySet(), getSelf());
 		} else if(msg instanceof RequestDataset) {
-			RequestDataset requestDataset = (RequestDataset)msg;
-			
 			log.debug("dataset requested");
-			String dataSourceId = requestDataset.getDataSourceId();
+			
+			final RequestDataset requestDataset = (RequestDataset)msg;
+			final String dataSourceId = requestDataset.getDataSourceId();
 			if(dataSources.containsKey(dataSourceId)) {
 				log.debug("requesting dataSource to send data");
 				
-				ActorRef dataSource = dataSources.get(dataSourceId);
-				dataSource.tell(new GetDataset(
-						requestDataset.getSourceDatasetId()), getSender());
+				final ActorRef sender = getSender(); 
+				ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, requestDataset.getDatasetId());
+				Patterns.ask(database, new StoreLog(logLine), 15000)
+					.onSuccess(new OnSuccess<Object>() {
+
+						@Override
+						public void onSuccess(Object msg) throws Throwable {
+							ActorRef dataSource = dataSources.get(dataSourceId);
+							dataSource.tell(new GetDataset(
+									requestDataset.getSourceDatasetId(), 
+									requestDataset.getReceiverProps()), sender);
+							
+						}
+					}, getContext().dispatcher());
 			} else {
 				log.warning("dataSource not connected: " + dataSourceId);
 			}		 

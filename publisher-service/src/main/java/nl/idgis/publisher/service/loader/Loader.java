@@ -1,17 +1,13 @@
 package nl.idgis.publisher.service.loader;
 
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.harvester.messages.RequestDataset;
 import nl.idgis.publisher.service.loader.messages.ImportDataset;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 public class Loader extends UntypedActor {
 	
@@ -38,18 +34,15 @@ public class Loader extends UntypedActor {
 		if(msg instanceof ImportDataset) {
 			log.debug("data import requested: " + msg);
 			
-			final ImportDataset importDataset = (ImportDataset)msg;
 			
-			ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, ((ImportDataset) msg).getDatasetId());
-			Patterns.ask(database, new StoreLog(logLine), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						ActorRef session = getContext().actorOf(LoaderSession.props(database));
-						harvester.tell(new RequestDataset(importDataset.getDataSourceId(), importDataset.getSourceDatasetId()), session);
-					}
-				}, getContext().dispatcher());
+			ImportDataset importDataset = (ImportDataset)msg;
+			String datasetId = importDataset.getDatasetId();			
+			
+			harvester.tell(new RequestDataset(
+					datasetId, 
+					importDataset.getDataSourceId(), 
+					importDataset.getSourceDatasetId(),
+					LoaderSession.props(datasetId, database)), getSelf());
 		} else {
 			unhandled(msg);
 		}
