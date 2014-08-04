@@ -15,11 +15,13 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
@@ -86,6 +88,14 @@ public class Admin extends UntypedActor {
 			} else {
 				sender ().tell (null, self ());
 			}
+		} else if (message instanceof PutEntity<?>) {
+			final PutEntity<?> putEntity = (PutEntity<?>)message;
+			
+		} else if (message instanceof DeleteEntity<?>) {
+			final DeleteEntity<?> delEntity = (DeleteEntity<?>)message;
+			if (delEntity.cls ().equals (Dataset.class)) {
+				handleDeleteDataset(delEntity.id());
+			}
 		} else if (message instanceof ListSourceDatasets) {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
@@ -97,6 +107,26 @@ public class Admin extends UntypedActor {
 		}
 	}
 	
+	private void handleDeleteDataset(String id) {
+		// TODO Auto-generated method stub
+		log.debug ("handle delete dataset: " + id);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(id), 15000);
+				categoryInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						CategoryInfo categoryInfo = (CategoryInfo)msg;
+						log.debug("category info received");
+						Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
+						log.debug("sending category: " + category);
+						sender.tell (category, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
 	private void handleListColumns (final ListColumns listColumns) {
 		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
 		

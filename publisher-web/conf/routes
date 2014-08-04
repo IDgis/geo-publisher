@@ -12,6 +12,8 @@ GET		/datasets/category/:categoryId					controllers.Datasets.listByCategory(cate
 GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.listByCategoryWithMessages(categoryId: String, page: Long ?= 1)
 GET		/datasets/create								controllers.Datasets.createForm()
 POST	/datasets/create								controllers.Datasets.create()
+POST	/datasets/update								controllers.Datasets.update()
+GET 	/datasets/delete/:datasetId						controllers.Datasets.delete(datasetId : String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden

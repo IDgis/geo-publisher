@@ -1,25 +1,30 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.ArrayList;
+
 import models.Domain.Function;
 import models.Domain.Function2;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
-import nl.idgis.publisher.domain.web.SourceDatasetStats;
-import actions.DefaultAuthenticator;
-import actors.Database;
-import akka.actor.ActorSelection;
+import nl.idgis.publisher.domain.web.PutDataset;
+import nl.idgis.publisher.domain.web.SourceDataset;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.datasets.list;
 import views.html.datasets.form;
+import views.html.datasets.list;
+import actions.DefaultAuthenticator;
+import actors.Database;
+import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
@@ -43,8 +48,36 @@ public class Datasets extends Controller {
 		return listByCategoryAndMessages(categoryId, true, page);
 	}
 	
-	public static Result create() {
-		return ok();
+	public static Promise<Result> delete(final String datasetId){
+		System.out.println("delete dataset " + datasetId);
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		from(database).delete(Dataset.class, datasetId); 
+		return list(1);
+	}
+	
+	public static Promise<Result> update(){
+		// TODO construct putdataset from form (putdataset.id != null)
+		PutDataset putDataset = new PutDataset("1", "MyUpdatedDataset", "SomeSourceDataset", new ArrayList<Column>());		
+		System.out.println("update dataset " + putDataset.getDatasetIdentification());
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		from(database).put(putDataset); 
+		
+		return list(1);
+	}
+	
+	public static Promise<Result>  create() {
+		// TODO construct putdataset from form (putdataset.id == null)
+		PutDataset putDataset = new PutDataset(null, "MyCreatedDataset", "SomeSourceDataset", new ArrayList<Column>());		
+		System.out.println("create dataset " + putDataset.getDatasetIdentification());
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		from(database).put(putDataset); 
+		
+		return list(1);
 	}
 	
 	public static Promise<Result> createForm () {
