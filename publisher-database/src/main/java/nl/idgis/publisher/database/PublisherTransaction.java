@@ -79,7 +79,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.set(sourceDatasetColumn.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetColumn.index, i++)
 				.set(sourceDatasetColumn.name, column.getName())
-				.set(sourceDatasetColumn.dataType, column.getDataType())
+				.set(sourceDatasetColumn.dataType, column.getDataType().toString())
 				.execute();
 		}
 	}

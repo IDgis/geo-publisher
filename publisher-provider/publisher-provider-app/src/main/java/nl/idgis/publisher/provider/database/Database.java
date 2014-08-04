@@ -14,14 +14,19 @@ import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
+import nl.idgis.publisher.provider.protocol.database.Type;
 import nl.idgis.publisher.stream.StreamAggregator;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
-public class Database extends UntypedActor {	
+public class Database extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final String driver, url, user, password;
 	
@@ -86,15 +91,37 @@ public class Database extends UntypedActor {
 								return new TableNotFound();
 							} 
 							
-							Column[] columns = new Column[recordCount];
-							
-							int i = 0;
+							ArrayList<Column> columns = new ArrayList<>();
 							for(Record record : records) {
 								List<Object> values = record.getValues();
-								columns[i++] = new Column((String)values.get(0), (String)values.get(1));
+								
+								String name = (String) values.get(0);
+								String typeName = (String) values.get(1);
+								
+								Type type;
+								switch(typeName.toUpperCase()) {
+									case "NUMBER":
+										type = Type.NUMBER;
+										break;
+									case "DATE":
+										type = Type.DATE;
+										break;
+									case "VARCHAR2":
+									case "NVARCHAR2":
+										type = Type.TEXT;
+										break;
+									case "SDO_GEOMETRY":
+										type = Type.GEOMETRY;
+										break;
+									default:
+										log.debug("unknown data type: " + typeName);
+										continue;
+								}
+								
+								columns.add(new Column(name, type));
 							}
 							
-							return new TableDescription(columns);				
+							return new TableDescription(columns.toArray(new Column[columns.size()]));				
 						}
 					}, getContext().dispatcher());
 			

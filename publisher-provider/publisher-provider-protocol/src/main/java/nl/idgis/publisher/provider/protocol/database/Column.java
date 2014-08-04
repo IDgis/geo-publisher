@@ -7,9 +7,9 @@ public class Column implements Serializable {
 	private static final long serialVersionUID = -5278210987617964061L;
 	
 	private final String name;
-	private final String type;
+	private final Type type;
 	
-	public Column(String name, String type) {
+	public Column(String name, Type type) {
 		this.name = name;
 		this.type = type;
 	}
@@ -18,7 +18,7 @@ public class Column implements Serializable {
 		return name;
 	}
 
-	public String getType() {
+	public Type getType() {
 		return type;
 	}
 
