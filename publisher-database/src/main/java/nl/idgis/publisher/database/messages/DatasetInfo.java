@@ -8,12 +8,13 @@ public class DatasetInfo implements Serializable {
 
 	private static final long serialVersionUID = 1483600283295264723L;
 	
-	private final String id, name;
+	private final Integer id;
+	private final String name;
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
 
 	@QueryProjection
-	public DatasetInfo(String id, String name, String sourceDatasetId,
+	public DatasetInfo(Integer id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName) {
 		super();
 		this.id = id;
@@ -24,7 +25,7 @@ public class DatasetInfo implements Serializable {
 		this.categoryName = categoryName;
 	}
 
-	public String getId() {
+	public Integer getId() {
 		return id;
 	}
 

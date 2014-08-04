@@ -52,7 +52,17 @@ public class Datasets extends Controller {
 		System.out.println("delete dataset " + datasetId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Dataset.class, datasetId); 
+		from(database).delete(Dataset.class, datasetId)
+			.execute(new Function<Boolean, Result>() {
+
+				@Override
+				public Result apply(Boolean a) throws Throwable {
+					// TODO Auto-generated method stub
+					System.out.println("apply delete: " + a);
+					return null;
+				}
+			});
+ 
 		return list(1);
 	}
 	

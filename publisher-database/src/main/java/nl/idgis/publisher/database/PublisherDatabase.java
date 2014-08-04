@@ -3,15 +3,18 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QHarvestLog.harvestLog;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QHarvestLog.harvestLog;
 
 import java.sql.Timestamp;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
+import nl.idgis.publisher.database.messages.DatasetInfo;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -19,11 +22,11 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
+import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJob;
 import nl.idgis.publisher.database.messages.InfoList;
-import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
@@ -237,7 +240,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 			context.answer(
 					baseQuery
 					.orderBy(dataset.identification.asc())
-					.list(new QDatasetInfo(dataset.identification, dataset.identification, 
+					.list(new QDatasetInfo(dataset.id, dataset.identification, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name))
 			);
@@ -247,7 +250,7 @@ public class PublisherDatabase extends QueryDSLDatabase {
 					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
 					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
-					.singleResult(new QDatasetInfo(dataset.identification, dataset.identification, 
+					.singleResult(new QDatasetInfo(dataset.id, dataset.identification, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name)));
 			
@@ -377,6 +380,34 @@ public class PublisherDatabase extends QueryDSLDatabase {
 				.where(sourceDataset.identification.eq(di.getSourceDatasetId())
 					.and(dataSource.identification.eq(di.getDataSourceId())))
 				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
+		} else if (query instanceof DeleteDataset) {
+			DeleteDataset dd = (DeleteDataset)query;
+
+			DatasetInfo datasetInfo = 
+					context.query().from(dataset)
+			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
+			.where(dataset.identification.eq( dd.getId() ))
+			.singleResult(new QDatasetInfo(dataset.id, dataset.identification, 
+					sourceDataset.identification, sourceDataset.name,
+					category.identification,category.name));
+			log.debug(datasetInfo.toString());			
+			
+			Long nrOfDatasetsDeleted = context.delete(dataset)
+				.where(dataset.id.eq(datasetInfo.getId()))
+				.execute();
+			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
+			
+			Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
+				.where(datasetColumn.datasetId.eq(datasetInfo.getId()))
+				.execute();
+			log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
+			
+			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted > 0){
+				context.answer(new Boolean(true));
+			} else {
+				context.answer(new Boolean(false));
+			}
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}

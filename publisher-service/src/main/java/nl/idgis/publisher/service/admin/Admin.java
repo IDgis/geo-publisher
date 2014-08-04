@@ -6,6 +6,7 @@ import java.util.Set;
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -108,20 +109,17 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleDeleteDataset(String id) {
-		// TODO Auto-generated method stub
 		log.debug ("handle delete dataset: " + id);
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(id), 15000);
-				categoryInfo.onSuccess(new OnSuccess<Object>() {
+		final Future<Object> deleteDatasetInfo = Patterns.ask(database, new DeleteDataset(id), 15000);
+				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						CategoryInfo categoryInfo = (CategoryInfo)msg;
-						log.debug("category info received");
-						Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
-						log.debug("sending category: " + category);
-						sender.tell (category, self);
+						Boolean deletedDataset = (Boolean)msg;
+						log.debug ("deleted dataset id: " + deletedDataset);
+						sender.tell (deletedDataset, self);
 					}
 				}, getContext().dispatcher());
 
@@ -245,7 +243,7 @@ public class Admin extends UntypedActor {
 						DatasetInfo datasetInfo = (DatasetInfo)msg;
 						log.debug("dataset info received");
 						Dataset dataset = 
-								new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+								new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 										new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 										new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 										null, // notification list
@@ -336,7 +334,7 @@ public class Admin extends UntypedActor {
 						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
-							final Dataset dataset =  new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 									null, // notification list
