@@ -8,6 +8,7 @@
 		routes.Assets.at("stylesheets/sb-admin.css").url
 	),
 	scripts = Array(
+		routes.Application.javascriptRoutes.url,
 		routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js")).url,
 		routes.WebJarAssets.at(WebJarAssets.locate("js/bootstrap.min.js")).url,
 		routes.Assets.at("js/layout.js").url

@@ -11,6 +11,7 @@ GET		/datasets/status/with-messages					controllers.Datasets.listWithMessages(pa
 GET		/datasets/category/:categoryId					controllers.Datasets.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.listByCategoryWithMessages(categoryId: String, page: Long ?= 1)
 GET		/datasets/create								controllers.Datasets.createForm()
+POST	/datasets/create								controllers.Datasets.create()
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden
@@ -18,7 +19,9 @@ GET		/datasources/searching							controllers.DataSources.search(searchString: S
 GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId/:sourceDatasetId/columns	controllers.DataSources.listColumns(dataSourceId: String, sourceDatasetId: String)					
 
 # User
 GET		/user/login										controllers.User.login(r: String)
@@ -26,5 +29,6 @@ GET		/user/logout									controllers.User.logout()
 POST	/user/authenticate								controllers.User.authenticate()
 
 # Map static resources from the /public folder to the /assets URL path
+GET		/javascriptRoutes  								controllers.Application.javascriptRoutes
 GET     /assets/*file               					controllers.Assets.at(path="/public", file)
 GET		/lib/*file										controllers.WebJarAssets.at(file)

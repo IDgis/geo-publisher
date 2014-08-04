@@ -11,10 +11,12 @@ import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
+import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
+import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -88,11 +90,19 @@ public class Admin extends UntypedActor {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
 			handleListDatasets (((ListDatasets)message));
+		} else if (message instanceof ListColumns) {
+			handleListColumns ((ListColumns) message);
 		} else {
 			unhandled (message);
 		}
 	}
 	
+	private void handleListColumns (final ListColumns listColumns) {
+		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
+		
+		database.tell(di, getSender());
+	}
+
 	private void handleListDataSources (final ListEntity<?> listEntity) {
 		log.debug ("List received for: " + listEntity.cls ().getCanonicalName ());
 		
@@ -223,9 +233,18 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final long page = message.getPage();
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, 
-				new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId(), message.getSearchString(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
+		final Long page = message.getPage();
+		
+		final Long offset, limit;		 
+		if(page == null) {
+			offset = null;
+			limit = null;
+		} else {
+			offset = (page - 1) * ITEMS_PER_PAGE;
+			limit = ITEMS_PER_PAGE;
+		}
+		
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetListInfo(message.dataSourceId(), message.categoryId(), message.getSearchString(), offset, limit), 15000);
 		
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 
@@ -248,14 +267,16 @@ public class Admin extends UntypedActor {
 							pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
 						}
 						
-						long count = sourceDatasetInfoList.getCount();
-						long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
-						
-						if(pages > 1) {
-							pageBuilder
-								.setHasMorePages(true)
-								.setPageCount(pages)
-								.setCurrentPage(page);
+						if(page != null) {
+							long count = sourceDatasetInfoList.getCount();
+							long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
+							
+							if(pages > 1) {
+								pageBuilder
+									.setHasMorePages(true)
+									.setPageCount(pages)
+									.setCurrentPage(page);
+							}
 						}
 						
 						

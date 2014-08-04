@@ -12,11 +12,40 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	private final String dataSourceId;
 	private final String categoryId;
 	private final String searchString;
-	private final long page;
+	private final Long page;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, final String searchString, final long page) {
-		this.dataSourceId = dataSource == null ? null : dataSource.id ();
-		this.categoryId = category == null ? null : category.id ();
+	public ListSourceDatasets (final DataSource dataSource, final Category category) {
+		this(dataSource, category, null, null);
+	}
+	
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString) {
+		this(dataSource, category, searchString, null);
+	}
+	
+	public ListSourceDatasets (final DataSource dataSource, final Category category, final Long page) {
+		this(dataSource, category, null, page);
+	}
+	
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Long page) {
+		this(dataSource == null ? null : dataSource.id (), 
+			category == null ? null : category.id (), searchString, page);
+	}
+	
+	public ListSourceDatasets (String dataSourceId, String categoryId) {
+		this(dataSourceId, categoryId, null, null);
+	}
+	
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString) {
+		this(dataSourceId, categoryId, searchString, null);
+	}
+	
+	public ListSourceDatasets (String dataSourceId, String categoryId, final Long page) {
+		this(dataSourceId, categoryId, null, page);
+	}
+	
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Long page) {
+		this.dataSourceId = dataSourceId;
+		this.categoryId = categoryId;
 		this.searchString = searchString;
 		this.page = page;
 	}
@@ -33,7 +62,7 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 		return this.searchString;
 	}
 
-	public long getPage () {
+	public Long getPage () {
 		return this.page;
 	}
 }

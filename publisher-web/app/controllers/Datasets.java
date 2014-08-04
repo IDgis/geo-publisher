@@ -43,8 +43,24 @@ public class Datasets extends Controller {
 		return listByCategoryAndMessages(categoryId, true, page);
 	}
 	
-	public static Result createForm () {
-		return ok (form.render ());
+	public static Result create() {
+		return ok();
+	}
+	
+	public static Promise<Result> createForm () {
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.list(DataSource.class)
+			.list(Category.class)
+			.execute(new Function2<Page<DataSource>, Page<Category>, Result>() {
+
+				@Override
+				public Result apply(Page<DataSource> dataSources, Page<Category> categories) throws Throwable {
+					return ok (form.render (dataSources, categories));
+				}
+			});
 	}
 	
 	
