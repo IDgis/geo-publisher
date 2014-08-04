@@ -36,6 +36,14 @@ public class DataSources extends Controller {
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final long page) {
+			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, null, page);
+	}
+	
+	public static Promise<Result> search (final String search, final long page) {
+		return listByDataSourceAndCategoryAndSearchString (null, null, search, page);
+	}
+	
+	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, final String categoryId, final String search, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -53,7 +61,7 @@ public class DataSources extends Controller {
 				public Promise<Result> apply (final Page<DataSource> dataSources, final Page<Category> categories, final DataSource currentDataSource, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListSourceDatasets (currentDataSource, currentCategory, page))
+							.query (new ListSourceDatasets (currentDataSource, currentCategory, search, page))
 							.execute (new Function<Page<SourceDatasetStats>, Result> () {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {

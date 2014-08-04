@@ -224,7 +224,8 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final long page = message.getPage();
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, 
+				new GetSourceDatasetInfo(message.dataSourceId(), message.categoryId(), message.getSearchString(), (page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE), 15000);
 		
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 

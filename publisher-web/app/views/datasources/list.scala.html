@@ -79,6 +79,17 @@
 		
 			@* Filters: *@
 			<div class="col-lg-3 col-lg-push-9">
+				<form class="form-horizontal" role="form" method="GET" action="@routes.DataSources.search("searchingstill")">
+					@* Search source_dataset input: *@
+					<div class="form-group has-feedback">
+						<div class="col-sm-12">
+							<input type="text" class="form-control col-sm-12" id="searchString" name="searchString" placeholder="Zoek op naam ...">
+							<span class="glyphicon glyphicon-search form-control-feedback"></span>
+						</div>
+					</div>
+					
+				</form>
+				
 				<div class="panel-group" id="filters-accordion">
 				
 					<div class="panel panel-default">
@@ -132,6 +143,7 @@
 						of toon <a href="@routes.DataSources.list()">alle brongegevens</a>.
 					</div>
 				} else {
+				@helper.pagination(sourceDatasets, pageRef)
 					<div class="list-group">
 						@for(dataset <- sourceDatasets.values) {
 							<div class="list-group-item">
