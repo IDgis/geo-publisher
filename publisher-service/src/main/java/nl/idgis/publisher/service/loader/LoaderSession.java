@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.loader;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJob;
+import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
@@ -10,7 +11,6 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -41,10 +41,22 @@ public class LoaderSession extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Record) {
-			log.debug("record received: " + msg);
+			log.debug("record received: " + msg + " " + count++);
 			
-			count++;			
-			getSender().tell(new NextItem(), getSelf());			
+			final ActorRef sender = getSender(), self = getSelf();
+			Patterns.ask(geometryDatabase, new InsertRecord(
+					importJob.getDatasetId(), 
+					importJob.getColumns(), 
+					((Record) msg).getValues()), 15000)
+					
+					.onSuccess(new OnSuccess<Object>() {
+
+						@Override
+						public void onSuccess(Object msg) throws Throwable {
+							sender.tell(new NextItem(), self);
+						}
+						
+					}, getContext().dispatcher());		
 		} else if(msg instanceof Failure) {
 			log.error("import failed: " + ((Failure) msg).getCause());
 			
@@ -64,7 +76,7 @@ public class LoaderSession extends UntypedActor {
 			log.info("import completed");
 			
 			final ActorRef self = getSelf();
-			Patterns.ask(geometryDatabase, new Commit(), 15000)
+			Patterns.ask(geometryDatabase, new Commit(), 15000)				
 				.onSuccess(new OnSuccess<Object>() {
 
 					@Override

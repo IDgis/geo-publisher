@@ -84,7 +84,7 @@ public class ProviderClient extends UntypedActor {
 									log.debug("requesting table");
 									
 									ActorRef receiver = getContext().actorOf(gd.getReceiverProps());									
-									database.tell(new FetchTable(tableName), receiver); 
+									database.tell(new FetchTable(tableName, gd.getColumns()), receiver); 
 								}
 							}
 						}, getContext().dispatcher());

@@ -62,7 +62,24 @@ public class Database extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof FetchTable) {
-			content.tell(new Query("select * from " + ((FetchTable)msg).getTableName()), getSender());
+			FetchTable ft = (FetchTable)msg;
+			
+			log.debug("fetch table: " + ft);
+			
+			StringBuilder sb = new StringBuilder("select ");
+			
+			String separator = "";
+			for(String columnName : ft.getColumnNames()) {
+				sb.append(separator);
+				sb.append(columnName);
+				
+				separator = ", ";
+			}
+			
+			sb.append(" from ");
+			sb.append(ft.getTableName());
+			
+			content.tell(new Query(sb.toString()), getSender());
 		} else if(msg instanceof DescribeTable) {
 			String requestedTableName = ((DescribeTable) msg).getTableName();
 			
@@ -101,7 +118,7 @@ public class Database extends UntypedActor {
 								Type type;
 								switch(typeName.toUpperCase()) {
 									case "NUMBER":
-										type = Type.NUMBER;
+										type = Type.NUMERIC;
 										break;
 									case "DATE":
 										type = Type.DATE;

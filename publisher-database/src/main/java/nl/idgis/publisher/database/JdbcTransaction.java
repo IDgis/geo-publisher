@@ -26,12 +26,12 @@ public abstract class JdbcTransaction extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Commit) {
-			log.debug("commiting transaction");
+			log.debug("committing transaction");
 			
 			connection.commit();
 			connection.close();
 			
-			getSender().tell(new Ack(), self());
+			getSender().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Rollback) {
 			log.debug("rolling back transaction");
@@ -39,7 +39,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 			connection.rollback();
 			connection.close();
 			
-			getSender().tell(new Ack(), self());
+			getSender().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Query) {
 			try {

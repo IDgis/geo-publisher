@@ -1,10 +1,20 @@
 package nl.idgis.publisher.service.loader;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.harvester.messages.RequestDataset;
+import nl.idgis.publisher.domain.log.GenericEvent;
+import nl.idgis.publisher.domain.log.ImportLogLine;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.messages.NotConnected;
+import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -41,39 +51,73 @@ public class Loader extends UntypedActor {
 			
 			log.debug("data import requested: " + importJob);
 			
-			Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
+			final String dataSourceId = importJob.getDataSourceId();
+			Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
 				.onSuccess(new OnSuccess<Object>() {
 
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						TransactionCreated tc = (TransactionCreated)msg;
-						log.debug("database transaction created");
-						
-						final ActorRef transaction = tc.getActor();
-						
-						CreateTable ct = new CreateTable(
-								importJob.getDatasetId(),  
-								importJob.getColumns());						
-						
-						Patterns.ask(transaction, ct, 15000)
-							.onSuccess(new OnSuccess<Object>() {
+						if(msg instanceof NotConnected) {
+							log.warning("not connected: " + dataSourceId);
+						} else {
+							final ActorRef dataSource = (ActorRef)msg;
+							
+							log.debug("dataSource received");
+							
+							ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, importJob.getDatasetId());
+							Patterns.ask(database, new StoreLog(logLine), 15000)
+								.onSuccess(new OnSuccess<Object>() {
 
-								@Override
-								public void onSuccess(Object msg) throws Throwable {
-									log.debug("table created");
+									@Override
+									public void onSuccess(Object msg) throws Throwable {
+										log.debug("started logline written");
+										
+										Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
+										.onSuccess(new OnSuccess<Object>() {
+
+											@Override
+											public void onSuccess(Object msg) throws Throwable {
+												TransactionCreated tc = (TransactionCreated)msg;
+												log.debug("database transaction created");
+												
+												final ActorRef transaction = tc.getActor();
+												
+												CreateTable ct = new CreateTable(
+														importJob.getDatasetId(),  
+														importJob.getColumns());						
+												
+												Patterns.ask(transaction, ct, 15000)
+													.onSuccess(new OnSuccess<Object>() {
+
+														@Override
+														public void onSuccess(Object msg) throws Throwable {
+															log.debug("table created");
+															
+															List<String> columnNames = new ArrayList<>();
+															for(Column column : importJob.getColumns()) {
+																columnNames.add(column.getName());
+															}
+															
+															dataSource.tell(
+																	new GetDataset(
+																			importJob.getSourceDatasetId(), 
+																			columnNames, 
+																			LoaderSession.props(
+																					importJob, 
+																					transaction, 
+																					database)), getSelf());
+														}
+														
+													}, getContext().dispatcher());
+											}					
+										}, getContext().dispatcher());
+									}
 									
-									harvester.tell(new RequestDataset(
-											importJob.getDatasetId(), 
-											importJob.getDataSourceId(), 
-											importJob.getSourceDatasetId(),
-											LoaderSession.props(importJob, transaction, database)), getSelf());
-								}
-								
-							}, getContext().dispatcher());
-					}					
+								}, getContext().dispatcher());
+						}
+					}
+					
 				}, getContext().dispatcher());
-			
-			
 		} else {
 			unhandled(msg);
 		}

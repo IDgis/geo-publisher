@@ -3,13 +3,12 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
-import nl.idgis.publisher.domain.log.ImportLogLine;
-import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
-import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
-import nl.idgis.publisher.harvester.messages.RequestDataset;
+import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
+import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.messages.Harvest;
+import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
 
@@ -88,30 +87,15 @@ public class Harvester extends UntypedActor {
 		} else if(msg instanceof GetActiveDataSources) {
 			log.debug("connected datasources requested");
 			getSender().tell(dataSources.keySet(), getSelf());
-		} else if(msg instanceof RequestDataset) {
-			log.debug("dataset requested");
+		} else if(msg instanceof GetDataSource) {
+			log.debug("dataSource requested");
 			
-			final RequestDataset requestDataset = (RequestDataset)msg;
-			final String dataSourceId = requestDataset.getDataSourceId();
+			final String dataSourceId = ((GetDataSource) msg).getDataSourceId();
 			if(dataSources.containsKey(dataSourceId)) {
-				log.debug("requesting dataSource to send data");
-				
-				final ActorRef sender = getSender(); 
-				ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, requestDataset.getDatasetId());
-				Patterns.ask(database, new StoreLog(logLine), 15000)
-					.onSuccess(new OnSuccess<Object>() {
-
-						@Override
-						public void onSuccess(Object msg) throws Throwable {
-							ActorRef dataSource = dataSources.get(dataSourceId);
-							dataSource.tell(new GetDataset(
-									requestDataset.getSourceDatasetId(), 
-									requestDataset.getReceiverProps()), sender);
-							
-						}
-					}, getContext().dispatcher());
+				getSender().tell(dataSources.get(dataSourceId), getSelf());
 			} else {
 				log.warning("dataSource not connected: " + dataSourceId);
+				getSender().tell(new NotConnected(), getSelf());
 			}		 
 		} else {
 			unhandled(msg);
