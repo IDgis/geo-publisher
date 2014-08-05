@@ -528,10 +528,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(datasetColumn.datasetId.eq(datasetId))
 				.execute();
 			
-			insertSourceDatasetColumns(context, datasetId, uds.getColumnList());
+			insertDatasetColumns(context, datasetId, uds.getColumnList());
 			context.answer(new Boolean(true));
 			
-			log.debug("dataSource updated");
+			log.debug("dataSet updated");
 			
 		} else if (query instanceof DeleteDataset) {
 			DeleteDataset dds = (DeleteDataset)query;			
