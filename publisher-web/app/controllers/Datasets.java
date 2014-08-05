@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
@@ -29,6 +31,7 @@ import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
 import play.libs.F.Promise;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
@@ -261,6 +264,33 @@ public class Datasets extends Controller {
 						return ok(columns.render(c, null));
 					}
 				});
+	}
+	
+	public static Promise<Result> getDatasetJson (final String datasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		Logger.debug ("getDatasetJson: " + datasetId);
+		
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.execute (new Function<Dataset, Result> () {
+				@Override
+				public Result apply (final Dataset ds) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("id", datasetId);
+					
+					if (ds == null) {
+						result.put ("status", "notfound");
+						return ok (result);
+					}
+					
+					result.put ("status", "ok");
+					result.put ("dataset", Json.toJson (ds));
+					
+					return ok (result);
+				}
+			});
 	}
 
 	public static class DatasetForm {

@@ -10,6 +10,9 @@ public class Application extends Controller {
 		return ok(
 			Routes.javascriptRouter("jsRoutes", 
 				routes.javascript.DataSources.listByDataSourceAndCategoryJson(),
-				routes.javascript.Datasets.listColumnsAction())).as("text/javascript");
+				routes.javascript.Datasets.listColumnsAction(),
+				routes.javascript.Datasets.getDatasetJson ()				
+			)
+		).as("text/javascript");
 	}
 }

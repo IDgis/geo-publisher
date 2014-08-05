@@ -159,13 +159,19 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 				updateIdPromise.cancel ();
 			}
 			
-			updateIdPromise = xhr.get ('/', {
+			updateIdPromise = xhr.get (jsRoutes.controllers.Datasets.getDatasetJson (currentId).url, {
 				handleAs: 'json'
 			}).then (function (data) {
 				updateIdPromise = null;
 				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
-				domClass.add (iconNode, 'glyphicon-ok');
-				domClass.add (idInput.parentNode.parentNode, 'has-success');
+				
+				if (!data.result || data.result != 'notfound') {
+					domClass.add (iconNode, 'glyphicon-remove');
+					domClass.add (idInput.parentNode.parentNode, 'has-error');
+				} else {
+					domClass.add (iconNode, 'glyphicon-ok');
+					domClass.add (idInput.parentNode.parentNode, 'has-success');
+				}
 			}, function () {
 				updateIdPromise = null;
 				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
