@@ -12,6 +12,7 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
@@ -85,6 +86,8 @@ public class Admin extends UntypedActor {
 				handleGetCategory (getEntity);
 			} else if (getEntity.cls ().equals (Dataset.class)) {
 				handleGetDataset(getEntity);
+			} else if (getEntity.cls ().equals (SourceDataset.class)) {
+				handleGetSourceDataset(getEntity);
 			} else {
 				sender ().tell (null, self ());
 			}
@@ -253,6 +256,29 @@ public class Admin extends UntypedActor {
 								);
 						log.debug("sending dataset: " + dataset);
 						sender.tell (dataset, self);
+					}
+				}, getContext().dispatcher());
+	}
+	
+	private void handleGetSourceDataset (final GetEntity<?> getEntity) {
+		log.debug ("handleSourceDataset");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(getEntity.id ()), 15000);
+				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						SourceDatasetInfo sourceDatasetInfo = (SourceDatasetInfo)msg;
+						log.debug("sourcedataset info received");
+						final SourceDataset sourceDataset = new SourceDataset (
+								sourceDatasetInfo.getId(), 
+								sourceDatasetInfo.getName(),
+								new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
+								new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+						);
+						log.debug("sending source_dataset: " + sourceDataset);
+						sender.tell (sourceDataset, self);
 					}
 				}, getContext().dispatcher());
 	}
