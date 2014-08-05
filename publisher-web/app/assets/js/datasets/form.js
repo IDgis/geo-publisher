@@ -118,7 +118,7 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	
 	// =========================================================================
 	
-	var currentId = '',
+	var currentId = null,
 		updateIdTimeout = null,
 		updateIdPromise = null;
 	
@@ -126,7 +126,7 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 		var id = idInput.value;
 		
 		// Do nothing if the value didn't change:
-		if (id == currentId) {
+		if (id === currentId) {
 			return;
 		}
 		currentId = id;

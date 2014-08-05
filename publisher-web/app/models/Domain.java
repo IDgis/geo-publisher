@@ -15,6 +15,7 @@ import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
@@ -82,12 +83,12 @@ public class Domain {
 		}
 		
 		@Override
-		public <T extends Identifiable> Query1<Boolean> put (final T value) {
+		public <T extends Identifiable> Query1<Response<?>> put (final T value) {
 			return query (new PutEntity<> (value));
 		}
 		
 		@Override
-		public <T extends Identifiable> Query1<Boolean> delete (final Class<? extends T> cls, final String id) {
+		public <T extends Identifiable> Query1<Response<?>> delete (final Class<? extends T> cls, final String id) {
 			return query (new DeleteEntity<> (cls, id));
 		}
 
@@ -123,12 +124,12 @@ public class Domain {
 		}
 		
 		@Override
-		public <T extends Identifiable> Query2<A, Boolean> put (final T value) {
+		public <T extends Identifiable> Query2<A, Response<?>> put (final T value) {
 			return query (new PutEntity<> (value));
 		}
 		
 		@Override
-		public <T extends Identifiable> Query2<A, Boolean> delete (final Class<? extends T> cls, final String id) {
+		public <T extends Identifiable> Query2<A, Response<?>> delete (final Class<? extends T> cls, final String id) {
 			return query (new DeleteEntity<> (cls, id));
 		}
 		
@@ -206,12 +207,12 @@ public class Domain {
 		}
 		
 		@Override
-		public <T extends Identifiable> Query3<A, B, Boolean> put (final T value) {
+		public <T extends Identifiable> Query3<A, B, Response<?>> put (final T value) {
 			return query (new PutEntity<> (value));
 		}
 		
 		@Override
-		public <T extends Identifiable> Query3<A, B, Boolean> delete (final Class<? extends T> cls, final String id) {
+		public <T extends Identifiable> Query3<A, B, Response<?>> delete (final Class<? extends T> cls, final String id) {
 			return query (new DeleteEntity<> (cls, id));
 		}
 		
@@ -308,12 +309,12 @@ public class Domain {
 		}
 		
 		@Override
-		public <T extends Identifiable> Query4<A, B, C, Boolean> put (final T value) {
+		public <T extends Identifiable> Query4<A, B, C, Response<?>> put (final T value) {
 			return query (new PutEntity<> (value));
 		}
 		
 		@Override
-		public <T extends Identifiable> Query4<A, B, C, Boolean> delete (final Class<? extends T> cls, final String id) {
+		public <T extends Identifiable> Query4<A, B, C, Response<?>> delete (final Class<? extends T> cls, final String id) {
 			return query (new DeleteEntity<> (cls, id));
 		}
 		

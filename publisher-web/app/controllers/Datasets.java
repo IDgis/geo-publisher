@@ -18,7 +18,9 @@ import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -68,10 +70,10 @@ public class Datasets extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		from(database).delete(Dataset.class, datasetId)
-			.execute(new Function<Boolean, Result>() {
+			.execute(new Function<Response<?>, Result>() {
 
 				@Override
-				public Result apply(Boolean a) throws Throwable {
+				public Result apply(Response<?> a) throws Throwable {
 					// TODO Auto-generated method stub
 					System.out.println("apply delete: " + a);
 					return null;
@@ -96,26 +98,38 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> update(){
 		// TODO construct putdataset from form (putdataset.id != null)
-		PutDataset putDataset = new PutDataset("1", "MyUpdatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
+		final PutDataset putDataset = new PutDataset(CrudOperation.UPDATE,"1", "MyUpdatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
 		System.out.println("update dataset " + putDataset);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).put(putDataset); 
+		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
+			@Override
+			public Promise<Result> apply (final Response<?> a) throws Throwable {
+				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
+				
+				return list (0);
+			}
+		}); 
 		
-		return list(1);
 	}
 	
 	public static Promise<Result>  create() {
 		// TODO construct putdataset from form (putdataset.id == null)
-		PutDataset putDataset = new PutDataset(null, "MyCreatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
+		final PutDataset putDataset = new PutDataset(CrudOperation.CREATE, "1", "MyCreatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
 		System.out.println("create dataset " + putDataset);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
-		from(database).put(putDataset); 
+		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
+			@Override
+			public Promise<Result> apply (final Response<?> a) throws Throwable {
+				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
+				
+				return list(0);
+			}
+		}); 
 		
-		return list(1);
 	}
 
 	private static DomainQuery<Page<SourceDatasetStats>> listSourceDatasets (final String dataSourceId, final String categoryId) {
@@ -189,7 +203,7 @@ public class Datasets extends Controller {
 							}
 						}
 
-						final PutDataset putDataset = new PutDataset (
+						final PutDataset putDataset = new PutDataset (CrudOperation.CREATE,
 								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
@@ -200,9 +214,9 @@ public class Datasets extends Controller {
 						
 						return from (database)
 							.put(putDataset)
-							.executeFlat (new Function<Boolean, Promise<Result>> () {
+							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
-								public Promise<Result> apply (final Boolean a) throws Throwable {
+								public Promise<Result> apply (final Response<?> a) throws Throwable {
 									flash ("success", "Dataset " + dataset.getName () + " is opgeslagen.");
 									
 									return Promise.pure (redirect (routes.Datasets.list (0)));

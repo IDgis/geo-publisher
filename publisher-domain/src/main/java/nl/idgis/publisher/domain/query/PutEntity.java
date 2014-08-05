@@ -1,8 +1,10 @@
 package nl.idgis.publisher.domain.query;
 
+
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Identifiable;
 
-public final class PutEntity<T extends Identifiable> implements DomainQuery<Boolean> {
+public final class PutEntity<T extends Identifiable> implements DomainQuery<Response<?>> {
 
 	private static final long serialVersionUID = 3056189862216804454L;
 	
