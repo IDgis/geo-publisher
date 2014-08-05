@@ -60,7 +60,7 @@ public class ProviderClient extends UntypedActor {
 				if(msg instanceof GetDatasets) {
 					log.debug("retrieving datasets from provider");
 					
-					ActorRef providerDataset = getContext().actorOf(ProviderDataset.props(getSender(), database));
+					ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), database));
 					metadata.tell(new GetAllMetadata(), providerDataset);
 				} else if(msg instanceof ConnectionClosed) {
 					log.debug("disconnected");
@@ -68,8 +68,8 @@ public class ProviderClient extends UntypedActor {
 				} else if(msg instanceof GetDataset) {
 					log.debug("retrieving data from provider");
 					
-					final GetDataset getDataset = (GetDataset)msg;					
-					Ask.ask(getContext(), metadata, new GetMetadata(getDataset.getId()), 15000)
+					final GetDataset gd = (GetDataset)msg;					
+					Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
 						.onSuccess(new OnSuccess<Object>() {
 
 							@Override
@@ -82,7 +82,9 @@ public class ProviderClient extends UntypedActor {
 									log.warning("no table name for dataset");
 								} else {
 									log.debug("requesting table");
-									database.tell(new FetchTable(tableName), getDataset.getSink()); 
+									
+									ActorRef receiver = getContext().actorOf(gd.getReceiverProps());									
+									database.tell(new FetchTable(tableName, gd.getColumns()), receiver); 
 								}
 							}
 						}, getContext().dispatcher());

@@ -25,19 +25,19 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
-public class ProviderDataset extends UntypedActor {
+public class ProviderDatasetInfo extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef harvester, database;
 	
-	public ProviderDataset(ActorRef harvester, ActorRef database) {
+	public ProviderDatasetInfo(ActorRef harvester, ActorRef database) {
 		this.harvester = harvester;
 		this.database = database;
 	}
 	
 	public static Props props(ActorRef harvester, ActorRef database) {
-		return Props.create(ProviderDataset.class, harvester, database);
+		return Props.create(ProviderDatasetInfo.class, harvester, database);
 	}
 
 	@Override
