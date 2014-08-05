@@ -240,7 +240,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			context.answer(
 					baseQuery
 					.orderBy(dataset.identification.asc())
-					.list(new QDatasetInfo(dataset.identification, dataset.identification, 
+					.list(new QDatasetInfo(dataset.identification, dataset.name, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name))
 			);
@@ -250,7 +250,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
 					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
-					.singleResult(new QDatasetInfo(dataset.identification, dataset.identification, 
+					.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name)));
 			
