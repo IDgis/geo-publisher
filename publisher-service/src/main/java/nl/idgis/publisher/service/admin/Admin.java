@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
+import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
@@ -16,6 +17,7 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListColumns;
@@ -30,6 +32,7 @@ import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -91,6 +94,14 @@ public class Admin extends UntypedActor {
 			}
 		} else if (message instanceof PutEntity<?>) {
 			final PutEntity<?> putEntity = (PutEntity<?>)message;
+			if (putEntity.value() instanceof PutDataset) {
+				PutDataset putDataset = (PutDataset)putEntity.value(); 
+				if (putDataset.id() == null){
+					handleCreateDataset(putDataset);
+				}else{
+					handleUpdateDataset(putDataset);
+				}
+			}
 			
 		} else if (message instanceof DeleteEntity<?>) {
 			final DeleteEntity<?> delEntity = (DeleteEntity<?>)message;
@@ -108,6 +119,44 @@ public class Admin extends UntypedActor {
 		}
 	}
 	
+	private void handleCreateDataset(PutDataset putDataset) {
+		log.debug ("handle create dataset: " + putDataset.id());
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> createDatasetInfo = Patterns.ask(database, 
+				new CreateDataset(putDataset.id(), 
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Boolean createdDataset = (Boolean)msg;
+						log.debug ("created dataset id: " + createdDataset);
+						sender.tell (createdDataset, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
+	private void handleUpdateDataset(PutDataset putDataset) {
+		log.debug ("handle update dataset: " + putDataset.id());
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> updateDatasetInfo = Patterns.ask(database, 
+				new UpdateDataset(putDataset.id(), 
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Boolean updatedDataset = (Boolean)msg;
+						log.debug ("updated dataset id: " + updatedDataset);
+						sender.tell (updatedDataset, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
 	private void handleDeleteDataset(String id) {
 		log.debug ("handle delete dataset: " + id);
 		

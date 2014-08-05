@@ -13,7 +13,7 @@ GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.li
 GET		/datasets/create								controllers.Datasets.createForm()
 POST	/datasets/create								controllers.Datasets.create()
 POST	/datasets/update								controllers.Datasets.update()
-GET 	/datasets/delete/:datasetId						controllers.Datasets.delete(datasetId: String)
+GET 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId: String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden
