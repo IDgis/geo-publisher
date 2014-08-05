@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -428,7 +429,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification), 
 					t.get(dataset.identification), columns));
-			}
+			}		
+		} else if (query instanceof DeleteDataset) {
+			DeleteDataset dd = (DeleteDataset)query;			
+			
+			Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
+					.where(
+						new SQLSubQuery().from(dataset)
+						.where(dataset.identification.eq(dd.getId())
+						.and(dataset.id.eq(datasetColumn.datasetId))).exists())
+					.execute();
+				log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
+			
+			Long nrOfDatasetsDeleted = context.delete(dataset)
+				.where(dataset.identification.eq(dd.getId()))
+				.execute();
+			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
+			
+			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted > 0){
+				context.answer(new Boolean(true));
+			} else {
+				context.answer(new Boolean(false));
+			}		
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}

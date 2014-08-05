@@ -6,6 +6,7 @@ import java.util.Set;
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -15,11 +16,13 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
@@ -86,6 +89,14 @@ public class Admin extends UntypedActor {
 			} else {
 				sender ().tell (null, self ());
 			}
+		} else if (message instanceof PutEntity<?>) {
+			final PutEntity<?> putEntity = (PutEntity<?>)message;
+			
+		} else if (message instanceof DeleteEntity<?>) {
+			final DeleteEntity<?> delEntity = (DeleteEntity<?>)message;
+			if (delEntity.cls ().equals (Dataset.class)) {
+				handleDeleteDataset(delEntity.id());
+			}
 		} else if (message instanceof ListSourceDatasets) {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
@@ -97,6 +108,23 @@ public class Admin extends UntypedActor {
 		}
 	}
 	
+	private void handleDeleteDataset(String id) {
+		log.debug ("handle delete dataset: " + id);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> deleteDatasetInfo = Patterns.ask(database, new DeleteDataset(id), 15000);
+				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Boolean deletedDataset = (Boolean)msg;
+						log.debug ("deleted dataset id: " + deletedDataset);
+						sender.tell (deletedDataset, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
 	private void handleListColumns (final ListColumns listColumns) {
 		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
 		
@@ -215,7 +243,7 @@ public class Admin extends UntypedActor {
 						DatasetInfo datasetInfo = (DatasetInfo)msg;
 						log.debug("dataset info received");
 						Dataset dataset = 
-								new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+								new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 										new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 										new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 										null, // notification list
@@ -306,7 +334,7 @@ public class Admin extends UntypedActor {
 						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
-							final Dataset dataset =  new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 									null, // notification list
