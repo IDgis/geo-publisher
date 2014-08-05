@@ -90,6 +90,28 @@
 								'class -> "form-control",
 								'_help -> "De dataset uit de brongegevens waar deze dataset op is gebaseerd."
 							)
+							
+							<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
+								<label class="control-label col-sm-3" for="input-id">Tabelnaam</label>
+							    <div class="controls col-sm-9">
+									<input type="text" class="form-control" id="input-id" placeholder="Tabelnaam ..." name="@datasetForm("id").name" value="@datasetForm("id").value">
+									<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
+									@if(!datasetForm("id").errors.isEmpty) {
+								        <span class="help-block">@datasetForm("id").errors.mkString(", ")</span>
+								    }
+								    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+								</div>
+							</div>
+							@*
+							@helper.inputText(
+								datasetForm("id"), 
+								'_label -> "Tabelnaam", 
+								'id -> "input-id", 
+								'class -> "form-control", 
+								'placeholder -> "Tabelnaam ...", 
+								'_help -> "De naam van de tabel die wordt gebruikt om deze dataset op te slaan"
+							)
+							*@
 						</div>						
 					</div>
 				</div>

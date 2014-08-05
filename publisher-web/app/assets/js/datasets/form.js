@@ -15,6 +15,7 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	var dataSourceSelect = dom.byId('input-datasource'),
 		categorySelect = dom.byId('input-category'),
 		datasetSelect = dom.byId('input-source-dataset'),
+		idInput = dom.byId ('input-id'),
 		dataSource = dataSourceSelect.value,
 		category = categorySelect.value;	
 	
@@ -114,4 +115,67 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	});
 	
 	updateColumnCount ();
+	
+	// =========================================================================
+	
+	var currentId = '',
+		updateIdTimeout = null,
+		updateIdPromise = null;
+	
+	function updateId () {
+		var id = idInput.value;
+		
+		// Do nothing if the value didn't change:
+		if (id == currentId) {
+			return;
+		}
+		currentId = id;
+
+		// Clear the current timeout:
+		if (updateIdTimeout) {
+			clearTimeout (updateIdTimeout);
+			updateIdTimeout = null;
+		}
+		
+		updateIdTimeout = setTimeout (function () {
+			console.log ('updateId: ', id);
+			
+			updateIdTimeout = null;
+			
+			var iconNode = query ('span.glyphicon', idInput.parentNode)[0];
+			
+			domClass.remove (iconNode, ['glyphicon-remove', 'glyphicon-ok', 'rotating', 'glyphicon-warning-sign']);
+			domClass.remove (idInput.parentNode.parentNode, ['has-error', 'has-success', 'has-warning']);
+			
+			if (currentId.length < 3) {
+				domClass.add (iconNode, 'glyphicon-warning-sign');
+				domClass.add (idInput.parentNode.parentNode, 'has-warning');
+				return;
+			}
+			
+			domClass.add (iconNode, ['glyphicon-refresh', 'rotating']);
+	
+			if (updateIdPromise) {
+				updateIdPromise.cancel ();
+			}
+			
+			updateIdPromise = xhr.get ('/', {
+				handleAs: 'json'
+			}).then (function (data) {
+				updateIdPromise = null;
+				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
+				domClass.add (iconNode, 'glyphicon-ok');
+				domClass.add (idInput.parentNode.parentNode, 'has-success');
+			}, function () {
+				updateIdPromise = null;
+				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
+				domClass.add (iconNode, 'glyphicon-remove');
+				domClass.add (idInput.parentNode.parentNode, 'has-error');
+			});
+		}, 300);
+	}
+	
+	on (idInput, 'keyup,change', updateId);
+	
+	updateId ();
 });

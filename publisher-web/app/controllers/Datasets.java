@@ -187,7 +187,7 @@ public class Datasets extends Controller {
 						}
 
 						final PutDataset putDataset = new PutDataset (
-								null, 
+								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
 								columns
@@ -280,6 +280,10 @@ public class Datasets extends Controller {
 
 		@Constraints.Required
 		private Map<String, String> columns;
+
+		@Constraints.Required
+		@Constraints.MinLength (3)
+		private String id;
 		
 		public String getName() {
 			return name;
@@ -319,6 +323,14 @@ public class Datasets extends Controller {
 		
 		public void setColumns (final Map<String, String> columns) {
 			this.columns = columns;
+		}
+
+		public String getId () {
+			return id;
+		}
+
+		public void setId (final String id) {
+			this.id = id;
 		}
 	}
 }
