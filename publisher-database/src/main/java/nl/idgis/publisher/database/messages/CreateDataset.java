@@ -9,19 +9,24 @@ public class CreateDataset extends Query {
 	private static final long serialVersionUID = -7841672424518750710L;
 
 	private final String datasetIdentification;
+	private final String datasetName;
 	private final String sourceDatasetIdentification;
 	private final List<Column> columnList;
 	
-	public CreateDataset(String datasetIdentification, String sourceDatasetIdentification,
+	public CreateDataset(String datasetIdentification, String datasetName, String sourceDatasetIdentification,
 			List<Column> columnList) {
 		super();
 		this.datasetIdentification = datasetIdentification;
+		this.datasetName = datasetName;
 		this.sourceDatasetIdentification = sourceDatasetIdentification;
 		this.columnList = columnList;
 	}
 	
 	public String getDatasetIdentification() {
 		return datasetIdentification;
+	}
+	public String getDatasetName() {
+		return datasetName;
 	}
 	public String getSourceDatasetIdentification() {
 		return sourceDatasetIdentification;

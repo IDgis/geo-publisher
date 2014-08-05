@@ -474,6 +474,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 			String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 			String datasetIdent = cds.getDatasetIdentification();
+			String datasetName = cds.getDatasetName();
 			log.debug("create dataset " + datasetIdent);
 
 			Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -481,11 +482,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.singleResult(sourceDataset.id);
 				if(sourceDatasetId == null) {
 					log.error("sourceDataset not found: " + sourceDatasetIdent);
-					context.answer(new Boolean(false));
+					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
 				} else {
 					context.insert(dataset)
 						.set(dataset.identification, datasetIdent)
-						.set(dataset.name, datasetIdent)
+						.set(dataset.name, datasetName)
 						.set(dataset.sourceDatasetId, sourceDatasetId)
 						.execute();
 					
@@ -511,6 +512,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			UpdateDataset uds = (UpdateDataset)query;			
 			String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 			String datasetIdent = uds.getDatasetIdentification();
+			String datasetName = uds.getDatasetName();
 			log.debug("update dataset" + datasetIdent);
 			
 			Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -518,7 +520,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.singleResult(sourceDataset.id);
 
 			context.update(dataset)
-				.set(dataset.name, datasetIdent)
+				.set(dataset.name, datasetName)
 				.set(dataset.sourceDatasetId, sourceDatasetId)
 				.where(dataset.identification.eq(datasetIdent))
 				.execute();
@@ -532,11 +534,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.execute();
 			
 			insertDatasetColumns(context, datasetId, uds.getColumnList());
-			context.answer(new Response(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
-
+			context.answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
 			
-			log.debug("dataSet updated");
-			
+			log.debug("dataset updated");
 		} else if (query instanceof DeleteDataset) {
 			DeleteDataset dds = (DeleteDataset)query;			
 			
@@ -546,7 +546,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						.where(dataset.identification.eq(dds.getId())
 						.and(dataset.id.eq(datasetColumn.datasetId))).exists())
 					.execute();
-				log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
+			log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
 			
 			Long nrOfDatasetsDeleted = context.delete(dataset)
 				.where(dataset.identification.eq(dds.getId()))
@@ -554,9 +554,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
 			
 			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
-				context.answer(new Response(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
+				context.answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
 			} else {
-				context.answer(new Response(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
+				context.answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
 			}		
 		} else {
 			throw new IllegalArgumentException("Unknown query");

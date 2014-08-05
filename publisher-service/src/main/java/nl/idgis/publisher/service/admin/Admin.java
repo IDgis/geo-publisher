@@ -130,7 +130,7 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final Future<Object> createDatasetInfo = Patterns.ask(database, 
-				new CreateDataset(putDataset.id(), 
+				new CreateDataset(putDataset.id(), putDataset.getDatasetName(),
 				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
 				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
@@ -149,12 +149,12 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final Future<Object> updateDatasetInfo = Patterns.ask(database, 
-				new UpdateDataset(putDataset.id(), 
+				new UpdateDataset(putDataset.id(), putDataset.getDatasetName(),
 				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
 				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						Response updatedDataset = (Response)msg;
+						Response<?> updatedDataset = (Response<?>)msg;
 						log.debug ("updated dataset id: " + updatedDataset.getValue());
 						sender.tell (updatedDataset, self);
 					}
@@ -171,7 +171,7 @@ public class Admin extends UntypedActor {
 				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						Response deletedDataset = (Response)msg;
+						Response<?> deletedDataset = (Response<?>)msg;
 						log.debug ("deleted dataset id: " + deletedDataset.getValue());
 						sender.tell (deletedDataset, self);
 					}
