@@ -52,8 +52,11 @@ import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
 import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.domain.log.LogLine;
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Table;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -491,7 +494,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						.singleResult(dataset.id);
 					
 					insertDatasetColumns(context, datasetId, cds.getColumnList());					
-					context.answer(new Boolean(true));
+					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
 					
 					log.debug("dataset inserted");
 				}
@@ -529,7 +532,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.execute();
 			
 			insertDatasetColumns(context, datasetId, uds.getColumnList());
-			context.answer(new Boolean(true));
+			context.answer(new Response(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
+
 			
 			log.debug("dataSet updated");
 			
@@ -549,10 +553,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.execute();
 			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
 			
-			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted > 0){
-				context.answer(new Boolean(true));
+			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
+				context.answer(new Response(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
 			} else {
-				context.answer(new Boolean(false));
+				context.answer(new Response(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
 			}		
 		} else {
 			throw new IllegalArgumentException("Unknown query");

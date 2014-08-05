@@ -1,8 +1,9 @@
 package nl.idgis.publisher.domain.query;
 
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Identifiable;
 
-public final class DeleteEntity<T extends Identifiable> implements DomainQuery<Boolean> {
+public final class DeleteEntity<T extends Identifiable> implements DomainQuery<Response<?>> {
 	
 	private static final long serialVersionUID = -6784635917720446736L;
 	

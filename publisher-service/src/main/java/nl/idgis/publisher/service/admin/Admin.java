@@ -27,6 +27,8 @@ import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
@@ -99,7 +101,7 @@ public class Admin extends UntypedActor {
 			final PutEntity<?> putEntity = (PutEntity<?>)message;
 			if (putEntity.value() instanceof PutDataset) {
 				PutDataset putDataset = (PutDataset)putEntity.value(); 
-				if (putDataset.id() == null){
+				if (putDataset.getOperation() == CrudOperation.CREATE){
 					handleCreateDataset(putDataset);
 				}else{
 					handleUpdateDataset(putDataset);
@@ -133,8 +135,8 @@ public class Admin extends UntypedActor {
 				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						Boolean createdDataset = (Boolean)msg;
-						log.debug ("created dataset id: " + createdDataset);
+						Response <?> createdDataset = (Response<?>)msg;
+						log.debug ("created dataset id: " + createdDataset.getValue());
 						sender.tell (createdDataset, self);
 					}
 				}, getContext().dispatcher());
@@ -152,8 +154,8 @@ public class Admin extends UntypedActor {
 				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						Boolean updatedDataset = (Boolean)msg;
-						log.debug ("updated dataset id: " + updatedDataset);
+						Response updatedDataset = (Response)msg;
+						log.debug ("updated dataset id: " + updatedDataset.getValue());
 						sender.tell (updatedDataset, self);
 					}
 				}, getContext().dispatcher());
@@ -169,8 +171,8 @@ public class Admin extends UntypedActor {
 				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						Boolean deletedDataset = (Boolean)msg;
-						log.debug ("deleted dataset id: " + deletedDataset);
+						Response deletedDataset = (Response)msg;
+						log.debug ("deleted dataset id: " + deletedDataset.getValue());
 						sender.tell (deletedDataset, self);
 					}
 				}, getContext().dispatcher());
