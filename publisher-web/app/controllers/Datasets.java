@@ -227,7 +227,8 @@ public class Datasets extends Controller {
 		
 		@Constraints.Required
 		private String sourceDatasetId;
-		
+
+		@Constraints.Required
 		private Map<String, String> columns;
 		
 		public String getName() {

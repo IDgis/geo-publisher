@@ -17,11 +17,26 @@
 	<div class="page-content">
 		<h1 class="page-header">Nieuwe dataset toevoegen</h1>
 		
+		@if(datasetForm.hasErrors) {
+			<div class="alert alert-danger">
+				<h4>De dataset kan niet worden opgeslagen</h4>
+				<p>Niet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.<p>
+				@if(datasetForm.hasGlobalErrors) {
+					<h5>Validatiefouten</h5>
+					<ul>
+						@for(error <- datasetForm.globalErrors) {
+							<li>@error.message</li>
+						}
+					</ul>
+				}
+			</div>
+		}
+		
 		<form action="@routes.Datasets.submitCreate()" method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
-				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>Kolommen <span class="badge">0</span></a></li>
+				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">Kolommen</span> }else{ Kolommen } <span class="badge">0</span></a></li>
 				<li id="tab-filters" class="disabled"><a href="#dataset-filters" role="tab">Filters <span class="badge">0</span></a></li>
 			</ul>
 			
@@ -83,9 +98,14 @@
 					<div class="row">
 						<div class="col-lg-8">
 							<div class="form-horizontal" role="form">
-								<div class="form-group">
+								<div class="form-group@if(!datasetForm("columns").errors.isEmpty){ has-error}">
 									<label class="col-sm-3 control-label">Geselecteerde kolommen</label>
 									<div class="col-sm-9">
+										@if(!datasetForm("columns").errors.isEmpty) {
+											<div class="alert alert-danger">
+												Selecteer tenminste &eacute;&eacute;n kolom.
+											</div>
+										}
 										<div id="column-list" class="list-group">
 											@views.html.datasets.columns(columns, datasetForm)
 										</div>

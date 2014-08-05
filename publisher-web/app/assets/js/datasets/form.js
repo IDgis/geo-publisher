@@ -98,7 +98,7 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	var columnList = dom.byId('column-list');
 	
 	function updateColumnCount() {
-		query('#tab-columns span')[0].innerHTML =
+		query('#tab-columns span.badge')[0].innerHTML =
 			query('input', columnList)
 				.filter(function(item) {
 					return item.checked;
