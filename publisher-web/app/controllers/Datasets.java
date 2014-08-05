@@ -85,13 +85,13 @@ public class Datasets extends Controller {
 	
 	private static List<Column> makeColumnList(){
 		List<Column> colList = new ArrayList<Column>();
-		Column col = new Column("FirstColumn","INTEGER");
+		Column col = new Column("FirstColumn","NUMERIC");
 		colList.add(col);
-		col = new Column("SecondColumn","STRING");
+		col = new Column("SecondColumn","TEXT");
 		colList.add(col);
-		col = new Column("ThirdColumn","BOOLEAN");
+		col = new Column("ThirdColumn","DATE");
 		colList.add(col);
-		col = new Column("RandomColumn-"+Math.random(),"SOMETYPE");
+		col = new Column("RandomColumn-"+Math.random(),"GEOMETRY");
 		colList.add(col);
 		return colList;
 	}
