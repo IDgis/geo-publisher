@@ -1,16 +1,21 @@
 package nl.idgis.publisher.database;
 
+import java.sql.Connection;
+
 import nl.idgis.publisher.database.messages.Query;
 
 import com.mysema.query.sql.SQLTemplates;
 import com.typesafe.config.Config;
 
-public abstract class QueryDSLDatabase extends JdbcDatabase {
+public abstract class QueryDSLTransaction extends JdbcTransaction {
 		
-	private SQLTemplates templates;	
+	private SQLTemplates templates;
+	private Config config;
 
-	public QueryDSLDatabase(Config config) {
-		super(config);
+	public QueryDSLTransaction(Config config, Connection connection) {
+		super(connection);
+		
+		this.config = config;
 	}
 	
 	@Override

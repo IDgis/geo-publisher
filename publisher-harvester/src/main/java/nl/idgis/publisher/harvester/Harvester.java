@@ -3,12 +3,12 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
-import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
-import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
-import nl.idgis.publisher.harvester.messages.RequestDataset;
+import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
+import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.messages.Harvest;
+import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
 
@@ -87,20 +87,15 @@ public class Harvester extends UntypedActor {
 		} else if(msg instanceof GetActiveDataSources) {
 			log.debug("connected datasources requested");
 			getSender().tell(dataSources.keySet(), getSelf());
-		} else if(msg instanceof RequestDataset) {
-			RequestDataset requestDataset = (RequestDataset)msg;
+		} else if(msg instanceof GetDataSource) {
+			log.debug("dataSource requested");
 			
-			log.debug("dataset requested");
-			String dataSourceId = requestDataset.getDataSourceId();
+			final String dataSourceId = ((GetDataSource) msg).getDataSourceId();
 			if(dataSources.containsKey(dataSourceId)) {
-				log.debug("requesting dataSource to send data");
-				
-				ActorRef dataSource = dataSources.get(dataSourceId);
-				dataSource.tell(new GetDataset(
-						requestDataset.getSourceDatasetId(), 
-						requestDataset.getSink()), getSelf());
+				getSender().tell(dataSources.get(dataSourceId), getSelf());
 			} else {
 				log.warning("dataSource not connected: " + dataSourceId);
+				getSender().tell(new NotConnected(), getSelf());
 			}		 
 		} else {
 			unhandled(msg);

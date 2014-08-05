@@ -2,22 +2,29 @@ package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
 
+import nl.idgis.publisher.provider.protocol.database.Type;
+
 public class Column implements Serializable {
 	
 	private static final long serialVersionUID = 6110525555358536529L;
 	
-	private final String name, dataType;
+	private final String name;
+	private final Type dataType;
 	
-	public Column(String name, String dataType) {
+	public Column(String name, Type dataType) {
 		this.name = name;
 		this.dataType = dataType;
+	}
+	
+	public Column(String name, String dataType) {
+		this(name, Type.valueOf(dataType));		
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public String getDataType() {
+	public Type getDataType() {
 		return dataType;
 	}
 

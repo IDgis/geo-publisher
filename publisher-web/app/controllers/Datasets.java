@@ -43,6 +43,7 @@ import akka.actor.ActorSelection;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
+	private static int counter = 0;
 
 	public static Promise<Result> list (long page) {
 		return listByCategoryAndMessages(null, false, page);
@@ -66,14 +67,37 @@ public class Datasets extends Controller {
 		System.out.println("delete dataset " + datasetId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Dataset.class, datasetId); 
+		from(database).delete(Dataset.class, datasetId)
+			.execute(new Function<Boolean, Result>() {
+
+				@Override
+				public Result apply(Boolean a) throws Throwable {
+					// TODO Auto-generated method stub
+					System.out.println("apply delete: " + a);
+					return null;
+				}
+			});
+ 
 		return list(1);
+	}
+	
+	private static List<Column> makeColumnList(){
+		List<Column> colList = new ArrayList<Column>();
+		Column col = new Column("FirstColumn","INTEGER");
+		colList.add(col);
+		col = new Column("SecondColumn","STRING");
+		colList.add(col);
+		col = new Column("ThirdColumn","BOOLEAN");
+		colList.add(col);
+		col = new Column("RandomColumn-"+Math.random(),"SOMETYPE");
+		colList.add(col);
+		return colList;
 	}
 	
 	public static Promise<Result> update(){
 		// TODO construct putdataset from form (putdataset.id != null)
-		PutDataset putDataset = new PutDataset("1", "MyUpdatedDataset", "SomeSourceDataset", new ArrayList<Column>());		
-		System.out.println("update dataset " + putDataset.getDatasetIdentification());
+		PutDataset putDataset = new PutDataset("1", "MyUpdatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
+		System.out.println("update dataset " + putDataset);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -84,8 +108,8 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result>  create() {
 		// TODO construct putdataset from form (putdataset.id == null)
-		PutDataset putDataset = new PutDataset(null, "MyCreatedDataset", "SomeSourceDataset", new ArrayList<Column>());		
-		System.out.println("create dataset " + putDataset.getDatasetIdentification());
+		PutDataset putDataset = new PutDataset(null, "MyCreatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
+		System.out.println("create dataset " + putDataset);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
