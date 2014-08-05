@@ -4,11 +4,11 @@ import static models.Domain.from;
 import models.Domain.Function;
 import models.Domain.Function2;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
-import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -41,6 +41,22 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> listByCategoryWithMessages (String categoryId, long page) {
 		return listByCategoryAndMessages(categoryId, true, page);
+	}
+	
+	public static Promise<Result> refresh(String datasetId) {
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new RefreshDataset(datasetId))
+			.execute(new Function<Boolean, Result>() {
+
+				@Override
+				public Result apply(Boolean b) throws Throwable {
+					return b ? ok() : internalServerError();
+				}
+				
+			});
 	}
 	
 	public static Result create() {
