@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider.protocol.database;
 
 import java.io.Serializable;
 
+import nl.idgis.publisher.domain.service.Type;
+
 public class Column implements Serializable {
 	
 	private static final long serialVersionUID = -5278210987617964061L;

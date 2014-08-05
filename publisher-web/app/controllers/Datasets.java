@@ -10,7 +10,6 @@ import java.util.Map;
 import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function3;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListColumns;
@@ -33,12 +32,10 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.datasets.columns;
-import views.html.datasets.form;
-import views.html.datasets.list;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
+import views.html.datasets.*;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
@@ -171,14 +168,43 @@ public class Datasets extends Controller {
 				.get (DataSource.class, dataset.getDataSourceId ())
 				.get (Category.class, dataset.getCategoryId ())
 				.get (SourceDataset.class, dataset.getSourceDatasetId ())
-				.executeFlat (new Function3<DataSource, Category, SourceDataset, Promise<Result>> () {
+				.query (new ListColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
+				.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
 					@Override
-					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset) throws Throwable {
+					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
 						Logger.debug ("dataSource: " + dataSource);
 						Logger.debug ("category: " + category);
 						Logger.debug ("sourceDataset: " + sourceDataset);
+						
+						// TODO: Validate dataSource, category, sourceDataset and columns!
+						
+						// Create the list of selected columns:
+						final List<Column> columns = new ArrayList<> ();
+						for (final Column column: sourceColumns) {
+							if (dataset.getColumns ().containsKey (column.getName ())) {
+								columns.add (column);
+							}
+						}
 
-						return renderCreateForm (datasetForm);
+						final PutDataset putDataset = new PutDataset (
+								null, 
+								dataset.getName (), 
+								sourceDataset.id (), 
+								columns
+							);
+						
+						Logger.debug ("create dataset " + putDataset);
+						
+						return from (database)
+							.put(putDataset)
+							.executeFlat (new Function<Boolean, Promise<Result>> () {
+								@Override
+								public Promise<Result> apply (final Boolean a) throws Throwable {
+									flash ("success", "Dataset " + dataset.getName () + " is opgeslagen.");
+									
+									return Promise.pure (redirect (routes.Datasets.list (0)));
+								}
+							});
 					}
 				});
 	}

@@ -25,6 +25,7 @@
 		<jackson.version>2.3.3</jackson.version>
 		<jodatime.version>2.3</jodatime.version>
 		<akka.version>2.3.3</akka.version>
+		<guava.version>17.0</guava.version>
 	</properties>
 
 	<repositories>
@@ -326,7 +327,7 @@
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
-				<version>17.0</version>						
+				<version>${guava.version}</version>						
 			</dependency>
 			
 			<!-- Jackson dependencies: -->

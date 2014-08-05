@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import scala.concurrent.Future;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.Query;
 import nl.idgis.publisher.provider.protocol.database.Column;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -14,7 +15,6 @@ import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
-import nl.idgis.publisher.provider.protocol.database.Type;
 import nl.idgis.publisher.stream.StreamAggregator;
 import akka.actor.ActorRef;
 import akka.actor.Props;
