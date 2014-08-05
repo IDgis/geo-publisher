@@ -2,16 +2,20 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.ArrayList;
 
+import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
+import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Category;
@@ -19,21 +23,22 @@ import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
+import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import play.Logger;
 import play.Play;
+import play.data.Form;
+import play.data.validation.Constraints;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.datasets.columns;
 import views.html.datasets.form;
 import views.html.datasets.list;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
-import views.html.datasets.columns;
-import play.data.Form;
-import play.data.validation.Constraints;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
@@ -88,6 +93,22 @@ public class Datasets extends Controller {
 		
 		return list(1);
 	}
+
+	private static DomainQuery<Page<SourceDatasetStats>> listSourceDatasets (final String dataSourceId, final String categoryId) {
+		if (dataSourceId == null || categoryId == null || dataSourceId.isEmpty () || categoryId.isEmpty ()) {
+			return new Constant<Page<SourceDatasetStats>> (new Page.Builder<SourceDatasetStats> ().build ());
+		}
+		
+		return new ListSourceDatasets (dataSourceId, categoryId); 
+	}
+	
+	private static DomainQuery<List<Column>> listColumns (final String dataSourceId, final String sourceDatasetId) {
+		if (dataSourceId == null || sourceDatasetId == null || dataSourceId.isEmpty () || sourceDatasetId.isEmpty ()) {
+			return new Constant<List<Column>> (Collections.<Column>emptyList ());
+		}
+		
+		return new ListColumns (dataSourceId, sourceDatasetId);
+	}
 	
 	private static Promise<Result> renderCreateForm (final Form<DatasetForm> datasetForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -95,16 +116,18 @@ public class Datasets extends Controller {
 		return from(database)
 			.list(DataSource.class)
 			.list(Category.class)
-			.execute(new Function2<Page<DataSource>, Page<Category>, Result>() {
+			.query (listSourceDatasets (datasetForm.field ("dataSourceId").value (), datasetForm.field ("categoryId").value ()))
+			.query (listColumns (datasetForm.field ("dataSourceId").value (), datasetForm.field ("sourceDatasetId").value ()))
+			.execute(new Function4<Page<DataSource>, Page<Category>, Page<SourceDatasetStats>, List<Column>, Result>() {
 				@Override
-				public Result apply(Page<DataSource> dataSources, Page<Category> categories) throws Throwable {
-					return ok (form.render (dataSources, categories, datasetForm));
+				public Result apply(Page<DataSource> dataSources, Page<Category> categories, final Page<SourceDatasetStats> sourceDatasets, final List<Column> columns) throws Throwable {
+					Logger.debug ("Columns: " + columns.size ());
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm));
 				}
 			});
 	}
 	
 	public static Promise<Result> createForm () {
-
 		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class);
 		
 		return renderCreateForm (datasetForm);
@@ -174,7 +197,7 @@ public class Datasets extends Controller {
 			});
 	}
 	
-	public static Promise<Result> listColumns(final String dataSourceId, final String sourceDatasetId) {
+	public static Promise<Result> listColumnsAction (final String dataSourceId, final String sourceDatasetId) {
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		

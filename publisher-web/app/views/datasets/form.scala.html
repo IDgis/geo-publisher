@@ -1,7 +1,12 @@
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.response._
+@import nl.idgis.publisher.domain.service._
 
-@(dataSources: Page[DataSource], categories: Page[Category], datasetForm: Form[controllers.Datasets.DatasetForm])
+@(dataSources: Page[DataSource], 
+	categories: Page[Category],
+	sourceDatasets: Page[SourceDatasetStats],
+	columns: List[Column], 
+	datasetForm: Form[controllers.Datasets.DatasetForm])
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
@@ -16,7 +21,7 @@
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
-				<li id="tab-columns" class="disabled"><a href="#dataset-columns" role="tab">Kolommen <span class="badge">0</span></a></li>
+				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>Kolommen <span class="badge">0</span></a></li>
 				<li id="tab-filters" class="disabled"><a href="#dataset-filters" role="tab">Filters <span class="badge">0</span></a></li>
 			</ul>
 			
@@ -62,9 +67,9 @@
 								datasetForm("sourceDatasetId"),
 								helper.options(
 									"" -> "Selecteer een dataset ..."
-								),
-								Symbol("data-original-value") -> (if(datasetForm("sourceDatasetId").value == null) "" else datasetForm("sourceDatasetId").value),
-								'disabled -> "disabled",
+								) ++
+								sourceDatasets.values.map (sourceDataset => { sourceDataset.sourceDataset.id -> sourceDataset.sourceDataset.name }),
+								if(sourceDatasets.values.isEmpty) { 'disabled -> "disabled" } else { Symbol("data-has-value") -> "true" },
 								'_label -> "Dataset",
 								'id -> "input-source-dataset",
 								'class -> "form-control",
@@ -77,16 +82,16 @@
 				<div class="tab-pane" id="dataset-columns">
 					<div class="row">
 						<div class="col-lg-8">
-							<form class="form-horizontal" role="form">
+							<div class="form-horizontal" role="form">
 								<div class="form-group">
 									<label class="col-sm-3 control-label">Geselecteerde kolommen</label>
 									<div class="col-sm-9">
 										<div id="column-list" class="list-group">
-											
+											@views.html.datasets.columns(columns, datasetForm)
 										</div>
 									</div>
 								</div>
-							</form>
+							</div>
 						</div>
 					</div>
 				</div>

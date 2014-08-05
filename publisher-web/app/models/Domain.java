@@ -4,6 +4,7 @@ import static akka.pattern.Patterns.ask;
 import static play.libs.F.Promise.sequence;
 import static play.libs.F.Promise.wrap;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -512,6 +513,12 @@ public class Domain {
     		return Promise.<Object>pure (null);
     	}
     	
+    	if (query instanceof Constant<?>) {
+    		final Constant<?> constant = (Constant<?>) query;
+    		
+    		return Promise.<Object>pure (constant.value ());
+    	}
+    	
 		return wrap (
 				ask (
 					actorSelection, 
@@ -562,5 +569,19 @@ public class Domain {
     	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
     	
     	return Messages.get (lang, key);
+    }
+    
+    public static class Constant<T> implements DomainQuery<T> {
+		private static final long serialVersionUID = 1L;
+		
+		private final T value;
+    	
+    	public Constant (final T value) {
+    		this.value = value;
+    	}
+    	
+    	public T value () {
+    		return value;
+    	}
     }
 }

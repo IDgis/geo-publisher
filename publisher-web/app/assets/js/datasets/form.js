@@ -1,4 +1,5 @@
 require ([
+    'dojo/_base/lang',
 	'dojo/dom', 
 	'dojo/dom-construct',
 	'dojo/dom-attr',
@@ -9,71 +10,22 @@ require ([
 	
 	'dojo/domReady!'], 
 	
-	function(dom, domConstruct, domAttr, domClass, query, on, xhr) {
+function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	
-	var dataSource = '';
-	var category = '';	
+	var dataSourceSelect = dom.byId('input-datasource'),
+		categorySelect = dom.byId('input-category'),
+		datasetSelect = dom.byId('input-source-dataset'),
+		dataSource = dataSourceSelect.value,
+		category = categorySelect.value;	
 	
-	var datasetSelect = dom.byId('input-source-dataset');
-		
-	function onFormChange() {
-		query('option', datasetSelect)
-			.filter(function(option) { return domAttr.get(option, 'value') !== ''; })
-			.forEach(domConstruct.destroy);			
-			
-		if(category !== '' && dataSource !== '') {
-			var route = jsRoutes.controllers.DataSources.listByDataSourceAndCategoryJson(dataSource, category, 1);
-			xhr.get(route.url, {
-				handleAs: 'json'
-			}).then (function(data) {
-				for(var i = 0; i < data.sourceDatasets.length; i++) {
-					var dataset = data.sourceDatasets[i];
-					
-					domConstruct.create('option', {
-						value: dataset.id,
-						innerHTML: dataset.name
-					}, datasetSelect);	
-				}
-				
-				domAttr.remove(datasetSelect, 'disabled');
-			});
-		} else {
-			domAttr.set(datasetSelect, 'disabled', 'disabled');
-		}
-	}
-		
-	on(dom.byId('input-datasource'), 'change', function(event) {
-		dataSource = event.target.value;		
-		onFormChange();
-	});
-	
-	on(dom.byId('input-category'), 'change', function(event) {
-		category = event.target.value;
-		onFormChange();
-	});
-	
-	var columnList = dom.byId('column-list');
-	
-	function updateColumnCount() {
-		query('#tab-columns span')[0].innerHTML =
-			query('input', columnList)
-				.filter(function(item) {
-					return item.checked;
-				}).length;
-	}
-	
-	on(columnList, 'change', function(event) {
-		updateColumnCount();
-	});
-	
-	on(datasetSelect, 'change', function(event) {
-		var id = event.target.value;
+	function updateSourceDataset () {
+		var id = datasetSelect.value;
 		
 		var tabs = query('#tab-columns, #tab-filters');		
 		domConstruct.empty(columnList);
 		
 		if(id !== '') {
-			var route = jsRoutes.controllers.Datasets.listColumns(dataSource, id);
+			var route = jsRoutes.controllers.Datasets.listColumnsAction(dataSource, id);
 			xhr.get(route.url, {
 				handleAs: 'text'
 			}).then (function(data) {					
@@ -100,5 +52,66 @@ require ([
 				});
 			});
 		}
+	}
+		
+	function onFormChange() {
+		query('option', datasetSelect)
+			.filter(function(option) { return domAttr.get(option, 'value') !== ''; })
+			.forEach(domConstruct.destroy);			
+			
+		if(category !== '' && dataSource !== '') {
+			var route = jsRoutes.controllers.DataSources.listByDataSourceAndCategoryJson(dataSource, category, 1);
+			xhr.get(route.url, {
+				handleAs: 'json'
+			}).then (function(data) {
+				var previousValue = domAttr.get (datasetSelect, 'data-original-value') || '';
+				
+				for(var i = 0; i < data.sourceDatasets.length; i++) {
+					var dataset = data.sourceDatasets[i];
+					
+					domConstruct.create('option', lang.mixin ({
+						value: dataset.id,
+						innerHTML: dataset.name
+					}, dataset.id == previousValue ? { selected: 'selected' } : { }), datasetSelect);	
+				}
+				
+				domAttr.remove(datasetSelect, 'disabled');
+				domAttr.remove (datasetSelect, 'data-original-value');
+				
+				updateSourceDataset ();
+			});
+		} else {
+			domAttr.set(datasetSelect, 'disabled', 'disabled');
+		}
+	}
+		
+	on(dataSourceSelect, 'change', function(event) {
+		dataSource = this.value;		
+		onFormChange();
 	});
+	
+	on(categorySelect, 'change', function(event) {
+		category = this.value;
+		onFormChange();
+	});
+	
+	var columnList = dom.byId('column-list');
+	
+	function updateColumnCount() {
+		query('#tab-columns span')[0].innerHTML =
+			query('input', columnList)
+				.filter(function(item) {
+					return item.checked;
+				}).length;
+	}
+	
+	on(columnList, 'change', function(event) {
+		updateColumnCount();
+	});
+	
+	on(datasetSelect, 'change', function(event) {
+		updateSourceDataset ();
+	});
+	
+	updateColumnCount ();
 });
