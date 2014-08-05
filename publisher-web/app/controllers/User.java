@@ -1,5 +1,6 @@
 package controllers;
 
+import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.mvc.Controller;
@@ -9,6 +10,9 @@ import views.html.login;
 import static play.data.Form.form;
 
 public class User extends Controller {
+	
+	private static String configUsername = Play.application().configuration().getString("publisher.admin.username");
+	private static String configPassword = Play.application().configuration().getString("publisher.admin.password");
 
 	public static Result login (final String r) {
 		final Form<Login> loginForm = form (Login.class).fill (new Login (r));
@@ -78,7 +82,7 @@ public class User extends Controller {
 		}
 		
 		public String validate () {
-			if (!"admin@idgis.nl".equals (username) || !"12admin34".equals (password)) {
+			if (!configUsername.equals (username) || !configPassword.equals (password)) {
 				return "Ongeldige gebruikersnaam of wachtwoord";
 			}
 			
