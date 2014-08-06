@@ -15,11 +15,15 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.domain.log.GenericEvent;
+import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
@@ -38,6 +42,7 @@ import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -92,9 +97,26 @@ public class Admin extends UntypedActor {
 			handleListDatasets (((ListDatasets)message));
 		} else if (message instanceof ListColumns) {
 			handleListColumns ((ListColumns) message);
+		} else if (message instanceof RefreshDataset) {
+			handleRefreshDataset(((RefreshDataset) message).getDatasetId());
 		} else {
 			unhandled (message);
 		}
+	}
+	
+	private void handleRefreshDataset(String datasetId) {
+		log.debug("requesting to refresh dataset: " + datasetId);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		Patterns.ask(database, new StoreLog(new ImportLogLine(GenericEvent.REQUESTED, datasetId)), 15000)
+			.onComplete(new OnComplete<Object>() {
+
+				@Override
+				public void onComplete(Throwable t, Object msg) throws Throwable {
+					sender.tell(t == null, self);
+				}
+				
+			}, getContext().dispatcher());
 	}
 	
 	private void handleListColumns (final ListColumns listColumns) {

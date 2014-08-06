@@ -59,6 +59,9 @@ public class Loader extends UntypedActor {
 					public void onSuccess(Object msg) throws Throwable {
 						if(msg instanceof NotConnected) {
 							log.warning("not connected: " + dataSourceId);
+							
+							ImportLogLine logLine = new ImportLogLine(GenericEvent.FINISHED, importJob.getDatasetId());
+							database.tell(new StoreLog(logLine), getSelf());
 						} else {
 							final ActorRef dataSource = (ActorRef)msg;
 							
