@@ -21,6 +21,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -216,7 +217,12 @@ public class Datasets extends Controller {
 							.put(putDataset)
 							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
-								public Promise<Result> apply (final Response<?> a) throws Throwable {
+								public Promise<Result> apply (final Response<?> response) throws Throwable {
+									if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
+										datasetForm.reject ("Er bestaat al een dataset met tabelnaam " + dataset.getId ());
+										return renderCreateForm (datasetForm);
+									}
+									
 									flash ("success", "Dataset " + dataset.getName () + " is opgeslagen.");
 									
 									return Promise.pure (redirect (routes.Datasets.list (0)));
@@ -327,6 +333,7 @@ public class Datasets extends Controller {
 
 		@Constraints.Required
 		@Constraints.MinLength (3)
+		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String id;
 		
 		public String getName() {
