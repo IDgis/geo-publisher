@@ -1,0 +1,1 @@
+credentials += Credentials("Sonatype Nexus Repository Manager", "nexus.idgis.eu", "${env.CI_USERNAME}", "${env.CI_PASSWORD}")
