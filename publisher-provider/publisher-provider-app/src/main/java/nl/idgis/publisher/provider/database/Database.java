@@ -62,90 +62,96 @@ public class Database extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof FetchTable) {
-			FetchTable ft = (FetchTable)msg;
-			
-			log.debug("fetch table: " + ft);
-			
-			StringBuilder sb = new StringBuilder("select ");
-			
-			String separator = "";
-			for(String columnName : ft.getColumnNames()) {
-				sb.append(separator);
-				sb.append(columnName);
-				
-				separator = ", ";
-			}
-			
-			sb.append(" from ");
-			sb.append(ft.getTableName());
-			
-			content.tell(new Query(sb.toString()), getSender());
+			handleFetchTable((FetchTable)msg);
 		} else if(msg instanceof DescribeTable) {
-			String requestedTableName = ((DescribeTable) msg).getTableName();
-			
-			final String sql;
-			int separatorIndex = requestedTableName.indexOf(".");
-			if(separatorIndex == -1) {
-				sql = "select column_name, data_type from user_tab_columns "
-						+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
-						+ "order by column_id";
-			} else {
-				String owner = requestedTableName.substring(0, separatorIndex);
-				String tableName = requestedTableName.substring(separatorIndex + 1);
-				
-				sql = "select column_name, data_type from all_tab_columns "
-						+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
-						+ "' " + "order by column_id";
-			}
-			
-			Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
-			Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
-						
-						@Override
-						public Object apply(ArrayList<Record> records) {
-							int recordCount = records.size();
-							if(recordCount == 0) {
-								return new TableNotFound();
-							} 
-							
-							ArrayList<Column> columns = new ArrayList<>();
-							for(Record record : records) {
-								List<Object> values = record.getValues();
-								
-								String name = (String) values.get(0);
-								String typeName = (String) values.get(1);
-								
-								Type type;
-								switch(typeName.toUpperCase()) {
-									case "NUMBER":
-										type = Type.NUMERIC;
-										break;
-									case "DATE":
-										type = Type.DATE;
-										break;
-									case "VARCHAR2":
-									case "NVARCHAR2":
-										type = Type.TEXT;
-										break;
-									case "SDO_GEOMETRY":
-										type = Type.GEOMETRY;
-										break;
-									default:
-										log.debug("unknown data type: " + typeName);
-										continue;
-								}
-								
-								columns.add(new Column(name, type));
-							}
-							
-							return new TableDescription(columns.toArray(new Column[columns.size()]));				
-						}
-					}, getContext().dispatcher());
-			
-			Patterns.pipe(response, getContext().dispatcher())
-				.pipeTo(getSender(), getSelf());
+			handleDescribeTable((DescribeTable)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleDescribeTable(DescribeTable msg) {
+		String requestedTableName = msg.getTableName();
+		
+		final String sql;
+		int separatorIndex = requestedTableName.indexOf(".");
+		if(separatorIndex == -1) {
+			sql = "select column_name, data_type from user_tab_columns "
+					+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
+					+ "order by column_id";
+		} else {
+			String owner = requestedTableName.substring(0, separatorIndex);
+			String tableName = requestedTableName.substring(separatorIndex + 1);
+			
+			sql = "select column_name, data_type from all_tab_columns "
+					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
+					+ "' " + "order by column_id";
+		}
+		
+		Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
+		Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
+					
+					@Override
+					public Object apply(ArrayList<Record> records) {
+						int recordCount = records.size();
+						if(recordCount == 0) {
+							return new TableNotFound();
+						} 
+						
+						ArrayList<Column> columns = new ArrayList<>();
+						for(Record record : records) {
+							List<Object> values = record.getValues();
+							
+							String name = (String) values.get(0);
+							String typeName = (String) values.get(1);
+							
+							Type type;
+							switch(typeName.toUpperCase()) {
+								case "NUMBER":
+									type = Type.NUMERIC;
+									break;
+								case "DATE":
+									type = Type.DATE;
+									break;
+								case "VARCHAR2":
+								case "NVARCHAR2":
+									type = Type.TEXT;
+									break;
+								case "SDO_GEOMETRY":
+									type = Type.GEOMETRY;
+									break;
+								default:
+									log.debug("unknown data type: " + typeName);
+									continue;
+							}
+							
+							columns.add(new Column(name, type));
+						}
+						
+						return new TableDescription(columns.toArray(new Column[columns.size()]));				
+					}
+				}, getContext().dispatcher());
+		
+		Patterns.pipe(response, getContext().dispatcher())
+			.pipeTo(getSender(), getSelf());
+	}
+
+	private void handleFetchTable(FetchTable msg) {
+		log.debug("fetch table: " + msg);
+		
+		StringBuilder sb = new StringBuilder("select ");
+		
+		String separator = "";
+		for(String columnName : msg.getColumnNames()) {
+			sb.append(separator);
+			sb.append(columnName);
+			
+			separator = ", ";
+		}
+		
+		sb.append(" from ");
+		sb.append(msg.getTableName());
+		
+		content.tell(new Query(sb.toString()), getSender());
 	}	
 }
