@@ -22,6 +22,11 @@ public abstract class JdbcTransaction extends UntypedActor {
 	}
 	
 	protected abstract void executeQuery(JdbcContext context, Query query) throws Exception;
+	
+	@Override
+	public void postStop() throws Exception {
+		connection.close();
+	};
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -29,7 +34,6 @@ public abstract class JdbcTransaction extends UntypedActor {
 			log.debug("committing transaction");
 			
 			connection.commit();
-			connection.close();
 			
 			getSender().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
@@ -37,7 +41,6 @@ public abstract class JdbcTransaction extends UntypedActor {
 			log.debug("rolling back transaction");
 			
 			connection.rollback();
-			connection.close();
 			
 			getSender().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
