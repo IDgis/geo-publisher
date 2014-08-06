@@ -63,3 +63,30 @@ html, body {
 @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
 @-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
+#notification-container {
+	position: fixed;
+	left: 0px;
+	right: 0px;
+	top: 65px;
+	z-index: 1040;
+	text-align: center;
+	
+	.alert {
+		display: inline-block;
+		
+		.close {
+			margin-left: 15px;
+		}
+		
+		&:hover {
+			opacity: .5;
+		}
+	}
+}
+
+@media(min-width:768px) {
+	#notification-container {
+		top: 25px;
+	}
+}

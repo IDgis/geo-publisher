@@ -106,11 +106,11 @@
 						Er zijn geen datasets gevonden die voldoen aan de criteria. 
 					</div>
 				} else {
-				<div class="list-group">
+				<div class="list-group" id="dataset-list">
 				
 					@if(!onlyWithMessages) {
 						@for(dataset <- datasets.values) {
-						<div class="list-group-item">
+						<div class="list-group-item js-dataset-item" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
 							<div class="row">
 								<div class="col-md-5">
 									<h4 class="list-group-item-heading">@dataset.name </h4>
@@ -129,7 +129,7 @@
 								<div class="col-md-2">
 									<div class="btn-group pull-right">
 										<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
-										<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
+										<a href="#" class="btn btn-default js-dataset-refresh" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
 										<a href="@routes.Datasets.delete(dataset.name)" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
 									</div>
 								</div>
