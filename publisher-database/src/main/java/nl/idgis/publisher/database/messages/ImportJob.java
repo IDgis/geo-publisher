@@ -43,5 +43,51 @@ public class ImportJob implements Serializable {
 				+ columns + "]";
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((columns == null) ? 0 : columns.hashCode());
+		result = prime * result
+				+ ((dataSourceId == null) ? 0 : dataSourceId.hashCode());
+		result = prime * result
+				+ ((datasetId == null) ? 0 : datasetId.hashCode());
+		result = prime * result
+				+ ((sourceDatasetId == null) ? 0 : sourceDatasetId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ImportJob other = (ImportJob) obj;
+		if (columns == null) {
+			if (other.columns != null)
+				return false;
+		} else if (!columns.equals(other.columns))
+			return false;
+		if (dataSourceId == null) {
+			if (other.dataSourceId != null)
+				return false;
+		} else if (!dataSourceId.equals(other.dataSourceId))
+			return false;
+		if (datasetId == null) {
+			if (other.datasetId != null)
+				return false;
+		} else if (!datasetId.equals(other.datasetId))
+			return false;
+		if (sourceDatasetId == null) {
+			if (other.sourceDatasetId != null)
+				return false;
+		} else if (!sourceDatasetId.equals(other.sourceDatasetId))
+			return false;
+		return true;
+	}
+
 	
 }

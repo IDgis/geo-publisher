@@ -2,17 +2,22 @@ package nl.idgis.publisher.database;
 
 import java.sql.Connection;
 
+import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
+import akka.actor.SupervisorStrategy.Directive;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.pattern.Patterns;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -120,4 +125,17 @@ public abstract class JdbcDatabase extends UntypedActor {
 			unhandled(msg);
 		}
 	}	
+	
+	private final static SupervisorStrategy strategy = 
+		new OneForOneStrategy(-1, Duration.Inf(), new Function<Throwable, Directive>() {
+			@Override
+			public Directive apply(Throwable t) {
+				return OneForOneStrategy.stop();
+			}
+		});
+
+	@Override
+	public SupervisorStrategy supervisorStrategy() { 
+		return strategy;
+	}
 }
