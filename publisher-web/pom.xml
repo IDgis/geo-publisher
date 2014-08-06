@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <artifactId>publisher-web</artifactId>
-    <packaging>play2</packaging>
+    <packaging>pom</packaging>
     
     <parent>
         <groupId>nl.idgis.publisher</groupId>
@@ -24,171 +24,98 @@
         </repository>
     </repositories>
 
+	<!--
+	Mapping between Maven lifecycle and Activator commands:
+	- validate -> activator update
+	- compile -> activator compile
+	- test -> activator test
+	- package -> activator dist
+	- install -> activator publishLocal
+	-->
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-        <play2.plugin.version>1.0.0-alpha7</play2.plugin.version>
-        <sbt-compiler.plugin.version>1.0.0-beta4</sbt-compiler.plugin.version>
+        
+        <activator>activator</activator>
     </properties>
     
-    <dependencies>
-     	<dependency>
-            <groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-remote_${scala.abi.version}</artifactId>            
-        </dependency>
-    
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-        </dependency>    	
-        
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>anorm_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play-jdbc_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-        </dependency>
-        
-        <dependency>
-        	<groupId>com.typesafe.play</groupId>
-        	<artifactId>play-java_${scala.abi.version}</artifactId>
-        	<version>${play2.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play-java-ebean_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play-java-jpa_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-entitymanager</artifactId>
-            <version>3.6.9.Final</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play-test_${scala.abi.version}</artifactId>
-            <version>${play2.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- WebJar dependencies: -->
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>webjars-play_${scala.abi.version}</artifactId>
-			<version>2.3.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>bootstrap</artifactId>
-			<version>3.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>dojo</artifactId>
-			<version>1.10.0</version>
-		</dependency>
-		
-		<!-- Publisher dependencies: -->
-		<dependency>
-			<groupId>nl.idgis.publisher</groupId>
-			<artifactId>publisher-domain</artifactId>
-		</dependency>
-    </dependencies>
+    <profiles>
+    	<profile>
+    		<id>activator-windows</id>
+    		<activation>
+    			<os>
+    				<family>windows</family>
+    			</os>
+    		</activation>
+    		<properties>
+    			<activator>activator.bat</activator>
+    		</properties>
+    	</profile>
+    </profiles>
     
     <build>
-    	<sourceDirectory>${basedir}/app</sourceDirectory>
-    	<testSourceDirectory>${basedir}/test</testSourceDirectory>
-    	
-    	<directory>${basedir}/target/scala-${scala.abi.version}</directory>
-    	
-    	<resources>
-    		<resource>
-    			<directory>${basedir}/conf</directory>
-    		</resource>
-    		<resource>
-    			<directory>${basedir}</directory>
-    			<includes>
-    				<include>public/**</include>
-    			</includes>
-    		</resource>
-    	</resources>
-    	
     	<plugins>
     		<plugin>
-    			<groupId>com.google.code.play2-maven-plugin</groupId>
-    			<artifactId>play2-maven-plugin</artifactId>
-    			<version>${play2.plugin.version}</version>
-    			<extensions>true</extensions>
+    			<groupId>org.codehaus.mojo</groupId>
+    			<artifactId>exec-maven-plugin</artifactId>
+    			<version>1.3.2</version>
     			
     			<configuration>
-    				<mainLang>java</mainLang>
-    				<distOutputDirectory>${basedir}/target</distOutputDirectory>
-    				<distAttach>true</distAttach>
+    				<executable>${activator}</executable>
+  					<workingDirectory>${basedir}</workingDirectory>
     			</configuration>
-
-				<executions>
-				
-					<!-- Compile assets: -->
-					<execution>
-						<id>default-play2-compile-assets</id>
-						<goals>
-							<goal>closure-compile</goal>
-							<goal>coffee-compile</goal>
-							<goal>less-compile</goal>
-						</goals>
-					</execution>
-				</executions>    			
-    		</plugin>
-    		
-    		<plugin>
-    			<groupId>com.google.code.sbt-compiler-maven-plugin</groupId>
-    			<artifactId>sbt-compiler-maven-plugin</artifactId>
-    			<version>${sbt-compiler.plugin.version}</version>
-    		</plugin>
-    		
-    		<plugin>
-    			<groupId>org.apache.maven.plugins</groupId>
-    			<artifactId>maven-jar-plugin</artifactId>
-    			<version>2.4</version>
     			
-    			<configuration>
-    				<archive>
-    					<manifest>
-    						<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-    						<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-    					</manifest>
-    				</archive>
-    			</configuration>
+    			<executions>
+    				<!-- Clean (activator clean): -->
+    				<execution>
+    					<id>activator-clean</id>
+    					<phase>clean</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>clean</argument></arguments></configuration>
+    				</execution>
+    				
+    				<!-- Validate (activator update): -->
+    				<execution>
+    					<id>activator-update</id>
+    					<phase>validate</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>update</argument></arguments></configuration>
+    				</execution>
+    				
+    				<!-- Compile (activator compile): -->
+    				<execution>
+    					<id>activator-compile</id>
+    					<phase>compile</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>compile</argument></arguments></configuration>
+    				</execution>
+    				
+    				<!-- Test (activator test): -->
+    				<execution>
+    					<id>activator-test</id>
+    					<phase>test</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>test</argument></arguments></configuration>
+    				</execution>
+    				
+    				<!-- Package (activator dist): -->
+    				<execution>
+    					<id>activator-dist</id>
+    					<phase>package</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>dist</argument></arguments></configuration>
+    				</execution>
+    				
+    				<!-- Package (activator dist): -->
+    				<execution>
+    					<id>activator-publishLocal</id>
+    					<phase>install</phase>
+    					<goals><goal>exec</goal></goals>
+    					<configuration><arguments><argument>publishLocal</argument></arguments></configuration>
+    				</execution>
+    			</executions>
+    			
     		</plugin>
-    		
-    		<plugin>
-    			<groupId>org.apache.maven.plugins</groupId>
-    			<artifactId>maven-surefire-plugin</artifactId>
-    			<version>2.17</version>
-    		</plugin>
-    		
     	</plugins>
     </build>
 	
