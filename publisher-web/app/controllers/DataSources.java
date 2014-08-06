@@ -25,7 +25,6 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.datasources.list;
-import views.html.datasources.columns;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -114,21 +113,5 @@ public class DataSources extends Controller {
 							});
 				}
 			});
-	}
-	
-	public static Promise<Result> listColumns(final String dataSourceId, final String sourceDatasetId) {
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return 
-			from(database)
-				.query(new ListColumns(dataSourceId, sourceDatasetId))
-				.execute(new Function<List<Column>, Result>() {
-	
-					@Override
-					public Result apply(List<Column> c) throws Throwable {
-						return ok(columns.render(c));
-					}
-				});
 	}
 }

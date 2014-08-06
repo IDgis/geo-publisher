@@ -1,0 +1,17 @@
+@import nl.idgis.publisher.domain.service._
+
+@(columns: List[Column], datasetForm: Form[controllers.Datasets.DatasetForm])
+
+@for(column <- columns) {
+	<label class="list-group-item">
+		<div class="row">
+			<div class="col-sm-1 text-center">
+				<input name="columns[@column.getName()]" type="checkbox"@if(datasetForm==null|| datasetForm("columns").sub("[" + column.getName() + "]").value != null){ checked}>
+			</div>
+			<div class="col-sm-11">
+				<div>@column.getName()</div>
+				<div class="text-muted">@column.getDataType()</div>
+			</div>
+		</div>
+	</label>
+} 

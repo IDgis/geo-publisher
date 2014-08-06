@@ -1,7 +1,14 @@
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.response._
+@import nl.idgis.publisher.domain.service._
 
-@(dataSources: Page[DataSource], categories: Page[Category])
+@(dataSources: Page[DataSource], 
+	categories: Page[Category],
+	sourceDatasets: Page[SourceDatasetStats],
+	columns: List[Column], 
+	datasetForm: Form[controllers.Datasets.DatasetForm])
+
+@implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
 @layout.application(
 	title = "Nieuwe dataset toevoegen",
@@ -10,11 +17,26 @@
 	<div class="page-content">
 		<h1 class="page-header">Nieuwe dataset toevoegen</h1>
 		
-		<form action="@routes.Datasets.create()" method="post" class="form-horizontal" role="form">
+		@if(datasetForm.hasErrors) {
+			<div class="alert alert-danger">
+				<h4>De dataset kan niet worden opgeslagen</h4>
+				<p>Niet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.<p>
+				@if(datasetForm.hasGlobalErrors) {
+					<h5>Validatiefouten</h5>
+					<ul>
+						@for(error <- datasetForm.globalErrors) {
+							<li>@error.message</li>
+						}
+					</ul>
+				}
+			</div>
+		}
+		
+		<form action="@routes.Datasets.submitCreate()" method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
-				<li id="tab-columns" class="disabled"><a href="#dataset-columns" role="tab">Kolommen <span class="badge">0</span></a></li>
+				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">Kolommen</span> }else{ Kolommen } <span class="badge">0</span></a></li>
 				<li id="tab-filters" class="disabled"><a href="#dataset-filters" role="tab">Filters <span class="badge">0</span></a></li>
 			</ul>
 			
@@ -23,46 +45,69 @@
 				<div class="tab-pane active" id="dataset-details">
 					<div class="row">
 						<div class="col-lg-8">
-							<div class="form-group">
-								<label for="input-name" class="col-sm-3 control-label">Naam</label>
-								<div class="col-sm-9">
-									<input name="name" type="text" class="form-control" id="input-name" placeholder="Naam ...">
+							@helper.inputText(
+								datasetForm("name"), 
+								'_label -> "Naam", 
+								'id -> "input-name", 
+								'class -> "form-control", 
+								'placeholder -> "Naam ...", 
+								'_help -> "De naam van de dataset"
+							)
+							
+							@helper.select(
+								datasetForm("dataSourceId"),
+								helper.options(
+									"" -> "Selecteer een gegevensbron ..."
+								) ++
+								dataSources.values.map (dataSource => { dataSource.id -> dataSource.name }),
+								'_label -> "Gegegensbron",
+								'id -> "input-datasource",
+								'class -> "form-control",
+								'_help -> "De gegevensbron die de gegevens voor deze dataset bevat"
+							)
+							
+							@helper.select(
+								datasetForm("categoryId"),
+								helper.options(
+									"" -> "Selecteer een categorie ..."
+								) ++
+								categories.values.map (category => { category.id -> category.name }),
+								'_label -> "Categorie",
+								'id -> "input-category",
+								'class -> "form-control",
+								'_help -> "De categorie van de dataset"
+							)
+
+							@helper.select(
+								datasetForm("sourceDatasetId"),
+								helper.options(
+									"" -> "Selecteer een dataset ..."
+								) ++
+								sourceDatasets.values.map (sourceDataset => { sourceDataset.sourceDataset.id -> sourceDataset.sourceDataset.name }),
+								if(sourceDatasets.values.isEmpty) { 'disabled -> "disabled" } else { Symbol("data-has-value") -> "true" },
+								'_label -> "Dataset",
+								'id -> "input-source-dataset",
+								'class -> "form-control",
+								'_help -> "De dataset uit de brongegevens waar deze dataset op is gebaseerd."
+							)
+							
+							<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
+								<label class="control-label col-sm-3" for="input-id">Tabelnaam</label>
+							    <div class="controls col-sm-9">
+									<input type="text" class="form-control" id="input-id" placeholder="Tabelnaam ..." name="@datasetForm("id").name" value="@datasetForm("id").value">
+									<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
+									@if(!datasetForm("id").errors.isEmpty) {
+								        <div class="help-block">
+								        	<ul class="list-unstyled">
+								        		@for(error <- datasetForm("id").errors) {
+								        			<li>@Messages(error.message, error.arguments: _*)</li>
+								        		}
+								        	</ul>
+								        </div>
+								    }
+								    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
 								</div>
 							</div>
-							
-							<div class="form-group">
-								<label for="input-datasource" class="col-sm-3 control-label">Gegevensbron</label>
-								<div class="col-sm-9">
-									<select name="dataSourceId" id="input-datasource" class="form-control">
-										<option value="">Selecteer een gegevensbron ...</option>										
-										@for(dataSource <- dataSources.values) {
-											<option value="@dataSource.id">@dataSource.name</option>
-										}
-									</select>									
-								</div>
-							</div>
-							
-							<div class="form-group">
-								<label for="input-category" class="col-sm-3 control-label">Categorie</label>
-								<div class="col-sm-9">
-									<select name="categoryId" id="input-category" class="form-control">
-										<option value="">Selecteer een categorie ...</option>
-										@for(category <- categories.values) {
-											<option value="@category.id">@category.name</option>
-										}
-									</select>
-								</div>
-							</div>
-							
-							<div class="form-group">
-								<label for="input-source-dataset" class="col-sm-3 control-label">Dataset</label>
-								<div class="col-sm-9">
-									<select name="sourceDatasetId" id="input-source-dataset" class="form-control" disabled>
-										<option value="">Selecteer een dataset ...</option>
-									</select>
-								</div>
-							</div>
-							
 						</div>						
 					</div>
 				</div>
@@ -70,16 +115,21 @@
 				<div class="tab-pane" id="dataset-columns">
 					<div class="row">
 						<div class="col-lg-8">
-							<form class="form-horizontal" role="form">
-								<div class="form-group">
+							<div class="form-horizontal" role="form">
+								<div class="form-group@if(!datasetForm("columns").errors.isEmpty){ has-error}">
 									<label class="col-sm-3 control-label">Geselecteerde kolommen</label>
 									<div class="col-sm-9">
+										@if(!datasetForm("columns").errors.isEmpty) {
+											<div class="alert alert-danger">
+												Selecteer tenminste &eacute;&eacute;n kolom.
+											</div>
+										}
 										<div id="column-list" class="list-group">
-											
+											@views.html.datasets.columns(columns, datasetForm)
 										</div>
 									</div>
 								</div>
-							</form>
+							</div>
 						</div>
 					</div>
 				</div>

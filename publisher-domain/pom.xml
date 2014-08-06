@@ -29,10 +29,6 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>nl.idgis.publisher</groupId>
-			<artifactId>publisher-provider-protocol</artifactId>
-		</dependency>
 	</dependencies>
 	
 </project>

@@ -9,8 +9,8 @@ import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.database.Type;
 
 public class GeometryTransaction extends JdbcTransaction {
 	

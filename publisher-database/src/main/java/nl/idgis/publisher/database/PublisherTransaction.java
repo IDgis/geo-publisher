@@ -15,6 +15,8 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
+import nl.idgis.publisher.database.messages.CreateDataset;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -23,6 +25,7 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
 import nl.idgis.publisher.database.messages.GetNextImportJob;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJob;
@@ -42,16 +45,19 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.log.Events;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.HarvestLogLine;
 import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.domain.log.LogLine;
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Table;
-
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -80,6 +86,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.set(sourceDatasetColumn.index, i++)
 				.set(sourceDatasetColumn.name, column.getName())
 				.set(sourceDatasetColumn.dataType, column.getDataType().toString())
+				.execute();
+		}
+	}
+	
+	private void insertDatasetColumns(QueryDSLContext context, int datasetId, List<Column> columns) {
+		int i = 0;
+		for(Column column : columns) {			
+			context.insert(datasetColumn)
+				.set(datasetColumn.datasetId, datasetId)
+				.set(datasetColumn.index, i++)
+				.set(datasetColumn.name, column.getName())
+				.set(datasetColumn.dataType, column.getDataType().toString())
 				.execute();
 		}
 	}
@@ -185,7 +203,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					insertSourceDatasetColumns(context, id, table.getColumns());
 					context.answer(new Registered());
 					
-					log.debug("dataset updated");
+					log.debug("dataSource updated");
 				}
 			} else {
 				Integer dataSourceId = context.query().from(dataSource)
@@ -239,25 +257,44 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			context.answer(
 					baseQuery
 					.orderBy(dataset.identification.asc())
-					.list(new QDatasetInfo(dataset.identification, dataset.identification, 
+					.list(new QDatasetInfo(dataset.identification, dataset.name, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name))
 			);
-		} else if(query instanceof GetDatasetInfo) {
-			context.answer(
-					context.query().from(dataset)
-					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
-					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
-					.singleResult(new QDatasetInfo(dataset.identification, dataset.identification, 
-							sourceDataset.identification, sourceDataset.name,
-							category.identification,category.name)));
 			
 		} else if(query instanceof GetDataSourceInfo) {
 			context.answer(
 				context.query().from(dataSource)
 					.orderBy(dataSource.identification.asc())
 					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
+		} else if(query instanceof GetSourceDatasetInfo) {
+			GetSourceDatasetInfo sdi = (GetSourceDatasetInfo)query;
+			log.debug(sdi.toString());
+			String sourceDatasetId = sdi.getId();
+			
+			SQLQuery baseQuery = context.query().from(sourceDataset)
+					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.join (category).on(sourceDataset.categoryId.eq(category.id));
+			
+			if(sourceDatasetId != null) {				
+				baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
+			}
+				
+			SQLQuery listQuery = baseQuery.clone()					
+					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+			
+			context.answer(
+				listQuery					
+					.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+					.groupBy(dataSource.identification).groupBy(dataSource.name)
+					.groupBy(category.identification).groupBy(category.name)						
+					.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+							dataSource.identification, dataSource.name,
+							category.identification,category.name,
+							dataset.count())
+				)
+			);
+			
 		} else if(query instanceof GetSourceDatasetListInfo) {
 			GetSourceDatasetListInfo sdi = (GetSourceDatasetListInfo)query;
 			log.debug(sdi.toString());
@@ -428,7 +465,99 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification), 
 					t.get(dataset.identification), columns));
-			}
+			}		
+		//	
+		// CRUD Dataset
+		//
+		} else if (query instanceof CreateDataset) {
+			CreateDataset cds = (CreateDataset)query;		
+			
+			String sourceDatasetIdent = cds.getSourceDatasetIdentification();
+			String datasetIdent = cds.getDatasetIdentification();
+			String datasetName = cds.getDatasetName();
+			log.debug("create dataset " + datasetIdent);
+
+			Integer sourceDatasetId = context.query().from(sourceDataset)
+					.where(sourceDataset.identification.eq(sourceDatasetIdent))
+					.singleResult(sourceDataset.id);
+				if(sourceDatasetId == null) {
+					log.error("sourceDataset not found: " + sourceDatasetIdent);
+					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+				} else {
+					context.insert(dataset)
+						.set(dataset.identification, datasetIdent)
+						.set(dataset.name, datasetName)
+						.set(dataset.sourceDatasetId, sourceDatasetId)
+						.execute();
+					
+					Integer datasetId = context.query().from(dataset)
+						.where(dataset.identification.eq(datasetIdent))
+						.singleResult(dataset.id);
+					
+					insertDatasetColumns(context, datasetId, cds.getColumnList());					
+					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
+					
+					log.debug("dataset inserted");
+				}
+		} else if(query instanceof GetDatasetInfo) {
+			context.answer(
+					context.query().from(dataset)
+					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
+					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
+					.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
+							sourceDataset.identification, sourceDataset.name,
+							category.identification,category.name)));
+		} else if (query instanceof UpdateDataset) {
+			UpdateDataset uds = (UpdateDataset)query;			
+			String sourceDatasetIdent = uds.getSourceDatasetIdentification();
+			String datasetIdent = uds.getDatasetIdentification();
+			String datasetName = uds.getDatasetName();
+			log.debug("update dataset" + datasetIdent);
+			
+			Integer sourceDatasetId = context.query().from(sourceDataset)
+					.where(sourceDataset.identification.eq(sourceDatasetIdent))
+					.singleResult(sourceDataset.id);
+
+			context.update(dataset)
+				.set(dataset.name, datasetName)
+				.set(dataset.sourceDatasetId, sourceDatasetId)
+				.where(dataset.identification.eq(datasetIdent))
+				.execute();
+				
+			Integer datasetId = context.query().from(dataset)
+					.where(dataset.identification.eq(datasetIdent))
+					.singleResult(dataset.id);
+			
+			context.delete(datasetColumn)
+				.where(datasetColumn.datasetId.eq(datasetId))
+				.execute();
+			
+			insertDatasetColumns(context, datasetId, uds.getColumnList());
+			context.answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
+			
+			log.debug("dataset updated");
+		} else if (query instanceof DeleteDataset) {
+			DeleteDataset dds = (DeleteDataset)query;			
+			
+			Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
+					.where(
+						new SQLSubQuery().from(dataset)
+						.where(dataset.identification.eq(dds.getId())
+						.and(dataset.id.eq(datasetColumn.datasetId))).exists())
+					.execute();
+			log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
+			
+			Long nrOfDatasetsDeleted = context.delete(dataset)
+				.where(dataset.identification.eq(dds.getId()))
+				.execute();
+			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
+			
+			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
+				context.answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
+			} else {
+				context.answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
+			}		
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}

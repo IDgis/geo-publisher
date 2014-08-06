@@ -32,6 +32,10 @@
 			<artifactId>publisher-domain</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-provider-protocol</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>com.mysema.querydsl</groupId>
 			<artifactId>querydsl-core</artifactId>			
 		</dependency>

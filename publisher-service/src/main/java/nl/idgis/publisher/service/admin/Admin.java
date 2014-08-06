@@ -4,33 +4,42 @@ import java.util.List;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
+import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
+import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
+import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.ImportLogLine;
+import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -88,8 +97,26 @@ public class Admin extends UntypedActor {
 				handleGetCategory (getEntity);
 			} else if (getEntity.cls ().equals (Dataset.class)) {
 				handleGetDataset(getEntity);
+			} else if (getEntity.cls ().equals (SourceDataset.class)) {
+				handleGetSourceDataset(getEntity);
 			} else {
 				sender ().tell (null, self ());
+			}
+		} else if (message instanceof PutEntity<?>) {
+			final PutEntity<?> putEntity = (PutEntity<?>)message;
+			if (putEntity.value() instanceof PutDataset) {
+				PutDataset putDataset = (PutDataset)putEntity.value(); 
+				if (putDataset.getOperation() == CrudOperation.CREATE){
+					handleCreateDataset(putDataset);
+				}else{
+					handleUpdateDataset(putDataset);
+				}
+			}
+			
+		} else if (message instanceof DeleteEntity<?>) {
+			final DeleteEntity<?> delEntity = (DeleteEntity<?>)message;
+			if (delEntity.cls ().equals (Dataset.class)) {
+				handleDeleteDataset(delEntity.id());
 			}
 		} else if (message instanceof ListSourceDatasets) {
 			handleListSourceDatasets ((ListSourceDatasets)message);
@@ -102,6 +129,61 @@ public class Admin extends UntypedActor {
 		} else {
 			unhandled (message);
 		}
+	}
+	
+	private void handleCreateDataset(PutDataset putDataset) {
+		log.debug ("handle create dataset: " + putDataset.id());
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> createDatasetInfo = Patterns.ask(database, 
+				new CreateDataset(putDataset.id(), putDataset.getDatasetName(),
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Response <?> createdDataset = (Response<?>)msg;
+						log.debug ("created dataset id: " + createdDataset.getValue());
+						sender.tell (createdDataset, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
+	private void handleUpdateDataset(PutDataset putDataset) {
+		log.debug ("handle update dataset: " + putDataset.id());
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> updateDatasetInfo = Patterns.ask(database, 
+				new UpdateDataset(putDataset.id(), putDataset.getDatasetName(),
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Response<?> updatedDataset = (Response<?>)msg;
+						log.debug ("updated dataset id: " + updatedDataset.getValue());
+						sender.tell (updatedDataset, self);
+					}
+				}, getContext().dispatcher());
+
+	}
+
+	private void handleDeleteDataset(String id) {
+		log.debug ("handle delete dataset: " + id);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> deleteDatasetInfo = Patterns.ask(database, new DeleteDataset(id), 15000);
+				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Response<?> deletedDataset = (Response<?>)msg;
+						log.debug ("deleted dataset id: " + deletedDataset.getValue());
+						sender.tell (deletedDataset, self);
+					}
+				}, getContext().dispatcher());
+
 	}
 	
 	private void handleRefreshDataset(String datasetId) {
@@ -237,7 +319,7 @@ public class Admin extends UntypedActor {
 						DatasetInfo datasetInfo = (DatasetInfo)msg;
 						log.debug("dataset info received");
 						Dataset dataset = 
-								new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+								new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 										new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 										new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 										null, // notification list
@@ -245,6 +327,29 @@ public class Admin extends UntypedActor {
 								);
 						log.debug("sending dataset: " + dataset);
 						sender.tell (dataset, self);
+					}
+				}, getContext().dispatcher());
+	}
+	
+	private void handleGetSourceDataset (final GetEntity<?> getEntity) {
+		log.debug ("handleSourceDataset");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(getEntity.id ()), 15000);
+				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						SourceDatasetInfo sourceDatasetInfo = (SourceDatasetInfo)msg;
+						log.debug("sourcedataset info received");
+						final SourceDataset sourceDataset = new SourceDataset (
+								sourceDatasetInfo.getId(), 
+								sourceDatasetInfo.getName(),
+								new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
+								new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+						);
+						log.debug("sending source_dataset: " + sourceDataset);
+						sender.tell (sourceDataset, self);
 					}
 				}, getContext().dispatcher());
 	}
@@ -328,7 +433,7 @@ public class Admin extends UntypedActor {
 						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
-							final Dataset dataset =  new Dataset (datasetInfo.getId(), datasetInfo.getName(),
+							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 									null, // notification list

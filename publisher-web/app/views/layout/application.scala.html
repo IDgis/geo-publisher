@@ -1,5 +1,14 @@
 @(title: String, jsMain: String = null)(content: Html)
 
+@doFlash(flashType: String) = {
+	@if(flash.containsKey(flashType)) {
+		<div class="alert alert-@flashType">
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+			<strong>@flash.get(flashType)</strong>
+		</div>
+	}
+}
+
 @html(
 	title = title, 
 	stylesheets = Array(
@@ -118,6 +127,12 @@
 		</nav>
 		
 		<div id="page-wrapper">
+			@* Show flash message: *@
+			@doFlash("success")
+			@doFlash("info")
+			@doFlash("warning")
+			@doFlash("danger")
+			
 			@content
 		</div>
 	</div>

@@ -8,7 +8,8 @@ public class DatasetInfo implements Serializable {
 
 	private static final long serialVersionUID = 1483600283295264723L;
 	
-	private final String id, name;
+	private final String id;
+	private final String name;
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
 
