@@ -1,5 +1,8 @@
 package nl.idgis.publisher.service.loader;
 
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.InsertRecord;
@@ -12,9 +15,12 @@ import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.service.loader.messages.GetCount;
 import nl.idgis.publisher.service.loader.messages.SessionFinished;
 import nl.idgis.publisher.service.loader.messages.SessionStarted;
+import nl.idgis.publisher.service.loader.messages.Timeout;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnSuccess;
@@ -29,6 +35,7 @@ public class LoaderSession extends UntypedActor {
 	private final ImportJob importJob;
 	private final ActorRef loader, geometryDatabase, database;
 	
+	private Cancellable timeoutCancellable;
 	private long count = 0;
 	
 	public LoaderSession(ActorRef loader, ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
@@ -50,13 +57,32 @@ public class LoaderSession extends UntypedActor {
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("sessions started");
+					
+					scheduleTimeout();
 				}
 				
 			}, getContext().dispatcher());		
 	}
+	
+	private void scheduleTimeout() {
+		if(timeoutCancellable != null) {
+			timeoutCancellable.cancel();
+		}
+		
+		ActorSystem system = getContext().system();
+		
+		timeoutCancellable = system.scheduler().scheduleOnce(
+				Duration.create(15, TimeUnit.SECONDS), 
+				getSelf(), 
+				new Timeout(), 
+				system.dispatcher(), 
+				getSelf());
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
+		scheduleTimeout();
+		
 		if(msg instanceof Record) {			 			
 			handleRecord((Record)msg);		
 		} else if(msg instanceof Failure) {
@@ -65,9 +91,17 @@ public class LoaderSession extends UntypedActor {
 			handleEnd((End)msg);
 		} else if(msg instanceof GetCount) {
 			handleGetCount((GetCount)msg);
+		} else if(msg instanceof Timeout) {
+			handleTimeout((Timeout)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleTimeout(Timeout msg) {
+		log.debug("timeout while executing job: " + importJob);
+		
+		finalizeSession();
 	}
 
 	private void handleGetCount(GetCount msg) {
