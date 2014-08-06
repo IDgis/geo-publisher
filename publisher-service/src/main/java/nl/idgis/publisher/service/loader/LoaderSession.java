@@ -10,6 +10,8 @@ import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.service.loader.messages.GetCount;
+import nl.idgis.publisher.service.loader.messages.SessionFinished;
+import nl.idgis.publisher.service.loader.messages.SessionStarted;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import akka.actor.ActorRef;
@@ -25,18 +27,32 @@ public class LoaderSession extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJob importJob;
-	private final ActorRef geometryDatabase, database;
+	private final ActorRef loader, geometryDatabase, database;
 	
 	private long count = 0;
 	
-	public LoaderSession(ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
+	public LoaderSession(ActorRef loader, ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
+		this.loader = loader;
 		this.importJob = importJob;
 		this.geometryDatabase = geometryDatabase;
 		this.database = database;
 	}
 	
-	public static Props props(ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, importJob, geometryDatabase, database);
+	public static Props props(ActorRef loader, ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
+		return Props.create(LoaderSession.class, loader, importJob, geometryDatabase, database);
+	}
+	
+	@Override
+	public void preStart() throws Exception {
+		Patterns.ask(loader, new SessionStarted(importJob), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("sessions started");
+				}
+				
+			}, getContext().dispatcher());		
 	}
 
 	@Override
@@ -61,7 +77,6 @@ public class LoaderSession extends UntypedActor {
 	private void handleEnd(final End msg) {
 		log.info("import completed");
 		
-		final ActorRef self = getSelf();
 		Patterns.ask(geometryDatabase, new Commit(), 15000)				
 			.onSuccess(new OnSuccess<Object>() {
 
@@ -77,7 +92,7 @@ public class LoaderSession extends UntypedActor {
 							public void onSuccess(Object msg) throws Throwable {
 								log.debug("import finished: " + count);
 								
-								getContext().stop(self);
+								finalizeSession();
 							}					
 						}, getContext().dispatcher());
 				}
@@ -88,7 +103,6 @@ public class LoaderSession extends UntypedActor {
 	private void handleFailure(final Failure failure) {
 		log.error("import failed: " + failure.getCause());
 		
-		final ActorRef self = getSelf();
 		Patterns.ask(geometryDatabase, new Rollback(), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
@@ -96,7 +110,21 @@ public class LoaderSession extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("transaction rolled back");
 					
-					getContext().stop(self);
+					finalizeSession();
+				}
+				
+			}, getContext().dispatcher());
+	}
+	
+	private void finalizeSession() {
+		Patterns.ask(loader, new SessionFinished(importJob), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("session finalized");
+					
+					getContext().stop(getSelf());
 				}
 				
 			}, getContext().dispatcher());

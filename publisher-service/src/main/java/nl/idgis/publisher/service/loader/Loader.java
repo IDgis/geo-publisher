@@ -1,7 +1,9 @@
 package nl.idgis.publisher.service.loader;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.ImportJob;
@@ -14,6 +16,9 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.loader.messages.SessionFinished;
+import nl.idgis.publisher.service.loader.messages.SessionStarted;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -27,29 +32,53 @@ public class Loader extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private ActorRef geometryDatabase, database, harvester;
+	private Map<ImportJob, ActorRef> sessions;
 
 	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
 		this.geometryDatabase = geometryDatabase;
 		this.database = database;
 		this.harvester = harvester;
+		
+		sessions = new HashMap<>();
 	}
 	
 	public static Props props(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
 		return Props.create(Loader.class, geometryDatabase, database, harvester);
-	}
-	
-	@Override
-	public void preStart() throws Exception {
-		
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ImportJob) {
 			handleImportJob((ImportJob)msg);
+		} else if(msg instanceof SessionStarted) {
+			handleSessionStarted((SessionStarted)msg);
+		} else if(msg instanceof SessionFinished) {
+			handleSessionFinished((SessionFinished)msg);				
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleSessionFinished(SessionFinished msg) {
+		ImportJob importJob = msg.getImportJob();
+		
+		if(sessions.containsKey(importJob)) {
+			log.debug("import job finished: " + importJob);
+			
+			sessions.remove(importJob);
+			
+			getSender().tell(new Ack(), getSelf());
+		} else {
+			log.error("unknown import job: " + importJob + " finished");
+		}
+	}
+
+	private void handleSessionStarted(SessionStarted msg) {
+		log.debug("data import session started: " + msg);
+		
+		sessions.put(msg.getImportJob(), getSender());
+		
+		getSender().tell(new Ack(), getSelf());
 	}
 
 	private void handleImportJob(final ImportJob importJob) {
@@ -110,6 +139,7 @@ public class Loader extends UntypedActor {
 																		importJob.getSourceDatasetId(), 
 																		columnNames, 
 																		LoaderSession.props(
+																				getSelf(),
 																				importJob, 
 																				transaction, 
 																				database)), getSelf());
