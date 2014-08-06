@@ -9,6 +9,7 @@ import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.service.loader.messages.GetCount;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import akka.actor.ActorRef;
@@ -46,9 +47,15 @@ public class LoaderSession extends UntypedActor {
 			handleFailure((Failure)msg);
 		} else if(msg instanceof End) {						
 			handleEnd((End)msg);
+		} else if(msg instanceof GetCount) {
+			handleGetCount((GetCount)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetCount(GetCount msg) {
+		getSender().tell(count, getSelf());		
 	}
 
 	private void handleEnd(final End msg) {
