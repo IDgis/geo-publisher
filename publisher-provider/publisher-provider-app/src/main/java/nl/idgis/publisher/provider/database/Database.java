@@ -12,6 +12,7 @@ import nl.idgis.publisher.provider.database.messages.Query;
 import nl.idgis.publisher.provider.protocol.database.Column;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
+import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
@@ -65,9 +66,32 @@ public class Database extends UntypedActor {
 			handleFetchTable((FetchTable)msg);
 		} else if(msg instanceof DescribeTable) {
 			handleDescribeTable((DescribeTable)msg);
+		} else if(msg instanceof PerformCount) {
+			handlePerformCount((PerformCount)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handlePerformCount(PerformCount msg) {
+		String sql = "select count(*) from " + msg.getTableName();
+		Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);
+		Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
+			
+			@Override
+			public Object apply(ArrayList<Record> records) {
+				long count = 0;
+				
+				for(Record record : records) {
+					count = (Long)record.getValues().get(0);
+				}
+				
+				return count;
+			}
+		}, getContext().dispatcher());
+		
+		Patterns.pipe(response, getContext().dispatcher())
+			.pipeTo(getSender(), getSelf());
 	}
 
 	private void handleDescribeTable(DescribeTable msg) {
