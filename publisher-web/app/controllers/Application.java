@@ -11,7 +11,8 @@ public class Application extends Controller {
 			Routes.javascriptRouter("jsRoutes", 
 				routes.javascript.DataSources.listByDataSourceAndCategoryJson(),
 				routes.javascript.Datasets.listColumnsAction(),
-				routes.javascript.Datasets.getDatasetJson ()				
+				routes.javascript.Datasets.getDatasetJson (),
+				routes.javascript.Datasets.scheduleRefresh ()
 			)
 		).as("text/javascript");
 	}

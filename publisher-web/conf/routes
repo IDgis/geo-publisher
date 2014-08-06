@@ -17,7 +17,7 @@ GET		/datasets/:datasetId/edit						controllers.Datasets.editForm(datasetId: Str
 POST	/datasets/:datasetId/edit						controllers.Datasets.submitEdit(datasetId: String)
 GET 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId : String)
 GET		/datasets/$datasetId<[^\.]+>.json				controllers.Datasets.getDatasetJson(datasetId: String)
-GET		/datasets/:datasetId/refresh					controllers.Datasets.refresh(datasetId: String)
+POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datasetId: String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden

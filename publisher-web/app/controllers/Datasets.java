@@ -67,7 +67,7 @@ public class Datasets extends Controller {
 		return listByCategoryAndMessages(categoryId, true, page);
 	}
 	
-	public static Promise<Result> refresh(String datasetId) {
+	public static Promise<Result> scheduleRefresh(String datasetId) {
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -77,9 +77,18 @@ public class Datasets extends Controller {
 
 				@Override
 				public Result apply(Boolean b) throws Throwable {
-					return b ? ok() : internalServerError();
+					final ObjectNode result = Json.newObject ();
+					
+					if (b) {
+						result.put ("result", "ok");
+						
+						return ok (result);
+					} else {
+						result.put ("result", "failed");
+						
+						return internalServerError (result);
+					}
 				}
-				
 			});
 	}
 	
