@@ -40,64 +40,79 @@ public class LoaderSession extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Record) {
-			log.debug("record received: " + msg + " " + count++);
-			
-			final ActorRef sender = getSender(), self = getSelf();
-			Patterns.ask(geometryDatabase, new InsertRecord(
-					importJob.getDatasetId(), 
-					importJob.getColumns(), 
-					((Record) msg).getValues()), 15000)
-					
-					.onSuccess(new OnSuccess<Object>() {
-
-						@Override
-						public void onSuccess(Object msg) throws Throwable {
-							sender.tell(new NextItem(), self);
-						}
-						
-					}, getContext().dispatcher());		
+		if(msg instanceof Record) {			 			
+			handleRecord((Record)msg);		
 		} else if(msg instanceof Failure) {
-			log.error("import failed: " + ((Failure) msg).getCause());
-			
-			final ActorRef self = getSelf();
-			Patterns.ask(geometryDatabase, new Rollback(), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						log.debug("transaction rolled back");
-						
-						getContext().stop(self);
-					}
-					
-				}, getContext().dispatcher());
-		} else if(msg instanceof End) {
-			log.info("import completed");
-			
-			final ActorRef self = getSelf();
-			Patterns.ask(geometryDatabase, new Commit(), 15000)				
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						log.debug("transaction committed");
-						
-						ImportLogLine logLine = new ImportLogLine(GenericEvent.FINISHED, importJob.getDatasetId());
-						Patterns.ask(database, new StoreLog(logLine), 15000)
-							.onSuccess(new OnSuccess<Object>() {
-
-								@Override
-								public void onSuccess(Object msg) throws Throwable {
-									log.debug("import finished: " + count);
-									
-									getContext().stop(self);
-								}					
-							}, getContext().dispatcher());
-					}
-					
-				}, getContext().dispatcher());
-			
+			handleFailure((Failure)msg);
+		} else if(msg instanceof End) {						
+			handleEnd((End)msg);
+		} else {
+			unhandled(msg);
 		}
+	}
+
+	private void handleEnd(final End msg) {
+		log.info("import completed");
+		
+		final ActorRef self = getSelf();
+		Patterns.ask(geometryDatabase, new Commit(), 15000)				
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("transaction committed");
+					
+					ImportLogLine logLine = new ImportLogLine(GenericEvent.FINISHED, importJob.getDatasetId());
+					Patterns.ask(database, new StoreLog(logLine), 15000)
+						.onSuccess(new OnSuccess<Object>() {
+
+							@Override
+							public void onSuccess(Object msg) throws Throwable {
+								log.debug("import finished: " + count);
+								
+								getContext().stop(self);
+							}					
+						}, getContext().dispatcher());
+				}
+				
+			}, getContext().dispatcher());
+	}
+
+	private void handleFailure(final Failure failure) {
+		log.error("import failed: " + failure.getCause());
+		
+		final ActorRef self = getSelf();
+		Patterns.ask(geometryDatabase, new Rollback(), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("transaction rolled back");
+					
+					getContext().stop(self);
+				}
+				
+			}, getContext().dispatcher());
+	}
+
+	private void handleRecord(final Record record) {
+		count++;
+		
+		log.debug("record received: " + record + " " + count);
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		Patterns.ask(geometryDatabase, new InsertRecord(
+				importJob.getDatasetId(), 
+				importJob.getColumns(), 
+				record.getValues()), 15000)
+				
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						sender.tell(new NextItem(), self);
+					}
+					
+				}, getContext().dispatcher());
 	}
 }
