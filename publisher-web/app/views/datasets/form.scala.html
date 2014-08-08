@@ -9,14 +9,19 @@
 	datasetForm: Form[controllers.Datasets.DatasetForm])
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
+@createDataset = @{datasetForm.value().toString.equals("None")} 
+@datasetId = @{datasetForm("id").value()}
 
 @layout.application(
 	title = "Nieuwe dataset toevoegen",
 	jsMain = routes.Assets.at("js/datasets/form.js").url
 ) {
 	<div class="page-content">
+	@if(createDataset){
 		<h1 class="page-header">Nieuwe dataset toevoegen</h1>
-		
+	}else{
+		<h1 class="page-header">Dataset aanpassen</h1>
+	}
 		@if(datasetForm.hasErrors) {
 			<div class="alert alert-danger">
 				<h4>De dataset kan niet worden opgeslagen</h4>
@@ -32,7 +37,7 @@
 			</div>
 		}
 		
-		<form action="@routes.Datasets.submitCreate()" method="post" class="form-horizontal" role="form">
+		<form @if(createDataset){action="@routes.Datasets.submitCreate()"}else{action="@routes.Datasets.submitEdit(datasetId)"} method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
@@ -91,23 +96,34 @@
 								'_help -> "De dataset uit de brongegevens waar deze dataset op is gebaseerd."
 							)
 							
-							<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
-								<label class="control-label col-sm-3" for="input-id">Tabelnaam</label>
-							    <div class="controls col-sm-9">
-									<input type="text" class="form-control" id="input-id" placeholder="Tabelnaam ..." name="@datasetForm("id").name" value="@datasetForm("id").value">
-									<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
-									@if(!datasetForm("id").errors.isEmpty) {
-								        <div class="help-block">
-								        	<ul class="list-unstyled">
-								        		@for(error <- datasetForm("id").errors) {
-								        			<li>@Messages(error.message, error.arguments: _*)</li>
-								        		}
-								        	</ul>
-								        </div>
-								    }
-								    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+							@if(createDataset){
+								<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
+									<label class="control-label col-sm-3" for="input-id">Tabelnaam</label>
+								    <div class="controls col-sm-9">
+											<input type="text" class="form-control" id="input-id" placeholder="Tabelnaam ..." name="@datasetForm("id").name" value="@datasetForm("id").value">
+											<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
+											@if(!datasetForm("id").errors.isEmpty) {
+										        <div class="help-block">
+										        	<ul class="list-unstyled">
+										        		@for(error <- datasetForm("id").errors) {
+										        			<li>@Messages(error.message, error.arguments: _*)</li>
+										        		}
+										        	</ul>
+										        </div>
+										    }
+									    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+									</div>
 								</div>
-							</div>
+							}else{
+								<div class="form-group has-feedback">
+									<label class="control-label col-sm-3" for="input-id-readonly">Tabelnaam</label>
+								    <div class="controls col-sm-9">
+										<input type="text" class="form-control" id="input-id-readonly" placeholder="Tabelnaam ..." name="@{datasetForm("id").name + "XX"}" value="@datasetForm("id").value" readonly>
+										<input type="hidden" class="form-control" id="input-id" placeholder="Tabelnaam hidden..." name="@datasetForm("id").name" value="@datasetForm("id").value">
+									    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+									</div>
+								</div>
+							}
 						</div>						
 					</div>
 				</div>

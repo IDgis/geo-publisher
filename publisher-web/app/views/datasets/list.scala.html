@@ -128,9 +128,9 @@
 								</div>
 								<div class="col-md-2">
 									<div class="btn-group pull-right">
-										<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
+										<a href="@routes.Datasets.editForm(dataset.id)" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
 										<a href="#" class="btn btn-default js-dataset-refresh" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
-										<a href="@routes.Datasets.delete(dataset.name)" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+										<a href="@routes.Datasets.delete(dataset.id)" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
 									</div>
 								</div>
 							</div>

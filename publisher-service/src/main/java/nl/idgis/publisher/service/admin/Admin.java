@@ -11,6 +11,7 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
@@ -24,7 +25,8 @@ import nl.idgis.publisher.domain.log.GenericEvent;
 import nl.idgis.publisher.domain.log.ImportLogLine;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
-import nl.idgis.publisher.domain.query.ListColumns;
+import nl.idgis.publisher.domain.query.ListDatasetColumns;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -122,8 +124,10 @@ public class Admin extends UntypedActor {
 			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
 			handleListDatasets (((ListDatasets)message));
-		} else if (message instanceof ListColumns) {
-			handleListColumns ((ListColumns) message);
+		} else if (message instanceof ListSourceDatasetColumns) {
+			handleListSourceDatasetColumns ((ListSourceDatasetColumns) message);
+		} else if (message instanceof ListDatasetColumns) {
+			handleListDatasetColumns ((ListDatasetColumns) message);
 		} else if (message instanceof RefreshDataset) {
 			handleRefreshDataset(((RefreshDataset) message).getDatasetId());
 		} else {
@@ -201,8 +205,14 @@ public class Admin extends UntypedActor {
 			}, getContext().dispatcher());
 	}
 	
-	private void handleListColumns (final ListColumns listColumns) {
+	private void handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {
 		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
+		
+		database.tell(di, getSender());
+	}
+
+	private void handleListDatasetColumns (final ListDatasetColumns listColumns) {
+		GetDatasetColumns di = new GetDatasetColumns(listColumns.getDatasetId());
 		
 		database.tell(di, getSender());
 	}

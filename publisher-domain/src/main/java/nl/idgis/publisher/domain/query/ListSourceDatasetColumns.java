@@ -4,13 +4,13 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class ListColumns implements DomainQuery<List<Column>> {
+public class ListSourceDatasetColumns implements DomainQuery<List<Column>> {
 
 	private static final long serialVersionUID = 7841056580822174674L;
 	
 	private final String dataSourceId, sourceDatasetId;
 	
-	public ListColumns(String dataSourceId, String sourceDatasetId) {
+	public ListSourceDatasetColumns(String dataSourceId, String sourceDatasetId) {
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
 	}
