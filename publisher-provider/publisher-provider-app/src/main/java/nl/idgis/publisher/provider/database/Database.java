@@ -83,7 +83,7 @@ public class Database extends UntypedActor {
 				long count = 0;
 				
 				for(Record record : records) {
-					count = (Long)record.getValues().get(0);
+					count = ((Number)record.getValues().get(0)).longValue();
 				}
 				
 				return count;
