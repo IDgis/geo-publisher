@@ -4,17 +4,18 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.DomainQuery;
-import nl.idgis.publisher.domain.query.ListColumns;
+import nl.idgis.publisher.domain.query.ListDatasetColumns;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.RefreshDataset;
@@ -39,10 +40,14 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.datasets.columns;
+import views.html.datasets.form;
+import views.html.datasets.list;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
-import views.html.datasets.*;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
@@ -167,12 +172,20 @@ public class Datasets extends Controller {
 		return new ListSourceDatasets (dataSourceId, categoryId); 
 	}
 	
-	private static DomainQuery<List<Column>> listColumns (final String dataSourceId, final String sourceDatasetId) {
+	private static DomainQuery<List<Column>> listSourceDatasetColumns (final String dataSourceId, final String sourceDatasetId) {
 		if (dataSourceId == null || sourceDatasetId == null || dataSourceId.isEmpty () || sourceDatasetId.isEmpty ()) {
 			return new Constant<List<Column>> (Collections.<Column>emptyList ());
 		}
 		
-		return new ListColumns (dataSourceId, sourceDatasetId);
+		return new ListSourceDatasetColumns (dataSourceId, sourceDatasetId);
+	}
+	
+	private static DomainQuery<List<Column>> listDatasetColumns (final String datasetId) {
+		if (datasetId == null || datasetId.isEmpty ()) {
+			return new Constant<List<Column>> (Collections.<Column>emptyList ());
+		}
+		
+		return new ListDatasetColumns (datasetId);
 	}
 	
 	private static Promise<Result> renderCreateForm (final Form<DatasetForm> datasetForm) {
@@ -182,23 +195,29 @@ public class Datasets extends Controller {
 			.list(DataSource.class)
 			.list(Category.class)
 			.query (listSourceDatasets (datasetForm.field ("dataSourceId").value (), datasetForm.field ("categoryId").value ()))
-			.query (listColumns (datasetForm.field ("dataSourceId").value (), datasetForm.field ("sourceDatasetId").value ()))
+			.query (listSourceDatasetColumns (datasetForm.field ("dataSourceId").value (), datasetForm.field ("sourceDatasetId").value ()))
 			.execute(new Function4<Page<DataSource>, Page<Category>, Page<SourceDatasetStats>, List<Column>, Result>() {
 				@Override
 				public Result apply(Page<DataSource> dataSources, Page<Category> categories, final Page<SourceDatasetStats> sourceDatasets, final List<Column> columns) throws Throwable {
-					Logger.debug ("Columns: " + columns.size ());
+					Logger.debug ("Create form: #datasources=" + dataSources.pageCount() + 
+							", #categories=" + categories.pageCount() + 
+							", #sourcedatasets=" + sourceDatasets.pageCount() + 
+							", #columns: " + columns.size () + 
+							", datasetForm: " + datasetForm);
 					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm));
 				}
 			});
 	}
 	
 	public static Promise<Result> createForm () {
+		Logger.debug ("createForm");
 		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class);
 		
 		return renderCreateForm (datasetForm);
 	}
 	
 	public static Promise<Result> submitCreate () {
+		Logger.debug ("submitCreate");
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).bindFromRequest ();
 		
@@ -212,7 +231,7 @@ public class Datasets extends Controller {
 				.get (DataSource.class, dataset.getDataSourceId ())
 				.get (Category.class, dataset.getCategoryId ())
 				.get (SourceDataset.class, dataset.getSourceDatasetId ())
-				.query (new ListColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
+				.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
 				.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
 					@Override
 					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
@@ -249,7 +268,7 @@ public class Datasets extends Controller {
 										return renderCreateForm (datasetForm);
 									}
 									
-									flash ("success", "Dataset " + dataset.getName () + " is opgeslagen.");
+									flash ("success", "Dataset " + dataset.getName () + " is toegevoegd.");
 									
 									return Promise.pure (redirect (routes.Datasets.list (0)));
 								}
@@ -258,12 +277,118 @@ public class Datasets extends Controller {
 				});
 	}
 	
+	private static Promise<Result> renderEditForm (final Form<DatasetForm> datasetForm) {
+		//TODO 
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.list(DataSource.class)
+			.list(Category.class)
+			.query (listSourceDatasets (datasetForm.field ("dataSourceId").value (), datasetForm.field ("categoryId").value ()))
+//			.query (listDatasetColumns (datasetForm.field ("id").value ()))
+			.query (listSourceDatasetColumns (datasetForm.field ("dataSourceId").value (), datasetForm.field ("sourceDatasetId").value ()))
+			.execute(new Function4<Page<DataSource>, Page<Category>, Page<SourceDatasetStats>, List<Column>, Result>() {
+				@Override
+				public Result apply(Page<DataSource> dataSources, Page<Category> categories, final Page<SourceDatasetStats> sourceDatasets, final List<Column> columns) throws Throwable {
+					Logger.debug ("Edit form: #datasources=" + dataSources.pageCount() + 
+							", #categories=" + categories.pageCount() + 
+							", #sourcedatasets=" + sourceDatasets.pageCount() + 
+							", #columns: " + columns.size ());
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm));
+				}
+			});
+	}
+	
 	public static Promise<Result> editForm (final String datasetId) {
-		return Promise.pure ((Result) ok ());
+		//TODO
+		Logger.debug ("editForm");
+
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.query (listDatasetColumns (datasetId))
+			.executeFlat (new Function2<Dataset, List<Column>, Promise<Result>> () {
+				@Override
+				public Promise<Result> apply (final Dataset ds, final List<Column> columns) throws Throwable {
+					return from (database)
+						.get (SourceDataset.class, ds.sourceDataset().id())
+						.executeFlat (new Function<SourceDataset, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final SourceDataset sds) throws Throwable {
+								final Form<DatasetForm> datasetForm = Form
+										.form (DatasetForm.class)
+										.fill (new DatasetForm (ds, sds.dataSource().id(), columns));
+								
+								Logger.debug ("Edit datasetForm: " + datasetForm);						
+								return renderEditForm (datasetForm);
+							}
+						});
+				}
+			});
+//		return Promise.pure ((Result) ok ());
 	}
 	
 	public static Promise<Result> submitEdit (final String datasetId) {
-		return Promise.pure ((Result) ok ());
+		Logger.debug ("submitEdit");
+
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).bindFromRequest ();
+		
+		if (datasetForm.hasErrors ()) {
+			return renderEditForm (datasetForm);
+		}
+		
+		final DatasetForm dataset = datasetForm.get ();
+		
+		return from (database)
+				.get (DataSource.class, dataset.getDataSourceId ())
+				.get (Category.class, dataset.getCategoryId ())
+				.get (SourceDataset.class, dataset.getSourceDatasetId ())
+				.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
+				.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
+					@Override
+					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
+						Logger.debug ("dataSource: " + dataSource);
+						Logger.debug ("category: " + category);
+						Logger.debug ("sourceDataset: " + sourceDataset);
+						
+						// TODO: Validate dataSource, category, sourceDataset and columns!
+						
+						// Create the list of selected columns:
+						final List<Column> columns = new ArrayList<> ();
+						for (final Column column: sourceColumns) {
+							if (dataset.getColumns ().containsKey (column.getName ())) {
+								columns.add (column);
+							}
+						}
+
+						final PutDataset putDataset = new PutDataset (CrudOperation.UPDATE,
+								dataset.getId (), 
+								dataset.getName (), 
+								sourceDataset.id (), 
+								columns
+							);
+						
+						Logger.debug ("update dataset " + putDataset);
+						
+						return from (database)
+							.put(putDataset)
+							.executeFlat (new Function<Response<?>, Promise<Result>> () {
+								@Override
+								public Promise<Result> apply (final Response<?> response) throws Throwable {
+									if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
+										datasetForm.reject ("dataset kon niet worden geupdate: " + dataset.getName ());
+										return renderEditForm (datasetForm);
+									}
+									
+									flash ("success", "Dataset " + dataset.getName () + " is aangepast.");
+									
+									return Promise.pure (redirect (routes.Datasets.list (0)));
+								}
+							});
+					}
+				});
 	}
 	
 	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages, final long page) {
@@ -302,7 +427,7 @@ public class Datasets extends Controller {
 		
 		return 
 			from(database)
-				.query(new ListColumns(dataSourceId, sourceDatasetId))
+				.query(new ListSourceDatasetColumns(dataSourceId, sourceDatasetId))
 				.execute(new Function<List<Column>, Result>() {
 	
 					@Override
@@ -361,6 +486,22 @@ public class Datasets extends Controller {
 		@Constraints.MinLength (3)
 		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String id;
+
+		public DatasetForm () {
+		}
+		
+		public DatasetForm (final Dataset ds, String dataSourceId, List<Column> columns) {
+			setName (ds.name ());
+			setDataSourceId (dataSourceId);
+			setCategoryId (ds.category ().id ());
+			setSourceDatasetId (ds.sourceDataset ().id ());
+			Map<String, String> map = new HashMap<String, String>();
+			for (Column column : columns) {
+				map.put(column.getName(), column.getDataType().toString());
+			}			
+			setColumns (map);
+			setId (ds.id ());
+		}
 		
 		public String getName() {
 			return name;
@@ -408,6 +549,14 @@ public class Datasets extends Controller {
 
 		public void setId (final String id) {
 			this.id = id;
+		}
+
+		@Override
+		public String toString() {
+			return "DatasetForm [name=" + name + ", dataSourceId="
+					+ dataSourceId + ", categoryId=" + categoryId
+					+ ", sourceDatasetId=" + sourceDatasetId + ", columns="
+					+ columns + ", id=" + id + "]";
 		}
 	}
 }

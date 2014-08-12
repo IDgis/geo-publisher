@@ -20,6 +20,7 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
@@ -421,15 +422,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				context.answer(new HarvestJob(dataSourceName)); 
 			}
 		} else if(query instanceof GetSourceDatasetColumns) {
-			GetSourceDatasetColumns di = (GetSourceDatasetColumns)query;
-			
+			GetSourceDatasetColumns sdc = (GetSourceDatasetColumns)query;
+			log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
+
 			context.answer(
 				context.query().from(sourceDatasetColumn)
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetColumn.sourceDatasetId))
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.where(sourceDataset.identification.eq(di.getSourceDatasetId())
-					.and(dataSource.identification.eq(di.getDataSourceId())))
+				.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
+					.and(dataSource.identification.eq(sdc.getDataSourceId())))
 				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
+		} else if(query instanceof GetDatasetColumns) {
+			GetDatasetColumns dc = (GetDatasetColumns)query;
+			log.debug("get columns for dataset: " + dc.getDatasetId());
+			
+			context.answer(
+				context.query().from(datasetColumn)
+				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+				.where(dataset.identification.eq(dc.getDatasetId()))
+				.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
 		} else if(query instanceof GetNextImportJob) {
 			QImportLog importLogSub = new QImportLog("importLogSub");
 			
@@ -500,11 +511,15 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					log.debug("dataset inserted");
 				}
 		} else if(query instanceof GetDatasetInfo) {
+			GetDatasetInfo gds = (GetDatasetInfo) query;
+			String datasetIdent = gds.getId();
+			log.debug("get dataset " + datasetIdent);
+			
 			context.answer(
 					context.query().from(dataset)
 					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
-					.where(dataset.identification.eq( ((GetDatasetInfo)query).getId() ))
+					.where(dataset.identification.eq( datasetIdent ))
 					.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
 							sourceDataset.identification, sourceDataset.name,
 							category.identification,category.name)));

@@ -4,7 +4,7 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class UpdateDataset extends CreateDataset {
+public class UpdateDataset extends CreateUpdateDataset {
 
 	public UpdateDataset(String datasetIdentification, String datasetName,
 			String sourceDatasetIdentification, List<Column> columnList) {
