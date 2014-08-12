@@ -9,7 +9,11 @@
 
 @doPaginationWindow(firstPage: RichLong, lastPage: Long) = {	
 	<ul class="pagination">
-		<li@if(page.currentPage == 1){ class="disabled" }><a href="@pageRef(page.currentPage - 1)">&laquo;</a></li>							
+		@if(page.currentPage == 1) {
+			<li class="disabled"><a href="#">&laquo;</a></li>
+		} else {
+			<li><a href="@pageRef(page.currentPage - 1)">&laquo;</a></li>
+		}
 		@if(firstPage > 1) {
 			@doPage(1)
 			@if(firstPage > 2) {
@@ -25,7 +29,11 @@
 			}
 			@doPage(page.pageCount)
 		}
-		<li@if(page.currentPage == page.pageCount){ class="disabled" }><a href="@pageRef(page.currentPage + 1)">&raquo;</a></li>		
+		@if(page.currentPage == page.pageCount) {
+			<li class="disabled"><a href="#">&raquo;</a></li>
+		} else {
+			<li><a href="@pageRef(page.currentPage + 1)">&raquo;</a></li>
+		}
 	</ul>
 }
 
