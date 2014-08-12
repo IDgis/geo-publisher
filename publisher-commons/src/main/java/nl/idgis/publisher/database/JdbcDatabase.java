@@ -67,64 +67,75 @@ public abstract class JdbcDatabase extends UntypedActor {
 	@Override
 	public final void onReceive(final Object msg) throws Exception {
 		if(msg instanceof StartTransaction) {
-			final ActorRef sender = getSender(), self = getSelf();
-			final ListenableFuture<Connection> connectionFuture = connectionPool.getAsyncConnection();
-			connectionFuture.addListener(new Runnable() {
-	
-				@Override
-				public void run() {
-					final Connection connection; 
-					try {
-						connection = connectionFuture.get();
-						log.debug("connection obtained from pool");
-						
-						connection.setAutoCommit(false);
-						final ActorRef transaction = getContext().actorOf(createTransaction(connection));
-						sender.tell(new TransactionCreated(transaction), self);
-					} catch (Exception e) {
-						log.error(e, "couldn't obtain connection from pool");
-						return;
-					}
-				}				
-			}, getContext().dispatcher());
-		} else if(msg instanceof Query) {
-			log.debug("executing query in autocommit mode");
-			
-			final Query query = (Query)msg;			
-			final ActorRef self = getSelf(), sender = getSender();
-			
-			Patterns.ask(self, new StartTransaction(), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-					
-					public void onSuccess(final Object msg) throws Throwable {
-						log.debug("transaction created");
-						
-						final TransactionCreated tc = (TransactionCreated)msg;
-						
-						Patterns.ask(tc.getActor(), query, 15000)
-							.onSuccess(new OnSuccess<Object>() {
-
-								@Override
-								public void onSuccess(final Object queryResponse) throws Throwable {
-									log.debug("query executed");
-									
-									Patterns.ask(tc.getActor(), new Commit(), 15000)
-										.onSuccess(new OnSuccess<Object>() {
-
-											@Override
-											public void onSuccess(Object msg) throws Throwable {
-												log.debug("transaction completed");												
-												sender.tell(queryResponse, self);
-											}
-										}, getContext().dispatcher());
-								}
-							}, getContext().dispatcher());
-					}
-			}, getContext().dispatcher());
+			handleStartTransaction((StartTransaction)msg);
+		} else if(msg instanceof Query) {			
+			handleQuery((Query)msg);
 		} else {
-			unhandled(msg);
+			onReceiveNonQuery(msg);
 		}
-	}	
+	}
+
+	private void handleQuery(final Query query) {
+		log.debug("executing query in autocommit mode");
+		
+		final ActorRef self = getSelf(), sender = getSender();
+		
+		Patterns.ask(self, new StartTransaction(), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+				
+				public void onSuccess(final Object msg) throws Throwable {
+					log.debug("transaction created");
+					
+					final TransactionCreated tc = (TransactionCreated)msg;
+					
+					Patterns.ask(tc.getActor(), query, 15000)
+						.onSuccess(new OnSuccess<Object>() {
+
+							@Override
+							public void onSuccess(final Object queryResponse) throws Throwable {
+								log.debug("query executed");
+								
+								Patterns.ask(tc.getActor(), new Commit(), 15000)
+									.onSuccess(new OnSuccess<Object>() {
+
+										@Override
+										public void onSuccess(Object msg) throws Throwable {
+											log.debug("transaction completed");												
+											sender.tell(queryResponse, self);
+										}
+									}, getContext().dispatcher());
+							}
+						}, getContext().dispatcher());
+				}
+		}, getContext().dispatcher());
+	}
+
+	private void handleStartTransaction(StartTransaction msg) {
+		final ActorRef sender = getSender(), self = getSelf();
+		final ListenableFuture<Connection> connectionFuture = connectionPool.getAsyncConnection();
+		connectionFuture.addListener(new Runnable() {
+
+			@Override
+			public void run() {
+				final Connection connection; 
+				try {
+					connection = connectionFuture.get();
+					log.debug("connection obtained from pool");
+					
+					connection.setAutoCommit(false);
+					final ActorRef transaction = getContext().actorOf(createTransaction(connection));
+					sender.tell(new TransactionCreated(transaction), self);
+				} catch (Exception e) {
+					log.error(e, "couldn't obtain connection from pool");
+					return;
+				}
+			}				
+		}, getContext().dispatcher());
+	}
+	
+	protected void onReceiveNonQuery(Object msg) throws Exception {
+		unhandled(msg);
+	}
 	
 	private final static SupervisorStrategy strategy = 
 		new OneForOneStrategy(-1, Duration.Inf(), new Function<Throwable, Directive>() {
