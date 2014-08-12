@@ -25,6 +25,8 @@ public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final int FETCH_TABLE_MESSAGE_SIZE = 10;
+	
 	private final String harvesterName;
 	private final ActorRef harvester, metadata, database;
 		
@@ -103,7 +105,7 @@ public class ProviderClient extends UntypedActor {
 														public void onSuccess(Object msg) throws Throwable {
 															log.debug("requesting table");
 															
-															database.tell(new FetchTable(tableName, gd.getColumns()), receiver);
+															database.tell(new FetchTable(tableName, gd.getColumns(), FETCH_TABLE_MESSAGE_SIZE), receiver);
 														}
 														
 													}, getContext().dispatcher());												

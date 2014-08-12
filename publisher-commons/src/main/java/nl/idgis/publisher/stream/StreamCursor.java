@@ -74,6 +74,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 					}
 				}, getContext().system().dispatcher());
 			} else {
+				log.debug("end");
 				getSender().tell(new End(), getSelf());
 				getContext().stop(getSelf());
 			}

@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import scala.concurrent.Future;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.Query;
 import nl.idgis.publisher.provider.protocol.database.Column;
@@ -14,13 +13,14 @@ import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
-import nl.idgis.publisher.stream.StreamAggregator;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Mapper;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -75,23 +75,25 @@ public class Database extends UntypedActor {
 
 	private void handlePerformCount(PerformCount msg) {
 		String sql = "select count(*) from " + msg.getTableName();
-		Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);
-		Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
-			
-			@Override
-			public Object apply(ArrayList<Record> records) {
-				long count = 0;
-				
-				for(Record record : records) {
-					count = ((Number)record.getValues().get(0)).longValue();
+		
+		final ActorRef sender = getSender();
+		Patterns.ask(content, new Query(sql), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					List<Record> records = ((Records)msg).getRecords();
+					
+					long count = 0;
+					
+					for(Record record : records) {
+						count = ((Number)record.getValues().get(0)).longValue();
+					}
+					
+					sender.tell(count, getSelf());
 				}
 				
-				return count;
-			}
-		}, getContext().dispatcher());
-		
-		Patterns.pipe(response, getContext().dispatcher())
-			.pipeTo(getSender(), getSelf());
+			}, getContext().dispatcher());
 	}
 
 	private void handleDescribeTable(DescribeTable msg) {
@@ -112,16 +114,18 @@ public class Database extends UntypedActor {
 					+ "' " + "order by column_id";
 		}
 		
-		Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
-		Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
+		final ActorRef sender = getSender();
+		Patterns.ask(content, new Query(sql), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					List<Record> records = ((Records)msg).getRecords();
 					
-					@Override
-					public Object apply(ArrayList<Record> records) {
-						int recordCount = records.size();
-						if(recordCount == 0) {
-							return new TableNotFound();
-						} 
-						
+					int recordCount = records.size();
+					if(recordCount == 0) {
+						sender.tell(new TableNotFound(), getSelf());
+					} else {					
 						ArrayList<Column> columns = new ArrayList<>();
 						for(Record record : records) {
 							List<Object> values = record.getValues();
@@ -152,12 +156,11 @@ public class Database extends UntypedActor {
 							columns.add(new Column(name, type));
 						}
 						
-						return new TableDescription(columns.toArray(new Column[columns.size()]));				
+						sender.tell(new TableDescription(columns.toArray(new Column[columns.size()])), getSelf());
 					}
-				}, getContext().dispatcher());
-		
-		Patterns.pipe(response, getContext().dispatcher())
-			.pipeTo(getSender(), getSelf());
+				}
+				
+			}, getContext().dispatcher());
 	}
 
 	private void handleFetchTable(FetchTable msg) {
@@ -176,6 +179,6 @@ public class Database extends UntypedActor {
 		sb.append(" from ");
 		sb.append(msg.getTableName());
 		
-		content.tell(new Query(sb.toString()), getSender());
+		content.tell(new Query(sb.toString(), msg.getMessageSize()), getSender());
 	}	
 }

@@ -8,11 +8,11 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.provider.database.messages.Query;
-import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.stream.StreamProvider;
 
-public class DatabaseContent extends StreamProvider<Query, Record> {
+public class DatabaseContent extends StreamProvider<Query> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -36,10 +36,11 @@ public class DatabaseContent extends StreamProvider<Query, Record> {
 	@Override
 	protected Props start(Query msg) throws SQLException {
 		String sql = msg.getSql();
+		int messageSize = msg.getMessageSize();
 		
-		log.debug("executing query: " + sql);
+		log.debug("executing query: " + sql, " message size: " + messageSize);
 		
 		Statement stmt = connection.createStatement();
-		return DatabaseCursor.props(stmt.executeQuery(sql), converter);
+		return DatabaseCursor.props(stmt.executeQuery(sql), messageSize, converter);
 	}
 }

@@ -1,7 +1,10 @@
 package nl.idgis.publisher.service.loader;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
@@ -15,6 +18,7 @@ import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.service.loader.messages.GetProgress;
 import nl.idgis.publisher.service.loader.messages.Progress;
 import nl.idgis.publisher.service.loader.messages.SessionFinished;
@@ -28,6 +32,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -103,8 +108,8 @@ public class LoaderSession extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				scheduleTimeout();
 				
-				if(msg instanceof Record) {			 			
-					handleRecord((Record)msg);		
+				if(msg instanceof Records) {			 			
+					handleRecords((Records)msg);		
 				} else if(msg instanceof Failure) {
 					handleFailure((Failure)msg);
 				} else if(msg instanceof End) {						
@@ -196,25 +201,41 @@ public class LoaderSession extends UntypedActor {
 				
 			}, getContext().dispatcher());
 	}
-
-	private void handleRecord(final Record record) {
-		count++;
+	
+	private void handleRecords(Records msg) {
+		List<Record> records = msg.getRecords();
 		
-		log.debug("record received: " + record + " " + count);
+		log.debug("records received: " + records.size());
+		
+		List<Future<Object>> futures = new ArrayList<>();
+		for(Record record : records) {
+			futures.add(handleRecord(record));
+		}
 		
 		final ActorRef sender = getSender(), self = getSelf();
-		Patterns.ask(geometryDatabase, new InsertRecord(
+		Futures.sequence(futures, getContext().dispatcher())
+			.onSuccess(new OnSuccess<Iterable<Object>>() {
+	
+				@Override
+				public void onSuccess(Iterable<Object> msgs) throws Throwable {
+					log.debug("records processed");
+					
+					sender.tell(new NextItem(), self);
+				}
+				
+			}, getContext().dispatcher());
+	}
+
+	private Future<Object> handleRecord(final Record record) {
+		count++;
+		
+		log.debug("record received: " + record + " " + count + "/" + totalCount);		
+		
+		return Patterns.ask(geometryDatabase, new InsertRecord(
 				importJob.getDatasetId(), 
 				importJob.getColumns(), 
-				record.getValues()), 15000)
+				record.getValues()), 15000);
 				
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						sender.tell(new NextItem(), self);
-					}
-					
-				}, getContext().dispatcher());
+				
 	}
 }
