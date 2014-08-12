@@ -5,12 +5,15 @@ import java.util.List;
 
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
+
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
 
 public class GeometryTransaction extends JdbcTransaction {
 	
@@ -64,7 +67,17 @@ public class GeometryTransaction extends JdbcTransaction {
 		
 		String sql = sb.toString();
 		log.debug(sql);
-		context.prepare(sql).execute(values);
+		context.prepare(sql).execute(values, new Function<Object, Object>() {
+
+			@Override
+			public Object apply(Object o) throws Exception {
+				if(o instanceof WKBGeometry) {
+					return ((WKBGeometry) o).getBytes();
+				} else {
+					return o;
+				}
+			}
+		});
 		
 		log.debug("ack");		
 		context.answer(new Ack());

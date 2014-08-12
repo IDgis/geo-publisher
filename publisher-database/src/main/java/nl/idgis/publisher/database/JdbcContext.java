@@ -8,8 +8,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
+
 import akka.actor.ActorRef;
+import akka.japi.Function;
 
 class JdbcContext {
 	
@@ -26,19 +27,25 @@ class JdbcContext {
 			this.stmt = stmt;
 		}
 		
-		void execute(Object... args) throws SQLException {
+		void execute(Object... args) throws Exception {
 			execute(Arrays.asList(args));
 		}		
 		
-		void execute(List<Object> args) throws SQLException {
+		void execute(List<Object> args) throws Exception {
+			execute(args, new Function<Object, Object>() {
+
+				@Override
+				public Object apply(Object o) throws Exception {
+					return o;
+				}				
+			});
+		}
+		
+		void execute(List<Object> args, Function<Object, Object> converter) throws Exception {
 			int i = 1;
 			
 			for(Object arg : args) {
-				if(arg instanceof WKBGeometry) {
-					stmt.setObject(i++, ((WKBGeometry) arg).getBytes());
-				} else {
-					stmt.setObject(i++, arg);
-				}
+				stmt.setObject(i++, converter.apply(arg));
 			}
 			
 			stmt.execute();
