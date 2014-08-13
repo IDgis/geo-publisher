@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
 
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
@@ -65,6 +66,8 @@ public class Metadata extends UntypedActor {
 		fos.close();
 		
 		log.debug("saved");
+		
+		getSender().tell(new Ack(), getSelf());
 	}
 
 	private void handleGetMetadata(GetMetadata msg) throws IOException {
