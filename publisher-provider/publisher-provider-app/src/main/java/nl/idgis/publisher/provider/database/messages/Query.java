@@ -11,10 +11,6 @@ public class Query extends Start implements Serializable {
 	private final String sql;
 	private final int messageSize;
 	
-	public Query(String sql) {
-		this(sql, 0);
-	}
-	
 	public Query(String sql, int messageSize) {
 		this.sql = sql;
 		this.messageSize = messageSize;
