@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.admin;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -21,13 +22,15 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+import nl.idgis.publisher.domain.JobStateType;
+import nl.idgis.publisher.domain.JobType;
 
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
-import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.RefreshDataset;
@@ -36,14 +39,19 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardActiveTask;
+import nl.idgis.publisher.domain.web.DashboardActiveTaskType;
 import nl.idgis.publisher.domain.web.DashboardError;
+import nl.idgis.publisher.domain.web.DashboardErrorType;
 import nl.idgis.publisher.domain.web.DashboardNotification;
+import nl.idgis.publisher.domain.web.DashboardNotificationType;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -303,38 +311,52 @@ public class Admin extends UntypedActor {
 		
 		// TODO get content from joblog
 		final Page.Builder<DashboardError> dashboardErrors = new Page.Builder<DashboardError> ();
-		dashboardErrors.add(new DashboardError("id1", "datasetName1", "message1", LocalDateTime.now()));
-		dashboardErrors.add(new DashboardError("id2", "datasetName2", "message2", LocalDateTime.now()));
-		dashboardErrors.add(new DashboardError("id3", "Geluidszone bedrijventerrein ", "Fout tijdens bijwerken", LocalDateTime.now()));
-
+//		dashboardErrors.add(new DashboardError("id1", "datasetName1", "message1", LocalDateTime.now()));
+//		dashboardErrors.add(new DashboardError("id2", "datasetName2", "message2", LocalDateTime.now()));
+//		dashboardErrors.add(new DashboardError("id3", "Geluidszone bedrijventerrein ", "Fout tijdens bijwerken", LocalDateTime.now()));
+		String datasetName = "Geluidszone bedrijventerrein";
+		DashboardError error = new DashboardError("id1", DashboardErrorType.ERROR, new Message(DashboardErrorType.ERROR, null), datasetName, null, JobStateType.FAILED, JobType.HARVEST, LocalDateTime.now());
+		dashboardErrors.add(error);
+		datasetName = "Geluidszone vliegveld";
+		error = new DashboardError("id2", DashboardErrorType.ERROR, new Message(DashboardErrorType.ERROR, null), datasetName, null, JobStateType.ABORTED, JobType.IMPORT, LocalDateTime.now());
+		dashboardErrors.add(error);
+		
 		log.debug("sending DashboardError list");
 		sender.tell (dashboardErrors.build (), self);
 	}
 
 	private void handleListDashboardActiveTasks(Object object) {
-		log.debug ("handleDashboardErrorList");
+		log.debug ("handleDashboardActiveTaskList");
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		// TODO get content from joblog
 		final Page.Builder<DashboardActiveTask> dashboardActiveTasks = new Page.Builder<DashboardActiveTask> ();
-		dashboardActiveTasks.add(new DashboardActiveTask("id1", "datasetName1", "message2", (int) Math.round(Math.random()*90.0) + 10));
-		dashboardActiveTasks.add(new DashboardActiveTask("id2", "Werkgelegenheid ", "Bezig met bijwerken",  (int) Math.round(Math.random()*90.0) + 10));
-
-		log.debug("sending DashboardError list");
+//		dashboardActiveTasks.add(new DashboardActiveTask("id1", "datasetName1", "message2", (int) Math.round(Math.random()*90.0) + 10));
+//		dashboardActiveTasks.add(new DashboardActiveTask("id2", "Werkgelegenheid ", "Bezig met bijwerken",  (int) Math.round(Math.random()*90.0) + 10));
+		String datasetName = "Werkgelegenheid";
+		DashboardActiveTask activeTask = new DashboardActiveTask("id1", DashboardActiveTaskType.HARVESTER_STARTED, new Message(DashboardActiveTaskType.HARVESTER_STARTED, null), datasetName, (int)(Math.round(Math.random()*90.0) + 10), JobStateType.STARTED, JobType.HARVEST, LocalDateTime.now());
+		dashboardActiveTasks.add(activeTask);
+		datasetName = "Geluidszone vliegveld";
+		activeTask = new DashboardActiveTask("id2", DashboardActiveTaskType.IMPORTER_STARTED, new Message(DashboardActiveTaskType.HARVESTER_STARTED, null), datasetName, (int)(Math.round(Math.random()*90.0) + 10), JobStateType.STARTED, JobType.IMPORT, LocalDateTime.now());
+		dashboardActiveTasks.add(activeTask);
+		
+		log.debug("sending ActiveTask list");
 		sender.tell (dashboardActiveTasks.build (), self);
 	}
 
 	private void handleListDashboardNotifications(Object object) {
-		log.debug ("handleDashboardErrorList");
+		log.debug ("handleDashboardNotificationList");
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		// TODO get content from joblog
+		// TODO get content from joblog / akka
 		final Page.Builder<DashboardNotification> dashboardNotifications = new Page.Builder<DashboardNotification> ();
-		dashboardNotifications.add(new DashboardNotification("id1", "Sterrenwachten ", "Structuurwijziging"));
-
-		log.debug("sending DashboardError list");
+		String datasetName = "Sterrenwachten";
+		DashboardNotification notifcation = new DashboardNotification("id1", DashboardNotificationType.STRUCTUURWIJZIGING, new Message(DashboardNotificationType.STRUCTUURWIJZIGING, null), datasetName, null, null, null, LocalDateTime.now());
+		dashboardNotifications.add(notifcation);
+		
+		log.debug("sending DashboardNotification list");
 		sender.tell (dashboardNotifications.build (), self);
 	}
 

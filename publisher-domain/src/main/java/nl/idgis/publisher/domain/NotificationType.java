@@ -1,7 +1,6 @@
 package nl.idgis.publisher.domain;
 
-import java.io.Serializable;
 
-public interface NotificationType extends Serializable {
+public interface NotificationType extends MessageType {
 
 }	

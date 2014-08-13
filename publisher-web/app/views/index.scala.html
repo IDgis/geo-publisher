@@ -113,7 +113,7 @@
 						@for(notification <- notifications.values) {
 							<li class="list-group-item">
 								<a href="#">
-									@notification.message: @notification.datasetName
+									 @Domain.message(notification): @notification.datasetName
 								</a>
 							</li>
 						}
@@ -162,12 +162,12 @@
 							<li class="list-group-item">
 								<div>
 									<strong>@task.datasetName</strong>
-									<span class="pull-right text-muted">@task.message</span>
+									<span class="pull-right text-muted">@Domain.message(task)</span>
 								</div>
 								<div class="progress progress-striped active">
 									<div class="progress-bar progress-bar-success" role="progressbar" 
-									  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-									  @task.progress%
+									  aria-valuenow="@task.payload" aria-valuemin="0" aria-valuemax="100" style="width: @task.payload%">
+									  @task.payload%
 									</div>
 								</div>
 							</li>
@@ -219,7 +219,7 @@
 							<li class="list-group-item">
 							<div>
 								<p>
-									<strong>@error.message</strong>
+									<strong>@Domain.message(error)</strong>
 									<span class="pull-right">@dateTimeToMessage(error.dateTime)</span>
 								</p>
 							</div>

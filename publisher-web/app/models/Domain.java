@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import nl.idgis.publisher.domain.JobStateType;
+import nl.idgis.publisher.domain.JobType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -15,10 +17,13 @@ import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.web.DashboardActiveTaskType;
+import nl.idgis.publisher.domain.web.DashboardErrorType;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.Status;
 import play.i18n.Lang;
 import play.i18n.Messages;
@@ -542,16 +547,38 @@ public class Domain {
         return lang;
     }
     
+	public static String message (final Notification notification) {
+    	if (notification.type () instanceof Enum<?>) {
+    		if (notification.type () instanceof DashboardActiveTaskType){
+    			if (notification.jobType().equals(JobType.HARVEST)){
+    				if (notification.jobState().equals(JobStateType.STARTED)){
+    					return messageForEnumValue (getLang (), (Enum<?>) DashboardActiveTaskType.HARVESTER_STARTED, notification.payload());
+    				}
+    			} else if (notification.jobType().equals(JobType.IMPORT)){
+    				if (notification.jobState().equals(JobStateType.STARTED)){
+    					return messageForEnumValue (getLang (), (Enum<?>) DashboardActiveTaskType.IMPORTER_STARTED, notification.payload());
+    				}
+    			}
+    		} else if(notification.type () instanceof DashboardErrorType){
+				return messageForEnumValue (getLang (), (Enum<?>) notification.jobState());
+    		}  
+    		// DashBoardActiveTaskType
+    		return messageForEnumValue (getLang (), (Enum<?>) notification.type (), notification.payload());
+    	}
+    	
+    	return Messages.get (getLang (), notification.type ().getClass ().getCanonicalName (), notification.payload());
+    }
+	
     public static String message (final Status status) {
     	return message (getLang (), status);
     }
     
     public static String message (final Lang lang, final Status status) {
     	if (status.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) status.type ());
+    		return messageForEnumValue (lang, (Enum<?>) status.type (), status.type().statusCategory());
     	}
     	
-    	return Messages.get (lang, status.type ().getClass ().getCanonicalName ());
+    	return Messages.get (lang, status.type ().getClass ().getCanonicalName (), status.type().statusCategory());
     }
     
     public static String message (final Message message) {
@@ -560,16 +587,22 @@ public class Domain {
     
     public static String message (final Lang lang, final Message message) {
     	if (message.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) message.type ());
+    		return messageForEnumValue (lang, (Enum<?>) message.type (), message.values());
     	}
     	
-    	return Messages.get (lang, message.type ().getClass ().getCanonicalName ());
+    	return Messages.get (lang, message.type ().getClass ().getCanonicalName (), message.values());
     }
     
     private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue) {
     	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
     	
     	return Messages.get (lang, key);
+    }
+    
+    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, Object... args) {
+    	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
+    	
+    	return Messages.get (lang, key, args);
     }
     
     public static class Constant<T> implements DomainQuery<T> {
