@@ -1,7 +1,6 @@
 package nl.idgis.publisher.provider.protocol.metadata;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 public class PutMetadata implements Serializable {
 	
@@ -25,7 +24,7 @@ public class PutMetadata implements Serializable {
 
 	@Override
 	public String toString() {
-		return "PutMetadata [identification=" + identification + ", content="
-				+ Arrays.toString(content) + "]";
+		return "PutMetadata [identification=" + identification + ", content.length="
+				+ content.length + "]";
 	}
 }
