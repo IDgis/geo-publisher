@@ -1,6 +1,7 @@
 package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
+import java.io.IOException;
 
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
@@ -39,19 +40,27 @@ public class Metadata extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GetAllMetadata) {			
-			log.debug("listing all metadata");
-			listProvider.tell(msg, getSender());
+			handleGetAllMetadata((GetAllMetadata)msg);
 		} else if(msg instanceof GetMetadata) {
-			String id = ((GetMetadata) msg).getIdentification();
-			
-			log.debug("fetching single metadata document: " + id);
-			File document = new File(metadataDirectory, id + ".xml");
-
-			MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
-			getSender().tell(metadataItem, getSelf());
+			handleGetMetadata((GetMetadata)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetMetadata(GetMetadata msg) throws IOException {
+		String id = msg.getIdentification();
+		
+		log.debug("fetching single metadata document: " + id);
+		File document = new File(metadataDirectory, id + ".xml");
+
+		MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
+		getSender().tell(metadataItem, getSelf());
+	}
+
+	private void handleGetAllMetadata(GetAllMetadata msg) {
+		log.debug("listing all metadata");
+		listProvider.tell(msg, getSender());
 	}
 
 }
