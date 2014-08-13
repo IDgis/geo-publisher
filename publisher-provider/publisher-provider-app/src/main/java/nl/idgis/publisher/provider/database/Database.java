@@ -2,9 +2,10 @@ package nl.idgis.publisher.provider.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.List;
 
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.Query;
@@ -12,18 +13,14 @@ import nl.idgis.publisher.provider.protocol.database.Column;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
-import nl.idgis.publisher.provider.protocol.database.Record;
-import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 public class Database extends UntypedActor {
 	
@@ -73,30 +70,21 @@ public class Database extends UntypedActor {
 		}
 	}
 
-	private void handlePerformCount(PerformCount msg) {
+	private void handlePerformCount(PerformCount msg) throws SQLException {
 		String sql = "select count(*) from " + msg.getTableName();
 		
-		final ActorRef sender = getSender();
-		Patterns.ask(content, new Query(sql), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					List<Record> records = ((Records)msg).getRecords();
-					
-					long count = 0;
-					
-					for(Record record : records) {
-						count = ((Number)record.getValues().get(0)).longValue();
-					}
-					
-					sender.tell(count, getSelf());
-				}
-				
-			}, getContext().dispatcher());
+		Statement stmt = connection.createStatement();
+		
+		ResultSet rs = stmt.executeQuery(sql);
+		rs.next();
+		
+		getSender().tell(rs.getLong(1), getSelf());
+		
+		rs.close();		
+		stmt.close();	
 	}
 
-	private void handleDescribeTable(DescribeTable msg) {
+	private void handleDescribeTable(DescribeTable msg) throws SQLException {
 		String requestedTableName = msg.getTableName();
 		
 		final String sql;
@@ -114,53 +102,46 @@ public class Database extends UntypedActor {
 					+ "' " + "order by column_id";
 		}
 		
-		final ActorRef sender = getSender();
-		Patterns.ask(content, new Query(sql), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					List<Record> records = ((Records)msg).getRecords();
-					
-					int recordCount = records.size();
-					if(recordCount == 0) {
-						sender.tell(new TableNotFound(), getSelf());
-					} else {					
-						ArrayList<Column> columns = new ArrayList<>();
-						for(Record record : records) {
-							List<Object> values = record.getValues();
-							
-							String name = (String) values.get(0);
-							String typeName = (String) values.get(1);
-							
-							Type type;
-							switch(typeName.toUpperCase()) {
-								case "NUMBER":
-									type = Type.NUMERIC;
-									break;
-								case "DATE":
-									type = Type.DATE;
-									break;
-								case "VARCHAR2":
-								case "NVARCHAR2":
-									type = Type.TEXT;
-									break;
-								case "SDO_GEOMETRY":
-									type = Type.GEOMETRY;
-									break;
-								default:
-									log.debug("unknown data type: " + typeName);
-									continue;
-							}
-							
-							columns.add(new Column(name, type));
-						}
-						
-						sender.tell(new TableDescription(columns.toArray(new Column[columns.size()])), getSelf());
-					}
-				}
-				
-			}, getContext().dispatcher());
+		Statement stmt = connection.createStatement();
+		
+		ArrayList<Column> columns = new ArrayList<>();
+		
+		ResultSet rs = stmt.executeQuery(sql);
+		while(rs.next()) {
+			String name = rs.getString(1);
+			String typeName = rs.getString(2);
+			
+			Type type;
+			switch(typeName.toUpperCase()) {
+				case "NUMBER":
+					type = Type.NUMERIC;
+					break;
+				case "DATE":
+					type = Type.DATE;
+					break;
+				case "VARCHAR2":
+				case "NVARCHAR2":
+					type = Type.TEXT;
+					break;
+				case "SDO_GEOMETRY":
+					type = Type.GEOMETRY;
+					break;
+				default:
+					log.debug("unknown data type: " + typeName);
+					continue;
+			}
+			
+			columns.add(new Column(name, type));
+		}
+		
+		rs.close();		
+		stmt.close();
+		
+		if(columns.isEmpty()) {
+			getSender().tell(new TableNotFound(), getSelf());
+		} else {
+			getSender().tell(new TableDescription(columns.toArray(new Column[columns.size()])), getSelf());
+		}
 	}
 
 	private void handleFetchTable(FetchTable msg) {
