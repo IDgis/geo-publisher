@@ -5,6 +5,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.GetString;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
@@ -16,12 +18,16 @@ import com.google.common.collect.HashBiMap;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
 public class XMLDocumentTest {
+
+	private static final FiniteDuration AWAIT_DURATION = Duration.create(15, TimeUnit.SECONDS);
 
 	@Test
 	public void testParsing() throws Exception {
@@ -32,7 +38,7 @@ public class XMLDocumentTest {
 		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");
 		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
 		
-		Object result = Await.result(future, Duration.create(15, TimeUnit.SECONDS));
+		Object result = Await.result(future, AWAIT_DURATION);
 		assertTrue("didn't receive an ActorRef", result instanceof ActorRef);
 		
 		ActorRef document = (ActorRef)result;
@@ -42,7 +48,25 @@ public class XMLDocumentTest {
 		namespaces.put("b", "bURI");
 		
 		future = Patterns.ask(document, new GetString(namespaces, "/a:a/b:b"), 15000);
-		result = Await.result(future, Duration.create(15, TimeUnit.SECONDS));		
+		result = Await.result(future, AWAIT_DURATION);		
 		assertEquals("Hello", result);
+	}
+	
+	@Test(expected=AskTimeoutException.class)	
+	public void testClose() throws Exception {
+		ActorSystem system = ActorSystem.create();		
+		
+		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		Future<Object> future = Patterns.ask(factory, new ParseDocument("<a/>".getBytes("utf-8")), 15000);
+
+		ActorRef document = (ActorRef)Await.result(future, AWAIT_DURATION);
+		future = Patterns.ask(document, new Close(), 15000);
+		
+		Object response = Await.result(future, AWAIT_DURATION);
+		assertTrue(response instanceof Ack);
+		
+		// is not supposed to work anymore because we just closed the document
+		future = Patterns.ask(document, new GetString(""), 1000);
+		Await.result(future, AWAIT_DURATION);
 	}
 }

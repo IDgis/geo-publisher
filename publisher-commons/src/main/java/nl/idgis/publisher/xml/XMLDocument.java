@@ -7,6 +7,8 @@ import javax.xml.namespace.NamespaceContext;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.GetString;
 import nl.idgis.publisher.xml.messages.NotFound;
 import nl.idgis.publisher.xml.messages.Query;
@@ -45,9 +47,18 @@ public class XMLDocument extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Query) {
 			handleQuery((Query)msg);
+		} else if(msg instanceof Close) {
+			handleClose((Close)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleClose(Close msg) {
+		log.debug("closing document");
+		
+		getSender().tell(new Ack(), getSelf());
+		getContext().stop(getSelf());
 	}
 
 	private void handleQuery(final Query msg) throws Exception {
