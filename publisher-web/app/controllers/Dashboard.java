@@ -1,8 +1,11 @@
 package controllers;
 
 import static models.Domain.from;
-import models.Domain.Function;
+import models.Domain.Function4;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.web.DashboardActiveTask;
+import nl.idgis.publisher.domain.web.DashboardError;
+import nl.idgis.publisher.domain.web.DashboardNotification;
 import nl.idgis.publisher.domain.web.DataSource;
 import play.Play;
 import play.libs.Akka;
@@ -28,12 +31,16 @@ public class Dashboard extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from (database)
-			.list (DataSource.class)
-			.execute (new Function<Page<DataSource>, Result> () {
-				@Override
-				public Result apply (final Page<DataSource> dataSources) throws Throwable {
-			        return ok(index.render (dataSources));
-				}
-			});
+				.list (DataSource.class)
+				.list(DashboardNotification.class)
+				.list(DashboardActiveTask.class)
+				.list(DashboardError.class)
+				.execute (new Function4<Page<DataSource>, Page<DashboardNotification>, Page<DashboardActiveTask>, Page<DashboardError>, Result> () {
+					@Override
+					public Result apply (final Page<DataSource> dataSources, final Page<DashboardNotification> dashboardNotification, final Page<DashboardActiveTask> dashboardActiveTask, final Page<DashboardError> dashboardError) throws Throwable {
+        			return ok(index.render (dataSources, dashboardNotification, dashboardActiveTask, dashboardError));
+					}
+				});
+
 	}
 }
