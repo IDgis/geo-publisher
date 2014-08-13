@@ -10,6 +10,10 @@
   <!-- 
   	<logger name="nl.idgis.publisher.provider.database" level="debug"/>
    -->
+   
+  <!-- 
+  	<logger name="nl.idgis.publisher.protocol.SSLHandler" level="debug"/>
+  -->
   
   <!-- 
   	<logger name="nl.idgis.publisher.protocol.MessageProtocolHandler" level="debug"/>

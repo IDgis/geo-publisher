@@ -15,6 +15,10 @@
   	<logger name="nl.idgis.publisher.service.loader" level="debug"/>
   -->
   
+  <!-- 
+  	<logger name="nl.idgis.publisher.protocol.SSLHandler" level="debug"/>
+  -->
+  
   <!--
   	<logger name="nl.idgis.publisher.protocol.MessageProtocolHandler" level="debug"/>
    -->
