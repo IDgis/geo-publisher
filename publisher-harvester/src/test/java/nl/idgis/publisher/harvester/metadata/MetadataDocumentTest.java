@@ -9,9 +9,9 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
 import nl.idgis.publisher.harvester.metadata.messages.GetTitle;
+import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.xml.messages.Close;
-import nl.idgis.publisher.xml.messages.ParseDocument;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class MetadataDocumentTest {
 		ActorSystem system = ActorSystem.create();
 		
 		ActorRef factory = system.actorOf(MetadataDocumentFactory.props());
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
+		Future<Object> future = Patterns.ask(factory, new ParseMetadataDocument(content), 15000);
 		
 		Object result = Await.result(future, AWAIT_DURATION);
 		assertTrue("didn't receive an ActorRef", result instanceof ActorRef);
