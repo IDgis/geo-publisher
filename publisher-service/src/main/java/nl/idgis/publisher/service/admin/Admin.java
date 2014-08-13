@@ -36,6 +36,9 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.DashboardActiveTask;
+import nl.idgis.publisher.domain.web.DashboardError;
+import nl.idgis.publisher.domain.web.DashboardNotification;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -87,6 +90,12 @@ public class Admin extends UntypedActor {
 				handleListCategories (listEntity);
 			} else if (listEntity.cls ().equals (Dataset.class)) {
 				handleListDatasets (null);
+			} else if (listEntity.cls ().equals (DashboardNotification.class)) {
+				handleListDashboardNotifications (null);
+			} else if (listEntity.cls ().equals (DashboardActiveTask.class)) {
+				handleListDashboardActiveTasks (null);
+			} else if (listEntity.cls ().equals (DashboardError.class)) {
+				handleListDashboardErrors (null);
 			} else {
 				handleEmptyList (listEntity);
 			}
@@ -287,6 +296,48 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 	}
 	
+	private void handleListDashboardErrors(Object object) {
+		log.debug ("handleDashboardErrorList");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		// TODO get content from joblog
+		final Page.Builder<DashboardError> dashboardErrors = new Page.Builder<DashboardError> ();
+		dashboardErrors.add(new DashboardError("id1", "datasetName1", "message1", LocalDateTime.now()));
+		dashboardErrors.add(new DashboardError("id2", "datasetName2", "message2", LocalDateTime.now()));
+		dashboardErrors.add(new DashboardError("id3", "Geluidszone bedrijventerrein ", "Fout tijdens bijwerken", LocalDateTime.now()));
+
+		log.debug("sending DashboardError list");
+		sender.tell (dashboardErrors.build (), self);
+	}
+
+	private void handleListDashboardActiveTasks(Object object) {
+		log.debug ("handleDashboardErrorList");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		// TODO get content from joblog
+		final Page.Builder<DashboardActiveTask> dashboardActiveTasks = new Page.Builder<DashboardActiveTask> ();
+		dashboardActiveTasks.add(new DashboardActiveTask("id1", "datasetName1", "message2", (int) Math.round(Math.random()*90.0) + 10));
+		dashboardActiveTasks.add(new DashboardActiveTask("id2", "Werkgelegenheid ", "Bezig met bijwerken",  (int) Math.round(Math.random()*90.0) + 10));
+
+		log.debug("sending DashboardError list");
+		sender.tell (dashboardActiveTasks.build (), self);
+	}
+
+	private void handleListDashboardNotifications(Object object) {
+		log.debug ("handleDashboardErrorList");
+		
+		final ActorRef sender = getSender(), self = getSelf();
+		
+		// TODO get content from joblog
+		final Page.Builder<DashboardNotification> dashboardNotifications = new Page.Builder<DashboardNotification> ();
+		dashboardNotifications.add(new DashboardNotification("id1", "Sterrenwachten ", "Structuurwijziging"));
+
+		log.debug("sending DashboardError list");
+		sender.tell (dashboardNotifications.build (), self);
+	}
+
 	private void handleEmptyList (final ListEntity<?> listEntity) {
 		final Page.Builder<Category> builder = new Page.Builder<> ();
 		
