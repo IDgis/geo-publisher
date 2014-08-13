@@ -110,11 +110,6 @@
 						</div>
 					</div>
 					<ul class="list-group">
-						<li class="list-group-item">
-							<a href="#">
-								Structuurwijziging: Sterrenwachten
-							</a>
-						</li>
 						@for(notification <- notifications.values) {
 							<li class="list-group-item">
 								<a href="#">
@@ -163,18 +158,6 @@
 						</div>
 					</div>
 					<ul class="list-group">
-						<li class="list-group-item">
-							<div>
-								<p>
-									<strong>Werkgelegenheid</strong>
-									<span class="pull-right text-muted">Bezig met bijwerken</span>
-								</p>
-								<div class="progress progress-striped active">
-									<div class="progress-bar progress-bar-success" style="width: 100%">
-									</div>
-								</div>
-							</div>
-						</li>
 						@for(task <- tasks.values) {
 							<li class="list-group-item">
 								<div>
@@ -232,17 +215,6 @@
 						</div>
 					</div>
 					<ul class="list-group">
-						<li class="list-group-item">
-							<div>
-								<p>
-									<strong>Fout tijdens bijwerken</strong>
-									<span class="pull-right">1 dag geleden</span>
-								</p>
-							</div>
-							<p>
-								<span class="text-muted">Dataset</span> Geluidszone bedrijventerrein  
-							</p>
-						</li>
 						@for(error <- errors.values) {
 							<li class="list-group-item">
 							<div>
