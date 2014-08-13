@@ -94,7 +94,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 			List<Future<Record>> recordFutures = new ArrayList<>();
 			recordFutures.add(toRecord());
 			
-			for(int i = 1; messageSize <= 0 || i < messageSize; i++) {
+			for(int i = 1; i < messageSize; i++) {
 				if(!t.next()) {
 					break;
 				}

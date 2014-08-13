@@ -12,7 +12,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.provider.database.messages.Query;
 import nl.idgis.publisher.stream.StreamProvider;
 
-public class DatabaseContent extends StreamProvider<Query> {
+public class DatabaseStreamProvider extends StreamProvider<Query> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -20,12 +20,12 @@ public class DatabaseContent extends StreamProvider<Query> {
 	
 	private ActorRef converter;
 	
-	public DatabaseContent(Connection connection) {
+	public DatabaseStreamProvider(Connection connection) {
 		this.connection = connection;
 	}
 	
 	public static Props props(Connection connection) {
-		return Props.create(DatabaseContent.class, connection);
+		return Props.create(DatabaseStreamProvider.class, connection);
 	}
 	
 	@Override
