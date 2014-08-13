@@ -134,6 +134,11 @@
 			</dependency>
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
+				<artifactId>akka-testkit_${scala.abi.version}</artifactId>
+				<version>${akka.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.typesafe.akka</groupId>
 				<artifactId>akka-actor_${scala.abi.version}</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
