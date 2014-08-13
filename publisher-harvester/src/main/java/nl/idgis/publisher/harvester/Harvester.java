@@ -8,6 +8,8 @@ import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.NotConnected;
+import nl.idgis.publisher.harvester.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
@@ -32,6 +34,7 @@ public class Harvester extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
 	
 	private BiMap<String, ActorRef> dataSources;
+	private ActorRef metadataDocumentFactory;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
@@ -52,11 +55,19 @@ public class Harvester extends UntypedActor {
 		getContext().actorOf(Server.props(name, getSelf(), port, sslConfig), "server");
 		
 		dataSources = HashBiMap.create();
+		
+		metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof DataSourceConnected) {
+		log.debug("message: " + msg);
+		
+		if(msg instanceof ParseMetadataDocument) {
+			log.debug("dispatching metadata parsing request");
+			
+			metadataDocumentFactory.tell(msg, getSender());
+		} else if(msg instanceof DataSourceConnected) {
 			String dataSourceId = ((DataSourceConnected) msg).getDataSourceId();
 			log.debug("DataSource connected: " + dataSourceId);
 			

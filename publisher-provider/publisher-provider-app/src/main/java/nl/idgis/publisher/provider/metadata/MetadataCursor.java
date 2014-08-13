@@ -4,7 +4,10 @@ import java.io.File;
 import java.util.Iterator;
 
 import akka.actor.Props;
+import akka.dispatch.Futures;
+
 import scala.concurrent.Future;
+
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
 
@@ -25,6 +28,10 @@ public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 
 	@Override
 	protected Future<MetadataItem> next() {
-		return askActor(getContext().actorOf(MetadataParser.props()), t.next(), 1000);
+		try {
+			return Futures.successful(MetadataParser.createMetadataItem(t.next()));
+		} catch(Exception e) {
+			return Futures.failed(e);
+		}
 	}
 }

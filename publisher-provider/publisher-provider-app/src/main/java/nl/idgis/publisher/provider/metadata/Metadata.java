@@ -4,6 +4,7 @@ import java.io.File;
 
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
+import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -45,7 +46,9 @@ public class Metadata extends UntypedActor {
 			
 			log.debug("fetching single metadata document: " + id);
 			File document = new File(metadataDirectory, id + ".xml");
-			getContext().actorOf(MetadataParser.props()).tell(document, getSender());
+
+			MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
+			getSender().tell(metadataItem, getSelf());
 		} else {
 			unhandled(msg);
 		}

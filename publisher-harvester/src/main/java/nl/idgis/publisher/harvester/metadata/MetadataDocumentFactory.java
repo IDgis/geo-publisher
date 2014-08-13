@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester.metadata;
 
+import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.xml.XMLDocumentFactory;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
@@ -28,14 +29,14 @@ public class MetadataDocumentFactory extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ParseDocument) {
-			handleParseDocument((ParseDocument)msg);
+		if(msg instanceof ParseMetadataDocument) {
+			handleParseMetadataDocument((ParseMetadataDocument)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 
-	private void handleParseDocument(ParseDocument msg) {
+	private void handleParseMetadataDocument(ParseDocument msg) {
 		log.debug("parsing metadata document");
 		
 		final ActorRef sender = getSender();
