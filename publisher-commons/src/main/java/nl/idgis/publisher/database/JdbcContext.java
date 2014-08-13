@@ -8,17 +8,18 @@ import java.util.Arrays;
 import java.util.List;
 
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
-import akka.actor.ActorRef;
 
-class JdbcContext {
+import akka.actor.ActorRef;
+import akka.japi.Function;
+
+public class JdbcContext {
 	
 	private boolean answered = false;
 	
 	private final ActorRef sender, self;
 	private final Connection connection;
 	
-	static class Prepared {
+	public static class Prepared {
 		
 		PreparedStatement stmt;
 		
@@ -26,19 +27,25 @@ class JdbcContext {
 			this.stmt = stmt;
 		}
 		
-		void execute(Object... args) throws SQLException {
+		public void execute(Object... args) throws Exception {
 			execute(Arrays.asList(args));
 		}		
 		
-		void execute(List<Object> args) throws SQLException {
+		public void execute(List<Object> args) throws Exception {
+			execute(args, new Function<Object, Object>() {
+
+				@Override
+				public Object apply(Object o) throws Exception {
+					return o;
+				}				
+			});
+		}
+		
+		public void execute(List<Object> args, Function<Object, Object> converter) throws Exception {
 			int i = 1;
 			
 			for(Object arg : args) {
-				if(arg instanceof WKBGeometry) {
-					stmt.setObject(i++, ((WKBGeometry) arg).getBytes());
-				} else {
-					stmt.setObject(i++, arg);
-				}
+				stmt.setObject(i++, converter.apply(arg));
 			}
 			
 			stmt.execute();
@@ -52,11 +59,11 @@ class JdbcContext {
 		this.self = self;
 	}
 
-	Connection getConnection() {
+	public Connection getConnection() {
 		return this.connection;
 	}
 	
-	void answer(Object msg) {
+	public void answer(Object msg) {
 		if(answered) {
 			throw new IllegalArgumentException("query already answered");
 		} else {
@@ -65,17 +72,17 @@ class JdbcContext {
 		}
 	}
 	
-	void execute(String sql) throws SQLException {
+	public void execute(String sql) throws SQLException {
 		Statement stmt = connection.createStatement();
 		stmt.execute(sql);
 		stmt.close();
 	}
 	
-	Prepared prepare(String sql) throws SQLException {
+	public Prepared prepare(String sql) throws SQLException {
 		return new Prepared(connection.prepareStatement(sql));
 	}
 	
-	void ack() {
+	public void ack() {
 		answer(new Ack());
 	}
 	

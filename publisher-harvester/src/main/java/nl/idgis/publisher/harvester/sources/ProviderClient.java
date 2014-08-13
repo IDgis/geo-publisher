@@ -3,8 +3,10 @@ package nl.idgis.publisher.harvester.sources;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
+import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
+import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
@@ -17,10 +19,13 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Tcp.ConnectionClosed;
 import akka.japi.Procedure;
+import akka.pattern.Patterns;
 
 public class ProviderClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final int FETCH_TABLE_MESSAGE_SIZE = 10;
 	
 	private final String harvesterName;
 	private final ActorRef harvester, metadata, database;
@@ -77,14 +82,35 @@ public class ProviderClient extends UntypedActor {
 								MetadataItem metadataItem = (MetadataItem)msg;
 								
 								log.debug("metadata retrieved");
-								String tableName = ProviderUtils.getTableName(metadataItem);
+								final String tableName = ProviderUtils.getTableName(metadataItem);
 								if(tableName == null) {
 									log.warning("no table name for dataset");
 								} else {
-									log.debug("requesting table");
+									log.debug("requesting table count");
 									
-									ActorRef receiver = getContext().actorOf(gd.getReceiverProps());									
-									database.tell(new FetchTable(tableName, gd.getColumns()), receiver); 
+									Ask.ask(getContext(), database, new PerformCount(tableName), 15000)
+										.onSuccess(new OnSuccess<Object>() {
+
+											@Override
+											public void onSuccess(Object msg) throws Throwable {
+												Long count = (Long)msg;
+												
+												log.debug("count: " + count + ", starting import");
+												
+												final ActorRef receiver = getContext().actorOf(gd.getReceiverProps());
+												Patterns.ask(receiver, new StartImport(count), 15000)
+													.onSuccess(new OnSuccess<Object>() {
+
+														@Override
+														public void onSuccess(Object msg) throws Throwable {
+															log.debug("requesting table");
+															
+															database.tell(new FetchTable(tableName, gd.getColumns(), FETCH_TABLE_MESSAGE_SIZE), receiver);
+														}
+														
+													}, getContext().dispatcher());												
+											}
+										}, getContext().dispatcher()); 
 								}
 							}
 						}, getContext().dispatcher());

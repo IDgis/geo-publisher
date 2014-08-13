@@ -4,11 +4,9 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-import nl.idgis.publisher.stream.messages.Item;
-
-public class Record extends Item implements Serializable {
-	
-	private static final long serialVersionUID = 5011984818623444511L;
+public class Record implements Serializable {
+		
+	private static final long serialVersionUID = 4749264221713684724L;
 	
 	private final List<Object> values;
 	

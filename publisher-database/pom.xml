@@ -53,10 +53,6 @@
 			<version>${h2.version}</version>
 			<scope>test</scope>				
 		</dependency>
-		<dependency>
-			<groupId>com.jolbox</groupId>
-			<artifactId>bonecp</artifactId>			
-		</dependency>
 	</dependencies>
 
 	<build>

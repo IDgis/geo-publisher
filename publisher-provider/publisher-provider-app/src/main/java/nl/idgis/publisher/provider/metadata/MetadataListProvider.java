@@ -4,11 +4,11 @@ import java.io.File;
 import java.util.Arrays;
 
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.StreamProvider;
+
 import akka.actor.Props;
 
-public class MetadataListProvider extends StreamProvider<GetAllMetadata, MetadataItem> {
+public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 
 	private final File metadataDirectory;
 

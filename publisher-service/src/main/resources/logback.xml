@@ -7,9 +7,17 @@
     </layout>
   </appender>
   
+   <!-- 
+  	<logger name="nl.idgis.publisher.harvester" level="debug"/>
+  -->
+  
   <!-- 
   	<logger name="nl.idgis.publisher.service.loader" level="debug"/>
   -->
+  
+  <!--
+  	<logger name="nl.idgis.publisher.protocol.MessageProtocolHandler" level="debug"/>
+   -->
   
   <root level="info">
     <appender-ref ref="STDOUT" />

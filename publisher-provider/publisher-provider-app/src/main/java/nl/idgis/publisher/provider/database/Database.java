@@ -6,20 +6,21 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import scala.concurrent.Future;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.Query;
 import nl.idgis.publisher.provider.protocol.database.Column;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
+import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
-import nl.idgis.publisher.stream.StreamAggregator;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Mapper;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -62,90 +63,122 @@ public class Database extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof FetchTable) {
-			FetchTable ft = (FetchTable)msg;
-			
-			log.debug("fetch table: " + ft);
-			
-			StringBuilder sb = new StringBuilder("select ");
-			
-			String separator = "";
-			for(String columnName : ft.getColumnNames()) {
-				sb.append(separator);
-				sb.append(columnName);
-				
-				separator = ", ";
-			}
-			
-			sb.append(" from ");
-			sb.append(ft.getTableName());
-			
-			content.tell(new Query(sb.toString()), getSender());
+			handleFetchTable((FetchTable)msg);
 		} else if(msg instanceof DescribeTable) {
-			String requestedTableName = ((DescribeTable) msg).getTableName();
-			
-			final String sql;
-			int separatorIndex = requestedTableName.indexOf(".");
-			if(separatorIndex == -1) {
-				sql = "select column_name, data_type from user_tab_columns "
-						+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
-						+ "order by column_id";
-			} else {
-				String owner = requestedTableName.substring(0, separatorIndex);
-				String tableName = requestedTableName.substring(separatorIndex + 1);
-				
-				sql = "select column_name, data_type from all_tab_columns "
-						+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
-						+ "' " + "order by column_id";
-			}
-			
-			Future<ArrayList<Record>> records = StreamAggregator.ask(getContext(), content, new Query(sql), new ArrayList<Record>(), 15000);			
-			Future<Object> response = records.map(new Mapper<ArrayList<Record>, Object>() {
-						
-						@Override
-						public Object apply(ArrayList<Record> records) {
-							int recordCount = records.size();
-							if(recordCount == 0) {
-								return new TableNotFound();
-							} 
-							
-							ArrayList<Column> columns = new ArrayList<>();
-							for(Record record : records) {
-								List<Object> values = record.getValues();
-								
-								String name = (String) values.get(0);
-								String typeName = (String) values.get(1);
-								
-								Type type;
-								switch(typeName.toUpperCase()) {
-									case "NUMBER":
-										type = Type.NUMERIC;
-										break;
-									case "DATE":
-										type = Type.DATE;
-										break;
-									case "VARCHAR2":
-									case "NVARCHAR2":
-										type = Type.TEXT;
-										break;
-									case "SDO_GEOMETRY":
-										type = Type.GEOMETRY;
-										break;
-									default:
-										log.debug("unknown data type: " + typeName);
-										continue;
-								}
-								
-								columns.add(new Column(name, type));
-							}
-							
-							return new TableDescription(columns.toArray(new Column[columns.size()]));				
-						}
-					}, getContext().dispatcher());
-			
-			Patterns.pipe(response, getContext().dispatcher())
-				.pipeTo(getSender(), getSelf());
+			handleDescribeTable((DescribeTable)msg);
+		} else if(msg instanceof PerformCount) {
+			handlePerformCount((PerformCount)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handlePerformCount(PerformCount msg) {
+		String sql = "select count(*) from " + msg.getTableName();
+		
+		final ActorRef sender = getSender();
+		Patterns.ask(content, new Query(sql), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					List<Record> records = ((Records)msg).getRecords();
+					
+					long count = 0;
+					
+					for(Record record : records) {
+						count = ((Number)record.getValues().get(0)).longValue();
+					}
+					
+					sender.tell(count, getSelf());
+				}
+				
+			}, getContext().dispatcher());
+	}
+
+	private void handleDescribeTable(DescribeTable msg) {
+		String requestedTableName = msg.getTableName();
+		
+		final String sql;
+		int separatorIndex = requestedTableName.indexOf(".");
+		if(separatorIndex == -1) {
+			sql = "select column_name, data_type from user_tab_columns "
+					+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
+					+ "order by column_id";
+		} else {
+			String owner = requestedTableName.substring(0, separatorIndex);
+			String tableName = requestedTableName.substring(separatorIndex + 1);
+			
+			sql = "select column_name, data_type from all_tab_columns "
+					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
+					+ "' " + "order by column_id";
+		}
+		
+		final ActorRef sender = getSender();
+		Patterns.ask(content, new Query(sql), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					List<Record> records = ((Records)msg).getRecords();
+					
+					int recordCount = records.size();
+					if(recordCount == 0) {
+						sender.tell(new TableNotFound(), getSelf());
+					} else {					
+						ArrayList<Column> columns = new ArrayList<>();
+						for(Record record : records) {
+							List<Object> values = record.getValues();
+							
+							String name = (String) values.get(0);
+							String typeName = (String) values.get(1);
+							
+							Type type;
+							switch(typeName.toUpperCase()) {
+								case "NUMBER":
+									type = Type.NUMERIC;
+									break;
+								case "DATE":
+									type = Type.DATE;
+									break;
+								case "VARCHAR2":
+								case "NVARCHAR2":
+									type = Type.TEXT;
+									break;
+								case "SDO_GEOMETRY":
+									type = Type.GEOMETRY;
+									break;
+								default:
+									log.debug("unknown data type: " + typeName);
+									continue;
+							}
+							
+							columns.add(new Column(name, type));
+						}
+						
+						sender.tell(new TableDescription(columns.toArray(new Column[columns.size()])), getSelf());
+					}
+				}
+				
+			}, getContext().dispatcher());
+	}
+
+	private void handleFetchTable(FetchTable msg) {
+		log.debug("fetch table: " + msg);
+		
+		StringBuilder sb = new StringBuilder("select ");
+		
+		String separator = "";
+		for(String columnName : msg.getColumnNames()) {
+			sb.append(separator);
+			sb.append(columnName);
+			
+			separator = ", ";
+		}
+		
+		sb.append(" from ");
+		sb.append(msg.getTableName());
+		
+		content.tell(new Query(sb.toString(), msg.getMessageSize()), getSender());
 	}	
 }
