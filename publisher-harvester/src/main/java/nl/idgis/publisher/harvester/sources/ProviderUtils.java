@@ -1,12 +1,8 @@
 package nl.idgis.publisher.harvester.sources;
 
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
-
 public class ProviderUtils {
 
-	public static String getTableName(MetadataItem metadataItem) {
-		String alternateTitle = metadataItem.getAlternateTitle();
-		
+	public static String getTableName(String alternateTitle) {
 		if(alternateTitle != null 
 			&& !alternateTitle.trim().isEmpty()) {			 
 		
@@ -23,8 +19,8 @@ public class ProviderUtils {
 		return null;
 	}
 	
-	public static String getCategoryId(MetadataItem metadataItem) {
-		String tableName = getTableName(metadataItem);
+	public static String getCategoryId(String alternateTitle) {
+		String tableName = getTableName(alternateTitle);
 		
 		if(tableName != null) {
 			int separator = tableName.indexOf(".");

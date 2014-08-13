@@ -13,6 +13,16 @@
     </parent>
     
     <dependencies>
+	    <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>            
+        </dependency>
+        <dependency>
+			<groupId>com.typesafe.akka</groupId>
+			<artifactId>akka-testkit_${scala.abi.version}</artifactId>
+			<scope>test</scope>
+		</dependency>
     	<dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.abi.version}</artifactId>            

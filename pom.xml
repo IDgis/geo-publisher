@@ -134,6 +134,11 @@
 			</dependency>
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
+				<artifactId>akka-testkit_${scala.abi.version}</artifactId>
+				<version>${akka.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.typesafe.akka</groupId>
 				<artifactId>akka-actor_${scala.abi.version}</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
@@ -152,6 +157,11 @@
 				<artifactId>commons-lang3</artifactId>
 				<version>3.3.2</version>
 			</dependency>
+			<dependency>
+				<groupId>commons-io</groupId>
+				<artifactId>commons-io</artifactId>
+				<version>2.4</version>
+			</dependency>			
 			<dependency>
 				<groupId>com.fasterxml</groupId>
 				<artifactId>aalto-xml</artifactId>

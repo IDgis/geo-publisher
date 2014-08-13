@@ -6,29 +6,25 @@ public class MetadataItem extends Item {
 
 	private static final long serialVersionUID = -9046319680590366968L;
 	
-	private final String identification, title, alternateTitle;
+	private final String identification;
+	private final byte[] content;
 	
-	public MetadataItem(String identification, String title, String alternateTitle) {
+	public MetadataItem(String identification, byte[] content) {
 		this.identification = identification;
-		this.title = title;
-		this.alternateTitle = alternateTitle;
+		this.content = content;
 	}
 	
 	public String getIdentification() {
 		return identification;
 	}
 	
-	public String getTitle() {
-		return title;
-	}
-	
-	public String getAlternateTitle() {
-		return alternateTitle;
+	public byte[] getContent() {
+		return content;
 	}
 
 	@Override
 	public String toString() {
-		return "MetadataItem [identification=" + identification + ", title="
-				+ title + ", alternateTitle=" + alternateTitle + "]";
+		return "MetadataItem [identification=" + identification + ", content.length="
+				+ content.length + "]";
 	}	
 }

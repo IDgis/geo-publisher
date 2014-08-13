@@ -1,6 +1,8 @@
 package nl.idgis.publisher.harvester.sources;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
+import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
+import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -11,6 +13,7 @@ import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.utils.Ask;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -57,6 +60,41 @@ public class ProviderClient extends UntypedActor {
 		}
 	}
 	
+	private void processMetadata(final GetDataset gd, String alternateTitle) {
+		log.debug("processing metadata");
+		
+		final String tableName = ProviderUtils.getTableName(alternateTitle);
+		if(tableName == null) {
+			log.warning("no table name for dataset");
+		} else {
+			log.debug("requesting table count");
+			
+			Ask.ask(getContext(), database, new PerformCount(tableName), 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						Long count = (Long)msg;
+						
+						log.debug("count: " + count + ", starting import");
+						
+						final ActorRef receiver = getContext().actorOf(gd.getReceiverProps());
+						Patterns.ask(receiver, new StartImport(count), 15000)
+							.onSuccess(new OnSuccess<Object>() {
+
+								@Override
+								public void onSuccess(Object msg) throws Throwable {
+									log.debug("requesting table");
+									
+									database.tell(new FetchTable(tableName, gd.getColumns(), FETCH_TABLE_MESSAGE_SIZE), receiver);
+								}
+								
+							}, getContext().dispatcher());												
+					}
+				}, getContext().dispatcher()); 
+		}
+	}
+	
 	private Procedure<Object> active() {
 		return new Procedure<Object>() {
 
@@ -65,7 +103,7 @@ public class ProviderClient extends UntypedActor {
 				if(msg instanceof GetDatasets) {
 					log.debug("retrieving datasets from provider");
 					
-					ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), database));
+					ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), harvester, database));
 					metadata.tell(new GetAllMetadata(), providerDataset);
 				} else if(msg instanceof ConnectionClosed) {
 					log.debug("disconnected");
@@ -81,37 +119,30 @@ public class ProviderClient extends UntypedActor {
 							public void onSuccess(Object msg) throws Throwable { 
 								MetadataItem metadataItem = (MetadataItem)msg;
 								
-								log.debug("metadata retrieved");
-								final String tableName = ProviderUtils.getTableName(metadataItem);
-								if(tableName == null) {
-									log.warning("no table name for dataset");
-								} else {
-									log.debug("requesting table count");
-									
-									Ask.ask(getContext(), database, new PerformCount(tableName), 15000)
-										.onSuccess(new OnSuccess<Object>() {
+								log.debug("metadata retrieved");								
+								Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
+									.onSuccess(new OnSuccess<Object>() {
 
-											@Override
-											public void onSuccess(Object msg) throws Throwable {
-												Long count = (Long)msg;
-												
-												log.debug("count: " + count + ", starting import");
-												
-												final ActorRef receiver = getContext().actorOf(gd.getReceiverProps());
-												Patterns.ask(receiver, new StartImport(count), 15000)
-													.onSuccess(new OnSuccess<Object>() {
+										@Override
+										public void onSuccess(Object o) throws Throwable {
+											ActorRef metadataDocument = (ActorRef)o;
+											
+											Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000)
+												.onSuccess(new OnSuccess<Object>() {
 
-														@Override
-														public void onSuccess(Object msg) throws Throwable {
-															log.debug("requesting table");
-															
-															database.tell(new FetchTable(tableName, gd.getColumns(), FETCH_TABLE_MESSAGE_SIZE), receiver);
-														}
+													@Override
+													public void onSuccess(Object o) throws Throwable {
+														String alternateTitle = (String)o;
 														
-													}, getContext().dispatcher());												
-											}
-										}, getContext().dispatcher()); 
-								}
+														log.debug("metadata parsed");
+														
+														processMetadata(gd, alternateTitle);
+													}
+													
+												}, getContext().dispatcher());
+										}
+										
+									}, getContext().dispatcher());
 							}
 						}, getContext().dispatcher());
 				} else {
