@@ -29,7 +29,7 @@ public class Database extends UntypedActor {
 	private final String driver, url, user, password;
 	
 	private Connection connection;
-	private ActorRef content;
+	private ActorRef streamProvider;
 	
 	public Database(String driver, String url, String user, String password) {
 		this.driver = driver;
@@ -49,7 +49,7 @@ public class Database extends UntypedActor {
 		}
 		connection = DriverManager.getConnection(url, user, password);
 		
-		content = getContext().actorOf(DatabaseContent.props(connection), "content");
+		streamProvider = getContext().actorOf(DatabaseStreamProvider.props(connection), "streamProvider");
 	}
 	
 	@Override
@@ -160,6 +160,6 @@ public class Database extends UntypedActor {
 		sb.append(" from ");
 		sb.append(msg.getTableName());
 		
-		content.tell(new Query(sb.toString(), msg.getMessageSize()), getSender());
+		streamProvider.tell(new Query(sb.toString(), msg.getMessageSize()), getSender());
 	}	
 }
