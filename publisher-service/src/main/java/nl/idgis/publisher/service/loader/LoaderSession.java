@@ -74,6 +74,11 @@ public class LoaderSession extends UntypedActor {
 			}, getContext().dispatcher());		
 	}
 	
+	@Override
+	public void postStop() {
+		timeoutCancellable.cancel();
+	}
+	
 	private void scheduleTimeout() {
 		if(timeoutCancellable != null) {
 			timeoutCancellable.cancel();

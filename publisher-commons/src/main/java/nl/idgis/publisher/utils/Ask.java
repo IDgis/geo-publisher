@@ -9,6 +9,7 @@ import scala.concurrent.Promise;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
+import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
@@ -22,6 +23,8 @@ public final class Ask extends UntypedActor {
 	
 	private final Promise<Object> promise;
 	private final Timeout timeout;
+	
+	private Cancellable timeoutCancellable;
 	
 	private static class Stop implements Serializable {
 		
@@ -49,7 +52,7 @@ public final class Ask extends UntypedActor {
 	public void preStart() throws Exception {
 		log.debug("waiting for answer");
 		
-		getContext().system().scheduler().scheduleOnce(timeout.duration(), 
+		timeoutCancellable = getContext().system().scheduler().scheduleOnce(timeout.duration(), 
 			getSelf(), new Stop(), getContext().dispatcher(), getSelf());
 	}
 	
@@ -62,6 +65,7 @@ public final class Ask extends UntypedActor {
 		} else {
 			log.debug("answer received");
 			
+			timeoutCancellable.cancel();
 			promise.success(msg);
 		}
 		
