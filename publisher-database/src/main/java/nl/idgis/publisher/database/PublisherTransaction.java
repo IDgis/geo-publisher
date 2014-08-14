@@ -139,341 +139,395 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	@Override
 	protected void executeQuery(QueryDSLContext context, Query query) throws Exception {
 		if(query instanceof GetVersion) {
-			log.debug("database version requested");
-			
-			context.answer(
-				context.query().from(version)
-					.orderBy(version.id.desc())
-					.limit(1)
-					.singleResult(new QVersion(version.id, version.createTime)));
+			executeGetVersion(context);
 		} else if(query instanceof RegisterSourceDataset) {
-			log.debug("registering source dataset: " + query);
-			
-			RegisterSourceDataset rsd = (RegisterSourceDataset)query;
-			Dataset dataset = rsd.getDataset();
-			Table table = dataset.getTable();
-			
-			Tuple existing = 
-				context.query().from(sourceDataset)
-					.join(dataSource)
-						.on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.join(category)
-						.on(category.id.eq(sourceDataset.categoryId))
-					.where(sourceDataset.identification.eq(dataset.getId())
-						.and(dataSource.identification.eq(rsd.getDataSource())))
-					.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime);
-			
-			if(existing != null) {
-				Integer id = existing.get(sourceDataset.id);
-				String existingName = existing.get(sourceDataset.name);
-				String existingCategoryId = existing.get(category.identification);
-				Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
-				
-				List<Column> existingColumns = context.query().from(sourceDatasetColumn)
-					.where(sourceDatasetColumn.sourceDatasetId.eq(id))
-					.orderBy(sourceDatasetColumn.index.asc())
-					.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType));
-				
-				if(existingName.equals(table.getName())
-						&& existingCategoryId.equals(dataset.getCategoryId())
-						&& existingDeleteTime == null
-						&& existingColumns.equals(table.getColumns())) {
-					context.answer(new AlreadyRegistered());
-					log.debug("dataset already registered");
-				} else {
-					context.update(sourceDataset)
-						.set(sourceDataset.name, table.getName())
-						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
-						.setNull(sourceDataset.deleteTime)						
-						.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
-						.where(sourceDataset.id.eq(id))
-						.execute();
-					
-					context.delete(sourceDatasetColumn)
-						.where(sourceDatasetColumn.sourceDatasetId.eq(id))
-						.execute();
-					
-					insertSourceDatasetColumns(context, id, table.getColumns());
-					context.answer(new Registered());
-					
-					log.debug("dataSource updated");
-				}
-			} else {
-				Integer dataSourceId = context.query().from(dataSource)
-					.where(dataSource.identification.eq(rsd.getDataSource()))
-					.singleResult(dataSource.id);
-				
-				if(dataSourceId == null) {
-					log.error("dataSource not found: " + dataSourceId);
-				} else {
-					context.insert(sourceDataset)
-						.set(sourceDataset.dataSourceId, dataSourceId)
-						.set(sourceDataset.identification, dataset.getId())
-						.set(sourceDataset.name, table.getName())
-						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
-						.execute();
-					
-					Integer id = context.query().from(sourceDataset)
-						.where(sourceDataset.dataSourceId.eq(dataSourceId)
-							.and(sourceDataset.identification.eq(dataset.getId())))
-						.singleResult(sourceDataset.id);
-					
-					insertSourceDatasetColumns(context, id, table.getColumns());					
-					context.answer(new Registered());
-					
-					log.debug("dataSource inserted");
-				}
-			}
+			executeRegisterSourceDataset(context, (RegisterSourceDataset)query);
 		} else if(query instanceof GetCategoryListInfo) {
-			context.answer(
-					context.query().from(category)
-					.orderBy(category.identification.asc())
-					.list(new QCategoryInfo(category.identification,category.name)));
+			executeGetCategoryListInfo(context);
 		} else if(query instanceof GetCategoryInfo) {
-			context.answer(
-					context.query().from(category)
-					.where(category.identification.eq( ((GetCategoryInfo)query).getId() ))
-					.singleResult(new QCategoryInfo(category.identification,category.name)));
-			
+			executeGetCategoryInfo(context, (GetCategoryInfo)query);			
 		} else if(query instanceof GetDatasetListInfo) {
-			GetDatasetListInfo dli = (GetDatasetListInfo)query;
-			String categoryId = dli.getCategoryId();
-			
-			SQLQuery baseQuery = context.query().from(dataset)
-				.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-				.leftJoin (category).on(sourceDataset.categoryId.eq(category.id));
-			
-			if(categoryId != null) {
-				baseQuery.where(category.identification.eq(categoryId));
-			}
-			
-			context.answer(
-					baseQuery
-					.orderBy(dataset.identification.asc())
-					.list(new QDatasetInfo(dataset.identification, dataset.name, 
-							sourceDataset.identification, sourceDataset.name,
-							category.identification,category.name))
-			);
-			
+			executeGetDatasetListInfo(context, (GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
-			context.answer(
-				context.query().from(dataSource)
-					.orderBy(dataSource.identification.asc())
-					.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
-		} else if(query instanceof GetSourceDatasetInfo) {
-			GetSourceDatasetInfo sdi = (GetSourceDatasetInfo)query;
-			log.debug(sdi.toString());
-			String sourceDatasetId = sdi.getId();
+			executeGetDataSourceInfo(context);
+		} else if(query instanceof GetSourceDatasetInfo) {			
+			executeGetSourceDatasetInfo(context, (GetSourceDatasetInfo)query);			
+		} else if(query instanceof GetSourceDatasetListInfo) {			
+			executeGetSourceDatasetListInfo(context, (GetSourceDatasetListInfo)query);			
+		} else if (query instanceof StoreLog) {
+			executeStoreLog((StoreLog)query);
+		} else if(query instanceof GetHarvestLog) {
+			executeGetHarvestLog((GetHarvestLog)query);
+		} else if (query instanceof GetNextHarvestJob){
+			executeGetNextHarvestJob();
+		} else if(query instanceof GetSourceDatasetColumns) {
+			executeGetSourceDatasetColumns(context, (GetSourceDatasetColumns)query);
+		} else if(query instanceof GetDatasetColumns) {
+			executeGetDatasetColumns(context, (GetDatasetColumns)query);
+		} else if(query instanceof GetNextImportJob) {				
+			executeGetNetImportJob();
+		} else if (query instanceof CreateDataset) {
+			executeCreateDataset(context, (CreateDataset)query);
+		} else if(query instanceof GetDatasetInfo) {			
+			executeGetDatasetInfo(context, (GetDatasetInfo)query);
+		} else if (query instanceof UpdateDataset) {						
+			executeUpdatedataset(context, (UpdateDataset)query);
+		} else if (query instanceof DeleteDataset) {
+			executeDeleteDataset(context, (DeleteDataset)query);		
+		} else {
+			throw new IllegalArgumentException("Unknown query");
+		}
+	}
+
+	private void executeDeleteDataset(QueryDSLContext context, DeleteDataset dds) {
+		Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
+				.where(
+					new SQLSubQuery().from(dataset)
+					.where(dataset.identification.eq(dds.getId())
+					.and(dataset.id.eq(datasetColumn.datasetId))).exists())
+				.execute();
+		log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
+		
+		Long nrOfDatasetsDeleted = context.delete(dataset)
+			.where(dataset.identification.eq(dds.getId()))
+			.execute();
+		log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
+		
+		if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
+			context.answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
+		} else {
+			context.answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
+		}
+	}
+
+	private void executeUpdatedataset(QueryDSLContext context, UpdateDataset uds) {
+		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
+		String datasetIdent = uds.getDatasetIdentification();
+		String datasetName = uds.getDatasetName();
+		log.debug("update dataset" + datasetIdent);
+		
+		Integer sourceDatasetId = context.query().from(sourceDataset)
+				.where(sourceDataset.identification.eq(sourceDatasetIdent))
+				.singleResult(sourceDataset.id);
+
+		context.update(dataset)
+			.set(dataset.name, datasetName)
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.where(dataset.identification.eq(datasetIdent))
+			.execute();
 			
-			SQLQuery baseQuery = context.query().from(sourceDataset)
-					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.join (category).on(sourceDataset.categoryId.eq(category.id));
-			
-			if(sourceDatasetId != null) {				
-				baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
-			}
+		Integer datasetId = context.query().from(dataset)
+				.where(dataset.identification.eq(datasetIdent))
+				.singleResult(dataset.id);
+		
+		context.delete(datasetColumn)
+			.where(datasetColumn.datasetId.eq(datasetId))
+			.execute();
+		
+		insertDatasetColumns(context, datasetId, uds.getColumnList());
+		context.answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
+		
+		log.debug("dataset updated");
+	}
+
+	private void executeGetDatasetInfo(QueryDSLContext context,
+			GetDatasetInfo gds) {
+		String datasetIdent = gds.getId();
+		log.debug("get dataset " + datasetIdent);
+		
+		context.answer(
+				context.query().from(dataset)
+				.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+				.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
+				.where(dataset.identification.eq( datasetIdent ))
+				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
+						sourceDataset.identification, sourceDataset.name,
+						category.identification,category.name)));
+	}
+
+	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
+		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
+		String datasetIdent = cds.getDatasetIdentification();
+		String datasetName = cds.getDatasetName();
+		log.debug("create dataset " + datasetIdent);
+
+		Integer sourceDatasetId = context.query().from(sourceDataset)
+				.where(sourceDataset.identification.eq(sourceDatasetIdent))
+				.singleResult(sourceDataset.id);
+			if(sourceDatasetId == null) {
+				log.error("sourceDataset not found: " + sourceDatasetIdent);
+				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+			} else {
+				context.insert(dataset)
+					.set(dataset.identification, datasetIdent)
+					.set(dataset.name, datasetName)
+					.set(dataset.sourceDatasetId, sourceDatasetId)
+					.execute();
 				
-			SQLQuery listQuery = baseQuery.clone()					
-					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+				Integer datasetId = context.query().from(dataset)
+					.where(dataset.identification.eq(datasetIdent))
+					.singleResult(dataset.id);
+				
+				insertDatasetColumns(context, datasetId, cds.getColumnList());					
+				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
+				
+				log.debug("dataset inserted");
+			}
+	}
+
+	private void executeGetNetImportJob() {	
+		
+	}
+
+	private void executeGetDatasetColumns(QueryDSLContext context, GetDatasetColumns dc) {		
+		log.debug("get columns for dataset: " + dc.getDatasetId());
+		
+		context.answer(
+			context.query().from(datasetColumn)
+			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+			.where(dataset.identification.eq(dc.getDatasetId()))
+			.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
+	}
+
+	private void executeGetSourceDatasetColumns(QueryDSLContext context, GetSourceDatasetColumns sdc) {
+		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
+
+		context.answer(
+			context.query().from(sourceDatasetColumn)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetColumn.sourceDatasetId))
+			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+			.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
+				.and(dataSource.identification.eq(sdc.getDataSourceId())))
+			.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
+	}
+
+	private void executeGetNextHarvestJob() {
+		
+	}
+
+	private void executeGetHarvestLog(GetHarvestLog query) {
+		
+	}
+
+	private void executeStoreLog(StoreLog query) {
+		log.debug("storing log line: " + query);
+		
+		JobLog jobLog = query.getJobLog();
+		
+		if(jobLog instanceof HarvestJobLog) {
+			String dataSourceId = ((HarvestJobLog) jobLog).getDataSourceId();
 			
-			context.answer(
+			
+		} else if(jobLog instanceof ImportJobLog) {
+			String datasetId = ((ImportJobLog) jobLog).getDatasetId();
+			
+			
+		} else {
+			log.error("unknown job log type");
+		}
+	}
+
+	private void executeGetSourceDatasetListInfo(QueryDSLContext context,
+			GetSourceDatasetListInfo sdi) {
+		log.debug(sdi.toString());
+		
+		String categoryId = sdi.getCategoryId();
+		String dataSourceId = sdi.getDataSourceId();
+		String searchStr = sdi.getSearchString();
+		
+		SQLQuery baseQuery = context.query().from(sourceDataset)
+				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.join (category).on(sourceDataset.categoryId.eq(category.id));
+		
+		if(categoryId != null) {				
+			baseQuery.where(category.identification.eq(categoryId));
+		}
+		
+		if(dataSourceId != null) {				
+			baseQuery.where(dataSource.identification.eq(dataSourceId));
+		}
+		
+		if (!(searchStr == null || searchStr.isEmpty())){
+			baseQuery.where(sourceDataset.name.containsIgnoreCase(searchStr)); 				
+		}
+			
+		SQLQuery listQuery = baseQuery.clone()					
+				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+		
+		applyListParams(listQuery, sdi, sourceDataset.name);
+		
+		context.answer(
+			new InfoList<SourceDatasetInfo>(			
 				listQuery					
 					.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)						
-					.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
 							dataSource.identification, dataSource.name,
 							category.identification,category.name,
-							dataset.count())
-				)
-			);
-			
-		} else if(query instanceof GetSourceDatasetListInfo) {
-			GetSourceDatasetListInfo sdi = (GetSourceDatasetListInfo)query;
-			log.debug(sdi.toString());
-			
-			String categoryId = sdi.getCategoryId();
-			String dataSourceId = sdi.getDataSourceId();
-			String searchStr = sdi.getSearchString();
-			
-			SQLQuery baseQuery = context.query().from(sourceDataset)
-					.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.join (category).on(sourceDataset.categoryId.eq(category.id));
-			
-			if(categoryId != null) {				
-				baseQuery.where(category.identification.eq(categoryId));
-			}
-			
-			if(dataSourceId != null) {				
-				baseQuery.where(dataSource.identification.eq(dataSourceId));
-			}
-			
-			if (!(searchStr == null || searchStr.isEmpty())){
-				baseQuery.where(sourceDataset.name.containsIgnoreCase(searchStr)); 				
-			}
-				
-			SQLQuery listQuery = baseQuery.clone()					
-					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
-			
-			applyListParams(listQuery, sdi, sourceDataset.name);
-			
-			context.answer(
-				new InfoList<SourceDatasetInfo>(			
-					listQuery					
-						.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
-						.groupBy(dataSource.identification).groupBy(dataSource.name)
-						.groupBy(category.identification).groupBy(category.name)						
-						.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
-								dataSource.identification, dataSource.name,
-								category.identification,category.name,
-								dataset.count())),
-								
-					baseQuery.count()
-				)
-			);
-			
-		} else if (query instanceof StoreLog) {
-			log.debug("storing log line: " + query);
-			
-			JobLog jobLog = ((StoreLog) query).getJobLog();
-			
-			if(jobLog instanceof HarvestJobLog) {
-				String dataSourceId = ((HarvestJobLog) jobLog).getDataSourceId();
-				
-				
-			} else if(jobLog instanceof ImportJobLog) {
-				String datasetId = ((ImportJobLog) jobLog).getDatasetId();
-				
-				
-			} else {
-				log.error("unknown job log type");
-			}
-		} else if(query instanceof GetHarvestLog) {
-			GetHarvestLog ghl = (GetHarvestLog)query;
-			
-			
-		} else if (query instanceof GetNextHarvestJob){
-			
-		} else if(query instanceof GetSourceDatasetColumns) {
-			GetSourceDatasetColumns sdc = (GetSourceDatasetColumns)query;
-			log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
+							dataset.count())),
+							
+				baseQuery.count()
+			)
+		);
+	}
 
-			context.answer(
-				context.query().from(sourceDatasetColumn)
-				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetColumn.sourceDatasetId))
-				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
-					.and(dataSource.identification.eq(sdc.getDataSourceId())))
-				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
-		} else if(query instanceof GetDatasetColumns) {
-			GetDatasetColumns dc = (GetDatasetColumns)query;
-			log.debug("get columns for dataset: " + dc.getDatasetId());
-			
-			context.answer(
-				context.query().from(datasetColumn)
-				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-				.where(dataset.identification.eq(dc.getDatasetId()))
-				.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
-		} else if(query instanceof GetNextImportJob) {
-				
-		//	
-		// CRUD Dataset
-		//
-		} else if (query instanceof CreateDataset) {
-			CreateDataset cds = (CreateDataset)query;		
-			
-			String sourceDatasetIdent = cds.getSourceDatasetIdentification();
-			String datasetIdent = cds.getDatasetIdentification();
-			String datasetName = cds.getDatasetName();
-			log.debug("create dataset " + datasetIdent);
-
-			Integer sourceDatasetId = context.query().from(sourceDataset)
-					.where(sourceDataset.identification.eq(sourceDatasetIdent))
-					.singleResult(sourceDataset.id);
-				if(sourceDatasetId == null) {
-					log.error("sourceDataset not found: " + sourceDatasetIdent);
-					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
-				} else {
-					context.insert(dataset)
-						.set(dataset.identification, datasetIdent)
-						.set(dataset.name, datasetName)
-						.set(dataset.sourceDatasetId, sourceDatasetId)
-						.execute();
-					
-					Integer datasetId = context.query().from(dataset)
-						.where(dataset.identification.eq(datasetIdent))
-						.singleResult(dataset.id);
-					
-					insertDatasetColumns(context, datasetId, cds.getColumnList());					
-					context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
-					
-					log.debug("dataset inserted");
-				}
-		} else if(query instanceof GetDatasetInfo) {
-			GetDatasetInfo gds = (GetDatasetInfo) query;
-			String datasetIdent = gds.getId();
-			log.debug("get dataset " + datasetIdent);
-			
-			context.answer(
-					context.query().from(dataset)
-					.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
-					.where(dataset.identification.eq( datasetIdent ))
-					.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
-							sourceDataset.identification, sourceDataset.name,
-							category.identification,category.name)));
-		} else if (query instanceof UpdateDataset) {
-			UpdateDataset uds = (UpdateDataset)query;			
-			String sourceDatasetIdent = uds.getSourceDatasetIdentification();
-			String datasetIdent = uds.getDatasetIdentification();
-			String datasetName = uds.getDatasetName();
-			log.debug("update dataset" + datasetIdent);
-			
-			Integer sourceDatasetId = context.query().from(sourceDataset)
-					.where(sourceDataset.identification.eq(sourceDatasetIdent))
-					.singleResult(sourceDataset.id);
-
-			context.update(dataset)
-				.set(dataset.name, datasetName)
-				.set(dataset.sourceDatasetId, sourceDatasetId)
-				.where(dataset.identification.eq(datasetIdent))
-				.execute();
-				
-			Integer datasetId = context.query().from(dataset)
-					.where(dataset.identification.eq(datasetIdent))
-					.singleResult(dataset.id);
-			
-			context.delete(datasetColumn)
-				.where(datasetColumn.datasetId.eq(datasetId))
-				.execute();
-			
-			insertDatasetColumns(context, datasetId, uds.getColumnList());
-			context.answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
-			
-			log.debug("dataset updated");
-		} else if (query instanceof DeleteDataset) {
-			DeleteDataset dds = (DeleteDataset)query;			
-			
-			Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
-					.where(
-						new SQLSubQuery().from(dataset)
-						.where(dataset.identification.eq(dds.getId())
-						.and(dataset.id.eq(datasetColumn.datasetId))).exists())
-					.execute();
-			log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
-			
-			Long nrOfDatasetsDeleted = context.delete(dataset)
-				.where(dataset.identification.eq(dds.getId()))
-				.execute();
-			log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
-			
-			if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
-				context.answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
-			} else {
-				context.answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
-			}		
-		} else {
-			throw new IllegalArgumentException("Unknown query");
+	private void executeGetSourceDatasetInfo(QueryDSLContext context,
+			GetSourceDatasetInfo sdi) {
+		log.debug(sdi.toString());
+		String sourceDatasetId = sdi.getId();
+		
+		SQLQuery baseQuery = context.query().from(sourceDataset)
+				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.join (category).on(sourceDataset.categoryId.eq(category.id));
+		
+		if(sourceDatasetId != null) {				
+			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
 		}
+			
+		SQLQuery listQuery = baseQuery.clone()					
+				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+		
+		context.answer(
+			listQuery					
+				.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+				.groupBy(dataSource.identification).groupBy(dataSource.name)
+				.groupBy(category.identification).groupBy(category.name)						
+				.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+						dataSource.identification, dataSource.name,
+						category.identification,category.name,
+						dataset.count())
+			)
+		);
+	}
+
+	private void executeGetDataSourceInfo(QueryDSLContext context) {
+		context.answer(
+			context.query().from(dataSource)
+				.orderBy(dataSource.identification.asc())
+				.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
+	}
+
+	private void executeGetDatasetListInfo(QueryDSLContext context, GetDatasetListInfo dli) {
+		String categoryId = dli.getCategoryId();
+		
+		SQLQuery baseQuery = context.query().from(dataset)
+			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.leftJoin (category).on(sourceDataset.categoryId.eq(category.id));
+		
+		if(categoryId != null) {
+			baseQuery.where(category.identification.eq(categoryId));
+		}
+		
+		context.answer(
+				baseQuery
+				.orderBy(dataset.identification.asc())
+				.list(new QDatasetInfo(dataset.identification, dataset.name, 
+						sourceDataset.identification, sourceDataset.name,
+						category.identification,category.name))
+		);
+	}
+
+	private void executeGetCategoryInfo(QueryDSLContext context, GetCategoryInfo query) {
+		context.answer(
+				context.query().from(category)
+				.where(category.identification.eq(query.getId()))
+				.singleResult(new QCategoryInfo(category.identification,category.name)));
+	}
+
+	private void executeGetCategoryListInfo(QueryDSLContext context) {
+		context.answer(
+				context.query().from(category)
+				.orderBy(category.identification.asc())
+				.list(new QCategoryInfo(category.identification,category.name)));
+	}
+
+	private void executeRegisterSourceDataset(QueryDSLContext context, RegisterSourceDataset rsd) {
+		log.debug("registering source dataset: " + rsd);
+		
+		Dataset dataset = rsd.getDataset();
+		Table table = dataset.getTable();
+		
+		Tuple existing = 
+			context.query().from(sourceDataset)
+				.join(dataSource)
+					.on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.join(category)
+					.on(category.id.eq(sourceDataset.categoryId))
+				.where(sourceDataset.identification.eq(dataset.getId())
+					.and(dataSource.identification.eq(rsd.getDataSource())))
+				.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime);
+		
+		if(existing != null) {
+			Integer id = existing.get(sourceDataset.id);
+			String existingName = existing.get(sourceDataset.name);
+			String existingCategoryId = existing.get(category.identification);
+			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
+			
+			List<Column> existingColumns = context.query().from(sourceDatasetColumn)
+				.where(sourceDatasetColumn.sourceDatasetId.eq(id))
+				.orderBy(sourceDatasetColumn.index.asc())
+				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType));
+			
+			if(existingName.equals(table.getName())
+					&& existingCategoryId.equals(dataset.getCategoryId())
+					&& existingDeleteTime == null
+					&& existingColumns.equals(table.getColumns())) {
+				context.answer(new AlreadyRegistered());
+				log.debug("dataset already registered");
+			} else {
+				context.update(sourceDataset)
+					.set(sourceDataset.name, table.getName())
+					.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
+					.setNull(sourceDataset.deleteTime)						
+					.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
+					.where(sourceDataset.id.eq(id))
+					.execute();
+				
+				context.delete(sourceDatasetColumn)
+					.where(sourceDatasetColumn.sourceDatasetId.eq(id))
+					.execute();
+				
+				insertSourceDatasetColumns(context, id, table.getColumns());
+				context.answer(new Registered());
+				
+				log.debug("dataSource updated");
+			}
+		} else {
+			Integer dataSourceId = context.query().from(dataSource)
+				.where(dataSource.identification.eq(rsd.getDataSource()))
+				.singleResult(dataSource.id);
+			
+			if(dataSourceId == null) {
+				log.error("dataSource not found: " + dataSourceId);
+			} else {
+				context.insert(sourceDataset)
+					.set(sourceDataset.dataSourceId, dataSourceId)
+					.set(sourceDataset.identification, dataset.getId())
+					.set(sourceDataset.name, table.getName())
+					.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
+					.execute();
+				
+				Integer id = context.query().from(sourceDataset)
+					.where(sourceDataset.dataSourceId.eq(dataSourceId)
+						.and(sourceDataset.identification.eq(dataset.getId())))
+					.singleResult(sourceDataset.id);
+				
+				insertSourceDatasetColumns(context, id, table.getColumns());					
+				context.answer(new Registered());
+				
+				log.debug("dataSource inserted");
+			}
+		}
+	}
+
+	private void executeGetVersion(QueryDSLContext context) {
+		log.debug("database version requested");
+		
+		context.answer(
+			context.query().from(version)
+				.orderBy(version.id.desc())
+				.limit(1)
+				.singleResult(new QVersion(version.id, version.createTime)));
 	}
 }
