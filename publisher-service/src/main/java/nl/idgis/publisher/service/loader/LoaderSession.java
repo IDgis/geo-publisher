@@ -11,9 +11,8 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.domain.job.GenericJobLogType;
-import nl.idgis.publisher.domain.job.ImportJobLog;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -156,8 +155,7 @@ public class LoaderSession extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("transaction committed");
 					
-					ImportJobLog logLine = new ImportJobLog(GenericJobLogType.FINISHED, importJob.getDatasetId());
-					Patterns.ask(database, new StoreLog(logLine), 15000)
+					Patterns.ask(database, new UpdateJobState(importJob, JobState.SUCCEEDED), 15000)
 						.onSuccess(new OnSuccess<Object>() {
 
 							@Override

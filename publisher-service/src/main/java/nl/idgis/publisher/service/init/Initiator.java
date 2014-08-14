@@ -1,14 +1,15 @@
 package nl.idgis.publisher.service.init;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-import nl.idgis.publisher.database.messages.GetNextHarvestJob;
-import nl.idgis.publisher.database.messages.GetNextImportJob;
+
+import nl.idgis.publisher.database.messages.GetHarvestJobs;
+import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.HarvestJob;
-import nl.idgis.publisher.database.messages.NoJob;
-import nl.idgis.publisher.harvester.messages.Harvest;
+import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.service.init.messages.Initiate;
 
 import akka.actor.ActorRef;
@@ -46,32 +47,32 @@ public class Initiator extends UntypedActor {
 		if(msg instanceof Initiate) {
 			log.debug("initiating actions");
 			
-			Patterns.ask(database, new GetNextHarvestJob(), 15000)
+			Patterns.ask(database, new GetHarvestJobs(), 15000)
 				.onSuccess(new OnSuccess<Object>() {
-
+					
 					@Override
+					@SuppressWarnings("unchecked")
 					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof NoJob) {
-							log.debug("no harvest job pending");
-						} else {						
-							log.debug("harvest job received");
+						List<HarvestJob> harvestJobs = (List<HarvestJob>) msg;
+						
+						for(HarvestJob harvestJob : harvestJobs) {						
+							log.debug("harvest job received");							
 							
-							HarvestJob harvestJob = (HarvestJob)msg;
-							harvester.tell(new Harvest(harvestJob.getDataSourceId()), getSelf());
+							harvester.tell(harvestJob, getSelf());							
 						}
 					}					
 				}, getContext().dispatcher());
 			
-			Patterns.ask(database, new GetNextImportJob(), 15000)
+			Patterns.ask(database, new GetImportJobs(), 15000)
 				.onSuccess(new OnSuccess<Object>() {
-
+					
 					@Override
+					@SuppressWarnings("unchecked")
 					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof NoJob) {
-							log.debug("no import job pending");
-						} else {						
-							log.debug("import job received");
-							loader.tell(msg, getSelf());
+						List<ImportJob> importJobs = (List<ImportJob>) msg;
+						
+						for(ImportJob importJob : importJobs) {
+							loader.tell(importJob, getSelf());
 						}
 					}
 				}, getContext().dispatcher());			

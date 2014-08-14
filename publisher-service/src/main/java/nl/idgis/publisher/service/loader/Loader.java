@@ -8,10 +8,9 @@ import java.util.Map;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.domain.job.GenericJobLogType;
-import nl.idgis.publisher.domain.job.ImportJobLog;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
@@ -19,6 +18,7 @@ import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.loader.messages.SessionFinished;
 import nl.idgis.publisher.service.loader.messages.SessionStarted;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -92,21 +92,17 @@ public class Loader extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					if(msg instanceof NotConnected) {
 						log.warning("not connected: " + dataSourceId);
-						
-						ImportJobLog logLine = new ImportJobLog(GenericJobLogType.FINISHED, importJob.getDatasetId());
-						database.tell(new StoreLog(logLine), getSelf());
 					} else {
 						final ActorRef dataSource = (ActorRef)msg;
 						
 						log.debug("dataSource received");
 						
-						ImportJobLog logLine = new ImportJobLog(GenericJobLogType.STARTED, importJob.getDatasetId());
-						Patterns.ask(database, new StoreLog(logLine), 15000)
+						Patterns.ask(database, new UpdateJobState(importJob, JobState.STARTED), 15000)
 							.onSuccess(new OnSuccess<Object>() {
 
 								@Override
 								public void onSuccess(Object msg) throws Throwable {
-									log.debug("started logline written");
+									log.debug("job started");
 									
 									Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
 									.onSuccess(new OnSuccess<Object>() {
