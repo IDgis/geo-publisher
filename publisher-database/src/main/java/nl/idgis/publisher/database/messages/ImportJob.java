@@ -1,14 +1,13 @@
 package nl.idgis.publisher.database.messages;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class ImportJob implements Serializable {
-	
-	private static final long serialVersionUID = 2713600638521446785L;
+public class ImportJob extends Job {
+		
+	private static final long serialVersionUID = 5587187901535970026L;
 	
 	private final String dataSourceId, sourceDatasetId, datasetId;
 	private final List<Column> columns; 

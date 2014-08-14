@@ -5,6 +5,7 @@ import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
+import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
@@ -19,10 +20,8 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
-import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.ImportLogLine;
+
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
@@ -203,7 +202,7 @@ public class Admin extends UntypedActor {
 		log.debug("requesting to refresh dataset: " + datasetId);
 		
 		final ActorRef sender = getSender(), self = getSelf();
-		Patterns.ask(database, new StoreLog(new ImportLogLine(GenericEvent.REQUESTED, datasetId)), 15000)
+		Patterns.ask(database, new CreateImportJob(datasetId), 15000)
 			.onComplete(new OnComplete<Object>() {
 
 				@Override

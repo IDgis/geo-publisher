@@ -1,12 +1,10 @@
 package nl.idgis.publisher.database.messages;
 
-import java.io.Serializable;
-
 import com.mysema.query.annotations.QueryProjection;
 
-public class HarvestJob implements Serializable {
+public class HarvestJob extends Job {
 
-	private static final long serialVersionUID = -7943073067715468133L;
+	private static final long serialVersionUID = -723392023585391066L;
 	
 	private final String dataSourceId;
 	

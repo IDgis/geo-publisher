@@ -1,12 +1,11 @@
 package nl.idgis.publisher.harvester;
 
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.HarvestLogLine;
+import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.messages.Harvest;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
@@ -78,23 +77,17 @@ public class Harvester extends UntypedActor {
 			if(dataSourceName != null) {
 				log.debug("Connection lost, dataSource: " + dataSourceName);
 			}
-		} else if (msg instanceof Harvest) {
-			String dataSourceId = ((Harvest) msg).getDataSourceId();
+		} else if (msg instanceof HarvestJob) {
+			HarvestJob harvestJob = (HarvestJob)msg;
 			
-			if(dataSourceId == null) {
-				log.debug("Initializing harvesting for all dataSources");
-				for(String currentDataSourceId : dataSources.keySet()) {
-					startHarvesting(currentDataSourceId);
-				}
+			String dataSourceId = harvestJob.getDataSourceId();
+			if(dataSources.containsKey(dataSourceId)) {
+				log.debug("Initializing harvesting for dataSource: " + dataSourceId);
+				
+				startHarvesting(harvestJob);
 			} else {
-				if(dataSources.containsKey(dataSourceId)) {
-					log.debug("Initializing harvesting for dataSource: " + dataSourceId);
-					
-					startHarvesting(dataSourceId);
-				} else {
-					log.debug("dataSource not connected: " + dataSourceId);
-				}
-			}
+				log.debug("dataSource not connected: " + dataSourceId);
+			}			
 		} else if(msg instanceof GetActiveDataSources) {
 			log.debug("connected datasources requested");
 			getSender().tell(dataSources.keySet(), getSelf());
@@ -113,17 +106,16 @@ public class Harvester extends UntypedActor {
 		}
 	}
 
-	private void startHarvesting(final String dataSourceId) {
-		HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, dataSourceId);
-		Patterns.ask(database, new StoreLog(logLine), 150000)
+	private void startHarvesting(final HarvestJob harvestJob) {		
+		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.STARTED), 150000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
-					log.debug("starting harvesting for dataSource: " + dataSourceId);
+					log.debug("starting harvesting for dataSource: " + harvestJob);
 					
-					ActorRef session = getContext().actorOf(HarvestSession.props(database, dataSourceId));
-					dataSources.get(dataSourceId).tell(new GetDatasets(), session);
+					ActorRef session = getContext().actorOf(HarvestSession.props(database, harvestJob));
+					dataSources.get(harvestJob.getDataSourceId()).tell(new GetDatasets(), session);
 				}
 			}, getContext().dispatcher());
 	}
