@@ -3,7 +3,7 @@ package nl.idgis.publisher.xml.messages;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-public class GetString extends Query {
+public class GetString extends Query<String> {
 	
 	private static final long serialVersionUID = 1391913298495107583L;
 	

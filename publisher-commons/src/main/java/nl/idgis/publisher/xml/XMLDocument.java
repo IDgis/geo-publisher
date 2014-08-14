@@ -46,7 +46,7 @@ public class XMLDocument extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Query) {
-			handleQuery((Query)msg);
+			handleQuery((Query<?>)msg);
 		} else if(msg instanceof Close) {
 			handleClose((Close)msg);
 		} else {
@@ -61,7 +61,7 @@ public class XMLDocument extends UntypedActor {
 		getContext().stop(getSelf());
 	}
 
-	private void handleQuery(final Query msg) throws Exception {
+	private void handleQuery(final Query<?> msg) throws Exception {
 		
 		XPath xpath = xf.newXPath();
 		xpath.setNamespaceContext(new NamespaceContext() {
@@ -90,10 +90,15 @@ public class XMLDocument extends UntypedActor {
 		log.debug("evaluating expression: " + expression);
 		
 		if(msg instanceof GetString) {
-			try {				
-				getSender().tell(xpath.evaluate(expression, document), getSelf());
+			try {
+				String s = xpath.evaluate(expression, document);
+				if(s.isEmpty()) {
+					getSender().tell(new NotFound(expression), getSelf());
+				} else {
+					getSender().tell(s, getSelf());
+				}
 			} catch(Exception e) {
-				getSender().tell(new NotFound(), getSelf());
+				getSender().tell(new NotFound(expression), getSelf());
 			}
 		} else {
 			unhandled(msg);
