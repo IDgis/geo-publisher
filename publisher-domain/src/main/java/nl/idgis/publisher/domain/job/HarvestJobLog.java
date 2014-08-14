@@ -1,13 +1,13 @@
-package nl.idgis.publisher.domain.log;
+package nl.idgis.publisher.domain.job;
 
-public class HarvestLogLine extends LogLine {
+public class HarvestJobLog extends JobLog {
 	
 	private static final long serialVersionUID = 6363380470910198289L;
 	
 	private final String dataSourceId;
 
-	public HarvestLogLine(Enum<?> event, String dataSourceId) {
-		super(event);
+	public HarvestJobLog(JobState state, LogLevel level, Enum<?> type, String dataSourceId) {
+		super(state, level, type);
 		
 		this.dataSourceId = dataSourceId;
 	}

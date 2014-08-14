@@ -1,8 +1,8 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.HarvestLogLine;
+import nl.idgis.publisher.domain.job.GenericJobLogType;
+import nl.idgis.publisher.domain.job.HarvestJobLog;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -114,7 +114,7 @@ public class Harvester extends UntypedActor {
 	}
 
 	private void startHarvesting(final String dataSourceId) {
-		HarvestLogLine logLine = new HarvestLogLine(GenericEvent.STARTED, dataSourceId);
+		HarvestJobLog logLine = new HarvestJobLog(GenericJobLogType.STARTED, dataSourceId);
 		Patterns.ask(database, new StoreLog(logLine), 150000)
 			.onSuccess(new OnSuccess<Object>() {
 

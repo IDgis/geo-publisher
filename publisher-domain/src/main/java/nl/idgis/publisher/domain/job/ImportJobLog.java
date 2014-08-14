@@ -1,13 +1,13 @@
-package nl.idgis.publisher.domain.log;
+package nl.idgis.publisher.domain.job;
 
-public class ImportLogLine extends LogLine {
+public class ImportJobLog extends JobLog {
 	
 	private static final long serialVersionUID = 1631388870231783422L;
 	
 	private final String datasetId;
 	
-	public ImportLogLine(Enum<?> event, String datasetId) {
-		super(event);
+	public ImportJobLog(JobState state, LogLevel level, Enum<?> type, String datasetId) {
+		super(state, level, type);
 		
 		this.datasetId = datasetId;
 	}

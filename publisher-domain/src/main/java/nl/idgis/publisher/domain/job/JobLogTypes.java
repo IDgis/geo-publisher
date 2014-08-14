@@ -1,22 +1,21 @@
-package nl.idgis.publisher.domain.log;
+package nl.idgis.publisher.domain.job;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-public class Events {
+public class JobLogTypes {
 	
 	private final static BiMap<String, Class<? extends Enum<?>>> prefixes = prefixes();
 	
 	private static BiMap<String, Class<? extends Enum<?>>> prefixes() {
-		BiMap<String, Class<? extends Enum<?>>> prefixes = HashBiMap.create();
-		prefixes.put("GENERIC", GenericEvent.class);
-		prefixes.put("HARVEST", HarvestEvent.class);
+		BiMap<String, Class<? extends Enum<?>>> prefixes = HashBiMap.create();		
+		prefixes.put("HARVEST", HarvestJobLogType.class);
 		
 		return prefixes;
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Enum<?> toEvent(String event) {
+	public static Enum<?> toEnum(String event) {
 		String[] parts = event.split("\\.");
 		
 		Class<?> enumClass = prefixes.get(parts[0]);		

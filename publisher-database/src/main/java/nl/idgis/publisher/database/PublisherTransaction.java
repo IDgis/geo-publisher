@@ -7,8 +7,6 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QImportLog.importLog;
-import static nl.idgis.publisher.database.QHarvestLog.harvestLog;
 
 import java.sql.Connection;
 import java.sql.Timestamp;
@@ -26,20 +24,16 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestLog;
 import nl.idgis.publisher.database.messages.GetNextHarvestJob;
 import nl.idgis.publisher.database.messages.GetNextImportJob;
+import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
-import nl.idgis.publisher.database.messages.HarvestJob;
-import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.InfoList;
-import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.ListQuery;
-import nl.idgis.publisher.database.messages.NoJob;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
-import nl.idgis.publisher.database.messages.QStoredHarvestLogLine;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -48,24 +42,22 @@ import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
-import nl.idgis.publisher.domain.log.Events;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.HarvestLogLine;
-import nl.idgis.publisher.domain.log.ImportLogLine;
-import nl.idgis.publisher.domain.log.LogLine;
+import nl.idgis.publisher.domain.job.HarvestJobLog;
+import nl.idgis.publisher.domain.job.ImportJobLog;
+import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.ComparableExpressionBase;
 import com.mysema.query.types.expr.DateTimeExpression;
@@ -343,84 +335,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else if (query instanceof StoreLog) {
 			log.debug("storing log line: " + query);
 			
-			LogLine logLine = ((StoreLog) query).getLogLine();
+			JobLog jobLog = ((StoreLog) query).getJobLog();
 			
-			if(logLine instanceof HarvestLogLine) {
-				String dataSourceId = ((HarvestLogLine) logLine).getDataSourceId();
+			if(jobLog instanceof HarvestJobLog) {
+				String dataSourceId = ((HarvestJobLog) jobLog).getDataSourceId();
 				
-				if(context.insert(harvestLog)
-					.columns(harvestLog.datasourceId, harvestLog.event)
-					.select(new SQLSubQuery().from(dataSource)							
-							.where(dataSource.identification.eq(dataSourceId))
-							.list(dataSource.id, Expressions.constant(Events.toString(logLine.getEvent()))))					
-					.execute() == 0) {
-					log.error("couldn't store log line");
-				} else {
-					log.debug("log line stored");
-					context.ack();
-				}
-			} else if(logLine instanceof ImportLogLine) {
-				String datasetId = ((ImportLogLine) logLine).getDatasetId();
 				
-				if(context.insert(importLog)
-					.columns(importLog.datasetId, importLog.event)
-					.select(new SQLSubQuery().from(dataset)							
-							.where(dataset.identification.eq(datasetId))
-							.list(dataset.id, Expressions.constant(Events.toString(logLine.getEvent()))))					
-					.execute() == 0) {
-					log.error("couldn't store log line");
-				} else {
-					log.debug("log line stored");
-					context.ack();
-				}
+			} else if(jobLog instanceof ImportJobLog) {
+				String datasetId = ((ImportJobLog) jobLog).getDatasetId();
+				
+				
 			} else {
-				log.error("unknown log line type");
+				log.error("unknown job log type");
 			}
 		} else if(query instanceof GetHarvestLog) {
 			GetHarvestLog ghl = (GetHarvestLog)query;
 			
-			String dataSourceId = ghl.getDataSourceId();
 			
-			
-			SQLQuery baseQuery = context.query().from(harvestLog)
-				.join(dataSource)
-					.on(dataSource.id.eq(harvestLog.datasourceId));
-			
-			if(dataSourceId != null) {
-				baseQuery = baseQuery.where(dataSource.identification.eq(dataSourceId));
-			}
-			
-			baseQuery = applyListParams(baseQuery, ghl, harvestLog.createTime);
-				
-			context.answer(
-					baseQuery.list(new QStoredHarvestLogLine(
-						harvestLog.event,
-						dataSource.identification, 
-						harvestLog.createTime)));
 		} else if (query instanceof GetNextHarvestJob){
-			QHarvestLog harvestLogSub = new QHarvestLog("subHarvestLog");
 			
-			String dataSourceName = 
-				context.query().from(harvestLog)
-					.join(dataSource)
-						.on(dataSource.id.eq(harvestLog.datasourceId))
-					.orderBy(harvestLog.createTime.asc())
-					.where(
-						harvestLog.event.eq(Events.toString(GenericEvent.REQUESTED))
-						.and(new SQLSubQuery().from(harvestLogSub)
-								.where(
-									harvestLogSub.datasourceId.eq(harvestLog.datasourceId)
-									.and(harvestLogSub.createTime.after(harvestLog.createTime))
-									.and(harvestLogSub.event.eq(Events.toString(GenericEvent.STARTED))))										
-								.notExists()))
-					.limit(1)
-					.singleResult(dataSource.identification);
-			
-			if(dataSourceName == null) {
-				context.answer(new NoJob());
-			} else {
-				context.answer(new HarvestJob(dataSourceName)); 
-			}
 		} else if(query instanceof GetSourceDatasetColumns) {
 			GetSourceDatasetColumns sdc = (GetSourceDatasetColumns)query;
 			log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
@@ -442,41 +375,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(dataset.identification.eq(dc.getDatasetId()))
 				.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
 		} else if(query instanceof GetNextImportJob) {
-			QImportLog importLogSub = new QImportLog("importLogSub");
-			
-			Tuple t = context.query().from(importLog)
-				.join(dataset)
-					.on(dataset.id.eq(importLog.datasetId))
-				.join(sourceDataset)
-					.on(sourceDataset.id.eq(dataset.sourceDatasetId))
-				.join(dataSource)
-					.on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.where(
-						importLog.event.eq(Events.toString(GenericEvent.REQUESTED))
-						.and(new SQLSubQuery().from(importLogSub)
-								.where(
-									importLogSub.datasetId.eq(importLog.datasetId)
-									.and(importLogSub.createTime.after(importLog.createTime))
-									.and(importLogSub.event.eq(Events.toString(GenericEvent.STARTED))))										
-								.notExists()))
-				.singleResult(					
-					dataset.id,
-					dataSource.identification, 
-					sourceDataset.identification, 
-					dataset.identification);
-			
-			if(t == null) {
-				context.answer(new NoJob());
-			} else {
-				List<Column> columns = context.query().from(datasetColumn)	
-					.where(datasetColumn.datasetId.eq(t.get(dataset.id)))
-					.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
 				
-				context.answer(new ImportJob(					
-					t.get(dataSource.identification), 
-					t.get(sourceDataset.identification), 
-					t.get(dataset.identification), columns));
-			}		
 		//	
 		// CRUD Dataset
 		//

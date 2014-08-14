@@ -1,23 +1,23 @@
 package nl.idgis.publisher.database.messages;
 
-import nl.idgis.publisher.domain.log.LogLine;
+import nl.idgis.publisher.domain.job.JobLog;
 
 public class StoreLog extends Query {
 
 	private static final long serialVersionUID = 7563644866851810078L;
 	
-	private final LogLine logLine;
+	private final JobLog jobLog;
 	
-	public StoreLog(LogLine logLine) {
-		this.logLine = logLine;
+	public StoreLog(JobLog jobLog) {
+		this.jobLog = jobLog;
 	}
 	
-	public LogLine getLogLine() {
-		return logLine;
+	public JobLog getJobLog() {
+		return jobLog;
 	}
 
 	@Override
 	public String toString() {
-		return "StoreLog [logLine=" + logLine + "]";
+		return "StoreLog [jobLog=" + jobLog + "]";
 	}
 }

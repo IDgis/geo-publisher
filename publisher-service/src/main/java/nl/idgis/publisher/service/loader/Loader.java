@@ -10,8 +10,8 @@ import nl.idgis.publisher.database.messages.ImportJob;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.ImportLogLine;
+import nl.idgis.publisher.domain.job.GenericJobLogType;
+import nl.idgis.publisher.domain.job.ImportJobLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
@@ -93,14 +93,14 @@ public class Loader extends UntypedActor {
 					if(msg instanceof NotConnected) {
 						log.warning("not connected: " + dataSourceId);
 						
-						ImportLogLine logLine = new ImportLogLine(GenericEvent.FINISHED, importJob.getDatasetId());
+						ImportJobLog logLine = new ImportJobLog(GenericJobLogType.FINISHED, importJob.getDatasetId());
 						database.tell(new StoreLog(logLine), getSelf());
 					} else {
 						final ActorRef dataSource = (ActorRef)msg;
 						
 						log.debug("dataSource received");
 						
-						ImportLogLine logLine = new ImportLogLine(GenericEvent.STARTED, importJob.getDatasetId());
+						ImportJobLog logLine = new ImportJobLog(GenericJobLogType.STARTED, importJob.getDatasetId());
 						Patterns.ask(database, new StoreLog(logLine), 15000)
 							.onSuccess(new OnSuccess<Object>() {
 

@@ -3,9 +3,9 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.domain.log.GenericEvent;
-import nl.idgis.publisher.domain.log.HarvestEvent;
-import nl.idgis.publisher.domain.log.HarvestLogLine;
+import nl.idgis.publisher.domain.job.GenericJobLogType;
+import nl.idgis.publisher.domain.job.HarvestJobLogType;
+import nl.idgis.publisher.domain.job.HarvestJobLog;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -51,8 +51,8 @@ public class HarvestSession extends UntypedActor {
 						} else {						
 							log.debug("dataset registered");
 							
-							HarvestLogLine logLine = new HarvestLogLine(
-									HarvestEvent.SOURCE_DATASET_REGISTERED, 
+							HarvestJobLog logLine = new HarvestJobLog(
+									HarvestJobLogType.SOURCE_DATASET_REGISTERED, 
 									dataSourceId);
 							
 							Patterns.ask(database, new StoreLog(logLine), 15000)
@@ -73,7 +73,7 @@ public class HarvestSession extends UntypedActor {
 			log.debug("harvesting finished");
 			
 			final ActorRef self = getSelf();
-			HarvestLogLine logLine = new HarvestLogLine(GenericEvent.FINISHED, dataSourceId);
+			HarvestJobLog logLine = new HarvestJobLog(GenericJobLogType.FINISHED, dataSourceId);
 			Patterns.ask(database, new StoreLog(logLine), 150000)
 				.onSuccess(new OnSuccess<Object>() {
 
