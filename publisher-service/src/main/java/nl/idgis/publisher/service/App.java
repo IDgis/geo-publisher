@@ -1,6 +1,9 @@
 package nl.idgis.publisher.service;
 
+import java.util.concurrent.TimeUnit;
+
 import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
@@ -10,8 +13,10 @@ import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
 import nl.idgis.publisher.service.init.Initiator;
 import nl.idgis.publisher.service.loader.Loader;
+import nl.idgis.publisher.service.messages.GetActiveJobs;
 import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnSuccess;
@@ -64,12 +69,33 @@ public class App extends UntypedActor {
 			}
 			
 		}, getContext().dispatcher());
+		
+		if(log.isDebugEnabled()) {
+			ActorSystem system = getContext().system();
+			system.scheduler().schedule(
+					Duration.Zero(), 
+					Duration.create(5, TimeUnit.SECONDS), 
+					getSelf(), 
+					new GetActiveJobs(), 
+					getContext().dispatcher(), 
+					getSelf());
+		}
 	}
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Tree) {
 			log.debug(msg.toString());
+		} else if(msg instanceof GetActiveJobs) {
+			Patterns.ask(loader, msg, 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						log.debug("active loader tasks: " + msg);
+					}
+					
+				}, getContext().dispatcher());
 		} else {
 			unhandled(msg);
 		}
