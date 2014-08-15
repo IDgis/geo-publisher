@@ -82,6 +82,8 @@ public class Loader extends UntypedActor {
 							final ImportJob importJob = entry.getKey();
 							final ActorRef session = entry.getValue();
 							
+							log.debug("requesting progress, job: " + importJob + " session: " + session);
+							
 							return Patterns.ask(session, new GetProgress(), 15000)
 								.map(new Mapper<Object, ActiveJob>() {
 	
@@ -123,7 +125,7 @@ public class Loader extends UntypedActor {
 	private void handleSessionStarted(SessionStarted msg) {
 		log.debug("data import session started: " + msg);
 		
-		sessions.put(msg.getImportJob(), getSender());
+		sessions.put(msg.getImportJob(), msg.getSession());
 		
 		getSender().tell(new Ack(), getSelf());
 	}

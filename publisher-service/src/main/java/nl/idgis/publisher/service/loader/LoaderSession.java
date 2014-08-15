@@ -61,7 +61,7 @@ public class LoaderSession extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		Patterns.ask(loader, new SessionStarted(importJob), 15000)
+		Patterns.ask(loader, new SessionStarted(importJob, getSelf()), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
