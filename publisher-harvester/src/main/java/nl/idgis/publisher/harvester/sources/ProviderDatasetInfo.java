@@ -141,25 +141,33 @@ public class ProviderDatasetInfo extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataItem) {
-			log.debug("metadata item received");
-			
-			final MetadataItem metadataItem = (MetadataItem)msg;
-			
-			Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
-				.onSuccess(processDocument(getSender(), metadataItem), 
-					getContext().dispatcher());		
-			
+			handleMetadataItem((MetadataItem)msg);
 		} else if(msg instanceof End) {	
-			log.debug("dataset retrieval completed");
-			
-			finish();
+			handleEnd();
 		} else if(msg instanceof Failure) {
-			log.error(msg.toString());
-			
-			finish();
+			handleFailure(msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleFailure(Object msg) {
+		log.error(msg.toString());
+		
+		finish();
+	}
+
+	private void handleEnd() {
+		log.debug("dataset retrieval completed");
+		
+		finish();
+	}
+
+	private void handleMetadataItem(MetadataItem metadataItem) {
+		log.debug("metadata item received");
+		
+		Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
+			.onSuccess(processDocument(getSender(), metadataItem), getContext().dispatcher());
 	}
 	
 	private void finish() {
