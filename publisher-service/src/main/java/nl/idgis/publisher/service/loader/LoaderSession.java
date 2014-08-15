@@ -141,7 +141,7 @@ public class LoaderSession extends UntypedActor {
 	private void handleTimeout(Timeout msg) {
 		log.debug("timeout while executing job: " + importJob);
 		
-		finalizeSession();
+		finalizeSession(JobState.ABORTED);
 	}
 
 	private void handleGetProgress(GetProgress msg) {
@@ -160,16 +160,7 @@ public class LoaderSession extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("transaction committed");
 					
-					Patterns.ask(database, new UpdateJobState(importJob, JobState.SUCCEEDED), 15000)
-						.onSuccess(new OnSuccess<Object>() {
-
-							@Override
-							public void onSuccess(Object msg) throws Throwable {
-								log.debug("import finished: " + count);
-								
-								finalizeSession();
-							}					
-						}, getContext().dispatcher());
+					finalizeSession(JobState.SUCCEEDED);
 				}
 				
 			}, getContext().dispatcher());
@@ -185,24 +176,33 @@ public class LoaderSession extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("transaction rolled back");
 					
-					finalizeSession();
+					finalizeSession(JobState.FAILED);
 				}
 				
 			}, getContext().dispatcher());
 	}
 	
-	private void finalizeSession() {
-		Patterns.ask(loader, new SessionFinished(importJob), 15000)
-			.onSuccess(new OnSuccess<Object>() {
+	private void finalizeSession(JobState state) {
+		log.debug("finalizing session: " + state);
+		
+		Patterns.ask(database, new UpdateJobState(importJob, state), 15000)
+		.onSuccess(new OnSuccess<Object>() {
 
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("session finalized");
+			@Override
+			public void onSuccess(Object msg) throws Throwable {
+				Patterns.ask(loader, new SessionFinished(importJob), 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						log.debug("session finalized");
+						
+						getContext().stop(getSelf());
+					}
 					
-					getContext().stop(getSelf());
-				}
-				
-			}, getContext().dispatcher());
+				}, getContext().dispatcher());		
+			}					
+		}, getContext().dispatcher());
 	}
 	
 	private void handleRecords(Records msg) {
