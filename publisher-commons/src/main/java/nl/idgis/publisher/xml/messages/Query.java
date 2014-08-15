@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import com.google.common.collect.BiMap;
 
-public abstract class Query implements Serializable {
+public abstract class Query<T> implements Serializable {
 	
 	private static final long serialVersionUID = -9004333251178891052L;
 	
