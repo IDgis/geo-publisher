@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
+import scala.concurrent.Future;
 
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.ImportJob;
@@ -18,13 +21,21 @@ import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.loader.messages.SessionFinished;
 import nl.idgis.publisher.service.loader.messages.SessionStarted;
+import nl.idgis.publisher.service.messages.ActiveJob;
+import nl.idgis.publisher.service.messages.ActiveJobs;
+import nl.idgis.publisher.service.messages.GetActiveJobs;
+import nl.idgis.publisher.service.messages.GetProgress;
+import nl.idgis.publisher.service.messages.Progress;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
+import akka.dispatch.Mapper;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.pattern.Patterns;
 
 public class Loader extends UntypedActor {
@@ -53,10 +64,46 @@ public class Loader extends UntypedActor {
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);
 		} else if(msg instanceof SessionFinished) {
-			handleSessionFinished((SessionFinished)msg);				
+			handleSessionFinished((SessionFinished)msg);
+		} else if(msg instanceof GetActiveJobs) {
+			handleGetActiveJobs((GetActiveJobs)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetActiveJobs(GetActiveJobs msg) {
+		Patterns.pipe(
+			Futures.traverse(sessions.entrySet(), 
+					new Function<Map.Entry<ImportJob, ActorRef>, Future<ActiveJob>>() {
+	
+						@Override
+						public Future<ActiveJob> apply(Entry<ImportJob, ActorRef> entry) throws Exception {
+							final ImportJob importJob = entry.getKey();
+							final ActorRef session = entry.getValue();
+							
+							return Patterns.ask(session, new GetProgress(), 15000)
+								.map(new Mapper<Object, ActiveJob>() {
+	
+									@Override
+									public ActiveJob apply(Object msg) {
+										Progress progress = (Progress)msg;
+										return new ActiveJob(importJob, progress);
+									}								
+									
+								}, getContext().dispatcher());
+						}
+				
+			}, getContext().dispatcher())
+				.map(new Mapper<Iterable<ActiveJob>, ActiveJobs>() {
+	
+					@Override
+					public ActiveJobs apply(Iterable<ActiveJob> activeJobs) {
+						return new ActiveJobs(activeJobs);
+					}
+					
+				}, getContext().dispatcher()), getContext().dispatcher())
+					.pipeTo(getSender(), getSelf());
 	}
 
 	private void handleSessionFinished(SessionFinished msg) {

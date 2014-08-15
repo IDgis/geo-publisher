@@ -18,11 +18,11 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.Records;
-import nl.idgis.publisher.service.loader.messages.GetProgress;
-import nl.idgis.publisher.service.loader.messages.Progress;
 import nl.idgis.publisher.service.loader.messages.SessionFinished;
 import nl.idgis.publisher.service.loader.messages.SessionStarted;
 import nl.idgis.publisher.service.loader.messages.Timeout;
+import nl.idgis.publisher.service.messages.GetProgress;
+import nl.idgis.publisher.service.messages.Progress;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
