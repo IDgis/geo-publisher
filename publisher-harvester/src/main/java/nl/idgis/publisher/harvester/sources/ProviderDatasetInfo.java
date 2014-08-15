@@ -7,12 +7,20 @@ import java.util.List;
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction3;
 
+import nl.idgis.publisher.domain.job.JobLog;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.harvest.HarvestJobLogType;
+import nl.idgis.publisher.domain.job.harvest.MetadataError;
+import nl.idgis.publisher.domain.job.harvest.MetadataField;
+import nl.idgis.publisher.domain.job.harvest.MetadataParsingError;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
 import nl.idgis.publisher.harvester.metadata.messages.GetRevisionDate;
 import nl.idgis.publisher.harvester.metadata.messages.GetTitle;
+import nl.idgis.publisher.harvester.metadata.messages.MetadataFailure;
+import nl.idgis.publisher.harvester.metadata.messages.NotValid;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -25,6 +33,7 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.WrongResultException;
+import nl.idgis.publisher.xml.messages.NotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -40,16 +49,16 @@ public class ProviderDatasetInfo extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef harvesterSession, harvester, database;
+	private final ActorRef harvesterSession, harvester, providerDatabase;
 	
-	public ProviderDatasetInfo(ActorRef harvesterSession, ActorRef harvester, ActorRef database) {
+	public ProviderDatasetInfo(ActorRef harvesterSession, ActorRef harvester, ActorRef providerDatabase) {
 		this.harvesterSession = harvesterSession;
 		this.harvester = harvester;
-		this.database = database;		
+		this.providerDatabase = providerDatabase;		
 	}
 	
-	public static Props props(ActorRef harvesterSession, ActorRef harvester, ActorRef database) {
-		return Props.create(ProviderDatasetInfo.class, harvesterSession, harvester, database);
+	public static Props props(ActorRef harvesterSession, ActorRef harvester, ActorRef providerDatabase) {
+		return Props.create(ProviderDatasetInfo.class, harvesterSession, harvester, providerDatabase);
 	}
 	
 	private OnSuccess<Object> processDocument(final ActorRef sender, final MetadataItem metadataItem) {
@@ -58,6 +67,8 @@ public class ProviderDatasetInfo extends UntypedActor {
 			@Override
 			public void onSuccess(Object msg) throws Throwable {
 				ActorRef metadataDocument = (ActorRef)msg;
+				
+				final String identification = metadataItem.getIdentification();
 				
 				FutureUtils f = new FutureUtils(getContext().dispatcher());
 				
@@ -73,7 +84,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 							log.debug("metadata alternate title: " + alternateTitle);
 							log.debug("metadata revision date: " + revisionDate);
 							
-							processMetadata(sender, metadataItem.getIdentification(), title, alternateTitle, revisionDate);
+							processMetadata(sender, identification, title, alternateTitle, revisionDate);
 							
 							return null;
 						}						
@@ -87,7 +98,57 @@ public class ProviderDatasetInfo extends UntypedActor {
 							if(t instanceof WrongResultException) {
 								WrongResultException wre = (WrongResultException)t;
 								
-								log.debug("metadata incorrect: " + wre.getContext() + " " + wre.getResult());
+								Object context = wre.getContext();
+								Object result = wre.getResult();
+								
+								log.debug("metadata incorrect: " + context + " " + result);
+								
+								if(result instanceof MetadataFailure) {
+									MetadataFailure failure = (MetadataFailure)result;
+									List<NotValid<?>> notValid = failure.getNotValid();
+									List<NotFound> notFound = failure.getNotFound();
+									
+									MetadataField field = null;
+									if(context instanceof GetTitle) {
+										field = MetadataField.TITLE;
+									} else if(context instanceof GetAlternateTitle) {
+										field = MetadataField.ALTERNATE_TITLE;
+									} else if(context instanceof GetRevisionDate) {
+										field = MetadataField.REVISION_DATE;
+									}
+									
+									if(field != null) {
+										
+										Object value = null;
+										MetadataError error = null;
+										if(notValid.isEmpty()) {
+											if(!notFound.isEmpty()) {
+												error = MetadataError.NOT_FOUND;
+											}
+										} else {
+											error = MetadataError.NOT_VALID;
+											value = notValid.get(0).getValue();
+										}
+										
+										if(error != null) {
+											MetadataParsingError content = new MetadataParsingError(identification, field, error, value);											
+											JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestJobLogType.METADATA_PARSING_ERROR, content);
+											
+											Patterns.ask(harvesterSession, jobLog, 15000)
+												.onSuccess(new OnSuccess<Object>() {
+
+													@Override
+													public void onSuccess(Object msg) throws Throwable {
+														log.debug("metadata parsing error saved");
+													}
+													
+												}, getContext().dispatcher());
+										}
+										
+									}									
+									
+								}
+								
 							} else {							
 								log.error(t, "couldn't parse metadata");
 							}
@@ -115,7 +176,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 				
 				sender.tell(new NextItem(), getSelf());
 			} else {				
-				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
+				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), providerDatabase, new DescribeTable(tableName), 15000);
 				tableDescriptionFuture.onComplete(new OnComplete<Object>() {
 	
 					@Override

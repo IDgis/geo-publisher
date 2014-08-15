@@ -13,7 +13,7 @@ import scala.concurrent.Promise;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-import nl.idgis.publisher.harvester.metadata.messages.Failure;
+import nl.idgis.publisher.harvester.metadata.messages.MetadataFailure;
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
 import nl.idgis.publisher.harvester.metadata.messages.GetRevisionDate;
 import nl.idgis.publisher.harvester.metadata.messages.GetTitle;
@@ -226,7 +226,7 @@ public class MetadataDocument extends UntypedActor {
 						}
 						
 						if(result == null) {
-							Failure failure = new Failure(notValid, notFound);							
+							MetadataFailure failure = new MetadataFailure(notValid, notFound);							
 							log.debug("metadata parsing failed: " + failure);
 							
 							sender.tell(failure, getSelf());

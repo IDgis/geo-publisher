@@ -6,11 +6,11 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 
-import nl.idgis.publisher.domain.job.HarvestJobLogType;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.SourceDatasetRegistration;
+import nl.idgis.publisher.domain.job.harvest.HarvestJobLogType;
+import nl.idgis.publisher.domain.job.harvest.SourceDatasetRegistration;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -45,9 +45,17 @@ public class HarvestSession extends UntypedActor {
 			handleDataset((Dataset)msg);			
 		} else if(msg instanceof Finished) {
 			handleFinished();
+		} else if(msg instanceof JobLog) {
+			handleJobLog((JobLog)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleJobLog(JobLog msg) { 
+		log.debug("saving job log");
+		
+		database.tell(new StoreLog(harvestJob, msg), getSender());
 	}
 
 	private void handleFinished() {

@@ -1,4 +1,4 @@
-package nl.idgis.publisher.domain.job;
+package nl.idgis.publisher.domain.job.harvest;
 
 import java.io.Serializable;
 
