@@ -1,14 +1,17 @@
 package nl.idgis.publisher.harvester.sources;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import scala.concurrent.Future;
+import scala.runtime.AbstractFunction3;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
+import nl.idgis.publisher.harvester.metadata.messages.GetRevisionDate;
 import nl.idgis.publisher.harvester.metadata.messages.GetTitle;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
@@ -20,11 +23,14 @@ import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
+import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.WrongResultException;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
+import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -53,37 +59,50 @@ public class ProviderDatasetInfo extends UntypedActor {
 			public void onSuccess(Object msg) throws Throwable {
 				ActorRef metadataDocument = (ActorRef)msg;
 				
-				Future<Object> title = Patterns.ask(metadataDocument, new GetTitle(), 15000);
-				final Future<Object> alternateTitle = Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000);
+				FutureUtils f = new FutureUtils(getContext().dispatcher());
 				
-				title.onSuccess(new OnSuccess<Object>() {
+				f
+					.collect(f.ask(metadataDocument, new GetTitle(), String.class))
+					.collect(f.ask(metadataDocument, new GetAlternateTitle(), String.class))
+					.collect(f.ask(metadataDocument, new GetRevisionDate(), Date.class))
+					.result(new AbstractFunction3<String, String, Date, Void>() {
 
-					@Override
-					public void onSuccess(Object o) throws Throwable {
-						final String title = (String)o;
+						@Override
+						public Void apply(String title, String alternateTitle, Date revisionDate) {
+							log.debug("metadata title: " + title);
+							log.debug("metadata alternate title: " + alternateTitle);
+							log.debug("metadata revision date: " + revisionDate);
+							
+							processMetadata(sender, metadataItem.getIdentification(), title, alternateTitle, revisionDate);
+							
+							return null;
+						}						
+					})
+					.failure(new OnFailure() {
 						
-						log.debug("metadata title: " + title);
-						
-						alternateTitle.onSuccess(new OnSuccess<Object>() {
+						boolean nextRequested = false;
 
-							@Override
-							public void onSuccess(Object o) throws Throwable {
-								String alternateTitle = (String)o;
+						@Override
+						public void onFailure(Throwable t) throws Throwable {
+							if(t instanceof WrongResultException) {
+								WrongResultException wre = (WrongResultException)t;
 								
-								log.debug("metadata alternate title: " + alternateTitle);
-								
-								processMetadata(sender, metadataItem.getIdentification(), title, alternateTitle);
+								log.debug("metadata incorrect: " + wre.getContext() + " " + wre.getResult());
+							} else {							
+								log.error(t, "couldn't parse metadata");
 							}
 							
-						}, getContext().dispatcher());
-					}
-					
-				}, getContext().dispatcher());
+							if(!nextRequested) {
+								sender.tell(new NextItem(), getSelf());
+								nextRequested = true;
+							}
+						}
+					});
 			}
 		};
 	}
 	
-	private void processMetadata(final ActorRef sender, final String identification, final String title, final String alternateTitle) {
+	private void processMetadata(final ActorRef sender, final String identification, final String title, final String alternateTitle, final Date revisionDate) {
 		final String tableName = ProviderUtils.getTableName(alternateTitle);
 		if(tableName == null) {
 			log.warning("couldn't determine table name: " + alternateTitle);
@@ -120,7 +139,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 								
 								Table table = new Table(title, columns);
 								
-								Patterns.ask(harvesterSession, new Dataset(identification, categoryId, table), 15000)
+								Patterns.ask(harvesterSession, new Dataset(identification, categoryId, table, revisionDate), 15000)
 									.onSuccess(new OnSuccess<Object>() {
 
 										@Override
