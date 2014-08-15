@@ -1,27 +1,27 @@
 package nl.idgis.publisher.domain.job.harvest;
 
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class MetadataParsingError implements Serializable {	
+public class MetadataLog extends HarvestLog {	
 
 	private static final long serialVersionUID = -3158211911240379838L;
 	
-	private final String identification;
 	private final MetadataField field;
-	private final MetadataError error;
+	private final MetadataLogType error;
 	private final Object value;
 	
 	@JsonCreator
-	public MetadataParsingError(
-			@JsonProperty("identification") String identification, 
+	public MetadataLog(
+			@JsonProperty("identification") String identification,
+			@JsonProperty("title") String title,
+			@JsonProperty("alternateTitle") String alternateTitle,
 			@JsonProperty("field") MetadataField field, 
-			@JsonProperty("error") MetadataError error, 
+			@JsonProperty("error") MetadataLogType error, 
 			@JsonProperty("value") Object value) {
 		
-		this.identification = identification;
+		super(identification, title, alternateTitle);
+		
 		this.field = field;
 		this.error = error;
 		this.value = value;
@@ -35,7 +35,7 @@ public class MetadataParsingError implements Serializable {
 		return field;
 	}
 	
-	public MetadataError getError() {
+	public MetadataLogType getError() {
 		return error;
 	}
 

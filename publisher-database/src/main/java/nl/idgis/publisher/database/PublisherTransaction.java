@@ -70,6 +70,7 @@ import nl.idgis.publisher.domain.service.Table;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
@@ -553,6 +554,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private String toJson(Object content) throws JsonProcessingException {
 		ObjectMapper om = new ObjectMapper();
+		om.setSerializationInclusion(Include.NON_NULL);
 		return om.writeValueAsString(content);
 	}
 

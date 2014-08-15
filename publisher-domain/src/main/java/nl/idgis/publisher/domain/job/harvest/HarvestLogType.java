@@ -1,7 +1,7 @@
 package nl.idgis.publisher.domain.job.harvest;
 
-public enum HarvestJobLogType {
+public enum HarvestLogType {
 	
 	METADATA_PARSING_ERROR,
-	SOURCE_DATASET_REGISTERED
+	SOURCE_DATASET_REGISTERED	
 }

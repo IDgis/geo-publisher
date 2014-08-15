@@ -9,10 +9,13 @@ import scala.runtime.AbstractFunction3;
 
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.HarvestJobLogType;
-import nl.idgis.publisher.domain.job.harvest.MetadataError;
+import nl.idgis.publisher.domain.job.harvest.DatabaseLogType;
+import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
+import nl.idgis.publisher.domain.job.harvest.HarvestLog;
+import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
-import nl.idgis.publisher.domain.job.harvest.MetadataParsingError;
+import nl.idgis.publisher.domain.job.harvest.MetadataLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
@@ -120,19 +123,19 @@ public class ProviderDatasetInfo extends UntypedActor {
 									if(field != null) {
 										
 										Object value = null;
-										MetadataError error = null;
+										MetadataLogType error = null;
 										if(notValid.isEmpty()) {
 											if(!notFound.isEmpty()) {
-												error = MetadataError.NOT_FOUND;
+												error = MetadataLogType.NOT_FOUND;
 											}
 										} else {
-											error = MetadataError.NOT_VALID;
+											error = MetadataLogType.NOT_VALID;
 											value = notValid.get(0).getValue();
 										}
 										
 										if(error != null) {
-											MetadataParsingError content = new MetadataParsingError(identification, field, error, value);											
-											JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestJobLogType.METADATA_PARSING_ERROR, content);
+											MetadataLog content = new MetadataLog(identification, null, null, field, error, value);											
+											JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 											
 											Patterns.ask(harvesterSession, jobLog, 15000)
 												.onSuccess(new OnSuccess<Object>() {
@@ -168,7 +171,20 @@ public class ProviderDatasetInfo extends UntypedActor {
 		if(tableName == null) {
 			log.warning("couldn't determine table name: " + alternateTitle);
 			
-			sender.tell(new NextItem(), getSelf());
+			JobLog jobLog = new JobLog(
+					LogLevel.ERROR, 
+					DatabaseLogType.UNKNOWN_TABLE, 
+					new HarvestLog(identification, title, alternateTitle));
+			
+			Patterns.ask(harvesterSession, jobLog, 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {						
+						sender.tell(new NextItem(), getSelf());
+					}
+					
+				}, getContext().dispatcher());
 		} else {
 			final String categoryId = ProviderUtils.getCategoryId(alternateTitle);
 			if(categoryId == null) {
@@ -187,7 +203,19 @@ public class ProviderDatasetInfo extends UntypedActor {
 						} else {
 							if(msg instanceof TableNotFound) {
 								log.error("table doesn't exist: " + tableName);
-								sender.tell(new NextItem(), getSelf());
+								
+								JobLog jobLog = new JobLog(LogLevel.ERROR, DatabaseLogType.TABLE_NOT_FOUND,
+									new DatabaseLog(identification, title, alternateTitle, tableName));
+								
+								Patterns.ask(harvesterSession, jobLog, 15000)
+									.onSuccess(new OnSuccess<Object>() {
+
+										@Override
+										public void onSuccess(Object msg) throws Throwable {
+											sender.tell(new NextItem(), getSelf());
+										}
+										
+									}, getContext().dispatcher());
 							} else {								
 								TableDescription tableDescription = (TableDescription)msg;
 								

@@ -9,9 +9,10 @@ import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.HarvestJobLogType;
-import nl.idgis.publisher.domain.job.harvest.SourceDatasetRegistration;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
+import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
+
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Ack;
 
@@ -92,8 +93,8 @@ public class HarvestSession extends UntypedActor {
 						
 						JobLog jobLog = new JobLog(
 								LogLevel.INFO, 
-								HarvestJobLogType.SOURCE_DATASET_REGISTERED,
-								new SourceDatasetRegistration(dataset.getId()));
+								HarvestLogType.SOURCE_DATASET_REGISTERED,
+								new HarvestLog(dataset.getId()));
 						
 						Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
 							.onSuccess(new OnSuccess<Object>() {

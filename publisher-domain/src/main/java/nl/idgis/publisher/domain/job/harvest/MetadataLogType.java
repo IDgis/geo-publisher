@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.job.harvest;
 
-public enum MetadataError {
+public enum MetadataLogType {
 
 	NOT_FOUND,
 	NOT_VALID
