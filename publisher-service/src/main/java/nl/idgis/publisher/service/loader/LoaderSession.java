@@ -232,7 +232,9 @@ public class LoaderSession extends UntypedActor {
 	private Future<Object> handleRecord(final Record record) {
 		count++;
 		
-		log.debug("record received: " + record + " " + count + "/" + totalCount);		
+		if(log.isDebugEnabled()) { // Record.toString() is rather expensive
+			log.debug("record received: " + record + " " + count + "/" + totalCount);
+		}
 		
 		return Patterns.ask(geometryDatabase, new InsertRecord(
 				importJob.getDatasetId(), 
