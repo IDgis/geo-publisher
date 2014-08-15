@@ -57,6 +57,7 @@ import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
@@ -724,7 +725,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.execute();
 				
 				insertSourceDatasetColumns(context, id, table.getColumns());
-				context.answer(new Registered());
+				context.answer(new Updated());
 				
 				log.debug("dataSource updated");
 			}

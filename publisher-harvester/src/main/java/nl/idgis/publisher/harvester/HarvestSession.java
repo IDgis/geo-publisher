@@ -3,8 +3,10 @@ package nl.idgis.publisher.harvester;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJob;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.Updated;
 
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
@@ -91,21 +93,34 @@ public class HarvestSession extends UntypedActor {
 					} else {						
 						log.debug("dataset registered");
 						
-						JobLog jobLog = new JobLog(
-								LogLevel.INFO, 
-								HarvestLogType.SOURCE_DATASET_REGISTERED,
-								new HarvestLog(dataset.getId()));
+						HarvestLogType type = null;
+						if(msg instanceof Registered) {
+							type = HarvestLogType.REGISTERED;
+						} else if(msg instanceof Updated) {
+							type = HarvestLogType.UPDATED;
+						}
 						
-						Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
-							.onSuccess(new OnSuccess<Object>() {
-								
-								@Override
-								public void onSuccess(Object msg) throws Throwable {
-									log.debug("dataset registration logged");
+						if(type != null) {
+							JobLog jobLog = new JobLog(
+									LogLevel.INFO, 
+									type,
+									new HarvestLog(dataset.getId()));
+							
+							Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
+								.onSuccess(new OnSuccess<Object>() {
 									
-									sender.tell(new Ack(), getSelf());
-								}
-							}, getContext().dispatcher());
+									@Override
+									public void onSuccess(Object msg) throws Throwable {
+										log.debug("dataset registration logged");
+										
+										sender.tell(new Ack(), getSelf());
+									}
+								}, getContext().dispatcher());
+						} else {
+							log.error("unknown dataset registration result: "+ msg);
+							
+							sender.tell(new Ack(), getSelf());
+						}
 					}
 				}
 			}, getContext().dispatcher());
