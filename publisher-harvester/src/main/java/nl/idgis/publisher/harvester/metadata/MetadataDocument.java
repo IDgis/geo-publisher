@@ -96,48 +96,56 @@ public class MetadataDocument extends UntypedActor {
 							"/gmd:alternateTitle" +
 							"/gco:CharacterString"))));
 		
+		SimpleDateFormatMapper dateTimeMapper = 
+			new SimpleDateFormatMapper(
+				"yyyy-MM-dd'T'HH:mm:ss",
+				"yyyyMMdd'T'HH:mm:ss",
+				"yyyyMMdd'T'HHmmss");
+		
+		SimpleDateFormatMapper dateMapper =
+			new SimpleDateFormatMapper(
+				"yyyy-MM-dd",
+				"yyyyMMdd");
+		
 		queries.put(GetRevisionDate.class, 
 				Arrays.<QueryMapper<?>>asList(
 					new QueryMapper<>(
 						new GetString(namespaces,
-							"/gmd:MD_Metadata" +
-							"/gmd:identificationInfo" +
-							"/gmd:MD_DataIdentification" +
-							"/gmd:citation" +
-							"/gmd:CI_Citation" +
-							"/gmd:date" +
-							"/gmd:CI_Date" +
-								"[gmd:dateType" +
-								"/gmd:CI_DateTypeCode" +
-								"/@codeListValue" +
-									"='revision']" +
-							"/gmd:date" +
-							"/gco:DateTime"), 
-							
-							new SimpleDateFormatMapper(
-								"yyyy-MM-dd'T'HH:mm:ss",
-								"yyyyMMdd'T'HH:mm:ss",
-								"yyyyMMdd'T'HHmmss")),
+							getDatePath("revision") +
+							"/gco:DateTime"), dateTimeMapper),
 								
 					new QueryMapper<>(
 							new GetString(namespaces,
-								"/gmd:MD_Metadata" +
-								"/gmd:identificationInfo" +
-								"/gmd:MD_DataIdentification" +
-								"/gmd:citation" +
-								"/gmd:CI_Citation" +
-								"/gmd:date" +
-								"/gmd:CI_Date" +
-									"[gmd:dateType" +
-									"/gmd:CI_DateTypeCode" +
-									"/@codeListValue" +
-										"='revision']" +
-								"/gmd:date" +
-								"/gco:Date"), 
+								getDatePath("revision") +
+								"/gco:Date"), dateMapper),
 								
-								new SimpleDateFormatMapper(
-									"yyyy-MM-dd",
-									"yyyyMMdd"))));
+					new QueryMapper<>(
+						new GetString(namespaces,
+							getDatePath("creation") +
+							"/gco:DateTime"), dateTimeMapper),
+								
+					new QueryMapper<>(
+							new GetString(namespaces,
+								getDatePath("creation") +
+								"/gco:Date"), dateMapper)								
+						
+					));
+	}
+	
+	private String getDatePath(String codeListValue) {
+		return 
+				"/gmd:MD_Metadata" +
+				"/gmd:identificationInfo" +
+				"/gmd:MD_DataIdentification" +
+				"/gmd:citation" +
+				"/gmd:CI_Citation" +
+				"/gmd:date" +
+				"/gmd:CI_Date" +
+					"[gmd:dateType" +
+					"/gmd:CI_DateTypeCode" +
+					"/@codeListValue" +
+						"='" + codeListValue + "']" +
+				"/gmd:date";
 	}
 	
 	public static Props props(ActorRef xmlDocument) {
