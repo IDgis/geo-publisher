@@ -63,47 +63,69 @@ public class Harvester extends UntypedActor {
 		log.debug("message: " + msg);
 		
 		if(msg instanceof ParseMetadataDocument) {
-			log.debug("dispatching metadata parsing request");
-			
-			metadataDocumentFactory.tell(msg, getSender());
+			handleParseMetadataDocument((ParseMetadataDocument)msg);
 		} else if(msg instanceof DataSourceConnected) {
-			String dataSourceId = ((DataSourceConnected) msg).getDataSourceId();
-			log.debug("DataSource connected: " + dataSourceId);
-			
-			getContext().watch(getSender());
-			dataSources.put(dataSourceId, getSender());
+			handleDataSourceConnected((DataSourceConnected)msg);
 		} else if (msg instanceof Terminated) {
-			String dataSourceName = dataSources.inverse().remove(((Terminated) msg).getActor());
-			if(dataSourceName != null) {
-				log.debug("Connection lost, dataSource: " + dataSourceName);
-			}
+			handleTerminated((Terminated)msg);
 		} else if (msg instanceof HarvestJob) {
-			HarvestJob harvestJob = (HarvestJob)msg;
-			
-			String dataSourceId = harvestJob.getDataSourceId();
-			if(dataSources.containsKey(dataSourceId)) {
-				log.debug("Initializing harvesting for dataSource: " + dataSourceId);
-				
-				startHarvesting(harvestJob);
-			} else {
-				log.debug("dataSource not connected: " + dataSourceId);
-			}			
+			handleHarvestJob((HarvestJob)msg);			
 		} else if(msg instanceof GetActiveDataSources) {
-			log.debug("connected datasources requested");
-			getSender().tell(dataSources.keySet(), getSelf());
+			handleGetActiveDataSources();
 		} else if(msg instanceof GetDataSource) {
-			log.debug("dataSource requested");
-			
-			final String dataSourceId = ((GetDataSource) msg).getDataSourceId();
-			if(dataSources.containsKey(dataSourceId)) {
-				getSender().tell(dataSources.get(dataSourceId), getSelf());
-			} else {
-				log.warning("dataSource not connected: " + dataSourceId);
-				getSender().tell(new NotConnected(), getSelf());
-			}		 
+			handleGetDataSource((GetDataSource)msg);		 
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetDataSource(GetDataSource msg) {
+		log.debug("dataSource requested");
+		
+		final String dataSourceId = msg.getDataSourceId();
+		if(dataSources.containsKey(dataSourceId)) {
+			getSender().tell(dataSources.get(dataSourceId), getSelf());
+		} else {
+			log.warning("dataSource not connected: " + dataSourceId);
+			getSender().tell(new NotConnected(), getSelf());
+		}
+	}
+
+	private void handleGetActiveDataSources() {
+		log.debug("connected datasources requested");
+		getSender().tell(dataSources.keySet(), getSelf());
+	}
+
+	private void handleHarvestJob(HarvestJob harvestJob) {
+		String dataSourceId = harvestJob.getDataSourceId();
+		if(dataSources.containsKey(dataSourceId)) {
+			log.debug("Initializing harvesting for dataSource: " + dataSourceId);
+			
+			startHarvesting(harvestJob);
+		} else {
+			log.debug("dataSource not connected: " + dataSourceId);
+		}
+	}
+
+	private void handleTerminated(Terminated msg) {
+		String dataSourceName = dataSources.inverse().remove(msg.getActor());
+		if(dataSourceName != null) {
+			log.debug("Connection lost, dataSource: " + dataSourceName);
+		}
+	}
+
+	private void handleDataSourceConnected(DataSourceConnected msg) {
+		String dataSourceId = msg.getDataSourceId();
+		log.debug("DataSource connected: " + dataSourceId);
+		
+		getContext().watch(getSender());
+		dataSources.put(dataSourceId, getSender());
+	}
+
+	private void handleParseMetadataDocument(ParseMetadataDocument msg) {
+		log.debug("dispatching metadata parsing request");
+		
+		metadataDocumentFactory.tell(msg, getSender());
 	}
 
 	private void startHarvesting(final HarvestJob harvestJob) {		

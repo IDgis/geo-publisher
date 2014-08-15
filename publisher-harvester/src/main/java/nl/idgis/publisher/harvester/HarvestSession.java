@@ -42,58 +42,63 @@ public class HarvestSession extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Dataset) {
-			final Dataset dataset = (Dataset)msg;
-			
-			log.debug("dataset received");
-			
-			String dataSourceId = harvestJob.getDataSourceId();
-			final ActorRef sender = getSender();
-			Patterns.ask(database, new RegisterSourceDataset(dataSourceId, (Dataset)msg), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-					
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof AlreadyRegistered) {
-							log.debug("already registered");
-							
-							sender.tell(new Ack(), getSelf());
-						} else {						
-							log.debug("dataset registered");
-							
-							JobLog jobLog = new JobLog(
-									LogLevel.INFO, 
-									HarvestJobLogType.SOURCE_DATASET_REGISTERED,
-									new SourceDatasetRegistration(dataset.getId()));
-							
-							Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
-								.onSuccess(new OnSuccess<Object>() {
-									
-									@Override
-									public void onSuccess(Object msg) throws Throwable {
-										log.debug("dataset registration logged");
-										
-										sender.tell(new Ack(), getSelf());
-									}
-								}, getContext().dispatcher());
-						}
-					}
-				}, getContext().dispatcher());
-			
+			handleDataset((Dataset)msg);			
 		} else if(msg instanceof Finished) {
-			log.debug("harvesting finished");
-			
-			final ActorRef self = getSelf();			
-			Patterns.ask(database, new UpdateJobState(harvestJob, JobState.SUCCEEDED), 150000)
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						log.debug("harvesting of dataSource finished: " + harvestJob);
-						getContext().stop(self);
-					}
-				}, getContext().dispatcher());			
+			handleFinished();
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleFinished() {
+		log.debug("harvesting finished");
+		
+		final ActorRef self = getSelf();			
+		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.SUCCEEDED), 150000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("harvesting of dataSource finished: " + harvestJob);
+					getContext().stop(self);
+				}
+			}, getContext().dispatcher());
+	}
+
+	private void handleDataset(final Dataset dataset) {
+		log.debug("dataset received");
+		
+		String dataSourceId = harvestJob.getDataSourceId();
+		final ActorRef sender = getSender();
+		Patterns.ask(database, new RegisterSourceDataset(dataSourceId, dataset), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+				
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					if(msg instanceof AlreadyRegistered) {
+						log.debug("already registered");
+						
+						sender.tell(new Ack(), getSelf());
+					} else {						
+						log.debug("dataset registered");
+						
+						JobLog jobLog = new JobLog(
+								LogLevel.INFO, 
+								HarvestJobLogType.SOURCE_DATASET_REGISTERED,
+								new SourceDatasetRegistration(dataset.getId()));
+						
+						Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
+							.onSuccess(new OnSuccess<Object>() {
+								
+								@Override
+								public void onSuccess(Object msg) throws Throwable {
+									log.debug("dataset registration logged");
+									
+									sender.tell(new Ack(), getSelf());
+								}
+							}, getContext().dispatcher());
+					}
+				}
+			}, getContext().dispatcher());
 	}
 }
