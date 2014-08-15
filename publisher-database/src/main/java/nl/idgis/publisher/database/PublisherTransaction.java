@@ -57,6 +57,7 @@ import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
@@ -70,6 +71,7 @@ import nl.idgis.publisher.domain.service.Table;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
@@ -553,6 +555,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private String toJson(Object content) throws JsonProcessingException {
 		ObjectMapper om = new ObjectMapper();
+		om.setSerializationInclusion(Include.NON_NULL);
 		return om.writeValueAsString(content);
 	}
 
@@ -675,6 +678,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		log.debug("registering source dataset: " + rsd);
 		
 		Dataset dataset = rsd.getDataset();
+		Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		Table table = dataset.getTable();
 		
 		Tuple existing = 
@@ -685,12 +689,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.on(category.id.eq(sourceDataset.categoryId))
 				.where(sourceDataset.identification.eq(dataset.getId())
 					.and(dataSource.identification.eq(rsd.getDataSource())))
-				.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime);
+				.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime, sourceDataset.revision);
 		
 		if(existing != null) {
 			Integer id = existing.get(sourceDataset.id);
 			String existingName = existing.get(sourceDataset.name);
 			String existingCategoryId = existing.get(category.identification);
+			Timestamp existingRevision = existing.get(sourceDataset.revision);
 			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 			
 			List<Column> existingColumns = context.query().from(sourceDatasetColumn)
@@ -700,6 +705,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 			if(existingName.equals(table.getName())
 					&& existingCategoryId.equals(dataset.getCategoryId())
+					&& existingRevision.equals(revision)
 					&& existingDeleteTime == null
 					&& existingColumns.equals(table.getColumns())) {
 				context.answer(new AlreadyRegistered());
@@ -707,6 +713,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			} else {
 				context.update(sourceDataset)
 					.set(sourceDataset.name, table.getName())
+					.set(sourceDataset.revision, revision)
 					.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
 					.setNull(sourceDataset.deleteTime)						
 					.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
@@ -718,7 +725,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.execute();
 				
 				insertSourceDatasetColumns(context, id, table.getColumns());
-				context.answer(new Registered());
+				context.answer(new Updated());
 				
 				log.debug("dataSource updated");
 			}
@@ -730,17 +737,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			if(dataSourceId == null) {
 				log.error("dataSource not found: " + dataSourceId);
 			} else {
-				context.insert(sourceDataset)
-					.set(sourceDataset.dataSourceId, dataSourceId)
-					.set(sourceDataset.identification, dataset.getId())
-					.set(sourceDataset.name, table.getName())
-					.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
-					.execute();
-				
-				Integer id = context.query().from(sourceDataset)
-					.where(sourceDataset.dataSourceId.eq(dataSourceId)
-						.and(sourceDataset.identification.eq(dataset.getId())))
-					.singleResult(sourceDataset.id);
+				int id =
+					context.insert(sourceDataset)
+						.set(sourceDataset.dataSourceId, dataSourceId)
+						.set(sourceDataset.identification, dataset.getId())
+						.set(sourceDataset.name, table.getName())
+						.set(sourceDataset.revision, revision)
+						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
+						.executeWithKey(sourceDataset.id);
 				
 				insertSourceDatasetColumns(context, id, table.getColumns());					
 				context.answer(new Registered());

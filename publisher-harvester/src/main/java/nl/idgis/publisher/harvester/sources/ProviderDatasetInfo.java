@@ -1,15 +1,29 @@
 package nl.idgis.publisher.harvester.sources;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import scala.concurrent.Future;
+import scala.runtime.AbstractFunction3;
 
+import nl.idgis.publisher.domain.job.JobLog;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.harvest.DatabaseLogType;
+import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
+import nl.idgis.publisher.domain.job.harvest.HarvestLog;
+import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
+import nl.idgis.publisher.domain.job.harvest.MetadataField;
+import nl.idgis.publisher.domain.job.harvest.MetadataLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
+import nl.idgis.publisher.harvester.metadata.messages.GetRevisionDate;
 import nl.idgis.publisher.harvester.metadata.messages.GetTitle;
+import nl.idgis.publisher.harvester.metadata.messages.MetadataFailure;
+import nl.idgis.publisher.harvester.metadata.messages.NotValid;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -20,11 +34,15 @@ import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
+import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.WrongResultException;
+import nl.idgis.publisher.xml.messages.NotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
+import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -34,16 +52,16 @@ public class ProviderDatasetInfo extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef harvesterSession, harvester, database;
+	private final ActorRef harvesterSession, harvester, providerDatabase;
 	
-	public ProviderDatasetInfo(ActorRef harvesterSession, ActorRef harvester, ActorRef database) {
+	public ProviderDatasetInfo(ActorRef harvesterSession, ActorRef harvester, ActorRef providerDatabase) {
 		this.harvesterSession = harvesterSession;
 		this.harvester = harvester;
-		this.database = database;		
+		this.providerDatabase = providerDatabase;		
 	}
 	
-	public static Props props(ActorRef harvesterSession, ActorRef harvester, ActorRef database) {
-		return Props.create(ProviderDatasetInfo.class, harvesterSession, harvester, database);
+	public static Props props(ActorRef harvesterSession, ActorRef harvester, ActorRef providerDatabase) {
+		return Props.create(ProviderDatasetInfo.class, harvesterSession, harvester, providerDatabase);
 	}
 	
 	private OnSuccess<Object> processDocument(final ActorRef sender, final MetadataItem metadataItem) {
@@ -53,42 +71,120 @@ public class ProviderDatasetInfo extends UntypedActor {
 			public void onSuccess(Object msg) throws Throwable {
 				ActorRef metadataDocument = (ActorRef)msg;
 				
-				Future<Object> title = Patterns.ask(metadataDocument, new GetTitle(), 15000);
-				final Future<Object> alternateTitle = Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000);
+				final String identification = metadataItem.getIdentification();
 				
-				title.onSuccess(new OnSuccess<Object>() {
+				FutureUtils f = new FutureUtils(getContext().dispatcher());
+				
+				f
+					.collect(f.ask(metadataDocument, new GetTitle(), String.class))
+					.collect(f.ask(metadataDocument, new GetAlternateTitle(), String.class))
+					.collect(f.ask(metadataDocument, new GetRevisionDate(), Date.class))
+					.result(new AbstractFunction3<String, String, Date, Void>() {
 
-					@Override
-					public void onSuccess(Object o) throws Throwable {
-						final String title = (String)o;
+						@Override
+						public Void apply(String title, String alternateTitle, Date revisionDate) {
+							log.debug("metadata title: " + title);
+							log.debug("metadata alternate title: " + alternateTitle);
+							log.debug("metadata revision date: " + revisionDate);
+							
+							processMetadata(sender, identification, title, alternateTitle, revisionDate);
+							
+							return null;
+						}						
+					})
+					.failure(new OnFailure() {
 						
-						log.debug("metadata title: " + title);
-						
-						alternateTitle.onSuccess(new OnSuccess<Object>() {
+						boolean nextRequested = false;
 
-							@Override
-							public void onSuccess(Object o) throws Throwable {
-								String alternateTitle = (String)o;
+						@Override
+						public void onFailure(Throwable t) throws Throwable {
+							if(t instanceof WrongResultException) {
+								WrongResultException wre = (WrongResultException)t;
 								
-								log.debug("metadata alternate title: " + alternateTitle);
+								Object context = wre.getContext();
+								Object result = wre.getResult();
 								
-								processMetadata(sender, metadataItem.getIdentification(), title, alternateTitle);
+								log.debug("metadata incorrect: " + context + " " + result);
+								
+								if(result instanceof MetadataFailure) {
+									MetadataFailure failure = (MetadataFailure)result;
+									List<NotValid<?>> notValid = failure.getNotValid();
+									List<NotFound> notFound = failure.getNotFound();
+									
+									MetadataField field = null;
+									if(context instanceof GetTitle) {
+										field = MetadataField.TITLE;
+									} else if(context instanceof GetAlternateTitle) {
+										field = MetadataField.ALTERNATE_TITLE;
+									} else if(context instanceof GetRevisionDate) {
+										field = MetadataField.REVISION_DATE;
+									}
+									
+									if(field != null) {
+										
+										Object value = null;
+										MetadataLogType error = null;
+										if(notValid.isEmpty()) {
+											if(!notFound.isEmpty()) {
+												error = MetadataLogType.NOT_FOUND;
+											}
+										} else {
+											error = MetadataLogType.NOT_VALID;
+											value = notValid.get(0).getValue();
+										}
+										
+										if(error != null) {
+											MetadataLog content = new MetadataLog(identification, null, null, field, error, value);											
+											JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+											
+											Patterns.ask(harvesterSession, jobLog, 15000)
+												.onSuccess(new OnSuccess<Object>() {
+
+													@Override
+													public void onSuccess(Object msg) throws Throwable {
+														log.debug("metadata parsing error saved");
+													}
+													
+												}, getContext().dispatcher());
+										}
+										
+									}									
+									
+								}
+								
+							} else {							
+								log.error(t, "couldn't parse metadata");
 							}
 							
-						}, getContext().dispatcher());
-					}
-					
-				}, getContext().dispatcher());
+							if(!nextRequested) {
+								sender.tell(new NextItem(), getSelf());
+								nextRequested = true;
+							}
+						}
+					});
 			}
 		};
 	}
 	
-	private void processMetadata(final ActorRef sender, final String identification, final String title, final String alternateTitle) {
+	private void processMetadata(final ActorRef sender, final String identification, final String title, final String alternateTitle, final Date revisionDate) {
 		final String tableName = ProviderUtils.getTableName(alternateTitle);
 		if(tableName == null) {
 			log.warning("couldn't determine table name: " + alternateTitle);
 			
-			sender.tell(new NextItem(), getSelf());
+			JobLog jobLog = new JobLog(
+					LogLevel.ERROR, 
+					DatabaseLogType.UNKNOWN_TABLE, 
+					new HarvestLog(identification, title, alternateTitle));
+			
+			Patterns.ask(harvesterSession, jobLog, 15000)
+				.onSuccess(new OnSuccess<Object>() {
+
+					@Override
+					public void onSuccess(Object msg) throws Throwable {						
+						sender.tell(new NextItem(), getSelf());
+					}
+					
+				}, getContext().dispatcher());
 		} else {
 			final String categoryId = ProviderUtils.getCategoryId(alternateTitle);
 			if(categoryId == null) {
@@ -96,7 +192,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 				
 				sender.tell(new NextItem(), getSelf());
 			} else {				
-				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), database, new DescribeTable(tableName), 15000);
+				Future<Object> tableDescriptionFuture = Ask.ask(getContext(), providerDatabase, new DescribeTable(tableName), 15000);
 				tableDescriptionFuture.onComplete(new OnComplete<Object>() {
 	
 					@Override
@@ -107,7 +203,19 @@ public class ProviderDatasetInfo extends UntypedActor {
 						} else {
 							if(msg instanceof TableNotFound) {
 								log.error("table doesn't exist: " + tableName);
-								sender.tell(new NextItem(), getSelf());
+								
+								JobLog jobLog = new JobLog(LogLevel.ERROR, DatabaseLogType.TABLE_NOT_FOUND,
+									new DatabaseLog(identification, title, alternateTitle, tableName));
+								
+								Patterns.ask(harvesterSession, jobLog, 15000)
+									.onSuccess(new OnSuccess<Object>() {
+
+										@Override
+										public void onSuccess(Object msg) throws Throwable {
+											sender.tell(new NextItem(), getSelf());
+										}
+										
+									}, getContext().dispatcher());
 							} else {								
 								TableDescription tableDescription = (TableDescription)msg;
 								
@@ -120,7 +228,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 								
 								Table table = new Table(title, columns);
 								
-								Patterns.ask(harvesterSession, new Dataset(identification, categoryId, table), 15000)
+								Patterns.ask(harvesterSession, new Dataset(identification, categoryId, table, revisionDate), 15000)
 									.onSuccess(new OnSuccess<Object>() {
 
 										@Override
@@ -141,25 +249,33 @@ public class ProviderDatasetInfo extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataItem) {
-			log.debug("metadata item received");
-			
-			final MetadataItem metadataItem = (MetadataItem)msg;
-			
-			Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
-				.onSuccess(processDocument(getSender(), metadataItem), 
-					getContext().dispatcher());		
-			
+			handleMetadataItem((MetadataItem)msg);
 		} else if(msg instanceof End) {	
-			log.debug("dataset retrieval completed");
-			
-			finish();
+			handleEnd();
 		} else if(msg instanceof Failure) {
-			log.error(msg.toString());
-			
-			finish();
+			handleFailure(msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleFailure(Object msg) {
+		log.error(msg.toString());
+		
+		finish();
+	}
+
+	private void handleEnd() {
+		log.debug("dataset retrieval completed");
+		
+		finish();
+	}
+
+	private void handleMetadataItem(MetadataItem metadataItem) {
+		log.debug("metadata item received");
+		
+		Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
+			.onSuccess(processDocument(getSender(), metadataItem), getContext().dispatcher());
 	}
 	
 	private void finish() {

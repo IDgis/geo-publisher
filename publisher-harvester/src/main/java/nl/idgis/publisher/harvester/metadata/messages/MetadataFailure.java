@@ -6,14 +6,14 @@ import java.util.List;
 
 import nl.idgis.publisher.xml.messages.NotFound;
 
-public class Failure implements Serializable {
+public class MetadataFailure implements Serializable {
 
 	private static final long serialVersionUID = -1020834725658321707L;
 	
 	private final List<NotValid<?>> notValid;
 	private final List<NotFound> notFound;
 	
-	public Failure(List<NotValid<?>> notValid, List<NotFound> notFound) {
+	public MetadataFailure(List<NotValid<?>> notValid, List<NotFound> notFound) {
 		this.notValid = notValid;
 		this.notFound = notFound;
 	}

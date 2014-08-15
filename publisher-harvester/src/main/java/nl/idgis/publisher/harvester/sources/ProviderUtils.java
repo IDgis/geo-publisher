@@ -13,7 +13,7 @@ public class ProviderUtils {
 				tableName = alternateTitle.trim();
 			}
 			
-			return tableName.toUpperCase();
+			return tableName.replace(":", ".").toUpperCase();
 		}
 		
 		return null;

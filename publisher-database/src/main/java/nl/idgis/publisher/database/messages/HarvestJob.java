@@ -16,4 +16,9 @@ public class HarvestJob extends Job {
 	public String getDataSourceId() {
 		return dataSourceId;
 	}
+
+	@Override
+	public String toString() {
+		return "HarvestJob [dataSourceId=" + dataSourceId + "]";
+	}
 }
