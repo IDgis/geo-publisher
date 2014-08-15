@@ -10,7 +10,7 @@ import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.server.Server;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
+import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.utils.ConfigUtils;
 
 import akka.actor.ActorRef;
@@ -137,7 +137,7 @@ public class Harvester extends UntypedActor {
 					log.debug("starting harvesting for dataSource: " + harvestJob);
 					
 					ActorRef session = getContext().actorOf(HarvestSession.props(database, harvestJob));
-					dataSources.get(harvestJob.getDataSourceId()).tell(new GetDatasets(), session);
+					dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
 				}
 			}, getContext().dispatcher());
 	}

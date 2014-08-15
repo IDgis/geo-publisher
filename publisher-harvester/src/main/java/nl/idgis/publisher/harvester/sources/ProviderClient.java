@@ -4,7 +4,7 @@ import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.metadata.messages.GetAlternateTitle;
 import nl.idgis.publisher.harvester.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasets;
+import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
@@ -108,8 +108,8 @@ public class ProviderClient extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof GetDatasets) {
-					handleGetDatasets();
+				if(msg instanceof ListDatasets) {
+					handleListDatasets();
 				} else if(msg instanceof ConnectionClosed) {
 					handleConnectionClosed();
 				} else if(msg instanceof GetDataset) {
@@ -118,48 +118,49 @@ public class ProviderClient extends UntypedActor {
 					unhandled(msg);
 				} 
 			}
-
-			private void handleGetDataset(final GetDataset gd) {
-				log.debug("retrieving data from provider");				
-								
-				Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
-					.onSuccess(new OnSuccess<Object>() {
-
-						@Override
-						public void onSuccess(Object msg) throws Throwable { 
-							MetadataItem metadataItem = (MetadataItem)msg;
-							
-							log.debug("metadata retrieved");								
-							Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
-								.onSuccess(new OnSuccess<Object>() {
-
-									@Override
-									public void onSuccess(Object o) throws Throwable {
-										ActorRef metadataDocument = (ActorRef)o;
-										
-										Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000)
-											.onSuccess(new OnSuccess<Object>() {
-
-												@Override
-												public void onSuccess(Object o) throws Throwable {
-													String alternateTitle = (String)o;
-													
-													log.debug("metadata parsed");
-													
-													processMetadata(gd, alternateTitle);
-												}
-												
-											}, getContext().dispatcher());
-									}
-									
-								}, getContext().dispatcher());
-						}
-					}, getContext().dispatcher());
-			}
+			
 		};
 	}
+	
+	private void handleGetDataset(final GetDataset gd) {
+		log.debug("retrieving data from provider");				
+						
+		Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
+			.onSuccess(new OnSuccess<Object>() {
 
-	private void handleGetDatasets() {
+				@Override
+				public void onSuccess(Object msg) throws Throwable { 
+					MetadataItem metadataItem = (MetadataItem)msg;
+					
+					log.debug("metadata retrieved");								
+					Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
+						.onSuccess(new OnSuccess<Object>() {
+
+							@Override
+							public void onSuccess(Object o) throws Throwable {
+								ActorRef metadataDocument = (ActorRef)o;
+								
+								Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000)
+									.onSuccess(new OnSuccess<Object>() {
+
+										@Override
+										public void onSuccess(Object o) throws Throwable {
+											String alternateTitle = (String)o;
+											
+											log.debug("metadata parsed");
+											
+											processMetadata(gd, alternateTitle);
+										}
+										
+									}, getContext().dispatcher());
+							}
+							
+						}, getContext().dispatcher());
+				}
+			}, getContext().dispatcher());
+	}
+
+	private void handleListDatasets() {
 		log.debug("retrieving datasets from provider");
 		
 		ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), harvester, database));
