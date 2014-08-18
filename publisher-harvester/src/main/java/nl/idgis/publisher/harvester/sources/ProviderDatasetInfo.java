@@ -36,6 +36,7 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.WrongResultException;
+import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.NotFound;
 
 import akka.actor.ActorRef;
@@ -69,7 +70,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 
 			@Override
 			public void onSuccess(Object msg) throws Throwable {
-				ActorRef metadataDocument = (ActorRef)msg;
+				final ActorRef metadataDocument = (ActorRef)msg;
 				
 				final String identification = metadataItem.getIdentification();
 				
@@ -88,6 +89,8 @@ public class ProviderDatasetInfo extends UntypedActor {
 							log.debug("metadata revision date: " + revisionDate);
 							
 							processMetadata(sender, identification, title, alternateTitle, revisionDate);
+							
+							metadataDocument.tell(new Close(), getSelf());
 							
 							return null;
 						}						
@@ -157,6 +160,8 @@ public class ProviderDatasetInfo extends UntypedActor {
 							}
 							
 							if(!nextRequested) {
+								metadataDocument.tell(new Close(), getSelf());
+								
 								sender.tell(new NextItem(), getSelf());
 								nextRequested = true;
 							}
