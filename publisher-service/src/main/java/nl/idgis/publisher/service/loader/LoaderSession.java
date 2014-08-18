@@ -237,6 +237,7 @@ public class LoaderSession extends UntypedActor {
 		}
 		
 		return Patterns.ask(geometryDatabase, new InsertRecord(
+				importJob.getCategoryId(),
 				importJob.getDatasetId(), 
 				importJob.getColumns(), 
 				record.getValues()), 15000);

@@ -5,17 +5,22 @@ import java.util.List;
 import nl.idgis.publisher.domain.service.Column;
 
 public class InsertRecord extends Query {
-
-	private static final long serialVersionUID = 7172706083489765137L;
 	
-	private final String tableName;
+	private static final long serialVersionUID = -6817649274369201580L;
+	
+	private final String schemaName, tableName;
 	private final List<Column> columns;
 	private final List<Object> values;
 	
-	public InsertRecord(String tableName, List<Column> columns, List<Object> values) {
+	public InsertRecord(String schemaName, String tableName, List<Column> columns, List<Object> values) {
+		this.schemaName = schemaName;
 		this.tableName = tableName;
 		this.columns = columns;
 		this.values = values;
+	}
+	
+	public String getSchemaName() {
+		return schemaName;
 	}
 
 	public String getTableName() {
@@ -32,9 +37,12 @@ public class InsertRecord extends Query {
 
 	@Override
 	public String toString() {
-		return "InsertRecord [tableName=" + tableName + ", columns=" + columns
-				+ ", values=" + values + "]";
+		return "InsertRecord [schemaName=" + schemaName + ", tableName="
+				+ tableName + ", columns=" + columns + ", values=" + values
+				+ "]";
 	}
+
+	
 
 	
 }

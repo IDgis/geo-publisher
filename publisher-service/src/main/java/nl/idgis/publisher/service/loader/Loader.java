@@ -164,6 +164,7 @@ public class Loader extends UntypedActor {
 											final ActorRef transaction = tc.getActor();
 											
 											CreateTable ct = new CreateTable(
+													importJob.getCategoryId(),
 													importJob.getDatasetId(),  
 													importJob.getColumns());						
 											

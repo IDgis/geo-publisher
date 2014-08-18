@@ -452,9 +452,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeGetImportJobs(QueryDSLContext context) {
 		SQLQuery query = context.query().from(job)
-			.join(importJob).on(importJob.jobId.eq(job.id))
+			.join(importJob).on(importJob.jobId.eq(job.id))			
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+			.join(category).on(category.id.eq(sourceDataset.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 			.orderBy(job.createTime.asc())
 			.where(new SQLSubQuery().from(jobState)
@@ -463,6 +464,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		List<Tuple> baseList = query.clone()			
 			.list(
+					category.identification,
 					dataSource.identification,
 					sourceDataset.identification,
 					dataset.id,
@@ -491,6 +493,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			}
 			
 			jobs.add(new ImportJob(
+					t.get(category.identification),
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification),
 					t.get(dataset.identification),

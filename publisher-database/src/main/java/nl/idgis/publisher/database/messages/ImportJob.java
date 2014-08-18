@@ -6,17 +6,22 @@ import java.util.List;
 import nl.idgis.publisher.domain.service.Column;
 
 public class ImportJob extends Job {
-		
-	private static final long serialVersionUID = 5587187901535970026L;
 	
-	private final String dataSourceId, sourceDatasetId, datasetId;
+	private static final long serialVersionUID = 3455126057855131207L;
+	
+	private final String categoryId, dataSourceId, sourceDatasetId, datasetId;
 	private final List<Column> columns; 
 	
-	public ImportJob(String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+	public ImportJob(String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
 		this.datasetId = datasetId;
 		this.columns = columns;
+	}
+	
+	public String getCategoryId() {
+		return categoryId;
 	}
 
 	public String getSourceDatasetId() {
@@ -37,15 +42,17 @@ public class ImportJob extends Job {
 
 	@Override
 	public String toString() {
-		return "ImportJob [dataSourceId=" + dataSourceId + ", sourceDatasetId="
-				+ sourceDatasetId + ", datasetId=" + datasetId + ", columns="
-				+ columns + "]";
+		return "ImportJob [categoryId=" + categoryId + ", dataSourceId="
+				+ dataSourceId + ", sourceDatasetId=" + sourceDatasetId
+				+ ", datasetId=" + datasetId + ", columns=" + columns + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((categoryId == null) ? 0 : categoryId.hashCode());
 		result = prime * result + ((columns == null) ? 0 : columns.hashCode());
 		result = prime * result
 				+ ((dataSourceId == null) ? 0 : dataSourceId.hashCode());
@@ -65,6 +72,11 @@ public class ImportJob extends Job {
 		if (getClass() != obj.getClass())
 			return false;
 		ImportJob other = (ImportJob) obj;
+		if (categoryId == null) {
+			if (other.categoryId != null)
+				return false;
+		} else if (!categoryId.equals(other.categoryId))
+			return false;
 		if (columns == null) {
 			if (other.columns != null)
 				return false;
@@ -87,6 +99,8 @@ public class ImportJob extends Job {
 			return false;
 		return true;
 	}
+
+
 
 	
 }
