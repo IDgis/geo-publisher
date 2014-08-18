@@ -96,6 +96,16 @@ public class App extends UntypedActor {
 					}
 					
 				}, getContext().dispatcher());
+			
+			Patterns.ask(harvester, msg, 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("active harvester tasks: " + msg);
+				}
+				
+			}, getContext().dispatcher());
 		} else {
 			unhandled(msg);
 		}

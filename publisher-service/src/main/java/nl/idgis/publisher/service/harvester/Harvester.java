@@ -1,5 +1,7 @@
 package nl.idgis.publisher.service.harvester;
 
+import java.util.ArrayList;
+
 import nl.idgis.publisher.database.messages.HarvestJob;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
@@ -9,6 +11,9 @@ import nl.idgis.publisher.service.harvester.messages.GetDataSource;
 import nl.idgis.publisher.service.harvester.messages.NotConnected;
 import nl.idgis.publisher.service.harvester.server.Server;
 import nl.idgis.publisher.service.harvester.sources.messages.ListDatasets;
+import nl.idgis.publisher.service.messages.ActiveJob;
+import nl.idgis.publisher.service.messages.ActiveJobs;
+import nl.idgis.publisher.service.messages.GetActiveJobs;
 import nl.idgis.publisher.service.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.service.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.utils.ConfigUtils;
@@ -34,6 +39,8 @@ public class Harvester extends UntypedActor {
 	
 	private BiMap<String, ActorRef> dataSources;
 	private ActorRef metadataDocumentFactory;
+	
+	private BiMap<HarvestJob, ActorRef> sessions;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
@@ -56,6 +63,8 @@ public class Harvester extends UntypedActor {
 		dataSources = HashBiMap.create();
 		
 		metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
+		
+		sessions = HashBiMap.create();
 	}
 
 	@Override
@@ -73,10 +82,21 @@ public class Harvester extends UntypedActor {
 		} else if(msg instanceof GetActiveDataSources) {
 			handleGetActiveDataSources();
 		} else if(msg instanceof GetDataSource) {
-			handleGetDataSource((GetDataSource)msg);		 
+			handleGetDataSource((GetDataSource)msg);
+		} else if(msg instanceof GetActiveJobs) {
+			handleGetActiveJobs();
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetActiveJobs() {
+		ArrayList<ActiveJob> activeJobs = new ArrayList<>();
+		for(HarvestJob harvestJob : sessions.keySet()) {
+			activeJobs.add(new ActiveJob(harvestJob));
+		}
+		
+		getSender().tell(new ActiveJobs(activeJobs), getSelf());
 	}
 
 	private void handleGetDataSource(GetDataSource msg) {
@@ -108,9 +128,18 @@ public class Harvester extends UntypedActor {
 	}
 
 	private void handleTerminated(Terminated msg) {
-		String dataSourceName = dataSources.inverse().remove(msg.getActor());
+		ActorRef actor = msg.getActor();
+		
+		log.debug("actor terminated: " + actor);
+		
+		String dataSourceName = dataSources.inverse().remove(actor);
 		if(dataSourceName != null) {
-			log.debug("Connection lost, dataSource: " + dataSourceName);
+			log.debug("connection lost, dataSource: " + dataSourceName);
+		}
+		
+		HarvestJob harvestJob = sessions.inverse().remove(actor);
+		if(harvestJob != null) {
+			log.debug("harvest job completed: " + harvestJob);			
 		}
 	}
 
@@ -137,6 +166,10 @@ public class Harvester extends UntypedActor {
 					log.debug("starting harvesting for dataSource: " + harvestJob);
 					
 					ActorRef session = getContext().actorOf(HarvestSession.props(database, harvestJob));
+					
+					getContext().watch(session);
+					sessions.put(harvestJob, session);
+					
 					dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
 				}
 			}, getContext().dispatcher());
