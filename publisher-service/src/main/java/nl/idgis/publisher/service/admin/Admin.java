@@ -47,7 +47,7 @@ import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
-import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
+import nl.idgis.publisher.service.harvester.messages.GetActiveDataSources;
 
 import org.joda.time.LocalDateTime;
 

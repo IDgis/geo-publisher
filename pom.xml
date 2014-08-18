@@ -351,8 +351,7 @@
 
 	<modules>
 		<module>publisher-commons</module>
-		<module>publisher-provider</module>
-		<module>publisher-harvester</module>
+		<module>publisher-provider</module>		
 		<module>publisher-monitor</module>
 		<module>publisher-web</module>
 		<module>publisher-database</module>

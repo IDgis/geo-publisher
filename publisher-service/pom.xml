@@ -13,6 +13,16 @@
 	
 	<dependencies>
 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-commons</artifactId>
 		</dependency>
@@ -23,10 +33,6 @@
 		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-domain</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>nl.idgis.publisher</groupId>
-			<artifactId>publisher-harvester</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>postgresql</groupId>
