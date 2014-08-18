@@ -12,6 +12,8 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QSourceDatasetHistory.sourceDatasetHistory;
+import static nl.idgis.publisher.database.QSourceDatasetColumnHistory.sourceDatasetColumnHistory;
 
 import java.sql.Connection;
 import java.sql.Timestamp;
@@ -689,12 +691,23 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.on(category.id.eq(sourceDataset.categoryId))
 				.where(sourceDataset.identification.eq(dataset.getId())
 					.and(dataSource.identification.eq(rsd.getDataSource())))
-				.singleResult(sourceDataset.id, sourceDataset.name, category.identification, sourceDataset.deleteTime, sourceDataset.revision);
+				.singleResult(
+						sourceDataset.id, 
+						sourceDataset.name, 
+						
+						category.id, 
+						category.identification,
+						
+						sourceDataset.revision,
+						
+						sourceDataset.createTime, 
+						sourceDataset.updateTime, 
+						sourceDataset.deleteTime);
 		
 		if(existing != null) {
 			Integer id = existing.get(sourceDataset.id);
 			String existingName = existing.get(sourceDataset.name);
-			String existingCategoryId = existing.get(category.identification);
+			String existingCategoryIdentification = existing.get(category.identification);
 			Timestamp existingRevision = existing.get(sourceDataset.revision);
 			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 			
@@ -704,13 +717,39 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType));
 			
 			if(existingName.equals(table.getName())
-					&& existingCategoryId.equals(dataset.getCategoryId())
+					&& existingCategoryIdentification.equals(dataset.getCategoryId())
 					&& existingRevision.equals(revision)
 					&& existingDeleteTime == null
 					&& existingColumns.equals(table.getColumns())) {
 				context.answer(new AlreadyRegistered());
 				log.debug("dataset already registered");
 			} else {
+				int existingCategoryId= existing.get(category.id);
+				
+				Timestamp existingTime = existing.get(sourceDataset.updateTime);
+				if(existingTime == null) {
+					existingTime = existing.get(sourceDataset.createTime);
+				}
+				
+				int historyId =
+					context.insert(sourceDatasetHistory)
+						.set(sourceDatasetHistory.sourceDatasetId, id)
+						.set(sourceDatasetHistory.name, existingName)
+						.set(sourceDatasetHistory.categoryId, existingCategoryId)
+						.set(sourceDatasetHistory.revision, existingRevision)
+						.set(sourceDatasetHistory.time, existingTime)
+					.executeWithKey(sourceDatasetHistory.id);
+				
+				int i = 0;
+				for(Column column : existingColumns) {			
+					context.insert(sourceDatasetColumnHistory)
+						.set(sourceDatasetColumnHistory.sourceDatasetHistoryId, historyId)
+						.set(sourceDatasetColumnHistory.index, i++)
+						.set(sourceDatasetColumnHistory.name, column.getName())
+						.set(sourceDatasetColumnHistory.dataType, column.getDataType().toString())
+						.execute();
+				}
+				
 				context.update(sourceDataset)
 					.set(sourceDataset.name, table.getName())
 					.set(sourceDataset.revision, revision)
