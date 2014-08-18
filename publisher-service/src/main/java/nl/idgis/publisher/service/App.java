@@ -8,9 +8,9 @@ import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.Version;
-import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
+import nl.idgis.publisher.service.harvester.Harvester;
 import nl.idgis.publisher.service.init.Initiator;
 import nl.idgis.publisher.service.loader.Loader;
 import nl.idgis.publisher.service.messages.GetActiveJobs;
@@ -96,6 +96,16 @@ public class App extends UntypedActor {
 					}
 					
 				}, getContext().dispatcher());
+			
+			Patterns.ask(harvester, msg, 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					log.debug("active harvester tasks: " + msg);
+				}
+				
+			}, getContext().dispatcher());
 		} else {
 			unhandled(msg);
 		}
