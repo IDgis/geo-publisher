@@ -115,13 +115,27 @@ public class Harvester extends UntypedActor {
 		log.debug("connected datasources requested");
 		getSender().tell(dataSources.keySet(), getSelf());
 	}
+	
+	private boolean isHarvesting(String dataSourceId) {
+		for(HarvestJobInfo job : sessions.keySet()) {
+			if(job.getDataSourceId().equals(dataSourceId)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 
 	private void handleHarvestJob(HarvestJobInfo harvestJob) {
 		String dataSourceId = harvestJob.getDataSourceId();
 		if(dataSources.containsKey(dataSourceId)) {
-			log.debug("Initializing harvesting for dataSource: " + dataSourceId);
+			if(isHarvesting(dataSourceId)) {
+				log.debug("already harvesting dataSource: " + dataSourceId);
+			} else {
+				log.debug("Initializing harvesting for dataSource: " + dataSourceId);
 			
-			startHarvesting(harvestJob);
+				startHarvesting(harvestJob);
+			}
 		} else {
 			log.debug("dataSource not connected: " + dataSourceId);
 		}
