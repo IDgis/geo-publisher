@@ -4,7 +4,6 @@ import static akka.pattern.Patterns.ask;
 import static play.libs.F.Promise.sequence;
 import static play.libs.F.Promise.wrap;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +18,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Status;
 import play.i18n.Lang;
 import play.i18n.Messages;
@@ -153,7 +153,7 @@ public class Domain {
 					@Override
 					public R apply (final Object a) throws Throwable {
 						@SuppressWarnings("unchecked")
-						final A value = (A)a;
+						final A value = a instanceof NotFound ? null : (A)a;
 						return callback.apply (value);
 					}
 				});
