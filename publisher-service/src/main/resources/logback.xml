@@ -10,7 +10,11 @@
   <!-- 
   	<logger name="nl.idgis.publisher.service.App" level="debug"/>
    -->
-  
+   
+  <!--
+ 	<logger name="nl.idgis.publisher.service.job" level="debug"/>
+   -->
+     
   <!-- 
   	<logger name="nl.idgis.publisher.database" level="debug"/>
    -->
