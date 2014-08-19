@@ -76,15 +76,16 @@ public class Admin extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester;
+	private final ActorRef database, harvester, loader;
 	
-	public Admin(ActorRef database, ActorRef harvester) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
 		this.database = database;
-		this.harvester = harvester;		
+		this.harvester = harvester;
+		this.loader = loader;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester) {
-		return Props.create(Admin.class, database, harvester);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
+		return Props.create(Admin.class, database, harvester, loader);
 	}
 
 	@Override
