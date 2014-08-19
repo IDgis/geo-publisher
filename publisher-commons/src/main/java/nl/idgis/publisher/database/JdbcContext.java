@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 
+import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
@@ -66,8 +67,8 @@ public class JdbcContext {
 	public void answer(Object msg) {
 		if(answered) {
 			throw new IllegalArgumentException("query already answered");
-		} else {
-			sender.tell(msg, self);
+		} else {			
+			sender.tell(msg == null ? new NotFound() : msg, self);
 			answered = true;
 		}
 	}

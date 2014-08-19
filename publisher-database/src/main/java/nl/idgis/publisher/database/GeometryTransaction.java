@@ -25,19 +25,24 @@ public class GeometryTransaction extends JdbcTransaction {
 
 	@Override
 	protected void executeQuery(JdbcContext context, Query query) throws Exception {
-		if(query instanceof CreateTable) {
-			CreateTable ct = (CreateTable)query;			
-			createTable(context, ct.getName(), ct.getColumns());
-		} else if(query instanceof InsertRecord) {
-			InsertRecord ir = (InsertRecord)query;
-			insertRecord(context, ir.getTableName(), ir.getColumns(), ir.getValues());
+		if(query instanceof CreateTable) {						
+			createTable(context, (CreateTable)query);
+		} else if(query instanceof InsertRecord) {			
+			insertRecord(context, (InsertRecord)query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
 	}
 	
-	private void insertRecord(JdbcContext context, String tableName, List<Column> columns, List<Object> values) throws Exception {
+	private void insertRecord(JdbcContext context, InsertRecord query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String tableName = query.getTableName();
+		List<Column> columns = query.getColumns();
+		List<Object> values = query.getValues();
+		
 		StringBuilder sb = new StringBuilder("insert into ");
+		sb.append(schemaName);
+		sb.append(".");
 		sb.append(tableName);
 		sb.append("(");
 		
@@ -83,11 +88,19 @@ public class GeometryTransaction extends JdbcTransaction {
 		context.answer(new Ack());
 	}
 	
-	private void createTable(JdbcContext context, String name, List<Column> columns) throws Exception {
-		context.execute("drop table if exists " + name);
+	private void createTable(JdbcContext context, CreateTable query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String tableName = query.getTableName();
+		List<Column> columns = query.getColumns();
+		
+		context.execute("create schema if not exists " + schemaName);
+		
+		context.execute("drop table if exists " + schemaName + "." + tableName);
 		
 		StringBuilder sb = new StringBuilder("create table ");
-		sb.append(name);
+		sb.append(schemaName);
+		sb.append(".");
+		sb.append(tableName);		
 		sb.append(" (");
 		
 		String separator = "";

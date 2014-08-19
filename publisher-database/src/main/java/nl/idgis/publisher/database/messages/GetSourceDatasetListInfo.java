@@ -45,8 +45,9 @@ public class GetSourceDatasetListInfo extends ListQuery {
 
 	@Override
 	public String toString() {
-		return "GetSourceDatasetInfo [dataSourceId=" + dataSourceId
-				+ ", categoryId=" + categoryId + "]";
-	}
+		return "GetSourceDatasetListInfo [dataSourceId=" + dataSourceId
+				+ ", categoryId=" + categoryId + ", searchString="
+				+ searchString + "]";
+	}	
 
 }

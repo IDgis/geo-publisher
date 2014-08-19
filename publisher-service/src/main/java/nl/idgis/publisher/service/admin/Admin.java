@@ -43,6 +43,7 @@ import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -352,17 +353,21 @@ public class Admin extends UntypedActor {
 	private void handleGetCategory (final GetEntity<?> getEntity) {
 		log.debug ("handleCategory");
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		
 		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(getEntity.id ()), 15000);
 				categoryInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						CategoryInfo categoryInfo = (CategoryInfo)msg;
-						log.debug("category info received");
-						Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
-						log.debug("sending category: " + category);
-						sender.tell (category, self);
+						if(msg instanceof CategoryInfo) {
+							CategoryInfo categoryInfo = (CategoryInfo)msg;
+							log.debug("category info received");
+							Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
+							log.debug("sending category: " + category);
+							sender.tell (category, getSelf());
+						} else {
+							sender.tell (new NotFound(), getSelf());
+						}
 					}
 				}, getContext().dispatcher());
 	}
@@ -370,23 +375,27 @@ public class Admin extends UntypedActor {
 	private void handleGetDataset (final GetEntity<?> getEntity) {
 		log.debug ("handleDataset");
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		
 		final Future<Object> datasetInfo = Patterns.ask(database, new GetDatasetInfo(getEntity.id ()), 15000);
 				datasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						DatasetInfo datasetInfo = (DatasetInfo)msg;
-						log.debug("dataset info received");
-						Dataset dataset = 
-								new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-										new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-										new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
-										null, // notification list
-										new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
-								);
-						log.debug("sending dataset: " + dataset);
-						sender.tell (dataset, self);
+						if(msg instanceof DatasetInfo) {
+							DatasetInfo datasetInfo = (DatasetInfo)msg;
+							log.debug("dataset info received");
+							Dataset dataset = 
+									new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
+											new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+											new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
+											null, // notification list
+											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
+									);
+							log.debug("sending dataset: " + dataset);
+							sender.tell (dataset, getSelf());
+						} else {
+							sender.tell (new NotFound(), getSelf());
+						}
 					}
 				}, getContext().dispatcher());
 	}
@@ -394,22 +403,26 @@ public class Admin extends UntypedActor {
 	private void handleGetSourceDataset (final GetEntity<?> getEntity) {
 		log.debug ("handleSourceDataset");
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		
 		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(getEntity.id ()), 15000);
 				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
-						SourceDatasetInfo sourceDatasetInfo = (SourceDatasetInfo)msg;
-						log.debug("sourcedataset info received");
-						final SourceDataset sourceDataset = new SourceDataset (
-								sourceDatasetInfo.getId(), 
-								sourceDatasetInfo.getName(),
-								new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
-								new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
-						);
-						log.debug("sending source_dataset: " + sourceDataset);
-						sender.tell (sourceDataset, self);
+						if(msg instanceof SourceDatasetInfo) {
+							SourceDatasetInfo sourceDatasetInfo = (SourceDatasetInfo)msg;
+							log.debug("sourcedataset info received");
+							final SourceDataset sourceDataset = new SourceDataset (
+									sourceDatasetInfo.getId(), 
+									sourceDatasetInfo.getName(),
+									new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
+									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+							);
+							log.debug("sending source_dataset: " + sourceDataset);
+							sender.tell (sourceDataset, getSelf());
+						} else {
+							sender.tell (new NotFound(), getSelf());
+						}
 					}
 				}, getContext().dispatcher());
 	}

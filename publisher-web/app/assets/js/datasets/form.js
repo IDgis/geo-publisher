@@ -165,7 +165,7 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 				updateIdPromise = null;
 				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
 				
-				if (!data.result || data.result != 'notfound') {
+				if (!data.status || data.status != 'notfound') {
 					domClass.add (iconNode, 'glyphicon-remove');
 					domClass.add (idInput.parentNode.parentNode, 'has-error');
 				} else {
