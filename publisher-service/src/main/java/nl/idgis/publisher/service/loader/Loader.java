@@ -129,77 +129,94 @@ public class Loader extends UntypedActor {
 		
 		getSender().tell(new Ack(), getSelf());
 	}
+	
+	private boolean isImporting(String dataSourceId) {
+		for(ImportJobInfo job : sessions.keySet()) {
+			if(job.getDataSourceId().equals(dataSourceId)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
 		final String dataSourceId = importJob.getDataSourceId();
-		Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
+		if(isImporting(dataSourceId)) {
+			log.debug("already obtaining data from dataSource: " + dataSourceId);
+		} else {		
+			Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
+				.onSuccess(new OnSuccess<Object>() {
+	
+					@Override
+					public void onSuccess(Object msg) throws Throwable {
+						if(msg instanceof NotConnected) {
+							log.warning("not connected: " + dataSourceId);
+						} else {
+							final ActorRef dataSource = (ActorRef)msg;
+							
+							log.debug("dataSource received");
+							
+							startImport(importJob, dataSource);
+						}
+					}
+					
+				}, getContext().dispatcher());
+		}
+	}
+
+	private void startImport(final ImportJobInfo importJob, final ActorRef dataSource) {
+		Patterns.ask(database, new UpdateJobState(importJob, JobState.STARTED), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
-					if(msg instanceof NotConnected) {
-						log.warning("not connected: " + dataSourceId);
-					} else {
-						final ActorRef dataSource = (ActorRef)msg;
-						
-						log.debug("dataSource received");
-						
-						Patterns.ask(database, new UpdateJobState(importJob, JobState.STARTED), 15000)
-							.onSuccess(new OnSuccess<Object>() {
+					log.debug("job started");
+					
+					Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
+					.onSuccess(new OnSuccess<Object>() {
 
-								@Override
-								public void onSuccess(Object msg) throws Throwable {
-									log.debug("job started");
-									
-									Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
-									.onSuccess(new OnSuccess<Object>() {
+						@Override
+						public void onSuccess(Object msg) throws Throwable {
+							TransactionCreated tc = (TransactionCreated)msg;
+							log.debug("database transaction created");
+							
+							final ActorRef transaction = tc.getActor();
+							
+							CreateTable ct = new CreateTable(
+									importJob.getCategoryId(),
+									importJob.getDatasetId(),  
+									importJob.getColumns());						
+							
+							Patterns.ask(transaction, ct, 15000)
+								.onSuccess(new OnSuccess<Object>() {
 
-										@Override
-										public void onSuccess(Object msg) throws Throwable {
-											TransactionCreated tc = (TransactionCreated)msg;
-											log.debug("database transaction created");
-											
-											final ActorRef transaction = tc.getActor();
-											
-											CreateTable ct = new CreateTable(
-													importJob.getCategoryId(),
-													importJob.getDatasetId(),  
-													importJob.getColumns());						
-											
-											Patterns.ask(transaction, ct, 15000)
-												.onSuccess(new OnSuccess<Object>() {
-
-													@Override
-													public void onSuccess(Object msg) throws Throwable {
-														log.debug("table created");
-														
-														List<String> columnNames = new ArrayList<>();
-														for(Column column : importJob.getColumns()) {
-															columnNames.add(column.getName());
-														}
-														
-														dataSource.tell(
-																new GetDataset(
-																		importJob.getSourceDatasetId(), 
-																		columnNames, 
-																		LoaderSession.props(
-																				getSelf(),
-																				importJob, 
-																				transaction, 
-																				database)), getSelf());
-													}
-													
-												}, getContext().dispatcher());
-										}					
-									}, getContext().dispatcher());
-								}
-								
+									@Override
+									public void onSuccess(Object msg) throws Throwable {
+										log.debug("table created");
+										
+										List<String> columnNames = new ArrayList<>();
+										for(Column column : importJob.getColumns()) {
+											columnNames.add(column.getName());
+										}
+										
+										dataSource.tell(
+												new GetDataset(
+														importJob.getSourceDatasetId(), 
+														columnNames, 
+														LoaderSession.props(
+																getSelf(),
+																importJob, 
+																transaction, 
+																database)), getSelf());
+									}
+																	
 							}, getContext().dispatcher());
 					}
-				}
-				
-			}, getContext().dispatcher());
-	}	
+				}, getContext().dispatcher());
+			}
+		}, getContext().dispatcher());
+	}
 }
