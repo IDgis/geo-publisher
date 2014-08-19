@@ -2,7 +2,7 @@ package nl.idgis.publisher.service.harvester;
 
 import java.util.ArrayList;
 
-import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.service.harvester.messages.DataSourceConnected;
@@ -40,7 +40,7 @@ public class Harvester extends UntypedActor {
 	private BiMap<String, ActorRef> dataSources;
 	private ActorRef metadataDocumentFactory;
 	
-	private BiMap<HarvestJob, ActorRef> sessions;
+	private BiMap<HarvestJobInfo, ActorRef> sessions;
 
 	public Harvester(ActorRef database, Config config) {
 		this.database = database;
@@ -77,8 +77,8 @@ public class Harvester extends UntypedActor {
 			handleDataSourceConnected((DataSourceConnected)msg);
 		} else if (msg instanceof Terminated) {
 			handleTerminated((Terminated)msg);
-		} else if (msg instanceof HarvestJob) {
-			handleHarvestJob((HarvestJob)msg);			
+		} else if (msg instanceof HarvestJobInfo) {
+			handleHarvestJob((HarvestJobInfo)msg);			
 		} else if(msg instanceof GetActiveDataSources) {
 			handleGetActiveDataSources();
 		} else if(msg instanceof GetDataSource) {
@@ -92,7 +92,7 @@ public class Harvester extends UntypedActor {
 
 	private void handleGetActiveJobs() {
 		ArrayList<ActiveJob> activeJobs = new ArrayList<>();
-		for(HarvestJob harvestJob : sessions.keySet()) {
+		for(HarvestJobInfo harvestJob : sessions.keySet()) {
 			activeJobs.add(new ActiveJob(harvestJob));
 		}
 		
@@ -115,13 +115,27 @@ public class Harvester extends UntypedActor {
 		log.debug("connected datasources requested");
 		getSender().tell(dataSources.keySet(), getSelf());
 	}
+	
+	private boolean isHarvesting(String dataSourceId) {
+		for(HarvestJobInfo job : sessions.keySet()) {
+			if(job.getDataSourceId().equals(dataSourceId)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 
-	private void handleHarvestJob(HarvestJob harvestJob) {
+	private void handleHarvestJob(HarvestJobInfo harvestJob) {
 		String dataSourceId = harvestJob.getDataSourceId();
 		if(dataSources.containsKey(dataSourceId)) {
-			log.debug("Initializing harvesting for dataSource: " + dataSourceId);
+			if(isHarvesting(dataSourceId)) {
+				log.debug("already harvesting dataSource: " + dataSourceId);
+			} else {
+				log.debug("Initializing harvesting for dataSource: " + dataSourceId);
 			
-			startHarvesting(harvestJob);
+				startHarvesting(harvestJob);
+			}
 		} else {
 			log.debug("dataSource not connected: " + dataSourceId);
 		}
@@ -137,7 +151,7 @@ public class Harvester extends UntypedActor {
 			log.debug("connection lost, dataSource: " + dataSourceName);
 		}
 		
-		HarvestJob harvestJob = sessions.inverse().remove(actor);
+		HarvestJobInfo harvestJob = sessions.inverse().remove(actor);
 		if(harvestJob != null) {
 			log.debug("harvest job completed: " + harvestJob);			
 		}
@@ -157,7 +171,7 @@ public class Harvester extends UntypedActor {
 		metadataDocumentFactory.tell(msg, getSender());
 	}
 
-	private void startHarvesting(final HarvestJob harvestJob) {		
+	private void startHarvesting(final HarvestJobInfo harvestJob) {		
 		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.STARTED), 150000)
 			.onSuccess(new OnSuccess<Object>() {
 

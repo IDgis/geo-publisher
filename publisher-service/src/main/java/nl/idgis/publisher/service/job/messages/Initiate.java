@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.init.messages;
+package nl.idgis.publisher.service.job.messages;
 
 import java.io.Serializable;
 

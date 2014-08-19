@@ -2,14 +2,14 @@ package nl.idgis.publisher.database.messages;
 
 import com.mysema.query.annotations.QueryProjection;
 
-public class HarvestJob extends Job {
+public class HarvestJobInfo extends JobInfo {
 
 	private static final long serialVersionUID = -723392023585391066L;
 	
 	private final String dataSourceId;
 	
 	@QueryProjection
-	public HarvestJob(String dataSourceId) {
+	public HarvestJobInfo(String dataSourceId) {
 		this.dataSourceId = dataSourceId;
 	}
 

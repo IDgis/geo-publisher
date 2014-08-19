@@ -6,15 +6,15 @@ public class UpdateJobState extends Query {
 
 	private static final long serialVersionUID = 4158324360734881565L;
 	
-	private final Job job;
+	private final JobInfo job;
 	private final JobState state;
 	
-	public UpdateJobState(Job job, JobState state) {
+	public UpdateJobState(JobInfo job, JobState state) {
 		this.job = job;
 		this.state = state;
 	}
 
-	public Job getJob() {
+	public JobInfo getJob() {
 		return job;
 	}
 

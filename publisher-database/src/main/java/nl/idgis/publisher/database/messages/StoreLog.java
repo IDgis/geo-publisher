@@ -6,15 +6,15 @@ public class StoreLog extends Query {
 	
 	private static final long serialVersionUID = -1228166659611717157L;
 	
-	private final Job job;
+	private final JobInfo job;
 	private final JobLog jobLog;
 	
-	public StoreLog(Job job, JobLog jobLog) {
+	public StoreLog(JobInfo job, JobLog jobLog) {
 		this.job = job;
 		this.jobLog = jobLog;
 	}
 	
-	public Job getJob() {
+	public JobInfo getJob() {
 		return job;
 	}
 	

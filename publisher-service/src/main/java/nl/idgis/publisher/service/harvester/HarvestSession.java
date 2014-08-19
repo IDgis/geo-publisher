@@ -1,7 +1,7 @@
 package nl.idgis.publisher.service.harvester;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
-import nl.idgis.publisher.database.messages.HarvestJob;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
@@ -31,14 +31,14 @@ public class HarvestSession extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef database;
-	private final HarvestJob harvestJob;
+	private final HarvestJobInfo harvestJob;
 	
-	public HarvestSession(ActorRef database, HarvestJob harvestJob) {
+	public HarvestSession(ActorRef database, HarvestJobInfo harvestJob) {
 		this.database = database;
 		this.harvestJob = harvestJob;
 	}
 	
-	public static Props props(ActorRef database, HarvestJob harvestJob) {
+	public static Props props(ActorRef database, HarvestJobInfo harvestJob) {
 		return Props.create(HarvestSession.class, database, harvestJob);
 	}
 

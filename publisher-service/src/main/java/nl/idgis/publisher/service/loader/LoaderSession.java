@@ -8,7 +8,7 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.ImportJob;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.UpdateJobState;
@@ -42,20 +42,20 @@ public class LoaderSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ImportJob importJob;
+	private final ImportJobInfo importJob;
 	private final ActorRef loader, geometryDatabase, database;
 	
 	private Cancellable timeoutCancellable;
 	private long totalCount = 0, count = 0;
 	
-	public LoaderSession(ActorRef loader, ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
 		this.loader = loader;
 		this.importJob = importJob;
 		this.geometryDatabase = geometryDatabase;
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef loader, ImportJob importJob, ActorRef geometryDatabase, ActorRef database) {
+	public static Props props(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
 		return Props.create(LoaderSession.class, loader, importJob, geometryDatabase, database);
 	}
 	

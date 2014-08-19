@@ -2,25 +2,25 @@ package nl.idgis.publisher.service.messages;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.database.messages.Job;
+import nl.idgis.publisher.database.messages.JobInfo;
 
 public class ActiveJob implements Serializable {
 	
 	private static final long serialVersionUID = -1048184784091809629L;
 	
-	private final Job job;
+	private final JobInfo job;
 	private final Progress progress;
 	
-	public ActiveJob(Job job) {
+	public ActiveJob(JobInfo job) {
 		this(job, null);
 	}
 	
-	public ActiveJob(Job job, Progress progress) {
+	public ActiveJob(JobInfo job, Progress progress) {
 		this.job = job;
 		this.progress = progress;
 	}
 
-	public Job getJob() {
+	public JobInfo getJob() {
 		return job;
 	}
 

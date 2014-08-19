@@ -5,14 +5,14 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class ImportJob extends Job {
+public class ImportJobInfo extends JobInfo {
 	
 	private static final long serialVersionUID = 3455126057855131207L;
 	
 	private final String categoryId, dataSourceId, sourceDatasetId, datasetId;
 	private final List<Column> columns; 
 	
-	public ImportJob(String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+	public ImportJobInfo(String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
@@ -71,7 +71,7 @@ public class ImportJob extends Job {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ImportJob other = (ImportJob) obj;
+		ImportJobInfo other = (ImportJobInfo) obj;
 		if (categoryId == null) {
 			if (other.categoryId != null)
 				return false;
