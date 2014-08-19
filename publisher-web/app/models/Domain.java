@@ -17,8 +17,6 @@ import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
-import nl.idgis.publisher.domain.web.DashboardActiveTaskType;
-import nl.idgis.publisher.domain.web.DashboardErrorType;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
@@ -545,28 +543,6 @@ public class Domain {
         }
         
         return lang;
-    }
-    
-	public static String message (final Notification notification) {
-    	if (notification.type () instanceof Enum<?>) {
-    		if (notification.type () instanceof DashboardActiveTaskType){
-    			if (notification.jobType().equals(JobType.HARVEST)){
-    				if (notification.jobState().equals(JobStateType.STARTED)){
-    					return messageForEnumValue (getLang (), (Enum<?>) DashboardActiveTaskType.HARVESTER_STARTED, notification.payload());
-    				}
-    			} else if (notification.jobType().equals(JobType.IMPORT)){
-    				if (notification.jobState().equals(JobStateType.STARTED)){
-    					return messageForEnumValue (getLang (), (Enum<?>) DashboardActiveTaskType.IMPORTER_STARTED, notification.payload());
-    				}
-    			}
-    		} else if(notification.type () instanceof DashboardErrorType){
-				return messageForEnumValue (getLang (), (Enum<?>) notification.jobState());
-    		}  
-    		// DashBoardActiveTaskType
-    		return messageForEnumValue (getLang (), (Enum<?>) notification.type (), notification.payload());
-    	}
-    	
-    	return Messages.get (getLang (), notification.type ().getClass ().getCanonicalName (), notification.payload());
     }
 	
     public static String message (final Status status) {
