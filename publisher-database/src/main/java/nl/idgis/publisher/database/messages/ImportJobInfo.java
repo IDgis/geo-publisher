@@ -12,7 +12,9 @@ public class ImportJobInfo extends JobInfo {
 	private final String categoryId, dataSourceId, sourceDatasetId, datasetId;
 	private final List<Column> columns; 
 	
-	public ImportJobInfo(String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+		super(id);
+		
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;

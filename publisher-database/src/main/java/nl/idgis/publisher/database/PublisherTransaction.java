@@ -493,6 +493,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		List<Tuple> baseList = query.clone()			
 			.list(
+					job.id,
 					category.identification,
 					dataSource.identification,
 					sourceDataset.identification,
@@ -522,6 +523,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			}
 			
 			jobs.add(new ImportJobInfo(
+					t.get(job.id),
 					t.get(category.identification),
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification),
@@ -563,7 +565,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
 						.notExists())
-				.list(new QHarvestJobInfo(dataSource.identification)));
+				.list(new QHarvestJobInfo(job.id, dataSource.identification)));
 	}
 
 	private void executeStoreLog(QueryDSLContext context, StoreLog query) throws Exception {

@@ -4,5 +4,15 @@ import java.io.Serializable;
 
 public abstract class JobInfo implements Serializable {
 
-	private static final long serialVersionUID = -8780435406462145218L;
+	private static final long serialVersionUID = -6901131165015329634L;
+	
+	protected final int id;
+	
+	protected JobInfo(int id) {
+		this.id = id;
+	}
+	
+	public int getId() {
+		return id;
+	}
 }
