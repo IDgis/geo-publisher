@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.init;
+package nl.idgis.publisher.service.job;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -10,7 +10,7 @@ import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.HarvestJob;
 import nl.idgis.publisher.database.messages.ImportJob;
-import nl.idgis.publisher.service.init.messages.Initiate;
+import nl.idgis.publisher.service.job.messages.Initiate;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

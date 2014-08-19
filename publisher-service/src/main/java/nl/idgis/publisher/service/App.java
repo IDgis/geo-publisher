@@ -11,7 +11,7 @@ import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
 import nl.idgis.publisher.service.harvester.Harvester;
-import nl.idgis.publisher.service.init.Initiator;
+import nl.idgis.publisher.service.job.Initiator;
 import nl.idgis.publisher.service.loader.Loader;
 import nl.idgis.publisher.service.messages.GetActiveJobs;
 import nl.idgis.publisher.utils.Boot;
