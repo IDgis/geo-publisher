@@ -11,6 +11,7 @@ import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.service.admin.Admin;
 import nl.idgis.publisher.service.harvester.Harvester;
+import nl.idgis.publisher.service.job.Creator;
 import nl.idgis.publisher.service.job.Initiator;
 import nl.idgis.publisher.service.loader.Loader;
 import nl.idgis.publisher.service.messages.GetActiveJobs;
@@ -65,7 +66,9 @@ public class App extends UntypedActor {
 				
 				getContext().actorOf(Admin.props(database, harvester), "admin");
 				
-				getContext().actorOf(Initiator.props(database, harvester, loader), "init");
+				getContext().actorOf(Initiator.props(database, harvester, loader), "jobInitiator");
+				
+				getContext().actorOf(Creator.props(database), "jobCreator");
 			}
 			
 		}, getContext().dispatcher());
