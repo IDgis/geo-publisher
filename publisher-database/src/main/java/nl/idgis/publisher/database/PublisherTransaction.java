@@ -36,6 +36,7 @@ import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
+import nl.idgis.publisher.database.messages.GetHarvestStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
@@ -49,7 +50,8 @@ import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
-import nl.idgis.publisher.database.messages.QHarvestJob;
+import nl.idgis.publisher.database.messages.QHarvestJobInfo;
+import nl.idgis.publisher.database.messages.QHarvestStatus;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
@@ -200,9 +202,34 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeCreateImportJob(context, (CreateImportJob)query);
 		} else if(query instanceof UpdateJobState) {
 			executeUpdateJobState(context, (UpdateJobState)query);
+		} else if(query instanceof GetHarvestStatus) {
+			executeGetHarvestStatus(context);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeGetHarvestStatus(QueryDSLContext context) {
+		QJobState jobStateSub = new QJobState("job_state_sub");			
+		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");			
+		
+		context.answer(
+			context.query().from(jobState)
+				.join(harvestJob).on(harvestJob.jobId.eq(jobState.jobId))
+				.rightJoin(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
+				.where(isFinished(jobState))
+				.where(new SQLSubQuery().from(jobStateSub)
+					.join(harvestJobSub).on(harvestJobSub.jobId.eq(jobStateSub.jobId))
+					.where(jobStateSub.createTime.after(jobState.createTime))
+					.notExists())
+				.list(new QHarvestStatus(
+						dataSource.identification, 
+						jobState.createTime, 
+						jobState.state)));
+	}
+
+	private BooleanExpression isFinished(QJobState jobState) {
+		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 
 	private void executeUpdateJobState(QueryDSLContext context, UpdateJobState query) {
@@ -277,7 +304,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		return new SQLSubQuery().from(jobStateSub)
 				.where(jobStateSub.jobId.eq(job.id)
-					.and(jobStateSub.state.in(enumsToStrings(JobState.getFinished()))))
+					.and(isFinished(jobStateSub)))
 				.notExists();
 	}	
 
@@ -298,6 +325,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.where(dataset.identification.eq(query.getDatasetId()))
 			.where(new SQLSubQuery().from(jobState)
 					.where(jobState.jobId.eq(job.id))
+					.where(isFinished(jobState))
 					.notExists())
 			.notExists()) {
 			
@@ -331,6 +359,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.where(dataSource.identification.eq(query.getDataSourceId()))
 			.where(new SQLSubQuery().from(jobState)
 					.where(jobState.jobId.eq(job.id))
+					.where(isFinished(jobState))
 					.notExists())
 			.notExists()) {
 			
@@ -455,7 +484,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.join(importJob).on(importJob.jobId.eq(job.id))			
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-			.join(category).on(category.id.eq(sourceDataset.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 			.orderBy(job.createTime.asc())
 			.where(new SQLSubQuery().from(jobState)
@@ -534,7 +562,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
 						.notExists())
-				.list(new QHarvestJob(dataSource.identification)));
+				.list(new QHarvestJobInfo(dataSource.identification)));
 	}
 
 	private void executeStoreLog(QueryDSLContext context, StoreLog query) throws Exception {
