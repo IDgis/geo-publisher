@@ -8,8 +8,8 @@ import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.HarvestJob;
-import nl.idgis.publisher.database.messages.ImportJob;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.service.job.messages.Initiate;
 
 import akka.actor.ActorRef;
@@ -53,9 +53,9 @@ public class Initiator extends UntypedActor {
 					@Override
 					@SuppressWarnings("unchecked")
 					public void onSuccess(Object msg) throws Throwable {
-						List<HarvestJob> harvestJobs = (List<HarvestJob>) msg;
+						List<HarvestJobInfo> harvestJobs = (List<HarvestJobInfo>) msg;
 						
-						for(HarvestJob harvestJob : harvestJobs) {						
+						for(HarvestJobInfo harvestJob : harvestJobs) {						
 							log.debug("harvest job received");							
 							
 							harvester.tell(harvestJob, getSelf());							
@@ -69,9 +69,9 @@ public class Initiator extends UntypedActor {
 					@Override
 					@SuppressWarnings("unchecked")
 					public void onSuccess(Object msg) throws Throwable {
-						List<ImportJob> importJobs = (List<ImportJob>) msg;
+						List<ImportJobInfo> importJobs = (List<ImportJobInfo>) msg;
 						
-						for(ImportJob importJob : importJobs) {
+						for(ImportJobInfo importJob : importJobs) {
 							loader.tell(importJob, getSelf());
 						}
 					}

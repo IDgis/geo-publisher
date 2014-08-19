@@ -41,10 +41,10 @@ import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
-import nl.idgis.publisher.database.messages.HarvestJob;
-import nl.idgis.publisher.database.messages.ImportJob;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
-import nl.idgis.publisher.database.messages.Job;
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
@@ -219,11 +219,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.ack();
 	}
 
-	private SQLQuery getJobQuery(QueryDSLContext context, Job job) {		
-		if(job instanceof ImportJob) {
-			return getJobQuery(context, (ImportJob)job);
-		} else if(job instanceof HarvestJob) {
-			return getJobQuery(context, (HarvestJob)job);
+	private SQLQuery getJobQuery(QueryDSLContext context, JobInfo job) {		
+		if(job instanceof ImportJobInfo) {
+			return getJobQuery(context, (ImportJobInfo)job);
+		} else if(job instanceof HarvestJobInfo) {
+			return getJobQuery(context, (HarvestJobInfo)job);
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
@@ -262,7 +262,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		};
 	}
 
-	private SQLQuery getJobQuery(QueryDSLContext context, ImportJob ij) {
+	private SQLQuery getJobQuery(QueryDSLContext context, ImportJobInfo ij) {
 		
 		
 		return context.query().from(job)
@@ -281,7 +281,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.notExists();
 	}	
 
-	private SQLQuery getJobQuery(QueryDSLContext context, HarvestJob hj) {
+	private SQLQuery getJobQuery(QueryDSLContext context, HarvestJobInfo hj) {
 		return context.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
@@ -475,7 +475,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.list(dataset.id, datasetColumn.name, datasetColumn.dataType);
 		
 		ListIterator<Tuple> columnIterator = columnList.listIterator();
-		ArrayList<ImportJob> jobs = new ArrayList<>();
+		ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 		for(Tuple t : baseList) {
 			int datasetId = t.get(dataset.id);
 			
@@ -492,7 +492,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				columns.add(new Column(tc.get(datasetColumn.name), tc.get(datasetColumn.dataType)));
 			}
 			
-			jobs.add(new ImportJob(
+			jobs.add(new ImportJobInfo(
 					t.get(category.identification),
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification),

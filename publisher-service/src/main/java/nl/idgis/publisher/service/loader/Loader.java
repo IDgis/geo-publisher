@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import scala.concurrent.Future;
 
 import nl.idgis.publisher.database.messages.CreateTable;
-import nl.idgis.publisher.database.messages.ImportJob;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
@@ -43,7 +43,7 @@ public class Loader extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private ActorRef geometryDatabase, database, harvester;
-	private Map<ImportJob, ActorRef> sessions;
+	private Map<ImportJobInfo, ActorRef> sessions;
 
 	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
 		this.geometryDatabase = geometryDatabase;
@@ -59,8 +59,8 @@ public class Loader extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ImportJob) {
-			handleImportJob((ImportJob)msg);
+		if(msg instanceof ImportJobInfo) {
+			handleImportJob((ImportJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);
 		} else if(msg instanceof SessionFinished) {
@@ -75,11 +75,11 @@ public class Loader extends UntypedActor {
 	private void handleGetActiveJobs(GetActiveJobs msg) {
 		Patterns.pipe(
 			Futures.traverse(sessions.entrySet(), 
-					new Function<Map.Entry<ImportJob, ActorRef>, Future<ActiveJob>>() {
+					new Function<Map.Entry<ImportJobInfo, ActorRef>, Future<ActiveJob>>() {
 	
 						@Override
-						public Future<ActiveJob> apply(Entry<ImportJob, ActorRef> entry) throws Exception {
-							final ImportJob importJob = entry.getKey();
+						public Future<ActiveJob> apply(Entry<ImportJobInfo, ActorRef> entry) throws Exception {
+							final ImportJobInfo importJob = entry.getKey();
 							final ActorRef session = entry.getValue();
 							
 							log.debug("requesting progress, job: " + importJob + " session: " + session);
@@ -109,7 +109,7 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleSessionFinished(SessionFinished msg) {
-		ImportJob importJob = msg.getImportJob();
+		ImportJobInfo importJob = msg.getImportJob();
 		
 		if(sessions.containsKey(importJob)) {
 			log.debug("import job finished: " + importJob);
@@ -130,7 +130,7 @@ public class Loader extends UntypedActor {
 		getSender().tell(new Ack(), getSelf());
 	}
 
-	private void handleImportJob(final ImportJob importJob) {
+	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
 		final String dataSourceId = importJob.getDataSourceId();
