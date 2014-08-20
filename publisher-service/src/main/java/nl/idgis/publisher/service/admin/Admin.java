@@ -1,6 +1,11 @@
 package nl.idgis.publisher.service.admin;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
@@ -18,6 +23,8 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
@@ -33,6 +40,7 @@ import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
@@ -58,14 +66,19 @@ import nl.idgis.publisher.service.messages.Progress;
 
 import org.joda.time.LocalDateTime;
 
+import com.google.common.collect.Iterables;
+
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
+import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.pattern.Patterns;
 
 public class Admin extends UntypedActor {
@@ -312,53 +325,123 @@ public class Admin extends UntypedActor {
 		
 		sender.tell (dashboardErrors.build (), getSelf());
 	}
-	
-	private void addActiveTasks(Page.Builder<ActiveTask> activeTasks, ActiveJobs activeJobs, JobType jobType) {
-		for(ActiveJob activeJob : activeJobs.getActiveJobs()) {		
-			JobInfo job = activeJob.getJob();
-			Progress progress = activeJob.getProgress();
-			
-			Integer progressPercentage;
-			if(progress == null) {
-				progressPercentage = null;
-			} else {
-				progressPercentage = (int)(progress.getCount() * 100 / progress.getTotalCount());
-			}
-					
-			activeTasks.add(new ActiveTask("" + job.getId(), new Message(jobType, null), progressPercentage));
-		}
-	}
 
 	private void handleListDashboardActiveTasks(Object object) {
 		log.debug ("handleDashboardActiveTaskList");
 		
-		final ActorRef sender = getSender();		
+		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
 		final Future<Object> harvestJobs = Patterns.ask(harvester, new GetActiveJobs(), 15000);
 		final Future<Object> loaderJobs = Patterns.ask(loader, new GetActiveJobs(), 15000);
 		
-		harvestJobs.onSuccess(new OnSuccess<Object>() {
-
-			@Override
-			public void onSuccess(Object msg) throws Throwable {
-				final Page.Builder<ActiveTask> activeTasks = new Page.Builder<ActiveTask> ();
+		final Future<Map<String, String>> dataSourceNames = dataSourceInfo.map(new Mapper<Object, Map<String, String>>() {
+			
+			@SuppressWarnings("unchecked")
+			public Map<String, String> apply(Object msg) {
+				List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;
 				
-				if(msg instanceof ActiveJobs) {
-					addActiveTasks(activeTasks, (ActiveJobs)msg, JobType.HARVEST);
+				Map<String, String> retval = new HashMap<String, String>();
+				for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
+					retval.put(dataSourceInfo.getId(), dataSourceInfo.getName());
 				}
 				
-				loaderJobs.onSuccess(new OnSuccess<Object>() {
+				return retval;
+			}
+			
+		}, getContext().dispatcher());
+		
+		final Future<Iterable<ActiveTask>> activeHarvestTasks = 
+			harvestJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
 
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
+			@Override
+			public Future<Iterable<ActiveTask>> apply(Object msg) {
+				final ActiveJobs activeJobs = (ActiveJobs)msg;
+				
+				return dataSourceNames.map(new Mapper<Map<String, String>, Iterable<ActiveTask>>() {
+					
+					public Iterable<ActiveTask> apply(Map<String, String> dataSourceNames) {
+						List<ActiveTask> activeTasks = new ArrayList<>();
 						
-						if(msg instanceof ActiveJobs) {
-							addActiveTasks(activeTasks, (ActiveJobs)msg, JobType.IMPORT);
+						for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
+							HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
+							 
+							activeTasks.add(
+									new ActiveTask(
+											"" + harvestJob.getId(), 
+											dataSourceNames.get(harvestJob.getDataSourceId()), 
+											new Message(JobType.HARVEST, null), 
+											null));
 						}
 						
-						sender.tell(activeTasks.build(), getSelf());
+						return activeTasks;
+					}
+				}, getContext().dispatcher());
+			}
+			
+		}, getContext().dispatcher());
+		
+		final Future<Iterable<ActiveTask>> activeLoaderTasks = 
+			loaderJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
+				
+				public Future<Iterable<ActiveTask>> apply(Object msg) {
+					ActiveJobs activeJobs = (ActiveJobs)msg;
+					
+					List<Future<ActiveTask>> activeTasks = new ArrayList<>(); 
+					Map<String, Future<Object>> datasetInfos = new HashMap<String, Future<Object>>();
+					for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
+						final ImportJobInfo job = (ImportJobInfo)activeJob.getJob();
+						final Progress progress = (Progress)activeJob.getProgress();
+						
+						String datasetId = job.getDatasetId();
+						if(!datasetInfos.containsKey(datasetId)) {
+							datasetInfos.put(
+									datasetId,							
+									Patterns.ask(
+											database, 
+											new GetDatasetInfo(datasetId), 
+											15000));
+						}
+						
+						activeTasks.add(datasetInfos.get(datasetId).map(new Mapper<Object, ActiveTask>() {
+							
+							public ActiveTask apply(Object msg) {
+								DatasetInfo datasetInfo = (DatasetInfo)msg;
+								
+								return new ActiveTask(
+									"" + job.getId(),
+									datasetInfo.getName(),
+									new Message(JobType.IMPORT, null),
+									(int)(progress.getCount() * 100 / progress.getTotalCount()));
+							}
+							
+						}, getContext().dispatcher()));
 					}
 					
+					return Futures.sequence(activeTasks, getContext().dispatcher());
+				}
+				
+			}, getContext().dispatcher());
+		
+		final ActorRef sender = getSender();
+		activeHarvestTasks.flatMap(new Mapper<Iterable<ActiveTask>, Future<Iterable<ActiveTask>>>() {
+			
+			public Future<Iterable<ActiveTask>> apply(final Iterable<ActiveTask> activeHarvestTasks) {
+				return activeLoaderTasks.map(new Mapper<Iterable<ActiveTask>, Iterable<ActiveTask>>() {
+					
+					public Iterable<ActiveTask> apply(final Iterable<ActiveTask> activeLoaderTasks) {
+						return Iterables.concat(activeHarvestTasks, activeLoaderTasks);
+					}
 				}, getContext().dispatcher());
+			}
+			
+		}, getContext().dispatcher()).onSuccess(new OnSuccess<Iterable<ActiveTask>>() {
+
+			@Override
+			public void onSuccess(Iterable<ActiveTask> activeTasks) throws Throwable {
+				Builder<ActiveTask> builder = new Page.Builder<>();
+				for(ActiveTask activeTask : activeTasks) {
+					builder.add(activeTask);
+				}
+				sender.tell(builder.build(), getSelf());				
 			}
 			
 		}, getContext().dispatcher());
