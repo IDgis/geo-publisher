@@ -1,9 +1,8 @@
 package nl.idgis.publisher.service.admin;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +19,7 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
+import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
@@ -28,8 +28,11 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.domain.JobType;
+import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.job.JobType;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
@@ -78,7 +81,6 @@ import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Function;
 import akka.pattern.Patterns;
 
 public class Admin extends UntypedActor {
@@ -115,7 +117,7 @@ public class Admin extends UntypedActor {
 			} else if (listEntity.cls ().equals (ActiveTask.class)) {
 				handleListDashboardActiveTasks (null);
 			} else if (listEntity.cls ().equals (Issue.class)) {
-				handleListDashboardErrors (null);
+				handleListDashboardIssues (null);
 			} else {
 				handleEmptyList (listEntity);
 			}
@@ -316,14 +318,39 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 	}
 	
-	private void handleListDashboardErrors(Object object) {
-		log.debug ("handleDashboardErrorList");
+	private void handleListDashboardIssues(Object object) {
+		log.debug ("handleListDashboardIssues");
 		
 		final ActorRef sender = getSender();
-
-		final Page.Builder<Issue> dashboardErrors = new Page.Builder<Issue> ();
-		
-		sender.tell (dashboardErrors.build (), getSelf());
+		Patterns.ask(database, new GetJobLog(LogLevel.WARNING), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+				
+				@Override
+				@SuppressWarnings("unchecked")
+				public void onSuccess(Object msg) throws Throwable {
+					final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
+					
+					List<StoredJobLog> jobLogs = (List<StoredJobLog>)msg;
+					for(StoredJobLog jobLog : jobLogs) {
+						JobInfo job = jobLog.getJob();
+						
+						MessageType type = jobLog.getType();
+						
+						dashboardIssues.add(
+							new Issue(
+									"" + job.getId(),
+									new Message(
+											type,
+											Arrays.asList(jobLog.getContent())),
+									jobLog.getLevel(),
+									job.getJobType()));
+							
+					}
+					
+					sender.tell(dashboardIssues.build(), getSelf());
+				}
+				
+			}, getContext().dispatcher());
 	}
 
 	private void handleListDashboardActiveTasks(Object object) {

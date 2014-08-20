@@ -8,4 +8,6 @@ import java.io.Serializable;
  */
 public interface MessageType extends Serializable {
 
+	public String name();
+	public Class<?> getContentClass();
 }

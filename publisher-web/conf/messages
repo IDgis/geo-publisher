@@ -7,6 +7,12 @@ nl.idgis.publisher.domain.JobType.IMPORT.ACTIVE=Bezig met importeren
 nl.idgis.publisher.domain.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.JobType.IMPORT=import
 
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend 
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=Fout in metadata
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.REGISTERED=Nieuw brondataset gevonden
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UPDATED=Bestaand brondataset bijgewerkt  
+
 nl.idgis.publisher.domain.web.Notification=Notificatie {0}
 nl.idgis.publisher.domain.web.DashboardActiveTaskType.IMPORTER_STARTED=Harvester bezig met bijwerken
 nl.idgis.publisher.domain.web.DashboardActiveTaskType.HARVESTER_STARTED=Importer bezig met bijwerken

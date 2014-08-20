@@ -2,19 +2,21 @@ package nl.idgis.publisher.domain.job;
 
 import java.io.Serializable;
 
+import nl.idgis.publisher.domain.MessageType;
+
 public class JobLog implements Serializable {
 	
 	private static final long serialVersionUID = 7393703558996721495L;
 	
 	protected final LogLevel level;
-	protected final Enum<?> type;
+	protected final MessageType type;
 	protected final Object content;
 	
-	protected JobLog(LogLevel level, Enum<?> type) {
+	protected JobLog(LogLevel level, MessageType type) {
 		this(level, type, null);
 	}
 	
-	public JobLog(LogLevel level, Enum<?> type, Object content) {	
+	public JobLog(LogLevel level, MessageType type, Object content) {	
 		this.level = level;
 		this.type = type;
 		this.content = content;
@@ -24,7 +26,7 @@ public class JobLog implements Serializable {
 		return level;
 	}
 	
-	public Enum<?> getType() {
+	public MessageType getType() {
 		return type;
 	}
 	

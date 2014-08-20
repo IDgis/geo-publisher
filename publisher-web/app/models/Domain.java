@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import nl.idgis.publisher.domain.JobStateType;
-import nl.idgis.publisher.domain.JobType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -22,7 +20,6 @@ import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.MessageContext;
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.Status;
 import play.i18n.Lang;
 import play.i18n.Messages;

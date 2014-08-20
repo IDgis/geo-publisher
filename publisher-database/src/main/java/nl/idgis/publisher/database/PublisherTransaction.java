@@ -15,6 +15,7 @@ import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QSourceDatasetHistory.sourceDatasetHistory;
 import static nl.idgis.publisher.database.QSourceDatasetColumnHistory.sourceDatasetColumnHistory;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.AbstractCollection;
@@ -38,6 +39,7 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetHarvestStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
@@ -59,12 +61,17 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
+import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.MessageTypeUtils;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.JobType;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -204,9 +211,52 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeUpdateJobState(context, (UpdateJobState)query);
 		} else if(query instanceof GetHarvestStatus) {
 			executeGetHarvestStatus(context);
+		} else if(query instanceof GetJobLog) {
+			executeGetJobLog(context, (GetJobLog)query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeGetJobLog(QueryDSLContext context, GetJobLog query) throws Exception {
+		
+		List<StoredJobLog> jobLogs = new ArrayList<>();
+		for(Tuple t : 
+			applyListParams(
+				context.query().from(jobLog)
+					.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
+					.join(job).on(job.id.eq(jobState.jobId)),
+				query, jobLog.createTime)
+				.list(
+					job.id, 
+					job.type,
+					jobLog.level, 
+					jobLog.type, 
+					jobLog.content)) {
+			
+			JobType jobType = JobType.valueOf(t.get(job.type));
+			
+			JobInfo jobInfo = new JobInfo(
+					t.get(job.id), jobType);
+			
+			LogLevel logLevel = LogLevel.valueOf(t.get(jobLog.level));
+			
+			Class<? extends MessageType> logTypeClass = jobType.getContentClass();
+			MessageType logType = MessageTypeUtils.valueOf(logTypeClass, t.get(jobLog.type));
+			
+			String content = t.get(jobLog.content);
+			
+			Object contentObject;
+			if(content == null) {
+				contentObject = null;
+			} else {
+				contentObject = fromJson(logType.getContentClass(), content); 
+			}			
+			
+			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, contentObject));
+		}
+		
+		context.answer(jobLogs);
 	}
 
 	private void executeGetHarvestStatus(QueryDSLContext context) {
@@ -587,7 +637,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.execute();
 		
 		context.ack();
-	}	
+	}
+	
+	private <T> T fromJson(Class<T> clazz, String json) throws JsonProcessingException, IOException {
+		ObjectMapper om = new ObjectMapper();
+		return om.reader(clazz).readValue(json);
+	}
 
 	private String toJson(Object content) throws JsonProcessingException {
 		ObjectMapper om = new ObjectMapper();
