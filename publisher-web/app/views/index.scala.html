@@ -160,19 +160,19 @@
 					</div>
 					<ul class="list-group">
 						@for(task <- tasks.values) {
-							<li class="list-group-item">
+							<li class="list-group-item task">
 								<div>
 									<strong>@task.title</strong>
-									<span class="pull-right text-muted">@Domain.message(task.message, MessageContext.ACTIVE)</span>
 								</div>
 								@if(task.progress != null) {
-									<div class="progress progress-striped active">
+									<div class="progress progress-striped active" >
 										<div class="progress-bar progress-bar-success" role="progressbar" 
 										  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
 										  @task.progress%
 										</div>
 									</div>
 								}
+								<div class="text-muted">@Domain.message(task.message, MessageContext.ACTIVE)</div>
 							</li>
 						}
 						
