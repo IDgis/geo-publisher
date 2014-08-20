@@ -5,6 +5,7 @@
 )
 
 @import org.joda.time.LocalDateTime
+@import nl.idgis.publisher.domain.web.MessageContext
 
 @dateTimeToMessage(date: LocalDateTime) = {
 	1 dag geleden
@@ -161,15 +162,17 @@
 						@for(task <- tasks.values) {
 							<li class="list-group-item">
 								<div>
-									<strong></strong>
-									<span class="pull-right text-muted">@Domain.message(task.message)</span>
+									<strong>@task.title</strong>
+									<span class="pull-right text-muted">@Domain.message(task.message, MessageContext.ACTIVE)</span>
 								</div>
-								<div class="progress progress-striped active">
-									<div class="progress-bar progress-bar-success" role="progressbar" 
-									  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-									  @task.progress%
+								@if(task.progress != null) {
+									<div class="progress progress-striped active">
+										<div class="progress-bar progress-bar-success" role="progressbar" 
+										  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+										  @task.progress%
+										</div>
 									</div>
-								</div>
+								}
 							</li>
 						}
 						

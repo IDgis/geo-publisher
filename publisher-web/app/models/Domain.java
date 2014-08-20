@@ -20,6 +20,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.MessageContext;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.Status;
@@ -544,41 +545,51 @@ public class Domain {
         
         return lang;
     }
-	
+    
     public static String message (final Status status) {
-    	return message (getLang (), status);
+    	return message (status, null);
+    }
+	
+    public static String message (final Status status, final MessageContext context) {
+    	return message (getLang (), status, context);
     }
     
     public static String message (final Lang lang, final Status status) {
+    	return message (lang, status, null);
+    }
+    
+    public static String message (final Lang lang, final Status status, final MessageContext context) {
     	if (status.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) status.type (), status.type().statusCategory());
+    		return messageForEnumValue (lang, (Enum<?>) status.type (), context, status.type().statusCategory());
     	}
     	
     	return Messages.get (lang, status.type ().getClass ().getCanonicalName (), status.type().statusCategory());
     }
     
     public static String message (final Message message) {
-    	return message (getLang (), message);
+    	return message (message, null);
+    }
+    
+    public static String message (final Message message, final MessageContext context) {
+    	return message (getLang (), message, context);
     }
     
     public static String message (final Lang lang, final Message message) {
+    	return message (lang, message, null);
+    }
+    
+    public static String message (final Lang lang, final Message message, final MessageContext context) {
     	if (message.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) message.type (), message.values());
+    		return messageForEnumValue (lang, (Enum<?>) message.type (), context, message.values());
     	}
     	
     	return Messages.get (lang, message.type ().getClass ().getCanonicalName (), message.values());
     }
     
-    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue) {
+    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, final MessageContext context, Object... args) {
     	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
     	
-    	return Messages.get (lang, key);
-    }
-    
-    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, Object... args) {
-    	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
-    	
-    	return Messages.get (lang, key, args);
+    	return Messages.get (lang, context == null ? key : key + "." + context.name(), args);
     }
     
     public static class Constant<T> implements DomainQuery<T> {
