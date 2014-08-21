@@ -7,12 +7,12 @@
     </layout>
   </appender>
   
-   
-  	<logger name="nl.idgis.publisher.service.App" level="debug"/>
-  
+  <!--  
+  	<logger name="nl.idgis.publisher.ServiceApp" level="debug"/>
+   -->
    
   <!--
- 	<logger name="nl.idgis.publisher.service.job" level="debug"/>
+ 	<logger name="nl.idgis.publisher.job" level="debug"/>
    -->
      
   <!-- 
@@ -20,11 +20,11 @@
    -->
   
    <!-- 
-  	<logger name="nl.idgis.publisher.service.harvester" level="debug"/>
+  	<logger name="nl.idgis.publisher.harvester" level="debug"/>
   -->
   
   <!-- 
-  	<logger name="nl.idgis.publisher.service.loader" level="debug"/>
+  	<logger name="nl.idgis.publisher.loader" level="debug"/>
   -->
   
   <!-- 

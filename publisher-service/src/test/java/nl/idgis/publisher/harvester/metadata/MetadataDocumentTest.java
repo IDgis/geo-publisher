@@ -9,12 +9,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.metadata.messages.GetAlternateTitle;
+import nl.idgis.publisher.metadata.messages.GetRevisionDate;
+import nl.idgis.publisher.metadata.messages.GetTitle;
+import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.service.metadata.MetadataDocumentFactory;
-import nl.idgis.publisher.service.metadata.messages.GetAlternateTitle;
-import nl.idgis.publisher.service.metadata.messages.GetRevisionDate;
-import nl.idgis.publisher.service.metadata.messages.GetTitle;
-import nl.idgis.publisher.service.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.xml.messages.Close;
 
 import org.apache.commons.io.IOUtils;
