@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester;
 
+import nl.idgis.publisher.AbstractSession;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -15,18 +16,18 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
+import nl.idgis.publisher.messages.Timeout;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
-public class HarvestSession extends UntypedActor {
+public class HarvestSession extends AbstractSession {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -44,7 +45,10 @@ public class HarvestSession extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Dataset) {
+		scheduleTimeout();
+		if(msg instanceof Timeout) {
+			handleTimeout();
+		} else if(msg instanceof Dataset) {
 			handleDataset((Dataset)msg);			
 		} else if(msg instanceof Finished) {
 			handleFinished();
@@ -53,6 +57,10 @@ public class HarvestSession extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleTimeout() {
+		getContext().stop(getSelf());
 	}
 
 	private void handleJobLog(JobLog msg) { 
