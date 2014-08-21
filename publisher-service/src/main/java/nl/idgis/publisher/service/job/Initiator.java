@@ -1,11 +1,13 @@
 package nl.idgis.publisher.service.job;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.JobInfo;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -18,12 +20,17 @@ public class Initiator extends Scheduled {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader;
+	private final ActorRef database;
+	private final Map<Object, ActorRef> actorRefs;
 	
 	public Initiator(ActorRef database, ActorRef harvester, ActorRef loader) {
 		this.database = database;
-		this.harvester = harvester;
-		this.loader = loader;
+		
+		Map<Object, ActorRef> actorRefs = new HashMap<>();
+		actorRefs.put(new GetHarvestJobs(), harvester);
+		actorRefs.put(new GetImportJobs(), loader);
+		
+		this.actorRefs = Collections.unmodifiableMap(actorRefs);
 	}
 	
 	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
@@ -34,34 +41,27 @@ public class Initiator extends Scheduled {
 	protected void doInitiate() {
 		log.debug("initiating jobs");
 		
-		Patterns.ask(database, new GetHarvestJobs(), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-				
-				@Override
-				@SuppressWarnings("unchecked")
-				public void onSuccess(Object msg) throws Throwable {
-					List<HarvestJobInfo> harvestJobs = (List<HarvestJobInfo>) msg;
+		for(final Map.Entry<Object, ActorRef> actorRefEntry : actorRefs.entrySet()) {
+			final Object msg = actorRefEntry.getKey();
+			final ActorRef actorRef = actorRefEntry.getValue();
+			
+			log.debug("querying for jobs: " + msg);
+			
+			Patterns.ask(database, msg, 15000)
+				.onSuccess(new OnSuccess<Object>() {
 					
-					for(HarvestJobInfo harvestJob : harvestJobs) {
-						log.debug("harvest job received");
-						
-						harvester.tell(harvestJob, getSelf());
+					@Override
+					@SuppressWarnings("unchecked")
+					public void onSuccess(Object msg) throws Throwable {
+						List<? extends JobInfo> jobs = (List<? extends JobInfo>)msg;
+						for(JobInfo job : jobs) {
+							log.debug("dispatching job: " + job);
+							
+							actorRef.tell(job, getSelf());
+						}
 					}
-				}
-			}, getContext().dispatcher());
-		
-		Patterns.ask(database, new GetImportJobs(), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-				
-				@Override
-				@SuppressWarnings("unchecked")
-				public void onSuccess(Object msg) throws Throwable {
-					List<ImportJobInfo> importJobs = (List<ImportJobInfo>) msg;
 					
-					for(ImportJobInfo importJob : importJobs) {
-						loader.tell(importJob, getSelf());
-					}
-				}
-			}, getContext().dispatcher());		
+				}, getContext().dispatcher());			
+		}
 	}
 }
