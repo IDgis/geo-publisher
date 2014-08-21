@@ -1,11 +1,7 @@
-nl.idgis.publisher.domain.JobStateType.STARTED=bezig met bijwerken
-nl.idgis.publisher.domain.JobStateType.SUCCEEDED=succesvol
-nl.idgis.publisher.domain.JobStateType.FAILED=Fout tijdens bijwerken
-nl.idgis.publisher.domain.JobStateType.ABORTED=Afgebroken tijdens bijwerken
-nl.idgis.publisher.domain.JobType.HARVEST.ACTIVE=Bezig met harvesten
-nl.idgis.publisher.domain.JobType.IMPORT.ACTIVE=Bezig met importeren
-nl.idgis.publisher.domain.JobType.HARVEST=harvest
-nl.idgis.publisher.domain.JobType.IMPORT=import
+nl.idgis.publisher.domain.job.JobType.HARVEST.ACTIVE=Bezig met harvesten
+nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
+nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
+nl.idgis.publisher.domain.job.JobType.IMPORT=import
 
 nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden
 nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend 
