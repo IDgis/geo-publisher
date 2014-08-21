@@ -4,7 +4,7 @@ import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 
 public enum JobType implements MessageType {
-	HARVEST(HarvestLogType.class), IMPORT;
+	HARVEST(HarvestLogType.class), IMPORT, SERVICE;
 	
 	private final Class<? extends MessageType> contentClass;
 

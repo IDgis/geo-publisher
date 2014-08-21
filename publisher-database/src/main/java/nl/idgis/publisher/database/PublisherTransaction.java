@@ -14,6 +14,7 @@ import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColu
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QSourceDatasetHistory.sourceDatasetHistory;
 import static nl.idgis.publisher.database.QSourceDatasetColumnHistory.sourceDatasetColumnHistory;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -29,6 +30,7 @@ import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
@@ -40,6 +42,7 @@ import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetHarvestStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
@@ -54,6 +57,7 @@ import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestStatus;
+import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
@@ -213,9 +217,63 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetHarvestStatus(context);
 		} else if(query instanceof GetJobLog) {
 			executeGetJobLog(context, (GetJobLog)query);
+		} else if(query instanceof GetServiceJobs) {
+			executeGetServiceJobs(context);
+		} else if(query instanceof CreateServiceJob) {
+			executeCreateServiceJob(context, (CreateServiceJob)query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeCreateServiceJob(QueryDSLContext context, CreateServiceJob query) {
+		log.debug("creating service job: " + query);
+		
+		if(context.query().from(job)
+			.join(serviceJob).on(serviceJob.jobId.eq(job.id))
+			.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+			.where(dataset.identification.eq(query.getDatasetId()))
+			.where(new SQLSubQuery().from(jobState)
+					.where(jobState.jobId.eq(job.id))
+					.where(isFinished(jobState))
+					.notExists())
+			.notExists()) {
+			
+			int jobId = context.insert(job)
+					.set(job.type, "SERVICE")
+					.executeWithKey(job.id);
+			
+			int datasetId = context.query().from(dataset)
+				.where(dataset.identification.eq(query.getDatasetId()))
+				.singleResult(dataset.id);
+			
+			context.insert(serviceJob)
+				.set(serviceJob.jobId, jobId)
+				.set(serviceJob.datasetId, datasetId)
+				.execute();
+			
+			log.debug("service job created");
+		} else {
+			log.debug("already exist an service job for this dataset");
+		}		
+				
+		context.ack();
+	}
+
+	private void executeGetServiceJobs(QueryDSLContext context) {
+		context.answer(
+			context.query().from(serviceJob)
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+				.join(category).on(category.id.eq(sourceDataset.categoryId))
+				.where(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(serviceJob.jobId))
+						.notExists())
+				.list(new QServiceJobInfo(
+						serviceJob.jobId, 
+						category.identification, 
+						dataset.identification)));
+			
 	}
 
 	private void executeGetJobLog(QueryDSLContext context, GetJobLog query) throws Exception {
