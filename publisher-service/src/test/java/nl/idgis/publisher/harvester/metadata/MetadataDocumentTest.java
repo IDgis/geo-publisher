@@ -16,6 +16,7 @@ import nl.idgis.publisher.metadata.messages.GetTitle;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.xml.messages.Close;
+import nl.idgis.publisher.xml.messages.NotParseable;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -78,5 +79,18 @@ public class MetadataDocumentTest {
 		result = Await.result(future, AWAIT_DURATION);
 		
 		assertTrue(result instanceof Ack);
+	}
+	
+	@Test
+	public void testNotParseable() throws Exception {
+		ActorSystem system = ActorSystem.create();
+		
+		ActorRef factory = system.actorOf(MetadataDocumentFactory.props());
+		Future<Object> future = Patterns.ask(factory, new ParseMetadataDocument("Not valid metadata!".getBytes("utf-8")), 15000);
+		
+		Object result = Await.result(future, AWAIT_DURATION);
+		
+		assertTrue(result instanceof NotParseable);
+		
 	}
 }
