@@ -9,7 +9,6 @@ import scala.runtime.AbstractFunction3;
 
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.DatabaseLogType;
 import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
@@ -178,7 +177,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 			
 			JobLog jobLog = new JobLog(
 					LogLevel.ERROR, 
-					DatabaseLogType.UNKNOWN_TABLE, 
+					HarvestLogType.UNKNOWN_TABLE, 
 					new HarvestLog(identification, title, alternateTitle));
 			
 			Patterns.ask(harvesterSession, jobLog, 15000)
@@ -209,7 +208,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 							if(msg instanceof TableNotFound) {
 								log.error("table doesn't exist: " + tableName);
 								
-								JobLog jobLog = new JobLog(LogLevel.ERROR, DatabaseLogType.TABLE_NOT_FOUND,
+								JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.TABLE_NOT_FOUND,
 									new DatabaseLog(identification, title, alternateTitle, tableName));
 								
 								Patterns.ask(harvesterSession, jobLog, 15000)

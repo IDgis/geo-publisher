@@ -3,10 +3,10 @@ package controllers;
 import static models.Domain.from;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.web.DashboardActiveTask;
-import nl.idgis.publisher.domain.web.DashboardError;
-import nl.idgis.publisher.domain.web.DashboardNotification;
+import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.Notification;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -32,13 +32,13 @@ public class Dashboard extends Controller {
 		
 		return from (database)
 				.list (DataSource.class)
-				.list(DashboardNotification.class)
-				.list(DashboardActiveTask.class)
-				.list(DashboardError.class)
-				.execute (new Function4<Page<DataSource>, Page<DashboardNotification>, Page<DashboardActiveTask>, Page<DashboardError>, Result> () {
+				.list(Notification.class)
+				.list(ActiveTask.class)
+				.list(Issue.class)
+				.execute (new Function4<Page<DataSource>, Page<Notification>, Page<ActiveTask>, Page<Issue>, Result> () {
 					@Override
-					public Result apply (final Page<DataSource> dataSources, final Page<DashboardNotification> dashboardNotification, final Page<DashboardActiveTask> dashboardActiveTask, final Page<DashboardError> dashboardError) throws Throwable {
-        			return ok(index.render (dataSources, dashboardNotification, dashboardActiveTask, dashboardError));
+					public Result apply (final Page<DataSource> dataSources, final Page<Notification> notifications, final Page<ActiveTask> activeTasks, final Page<Issue> issues) throws Throwable {
+        			return ok(index.render (dataSources, notifications, activeTasks, issues));
 					}
 				});
 

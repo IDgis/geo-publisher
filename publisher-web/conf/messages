@@ -1,2 +1,42 @@
+nl.idgis.publisher.domain.JobStateType.STARTED=bezig met bijwerken
+nl.idgis.publisher.domain.JobStateType.SUCCEEDED=succesvol
+nl.idgis.publisher.domain.JobStateType.FAILED=Fout tijdens bijwerken
+nl.idgis.publisher.domain.JobStateType.ABORTED=Afgebroken tijdens bijwerken
+nl.idgis.publisher.domain.JobType.HARVEST.ACTIVE=Bezig met harvesten
+nl.idgis.publisher.domain.JobType.IMPORT.ACTIVE=Bezig met importeren
+nl.idgis.publisher.domain.JobType.HARVEST=harvest
+nl.idgis.publisher.domain.JobType.IMPORT=import
+
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend 
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=Fout in metadata
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.REGISTERED=Nieuw brondataset gevonden
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UPDATED=Bestaand brondataset bijgewerkt  
+
+nl.idgis.publisher.domain.web.Notification=Notificatie {0}
+nl.idgis.publisher.domain.web.DashboardActiveTaskType.IMPORTER_STARTED=Harvester bezig met bijwerken
+nl.idgis.publisher.domain.web.DashboardActiveTaskType.HARVESTER_STARTED=Importer bezig met bijwerken
+nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Structuurwijziging
+
 nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
 nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
+
+# webapp generieke tekst 
+web.application.none=geen
+web.application.title=GIS publicatieomgeving
+
+web.application.page.dashboard.title=Dashboard
+web.application.page.dashboard.panel.datassource=Actieve gegevensbron
+web.application.page.dashboard.panel.datassources=Actieve gegevensbronnen
+web.application.page.dashboard.panel.notification=Melding
+web.application.page.dashboard.panel.notifications=Meldingen
+web.application.page.dashboard.panel.task=Actieve taak
+web.application.page.dashboard.panel.tasks=Actieve taken
+web.application.page.dashboard.panel.error=Foutmelding
+web.application.page.dashboard.panel.errors=Foutmeldingen
+
+web.application.page.datasets.title=Datasets
+
+web.application.page.sourcedatasets.title=Brongegevens
+
+

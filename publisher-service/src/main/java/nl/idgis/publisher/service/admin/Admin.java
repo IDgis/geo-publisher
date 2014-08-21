@@ -1,6 +1,10 @@
 package nl.idgis.publisher.service.admin;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
@@ -15,29 +19,38 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
+import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-
+import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.job.JobType;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
-import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
-import nl.idgis.publisher.domain.web.DashboardActiveTask;
-import nl.idgis.publisher.domain.web.DashboardError;
-import nl.idgis.publisher.domain.web.DashboardNotification;
+import nl.idgis.publisher.domain.web.ActiveTask;
+import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -49,13 +62,21 @@ import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.service.harvester.messages.GetActiveDataSources;
+import nl.idgis.publisher.service.messages.ActiveJob;
+import nl.idgis.publisher.service.messages.ActiveJobs;
+import nl.idgis.publisher.service.messages.GetActiveJobs;
+import nl.idgis.publisher.service.messages.Progress;
 
 import org.joda.time.LocalDateTime;
+
+import com.google.common.collect.Iterables;
 
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
+import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
@@ -68,15 +89,16 @@ public class Admin extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester;
+	private final ActorRef database, harvester, loader;
 	
-	public Admin(ActorRef database, ActorRef harvester) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
 		this.database = database;
-		this.harvester = harvester;		
+		this.harvester = harvester;
+		this.loader = loader;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester) {
-		return Props.create(Admin.class, database, harvester);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
+		return Props.create(Admin.class, database, harvester, loader);
 	}
 
 	@Override
@@ -90,12 +112,12 @@ public class Admin extends UntypedActor {
 				handleListCategories (listEntity);
 			} else if (listEntity.cls ().equals (Dataset.class)) {
 				handleListDatasets (null);
-			} else if (listEntity.cls ().equals (DashboardNotification.class)) {
+			} else if (listEntity.cls ().equals (Notification.class)) {
 				handleListDashboardNotifications (null);
-			} else if (listEntity.cls ().equals (DashboardActiveTask.class)) {
+			} else if (listEntity.cls ().equals (ActiveTask.class)) {
 				handleListDashboardActiveTasks (null);
-			} else if (listEntity.cls ().equals (DashboardError.class)) {
-				handleListDashboardErrors (null);
+			} else if (listEntity.cls ().equals (Issue.class)) {
+				handleListDashboardIssues (null);
 			} else {
 				handleEmptyList (listEntity);
 			}
@@ -296,46 +318,170 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 	}
 	
-	private void handleListDashboardErrors(Object object) {
-		log.debug ("handleDashboardErrorList");
+	private void handleListDashboardIssues(Object object) {
+		log.debug ("handleListDashboardIssues");
 		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		// TODO get content from joblog
-		final Page.Builder<DashboardError> dashboardErrors = new Page.Builder<DashboardError> ();
-		dashboardErrors.add(new DashboardError("id1", "datasetName1", "message1", LocalDateTime.now()));
-		dashboardErrors.add(new DashboardError("id2", "datasetName2", "message2", LocalDateTime.now()));
-		dashboardErrors.add(new DashboardError("id3", "Geluidszone bedrijventerrein ", "Fout tijdens bijwerken", LocalDateTime.now()));
-
-		log.debug("sending DashboardError list");
-		sender.tell (dashboardErrors.build (), self);
+		final ActorRef sender = getSender();
+		Patterns.ask(database, new GetJobLog(LogLevel.WARNING), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+				
+				@Override
+				@SuppressWarnings("unchecked")
+				public void onSuccess(Object msg) throws Throwable {
+					final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
+					
+					List<StoredJobLog> jobLogs = (List<StoredJobLog>)msg;
+					for(StoredJobLog jobLog : jobLogs) {
+						JobInfo job = jobLog.getJob();
+						
+						MessageType type = jobLog.getType();
+						
+						dashboardIssues.add(
+							new Issue(
+									"" + job.getId(),
+									new Message(
+											type,
+											Arrays.asList(jobLog.getContent())),
+									jobLog.getLevel(),
+									job.getJobType()));
+							
+					}
+					
+					sender.tell(dashboardIssues.build(), getSelf());
+				}
+				
+			}, getContext().dispatcher());
 	}
 
 	private void handleListDashboardActiveTasks(Object object) {
-		log.debug ("handleDashboardErrorList");
+		log.debug ("handleDashboardActiveTaskList");
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
+		final Future<Object> harvestJobs = Patterns.ask(harvester, new GetActiveJobs(), 15000);
+		final Future<Object> loaderJobs = Patterns.ask(loader, new GetActiveJobs(), 15000);
 		
-		// TODO get content from joblog
-		final Page.Builder<DashboardActiveTask> dashboardActiveTasks = new Page.Builder<DashboardActiveTask> ();
-		dashboardActiveTasks.add(new DashboardActiveTask("id1", "datasetName1", "message2", (int) Math.round(Math.random()*90.0) + 10));
-		dashboardActiveTasks.add(new DashboardActiveTask("id2", "Werkgelegenheid ", "Bezig met bijwerken",  (int) Math.round(Math.random()*90.0) + 10));
+		final Future<Map<String, String>> dataSourceNames = dataSourceInfo.map(new Mapper<Object, Map<String, String>>() {
+			
+			@SuppressWarnings("unchecked")
+			public Map<String, String> apply(Object msg) {
+				List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;
+				
+				Map<String, String> retval = new HashMap<String, String>();
+				for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
+					retval.put(dataSourceInfo.getId(), dataSourceInfo.getName());
+				}
+				
+				return retval;
+			}
+			
+		}, getContext().dispatcher());
+		
+		final Future<Iterable<ActiveTask>> activeHarvestTasks = 
+			harvestJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
 
-		log.debug("sending DashboardError list");
-		sender.tell (dashboardActiveTasks.build (), self);
+			@Override
+			public Future<Iterable<ActiveTask>> apply(Object msg) {
+				final ActiveJobs activeJobs = (ActiveJobs)msg;
+				
+				return dataSourceNames.map(new Mapper<Map<String, String>, Iterable<ActiveTask>>() {
+					
+					public Iterable<ActiveTask> apply(Map<String, String> dataSourceNames) {
+						List<ActiveTask> activeTasks = new ArrayList<>();
+						
+						for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
+							HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
+							 
+							activeTasks.add(
+									new ActiveTask(
+											"" + harvestJob.getId(), 
+											dataSourceNames.get(harvestJob.getDataSourceId()), 
+											new Message(JobType.HARVEST, null), 
+											null));
+						}
+						
+						return activeTasks;
+					}
+				}, getContext().dispatcher());
+			}
+			
+		}, getContext().dispatcher());
+		
+		final Future<Iterable<ActiveTask>> activeLoaderTasks = 
+			loaderJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
+				
+				public Future<Iterable<ActiveTask>> apply(Object msg) {
+					ActiveJobs activeJobs = (ActiveJobs)msg;
+					
+					List<Future<ActiveTask>> activeTasks = new ArrayList<>(); 
+					Map<String, Future<Object>> datasetInfos = new HashMap<String, Future<Object>>();
+					for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
+						final ImportJobInfo job = (ImportJobInfo)activeJob.getJob();
+						final Progress progress = (Progress)activeJob.getProgress();
+						
+						String datasetId = job.getDatasetId();
+						if(!datasetInfos.containsKey(datasetId)) {
+							datasetInfos.put(
+									datasetId,							
+									Patterns.ask(
+											database, 
+											new GetDatasetInfo(datasetId), 
+											15000));
+						}
+						
+						activeTasks.add(datasetInfos.get(datasetId).map(new Mapper<Object, ActiveTask>() {
+							
+							public ActiveTask apply(Object msg) {
+								DatasetInfo datasetInfo = (DatasetInfo)msg;
+								
+								return new ActiveTask(
+									"" + job.getId(),
+									datasetInfo.getName(),
+									new Message(JobType.IMPORT, null),
+									(int)(progress.getCount() * 100 / progress.getTotalCount()));
+							}
+							
+						}, getContext().dispatcher()));
+					}
+					
+					return Futures.sequence(activeTasks, getContext().dispatcher());
+				}
+				
+			}, getContext().dispatcher());
+		
+		final ActorRef sender = getSender();
+		activeHarvestTasks.flatMap(new Mapper<Iterable<ActiveTask>, Future<Iterable<ActiveTask>>>() {
+			
+			public Future<Iterable<ActiveTask>> apply(final Iterable<ActiveTask> activeHarvestTasks) {
+				return activeLoaderTasks.map(new Mapper<Iterable<ActiveTask>, Iterable<ActiveTask>>() {
+					
+					public Iterable<ActiveTask> apply(final Iterable<ActiveTask> activeLoaderTasks) {
+						return Iterables.concat(activeHarvestTasks, activeLoaderTasks);
+					}
+				}, getContext().dispatcher());
+			}
+			
+		}, getContext().dispatcher()).onSuccess(new OnSuccess<Iterable<ActiveTask>>() {
+
+			@Override
+			public void onSuccess(Iterable<ActiveTask> activeTasks) throws Throwable {
+				Builder<ActiveTask> builder = new Page.Builder<>();
+				for(ActiveTask activeTask : activeTasks) {
+					builder.add(activeTask);
+				}
+				sender.tell(builder.build(), getSelf());				
+			}
+			
+		}, getContext().dispatcher());
 	}
 
 	private void handleListDashboardNotifications(Object object) {
-		log.debug ("handleDashboardErrorList");
+		log.debug ("handleDashboardNotificationList");
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
+		 
+		final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification> ();
 		
-		// TODO get content from joblog
-		final Page.Builder<DashboardNotification> dashboardNotifications = new Page.Builder<DashboardNotification> ();
-		dashboardNotifications.add(new DashboardNotification("id1", "Sterrenwachten ", "Structuurwijziging"));
-
-		log.debug("sending DashboardError list");
-		sender.tell (dashboardNotifications.build (), self);
+		sender.tell (dashboardNotifications.build (), getSelf());
 	}
 
 	private void handleEmptyList (final ListEntity<?> listEntity) {

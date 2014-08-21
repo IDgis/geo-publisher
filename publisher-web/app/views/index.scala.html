@@ -1,10 +1,11 @@
 @(dataSources: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.DataSource],
-	notifications: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.DashboardNotification],
-	tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.DashboardActiveTask],
-	errors: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.DashboardError]
+	notifications: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Notification],
+	tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask],
+	errors: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue]
 )
 
 @import org.joda.time.LocalDateTime
+@import nl.idgis.publisher.domain.web.MessageContext
 
 @dateTimeToMessage(date: LocalDateTime) = {
 	1 dag geleden
@@ -113,7 +114,7 @@
 						@for(notification <- notifications.values) {
 							<li class="list-group-item">
 								<a href="#">
-									@notification.message: @notification.datasetName
+									 
 								</a>
 							</li>
 						}
@@ -159,17 +160,19 @@
 					</div>
 					<ul class="list-group">
 						@for(task <- tasks.values) {
-							<li class="list-group-item">
+							<li class="list-group-item task">
 								<div>
-									<strong>@task.datasetName</strong>
-									<span class="pull-right text-muted">@task.message</span>
+									<strong>@task.title</strong>
 								</div>
-								<div class="progress progress-striped active">
-									<div class="progress-bar progress-bar-success" role="progressbar" 
-									  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-									  @task.progress%
+								@if(task.progress != null) {
+									<div class="progress progress-striped active" >
+										<div class="progress-bar progress-bar-success" role="progressbar" 
+										  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+										  @task.progress%
+										</div>
 									</div>
-								</div>
+								}
+								<div class="text-muted">@Domain.message(task.message, MessageContext.ACTIVE)</div>
 							</li>
 						}
 						
@@ -219,13 +222,9 @@
 							<li class="list-group-item">
 							<div>
 								<p>
-									<strong>@error.message</strong>
-									<span class="pull-right">@dateTimeToMessage(error.dateTime)</span>
+									<strong>@Domain.message(error.message)</strong>									
 								</p>
 							</div>
-							<p>
-								<span class="text-muted">Dataset</span> @error.datasetName  
-							</p>
 							</li>
 						}
 					</ul>

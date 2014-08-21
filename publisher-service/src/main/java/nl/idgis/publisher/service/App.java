@@ -64,7 +64,7 @@ public class App extends UntypedActor {
 				
 				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 				
-				getContext().actorOf(Admin.props(database, harvester), "admin");
+				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
 				
 				getContext().actorOf(Initiator.props(database, harvester, loader), "jobInitiator");
 				

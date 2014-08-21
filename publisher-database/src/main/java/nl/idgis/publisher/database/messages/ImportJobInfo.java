@@ -3,6 +3,7 @@ package nl.idgis.publisher.database.messages;
 import java.util.Collections;
 import java.util.List;
 
+import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.service.Column;
 
 public class ImportJobInfo extends JobInfo {
@@ -12,7 +13,9 @@ public class ImportJobInfo extends JobInfo {
 	private final String categoryId, dataSourceId, sourceDatasetId, datasetId;
 	private final List<Column> columns; 
 	
-	public ImportJobInfo(String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+		super(id, JobType.HARVEST);
+		
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;

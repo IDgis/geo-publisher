@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database.messages;
 
+import nl.idgis.publisher.domain.job.JobType;
+
 import com.mysema.query.annotations.QueryProjection;
 
 public class HarvestJobInfo extends JobInfo {
@@ -9,7 +11,9 @@ public class HarvestJobInfo extends JobInfo {
 	private final String dataSourceId;
 	
 	@QueryProjection
-	public HarvestJobInfo(String dataSourceId) {
+	public HarvestJobInfo(int id, String dataSourceId) {
+		super(id, JobType.HARVEST);
+		
 		this.dataSourceId = dataSourceId;
 	}
 

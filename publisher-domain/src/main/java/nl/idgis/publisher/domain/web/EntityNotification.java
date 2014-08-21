@@ -9,10 +9,10 @@ public final class EntityNotification extends Entity {
 	private static final long serialVersionUID = 988121504973248478L;
 	
 	private final EntityRef entity;
-	private final Notification notification;
+	private final DashboardItem notification;
 	
 	@JsonCreator
-	public EntityNotification (final @JsonProperty("entity") EntityRef entity, final @JsonProperty("notification") Notification notification) {
+	public EntityNotification (final @JsonProperty("entity") EntityRef entity, final @JsonProperty("notification") DashboardItem notification) {
 		this.entity = entity;
 		this.notification = notification;
 	}
@@ -23,7 +23,7 @@ public final class EntityNotification extends Entity {
 	}
 	
 	@JsonGetter
-	public Notification notification () {
+	public DashboardItem notification () {
 		return notification;
 	}
 }
