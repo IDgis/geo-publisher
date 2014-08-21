@@ -8,15 +8,19 @@ import java.util.Arrays;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.NotFound;
+import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
+import akka.event.LoggingAdapter;
 import akka.japi.Function;
 
 public class JdbcContext {
 	
 	private boolean answered = false;
 	
+	private final Query query;
+	private final LoggingAdapter log;
 	private final ActorRef sender, self;
 	private final Connection connection;
 	
@@ -54,7 +58,9 @@ public class JdbcContext {
 		}
 	}
 	
-	JdbcContext(Connection connection, ActorRef sender, ActorRef self) {
+	JdbcContext(LoggingAdapter log, Query query, Connection connection, ActorRef sender, ActorRef self) {		
+		this.log = log;
+		this.query = query;
 		this.connection = connection;
 		this.sender = sender;
 		this.self = self;
@@ -67,8 +73,14 @@ public class JdbcContext {
 	public void answer(Object msg) {
 		if(answered) {
 			throw new IllegalArgumentException("query already answered");
-		} else {			
-			sender.tell(msg == null ? new NotFound() : msg, self);
+		} else {
+			Object response = msg == null ? new NotFound() : msg;
+			
+			if(log.isDebugEnabled()) {
+				log.debug("responding to query: " + query + ", response: " + response);
+			}
+			
+			sender.tell(response, self);
 			answered = true;
 		}
 	}
