@@ -14,7 +14,7 @@ public class Service extends UntypedActor {
 	}
 	
 	public static Props props(ActorRef database) {
-		return Props.create(Service.class);
+		return Props.create(Service.class, database);
 	}
 
 	@Override
