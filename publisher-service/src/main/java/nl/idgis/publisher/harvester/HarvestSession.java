@@ -60,6 +60,8 @@ public class HarvestSession extends AbstractSession {
 	}
 
 	private void handleTimeout() {
+		log.debug("timeout while executing job: " + harvestJob);
+		
 		getContext().stop(getSelf());
 	}
 

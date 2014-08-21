@@ -25,7 +25,7 @@ public abstract class AbstractSession extends UntypedActor {
 		ActorSystem system = getContext().system();
 		
 		timeoutCancellable = system.scheduler().scheduleOnce(
-				Duration.create(15, TimeUnit.SECONDS), 
+				Duration.create(5, TimeUnit.MINUTES), 
 				getSelf(), 
 				new Timeout(), 
 				system.dispatcher(), 
