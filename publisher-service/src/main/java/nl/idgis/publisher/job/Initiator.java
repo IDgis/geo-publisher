@@ -7,6 +7,7 @@ import java.util.Map;
 
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.JobInfo;
 
 import akka.actor.ActorRef;
@@ -23,18 +24,18 @@ public class Initiator extends Scheduled {
 	private final ActorRef database;
 	private final Map<Object, ActorRef> actorRefs;
 	
-	public Initiator(ActorRef database, ActorRef harvester, ActorRef loader) {
+	public Initiator(ActorRef database, Map<Object, ActorRef> actorRefs) {
 		this.database = database;
-		
+		this.actorRefs = actorRefs;
+	}
+	
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
 		Map<Object, ActorRef> actorRefs = new HashMap<>();
 		actorRefs.put(new GetHarvestJobs(), harvester);
 		actorRefs.put(new GetImportJobs(), loader);
+		actorRefs.put(new GetServiceJobs(), service);
 		
-		this.actorRefs = Collections.unmodifiableMap(actorRefs);
-	}
-	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
-		return Props.create(Initiator.class, database, harvester, loader);
+		return Props.create(Initiator.class, database,  Collections.unmodifiableMap(actorRefs));
 	}
 
 	@Override

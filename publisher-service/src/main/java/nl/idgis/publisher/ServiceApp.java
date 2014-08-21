@@ -15,6 +15,7 @@ import nl.idgis.publisher.job.Initiator;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.monitor.messages.Tree;
+import nl.idgis.publisher.service.Service;
 import nl.idgis.publisher.utils.Boot;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -33,7 +34,7 @@ public class ServiceApp extends UntypedActor {
 	
 	private final Config config;
 	
-	private ActorRef geometryDatabase, database, harvester, loader;
+	private ActorRef geometryDatabase, database, harvester, loader, service;
 	
 	public ServiceApp(Config config) {
 		this.config = config;
@@ -64,9 +65,11 @@ public class ServiceApp extends UntypedActor {
 				
 				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 				
+				service = getContext().actorOf(Service.props(database));
+				
 				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
 				
-				getContext().actorOf(Initiator.props(database, harvester, loader), "jobInitiator");
+				getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
 				
 				getContext().actorOf(Creator.props(database), "jobCreator");
 			}
