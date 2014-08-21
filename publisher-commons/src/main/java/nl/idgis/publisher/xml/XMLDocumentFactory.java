@@ -1,13 +1,16 @@
 package nl.idgis.publisher.xml;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -42,9 +45,16 @@ public class XMLDocumentFactory extends UntypedActor {
 	}
 
 	private void handleParseDocument(ParseDocument msg) throws Exception {
-		log.debug("parsing xml document");
+		log.debug("parsing xml document");		
 		
-		Document document = documentBuilder.parse(new ByteArrayInputStream(msg.getContent()));
+		Document document;
+		try {
+			document = documentBuilder.parse(new ByteArrayInputStream(msg.getContent()));
+		} catch (SAXException | IOException e) {
+			getSender().tell(new NotParseable(e.getMessage()), getSelf());
+			
+			throw new IllegalArgumentException("Content not parseable", e);
+		}
 		
 		getSender().tell(getContext().actorOf(XMLDocument.props(document)), getSelf());
 	}

@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.GetString;
+import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
 import org.junit.Test;
@@ -68,5 +69,23 @@ public class XMLDocumentTest {
 		// is not supposed to work anymore because we just closed the document
 		future = Patterns.ask(document, new GetString(""), 1000);
 		Await.result(future, AWAIT_DURATION);
+	}
+	
+	@Test
+	public void testUnparseable() throws Exception {
+		ActorSystem system = ActorSystem.create();		
+		
+		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		
+		Future<Object> future = Patterns.ask(factory, new ParseDocument("This is not XML!".getBytes("utf-8")), 15000);
+		
+		Object response = Await.result(future, AWAIT_DURATION);
+		assertTrue(response instanceof NotParseable);
+		
+		// test if the factory is still operational
+		future = Patterns.ask(factory, new ParseDocument("<tag/>".getBytes("utf-8")), 15000);
+		
+		response = Await.result(future, AWAIT_DURATION);
+		assertTrue(response instanceof ActorRef);
 	}
 }
