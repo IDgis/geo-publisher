@@ -47,8 +47,10 @@ public abstract class JdbcTransaction extends UntypedActor {
 		} else if(msg instanceof Query) {
 			try {
 				log.debug("executing query");
-				JdbcContext context = new JdbcContext(connection, getSender(), getSelf());
-				executeQuery(context, (Query) msg);						
+				Query query = (Query) msg;
+				
+				JdbcContext context = new JdbcContext(log, query, connection, getSender(), getSelf());
+				executeQuery(context, query);						
 				context.finish();
 			} catch(SQLException e) {
 				log.error(e, "query failure");
