@@ -62,7 +62,7 @@ public class ServiceRest {
 		return urlConnection;
 	}
 	
-	protected boolean addWorkspace(Workspace workspace) throws Exception {
+	public boolean addWorkspace(Workspace workspace) throws Exception {
 		HttpURLConnection connection = getConnection(getWorkspacesPath());
 		
 		OutputStream outputStream = getOutputStream(connection);
@@ -94,7 +94,7 @@ public class ServiceRest {
 		return connection.getOutputStream();		
 	}
 	
-	protected List<Workspace> getWorkspaces() throws Exception {
+	public List<Workspace> getWorkspaces() throws Exception {
 		List<Workspace> retval = new ArrayList<>();		
 
 		Document document = getDocument(getWorkspacesPath());
@@ -130,7 +130,7 @@ public class ServiceRest {
 		return getDataStoresPath(workspace) + "/" + dataStoreName;
 	}
 
-	protected List<DataStore> getDataStores(Workspace workspace) throws Exception {
+	public List<DataStore> getDataStores(Workspace workspace) throws Exception {
 		List<DataStore> retval = new ArrayList<>();
 		
 		Document document = getDocument(getDataStoresPath(workspace));
@@ -144,7 +144,7 @@ public class ServiceRest {
 		return retval;
 	}
 
-	protected boolean addDataStore(Workspace workspace, DataStore dataStore) throws Exception {
+	public boolean addDataStore(Workspace workspace, DataStore dataStore) throws Exception {
 		HttpURLConnection connection = getConnection(getDataStoresPath(workspace));
 				
 		OutputStream outputStream = getOutputStream(connection);
@@ -197,7 +197,7 @@ public class ServiceRest {
 		return new FeatureType(name, nativeName, Collections.unmodifiableList(attributes));
 	}
 	
-	protected List<FeatureType> getFeatureTypes(Workspace workspace, DataStore dataStore) throws Exception {
+	public List<FeatureType> getFeatureTypes(Workspace workspace, DataStore dataStore) throws Exception {
 		List<FeatureType> retval = new ArrayList<>();
 		
 		Document document = getDocument(getFeatureTypesPath(workspace, dataStore));
@@ -210,7 +210,7 @@ public class ServiceRest {
 		return retval;
 	}
 	
-	protected boolean addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) throws Exception {
+	public boolean addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) throws Exception {
 		HttpURLConnection connection = getConnection(getFeatureTypesPath(workspace, dataStore));
 		
 		OutputStream outputStream = getOutputStream(connection);
