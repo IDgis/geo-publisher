@@ -3,6 +3,7 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,8 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -463,6 +466,13 @@ public class Datasets extends Controller {
 			});
 	}
 
+	private static Filter emptyFilter () {
+		final Filter.OperatorExpression andExpression = new Filter.OperatorExpression (OperatorType.AND, Collections.<Filter.FilterExpression>emptyList ());
+		final Filter.OperatorExpression orExpression = new Filter.OperatorExpression (OperatorType.OR, Arrays.<Filter.FilterExpression>asList (new Filter.FilterExpression[] { andExpression }));
+		
+		return new Filter (orExpression);
+	}
+	
 	public static class DatasetForm {
 		
 		@Constraints.Required
@@ -487,9 +497,10 @@ public class Datasets extends Controller {
 		private String id;
 
 		@Constraints.Required
-		private String filterConditions = Json.stringify (Json.newObject ());
+		private String filterConditions;
 
 		public DatasetForm () {
+			filterConditions = Json.stringify (Json.toJson (emptyFilter ()));
 		}
 		
 		public DatasetForm (final Dataset ds, String dataSourceId, List<Column> columns) {
@@ -503,7 +514,7 @@ public class Datasets extends Controller {
 			}			
 			setColumns (map);
 			setId (ds.id ());
-			setFilterConditions (Json.stringify (Json.newObject ()));
+			setFilterConditions (Json.stringify (Json.toJson (emptyFilter ())));
 		}
 		
 		public String getName() {

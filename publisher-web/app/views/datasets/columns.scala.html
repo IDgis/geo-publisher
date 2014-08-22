@@ -3,7 +3,7 @@
 @(columns: List[Column], datasetForm: Form[controllers.Datasets.DatasetForm])
 
 @for(column <- columns) {
-	<label class="list-group-item">
+	<label class="list-group-item js-column" data-name="@column.getName()" data-type="@column.getDataType()">
 		<div class="row">
 			<div class="col-sm-1 text-center">
 				<input name="columns[@column.getName()]" type="checkbox"@if(datasetForm==null|| datasetForm("columns").sub("[" + column.getName() + "]").value != null){ checked}>

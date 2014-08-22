@@ -1,16 +1,34 @@
+/* jshint expr:true */
 require ([
     'dojo/_base/lang',
+    'dojo/_base/array',
 	'dojo/dom', 
 	'dojo/dom-construct',
 	'dojo/dom-attr',
 	'dojo/dom-class',
 	'dojo/query', 
 	'dojo/on', 
-	'dojo/request/xhr', 
+	'dojo/request/xhr',
+	'dojo/json',
 	
-	'dojo/domReady!'], 
+	'put-selector/put',
 	
-function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
+	'dojo/domReady!'
+], function(
+	lang, 
+	array,
+	
+	dom, 
+	domConstruct, 
+	domAttr, 
+	domClass, 
+	query, 
+	on, 
+	xhr, 
+	json, 
+	
+	put
+) {
 	
 	var dataSourceSelect = dom.byId('input-datasource'),
 		categorySelect = dom.byId('input-category'),
@@ -144,16 +162,16 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 			
 			var iconNode = query ('span.glyphicon', idInput.parentNode)[0];
 			
-			domClass.remove (iconNode, ['glyphicon-remove', 'glyphicon-ok', 'rotating', 'glyphicon-warning-sign']);
+			iconNode && domClass.remove (iconNode, ['glyphicon-remove', 'glyphicon-ok', 'rotating', 'glyphicon-warning-sign']);
 			domClass.remove (idInput.parentNode.parentNode, ['has-error', 'has-success', 'has-warning']);
 			
 			if (currentId.length < 3) {
-				domClass.add (iconNode, 'glyphicon-warning-sign');
+				iconNode && domClass.add (iconNode, 'glyphicon-warning-sign');
 				domClass.add (idInput.parentNode.parentNode, 'has-warning');
 				return;
 			}
 			
-			domClass.add (iconNode, ['glyphicon-refresh', 'rotating']);
+			iconNode && domClass.add (iconNode, ['glyphicon-refresh', 'rotating']);
 	
 			if (updateIdPromise) {
 				updateIdPromise.cancel ();
@@ -163,19 +181,19 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 				handleAs: 'json'
 			}).then (function (data) {
 				updateIdPromise = null;
-				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
+				iconNode && domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
 				
 				if (!data.status || data.status != 'notfound') {
-					domClass.add (iconNode, 'glyphicon-remove');
+					iconNode && domClass.add (iconNode, 'glyphicon-remove');
 					domClass.add (idInput.parentNode.parentNode, 'has-error');
 				} else {
-					domClass.add (iconNode, 'glyphicon-ok');
+					iconNode && domClass.add (iconNode, 'glyphicon-ok');
 					domClass.add (idInput.parentNode.parentNode, 'has-success');
 				}
 			}, function () {
 				updateIdPromise = null;
-				domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
-				domClass.add (iconNode, 'glyphicon-remove');
+				iconNode && domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
+				iconNode && domClass.add (iconNode, 'glyphicon-remove');
 				domClass.add (idInput.parentNode.parentNode, 'has-error');
 			});
 		}, 300);
@@ -184,4 +202,128 @@ function(lang, dom, domConstruct, domAttr, domClass, query, on, xhr) {
 	on (idInput, 'keyup,change', updateId);
 	
 	updateId ();
+	
+	// =========================================================================
+	// Filter editor:
+	// =========================================================================
+	var filterTextarea = query ('textarea[name="filterConditions"]')[0],
+		filterEditorNode = dom.byId ('filter-editor');
+	
+	domClass.add (filterTextarea, 'hidden');
+
+	function listColumns () {
+		return array.map (query ('.js-column', dom.byId ('column-list')), function (columnNode) {
+			return { 
+				name: domAttr.get (columnNode, 'data-name'),
+				type: domAttr.get (columnNode, 'data-type')
+			};
+		});
+	}
+	
+	function buildOperatorExpression (expression) {
+		var container = put ('div.list-group-item.js-operator'),
+			row = put (container, 'div.row');
+		
+		var columnSelect = put (row, 'div.col-lg-4 select.form-control');
+		put (row, 'div.col-lg-2 select.form-control');
+		put (row, 'div.col-lg-4 input[type="text"].form-control');
+		
+		put (columnSelect, 'option[value=""] $', 'Kies een kolom ...');
+		array.forEach (listColumns (), function (column) {
+			put (columnSelect, 'option[value=$] $', column.name + ':' + column.type, column.name + ' (' + column.type + ')');
+		});
+			
+		put (row, 'dov.col-lg-2 button.btn.btn-warning span.glyphicon.glyphicon-remove');
+		
+		return container;
+	}
+	
+	function buildLogicalExpression (expression) {
+		var type = expression.operatorType.toLowerCase (),
+			isAnd = type == 'and',
+			container = put ('div.js-operator.panel.panel-default.filter-operator.filter-operator-' + type),
+			header = put (container, 'div.panel-heading $', isAnd ? 'Alle onderstaande condities zijn waar' : 'Tenminste één van onderstaande condities is waar'),
+			body = put (container, 'div.panel-body'),
+			list = isAnd ? put (body, 'div.list-group') : body,
+			children = array.map (expression.inputs || [ { } ], buildExpression);
+	
+		domAttr.set (container, 'data-operator-type', type);
+		domClass.add (list, 'js-list');
+		
+		for (var i = 0; i < children.length; ++ i) {
+			if (!isAnd && i > 0) {
+				put (list, 'div.filter-separator.filter-separator-or' + type + ' $', 'Of');
+			}
+			put (list, children[i]);
+		}
+		
+		put (container, 'div.panel-footer button[type="button"].btn.btn-success.filter-add.filter-add-or.js-add-expression span.glyphicon.glyphicon-plus');
+		
+		return container;
+	}
+	
+	function buildExpression (expression) {
+		switch ((expression.operatorType || '').toLowerCase ()) {
+		case "or":
+		case "and":
+			return buildLogicalExpression (expression);
+		default:
+			return buildOperatorExpression (expression);
+		}
+	}
+	
+	function buildFilterEditor (filter) {
+		console.log ('Creating filter: ', filter);
+		domConstruct.empty (filterEditorNode);
+		
+		put (filterEditorNode, buildExpression (filter.expression));
+	}
+	
+	function listOperators (listNode) {
+		return array.map (query ('> .js-operator', listNode), function (operatorNode) {
+			var operatorType = domAttr.get (operatorNode, 'data-operator-type'),
+				inputListNode = query ('.js-list', operatorNode)[0];
+			
+			if (operatorType) {
+				// This is a container: AND or OR.
+				return {
+					type: 'operator',
+					operatorType: operatorType.toUpperCase (),
+					inputs: listOperators (inputListNode)
+				};
+			} else {
+				// This is a binary or unary operator:
+				return { };
+			}
+		});
+	}
+
+	function syncTextarea () {
+		var filterObject = { expression: listOperators (filterEditorNode)[0] },
+			value = json.stringify (filterObject);
+		
+		console.log ('Syncing filter: ', filterObject);
+		filterTextarea.value = value;
+	}
+	
+	buildFilterEditor (json.parse (filterTextarea.value));
+	
+	on (filterEditorNode, 'button.js-add-expression:click', function (e) {
+		var containerNode = this.parentNode.parentNode,
+			listNode = query ('.js-list', containerNode)[0],
+			rootOperatorType = domAttr.get (containerNode, 'data-operator-type').toLowerCase (),
+			expression = { };
+		
+		if (rootOperatorType == 'or') {
+			expression = {
+				type: 'operator',
+				operatorType: 'AND'
+			};
+			put (listNode, 'div.filter-separator.filter-separator-' + rootOperatorType + ' $', rootOperatorType);
+		}
+
+		put (listNode, buildExpression (expression));
+		
+		syncTextarea ();
+	});
 });
