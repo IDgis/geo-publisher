@@ -46,7 +46,7 @@ public class ServiceApp extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		Config geometryDatabaseConfig = config.getConfig("geometry-database");
+		final Config geometryDatabaseConfig = config.getConfig("geometry-database");
 		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
 		
 		Config databaseConfig = config.getConfig("database");
@@ -65,7 +65,9 @@ public class ServiceApp extends UntypedActor {
 				
 				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 				
-				//service = getContext().actorOf(Service.props(database));
+				Config geoserverConfig = config.getConfig("geoserver");
+				
+				service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig));
 				
 				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
 				
