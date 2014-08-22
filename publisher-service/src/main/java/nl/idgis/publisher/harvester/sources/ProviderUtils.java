@@ -13,7 +13,7 @@ public class ProviderUtils {
 				tableName = alternateTitle.trim();
 			}
 			
-			return tableName.replace(":", ".").toUpperCase();
+			return tableName.replace(":", ".").toLowerCase();
 		}
 		
 		return null;
@@ -26,7 +26,7 @@ public class ProviderUtils {
 			int separator = tableName.indexOf(".");
 			if(separator != -1) {
 				String schemaName = tableName.substring(0, separator);
-				return schemaName;
+				return schemaName.toLowerCase();
 			}
 		}
 		
