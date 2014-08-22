@@ -63,6 +63,7 @@ import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.StoredJobLog;
@@ -359,6 +360,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return getJobQuery(context, (ImportJobInfo)job);
 		} else if(job instanceof HarvestJobInfo) {
 			return getJobQuery(context, (HarvestJobInfo)job);
+		} else if(job instanceof ServiceJobInfo) {
+			return getJobQuery(context, (ServiceJobInfo)job);		
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
@@ -414,7 +417,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(jobStateSub.jobId.eq(job.id)
 					.and(isFinished(jobStateSub)))
 				.notExists();
-	}	
+	}
+	
+	private SQLQuery getJobQuery(QueryDSLContext context, ServiceJobInfo sj) {
+		return context.query().from(job)
+				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+				.join(category).on(category.id.eq(sourceDataset.categoryId))
+				.where(dataset.identification.eq(sj.getTableName()))
+				.where(category.identification.eq(sj.getSchemaName()))
+				.where(unfinishedState());
+	}
 
 	private SQLQuery getJobQuery(QueryDSLContext context, HarvestJobInfo hj) {
 		return context.query().from(job)
