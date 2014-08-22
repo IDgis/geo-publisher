@@ -27,6 +27,9 @@ import org.junit.Test;
 
 public class ServiceRestTest {
 	
+	private static final int JETTY_PORT = 7000;
+	private static final int PG_PORT = PgServer.DEFAULT_PORT;
+	
 	Thread pgListenThread;
 	PgServer pgServer;
 	Server jettyServer;
@@ -53,7 +56,7 @@ public class ServiceRestTest {
 			delete(baseDir);
 		}
 		
-		pgServer.init("-baseDir", baseDir.getAbsolutePath());
+		pgServer.init("-pgPort", "" + PG_PORT, "-baseDir", baseDir.getAbsolutePath());
 		
 		pgServer.start();
 		
@@ -87,7 +90,7 @@ public class ServiceRestTest {
 		String geoserverDataDir = dataDir.getAbsolutePath();
 		System.setProperty("GEOSERVER_DATA_DIR", geoserverDataDir);
 		
-		jettyServer = new Server(8080);
+		jettyServer = new Server(JETTY_PORT);
 		WebAppContext context = new WebAppContext();
 		File webXml = new File("target/geoserver/WEB-INF/web.xml");
 		context.setDescriptor(webXml.getAbsolutePath());
@@ -110,7 +113,7 @@ public class ServiceRestTest {
 	@Test
 	public void testRest() throws Exception {
 		
-		final ServiceRest service = new ServiceRest("http://localhost:8080/rest/", "admin", "geoserver");
+		final ServiceRest service = new ServiceRest("http://localhost:" + JETTY_PORT + "/rest/", "admin", "geoserver");
 		
 		List<Workspace> workspaces = service.getWorkspaces();
 		assertNotNull(workspaces);
@@ -149,7 +152,7 @@ public class ServiceRestTest {
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
 		assertEquals("localhost", connectionParameters.get("host"));
-		assertEquals("" + PgServer.DEFAULT_PORT, connectionParameters.get("port"));
+		assertEquals("" + PG_PORT, connectionParameters.get("port"));
 		assertEquals("test", connectionParameters.get("database"));
 		assertEquals("postgres", connectionParameters.get("user"));
 		assertEquals("postgis", connectionParameters.get("dbtype"));
