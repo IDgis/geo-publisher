@@ -9,8 +9,8 @@
 	datasetForm: Form[controllers.Datasets.DatasetForm])
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
-@createDataset = @{datasetForm.value().toString.equals("None")} 
 @datasetId = @{datasetForm("id").value()}
+@createDataset = @{datasetId == null || datasetId.isEmpty} 
 
 @layout.application(
 	title = "Nieuwe dataset toevoegen",
@@ -151,8 +151,10 @@
 				</div>
 				
 				<div class="tab-pane" id="dataset-filters">
-					<div class="well">
-						<p class="h1">Dataset filters zijn nog niet beschikbaar</p>
+					<div class="row">
+						<div class="col-lg-8">
+							<textarea name="@datasetForm("filterConditions").name">@datasetForm("filterConditions").value</textarea>
+						</div>
 					</div>
 				</div>
 			

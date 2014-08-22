@@ -14,8 +14,8 @@ import models.Domain.Function2;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
-import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
@@ -210,7 +210,7 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> createForm () {
 		Logger.debug ("createForm");
-		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class);
+		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).fill (new DatasetForm ());
 		
 		return renderCreateForm (datasetForm);
 	}
@@ -486,6 +486,9 @@ public class Datasets extends Controller {
 		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String id;
 
+		@Constraints.Required
+		private String filterConditions = Json.stringify (Json.newObject ());
+
 		public DatasetForm () {
 		}
 		
@@ -500,6 +503,7 @@ public class Datasets extends Controller {
 			}			
 			setColumns (map);
 			setId (ds.id ());
+			setFilterConditions (Json.stringify (Json.newObject ()));
 		}
 		
 		public String getName() {
@@ -548,6 +552,14 @@ public class Datasets extends Controller {
 
 		public void setId (final String id) {
 			this.id = id;
+		}
+
+		public String getFilterConditions () {
+			return filterConditions;
+		}
+
+		public void setFilterConditions (final String filterConditions) {
+			this.filterConditions = filterConditions;
 		}
 
 		@Override
