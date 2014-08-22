@@ -2,14 +2,18 @@ package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Column implements Serializable {
 	
 	private static final long serialVersionUID = 6110525555358536529L;
 	
 	private final String name;
 	private final Type dataType;
-	
-	public Column(String name, Type dataType) {
+
+	@JsonCreator
+	public Column(@JsonProperty("name") String name, @JsonProperty("dataType") Type dataType) {
 		this.name = name;
 		this.dataType = dataType;
 	}
