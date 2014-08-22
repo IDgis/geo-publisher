@@ -11,9 +11,13 @@
   	<logger name="nl.idgis.publisher.ServiceApp" level="debug"/>
    -->
    
+   <!--
+    <logger name="nl.idgis.publisher.service" level="debug"/>
+  -->
+    
   <!--
  	<logger name="nl.idgis.publisher.job" level="debug"/>
-   -->
+  -->
      
   <!-- 
   	<logger name="nl.idgis.publisher.database" level="debug"/>
