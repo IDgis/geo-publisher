@@ -39,7 +39,7 @@ import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetHarvestStatus;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
@@ -56,7 +56,7 @@ import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
-import nl.idgis.publisher.database.messages.QHarvestStatus;
+import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
@@ -214,8 +214,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeCreateImportJob(context, (CreateImportJob)query);
 		} else if(query instanceof UpdateJobState) {
 			executeUpdateJobState(context, (UpdateJobState)query);
-		} else if(query instanceof GetHarvestStatus) {
-			executeGetHarvestStatus(context);
+		} else if(query instanceof GetDataSourceStatus) {
+			executeGetDataSourceStatus(context);
 		} else if(query instanceof GetJobLog) {
 			executeGetJobLog(context, (GetJobLog)query);
 		} else if(query instanceof GetServiceJobs) {
@@ -318,7 +318,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.answer(jobLogs);
 	}
 
-	private void executeGetHarvestStatus(QueryDSLContext context) {
+	private void executeGetDataSourceStatus(QueryDSLContext context) {
 		QJobState jobStateSub = new QJobState("job_state_sub");			
 		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");			
 		
@@ -331,7 +331,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.join(harvestJobSub).on(harvestJobSub.jobId.eq(jobStateSub.jobId))
 					.where(jobStateSub.createTime.after(jobState.createTime))
 					.notExists())
-				.list(new QHarvestStatus(
+				.list(new QDataSourceStatus(
 						dataSource.identification, 
 						jobState.createTime, 
 						jobState.state)));

@@ -8,8 +8,8 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.GetHarvestStatus;
-import nl.idgis.publisher.database.messages.HarvestStatus;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
+import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.domain.job.JobState;
 
 import akka.actor.ActorRef;
@@ -39,18 +39,18 @@ public class Creator extends Scheduled {
 	protected void doInitiate() {
 		log.debug("creating jobs");
 		
-		Patterns.ask(database, new GetHarvestStatus(), 15000)
+		Patterns.ask(database, new GetDataSourceStatus(), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 				
 				@Override
 				@SuppressWarnings("unchecked")
 				public void onSuccess(Object msg) throws Throwable {
-					log.debug("harvest status: " + msg);
+					log.debug("data source status: " + msg);
 					
-					for(HarvestStatus harvestStatus : (List<HarvestStatus>)msg) {
-						final String dataSourceId = harvestStatus.getDataSourceId();
-						final JobState state = harvestStatus.getFinishedState();
-						final Timestamp time = harvestStatus.getLastFinished();
+					for(DataSourceStatus dataSourceStatus : (List<DataSourceStatus>)msg) {
+						final String dataSourceId = dataSourceStatus.getDataSourceId();
+						final JobState state = dataSourceStatus.getFinishedState();
+						final Timestamp time = dataSourceStatus.getLastHarvested();
 						
 						final long timeDiff;
 						if(time != null) {
