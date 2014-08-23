@@ -10,6 +10,7 @@ import java.util.List;
 import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
@@ -68,6 +69,25 @@ public class JdbcContext {
 
 	public Connection getConnection() {
 		return this.connection;
+	}
+	
+	public <T> void answer(Class<T> type, Iterable<T> msg) {
+		answer(new TypedIterable<>(type, msg));
+	}
+	
+	public void answer(TypedIterable<?> msg) {
+		answer((Object)msg);
+	}	
+	
+	/**
+	 * 
+	 * @param msg
+	 * 
+	 * @deprecated use {@link #answer(Class, Iterable)} instead.
+	 */
+	@Deprecated
+	public void answer(Iterable<?> msg) {
+		answer((Object)msg);
 	}
 	
 	public void answer(Object msg) {
