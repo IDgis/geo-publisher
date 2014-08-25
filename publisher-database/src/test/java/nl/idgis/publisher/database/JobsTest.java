@@ -5,8 +5,8 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetColumnHistory.sourceDatasetColumnHistory;
-import static nl.idgis.publisher.database.QSourceDatasetHistory.sourceDatasetHistory;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
@@ -82,19 +82,19 @@ public class JobsTest extends AbstractDatabaseTest {
 				.set(category.name, "My Test Category")
 				.executeWithKey(category.id);
 		
-		int historyId =
-			insert(sourceDatasetHistory)
-				.set(sourceDatasetHistory.name, "My Test SourceDataset")
-				.set(sourceDatasetHistory.revision, new Timestamp(new Date().getTime()))
-				.set(sourceDatasetHistory.sourceDatasetId, sourceDatasetId)
-				.set(sourceDatasetHistory.categoryId, categoryId)
-				.executeWithKey(sourceDatasetHistory.id);
+		int versionId =
+			insert(sourceDatasetVersion)
+				.set(sourceDatasetVersion.name, "My Test SourceDataset")
+				.set(sourceDatasetVersion.revision, new Timestamp(new Date().getTime()))
+				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+				.set(sourceDatasetVersion.categoryId, categoryId)
+				.executeWithKey(sourceDatasetVersion.id);
 		
-		insert(sourceDatasetColumnHistory)
-			.set(sourceDatasetColumnHistory.sourceDatasetHistoryId, historyId)
-			.set(sourceDatasetColumnHistory.index, 0)
-			.set(sourceDatasetColumnHistory.name, "test")
-			.set(sourceDatasetColumnHistory.dataType, "GEOMETRY")
+		insert(sourceDatasetVersionColumn)
+			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+			.set(sourceDatasetVersionColumn.index, 0)
+			.set(sourceDatasetVersionColumn.name, "test")
+			.set(sourceDatasetVersionColumn.dataType, "GEOMETRY")
 			.execute();
 		
 		int datasetId = 
