@@ -23,6 +23,10 @@
   	<logger name="nl.idgis.publisher.database" level="debug"/>
    -->
   
+  <!--   
+    <logger name="com.mysema.query.sql" level="debug"/>
+   -->
+  
    <!-- 
   	<logger name="nl.idgis.publisher.harvester" level="debug"/>
   -->
