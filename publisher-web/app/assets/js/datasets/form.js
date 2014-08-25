@@ -363,6 +363,21 @@ require ([
 		
 		console.log ('Syncing filter: ', filterObject);
 		filterTextarea.value = value;
+		
+		// Count the number of filters:
+		var filterCount = 0;
+		array.forEach (filterObject.expression.inputs, function (andExpression) {
+			array.forEach (andExpression.inputs, function (operatorExpression) {
+				++ filterCount;
+			});
+		});
+		
+		console.log ('Filter count: ' + filterCount);
+		
+		query ('.js-filter-count').forEach (function (node) {
+			domConstruct.empty (node);
+			put (node, document.createTextNode (filterCount));
+		});
 	}
 
 	/**
@@ -403,8 +418,9 @@ require ([
 	 */
 	function updateValueInput (expressionNode) {
 		var d = data (expressionNode),
-			operator = d.operator,
-			arity = operator && operator !== '' ? operatorProperties[operator].arity : 1;
+			operator = d.operator;
+		console.log (operator);
+		var arity = operator && operator !== '' ? operatorProperties[operator].arity : 1;
 			
 		console.log (operator, arity);
 		
@@ -439,7 +455,7 @@ require ([
 		}
 		
 		// Add the empty operator:
-		put (d.operatorSelect, 'option[value=""]' + (!d.operator || d.operator === '' ? '[selected]' : '') + ' $', 'Operatie ...');
+		domAttr.set (put (d.operatorSelect, 'option[value=$]' + (!d.operator || d.operator === '' ? '[selected]' : '') + ' $', '', 'Operatie ...'), 'value', '');
 
 		// Add the operators that apply to this column type:
 		var hasSelection = !d.operator || d.operator === '';
@@ -456,6 +472,7 @@ require ([
 		
 		// Add the psuedo operator:
 		if (!hasSelection && d.operator && d.operator !== '') {
+			console.log (d.operator);
 			put (d.operatorSelect, 'option[value="-"][selected] span.text-danger $', operatorProperties[d.operator].label);
 			domClass.add (d.operatorSelect.parentNode, 'has-error');
 		} else {
@@ -478,16 +495,17 @@ require ([
 		domConstruct.empty (d.columnSelect);
 		
 		// Add the no-selection column:
-		put (
+		domAttr.set (put (
 			d.columnSelect, 
-			'option[value=""]' + (!d.column || d.column === '' ? '[selected]' : '')+ ' $', 
+			'option[value=$]' + (!d.column || d.column === '' ? '[selected]' : '')+ ' $',
+			'',
 			'Kies een kolom ...'
-		);
+		), 'value', '');
 		
 		// Add the column values:
 		var hasSelection = !d.column || d.column === '';
 		array.forEach (columns, function (column) {
-			var selected = d.column === column.name;
+			var selected = d.column === column.name + ':' + column.type;
 			put (
 				d.columnSelect,
 				'option[value=$]' + (selected ? '[selected]' : '') + ' $', 
@@ -600,9 +618,16 @@ require ([
 		d.operatorSelect = put (row, 'div.col-lg-2 select.form-control');
 		d.valueInput = put (row, 'div.col-lg-4 input[type="text"].form-control');
 		
-		d.column = '';
-		d.operator = '';
+		d.operator = expression.operatorType || '';
 		d.value = '';
+		d.column = '';
+
+		// Set initial values for value and column:
+		if (expression.inputs && expression.inputs.length == 2 && expression.inputs[0].type == 'column-ref' && expression.inputs[1].type == 'value') {
+			d.column = expression.inputs[0].column.name + ':' + expression.inputs[0].column.dataType;
+			d.value = expression.inputs[1].value;
+			d.valueInput.value = d.value;
+		}
 		
 		d.removeButton = put (row, 'div.col-lg-2.text-right button[type="button"].btn.btn-warning span.glyphicon.glyphicon-remove <');
 		
@@ -640,7 +665,7 @@ require ([
 		
 		for (var i = 0; i < children.length; ++ i) {
 			if (!isAnd && i > 0) {
-				put (list, 'div.js-filter-separator.filter-separator.filter-separator-or' + type + ' $', 'Of');
+				put (list, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', 'Of');
 			}
 			put (list, children[i]);
 		}
@@ -686,16 +711,57 @@ require ([
 				return {
 					type: 'operator',
 					operatorType: operatorType.toUpperCase (),
-					inputs: listOperators (inputListNode)
+					inputs: array.filter (listOperators (inputListNode), function (item) { return item !== null; }), 
 				};
 			} else {
 				// This is a binary or unary operator:
-				return { };
+				var d = data (operatorNode);
+					column = d.column,
+					operator = d.operator,
+					value = d.value,
+					exp = {
+						type: 'operator',
+						operatorType: operator && operator !== '' ? operator : null,
+						inputs: [ ]
+					};
+
+				if ((!column || column === '') && (!operator || operator === '') && lang.trim (value) === '') {
+					return null;
+				}
+				
+				var name, type;
+				
+				if (column && column !== '') {
+					var offset = column.indexOf (':');
+					
+					name = column.substring (0, offset);
+					type = column.substring (offset + 1);
+				} else {
+					name = null;
+					type = null;
+				}
+					
+				exp.inputs = [
+					{
+						type: 'column-ref',
+						column: {
+							name: name,
+							dataType: type
+						}
+					}, {
+						type: 'value',
+						value: value || '',
+						valueType: type
+					}
+				];
+
+				return exp;
 			}
 		});
 	}
 
 	buildFilterEditor (json.parse (filterTextarea.value));
+	syncTextarea ();
 	
 	on (filterEditorNode, 'button.js-add-expression:click', function (e) {
 		var containerNode = this.parentNode.parentNode,
@@ -708,7 +774,7 @@ require ([
 				type: 'operator',
 				operatorType: 'AND'
 			};
-			put (listNode, 'div.js-filter-separator.filter-separator.filter-separator-' + rootOperatorType + ' $', rootOperatorType);
+			put (listNode, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', 'Of');
 		}
 
 		put (listNode, buildExpression (expression));
