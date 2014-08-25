@@ -3,6 +3,7 @@ package nl.idgis.publisher.domain.web;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -34,6 +35,27 @@ public final class Filter extends Entity {
 		return expression;
 	}
 
+	public boolean isValid (final List<Column> columns) {
+		final Set<Column> columnSet = new HashSet<> (columns);
+		final LinkedList<Filter.FilterExpression> fringe = new LinkedList<> ();
+		
+		fringe.add (getExpression ());
+		
+		while (!fringe.isEmpty ()) {
+			final Filter.FilterExpression expression = fringe.poll ();
+			
+			if (expression instanceof Filter.ColumnReferenceExpression) {
+				if (!columnSet.contains (((Filter.ColumnReferenceExpression) expression).getColumn ())) {
+					return false;
+				}
+			} else if (expression instanceof Filter.OperatorExpression) {
+				fringe.addAll (((Filter.OperatorExpression) expression).getInputs ());
+			}
+		}
+		
+		return true;
+	}
+	
 	public static enum OperatorType {
 		AND (0),
 		OR (0),

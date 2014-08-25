@@ -6,11 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import models.Domain.Constant;
 import models.Domain.Function;
@@ -197,7 +194,7 @@ public class Datasets extends Controller {
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
 						// Validate the filter:
-						if (!validateFilter (dataset.getFilterConditions (), sourceColumns)) {
+						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
 							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
 							return renderCreateForm (datasetForm);
 						}
@@ -318,7 +315,7 @@ public class Datasets extends Controller {
 						// TODO: Validate dataSource, category, sourceDataset!
 						
 						// Validate the columns used by the filter:
-						if (!validateFilter (dataset.getFilterConditions (), sourceColumns)) {
+						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
 							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
 							return renderEditForm (datasetForm);
 						}
@@ -440,26 +437,6 @@ public class Datasets extends Controller {
 		return new Filter (orExpression);
 	}
 
-	private static boolean validateFilter (final Filter filter, final List<Column> columns) {
-		final Set<Column> columnSet = new HashSet<> (columns);
-		final LinkedList<Filter.FilterExpression> fringe = new LinkedList<> ();
-		
-		fringe.add (filter.getExpression ());
-		
-		while (!fringe.isEmpty ()) {
-			final Filter.FilterExpression expression = fringe.poll ();
-			
-			if (expression instanceof Filter.ColumnReferenceExpression) {
-				if (!columnSet.contains (((Filter.ColumnReferenceExpression) expression).getColumn ())) {
-					return false;
-				}
-			} else if (expression instanceof Filter.OperatorExpression) {
-				fringe.addAll (((Filter.OperatorExpression) expression).getInputs ());
-			}
-		}
-		
-		return true;
-	}
 	
 	public static class DatasetForm {
 		
@@ -502,7 +479,7 @@ public class Datasets extends Controller {
 			}			
 			setColumns (map);
 			setId (ds.id ());
-			setFilterConditions (emptyFilter ());
+			setFilterConditions (ds.filterConditions ());
 		}
 		
 		public String getName() {
