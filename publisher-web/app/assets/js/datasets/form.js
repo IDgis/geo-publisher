@@ -54,6 +54,7 @@ require ([
 				columnList.innerHTML = data;
 				
 				updateColumnCount();
+				updateFilterColumns ();
 			});
 		
 			tabs.forEach(function(tab) {
@@ -354,6 +355,17 @@ require ([
 	}
 	
 	/**
+	 * Updates the columns for all filter expressions. Invoked after the user switches datasets
+	 * and a new set of columns becomes available. 
+	 */
+	function updateFilterColumns () {
+		var columns = listColumns;
+		query ('.js-operator-compare', filterEditorNode).forEach (function (expressionNode) {
+			updateExpressionColumns (expressionNode, columns);
+		});
+	}
+	
+	/**
 	 * Sets the value of the hidden textarea based on the contents of the filter editor: keeps
 	 * the textarea in sync with the rich DOM interface.
 	 */
@@ -613,7 +625,7 @@ require ([
 	}
 	
 	function buildOperatorExpression (expression) {
-		var container = put ('div.list-group-item.js-operator'),
+		var container = put ('div.list-group-item.js-operator.js-operator-compare'),
 			row = put (container, 'div.row'),
 			d = data (container);
 		

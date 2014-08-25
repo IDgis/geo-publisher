@@ -364,7 +364,13 @@ public class Datasets extends Controller {
 						Logger.debug ("category: " + category);
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
-						// TODO: Validate dataSource, category, sourceDataset and columns!
+						// TODO: Validate dataSource, category, sourceDataset!
+						
+						// Validate the columns used by the filter:
+						if (!validateFilter (dataset.getFilterConditions (), sourceColumns)) {
+							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+							return renderEditForm (datasetForm);
+						}
 						
 						// Create the list of selected columns:
 						final List<Column> columns = new ArrayList<> ();
