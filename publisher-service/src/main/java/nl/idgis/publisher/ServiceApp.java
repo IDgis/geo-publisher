@@ -8,6 +8,7 @@ import nl.idgis.publisher.admin.Admin;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
+import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.Creator;
@@ -60,20 +61,28 @@ public class ServiceApp extends UntypedActor {
 				Version version = (Version)msg;
 				log.debug("database version: " + version);
 				
-				Config harvesterConfig = config.getConfig("harvester");
-				harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
-				
-				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
-				
-				Config geoserverConfig = config.getConfig("geoserver");
-				
-				service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig));
-				
-				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
-				
-				getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
-				
-				getContext().actorOf(Creator.props(database), "jobCreator");
+				Patterns.ask(database, new TerminateJobs(), 15000)
+					.onSuccess(new OnSuccess<Object>() {
+
+						@Override
+						public void onSuccess(Object msg) throws Throwable {
+							Config harvesterConfig = config.getConfig("harvester");
+							harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
+							
+							loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+							
+							Config geoserverConfig = config.getConfig("geoserver");
+							
+							service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig));
+							
+							getContext().actorOf(Admin.props(database, harvester, loader), "admin");
+							
+							getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
+							
+							getContext().actorOf(Creator.props(database), "jobCreator");
+						}
+						
+					}, getContext().dispatcher());
 			}
 			
 		}, getContext().dispatcher());

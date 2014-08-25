@@ -72,6 +72,7 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.StoredJobLog;
+import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
@@ -231,9 +232,34 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeCreateServiceJob(context, (CreateServiceJob)query);
 		} else if(query instanceof GetDatasetStatus) {
 			executeGetDatasetStatus(context);
+		} else if(query instanceof TerminateJobs) {
+			executeTerminateJobs(context);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeTerminateJobs(QueryDSLContext context) {
+		final QJobState jobStateSub = new QJobState("job_state_sub");
+		
+		long result = context.insert(jobState)
+			.columns(
+				jobState.jobId,
+				jobState.state)
+			.select(new SQLSubQuery().from(job)
+				.where(new SQLSubQuery().from(jobStateSub)
+						.where(jobStateSub.jobId.eq(job.id)
+								.and(jobStateSub.state.in(
+										enumsToStrings(JobState.getFinished()))))
+						.notExists())
+				.list(
+					job.id, 
+					JobState.FAILED.name()))
+			.execute();
+		
+		log.debug("jobs terminated: " + result);
+		
+		context.ack();
 	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context) {
