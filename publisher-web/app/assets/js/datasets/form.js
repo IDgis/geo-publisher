@@ -12,6 +12,8 @@ require ([
 	'dojo/json',
 	
 	'put-selector/put',
+
+	'dojo/NodeList-traverse',
 	
 	'dojo/domReady!'
 ], function(
@@ -204,6 +206,59 @@ require ([
 	updateId ();
 	
 	// =========================================================================
+	// Associating data with DOM nodes:
+	// =========================================================================
+	var lastDataId = 1,
+		domNodeData = { };
+	
+	function data (domNode) {
+		var dataId = domAttr.get (domNode, 'data-id');
+		if (!dataId) {
+			dataId = lastDataId ++;
+			domAttr.set (domNode, 'data-id', dataId);
+			domNodeData[dataId] = { 
+				handlers: [ ]
+			};
+		}
+		
+		return domNodeData[dataId];
+	}
+	
+	function registerHandlers (domNode, handlers) {
+		var d = data (domNode);
+		
+		handlers = lang.isArray (handlers) ? handlers : [ handlers ];
+		for (var i = 0; i < handlers.length; ++ i) {
+			d.handlers.push (handlers[i]);
+		}
+	}
+	
+	function clearData (domNode) {
+		var dataId = domAttr.get (domNode, 'data-id'),
+			d = domNodeData[dataId];
+		
+		if (!d) {
+			return;
+		}
+		
+		if (d.handlers) {
+			for (var i = 0; i < d.handlers.length; ++ i) {
+				d.handlers[i].remove ();
+			}
+		}
+		
+		delete domNodeData[dataId];
+	}
+	
+	function removeNode (domNode) {
+		query ('[data-id]', domNode).forEach (clearData);
+		if (domAttr.get (domNode, 'data-id')) {
+			clearData (domNode);
+		}
+		put (domNode, '!');
+	}
+	
+	// =========================================================================
 	// Filter editor:
 	// =========================================================================
 	var filterTextarea = query ('textarea[name="filterConditions"]')[0],
@@ -220,20 +275,74 @@ require ([
 		});
 	}
 	
+	function syncTextarea () {
+		var filterObject = { expression: listOperators (filterEditorNode)[0] },
+			value = json.stringify (filterObject);
+		
+		console.log ('Syncing filter: ', filterObject);
+		filterTextarea.value = value;
+	}
+
+	/**
+	 * Show or hide the remove button on child expressions of this container. Remove buttons are only
+	 * visible if the container has at least two child expressions.
+	 */
+	function updateRemoveButtons (listNode) {
+		var childExpressions = query ('> .js-operator', listNode);
+		childExpressions.forEach (function (expressionNode) {
+			var d = data (expressionNode);
+			domClass[childExpressions.length > 1 ? 'remove' : 'add'] (d.removeButton, 'hidden');
+		});
+	}
+	
+	function onChangeColumn (expression) {
+		var d = data (expression);
+		
+		console.log ('Change column: ', d.columnSelect.value);
+	}
+	
+	function onChangeOperator (expression) {
+		var d = data (expression);
+		
+		console.log ('Change operator: ', d.operatorSelect.value);
+	}
+	
+	function onChangeValue (expression) {
+		var d = data (expression);
+		
+		console.log ('Value change: ', d.valueInput.value);
+	}
+	
+	function onRemoveExpression (expressionContainer) {
+		var parent = expressionContainer.parentNode;
+		removeNode (expressionContainer); 
+		syncTextarea ();
+		updateRemoveButtons (parent);
+	}
+	
 	function buildOperatorExpression (expression) {
 		var container = put ('div.list-group-item.js-operator'),
-			row = put (container, 'div.row');
+			row = put (container, 'div.row'),
+			d = data (container);
 		
-		var columnSelect = put (row, 'div.col-lg-4 select.form-control');
-		put (row, 'div.col-lg-2 select.form-control');
-		put (row, 'div.col-lg-4 input[type="text"].form-control');
+		d.columnSelect = put (row, 'div.col-lg-4 select.form-control');
+		d.operatorSelect = put (row, 'div.col-lg-2 select.form-control');
+		d.valueInput = put (row, 'div.col-lg-4 input[type="text"].form-control');
 		
-		put (columnSelect, 'option[value=""] $', 'Kies een kolom ...');
+		put (d.columnSelect, 'option[value=""] $', 'Kies een kolom ...');
 		array.forEach (listColumns (), function (column) {
-			put (columnSelect, 'option[value=$] $', column.name + ':' + column.type, column.name + ' (' + column.type + ')');
+			put (d.columnSelect, 'option[value=$] $', column.name + ':' + column.type, column.name + ' (' + column.type + ')');
 		});
 			
-		put (row, 'dov.col-lg-2 button.btn.btn-warning span.glyphicon.glyphicon-remove');
+		d.removeButton = put (row, 'div.col-lg-2.text-right button[type="button"].btn.btn-warning span.glyphicon.glyphicon-remove <');
+		
+		// Register event handlers:
+		registerHandlers (container, [
+			on (d.columnSelect, 'change', function (e) { onChangeColumn (container); }),
+			on (d.operatorSelect, 'change', function (e) { onChangeOperator (container); }),
+			on (d.valueInput, 'keyup,change,blur', function (e) { onChangeValue (container); }),
+			on (d.removeButton, 'click', function (e) { onRemoveExpression (container); e.preventDefault (); })
+		]);
 		
 		return container;
 	}
@@ -242,13 +351,18 @@ require ([
 		var type = expression.operatorType.toLowerCase (),
 			isAnd = type == 'and',
 			container = put ('div.js-operator.panel.panel-default.filter-operator.filter-operator-' + type),
-			header = put (container, 'div.panel-heading $', isAnd ? 'Alle onderstaande condities zijn waar' : 'Tenminste één van onderstaande condities is waar'),
+			header = put (container, 'div.panel-heading div.row'),
 			body = put (container, 'div.panel-body'),
 			list = isAnd ? put (body, 'div.list-group') : body,
-			children = array.map (expression.inputs || [ { } ], buildExpression);
+			children = array.map (expression.inputs || [ { } ], buildExpression),
+			d = data (container);
 	
 		domAttr.set (container, 'data-operator-type', type);
 		domClass.add (list, 'js-list');
+
+		// Create header:
+		put (header, 'div.col-lg-10 $', isAnd ? 'Alle onderstaande condities zijn waar' : 'Tenminste één van onderstaande condities is waar');
+		d.removeButton = put (header, 'div.col-lg-2.text-right button[type="button"].btn.btn-warning span.glyphicon.glyphicon-remove <');
 		
 		for (var i = 0; i < children.length; ++ i) {
 			if (!isAnd && i > 0) {
@@ -258,6 +372,14 @@ require ([
 		}
 		
 		put (container, 'div.panel-footer button[type="button"].btn.btn-success.filter-add.filter-add-or.js-add-expression span.glyphicon.glyphicon-plus');
+		
+		// Register event handlers:
+		registerHandlers (container, [
+			on (d.removeButton, 'click', function (e) { onRemoveExpression (container); e.preventDefault (); })
+		]);
+		
+		// Set the remove buttons on this container:
+		updateRemoveButtons (list);
 		
 		return container;
 	}
@@ -277,6 +399,7 @@ require ([
 		domConstruct.empty (filterEditorNode);
 		
 		put (filterEditorNode, buildExpression (filter.expression));
+		updateRemoveButtons (filterEditorNode);
 	}
 	
 	function listOperators (listNode) {
@@ -298,14 +421,6 @@ require ([
 		});
 	}
 
-	function syncTextarea () {
-		var filterObject = { expression: listOperators (filterEditorNode)[0] },
-			value = json.stringify (filterObject);
-		
-		console.log ('Syncing filter: ', filterObject);
-		filterTextarea.value = value;
-	}
-	
 	buildFilterEditor (json.parse (filterTextarea.value));
 	
 	on (filterEditorNode, 'button.js-add-expression:click', function (e) {
@@ -323,6 +438,9 @@ require ([
 		}
 
 		put (listNode, buildExpression (expression));
+		
+		// Update the remove buttons on this expression:
+		updateRemoveButtons (listNode);
 		
 		syncTextarea ();
 	});
