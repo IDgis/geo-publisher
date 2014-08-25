@@ -649,8 +649,10 @@ require ([
 		d.column = '';
 
 		// Set initial values for value and column:
-		if (expression.inputs && expression.inputs.length == 2 && expression.inputs[0].type == 'column-ref' && expression.inputs[1].type == 'value') {
+		if (expression.inputs && expression.inputs.length >= 1 && expression.inputs[0].type == 'column-ref') {
 			d.column = expression.inputs[0].column.name + ':' + expression.inputs[0].column.dataType;
+		}
+		if (expression.inputs && expression.inputs.length == 2 && expression.inputs[1].type == 'value') {
 			d.value = expression.inputs[1].value;
 			d.valueInput.value = d.value;
 		}
@@ -773,19 +775,21 @@ require ([
 					type = null;
 				}
 					
-				exp.inputs = [
-					{
-						type: 'column-ref',
-						column: {
-							name: name,
-							dataType: type
-						}
-					}, {
+				exp.inputs.push ({
+					type: 'column-ref',
+					column: {
+						name: name,
+						dataType: type
+					}
+				});
+				
+				if (operatorProperties[operator].arity > 1) {
+					exp.inputs.push ({
 						type: 'value',
 						value: value || '',
 						valueType: operator == 'IN' ? 'TEXT' : type
-					}
-				];
+					});
+				}
 
 				return exp;
 			}
