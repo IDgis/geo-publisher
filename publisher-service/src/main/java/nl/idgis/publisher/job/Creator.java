@@ -56,26 +56,29 @@ public class Creator extends Scheduled {
 			String datasetId = datasetStatus.getDatasetId();
 			
 			Timestamp sourceRevision = datasetStatus.getSourceRevision();
-			Timestamp importedRevision = datasetStatus.getImportedRevision();
+			Timestamp importedRevision = datasetStatus.getImportedSourceRevision();
 			
 			if(importedRevision == null) {
 				log.debug("not yet imported");
 			} else {
 				List<Column> columns = datasetStatus.getColumns();
-				List<Column> importedColumns = datasetStatus.getSourceColumns();
+				List<Column> importedColumns = datasetStatus.getImportedColumns();
+				List<Column> importedSourceColumns = datasetStatus.getImportedSourceColumns();
 				List<Column> sourceColumns = datasetStatus.getSourceColumns();
 				
 				if(sourceRevision.getTime() != importedRevision.getTime()) {
 					log.debug("revision changed");
 										
-					if(sourceColumns.equals(importedColumns)) {
+					if(sourceColumns.equals(importedSourceColumns)) {
 						log.debug("sourceColumns unchanged");
 					} else {
+						// TODO: check for confirmation
+						
 						log.debug("sourceColumns changed -> needs confirmation");
 						continue;
 					}
 				} else {
-					// TODO: also check for filter changes
+					// TODO: also check for filter changes and source dataset change
 					
 					if(!columns.equals(importedColumns)) {
 						log.debug("columns changed");

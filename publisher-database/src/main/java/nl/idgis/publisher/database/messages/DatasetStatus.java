@@ -8,19 +8,32 @@ import nl.idgis.publisher.domain.service.Column;
 
 public class DatasetStatus implements Serializable {
 	
-	private static final long serialVersionUID = 2618280080822609672L;
+	private static final long serialVersionUID = -1676229472913952243L;
 	
 	private final String datasetId;
-	private final Timestamp sourceRevision, importedRevision;	
-	private final List<Column> columns, sourceColumns, importedColumns;
+	private final Timestamp sourceRevision, importedSourceRevision;	
+	private final List<Column> columns, importedColumns, sourceColumns, importedSourceColumns;
 	
-	public DatasetStatus(String datasetId, Timestamp sourceRevision, Timestamp importedRevision, List<Column> columns, List<Column> sourceColumns, List<Column> importedColumns) {
+	public DatasetStatus(
+			String datasetId, 
+			
+			Timestamp sourceRevision, 
+			Timestamp importedSourceRevision, 
+			
+			List<Column> columns, 
+			List<Column> importedColumns, 
+			List<Column> sourceColumns, 
+			List<Column> importedSourceColumns) {
+		
 		this.datasetId = datasetId;
+		
 		this.sourceRevision = sourceRevision;
-		this.importedRevision = importedRevision;
+		this.importedSourceRevision = importedSourceRevision;
+		
 		this.columns = columns;
+		this.importedColumns = importedColumns; 
 		this.sourceColumns = sourceColumns;
-		this.importedColumns = importedColumns;
+		this.importedSourceColumns = importedSourceColumns;
 	}
 
 	public String getDatasetId() {
@@ -31,28 +44,34 @@ public class DatasetStatus implements Serializable {
 		return sourceRevision;
 	}
 
-	public Timestamp getImportedRevision() {
-		return importedRevision;
+	public Timestamp getImportedSourceRevision() {
+		return importedSourceRevision;
 	}
 	
 	public List<Column> getColumns() {
 		return columns;
+	}
+	
+	public List<Column> getImportedColumns() {
+		return importedColumns;
 	}
 
 	public List<Column> getSourceColumns() {
 		return sourceColumns;
 	}
 
-	public List<Column> getImportedColumns() {
-		return importedColumns;
+	public List<Column> getImportedSourceColumns() {
+		return importedSourceColumns;
 	}
 
 	@Override
 	public String toString() {
 		return "DatasetStatus [datasetId=" + datasetId + ", sourceRevision="
-				+ sourceRevision + ", importedRevision=" + importedRevision
-				+ ", columns=" + columns + ", sourceColumns=" + sourceColumns
-				+ ", importedColumns=" + importedColumns + "]";
+				+ sourceRevision + ", importedSourceRevision="
+				+ importedSourceRevision + ", columns=" + columns
+				+ ", sourceColumns=" + sourceColumns
+				+ ", importedSourceColumns=" + importedSourceColumns + "]";
 	}
+
 	
 }

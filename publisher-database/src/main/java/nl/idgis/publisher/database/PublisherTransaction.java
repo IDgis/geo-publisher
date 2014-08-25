@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
@@ -269,7 +270,43 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		if(currentColumns != null) {
 			datasets.put(lastId, currentColumns);
-		}			
+		}
+		
+		Map<String, List<Column>> importedDatasets = new HashMap<>();
+		
+		lastId = null;
+		currentColumns = null;
+		for(Tuple t :
+			context.query().from(importJobColumn)
+				.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
+				.join(dataset).on(dataset.id.eq(importJob.datasetId))				
+				.orderBy(
+						importJobColumn.importJobId.asc(),
+						importJobColumn.index.asc())
+				.list(
+						dataset.identification,
+						importJobColumn.name,
+						importJobColumn.dataType)) {
+			
+			String currentDatasetId = t.get(dataset.identification);
+			if(!currentDatasetId.equals(lastId)) {
+				if(currentColumns != null) {
+					datasets.put(lastId, currentColumns);
+				}
+				
+				lastId = currentDatasetId;
+				currentColumns = new ArrayList<>();
+			}
+			
+			currentColumns.add(
+				new Column(
+					t.get(importJobColumn.name),
+					t.get(importJobColumn.dataType)));
+		}
+		
+		if(currentColumns != null) {
+			datasets.put(lastId, currentColumns);
+		}
 		
 		Map<String, Pair<Timestamp, List<Column>>> sourceDatasets = readDatasetInfo(
 				context.query().from(dataset)					
@@ -283,7 +320,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						dataset.id.asc(),
 						sourceDatasetColumnHistory.index.asc()));
 	
-		Map<String, Pair<Timestamp, List<Column>>> importedDatasets = readDatasetInfo(
+		Map<String, Pair<Timestamp, List<Column>>> importedSourceDatasets = readDatasetInfo(
 			context.query().from(dataset)
 				.join(importJob).on(importJob.datasetId.eq(dataset.id))
 				.join(sourceDatasetHistory).on(sourceDatasetHistory.id.eq(importJob.sourceDatasetHistoryId))
@@ -303,25 +340,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			Timestamp sourceRevision = sourceInfo.first();
 			List<Column> sourceColumns = sourceInfo.second();
 			
-			Pair<Timestamp, List<Column>> importedInfo = importedDatasets.get(datasetId);
-			Timestamp importedRevision;
-			List<Column> importedColumns;
+			List<Column> importedColumns = importedDatasets.get(datasetId);
+			
+			Pair<Timestamp, List<Column>> importedInfo = importedSourceDatasets.get(datasetId);
+			Timestamp importedSourceRevision;
+			List<Column> importedSourceColumns;
 			if(importedInfo == null) {
-				importedRevision = null;
-				importedColumns = null;
+				importedSourceRevision = null;
+				importedSourceColumns = null;
 			} else {
-				importedRevision = importedInfo.first();
-				importedColumns = importedInfo.second();
+				importedSourceRevision = importedInfo.first();
+				importedSourceColumns = importedInfo.second();
 			}
 
 			datasetStatus.add(
 				new DatasetStatus(
 					datasetId, 
 					sourceRevision, 
-					importedRevision, 
+					importedSourceRevision, 
 					columns,
+					importedColumns,
 					sourceColumns, 
-					importedColumns));			
+					importedSourceColumns));			
 		}
 		
 		context.answer(DatasetStatus.class, datasetStatus);
@@ -616,11 +656,27 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 			int historyId = getLastHistoryId(context, query.getDatasetId());
 			
-			context.insert(importJob)
-				.set(importJob.jobId, jobId)
-				.set(importJob.datasetId, datasetId)
-				.set(importJob.sourceDatasetHistoryId, historyId)
-				.execute();
+			int importJobId = 
+				context.insert(importJob)
+					.set(importJob.jobId, jobId)
+					.set(importJob.datasetId, datasetId)
+					.set(importJob.sourceDatasetHistoryId, historyId)
+					.executeWithKey(importJob.id);
+			
+				context.insert(importJobColumn)
+					.columns(
+						importJobColumn.importJobId,
+						importJobColumn.index,
+						importJobColumn.name,
+						importJobColumn.dataType)
+					.select(new SQLSubQuery().from(datasetColumn)
+						.where(datasetColumn.datasetId.eq(datasetId))
+						.list(
+							importJobId,
+							datasetColumn.index,
+							datasetColumn.name,
+							datasetColumn.dataType))
+					.execute();
 			
 			log.debug("import job created");
 		} else {
@@ -783,26 +839,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					dataset.id,
 					dataset.identification);
 		
-		List<Tuple> columnList = query.join(datasetColumn).on(datasetColumn.datasetId.eq(dataset.id))			
-			.orderBy(datasetColumn.index.asc())
-			.list(dataset.id, datasetColumn.name, datasetColumn.dataType);
+		List<Tuple> columnList =
+			query
+				.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id))							
+				.orderBy(importJobColumn.index.asc())
+				.list(job.id, importJobColumn.name, importJobColumn.dataType);
 		
 		ListIterator<Tuple> columnIterator = columnList.listIterator();
 		ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 		for(Tuple t : baseList) {
-			int datasetId = t.get(dataset.id);
+			int jobId = t.get(job.id);
 			
 			ArrayList<Column> columns = new ArrayList<>();
 			for(; columnIterator.hasNext();) {
 				Tuple tc = columnIterator.next();
 				
-				int columnDatasetId = tc.get(dataset.id);				
-				if(columnDatasetId != datasetId) {
+				int columnJobId = tc.get(job.id);				
+				if(columnJobId != jobId) {
 					columnIterator.previous();
 					break;
 				}
 				
-				columns.add(new Column(tc.get(datasetColumn.name), tc.get(datasetColumn.dataType)));
+				columns.add(new Column(tc.get(importJobColumn.name), tc.get(importJobColumn.dataType)));
 			}
 			
 			jobs.add(new ImportJobInfo(
