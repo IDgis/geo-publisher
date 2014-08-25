@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import scala.collection.concurrent.Debug;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -79,7 +78,7 @@ public class Creator extends Scheduled {
 			}
 			
 			log.debug("creating import job for: " + datasetId);
-			//database.tell(new CreateImportJob(datasetId), getSelf());
+			database.tell(new CreateImportJob(datasetId), getSelf());
 		}
 	}
 	
