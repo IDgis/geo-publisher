@@ -2,6 +2,7 @@ package nl.idgis.publisher.metadata;
 
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.xml.XMLDocumentFactory;
+import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
 import akka.actor.ActorRef;
@@ -46,11 +47,17 @@ public class MetadataDocumentFactory extends UntypedActor {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
-					ActorRef xmlDocument = (ActorRef)msg;					
-					
-					log.debug("metadata document parsed");
-					
-					sender.tell(getContext().actorOf(MetadataDocument.props(xmlDocument)), getSelf());
+					if(msg instanceof NotParseable) {
+						log.debug("xml parsing error: " + msg); 
+						
+						sender.tell(msg, getSelf());
+					} else {					
+						ActorRef xmlDocument = (ActorRef)msg;					
+						
+						log.debug("metadata document parsed");
+						
+						sender.tell(getContext().actorOf(MetadataDocument.props(xmlDocument)), getSelf());
+					}
 				}
 				
 			}, getContext().dispatcher());

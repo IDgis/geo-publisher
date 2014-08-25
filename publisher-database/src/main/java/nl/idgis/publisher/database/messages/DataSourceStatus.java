@@ -7,18 +7,18 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import com.mysema.query.annotations.QueryProjection;
 
-public class HarvestStatus implements Serializable {
+public class DataSourceStatus implements Serializable {
 
 	private static final long serialVersionUID = 563568110154119561L;
 	
 	private final String dataSourceId;
-	private final Timestamp lastFinished;
+	private final Timestamp lastHarvested;
 	private final JobState finishedState;	
 	
 	@QueryProjection
-	public HarvestStatus(String dataSourceId, Timestamp lastFinished, String finishedState) {
+	public DataSourceStatus(String dataSourceId, Timestamp lastHarvested, String finishedState) {
 		this.dataSourceId = dataSourceId;
-		this.lastFinished = lastFinished;
+		this.lastHarvested = lastHarvested;
 		this.finishedState = finishedState == null ? null : JobState.valueOf(finishedState);		
 	}
 
@@ -26,8 +26,8 @@ public class HarvestStatus implements Serializable {
 		return dataSourceId;
 	}
 
-	public Timestamp getLastFinished() {
-		return lastFinished;
+	public Timestamp getLastHarvested() {
+		return lastHarvested;
 	}
 	
 	public JobState getFinishedState() {
@@ -37,7 +37,7 @@ public class HarvestStatus implements Serializable {
 	@Override
 	public String toString() {
 		return "HarvestStatus [dataSourceId=" + dataSourceId
-				+ ", lastFinished=" + lastFinished + ", finishedState="
+				+ ", lastHarvested=" + lastHarvested + ", finishedState="
 				+ finishedState + "]";
 	}
 	

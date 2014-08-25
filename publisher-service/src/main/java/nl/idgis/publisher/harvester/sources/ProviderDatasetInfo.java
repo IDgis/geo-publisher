@@ -37,6 +37,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.WrongResultException;
 import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.NotFound;
+import nl.idgis.publisher.xml.messages.NotParseable;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -65,13 +66,36 @@ public class ProviderDatasetInfo extends UntypedActor {
 	}
 	
 	private OnSuccess<Object> processDocument(final ActorRef sender, final MetadataItem metadataItem) {
-		return new OnSuccess<Object>() {
+		final String identification = metadataItem.getIdentification();
+		
+		return new OnSuccess<Object>() {			
 
 			@Override
 			public void onSuccess(Object msg) throws Throwable {
-				final ActorRef metadataDocument = (ActorRef)msg;
+				if(msg instanceof NotParseable) {
+					log.debug("couldn't parse metadata document: " + msg);
+					
+					NotParseable notParsable = (NotParseable)msg;
+					
+					MetadataLog content = new MetadataLog(identification, null, null, null, null, notParsable.getReason());											
+					JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+					
+					Patterns.ask(harvesterSession, jobLog, 15000)
+						.onSuccess(new OnSuccess<Object>() {
+
+							@Override
+							public void onSuccess(Object msg) throws Throwable {
+								log.debug("metadata parsing error saved");
+								
+								sender.tell(new NextItem(), getSelf());
+							}
+							
+						}, getContext().dispatcher());
+					
+					return;
+				}
 				
-				final String identification = metadataItem.getIdentification();
+				final ActorRef metadataDocument = (ActorRef)msg;
 				
 				FutureUtils f = new FutureUtils(getContext().dispatcher());
 				

@@ -2,11 +2,8 @@ package nl.idgis.publisher.loader;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
-
+import nl.idgis.publisher.AbstractSession;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InsertRecord;
@@ -16,9 +13,9 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.loader.messages.SessionStarted;
-import nl.idgis.publisher.loader.messages.Timeout;
 import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
+import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.Record;
@@ -26,11 +23,10 @@ import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
+import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
@@ -38,14 +34,13 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.pattern.Patterns;
 
-public class LoaderSession extends UntypedActor {
+public class LoaderSession extends AbstractSession {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
-	private final ActorRef loader, geometryDatabase, database;
+	private final ActorRef loader, geometryDatabase, database;	
 	
-	private Cancellable timeoutCancellable;
 	private long totalCount = 0, count = 0;
 	
 	public LoaderSession(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
@@ -72,26 +67,6 @@ public class LoaderSession extends UntypedActor {
 				}
 				
 			}, getContext().dispatcher());		
-	}
-	
-	@Override
-	public void postStop() {
-		timeoutCancellable.cancel();
-	}
-	
-	private void scheduleTimeout() {
-		if(timeoutCancellable != null) {
-			timeoutCancellable.cancel();
-		}
-		
-		ActorSystem system = getContext().system();
-		
-		timeoutCancellable = system.scheduler().scheduleOnce(
-				Duration.create(15, TimeUnit.SECONDS), 
-				getSelf(), 
-				new Timeout(), 
-				system.dispatcher(), 
-				getSelf());
 	}
 
 	@Override

@@ -2,29 +2,32 @@ package nl.idgis.publisher;
 
 import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+
 import nl.idgis.publisher.admin.Admin;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
+import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.Creator;
 import nl.idgis.publisher.job.Initiator;
 import nl.idgis.publisher.loader.Loader;
+import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.monitor.messages.Tree;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
 import nl.idgis.publisher.utils.Boot;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
+import akka.japi.Procedure;
 
 import com.typesafe.config.Config;
 
@@ -46,35 +49,76 @@ public class ServiceApp extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		Config geometryDatabaseConfig = config.getConfig("geometry-database");
-		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		log.info("starting service application");
 		
 		Config databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		Future<Object> versionFuture = Patterns.ask(database, new GetVersion(), 15000);
-		versionFuture.onSuccess(new OnSuccess<Object>() {
+		database.tell(new GetVersion(), getSelf());
+		getContext().become(waitingForVersion());
+	}
+	
+	@Override
+	public void onReceive(Object msg) throws Exception {
+		unhandled(msg);
+	}
+	
+	private Procedure<Object> waitingForJobTermination() {
+		log.debug("waiting for job termination");
+		
+		return new Procedure<Object>() {
 
 			@Override
-			public void onSuccess(Object msg) throws Throwable {
-				Version version = (Version)msg;
-				log.debug("database version: " + version);
-				
-				Config harvesterConfig = config.getConfig("harvester");
-				harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
-				
-				loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
-				
-				service = getContext().actorOf(Service.props(database));
-				
-				getContext().actorOf(Admin.props(database, harvester, loader), "admin");
-				
-				getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
-				
-				getContext().actorOf(Creator.props(database), "jobCreator");
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					getContext().become(running());
+				} else {
+					unhandled(msg);
+				}
+			}
+		};
+	}
+	
+	private Procedure<Object> waitingForVersion() {
+		log.debug("waiting for database version");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Version) {
+					Version version = (Version)msg;
+					
+					log.info("database version: " + version);
+					
+					database.tell(new TerminateJobs(), getSelf());
+					getContext().become(waitingForJobTermination());
+				} else {
+					unhandled(msg);
+				}
 			}
 			
-		}, getContext().dispatcher());
+		};
+	}
+	
+	private Procedure<Object> running() {
+		Config geometryDatabaseConfig = config.getConfig("geometry-database");
+		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		
+		Config harvesterConfig = config.getConfig("harvester");
+		harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
+		
+		loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+		
+		Config geoserverConfig = config.getConfig("geoserver");
+		
+		service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig));
+		
+		getContext().actorOf(Admin.props(database, harvester, loader), "admin");
+		
+		getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
+		
+		getContext().actorOf(Creator.props(database), "jobCreator");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
@@ -86,35 +130,25 @@ public class ServiceApp extends UntypedActor {
 					getContext().dispatcher(), 
 					getSelf());
 		}
-	}
-	
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Tree) {
-			log.debug(msg.toString());
-		} else if(msg instanceof GetActiveJobs) {
-			Patterns.ask(loader, msg, 15000)
-				.onSuccess(new OnSuccess<Object>() {
+		
+		log.info("service application started");
+		
+		return new Procedure<Object>() {
 
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						log.debug("active loader tasks: " + msg);
-					}
-					
-				}, getContext().dispatcher());
-			
-			Patterns.ask(harvester, msg, 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("active harvester tasks: " + msg);
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Tree) {
+					log.debug(msg.toString());
+				} else if(msg instanceof GetActiveJobs) {
+					harvester.tell(msg, getSelf());
+					loader.tell(msg, getSelf());
+				} else if(msg instanceof ActiveJobs) {
+					log.debug("active jobs: " + msg);
+				} else {
+					unhandled(msg);
 				}
-				
-			}, getContext().dispatcher());
-		} else {
-			unhandled(msg);
-		}
+			}
+		};
 	}
 
 	public static void main(String[] args) {

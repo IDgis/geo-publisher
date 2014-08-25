@@ -28,9 +28,13 @@ public abstract class Scheduled extends UntypedActor {
 		if(msg instanceof Initiate) {
 			doInitiate();
 		} else {
-			unhandled(msg);
+			doElse(msg);
 		}
 	}
 
 	protected abstract void doInitiate();
+	
+	protected void doElse(Object msg) {
+		unhandled(msg);
+	}
 }

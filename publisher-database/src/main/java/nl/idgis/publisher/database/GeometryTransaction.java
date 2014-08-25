@@ -60,7 +60,7 @@ public class GeometryTransaction extends JdbcTransaction {
 		for(Column column : columns) {
 			sb.append(separator);
 			if(column.getDataType() == Type.GEOMETRY) {
-				sb.append("ST_GeomFromWKB(?)");
+				sb.append("ST_SetSRID(ST_GeomFromWKB(?), 28992)");
 			} else {
 				sb.append("?");
 			}
@@ -108,7 +108,13 @@ public class GeometryTransaction extends JdbcTransaction {
 			sb.append(separator);
 			sb.append(column.getName());
 			sb.append(" ");
-			sb.append(column.getDataType().toString().toLowerCase());
+			
+			Type dataType = column.getDataType();
+			if(dataType.equals(Type.GEOMETRY)) {
+				sb.append("geometry(Geometry, 28992)");
+			} else {
+				sb.append(dataType.toString().toLowerCase());
+			}
 			
 			separator = ", ";
 		}

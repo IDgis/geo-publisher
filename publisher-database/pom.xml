@@ -18,8 +18,7 @@
 		<database.sql.data>${database.directory}/publisher-data.sql</database.sql.data>
 		<database.url>jdbc:h2:${database.directory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL</database.url>
 		<database.user>sa</database.user>
-		<database.password></database.password>
-		<h2.version>1.4.180</h2.version>
+		<database.password></database.password>		
 	</properties>
 	
 	<dependencies>
@@ -49,8 +48,7 @@
 		</dependency>
 		<dependency>
 			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<version>${h2.version}</version>
+			<artifactId>h2</artifactId>			
 			<scope>test</scope>				
 		</dependency>
 		<dependency>
@@ -149,7 +147,7 @@
 					<dependency>
 						<groupId>com.h2database</groupId>
 						<artifactId>h2</artifactId>
-						<version>${h2.version}</version>				
+						<version>${h2.version}</version>										
 					</dependency>
 				</dependencies>
 			</plugin>

@@ -6,14 +6,14 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetColumn.sourceDatasetColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QSourceDatasetHistory.sourceDatasetHistory;
-import static nl.idgis.publisher.database.QSourceDatasetColumnHistory.sourceDatasetColumnHistory;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 
 import java.io.IOException;
@@ -22,15 +22,24 @@ import java.sql.Timestamp;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+
+import org.omg.CORBA.OMGVMCID;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
+import nl.idgis.publisher.database.messages.DataSourceStatus;
+import nl.idgis.publisher.database.messages.DatasetStatus;
 import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
@@ -38,8 +47,9 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetHarvestStatus;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
@@ -56,16 +66,18 @@ import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
-import nl.idgis.publisher.database.messages.QHarvestStatus;
+import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.StoredJobLog;
+import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
@@ -92,13 +104,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstructorExpression;
+import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
-import com.mysema.query.types.expr.DateTimeExpression;
 import com.typesafe.config.Config;
 
 public class PublisherTransaction extends QueryDSLTransaction {
+	
+	private final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -106,14 +121,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		super(config, connection);
 	}
 	
-	private void insertSourceDatasetColumns(QueryDSLContext context, int sourceDatasetId, List<Column> columns) {
+	private void insertSourceDatasetColumns(QueryDSLContext context, int versionId, List<Column> columns) {
 		int i = 0;
 		for(Column column : columns) {			
-			context.insert(sourceDatasetColumn)
-				.set(sourceDatasetColumn.sourceDatasetId, sourceDatasetId)
-				.set(sourceDatasetColumn.index, i++)
-				.set(sourceDatasetColumn.name, column.getName())
-				.set(sourceDatasetColumn.dataType, column.getDataType().toString())
+			context.insert(sourceDatasetVersionColumn)
+				.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+				.set(sourceDatasetVersionColumn.index, i++)
+				.set(sourceDatasetVersionColumn.name, column.getName())
+				.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
 				.execute();
 		}
 	}
@@ -213,17 +228,234 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeCreateImportJob(context, (CreateImportJob)query);
 		} else if(query instanceof UpdateJobState) {
 			executeUpdateJobState(context, (UpdateJobState)query);
-		} else if(query instanceof GetHarvestStatus) {
-			executeGetHarvestStatus(context);
+		} else if(query instanceof GetDataSourceStatus) {
+			executeGetDataSourceStatus(context);
 		} else if(query instanceof GetJobLog) {
 			executeGetJobLog(context, (GetJobLog)query);
 		} else if(query instanceof GetServiceJobs) {
 			executeGetServiceJobs(context);
 		} else if(query instanceof CreateServiceJob) {
 			executeCreateServiceJob(context, (CreateServiceJob)query);
+		} else if(query instanceof GetDatasetStatus) {
+			executeGetDatasetStatus(context);
+		} else if(query instanceof TerminateJobs) {
+			executeTerminateJobs(context);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeTerminateJobs(QueryDSLContext context) {
+		final QJobState jobStateSub = new QJobState("job_state_sub");
+		
+		long result = context.insert(jobState)
+			.columns(
+				jobState.jobId,
+				jobState.state)
+			.select(new SQLSubQuery().from(job)
+				.where(new SQLSubQuery().from(jobStateSub)
+						.where(jobStateSub.jobId.eq(job.id)
+								.and(jobStateSub.state.in(
+										enumsToStrings(JobState.getFinished()))))
+						.notExists())
+				.list(
+					job.id, 
+					JobState.FAILED.name()))
+			.execute();
+		
+		log.debug("jobs terminated: " + result);
+		
+		context.ack();
+	}
+	
+	private static class DatasetInfo {
+		private String sourceDatasetId;
+		private Timestamp revision;		
+		private List<Column> columns;
+		
+		DatasetInfo(String sourceDatasetId, Timestamp revision) {
+			this.sourceDatasetId = sourceDatasetId;
+			this.revision = revision;
+			
+			columns = new ArrayList<>();
+		}
+		
+		public void addColumn(Column column) {
+			columns.add(column);
+		}
+
+		public Timestamp getRevision() {
+			return revision;
+		}
+
+		public List<Column> getColumns() {
+			return Collections.unmodifiableList(columns);
+		}
+
+		public String getSourceDatasetId() {
+			return sourceDatasetId;
+		}
+	}
+
+	private void executeGetDatasetStatus(QueryDSLContext context) {
+		QJobState jobStateSub = new QJobState("job_state_sub");
+		
+		Set<String> serviceCreated = new HashSet<>();
+		serviceCreated.addAll(
+			context.query().from(dataset)
+				.where(new SQLSubQuery().from(importJob)
+					.join(jobState).on(jobState.jobId.eq(importJob.jobId))
+					.where(importJob.datasetId.eq(dataset.id)
+						.and(jobState.state.eq(JobState.SUCCEEDED.name()))
+						.and(new SQLSubQuery().from(serviceJob)
+							.join(jobStateSub).on(jobStateSub.jobId.eq(serviceJob.jobId))							
+							.where(jobStateSub.state.eq(JobState.SUCCEEDED.name())
+								.and(serviceJob.datasetId.eq(dataset.id))
+								.and(jobStateSub.createTime.after(jobState.createTime)))
+							.exists()))
+					.exists())
+				.groupBy(dataset.identification)
+				.list(dataset.identification));
+		
+		Map<String, List<Column>> datasets = treeFold(
+			context.query().from(datasetColumn)
+				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+				.orderBy(
+						datasetColumn.datasetId.asc(),
+						datasetColumn.index.asc()),
+						
+						dataset.identification,
+						new QColumn(datasetColumn.name, datasetColumn.dataType));
+		
+		QImportJob importJobSub = new QImportJob("import_job_sub");
+		QJob jobSub = new QJob("job_sub");
+		
+		Map<String, List<Column>> importedDatasets = treeFold(
+				context.query().from(importJobColumn)
+				.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
+				.join(job).on(job.id.eq(importJob.jobId))
+				.join(dataset).on(dataset.id.eq(importJob.datasetId))				
+				.orderBy(
+						importJobColumn.importJobId.asc(),
+						importJobColumn.index.asc())
+				.where(new SQLSubQuery().from(importJobSub)
+						.join(jobSub).on(jobSub.id.eq(importJobSub.jobId))
+						.where(importJobSub.datasetId.eq(importJob.datasetId)
+							.and(jobSub.createTime.gt(job.createTime)))						
+						.notExists()),
+				
+						dataset.identification,						
+						new QColumn(importJobColumn.name, importJobColumn.dataType));
+		
+		Map<String, DatasetInfo> sourceDatasets = readDatasetInfo(
+				context.query().from(dataset)					
+					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
+						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+									.notExists()))
+					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+					.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
+					.orderBy(
+						dataset.id.asc(),
+						sourceDatasetVersionColumn.index.asc()));
+	
+		Map<String, DatasetInfo> importedSourceDatasets = readDatasetInfo(
+			context.query().from(dataset)
+				.join(importJob).on(importJob.datasetId.eq(dataset.id))
+				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
+				.orderBy(
+					dataset.id.asc(),
+					sourceDatasetVersionColumn.index.asc()));
+		
+		List<DatasetStatus> datasetStatus = new ArrayList<>();
+		
+		for(Map.Entry<String, List<Column>> datasetEntry : datasets.entrySet()) {
+			String datasetId = datasetEntry.getKey();
+						
+			List<Column> columns = datasetEntry.getValue();
+			
+			DatasetInfo sourceInfo = sourceDatasets.get(datasetId);
+			String sourceDatasetId = sourceInfo.getSourceDatasetId();
+			Timestamp sourceRevision = sourceInfo.getRevision();
+			List<Column> sourceColumns = sourceInfo.getColumns();
+			
+			List<Column> importedColumns = importedDatasets.get(datasetId);
+			
+			DatasetInfo importedInfo = importedSourceDatasets.get(datasetId);
+			String importedSourceDatasetId;
+			Timestamp importedSourceRevision;
+			List<Column> importedSourceColumns;
+			if(importedInfo == null) {
+				importedSourceDatasetId = null;
+				importedSourceRevision = null;
+				importedSourceColumns = null;
+			} else {
+				importedSourceDatasetId = importedInfo.getSourceDatasetId();
+				importedSourceRevision = importedInfo.getRevision();
+				importedSourceColumns = importedInfo.getColumns();
+			}
+
+			datasetStatus.add(
+				new DatasetStatus(
+					datasetId,
+					
+					sourceDatasetId,
+					importedSourceDatasetId,
+					
+					sourceRevision, 
+					importedSourceRevision,
+					
+					columns,
+					importedColumns,
+					sourceColumns, 
+					importedSourceColumns,
+					
+					serviceCreated.contains(datasetId)));			
+		}
+		
+		context.answer(DatasetStatus.class, datasetStatus);
+	}
+
+	private Map<String, DatasetInfo> readDatasetInfo(SQLQuery query) {
+		Map<String, DatasetInfo> datasetInfos = new HashMap<>();
+		
+		String lastId = null;
+		DatasetInfo currentDatasetInfo = null;
+		for(Tuple t : 
+			query.list(				
+				dataset.identification,
+				sourceDataset.identification,
+				sourceDatasetVersion.revision,
+				sourceDatasetVersionColumn.name,
+				sourceDatasetVersionColumn.dataType)) {
+			
+			String currentDatasetId = t.get(dataset.identification);
+			if(!currentDatasetId.equals(lastId)) {
+				if(currentDatasetInfo != null) {
+					datasetInfos.put(lastId, currentDatasetInfo);
+				}
+				
+				lastId = currentDatasetId;
+				
+				currentDatasetInfo = new DatasetInfo(
+						t.get(sourceDataset.identification),
+						t.get(sourceDatasetVersion.revision));				
+			}
+			
+			currentDatasetInfo.addColumn(
+				new Column(
+					t.get(sourceDatasetVersionColumn.name),
+					t.get(sourceDatasetVersionColumn.dataType)));
+		}
+		
+		if(currentDatasetInfo != null) {
+			datasetInfos.put(lastId, currentDatasetInfo);
+		}
+		
+		return datasetInfos;
 	}
 
 	private void executeCreateServiceJob(QueryDSLContext context, CreateServiceJob query) {
@@ -243,13 +475,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(job.type, "SERVICE")
 					.executeWithKey(job.id);
 			
-			int datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(query.getDatasetId()))
-				.singleResult(dataset.id);
+			int datasetId = getDatasetId(context, query.getDatasetId());
+			
+			int versionId = getLastVersionId(context, query.getDatasetId());
 			
 			context.insert(serviceJob)
 				.set(serviceJob.jobId, jobId)
 				.set(serviceJob.datasetId, datasetId)
+				.set(serviceJob.sourceDatasetVersionId, versionId)
 				.execute();
 			
 			log.debug("service job created");
@@ -260,12 +493,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.ack();
 	}
 
+	private Integer getLastVersionId(QueryDSLContext context,
+			String datasetIdentification) {
+		return context.query().from(sourceDatasetVersion)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+				.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+				.where(dataset.identification.eq(datasetIdentification))
+				.singleResult(sourceDatasetVersion.id.max());
+	}
+
+	private Integer getDatasetId(QueryDSLContext context,
+			String datasetIdentification) {
+		return context.query().from(dataset)
+			.where(dataset.identification.eq(datasetIdentification))
+			.singleResult(dataset.id);
+	}
+
 	private void executeGetServiceJobs(QueryDSLContext context) {
 		context.answer(
 			context.query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
-				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-				.join(category).on(category.id.eq(sourceDataset.categoryId))
+				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
+				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(serviceJob.jobId))
 						.notExists())
@@ -316,12 +565,45 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		context.answer(jobLogs);
 	}
+	
+	private <T, U> Map<T, List<U>> treeFold(SQLQuery query, Expression<T> id, Expression<U> value) {
+		Map<T, List<U>> retval = new HashMap<>();
+		
+		T lastId = null;
+		List<U> currentValues = null;
+		for(Tuple t : 
+			query
+				.list(
+					id,
+					value)) {
+			
+			T currentId = t.get(id);
+			if(!currentId.equals(lastId)) {
+				if(currentValues != null) {
+					retval.put(lastId, currentValues);
+				}
+				
+				lastId = currentId;
+				currentValues = new ArrayList<>();
+			}
+			
+			currentValues.add(t.get(value));
+		}
+		
+		if(currentValues != null) {
+			retval.put(lastId, currentValues);
+		}
+		
+		return retval;
+	}
 
-	private void executeGetHarvestStatus(QueryDSLContext context) {
+	private void executeGetDataSourceStatus(QueryDSLContext context) {
 		QJobState jobStateSub = new QJobState("job_state_sub");			
 		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");			
 		
 		context.answer(
+			DataSourceStatus.class,
+				
 			context.query().from(jobState)
 				.join(harvestJob).on(harvestJob.jobId.eq(jobState.jobId))
 				.rightJoin(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
@@ -330,7 +612,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.join(harvestJobSub).on(harvestJobSub.jobId.eq(jobStateSub.jobId))
 					.where(jobStateSub.createTime.after(jobState.createTime))
 					.notExists())
-				.list(new QHarvestStatus(
+				.list(new QDataSourceStatus(
 						dataSource.identification, 
 						jobState.createTime, 
 						jobState.state)));
@@ -359,6 +641,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return getJobQuery(context, (ImportJobInfo)job);
 		} else if(job instanceof HarvestJobInfo) {
 			return getJobQuery(context, (HarvestJobInfo)job);
+		} else if(job instanceof ServiceJobInfo) {
+			return getJobQuery(context, (ServiceJobInfo)job);		
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
@@ -414,7 +698,19 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(jobStateSub.jobId.eq(job.id)
 					.and(isFinished(jobStateSub)))
 				.notExists();
-	}	
+	}
+	
+	private SQLQuery getJobQuery(QueryDSLContext context, ServiceJobInfo sj) {
+		return context.query().from(job)
+				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
+				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+				.where(dataset.identification.eq(sj.getTableName()))
+				.where(category.identification.eq(sj.getSchemaName()))
+				.where(unfinishedState());
+	}
 
 	private SQLQuery getJobQuery(QueryDSLContext context, HarvestJobInfo hj) {
 		return context.query().from(job)
@@ -441,14 +737,31 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id);
 			
-			int datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(query.getDatasetId()))
-				.singleResult(dataset.id);
+			int datasetId = getDatasetId(context, query.getDatasetId());
 			
-			context.insert(importJob)
-				.set(importJob.jobId, jobId)
-				.set(importJob.datasetId, datasetId)
-				.execute();
+			int versionId = getLastVersionId(context, query.getDatasetId());
+			
+			int importJobId = 
+				context.insert(importJob)
+					.set(importJob.jobId, jobId)
+					.set(importJob.datasetId, datasetId)
+					.set(importJob.sourceDatasetVersionId, versionId)
+					.executeWithKey(importJob.id);
+			
+				context.insert(importJobColumn)
+					.columns(
+						importJobColumn.importJobId,
+						importJobColumn.index,
+						importJobColumn.name,
+						importJobColumn.dataType)
+					.select(new SQLSubQuery().from(datasetColumn)
+						.where(datasetColumn.datasetId.eq(datasetId))
+						.list(
+							importJobId,
+							datasetColumn.index,
+							datasetColumn.name,
+							datasetColumn.dataType))
+					.execute();
 			
 			log.debug("import job created");
 		} else {
@@ -517,7 +830,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 		String datasetIdent = uds.getDatasetIdentification();
 		String datasetName = uds.getDatasetName();
-		final String filterConditions = uds.getFilterConditions ();
 		log.debug("update dataset" + datasetIdent);
 		
 		Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -527,13 +839,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.update(dataset)
 			.set(dataset.name, datasetName)
 			.set(dataset.sourceDatasetId, sourceDatasetId)
-			.set(dataset.filterConditions, filterConditions)
 			.where(dataset.identification.eq(datasetIdent))
 			.execute();
 			
-		Integer datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(datasetIdent))
-				.singleResult(dataset.id);
+		Integer datasetId = getDatasetId(context, datasetIdent);
 		
 		context.delete(datasetColumn)
 			.where(datasetColumn.datasetId.eq(datasetId))
@@ -552,18 +861,23 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.answer(
 				context.query().from(dataset)
 				.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-				.leftJoin (category).on(sourceDataset.categoryId.eq(category.id))
+				.join(sourceDatasetVersion).on(
+					sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
+					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+							.notExists()))
+				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
 				.where(dataset.identification.eq( datasetIdent ))
 				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
-						sourceDataset.identification, sourceDataset.name,
-						category.identification,category.name, dataset.filterConditions)));
+						sourceDataset.identification, sourceDatasetVersion.name,
+						category.identification,category.name)));
 	}
 
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
 		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 		String datasetIdent = cds.getDatasetIdentification();
 		String datasetName = cds.getDatasetName();
-		final String filterConditions = cds.getFilterConditions ();
 		log.debug("create dataset " + datasetIdent);
 
 		Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -577,12 +891,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(dataset.identification, datasetIdent)
 					.set(dataset.name, datasetName)
 					.set(dataset.sourceDatasetId, sourceDatasetId)
-					.set(dataset.filterConditions, filterConditions)
 					.execute();
 				
-				Integer datasetId = context.query().from(dataset)
-					.where(dataset.identification.eq(datasetIdent))
-					.singleResult(dataset.id);
+				Integer datasetId = getDatasetId(context, datasetIdent);
 				
 				insertDatasetColumns(context, datasetId, cds.getColumnList());					
 				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
@@ -596,7 +907,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.join(importJob).on(importJob.jobId.eq(job.id))			
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))			
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-			.join(category).on(category.id.eq(sourceDataset.categoryId))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))				
+			.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 			.orderBy(job.createTime.asc())
 			.where(new SQLSubQuery().from(jobState)
@@ -612,26 +924,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					dataset.id,
 					dataset.identification);
 		
-		List<Tuple> columnList = query.join(datasetColumn).on(datasetColumn.datasetId.eq(dataset.id))			
-			.orderBy(datasetColumn.index.asc())
-			.list(dataset.id, datasetColumn.name, datasetColumn.dataType);
+		List<Tuple> columnList =
+			query
+				.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id))							
+				.orderBy(importJobColumn.index.asc())
+				.list(job.id, importJobColumn.name, importJobColumn.dataType);
 		
 		ListIterator<Tuple> columnIterator = columnList.listIterator();
 		ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 		for(Tuple t : baseList) {
-			int datasetId = t.get(dataset.id);
+			int jobId = t.get(job.id);
 			
 			ArrayList<Column> columns = new ArrayList<>();
 			for(; columnIterator.hasNext();) {
 				Tuple tc = columnIterator.next();
 				
-				int columnDatasetId = tc.get(dataset.id);				
-				if(columnDatasetId != datasetId) {
+				int columnJobId = tc.get(job.id);				
+				if(columnJobId != jobId) {
 					columnIterator.previous();
 					break;
 				}
 				
-				columns.add(new Column(tc.get(datasetColumn.name), tc.get(datasetColumn.dataType)));
+				columns.add(new Column(tc.get(importJobColumn.name), tc.get(importJobColumn.dataType)));
 			}
 			
 			jobs.add(new ImportJobInfo(
@@ -660,12 +974,17 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
 
 		context.answer(
-			context.query().from(sourceDatasetColumn)
-			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetColumn.sourceDatasetId))
+			context.query().from(sourceDatasetVersionColumn)
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
+					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+							.notExists()))
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 			.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
 				.and(dataSource.identification.eq(sdc.getDataSourceId())))
-			.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType)));
+			.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)));
 	}
 
 	private void executeGetHarvestJobs(QueryDSLContext context) {
@@ -721,8 +1040,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String searchStr = sdi.getSearchString();
 		
 		SQLQuery baseQuery = context.query().from(sourceDataset)
+				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+									.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+								.notExists()))
 				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDataset.categoryId.eq(category.id));
+				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
 		
 		if(categoryId != null) {				
 			baseQuery.where(category.identification.eq(categoryId));
@@ -733,21 +1057,21 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if (!(searchStr == null || searchStr.isEmpty())){
-			baseQuery.where(sourceDataset.name.containsIgnoreCase(searchStr)); 				
+			baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
 		}
 			
 		SQLQuery listQuery = baseQuery.clone()					
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 		
-		applyListParams(listQuery, sdi, sourceDataset.name);
+		applyListParams(listQuery, sdi, sourceDatasetVersion.name);
 		
 		context.answer(
 			new InfoList<SourceDatasetInfo>(			
 				listQuery					
-					.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)						
-					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
 							dataSource.identification, dataSource.name,
 							category.identification,category.name,
 							dataset.count())),
@@ -763,8 +1087,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String sourceDatasetId = sdi.getId();
 		
 		SQLQuery baseQuery = context.query().from(sourceDataset)
+				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+									.notExists()))
 				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDataset.categoryId.eq(category.id));
+				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
 		
 		if(sourceDatasetId != null) {				
 			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
@@ -775,10 +1104,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		context.answer(
 			listQuery					
-				.groupBy(sourceDataset.identification).groupBy(sourceDataset.name)
+				.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 				.groupBy(dataSource.identification).groupBy(dataSource.name)
 				.groupBy(category.identification).groupBy(category.name)						
-				.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDataset.name, 
+				.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
 						dataSource.identification, dataSource.name,
 						category.identification,category.name,
 						dataset.count())
@@ -798,7 +1127,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		SQLQuery baseQuery = context.query().from(dataset)
 			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-			.leftJoin (category).on(sourceDataset.categoryId.eq(category.id));
+			.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+									.notExists()))
+			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id));
 		
 		if(categoryId != null) {
 			baseQuery.where(category.identification.eq(categoryId));
@@ -808,8 +1142,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				baseQuery
 				.orderBy(dataset.identification.asc())
 				.list(new QDatasetInfo(dataset.identification, dataset.name, 
-						sourceDataset.identification, sourceDataset.name,
-						category.identification,category.name, dataset.filterConditions))
+						sourceDataset.identification, sourceDatasetVersion.name,
+						category.identification,category.name))
 		);
 	}
 
@@ -834,113 +1168,82 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		Table table = dataset.getTable();
 		
-		Tuple existing = 
-			context.query().from(sourceDataset)
-				.join(dataSource)
-					.on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join(category)
-					.on(category.id.eq(sourceDataset.categoryId))
-				.where(sourceDataset.identification.eq(dataset.getId())
-					.and(dataSource.identification.eq(rsd.getDataSource())))
-				.singleResult(
-						sourceDataset.id, 
-						sourceDataset.name, 
-						
-						category.id, 
-						category.identification,
-						
-						sourceDataset.revision,
-						
-						sourceDataset.createTime, 
-						sourceDataset.updateTime, 
-						sourceDataset.deleteTime);
+		final Integer versionId =
+			context.query().from(sourceDatasetVersion)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.where(dataSource.identification.eq(rsd.getDataSource())
+					.and(sourceDataset.identification.eq(dataset.getId())))
+				.singleResult(sourceDatasetVersion.id.max());
 		
-		if(existing != null) {
-			Integer id = existing.get(sourceDataset.id);
-			String existingName = existing.get(sourceDataset.name);
+		Integer sourceDatasetId = null;
+		if(versionId == null) { // new dataset
+			sourceDatasetId = 
+				context.insert(sourceDataset)
+					.columns(
+						sourceDataset.dataSourceId,
+						sourceDataset.identification)
+					.select(
+						new SQLSubQuery().from(dataSource)
+							.list(
+								dataSource.id,
+								dataset.getId()))
+				.executeWithKey(sourceDataset.id);
+		} else { // existing dataset
+			Tuple existing = 
+					context.query().from(sourceDataset)
+						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
+						.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+					.singleResult(
+						sourceDataset.id,
+						sourceDatasetVersion.name,
+						category.identification,
+						sourceDatasetVersion.revision,
+						sourceDataset.deleteTime);
+			
+			sourceDatasetId = existing.get(sourceDataset.id);
+			
+			String existingName = existing.get(sourceDatasetVersion.name);
 			String existingCategoryIdentification = existing.get(category.identification);
-			Timestamp existingRevision = existing.get(sourceDataset.revision);
+			Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
 			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 			
-			List<Column> existingColumns = context.query().from(sourceDatasetColumn)
-				.where(sourceDatasetColumn.sourceDatasetId.eq(id))
-				.orderBy(sourceDatasetColumn.index.asc())
-				.list(new QColumn(sourceDatasetColumn.name, sourceDatasetColumn.dataType));
+			List<Column> existingColumns = context.query().from(sourceDatasetVersionColumn)
+					.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
+					.orderBy(sourceDatasetVersionColumn.index.asc())
+					.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
 			
-			if(existingName.equals(table.getName())
+			if(existingName.equals(table.getName()) // still identical
 					&& existingCategoryIdentification.equals(dataset.getCategoryId())
 					&& existingRevision.equals(revision)
 					&& existingDeleteTime == null
 					&& existingColumns.equals(table.getColumns())) {
+				
 				context.answer(new AlreadyRegistered());
-				log.debug("dataset already registered");
+				return;
 			} else {
-				int existingCategoryId= existing.get(category.id);
-				
-				Timestamp existingTime = existing.get(sourceDataset.updateTime);
-				if(existingTime == null) {
-					existingTime = existing.get(sourceDataset.createTime);
-				}
-				
-				int historyId =
-					context.insert(sourceDatasetHistory)
-						.set(sourceDatasetHistory.sourceDatasetId, id)
-						.set(sourceDatasetHistory.name, existingName)
-						.set(sourceDatasetHistory.categoryId, existingCategoryId)
-						.set(sourceDatasetHistory.revision, existingRevision)
-						.set(sourceDatasetHistory.time, existingTime)
-					.executeWithKey(sourceDatasetHistory.id);
-				
-				int i = 0;
-				for(Column column : existingColumns) {			
-					context.insert(sourceDatasetColumnHistory)
-						.set(sourceDatasetColumnHistory.sourceDatasetHistoryId, historyId)
-						.set(sourceDatasetColumnHistory.index, i++)
-						.set(sourceDatasetColumnHistory.name, column.getName())
-						.set(sourceDatasetColumnHistory.dataType, column.getDataType().toString())
+				if(existingDeleteTime != null) { // reviving dataset
+					context.update(sourceDataset)
+						.setNull(sourceDataset.deleteTime)						
 						.execute();
 				}
-				
-				context.update(sourceDataset)
-					.set(sourceDataset.name, table.getName())
-					.set(sourceDataset.revision, revision)
-					.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
-					.setNull(sourceDataset.deleteTime)						
-					.set(sourceDataset.updateTime, DateTimeExpression.currentTimestamp(Timestamp.class))
-					.where(sourceDataset.id.eq(id))
-					.execute();
-				
-				context.delete(sourceDatasetColumn)
-					.where(sourceDatasetColumn.sourceDatasetId.eq(id))
-					.execute();
-				
-				insertSourceDatasetColumns(context, id, table.getColumns());
-				context.answer(new Updated());
-				
-				log.debug("dataSource updated");
 			}
+		}
+		
+		int newVersionId = 
+			context.insert(sourceDatasetVersion)
+				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+				.set(sourceDatasetVersion.name, table.getName())
+				.set(sourceDatasetVersion.categoryId, getCategoryId(context, dataset.getCategoryId()))
+				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+				.executeWithKey(sourceDatasetVersion.id);
+		
+		insertSourceDatasetColumns(context, newVersionId, table.getColumns());
+		
+		if(versionId == null) {
+			context.answer(new Registered());
 		} else {
-			Integer dataSourceId = context.query().from(dataSource)
-				.where(dataSource.identification.eq(rsd.getDataSource()))
-				.singleResult(dataSource.id);
-			
-			if(dataSourceId == null) {
-				log.error("dataSource not found: " + dataSourceId);
-			} else {
-				int id =
-					context.insert(sourceDataset)
-						.set(sourceDataset.dataSourceId, dataSourceId)
-						.set(sourceDataset.identification, dataset.getId())
-						.set(sourceDataset.name, table.getName())
-						.set(sourceDataset.revision, revision)
-						.set(sourceDataset.categoryId, getCategoryId(context, dataset.getCategoryId()))
-						.executeWithKey(sourceDataset.id);
-				
-				insertSourceDatasetColumns(context, id, table.getColumns());					
-				context.answer(new Registered());
-				
-				log.debug("dataSource inserted");
-			}
+			context.answer(new Updated());
 		}
 	}
 

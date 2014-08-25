@@ -8,16 +8,20 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.GetHarvestStatus;
-import nl.idgis.publisher.database.messages.HarvestStatus;
+import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
+import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
+import nl.idgis.publisher.database.messages.DataSourceStatus;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 public class Creator extends Scheduled {
 	
@@ -34,50 +38,128 @@ public class Creator extends Scheduled {
 	public static Props props(ActorRef database) {
 		return Props.create(Creator.class, database);
 	}
+	
+	@Override
+	protected void doElse(Object msg) {
+		log.debug("message received: "+ msg);
+		
+		if(msg instanceof TypedIterable) {
+			doIterable((TypedIterable<?>)msg);
+		} else {
+			unhandled(msg);
+		}
+	}
+	
+	private void scheduleImportJobs(Iterable<DatasetStatus> datasetStatuses) {
+		log.debug("scheduling import jobs");
+		
+		for(DatasetStatus datasetStatus : datasetStatuses) {
+			String datasetId = datasetStatus.getDatasetId();
+			
+			Timestamp sourceRevision = datasetStatus.getSourceRevision();
+			Timestamp importedRevision = datasetStatus.getImportedSourceRevision();
+			
+			if(importedRevision == null) {
+				log.debug("not yet imported");
+			} else {
+				List<Column> importedSourceColumns = datasetStatus.getImportedSourceColumns();
+				List<Column> sourceColumns = datasetStatus.getSourceColumns();
+				
+				if(sourceRevision.getTime() != importedRevision.getTime()) {
+					log.debug("revision changed");
+										
+					if(sourceColumns.equals(importedSourceColumns)) {
+						log.debug("sourceColumns unchanged");
+					} else {
+						// TODO: check for confirmation
+						
+						log.debug("sourceColumns changed -> needs confirmation");
+						continue;
+					}
+				} else {
+					List<Column> columns = datasetStatus.getColumns();
+					List<Column> importedColumns = datasetStatus.getImportedColumns();
+					
+					String sourceDatasetId = datasetStatus.getSourceDatasetId();
+					String importedSourceDatasetId = datasetStatus.getImportedSourceDatasetId();
+					
+					// TODO: also check for filter changes
+					
+					if(!columns.equals(importedColumns)) {
+						log.debug("columns changed");
+					} else if(!sourceDatasetId.equals(importedSourceDatasetId)) {
+						log.debug("source dataset changed");
+					} else {
+						log.debug("no imported need for: " + datasetId);
+						continue;
+					}
+				}
+			}
+			
+			log.debug("creating import job for: " + datasetId);
+			database.tell(new CreateImportJob(datasetId), getSelf());
+		}
+	}
+	
+	private void scheduleHarvestJobs(Iterable<DataSourceStatus> dataSourceStatuses) {
+		log.debug("scheduling harvest jobs");
+		
+		for(DataSourceStatus dataSourceStatus : dataSourceStatuses) {
+			final String dataSourceId = dataSourceStatus.getDataSourceId();
+			final JobState state = dataSourceStatus.getFinishedState();
+			final Timestamp time = dataSourceStatus.getLastHarvested();
+			
+			final long timeDiff;
+			if(time != null) {
+				timeDiff = System.currentTimeMillis() - time.getTime();
+			} else {
+				timeDiff = Long.MAX_VALUE;
+			}
+			
+			if(!JobState.SUCCEEDED.equals(state)
+				|| timeDiff > HARVEST_INTERVAL.toMillis()) {
+				
+				log.debug("creating harvest job for: " + dataSourceId);				
+				database.tell(new CreateHarvestJob(dataSourceId), getSelf());				
+			} else {
+				log.debug("not yet creating harvest job for: " + dataSourceId);
+			}
+		}
+	}
+
+	private void doIterable(TypedIterable<?> msg) {
+		if(msg.contains(DataSourceStatus.class)) {
+			scheduleHarvestJobs(msg.cast(DataSourceStatus.class));
+		} else if(msg.contains(DatasetStatus.class)) {
+			Iterable<DatasetStatus> datasetStatuses = msg.cast(DatasetStatus.class);
+			
+			scheduleImportJobs(datasetStatuses);
+			scheduleServiceJobs(datasetStatuses);
+		} else {
+			unhandled(msg);
+		}
+	}
+
+	private void scheduleServiceJobs(Iterable<DatasetStatus> datasetStatuses) {		
+		for(DatasetStatus datasetStatus : datasetStatuses) {
+			String datasetId = datasetStatus.getDatasetId();
+			
+			if(datasetStatus.isServiceCreated()) {
+				log.debug("service already created for dataset: " + datasetId);
+			} else {
+				log.debug("creating service for dataset: " + datasetId);
+				
+				database.tell(new CreateServiceJob(datasetId), getSelf());
+			}
+		}
+	}
 
 	@Override
 	protected void doInitiate() {
-		log.debug("creating jobs");
+		log.debug("requesting statuses");
 		
-		Patterns.ask(database, new GetHarvestStatus(), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-				
-				@Override
-				@SuppressWarnings("unchecked")
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("harvest status: " + msg);
-					
-					for(HarvestStatus harvestStatus : (List<HarvestStatus>)msg) {
-						final String dataSourceId = harvestStatus.getDataSourceId();
-						final JobState state = harvestStatus.getFinishedState();
-						final Timestamp time = harvestStatus.getLastFinished();
-						
-						final long timeDiff;
-						if(time != null) {
-							timeDiff = System.currentTimeMillis() - time.getTime();
-						} else {
-							timeDiff = Long.MAX_VALUE;
-						}
-						
-						if(!JobState.SUCCEEDED.equals(state)
-							|| timeDiff > HARVEST_INTERVAL.toMillis()) {
-							
-							log.debug("creating harvest job for: " + dataSourceId);
-							
-							Patterns.ask(database, new CreateHarvestJob(dataSourceId), 15000)
-								.onSuccess(new OnSuccess<Object>() {
-
-									@Override
-									public void onSuccess(Object msg) throws Throwable {
-										log.debug("job created for: " + dataSourceId);
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.debug("not yet creating harvest job for: " + dataSourceId);
-						}
-					}
-				}
-			}, getContext().dispatcher());
+		database.tell(new GetDataSourceStatus(), getSelf());
+		database.tell(new GetDatasetStatus(), getSelf());
 	}
 
 }

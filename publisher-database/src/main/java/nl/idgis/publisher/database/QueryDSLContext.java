@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database;
 
+import nl.idgis.publisher.utils.TypedIterable;
+
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLTemplates;
@@ -38,7 +40,26 @@ class QueryDSLContext {
 		return new SQLDeleteClause(jdbcContext.getConnection(), templates, entity);
 	}
 	
+	<T> void answer(Class<T> type, Iterable<T> msg) {
+		jdbcContext.answer(type, msg);
+	}
+	
+	void answer(TypedIterable<?> msg) {
+		jdbcContext.answer(msg);
+	}
+	
 	void answer(Object msg) {
+		jdbcContext.answer(msg);
+	}
+	
+	/**
+	 * 
+	 * @param msg
+	 * 
+	 * @deprecated use {@link #answer(Class, Iterable)} instead.
+	 */
+	@Deprecated
+	void answer(Iterable<?> msg) {
 		jdbcContext.answer(msg);
 	}
 	
