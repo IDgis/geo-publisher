@@ -422,7 +422,16 @@ require ([
 			isValid = true;
 		} else {
 			var type = column.substring (column.indexOf (':') + 1);
-			isValid = typeValidators[type] (value);
+			if (operator == 'IN') {
+				isValid = true;
+				array.forEach (value.split (','), function (part) {
+					if (!typeValidators[type] (lang.trim (part))) {
+						isValid = false;
+					}
+				});
+			} else {
+				isValid = typeValidators[type] (value);
+			}
 		}
 		
 		domClass[isValid ? 'remove' : 'add'] (d.valueInput.parentNode, 'has-error');
@@ -768,7 +777,7 @@ require ([
 					}, {
 						type: 'value',
 						value: value || '',
-						valueType: type
+						valueType: operator == 'IN' ? 'TEXT' : type
 					}
 				];
 
