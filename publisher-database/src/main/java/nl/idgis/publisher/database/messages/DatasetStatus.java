@@ -7,18 +7,19 @@ import java.util.List;
 import nl.idgis.publisher.domain.service.Column;
 
 public class DatasetStatus implements Serializable {
-
-	private static final long serialVersionUID = -3314499936419517295L;
+	
+	private static final long serialVersionUID = 2618280080822609672L;
 	
 	private final String datasetId;
-	private final Timestamp revision, importedRevision;	
-	private final List<Column> columns, importedColumns;
+	private final Timestamp sourceRevision, importedRevision;	
+	private final List<Column> columns, sourceColumns, importedColumns;
 	
-	public DatasetStatus(String datasetId, Timestamp revision, Timestamp importedRevision, List<Column> columns, List<Column> importedColumns) {
+	public DatasetStatus(String datasetId, Timestamp sourceRevision, Timestamp importedRevision, List<Column> columns, List<Column> sourceColumns, List<Column> importedColumns) {
 		this.datasetId = datasetId;
-		this.revision = revision;
+		this.sourceRevision = sourceRevision;
 		this.importedRevision = importedRevision;
 		this.columns = columns;
+		this.sourceColumns = sourceColumns;
 		this.importedColumns = importedColumns;
 	}
 
@@ -26,16 +27,20 @@ public class DatasetStatus implements Serializable {
 		return datasetId;
 	}
 
-	public Timestamp getRevision() {
-		return revision;
+	public Timestamp getSourceRevision() {
+		return sourceRevision;
 	}
 
 	public Timestamp getImportedRevision() {
 		return importedRevision;
 	}
-
+	
 	public List<Column> getColumns() {
 		return columns;
+	}
+
+	public List<Column> getSourceColumns() {
+		return sourceColumns;
 	}
 
 	public List<Column> getImportedColumns() {
@@ -44,9 +49,10 @@ public class DatasetStatus implements Serializable {
 
 	@Override
 	public String toString() {
-		return "DatasetStatus [datasetId=" + datasetId + ", revision="
-				+ revision + ", importedRevision=" + importedRevision
-				+ ", columns=" + columns + ", importedColumns="
-				+ importedColumns + "]";
+		return "DatasetStatus [datasetId=" + datasetId + ", sourceRevision="
+				+ sourceRevision + ", importedRevision=" + importedRevision
+				+ ", columns=" + columns + ", sourceColumns=" + sourceColumns
+				+ ", importedColumns=" + importedColumns + "]";
 	}
+	
 }

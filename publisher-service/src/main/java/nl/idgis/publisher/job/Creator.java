@@ -55,25 +55,34 @@ public class Creator extends Scheduled {
 		for(DatasetStatus datasetStatus : datasetStatuses) {
 			String datasetId = datasetStatus.getDatasetId();
 			
+			Timestamp sourceRevision = datasetStatus.getSourceRevision();
 			Timestamp importedRevision = datasetStatus.getImportedRevision();
+			
 			if(importedRevision == null) {
 				log.debug("not yet imported");
 			} else {
-				Timestamp revision = datasetStatus.getRevision();
-				if(revision.getTime() != importedRevision.getTime()) {
+				List<Column> columns = datasetStatus.getColumns();
+				List<Column> importedColumns = datasetStatus.getSourceColumns();
+				List<Column> sourceColumns = datasetStatus.getSourceColumns();
+				
+				if(sourceRevision.getTime() != importedRevision.getTime()) {
 					log.debug("revision changed");
-					
-					List<Column> columns = datasetStatus.getColumns();
-					List<Column> importedColumns = datasetStatus.getColumns();
-					if(columns.equals(importedColumns)) {
-						log.debug("columns unchanged");
+										
+					if(sourceColumns.equals(importedColumns)) {
+						log.debug("sourceColumns unchanged");
 					} else {
-						log.debug("columns changed -> needs confirmation");
+						log.debug("sourceColumns changed -> needs confirmation");
 						continue;
 					}
-				} else {				
-					log.debug("no imported need for: " + datasetId);
-					continue;
+				} else {
+					// TODO: also check for filter changes
+					
+					if(!columns.equals(importedColumns)) {
+						log.debug("columns changed");
+					} else {					
+						log.debug("no imported need for: " + datasetId);
+						continue;
+					}
 				}
 			}
 			

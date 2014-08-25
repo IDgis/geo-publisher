@@ -101,8 +101,6 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
-import com.mysema.query.types.path.NumberPath;
-import com.mysema.query.types.path.StringPath;
 import com.typesafe.config.Config;
 
 public class PublisherTransaction extends QueryDSLTransaction {
@@ -238,7 +236,42 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context) {
-		Map<String, Pair<Timestamp, List<Column>>> allDatasets = readDatasetInfo(
+		Map<String, List<Column>> datasets = new HashMap<>();
+		
+		String lastId = null;
+		List<Column> currentColumns = null;
+		for(Tuple t :
+			context.query().from(datasetColumn)
+				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+				.orderBy(
+						datasetColumn.datasetId.asc(),
+						datasetColumn.index.asc())
+				.list(
+						dataset.identification,
+						datasetColumn.name,
+						datasetColumn.dataType)) {
+			
+			String currentDatasetId = t.get(dataset.identification);
+			if(!currentDatasetId.equals(lastId)) {
+				if(currentColumns != null) {
+					datasets.put(lastId, currentColumns);
+				}
+				
+				lastId = currentDatasetId;
+				currentColumns = new ArrayList<>();
+			}
+			
+			currentColumns.add(
+				new Column(
+					t.get(datasetColumn.name),
+					t.get(datasetColumn.dataType)));
+		}
+		
+		if(currentColumns != null) {
+			datasets.put(lastId, currentColumns);
+		}			
+		
+		Map<String, Pair<Timestamp, List<Column>>> sourceDatasets = readDatasetInfo(
 				context.query().from(dataset)					
 					.join(sourceDatasetHistory).on(sourceDatasetHistory.sourceDatasetId.eq(dataset.sourceDatasetId)
 						.and(new SQLSubQuery().from(sourceDatasetHistorySub)
@@ -261,27 +294,34 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		List<DatasetStatus> datasetStatus = new ArrayList<>();
 		
-		for(Map.Entry<String, Pair<Timestamp, List<Column>>> datasetEntry : allDatasets.entrySet()) {
+		for(Map.Entry<String, List<Column>> datasetEntry : datasets.entrySet()) {
 			String datasetId = datasetEntry.getKey();
-			Pair<Timestamp, List<Column>> datasetInfo = datasetEntry.getValue();
 			
-			Pair<Timestamp, List<Column>> importedDatasetInfo = importedDatasets.get(datasetId);
-			if(importedDatasetInfo == null) {
-				datasetStatus.add(
-						new DatasetStatus(
-								datasetId, 
-								datasetInfo.first(), 
-								null, 
-								datasetInfo.second(), 
-								null));
+			List<Column> columns = datasetEntry.getValue();
+			
+			Pair<Timestamp, List<Column>> sourceInfo = sourceDatasets.get(datasetId);
+			Timestamp sourceRevision = sourceInfo.first();
+			List<Column> sourceColumns = sourceInfo.second();
+			
+			Pair<Timestamp, List<Column>> importedInfo = importedDatasets.get(datasetId);
+			Timestamp importedRevision;
+			List<Column> importedColumns;
+			if(importedInfo == null) {
+				importedRevision = null;
+				importedColumns = null;
 			} else {
-				datasetStatus.add(
-						new DatasetStatus(
-								datasetId, 
-								datasetInfo.first(), 
-								importedDatasetInfo.first(), 
-								datasetInfo.second(), importedDatasetInfo.second()));
+				importedRevision = importedInfo.first();
+				importedColumns = importedInfo.second();
 			}
+
+			datasetStatus.add(
+				new DatasetStatus(
+					datasetId, 
+					sourceRevision, 
+					importedRevision, 
+					columns,
+					sourceColumns, 
+					importedColumns));			
 		}
 		
 		context.answer(DatasetStatus.class, datasetStatus);
@@ -311,14 +351,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				currentColumns = new ArrayList<>();
 			}
 			
-			if(currentColumns != null) {
-				datasetInfo.put(lastId, new Pair<>(currentRevision, currentColumns));
-			}
-			
 			currentColumns.add(
 				new Column(
 					t.get(sourceDatasetColumnHistory.name),
 					t.get(sourceDatasetColumnHistory.dataType)));
+		}
+		
+		if(currentColumns != null) {
+			datasetInfo.put(lastId, new Pair<>(currentRevision, currentColumns));
 		}
 		
 		return datasetInfo;
