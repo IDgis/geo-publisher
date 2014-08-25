@@ -3,6 +3,7 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,8 @@ import models.Domain.Function2;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
-import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
@@ -26,6 +27,8 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -33,6 +36,7 @@ import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
+import play.data.validation.ValidationError;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.libs.Json;
@@ -51,7 +55,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-	private static int counter = 0;
 
 	public static Promise<Result> list (long page) {
 		return listByCategoryAndMessages(null, false, page);
@@ -113,55 +116,6 @@ public class Datasets extends Controller {
  
 		return list(1);
 	}
-	
-	private static List<Column> makeColumnList(){
-		List<Column> colList = new ArrayList<Column>();
-		Column col = new Column("FirstColumn","NUMERIC");
-		colList.add(col);
-		col = new Column("SecondColumn","TEXT");
-		colList.add(col);
-		col = new Column("ThirdColumn","DATE");
-		colList.add(col);
-		col = new Column("RandomColumn-"+Math.random(),"GEOMETRY");
-		colList.add(col);
-		return colList;
-	}
-	
-	public static Promise<Result> update(){
-		// TODO construct putdataset from form (putdataset.id != null)
-		final PutDataset putDataset = new PutDataset(CrudOperation.UPDATE,"1", "MyUpdatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
-		System.out.println("update dataset " + putDataset);
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
-			@Override
-			public Promise<Result> apply (final Response<?> a) throws Throwable {
-				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
-				
-				return list (0);
-			}
-		}); 
-		
-	}
-	
-	public static Promise<Result>  create() {
-		// TODO construct putdataset from form (putdataset.id == null)
-		final PutDataset putDataset = new PutDataset(CrudOperation.CREATE, "1", "MyCreatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
-		System.out.println("create dataset " + putDataset);
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-
-		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
-			@Override
-			public Promise<Result> apply (final Response<?> a) throws Throwable {
-				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
-				
-				return list(0);
-			}
-		}); 
-		
-	}
 
 	private static DomainQuery<Page<SourceDatasetStats>> listSourceDatasets (final String dataSourceId, final String categoryId) {
 		if (dataSourceId == null || categoryId == null || dataSourceId.isEmpty () || categoryId.isEmpty ()) {
@@ -210,7 +164,7 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> createForm () {
 		Logger.debug ("createForm");
-		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class);
+		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).fill (new DatasetForm ());
 		
 		return renderCreateForm (datasetForm);
 	}
@@ -239,6 +193,11 @@ public class Datasets extends Controller {
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
+						// Validate the filter:
+						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
+							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+							return renderCreateForm (datasetForm);
+						}
 						
 						// Create the list of selected columns:
 						final List<Column> columns = new ArrayList<> ();
@@ -252,7 +211,8 @@ public class Datasets extends Controller {
 								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
-								columns
+								columns,
+								dataset.getFilterConditions ()
 							);
 						
 						Logger.debug ("create dataset " + putDataset);
@@ -352,7 +312,13 @@ public class Datasets extends Controller {
 						Logger.debug ("category: " + category);
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
-						// TODO: Validate dataSource, category, sourceDataset and columns!
+						// TODO: Validate dataSource, category, sourceDataset!
+						
+						// Validate the columns used by the filter:
+						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
+							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+							return renderEditForm (datasetForm);
+						}
 						
 						// Create the list of selected columns:
 						final List<Column> columns = new ArrayList<> ();
@@ -366,7 +332,8 @@ public class Datasets extends Controller {
 								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
-								columns
+								columns,
+								dataset.getFilterConditions ()
 							);
 						
 						Logger.debug ("update dataset " + putDataset);
@@ -463,6 +430,14 @@ public class Datasets extends Controller {
 			});
 	}
 
+	private static Filter emptyFilter () {
+		final Filter.OperatorExpression andExpression = new Filter.OperatorExpression (OperatorType.AND, Collections.<Filter.FilterExpression>emptyList ());
+		final Filter.OperatorExpression orExpression = new Filter.OperatorExpression (OperatorType.OR, Arrays.<Filter.FilterExpression>asList (new Filter.FilterExpression[] { andExpression }));
+		
+		return new Filter (orExpression);
+	}
+
+	
 	public static class DatasetForm {
 		
 		@Constraints.Required
@@ -486,7 +461,11 @@ public class Datasets extends Controller {
 		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String id;
 
+		@Constraints.Required
+		private Filter filterConditions;
+
 		public DatasetForm () {
+			filterConditions = emptyFilter ();
 		}
 		
 		public DatasetForm (final Dataset ds, String dataSourceId, List<Column> columns) {
@@ -500,6 +479,7 @@ public class Datasets extends Controller {
 			}			
 			setColumns (map);
 			setId (ds.id ());
+			setFilterConditions (ds.filterConditions ());
 		}
 		
 		public String getName() {
@@ -548,6 +528,14 @@ public class Datasets extends Controller {
 
 		public void setId (final String id) {
 			this.id = id;
+		}
+
+		public Filter getFilterConditions () {
+			return filterConditions;
+		}
+
+		public void setFilterConditions (final Filter filterConditions) {
+			this.filterConditions = filterConditions;
 		}
 
 		@Override

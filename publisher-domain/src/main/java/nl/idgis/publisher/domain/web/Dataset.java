@@ -17,6 +17,7 @@ public final class Dataset extends Identifiable {
 	private final Status currentStatus;
 	private final List<DashboardItem> activeNotifications;
 	private final EntityRef sourceDataset;
+	private final Filter filterConditions;
 	
 	@JsonCreator
 	public Dataset (
@@ -25,7 +26,8 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("category") Category category,
 			final @JsonProperty("currentStatus") Status currentStatus,
 			final @JsonProperty("activeNotifications") List<DashboardItem> activeNotifications,
-			final @JsonProperty("sourceDataset") EntityRef sourceDataset) {
+			final @JsonProperty("sourceDataset") EntityRef sourceDataset,
+			final @JsonProperty("filterConditions") Filter filterConditions) {
 		
 		super (id);
 		
@@ -34,6 +36,7 @@ public final class Dataset extends Identifiable {
 		this.currentStatus = currentStatus;
 		this.activeNotifications = activeNotifications == null ? Collections.<DashboardItem>emptyList () : new ArrayList<> (activeNotifications);
 		this.sourceDataset = sourceDataset;
+		this.filterConditions = filterConditions;
 	}
 	
 	@JsonGetter
@@ -59,5 +62,10 @@ public final class Dataset extends Identifiable {
 	@JsonGetter
 	public EntityRef sourceDataset () {
 		return this.sourceDataset;
+	}
+	
+	@JsonGetter
+	public Filter filterConditions () {
+		return this.filterConditions;
 	}
 }

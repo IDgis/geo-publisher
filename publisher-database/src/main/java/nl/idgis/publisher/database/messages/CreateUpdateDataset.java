@@ -12,14 +12,16 @@ public class CreateUpdateDataset extends Query {
 	private final String datasetName;
 	private final String sourceDatasetIdentification;
 	private final List<Column> columnList;
+	private final String filterConditions;
 	
 	public CreateUpdateDataset(String datasetIdentification, String datasetName, String sourceDatasetIdentification,
-			List<Column> columnList) {
+			List<Column> columnList, final String filterConditions) {
 		super();
 		this.datasetIdentification = datasetIdentification;
 		this.datasetName = datasetName;
 		this.sourceDatasetIdentification = sourceDatasetIdentification;
 		this.columnList = columnList;
+		this.filterConditions = filterConditions;
 	}
 	
 	public String getDatasetIdentification() {
@@ -33,6 +35,10 @@ public class CreateUpdateDataset extends Query {
 	}
 	public List<Column> getColumnList() {
 		return columnList;
+	}
+	
+	public String getFilterConditions () {
+		return filterConditions;
 	}
 
 	@Override

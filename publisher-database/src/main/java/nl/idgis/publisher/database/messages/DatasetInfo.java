@@ -12,10 +12,12 @@ public class DatasetInfo implements Serializable {
 	private final String name;
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
+	private final String filterConditions;
 
 	@QueryProjection
 	public DatasetInfo(String id, String name, String sourceDatasetId,
-			String sourceDatasetName, String categoryId, String categoryName) {
+			String sourceDatasetName, String categoryId, String categoryName, 
+			final String filterConditions) {
 		super();
 		this.id = id;
 		this.name = name;
@@ -23,6 +25,7 @@ public class DatasetInfo implements Serializable {
 		this.sourceDatasetName = sourceDatasetName;
 		this.categoryId = categoryId;
 		this.categoryName = categoryName;
+		this.filterConditions = filterConditions;
 	}
 
 	public String getId() {
@@ -47,6 +50,10 @@ public class DatasetInfo implements Serializable {
 
 	public String getCategoryName() {
 		return categoryName;
+	}
+	
+	public String getFilterConditions () {
+		return filterConditions;
 	}
 
 	@Override
