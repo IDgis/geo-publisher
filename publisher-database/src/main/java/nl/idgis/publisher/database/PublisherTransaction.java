@@ -100,6 +100,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstructorExpression;
+import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
@@ -267,7 +269,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		private Timestamp revision;		
 		private List<Column> columns;
 		
-		public DatasetInfo(String sourceDatasetId, Timestamp revision) {
+		DatasetInfo(String sourceDatasetId, Timestamp revision) {
 			this.sourceDatasetId = sourceDatasetId;
 			this.revision = revision;
 			
@@ -292,76 +294,26 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context) {
-		Map<String, List<Column>> datasets = new HashMap<>();
-		
-		String lastId = null;
-		List<Column> currentColumns = null;
-		for(Tuple t :
+		Map<String, List<Column>> datasets = treeFold(
 			context.query().from(datasetColumn)
 				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 				.orderBy(
 						datasetColumn.datasetId.asc(),
-						datasetColumn.index.asc())
-				.list(
+						datasetColumn.index.asc()),
+						
 						dataset.identification,
-						datasetColumn.name,
-						datasetColumn.dataType)) {
-			
-			String currentDatasetId = t.get(dataset.identification);
-			if(!currentDatasetId.equals(lastId)) {
-				if(currentColumns != null) {
-					datasets.put(lastId, currentColumns);
-				}
-				
-				lastId = currentDatasetId;
-				currentColumns = new ArrayList<>();
-			}
-			
-			currentColumns.add(
-				new Column(
-					t.get(datasetColumn.name),
-					t.get(datasetColumn.dataType)));
-		}
+						new QColumn(datasetColumn.name, datasetColumn.dataType));
 		
-		if(currentColumns != null) {
-			datasets.put(lastId, currentColumns);
-		}
-		
-		Map<String, List<Column>> importedDatasets = new HashMap<>();
-		
-		lastId = null;
-		currentColumns = null;
-		for(Tuple t :
-			context.query().from(importJobColumn)
+		Map<String, List<Column>> importedDatasets = treeFold(
+				context.query().from(importJobColumn)
 				.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
 				.join(dataset).on(dataset.id.eq(importJob.datasetId))				
 				.orderBy(
 						importJobColumn.importJobId.asc(),
-						importJobColumn.index.asc())
-				.list(
-						dataset.identification,
-						importJobColumn.name,
-						importJobColumn.dataType)) {
-			
-			String currentDatasetId = t.get(dataset.identification);
-			if(!currentDatasetId.equals(lastId)) {
-				if(currentColumns != null) {
-					datasets.put(lastId, currentColumns);
-				}
+						importJobColumn.index.asc()),
 				
-				lastId = currentDatasetId;
-				currentColumns = new ArrayList<>();
-			}
-			
-			currentColumns.add(
-				new Column(
-					t.get(importJobColumn.name),
-					t.get(importJobColumn.dataType)));
-		}
-		
-		if(currentColumns != null) {
-			importedDatasets.put(lastId, currentColumns);
-		}
+						dataset.identification,						
+						new QColumn(importJobColumn.name, importJobColumn.dataType));
 		
 		Map<String, DatasetInfo> sourceDatasets = readDatasetInfo(
 				context.query().from(dataset)					
@@ -578,6 +530,37 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		context.answer(jobLogs);
+	}
+	
+	private <T, U> Map<T, List<U>> treeFold(SQLQuery query, Expression<T> id, Expression<U> value) {
+		Map<T, List<U>> retval = new HashMap<>();
+		
+		T lastId = null;
+		List<U> currentValues = null;
+		for(Tuple t : 
+			query
+				.list(
+					id,
+					value)) {
+			
+			T currentId = t.get(id);
+			if(!currentId.equals(lastId)) {
+				if(currentValues != null) {
+					retval.put(lastId, currentValues);
+				}
+				
+				lastId = currentId;
+				currentValues = new ArrayList<>();
+			}
+			
+			currentValues.add(t.get(value));
+		}
+		
+		if(currentValues != null) {
+			retval.put(lastId, currentValues);
+		}
+		
+		return retval;
 	}
 
 	private void executeGetDataSourceStatus(QueryDSLContext context) {
