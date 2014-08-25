@@ -361,7 +361,8 @@ require ([
 	 * and a new set of columns becomes available. 
 	 */
 	function updateFilterColumns () {
-		var columns = listColumns;
+		console.log ('Updating filter columns');
+		var columns = listColumns ();
 		query ('.js-operator-compare', filterEditorNode).forEach (function (expressionNode) {
 			updateExpressionColumns (expressionNode, columns);
 		});
@@ -444,12 +445,9 @@ require ([
 	 */
 	function updateValueInput (expressionNode) {
 		var d = data (expressionNode),
-			operator = d.operator;
-		console.log (operator);
-		var arity = operator && operator !== '' ? operatorProperties[operator].arity : 1;
+			operator = d.operator,
+			arity = operator && operator !== '' ? operatorProperties[operator].arity : 1;
 			
-		console.log (operator, arity);
-		
 		domClass[arity == 1 ? 'add' : 'remove'] (d.valueInput, 'hidden');
 		
 		validateExpression (expressionNode);
@@ -477,7 +475,6 @@ require ([
 			domAttr.remove (d.operatorSelect, 'disabled');
 			var type = column.substring (column.indexOf (':') + 1);
 			operators = typeOperatorMapping[type];
-			console.log (type, operators);
 		}
 		
 		// Add the empty operator:
@@ -498,7 +495,6 @@ require ([
 		
 		// Add the psuedo operator:
 		if (!hasSelection && d.operator && d.operator !== '') {
-			console.log (d.operator);
 			put (d.operatorSelect, 'option[value="-"][selected] span.text-danger $', operatorProperties[d.operator].label);
 			domClass.add (d.operatorSelect.parentNode, 'has-error');
 		} else {
@@ -532,6 +528,7 @@ require ([
 		var hasSelection = !d.column || d.column === '';
 		array.forEach (columns, function (column) {
 			var selected = d.column === column.name + ':' + column.type;
+			console.log ('Comparing column: ', d.column, column.name + ':' + column.type);
 			put (
 				d.columnSelect,
 				'option[value=$]' + (selected ? '[selected]' : '') + ' $', 
