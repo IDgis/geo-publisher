@@ -17,6 +17,7 @@ import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
 import nl.idgis.publisher.service.rest.ServiceRest;
 import nl.idgis.publisher.service.rest.Workspace;
+import nl.idgis.publisher.utils.FileUtils;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -34,18 +35,6 @@ public class ServiceRestTest {
 	PgServer pgServer;
 	Server jettyServer;
 	
-	private void delete(File f) {
-		if(f.isDirectory()) {
-			for(File child : f.listFiles()) {
-				delete(child);
-			}
-			
-			f.delete();
-		} else {			
-			f.delete();
-		}
-	}
-	
 	@Before
 	public void startServers() throws Exception {
 		pgServer = new PgServer();
@@ -53,7 +42,7 @@ public class ServiceRestTest {
 		File baseDir = new File("target/geoserver-database");
 		
 		if(baseDir.exists()) {
-			delete(baseDir);
+			FileUtils.delete(baseDir);
 		}
 		
 		pgServer.init("-pgPort", "" + PG_PORT, "-baseDir", baseDir.getAbsolutePath());
@@ -82,7 +71,7 @@ public class ServiceRestTest {
 		File dataDir = new File("target/geoserver-data");
 		
 		if(dataDir.exists()) {
-			delete(dataDir);
+			FileUtils.delete(dataDir);
 		}
 		
 		dataDir.mkdir();
