@@ -160,8 +160,6 @@ require ([
 		}
 		
 		updateIdTimeout = setTimeout (function () {
-			console.log ('updateId: ', id);
-			
 			updateIdTimeout = null;
 			
 			var iconNode = query ('span.glyphicon', idInput.parentNode)[0];
@@ -361,11 +359,11 @@ require ([
 	 * and a new set of columns becomes available. 
 	 */
 	function updateFilterColumns () {
-		console.log ('Updating filter columns');
 		var columns = listColumns ();
 		query ('.js-operator-compare', filterEditorNode).forEach (function (expressionNode) {
 			updateExpressionColumns (expressionNode, columns);
 		});
+		syncTextarea ();
 	}
 	
 	/**
@@ -377,7 +375,6 @@ require ([
 			filterObject = { expression: expression && expression.inputs && expression.inputs.length > 0 ? expression : null },
 			value = json.stringify (filterObject);
 		
-		console.log ('Syncing filter: ', filterObject);
 		filterTextarea.value = value;
 		
 		// Count the number of filters:
@@ -389,8 +386,6 @@ require ([
 				});
 			});
 		}
-		
-		console.log ('Filter count: ' + filterCount);
 		
 		query ('.js-filter-count').forEach (function (node) {
 			domConstruct.empty (node);
@@ -528,7 +523,6 @@ require ([
 		var hasSelection = !d.column || d.column === '';
 		array.forEach (columns, function (column) {
 			var selected = d.column === column.name + ':' + column.type;
-			console.log ('Comparing column: ', d.column, column.name + ':' + column.type);
 			put (
 				d.columnSelect,
 				'option[value=$]' + (selected ? '[selected]' : '') + ' $', 
@@ -574,8 +568,6 @@ require ([
 		// Update the operators:
 		updateOperatorList (expression);
 		syncTextarea ();
-		
-		console.log ('Change column: ', d.columnSelect.value);
 	}
 	
 	function onChangeOperator (expression) {
@@ -596,8 +588,6 @@ require ([
 		// Update the value input:
 		updateValueInput (expression);
 		syncTextarea ();
-		
-		console.log ('Change operator: ', d.operatorSelect.value);
 	}
 	
 	function onChangeValue (expression, sync) {
@@ -611,8 +601,6 @@ require ([
 		if (sync) {
 			syncTextarea ();
 		}
-		
-		console.log ('Value change: ', d.valueInput.value);
 	}
 	
 	function onRemoveExpression (expressionContainer) {
@@ -720,7 +708,6 @@ require ([
 	}
 	
 	function buildFilterEditor (filter) {
-		console.log ('Creating filter: ', filter);
 		domConstruct.empty (filterEditorNode);
 		
 		put (filterEditorNode, buildExpression (filter.expression || { 
