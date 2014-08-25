@@ -205,7 +205,9 @@ require ([
 	
 	on (idInput, 'keyup,change', updateId);
 	
-	updateId ();
+	if (domAttr.get (idInput, 'type') != 'hidden') {
+		updateId ();
+	}
 	
 	// =========================================================================
 	// Associating data with DOM nodes:
