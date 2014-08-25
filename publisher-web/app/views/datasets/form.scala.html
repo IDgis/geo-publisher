@@ -42,7 +42,7 @@
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
 				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">Kolommen</span> }else{ Kolommen } <span class="badge">0</span></a></li>
-				<li id="tab-filters"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-filters" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>Filters <span class="badge js-filter-count">0</span></a></li>
+				<li id="tab-filters"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-filters" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("filterConditions").errors.isEmpty){ <span class="text-danger">Filters</span> } else { Filters } <span class="badge js-filter-count">0</span></a></li>
 			</ul>
 			
 			<div class="tab-content">
@@ -153,6 +153,11 @@
 				<div class="tab-pane" id="dataset-filters">
 					<div class="row">
 						<div class="col-lg-12">
+							@if(!datasetForm("filterConditions").errors.isEmpty) {
+								<div class="alert alert-danger">
+									Het opgegeven filter is ongeldig.
+								</div>
+							}
 							<textarea name="@datasetForm("filterConditions").name">@datasetForm("filterConditions").value</textarea>
 							<div id="filter-editor">
 							</div>

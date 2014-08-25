@@ -311,7 +311,7 @@ require ([
 		typeValidators = {
 			TEXT: function (value) { return true; },
 			NUMERIC: function (value) { return /^(\-)?[0-9]+(\.[0-9]+)?$/.test (value); },
-			DATE: function (value) { return /^[0-9]{2}\-[0-9]{2}\-[0-9]{4}$/.test (value); },
+			DATE: function (value) { return /^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/.test (value); },
 			GEOMETRY: function (value) { return false; }
 		};
 	

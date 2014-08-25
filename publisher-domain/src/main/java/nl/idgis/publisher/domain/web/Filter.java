@@ -2,7 +2,9 @@ package nl.idgis.publisher.domain.web;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
@@ -36,29 +38,63 @@ public final class Filter extends Entity {
 		AND (0),
 		OR (0),
 		
-		EQUALS (2),
-		NOT_EQUALS (2),
-		LESS_THAN (2),
-		LESS_THAN_EQUAL (2),
-		GREATER_THAN (2),
-		GREATER_THAN_EQUAL (2),
+		EQUALS (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		NOT_EQUALS (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		LESS_THAN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		LESS_THAN_EQUAL (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		GREATER_THAN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		GREATER_THAN_EQUAL (2, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		LIKE (2),
+		LIKE (2, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		IN (2),
+		IN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		NOT_NULL (1);
+		NOT_NULL (1, Type.DATE, Type.NUMERIC, Type.TEXT, Type.GEOMETRY);
 		
 		private final int arity;
+		private final Set<Type> supportedTypes;
 		
-		OperatorType (int arity) {
+		OperatorType (final int arity, final Type ... supportedTypes) {
 			this.arity = arity;
+			this.supportedTypes = new HashSet<> ();
+			
+			for (final Type supportedType: supportedTypes) {
+				this.supportedTypes.add (supportedType);
+			}
 		}
 		
 		public int getArity () {
 			return arity;
 		}
+		
+		public Set<Type> getSupportedTypes () {
+			return Collections.unmodifiableSet (supportedTypes);
+		}
 	}
+	
+	private final static Set<OperatorInput> validInputs = new HashSet<OperatorInput> () {
+		private static final long serialVersionUID = 3876171589986580689L;
+
+		{
+			for (final OperatorType operatorType: OperatorType.values ()) {
+				if (operatorType.getArity () == 0 || operatorType.equals (OperatorType.IN)) {
+					continue;
+				}
+				
+				for (final Type supportedType: operatorType.getSupportedTypes ()) {
+					final Type[] types = new Type[operatorType.getArity ()];
+					for (int i = 0; i < operatorType.getArity (); ++ i) {
+						types[i] = supportedType;
+					}
+					add (new OperatorInput (operatorType, types));
+				}
+			}
+			
+			add (new OperatorInput (OperatorType.IN, Type.DATE, Type.TEXT));
+			add (new OperatorInput (OperatorType.IN, Type.NUMERIC, Type.TEXT));
+			add (new OperatorInput (OperatorType.IN, Type.TEXT, Type.TEXT));
+		}
+	};
 
 	@JsonTypeInfo (
 		use = Id.NAME,
@@ -116,6 +152,33 @@ public final class Filter extends Entity {
 			if (operatorType.getArity () > 0 && this.inputs.size () != operatorType.getArity ()) {
 				throw new IllegalArgumentException ("Invalid number of inputs " + this.inputs.size () + ", expected " + operatorType.getArity ());
 			}
+			for (final FilterExpression input: inputs) {
+				if (input == null) {
+					throw new IllegalArgumentException ("Input cannot be null");
+				}
+			}
+			
+			// Test inputs. If arity > 0: 
+			// - each input must be a column ref or a value
+			// - the types of the inputs must be supported by the operator
+			if (operatorType.getArity () > 0) {
+				final Type[] types = new Type[inputs.size ()];
+				for (int i = 0; i < types.length; ++ i) {
+					final FilterExpression input = inputs.get (i);
+					
+					if (input instanceof ColumnReferenceExpression) {
+						types[i] = ((ColumnReferenceExpression) input).getColumn().getDataType ();
+					} else if (input instanceof ValueExpression) {
+						types[i] = ((ValueExpression) input).getValueType ();
+					} else {
+						throw new IllegalArgumentException ("Found operator expression while expecting column reference or value");
+					}
+				}
+				
+				if (!validInputs.contains (new OperatorInput (operatorType, types))) {
+					throw new IllegalArgumentException ("Invalid types for operator " + operatorType);
+				}
+			}
 		}
 
 		public OperatorType getOperatorType() {
@@ -135,14 +198,32 @@ public final class Filter extends Entity {
 		
 		@JsonCreator
 		public ValueExpression (
-				final @JsonProperty ("type") Type valueType,
-				final @JsonProperty ("valueType") String value) {
+				final @JsonProperty ("valueType") Type valueType,
+				final @JsonProperty ("value") String value) {
 			
 			if (valueType == null) {
 				throw new NullPointerException ("valueType cannot be null");
 			}
 			if (value == null) {
 				throw new NullPointerException ("value cannot be null");
+			}
+
+			// Validate the value:
+			switch (valueType) {
+			case DATE:
+				if (!value.matches ("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+					throw new IllegalArgumentException ("Invalid date: " + value);
+				}
+				break;
+			case NUMERIC:
+				if (!value.matches ("^(\\-)?\\d+(\\.\\d+)?$")) {
+					throw new IllegalArgumentException ("Invalid number: " + value);
+				}
+				break;
+			case GEOMETRY:
+				throw new IllegalArgumentException ("Cannot create a value of type geometry");			
+			case TEXT:
+				break;
 			}
 			
 			this.valueType = valueType;
@@ -155,6 +236,47 @@ public final class Filter extends Entity {
 
 		public String getValue () {
 			return value;
+		}
+	}
+	
+	private final static class OperatorInput {
+		private final OperatorType operatorType;
+		private final Set<Type> types = new HashSet<> ();
+		
+		public OperatorInput (final OperatorType operatorType, final Type ... types) {
+			this.operatorType = operatorType;
+			for (final Type type: types) {
+				this.types.add (type);
+			}
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((operatorType == null) ? 0 : operatorType.hashCode());
+			result = prime * result + ((types == null) ? 0 : types.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			OperatorInput other = (OperatorInput) obj;
+			if (operatorType != other.operatorType)
+				return false;
+			if (types == null) {
+				if (other.types != null)
+					return false;
+			} else if (!types.equals(other.types))
+				return false;
+			return true;
 		}
 	}
 }

@@ -6,8 +6,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import models.Domain.Constant;
 import models.Domain.Function;
@@ -36,6 +39,7 @@ import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
+import play.data.validation.ValidationError;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.libs.Json;
@@ -242,6 +246,11 @@ public class Datasets extends Controller {
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
+						// Validate the filter:
+						if (!validateFilter (dataset.getFilterConditions (), sourceColumns)) {
+							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+							return renderCreateForm (datasetForm);
+						}
 						
 						// Create the list of selected columns:
 						final List<Column> columns = new ArrayList<> ();
@@ -471,6 +480,27 @@ public class Datasets extends Controller {
 		final Filter.OperatorExpression orExpression = new Filter.OperatorExpression (OperatorType.OR, Arrays.<Filter.FilterExpression>asList (new Filter.FilterExpression[] { andExpression }));
 		
 		return new Filter (orExpression);
+	}
+
+	private static boolean validateFilter (final Filter filter, final List<Column> columns) {
+		final Set<Column> columnSet = new HashSet<> (columns);
+		final LinkedList<Filter.FilterExpression> fringe = new LinkedList<> ();
+		
+		fringe.add (filter.getExpression ());
+		
+		while (!fringe.isEmpty ()) {
+			final Filter.FilterExpression expression = fringe.poll ();
+			
+			if (expression instanceof Filter.ColumnReferenceExpression) {
+				if (!columnSet.contains (((Filter.ColumnReferenceExpression) expression).getColumn ())) {
+					return false;
+				}
+			} else if (expression instanceof Filter.OperatorExpression) {
+				fringe.addAll (((Filter.OperatorExpression) expression).getInputs ());
+			}
+		}
+		
+		return true;
 	}
 	
 	public static class DatasetForm {

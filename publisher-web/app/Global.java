@@ -4,6 +4,7 @@ import java.util.Locale;
 import nl.idgis.publisher.domain.web.Filter;
 import play.Application;
 import play.GlobalSettings;
+import play.Logger;
 import play.data.format.Formatters;
 import play.libs.Json;
 
@@ -18,6 +19,7 @@ public class Global extends GlobalSettings {
 				try {
 					return Json.fromJson (Json.parse (text), Filter.class);
 				} catch (Exception e) {
+					Logger.error ("Failed to parse filter expression", e);
 					throw new ParseException (e.getMessage (), 0);
 				}
 			}
