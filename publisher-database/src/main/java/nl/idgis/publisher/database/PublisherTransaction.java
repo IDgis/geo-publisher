@@ -341,15 +341,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(job.type, "SERVICE")
 					.executeWithKey(job.id);
 			
-			int datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(query.getDatasetId()))
-				.singleResult(dataset.id);
+			int datasetId = getDatasetId(context, query.getDatasetId());
 			
-			int historyId = context.query().from(sourceDatasetHistory)
-					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetHistory.sourceDatasetId))
-					.join(dataset).on(dataset.id.eq(sourceDataset.dataSourceId))
-					.where(dataset.identification.eq(query.getDatasetId()))
-					.singleResult(sourceDatasetHistory.id.max());
+			int historyId = getLastHistoryId(context, query.getDatasetId());
 			
 			context.insert(serviceJob)
 				.set(serviceJob.jobId, jobId)
@@ -363,6 +357,22 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}		
 				
 		context.ack();
+	}
+
+	private Integer getLastHistoryId(QueryDSLContext context,
+			String datasetIdentification) {
+		return context.query().from(sourceDatasetHistory)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetHistory.sourceDatasetId))
+				.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+				.where(dataset.identification.eq(datasetIdentification))
+				.singleResult(sourceDatasetHistory.id.max());
+	}
+
+	private Integer getDatasetId(QueryDSLContext context,
+			String datasetIdentification) {
+		return context.query().from(dataset)
+			.where(dataset.identification.eq(datasetIdentification))
+			.singleResult(dataset.id);
 	}
 
 	private void executeGetServiceJobs(QueryDSLContext context) {
@@ -562,15 +572,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id);
 			
-			int datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(query.getDatasetId()))
-				.singleResult(dataset.id);
+			int datasetId = getDatasetId(context, query.getDatasetId());
 			
-			int historyId = context.query().from(sourceDatasetHistory)
-				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetHistory.sourceDatasetId))
-				.join(dataset).on(dataset.id.eq(sourceDataset.dataSourceId))
-				.where(dataset.identification.eq(query.getDatasetId()))
-				.singleResult(sourceDatasetHistory.id.max());
+			int historyId = getLastHistoryId(context, query.getDatasetId());
 			
 			context.insert(importJob)
 				.set(importJob.jobId, jobId)
@@ -657,9 +661,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.where(dataset.identification.eq(datasetIdent))
 			.execute();
 			
-		Integer datasetId = context.query().from(dataset)
-				.where(dataset.identification.eq(datasetIdent))
-				.singleResult(dataset.id);
+		Integer datasetId = getDatasetId(context, datasetIdent);
 		
 		context.delete(datasetColumn)
 			.where(datasetColumn.datasetId.eq(datasetId))
@@ -710,9 +712,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(dataset.sourceDatasetId, sourceDatasetId)
 					.execute();
 				
-				Integer datasetId = context.query().from(dataset)
-					.where(dataset.identification.eq(datasetIdent))
-					.singleResult(dataset.id);
+				Integer datasetId = getDatasetId(context, datasetIdent);
 				
 				insertDatasetColumns(context, datasetId, cds.getColumnList());					
 				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
