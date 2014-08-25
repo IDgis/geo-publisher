@@ -871,7 +871,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(dataset.identification.eq( datasetIdent ))
 				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name)));
+						category.identification,category.name, dataset.filterConditions)));
 	}
 
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
@@ -1143,7 +1143,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.orderBy(dataset.identification.asc())
 				.list(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name))
+						category.identification,category.name, dataset.filterConditions))
 		);
 	}
 
