@@ -677,7 +677,8 @@ require ([
 			header = put (container, 'div.panel-heading div.row'),
 			body = put (container, 'div.panel-body'),
 			list = isAnd ? put (body, 'div.list-group') : body,
-			children = array.map (expression.inputs || [ { } ], buildExpression),
+			inputs = expression.inputs || [ (isAnd ? { } : { type: 'operator', operatorType: 'AND' }) ],
+			children = array.map (inputs, buildExpression),
 			d = data (container);
 	
 		domAttr.set (container, 'data-operator-type', type);
@@ -721,7 +722,10 @@ require ([
 		console.log ('Creating filter: ', filter);
 		domConstruct.empty (filterEditorNode);
 		
-		put (filterEditorNode, buildExpression (filter.expression));
+		put (filterEditorNode, buildExpression (filter.expression || { 
+			type: 'operator',
+			operatorType: 'OR'
+		}));
 		updateRemoveButtons (filterEditorNode);
 	}
 	
