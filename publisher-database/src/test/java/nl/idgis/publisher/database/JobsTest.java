@@ -23,12 +23,18 @@ import java.util.List;
 
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DatasetStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.ServiceJobInfo;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -72,7 +78,7 @@ public class JobsTest extends AbstractDatabaseTest {
 	}
 	
 	@Test
-	public void testImportJob() throws Exception {
+	public void testImportAndServiceJob() throws Exception {
 		int dataSourceId = insertDataSource();
 		
 		int sourceDatasetId = 
@@ -97,12 +103,14 @@ public class JobsTest extends AbstractDatabaseTest {
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.executeWithKey(sourceDatasetVersion.id);
 		
-		insert(sourceDatasetVersionColumn)
-			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
-			.set(sourceDatasetVersionColumn.index, 0)
-			.set(sourceDatasetVersionColumn.name, "test")
-			.set(sourceDatasetVersionColumn.dataType, "GEOMETRY")
-			.execute();
+		for(int i = 0; i < 10; i++) {
+			insert(sourceDatasetVersionColumn)
+				.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+				.set(sourceDatasetVersionColumn.index, i)
+				.set(sourceDatasetVersionColumn.name, "test" + i)
+				.set(sourceDatasetVersionColumn.dataType, "GEOMETRY")
+				.execute();
+		}
 		
 		int datasetId = 
 			insert(dataset)
@@ -111,12 +119,14 @@ public class JobsTest extends AbstractDatabaseTest {
 				.set(dataset.sourceDatasetId, sourceDatasetId)
 				.executeWithKey(dataset.id);
 		
-		insert(datasetColumn)
-			.set(datasetColumn.datasetId, datasetId)
-			.set(datasetColumn.index, 0)
-			.set(datasetColumn.name, "test")
-			.set(datasetColumn.dataType, "GEOMETRY")
-			.execute();
+		for(int i = 0; i < 10; i++) {
+			insert(datasetColumn)
+				.set(datasetColumn.datasetId, datasetId)
+				.set(datasetColumn.index, i)
+				.set(datasetColumn.name, "test" + i)
+				.set(datasetColumn.dataType, "GEOMETRY")
+				.execute();
+		}
 		
 		Object result = ask(new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
@@ -143,6 +153,8 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertNull(datasetStatus.getImportedSourceDatasetId());
 		assertNull(datasetStatus.getImportedSourceRevision());
 		
+		assertFalse(datasetStatus.isServiceCreated());
+		
 		assertFalse(i.hasNext());
 		
 		result = ask(new CreateImportJob("testDataset"));
@@ -152,24 +164,28 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertNotNull(t);
 		assertEquals("IMPORT", t.get(job.type));
 		
-		t = query().from(importJobColumn).singleResult(importJobColumn.all());
+		t = query().from(importJobColumn)
+				.orderBy(importJobColumn.index.asc())
+				.singleResult(importJobColumn.all());
 		assertNotNull(t);
 		assertEquals(0, t.get(importJobColumn.index).intValue());
-		assertEquals("test", t.get(importJobColumn.name));
+		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
 		result = ask(new GetImportJobs());
 		assertTrue(result instanceof List);
 		
-		List<ImportJobInfo> jobsInfos = (List<ImportJobInfo>)result;
+		List<JobInfo> jobsInfos = (List<JobInfo>)result;
 		assertFalse(jobsInfos.isEmpty());
 		
-		ImportJobInfo jobInfo = jobsInfos.get(0);
-		assertNotNull(jobInfo);
-		assertEquals("testDataset", jobInfo.getDatasetId());
-		assertEquals("testCategory", jobInfo.getCategoryId());
+		JobInfo jobInfo = jobsInfos.get(0);
+		assertTrue(jobInfo instanceof ImportJobInfo);
 		
-		assertColumns(jobInfo.getColumns());
+		ImportJobInfo importJobInfo = (ImportJobInfo)jobInfo;
+		assertEquals("testDataset", importJobInfo.getDatasetId());
+		assertEquals("testCategory", importJobInfo.getCategoryId());
+		
+		assertColumns(importJobInfo.getColumns());
 		
 		result = ask(new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
@@ -191,16 +207,65 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertColumns(datasetStatus.getImportedColumns());		
 		
 		assertFalse(i.hasNext());
+		
+		result = ask(new UpdateJobState(jobInfo, JobState.SUCCEEDED));
+		assertTrue(result instanceof Ack);
+		
+		result = ask(new GetDatasetStatus());
+		assertTrue(result instanceof TypedIterable);
+		
+		typedIterable = (TypedIterable<?>) result;
+		assertTrue(typedIterable.contains(DatasetStatus.class));
+		
+		i = typedIterable.cast(DatasetStatus.class).iterator();
+		assertNotNull(i);
+		assertTrue(i.hasNext());
+		
+		datasetStatus = i.next();
+		assertFalse(datasetStatus.isServiceCreated());
+		
+		result = ask(new CreateServiceJob("testDataset"));
+		assertTrue(result instanceof Ack);
+		
+		result = ask(new GetServiceJobs());
+		assertTrue(result instanceof List);
+		
+		jobsInfos = (List<JobInfo>)result;
+		assertFalse(jobsInfos.isEmpty());
+		
+		jobInfo = jobsInfos.get(0);
+		assertTrue(jobInfo instanceof ServiceJobInfo);
+		
+		ServiceJobInfo serviceJobInfo = (ServiceJobInfo)jobInfo;
+		result = ask(new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
+		assertTrue(result instanceof Ack);
+		
+		result = ask(new GetDatasetStatus());
+		assertTrue(result instanceof TypedIterable);
+		
+		typedIterable = (TypedIterable<?>) result;
+		assertTrue(typedIterable.contains(DatasetStatus.class));
+		
+		i = typedIterable.cast(DatasetStatus.class).iterator();
+		assertNotNull(i);
+		assertTrue(i.hasNext());
+		
+		datasetStatus = i.next();
+		assertTrue(datasetStatus.isServiceCreated());
 	}
 
 	private void assertColumns(List<Column> columns) {		
 		assertNotNull(columns);
 		
-		Column column = columns.get(0);
-		assertNotNull(column);
+		assertEquals(10, columns.size());
 		
-		assertEquals("test", column.getName());
-		assertEquals(Type.GEOMETRY, column.getDataType());		
+		for(int i = 0; i < 10; i++) {
+			Column column = columns.get(i);
+			assertNotNull(column);
+		
+			assertEquals("test" + i, column.getName());
+			assertEquals(Type.GEOMETRY, column.getDataType());
+		}
 	}
 	
 }

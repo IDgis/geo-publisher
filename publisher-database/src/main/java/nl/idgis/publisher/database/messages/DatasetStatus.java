@@ -6,13 +6,14 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class DatasetStatus implements Serializable {
-
-	private static final long serialVersionUID = 8982455848676724720L;
+public class DatasetStatus implements Serializable {	
+	
+	private static final long serialVersionUID = -7669936512939852048L;
 	
 	private final String datasetId, sourceDatasetId, importedSourceDatasetId;
 	private final Timestamp sourceRevision, importedSourceRevision;	
 	private final List<Column> columns, importedColumns, sourceColumns, importedSourceColumns;
+	private final boolean serviceCreated;
 	
 	public DatasetStatus(
 			String datasetId, 
@@ -26,7 +27,9 @@ public class DatasetStatus implements Serializable {
 			List<Column> columns, 
 			List<Column> importedColumns, 
 			List<Column> sourceColumns, 
-			List<Column> importedSourceColumns) {
+			List<Column> importedSourceColumns,
+			
+			boolean serviceCreated) {
 		
 		this.datasetId = datasetId;
 		
@@ -40,6 +43,8 @@ public class DatasetStatus implements Serializable {
 		this.importedColumns = importedColumns; 
 		this.sourceColumns = sourceColumns;
 		this.importedSourceColumns = importedSourceColumns;
+		
+		this.serviceCreated = serviceCreated;
 	}
 
 	public String getDatasetId() {
@@ -77,6 +82,10 @@ public class DatasetStatus implements Serializable {
 	public String getImportedSourceDatasetId() {
 		return importedSourceDatasetId;
 	}
+	
+	public boolean isServiceCreated() {
+		return serviceCreated;
+	}
 
 	@Override
 	public String toString() {
@@ -87,7 +96,10 @@ public class DatasetStatus implements Serializable {
 				+ importedSourceRevision + ", columns=" + columns
 				+ ", importedColumns=" + importedColumns + ", sourceColumns="
 				+ sourceColumns + ", importedSourceColumns="
-				+ importedSourceColumns + "]";
+				+ importedSourceColumns + ", serviceCreated=" + serviceCreated
+				+ "]";
 	}
+
+	
 	
 }

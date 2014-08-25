@@ -24,10 +24,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
+
+import org.omg.CORBA.OMGVMCID;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -294,6 +298,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context) {
+		QJobState jobStateSub = new QJobState("job_state_sub");
+		
+		Set<String> serviceCreated = new HashSet<>();
+		serviceCreated.addAll(
+			context.query().from(dataset)
+				.where(new SQLSubQuery().from(importJob)
+					.join(jobState).on(jobState.jobId.eq(importJob.jobId))
+					.where(importJob.datasetId.eq(dataset.id)
+						.and(jobState.state.eq(JobState.SUCCEEDED.name()))
+						.and(new SQLSubQuery().from(serviceJob)
+							.join(jobStateSub).on(jobStateSub.jobId.eq(serviceJob.jobId))							
+							.where(jobStateSub.state.eq(JobState.SUCCEEDED.name())
+								.and(serviceJob.datasetId.eq(dataset.id))
+								.and(jobStateSub.createTime.after(jobState.createTime)))
+							.exists()))
+					.exists())
+				.groupBy(dataset.identification)
+				.list(dataset.identification));
+		
 		Map<String, List<Column>> datasets = treeFold(
 			context.query().from(datasetColumn)
 				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
@@ -304,13 +327,22 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						dataset.identification,
 						new QColumn(datasetColumn.name, datasetColumn.dataType));
 		
+		QImportJob importJobSub = new QImportJob("import_job_sub");
+		QJob jobSub = new QJob("job_sub");
+		
 		Map<String, List<Column>> importedDatasets = treeFold(
 				context.query().from(importJobColumn)
 				.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
+				.join(job).on(job.id.eq(importJob.jobId))
 				.join(dataset).on(dataset.id.eq(importJob.datasetId))				
 				.orderBy(
 						importJobColumn.importJobId.asc(),
-						importJobColumn.index.asc()),
+						importJobColumn.index.asc())
+				.where(new SQLSubQuery().from(importJobSub)
+						.join(jobSub).on(jobSub.id.eq(importJobSub.jobId))
+						.where(importJobSub.datasetId.eq(importJob.datasetId)
+							.and(jobSub.createTime.gt(job.createTime)))						
+						.notExists()),
 				
 						dataset.identification,						
 						new QColumn(importJobColumn.name, importJobColumn.dataType));
@@ -379,7 +411,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					columns,
 					importedColumns,
 					sourceColumns, 
-					importedSourceColumns));			
+					importedSourceColumns,
+					
+					serviceCreated.contains(datasetId)));			
 		}
 		
 		context.answer(DatasetStatus.class, datasetStatus);
@@ -448,7 +482,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			context.insert(serviceJob)
 				.set(serviceJob.jobId, jobId)
 				.set(serviceJob.datasetId, datasetId)
-				.set(importJob.sourceDatasetVersionId, versionId)
+				.set(serviceJob.sourceDatasetVersionId, versionId)
 				.execute();
 			
 			log.debug("service job created");

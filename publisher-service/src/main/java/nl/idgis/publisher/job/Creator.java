@@ -9,6 +9,7 @@ import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DatasetStatus;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
@@ -130,9 +131,26 @@ public class Creator extends Scheduled {
 		if(msg.contains(DataSourceStatus.class)) {
 			scheduleHarvestJobs(msg.cast(DataSourceStatus.class));
 		} else if(msg.contains(DatasetStatus.class)) {
-			scheduleImportJobs(msg.cast(DatasetStatus.class));
+			Iterable<DatasetStatus> datasetStatuses = msg.cast(DatasetStatus.class);
+			
+			scheduleImportJobs(datasetStatuses);
+			scheduleServiceJobs(datasetStatuses);
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void scheduleServiceJobs(Iterable<DatasetStatus> datasetStatuses) {		
+		for(DatasetStatus datasetStatus : datasetStatuses) {
+			String datasetId = datasetStatus.getDatasetId();
+			
+			if(datasetStatus.isServiceCreated()) {
+				log.debug("service already created for dataset: " + datasetId);
+			} else {
+				log.debug("creating service for dataset: " + datasetId);
+				
+				database.tell(new CreateServiceJob(datasetId), getSelf());
+			}
 		}
 	}
 
