@@ -61,8 +61,6 @@ public class Creator extends Scheduled {
 			if(importedRevision == null) {
 				log.debug("not yet imported");
 			} else {
-				List<Column> columns = datasetStatus.getColumns();
-				List<Column> importedColumns = datasetStatus.getImportedColumns();
 				List<Column> importedSourceColumns = datasetStatus.getImportedSourceColumns();
 				List<Column> sourceColumns = datasetStatus.getSourceColumns();
 				
@@ -78,11 +76,19 @@ public class Creator extends Scheduled {
 						continue;
 					}
 				} else {
-					// TODO: also check for filter changes and source dataset change
+					List<Column> columns = datasetStatus.getColumns();
+					List<Column> importedColumns = datasetStatus.getImportedColumns();
+					
+					String sourceDatasetId = datasetStatus.getSourceDatasetId();
+					String importedSourceDatasetId = datasetStatus.getImportedSourceDatasetId();
+					
+					// TODO: also check for filter changes
 					
 					if(!columns.equals(importedColumns)) {
 						log.debug("columns changed");
-					} else {					
+					} else if(!sourceDatasetId.equals(importedSourceDatasetId)) {
+						log.debug("source dataset changed");
+					} else {
 						log.debug("no imported need for: " + datasetId);
 						continue;
 					}

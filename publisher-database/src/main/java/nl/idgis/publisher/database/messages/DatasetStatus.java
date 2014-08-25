@@ -7,18 +7,21 @@ import java.util.List;
 import nl.idgis.publisher.domain.service.Column;
 
 public class DatasetStatus implements Serializable {
+
+	private static final long serialVersionUID = 8982455848676724720L;
 	
-	private static final long serialVersionUID = -1676229472913952243L;
-	
-	private final String datasetId;
+	private final String datasetId, sourceDatasetId, importedSourceDatasetId;
 	private final Timestamp sourceRevision, importedSourceRevision;	
 	private final List<Column> columns, importedColumns, sourceColumns, importedSourceColumns;
 	
 	public DatasetStatus(
 			String datasetId, 
 			
+			String sourceDatasetId,
+			String importedSourceDatasetId,
+			
 			Timestamp sourceRevision, 
-			Timestamp importedSourceRevision, 
+			Timestamp importedSourceRevision,
 			
 			List<Column> columns, 
 			List<Column> importedColumns, 
@@ -26,6 +29,9 @@ public class DatasetStatus implements Serializable {
 			List<Column> importedSourceColumns) {
 		
 		this.datasetId = datasetId;
+		
+		this.sourceDatasetId = sourceDatasetId;
+		this.importedSourceDatasetId = importedSourceDatasetId;
 		
 		this.sourceRevision = sourceRevision;
 		this.importedSourceRevision = importedSourceRevision;
@@ -64,14 +70,24 @@ public class DatasetStatus implements Serializable {
 		return importedSourceColumns;
 	}
 
-	@Override
-	public String toString() {
-		return "DatasetStatus [datasetId=" + datasetId + ", sourceRevision="
-				+ sourceRevision + ", importedSourceRevision="
-				+ importedSourceRevision + ", columns=" + columns
-				+ ", sourceColumns=" + sourceColumns
-				+ ", importedSourceColumns=" + importedSourceColumns + "]";
+	public String getSourceDatasetId() {
+		return sourceDatasetId;
 	}
 
+	public String getImportedSourceDatasetId() {
+		return importedSourceDatasetId;
+	}
+
+	@Override
+	public String toString() {
+		return "DatasetStatus [datasetId=" + datasetId + ", sourceDatasetId="
+				+ sourceDatasetId + ", importedSourceDatasetId="
+				+ importedSourceDatasetId + ", sourceRevision="
+				+ sourceRevision + ", importedSourceRevision="
+				+ importedSourceRevision + ", columns=" + columns
+				+ ", importedColumns=" + importedColumns + ", sourceColumns="
+				+ sourceColumns + ", importedSourceColumns="
+				+ importedSourceColumns + "]";
+	}
 	
 }

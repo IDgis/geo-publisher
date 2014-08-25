@@ -13,14 +13,18 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -28,6 +32,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import org.junit.Test;
 
@@ -82,10 +87,12 @@ public class JobsTest extends AbstractDatabaseTest {
 				.set(category.name, "My Test Category")
 				.executeWithKey(category.id);
 		
+		Timestamp testRevision = new Timestamp(new Date().getTime());
+		
 		int versionId =
 			insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.name, "My Test SourceDataset")
-				.set(sourceDatasetVersion.revision, new Timestamp(new Date().getTime()))
+				.set(sourceDatasetVersion.revision, testRevision)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.executeWithKey(sourceDatasetVersion.id);
@@ -111,7 +118,34 @@ public class JobsTest extends AbstractDatabaseTest {
 			.set(datasetColumn.dataType, "GEOMETRY")
 			.execute();
 		
-		Object result = ask(new CreateImportJob("testDataset"));
+		Object result = ask(new GetDatasetStatus());
+		assertTrue(result instanceof TypedIterable);
+		
+		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
+		assertTrue(typedIterable.contains(DatasetStatus.class));
+		
+		Iterator<DatasetStatus> i = typedIterable.cast(DatasetStatus.class).iterator();
+		assertTrue(i.hasNext());
+		
+		DatasetStatus datasetStatus = i.next();
+		assertNotNull(datasetStatus);
+		
+		assertColumns(datasetStatus.getColumns());		
+		assertColumns(datasetStatus.getSourceColumns());
+		
+		assertEquals("testDataset", datasetStatus.getDatasetId());		
+		assertEquals("testSourceDataset", datasetStatus.getSourceDatasetId());
+		assertEquals(testRevision, datasetStatus.getSourceRevision());
+		
+		// import* attributes should still be empty at this point
+		assertNull(datasetStatus.getImportedColumns());
+		assertNull(datasetStatus.getImportedSourceColumns());
+		assertNull(datasetStatus.getImportedSourceDatasetId());
+		assertNull(datasetStatus.getImportedSourceRevision());
+		
+		assertFalse(i.hasNext());
+		
+		result = ask(new CreateImportJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -127,23 +161,46 @@ public class JobsTest extends AbstractDatabaseTest {
 		result = ask(new GetImportJobs());
 		assertTrue(result instanceof List);
 		
-		List<ImportJobInfo> jobs = (List<ImportJobInfo>)result;
-		assertFalse(jobs.isEmpty());
+		List<ImportJobInfo> jobsInfos = (List<ImportJobInfo>)result;
+		assertFalse(jobsInfos.isEmpty());
 		
-		ImportJobInfo job = jobs.get(0);
-		assertNotNull(job);
-		assertEquals("testDataset", job.getDatasetId());
-		assertEquals("testCategory", job.getCategoryId());
+		ImportJobInfo jobInfo = jobsInfos.get(0);
+		assertNotNull(jobInfo);
+		assertEquals("testDataset", jobInfo.getDatasetId());
+		assertEquals("testCategory", jobInfo.getCategoryId());
 		
-		List<Column> columns = job.getColumns();
+		assertColumns(jobInfo.getColumns());
+		
+		result = ask(new GetDatasetStatus());
+		assertTrue(result instanceof TypedIterable);
+		
+		typedIterable = (TypedIterable<?>)result;
+		assertTrue(typedIterable.contains(DatasetStatus.class));
+		
+		i = typedIterable.cast(DatasetStatus.class).iterator();
+		assertTrue(i.hasNext());
+		
+		datasetStatus = i.next();
+		assertNotNull(datasetStatus);
+		
+		// import* attributes should be populated now
+		assertEquals(testRevision, datasetStatus.getImportedSourceRevision());
+		assertEquals("testSourceDataset", datasetStatus.getImportedSourceDatasetId());
+		
+		assertColumns(datasetStatus.getImportedSourceColumns());				
+		assertColumns(datasetStatus.getImportedColumns());		
+		
+		assertFalse(i.hasNext());
+	}
+
+	private void assertColumns(List<Column> columns) {		
 		assertNotNull(columns);
-		assertFalse(columns.isEmpty());
 		
 		Column column = columns.get(0);
 		assertNotNull(column);
 		
 		assertEquals("test", column.getName());
-		assertEquals(Type.GEOMETRY, column.getDataType());
+		assertEquals(Type.GEOMETRY, column.getDataType());		
 	}
 	
 }

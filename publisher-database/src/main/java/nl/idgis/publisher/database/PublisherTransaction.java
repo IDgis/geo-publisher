@@ -22,6 +22,7 @@ import java.sql.Timestamp;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -92,7 +93,6 @@ import nl.idgis.publisher.domain.service.Table;
 
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Pair;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -261,6 +261,35 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		context.ack();
 	}
+	
+	private static class DatasetInfo {
+		private String sourceDatasetId;
+		private Timestamp revision;		
+		private List<Column> columns;
+		
+		public DatasetInfo(String sourceDatasetId, Timestamp revision) {
+			this.sourceDatasetId = sourceDatasetId;
+			this.revision = revision;
+			
+			columns = new ArrayList<>();
+		}
+		
+		public void addColumn(Column column) {
+			columns.add(column);
+		}
+
+		public Timestamp getRevision() {
+			return revision;
+		}
+
+		public List<Column> getColumns() {
+			return Collections.unmodifiableList(columns);
+		}
+
+		public String getSourceDatasetId() {
+			return sourceDatasetId;
+		}
+	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context) {
 		Map<String, List<Column>> datasets = new HashMap<>();
@@ -331,25 +360,27 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if(currentColumns != null) {
-			datasets.put(lastId, currentColumns);
+			importedDatasets.put(lastId, currentColumns);
 		}
 		
-		Map<String, Pair<Timestamp, List<Column>>> sourceDatasets = readDatasetInfo(
+		Map<String, DatasetInfo> sourceDatasets = readDatasetInfo(
 				context.query().from(dataset)					
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
 						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
 								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
 										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
 									.notExists()))
+					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 					.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
 					.orderBy(
 						dataset.id.asc(),
 						sourceDatasetVersionColumn.index.asc()));
 	
-		Map<String, Pair<Timestamp, List<Column>>> importedSourceDatasets = readDatasetInfo(
+		Map<String, DatasetInfo> importedSourceDatasets = readDatasetInfo(
 			context.query().from(dataset)
 				.join(importJob).on(importJob.datasetId.eq(dataset.id))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
 				.orderBy(
 					dataset.id.asc(),
@@ -359,31 +390,40 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		for(Map.Entry<String, List<Column>> datasetEntry : datasets.entrySet()) {
 			String datasetId = datasetEntry.getKey();
-			
+						
 			List<Column> columns = datasetEntry.getValue();
 			
-			Pair<Timestamp, List<Column>> sourceInfo = sourceDatasets.get(datasetId);
-			Timestamp sourceRevision = sourceInfo.first();
-			List<Column> sourceColumns = sourceInfo.second();
+			DatasetInfo sourceInfo = sourceDatasets.get(datasetId);
+			String sourceDatasetId = sourceInfo.getSourceDatasetId();
+			Timestamp sourceRevision = sourceInfo.getRevision();
+			List<Column> sourceColumns = sourceInfo.getColumns();
 			
 			List<Column> importedColumns = importedDatasets.get(datasetId);
 			
-			Pair<Timestamp, List<Column>> importedInfo = importedSourceDatasets.get(datasetId);
+			DatasetInfo importedInfo = importedSourceDatasets.get(datasetId);
+			String importedSourceDatasetId;
 			Timestamp importedSourceRevision;
 			List<Column> importedSourceColumns;
 			if(importedInfo == null) {
+				importedSourceDatasetId = null;
 				importedSourceRevision = null;
 				importedSourceColumns = null;
 			} else {
-				importedSourceRevision = importedInfo.first();
-				importedSourceColumns = importedInfo.second();
+				importedSourceDatasetId = importedInfo.getSourceDatasetId();
+				importedSourceRevision = importedInfo.getRevision();
+				importedSourceColumns = importedInfo.getColumns();
 			}
 
 			datasetStatus.add(
 				new DatasetStatus(
-					datasetId, 
+					datasetId,
+					
+					sourceDatasetId,
+					importedSourceDatasetId,
+					
 					sourceRevision, 
-					importedSourceRevision, 
+					importedSourceRevision,
+					
 					columns,
 					importedColumns,
 					sourceColumns, 
@@ -393,41 +433,43 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.answer(DatasetStatus.class, datasetStatus);
 	}
 
-	private Map<String, Pair<Timestamp, List<Column>>> readDatasetInfo(SQLQuery query) {
-		Map<String, Pair<Timestamp, List<Column>>> datasetInfo = new HashMap<>();
+	private Map<String, DatasetInfo> readDatasetInfo(SQLQuery query) {
+		Map<String, DatasetInfo> datasetInfos = new HashMap<>();
 		
 		String lastId = null;
-		Timestamp currentRevision = null;
-		List<Column> currentColumns = null;
+		DatasetInfo currentDatasetInfo = null;
 		for(Tuple t : 
 			query.list(				
 				dataset.identification,
+				sourceDataset.identification,
 				sourceDatasetVersion.revision,
 				sourceDatasetVersionColumn.name,
 				sourceDatasetVersionColumn.dataType)) {
 			
 			String currentDatasetId = t.get(dataset.identification);
 			if(!currentDatasetId.equals(lastId)) {
-				if(currentColumns != null) {
-					datasetInfo.put(lastId, new Pair<>(currentRevision, currentColumns));
+				if(currentDatasetInfo != null) {
+					datasetInfos.put(lastId, currentDatasetInfo);
 				}
 				
 				lastId = currentDatasetId;
-				currentRevision = t.get(sourceDatasetVersion.revision);
-				currentColumns = new ArrayList<>();
+				
+				currentDatasetInfo = new DatasetInfo(
+						t.get(sourceDataset.identification),
+						t.get(sourceDatasetVersion.revision));				
 			}
 			
-			currentColumns.add(
+			currentDatasetInfo.addColumn(
 				new Column(
 					t.get(sourceDatasetVersionColumn.name),
 					t.get(sourceDatasetVersionColumn.dataType)));
 		}
 		
-		if(currentColumns != null) {
-			datasetInfo.put(lastId, new Pair<>(currentRevision, currentColumns));
+		if(currentDatasetInfo != null) {
+			datasetInfos.put(lastId, currentDatasetInfo);
 		}
 		
-		return datasetInfo;
+		return datasetInfos;
 	}
 
 	private void executeCreateServiceJob(QueryDSLContext context, CreateServiceJob query) {
