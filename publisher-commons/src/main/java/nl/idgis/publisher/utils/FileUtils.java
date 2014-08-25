@@ -8,15 +8,16 @@ public class FileUtils {
 		
 	}
 
-	public static void delete(File f) {
+	public static boolean delete(File f) {
 		if(f.isDirectory()) {
 			for(File child : f.listFiles()) {
-				delete(child);
+				if(!delete(child)) {
+					return false;
+				}
 			}
-			
-			f.delete();
-		} else {			
-			f.delete();
-		}
+		
+		}			
+		
+		return f.delete();	
 	}
 }
