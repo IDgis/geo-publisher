@@ -14,6 +14,7 @@ require ([
 	'put-selector/put',
 
 	'dojo/NodeList-traverse',
+	'dojo/NodeList-dom',
 	
 	'dojo/domReady!'
 ], function(
@@ -262,18 +263,94 @@ require ([
 	// Filter editor:
 	// =========================================================================
 	var filterTextarea = query ('textarea[name="filterConditions"]')[0],
-		filterEditorNode = dom.byId ('filter-editor');
-
+		filterEditorNode = dom.byId ('filter-editor'),
+		typeOperatorMapping = {
+			TEXT: [ 'EQUALS', 'NOT_EQUALS', 'LESS_THAN', 'LESS_THAN_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LIKE', 'IN', 'NOT_NULL' ],
+			NUMERIC: [ 'EQUALS', 'NOT_EQUALS', 'LESS_THAN', 'LESS_THAN_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LIKE', 'IN', 'NOT_NULL' ],
+			DATE: [ 'EQUALS', 'NOT_EQUALS', 'LESS_THAN', 'LESS_THAN_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LIKE', 'IN', 'NOT_NULL' ],
+			GEOMETRY: [ 'NOT_NULL' ]
+		},
+		operatorProperties = {
+			EQUALS: {
+				label: 'gelijk aan',
+				arity: 2
+			},
+			NOT_EQUALS: {
+				label: 'ongelijk aan',
+				arity: 2
+			},
+			LESS_THAN: {
+				label: 'minder dan',
+				arity: 2
+			},
+			LESS_THAN_EQUAL: {
+				label: 'minder dan of gelijk aan',
+				arity: 2
+			},
+			GREATER_THAN: {
+				label: 'groter dan',
+				arity: 2
+			},
+			GREATER_THAN_EQUAL: {
+				label: 'groter dan of gelijk aan',
+				arity: 2
+			},
+			LIKE: {
+				label: 'komt overeen met patroon',
+				arity: 2
+			},
+			IN: {
+				label: 'komt voor in lijst',
+				arity: 2
+			},
+			NOT_NULL: {
+				label: 'heeft een waarde',
+				arity: 1
+			}
+		},
+		typeValidators = {
+			TEXT: function (value) { return true; },
+			NUMERIC: function (value) { return /^(\-)?[0-9]+(\.[0-9]+)?$/.test (value); },
+			DATE: function (value) { return /^[0-9]{2}\-[0-9]{2}\-[0-9]{4}$/.test (value); },
+			GEOMETRY: function (value) { return false; }
+		};
+	
 	// Hide the original textarea, it is only used to submit the data.
 	domClass.add (filterTextarea, 'hidden');
 
+	function slowRemoveNode (domNode, callback) {
+		domClass.add (domNode, ['fade', 'out']);
+		setTimeout (function () {
+			removeNode (domNode);
+			callback ();
+		}, 300);
+	}
+	
+	/**
+	 * Returns a list of available columns. 
+	 */
 	function listColumns () {
-		return array.map (query ('.js-column', dom.byId ('column-list')), function (columnNode) {
-			return { 
-				name: domAttr.get (columnNode, 'data-name'),
-				type: domAttr.get (columnNode, 'data-type')
-			};
+		var columns = [ ];
+		array.forEach (query ('.js-column', dom.byId ('column-list')), function (columnNode) {
+			var name = domAttr.get (columnNode, 'data-name'),
+				type = domAttr.get (columnNode, 'data-type');
+			
+			columns.push ({
+				name: name,
+				label: name + ' (' + type + ')',
+				type: type
+			});
+			
+			if (type == 'GEOMETRY') {
+				columns.push ({
+					name: name + '.area', 
+					label: 'Oppervlakte ' + name + ' (NUMERIC)',
+					type: 'NUMERIC'
+				});
+			}
 		});
+		
+		return columns;
 	}
 	
 	/**
@@ -300,20 +377,199 @@ require ([
 		});
 	}
 	
+	/**
+	 * Validates the expression and sets the error states. Validates whether the entered value matches the
+	 * type.
+	 */
+	function validateExpression (expressionNode) {
+		var d = data (expressionNode),
+			column = d.column,
+			operator = d.operator,
+			value = d.value,
+			isValid = false;
+
+		if (!column || column === '' || !operator || operator === '') {
+			isValid = true;
+		} else {
+			var type = column.substring (column.indexOf (':') + 1);
+			isValid = typeValidators[type] (value);
+		}
+		
+		domClass[isValid ? 'remove' : 'add'] (d.valueInput.parentNode, 'has-error');
+	}
+	
+	/**
+	 * Hides or removes the value input based on the arity of the selected operator.
+	 */
+	function updateValueInput (expressionNode) {
+		var d = data (expressionNode),
+			operator = d.operator,
+			arity = operator && operator !== '' ? operatorProperties[operator].arity : 1;
+			
+		console.log (operator, arity);
+		
+		domClass[arity == 1 ? 'add' : 'remove'] (d.valueInput, 'hidden');
+		
+		validateExpression (expressionNode);
+	}
+	
+	/**
+	 * Updates the set of available operators. Does the following:
+	 * - Removes the current list of operators.
+	 * - Adds the new list of operators and sets the selected operator if the operator still exists.
+	 * - If the selected operator doesn't exist, add it to the end and mark it as removed. The
+	 *   removed operator can't be selected again.
+	 */
+	function updateOperatorList (expressionNode) {
+		var d = data (expressionNode),
+			column = d.column;
+		
+		domConstruct.empty (d.operatorSelect);
+		
+		// Show or hide the select and the determine the list of operators:
+		var operators;
+		if (!column || column === '') {
+			domAttr.set (d.operatorSelect, 'disabled', 'disabled');
+			operators = [ ];
+		} else {
+			domAttr.remove (d.operatorSelect, 'disabled');
+			var type = column.substring (column.indexOf (':') + 1);
+			operators = typeOperatorMapping[type];
+			console.log (type, operators);
+		}
+		
+		// Add the empty operator:
+		put (d.operatorSelect, 'option[value=""]' + (!d.operator || d.operator === '' ? '[selected]' : '') + ' $', 'Operatie ...');
+
+		// Add the operators that apply to this column type:
+		var hasSelection = !d.operator || d.operator === '';
+		array.forEach (operators, function (operatorName) {
+			var selected = d.operator === operatorName;
+			put (
+				d.operatorSelect,
+				'option[value=$]' + (selected ? '[selected]' : '') + ' $', operatorName, operatorProperties[operatorName].label
+			);
+			if (selected) {
+				hasSelection = true;
+			}
+		});
+		
+		// Add the psuedo operator:
+		if (!hasSelection && d.operator && d.operator !== '') {
+			put (d.operatorSelect, 'option[value="-"][selected] span.text-danger $', operatorProperties[d.operator].label);
+			domClass.add (d.operatorSelect.parentNode, 'has-error');
+		} else {
+			domClass.remove (d.operatorSelect.parentNode, 'has-error');
+		}
+		
+		// Update the value input:
+		updateValueInput (expressionNode);
+	}
+	
+	/**
+	 * Updates the list of columns for an expression. Does the following:
+	 * - Removes the current list of columns.
+	 * - Adds the new columns and sets the selected column if the column still exists.
+	 * - If the selected column doesn't exist, it adds a final "pseudo" column that is marked as removed and can't be selected.
+	 */
+	function updateExpressionColumns (expressionNode, columns) {
+		var d = data (expressionNode);
+		
+		domConstruct.empty (d.columnSelect);
+		
+		// Add the no-selection column:
+		put (
+			d.columnSelect, 
+			'option[value=""]' + (!d.column || d.column === '' ? '[selected]' : '')+ ' $', 
+			'Kies een kolom ...'
+		);
+		
+		// Add the column values:
+		var hasSelection = !d.column || d.column === '';
+		array.forEach (columns, function (column) {
+			var selected = d.column === column.name;
+			put (
+				d.columnSelect,
+				'option[value=$]' + (selected ? '[selected]' : '') + ' $', 
+				column.name + ':' + column.type, 
+				column.label
+			);
+			if (selected) {
+				hasSelection = true;
+			}
+		});
+		
+		// Add a pseudo column:
+		if (!hasSelection && d.column && d.column !== '') {
+			var offset = d.column.indexOf (':'),
+				name = d.column.substring (0, offset),
+				type = d.column.substring (offset + 1);
+			
+			put (d.columnSelect, 'option[value="-"][selected] span.text-danger $', 'Ontbrekende kolom: ' + name + ' (' + type + ')');
+			domClass.add (d.columnSelect.parentNode, 'has-error');
+		} else {
+			domClass.remove (d.columnSelect.parentNode, 'has-error');
+		}
+		
+		// Update the list of operators:
+		updateOperatorList (expressionNode);
+	}
+	
 	function onChangeColumn (expression) {
-		var d = data (expression);
+		var d = data (expression),
+			columnValue = d.columnSelect.value;
+		
+		// Ignore the psuedo column:
+		if (columnValue == '-') {
+			return;
+		}
+		
+		d.column = columnValue;
+		
+		// Remove the psuedo element:
+		query ('option[value="-"]', d.columnSelect).forEach (domConstruct.destroy);
+		domClass.remove (d.columnSelect.parentNode, 'has-error');
+		
+		// Update the operators:
+		updateOperatorList (expression);
+		syncTextarea ();
 		
 		console.log ('Change column: ', d.columnSelect.value);
 	}
 	
 	function onChangeOperator (expression) {
-		var d = data (expression);
+		var d = data (expression),
+			operatorValue = d.operatorSelect.value;
+		
+		// Ignore the psuedo-operator:
+		if (operatorValue == '-') {
+			return;
+		}
+		
+		d.operator = operatorValue;
+		
+		// Remove the psuedo element:
+		query ('option[value="-"]', d.operatorSelect).forEach (domConstruct.destroy);
+		domClass.remove (d.operatorSelect.parentNode, 'has-error');
+		
+		// Update the value input:
+		updateValueInput (expression);
+		syncTextarea ();
 		
 		console.log ('Change operator: ', d.operatorSelect.value);
 	}
 	
-	function onChangeValue (expression) {
-		var d = data (expression);
+	function onChangeValue (expression, sync) {
+		var d = data (expression),
+			value = d.valueInput.value;
+		
+		d.value = value;
+		
+		// Validate the value:
+		validateExpression (expression);
+		if (sync) {
+			syncTextarea ();
+		}
 		
 		console.log ('Value change: ', d.valueInput.value);
 	}
@@ -324,15 +580,15 @@ require ([
 		// Locate a separator before this container and remove it:
 		var prev = query (expressionContainer).prev ()[0];
 		if (prev && domClass.contains (prev, 'js-filter-separator')) {
-			removeNode (prev);
+			slowRemoveNode (prev, function () { });
 		}
 		
 		// Remove this node:
-		removeNode (expressionContainer);
-		
-		// Update the textarea and remove buttons:
-		syncTextarea ();
-		updateRemoveButtons (parent);
+		slowRemoveNode (expressionContainer, function () {
+			// Update the textarea and remove buttons:
+			syncTextarea ();
+			updateRemoveButtons (parent);
+		});
 	}
 	
 	function buildOperatorExpression (expression) {
@@ -344,20 +600,23 @@ require ([
 		d.operatorSelect = put (row, 'div.col-lg-2 select.form-control');
 		d.valueInput = put (row, 'div.col-lg-4 input[type="text"].form-control');
 		
-		put (d.columnSelect, 'option[value=""] $', 'Kies een kolom ...');
-		array.forEach (listColumns (), function (column) {
-			put (d.columnSelect, 'option[value=$] $', column.name + ':' + column.type, column.name + ' (' + column.type + ')');
-		});
-			
+		d.column = '';
+		d.operator = '';
+		d.value = '';
+		
 		d.removeButton = put (row, 'div.col-lg-2.text-right button[type="button"].btn.btn-warning span.glyphicon.glyphicon-remove <');
 		
 		// Register event handlers:
 		registerHandlers (container, [
 			on (d.columnSelect, 'change', function (e) { onChangeColumn (container); }),
 			on (d.operatorSelect, 'change', function (e) { onChangeOperator (container); }),
-			on (d.valueInput, 'keyup,change,blur', function (e) { onChangeValue (container); }),
+			on (d.valueInput, 'keyup', function (e) { onChangeValue (container, false); }),
+			on (d.valueInput, 'change,blur', function (e) { onChangeValue (container, true); }),
 			on (d.removeButton, 'click', function (e) { onRemoveExpression (container); e.preventDefault (); })
 		]);
+		
+		// Set the columns:
+		updateExpressionColumns (container, listColumns ());
 		
 		return container;
 	}
