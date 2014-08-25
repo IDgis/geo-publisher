@@ -358,7 +358,8 @@ require ([
 	 * the textarea in sync with the rich DOM interface.
 	 */
 	function syncTextarea () {
-		var filterObject = { expression: listOperators (filterEditorNode)[0] },
+		var expression = listOperators (filterEditorNode)[0],
+			filterObject = { expression: expression && expression.inputs && expression.inputs.length > 0 ? expression : null },
 			value = json.stringify (filterObject);
 		
 		console.log ('Syncing filter: ', filterObject);
@@ -366,11 +367,13 @@ require ([
 		
 		// Count the number of filters:
 		var filterCount = 0;
-		array.forEach (filterObject.expression.inputs, function (andExpression) {
-			array.forEach (andExpression.inputs, function (operatorExpression) {
-				++ filterCount;
+		if (expression && expression.inputs) {
+			array.forEach (expression.inputs, function (andExpression) {
+				array.forEach (andExpression.inputs, function (operatorExpression) {
+					++ filterCount;
+				});
 			});
-		});
+		}
 		
 		console.log ('Filter count: ' + filterCount);
 		
@@ -711,7 +714,9 @@ require ([
 				return {
 					type: 'operator',
 					operatorType: operatorType.toUpperCase (),
-					inputs: array.filter (listOperators (inputListNode), function (item) { return item !== null; }), 
+					inputs: array.filter (listOperators (inputListNode), function (item) { 
+						return item !== null && (!item.inputs || item.inputs.length > 0); 
+					}), 
 				};
 			} else {
 				// This is a binary or unary operator:

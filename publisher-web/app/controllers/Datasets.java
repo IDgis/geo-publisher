@@ -497,10 +497,10 @@ public class Datasets extends Controller {
 		private String id;
 
 		@Constraints.Required
-		private String filterConditions;
+		private Filter filterConditions;
 
 		public DatasetForm () {
-			filterConditions = Json.stringify (Json.toJson (emptyFilter ()));
+			filterConditions = emptyFilter ();
 		}
 		
 		public DatasetForm (final Dataset ds, String dataSourceId, List<Column> columns) {
@@ -514,7 +514,7 @@ public class Datasets extends Controller {
 			}			
 			setColumns (map);
 			setId (ds.id ());
-			setFilterConditions (Json.stringify (Json.toJson (emptyFilter ())));
+			setFilterConditions (emptyFilter ());
 		}
 		
 		public String getName() {
@@ -565,11 +565,11 @@ public class Datasets extends Controller {
 			this.id = id;
 		}
 
-		public String getFilterConditions () {
+		public Filter getFilterConditions () {
 			return filterConditions;
 		}
 
-		public void setFilterConditions (final String filterConditions) {
+		public void setFilterConditions (final Filter filterConditions) {
 			this.filterConditions = filterConditions;
 		}
 
