@@ -46,17 +46,18 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.ActiveTask;
-import nl.idgis.publisher.domain.web.Issue;
-import nl.idgis.publisher.domain.web.Message;
-import nl.idgis.publisher.domain.web.Notification;
+import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -68,8 +69,6 @@ import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 
 import org.joda.time.LocalDateTime;
-
-import com.google.common.collect.Iterables;
 
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
@@ -83,6 +82,10 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
+
 public class Admin extends UntypedActor {
 	
 	private final long ITEMS_PER_PAGE = 20;
@@ -90,6 +93,8 @@ public class Admin extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef database, harvester, loader;
+	
+	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
 		this.database = database;
@@ -166,14 +171,15 @@ public class Admin extends UntypedActor {
 		}
 	}
 	
-	private void handleCreateDataset(PutDataset putDataset) {
+	private void handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
 		log.debug ("handle create dataset: " + putDataset.id());
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final Future<Object> createDatasetInfo = Patterns.ask(database, 
 				new CreateDataset(putDataset.id(), putDataset.getDatasetName(),
-				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList(),
+				objectMapper.writeValueAsString (putDataset.getFilterConditions())), 15000);
 				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
@@ -185,14 +191,15 @@ public class Admin extends UntypedActor {
 
 	}
 
-	private void handleUpdateDataset(PutDataset putDataset) {
+	private void handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
 		log.debug ("handle update dataset: " + putDataset.id());
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final Future<Object> updateDatasetInfo = Patterns.ask(database, 
 				new UpdateDataset(putDataset.id(), putDataset.getDatasetName(),
-				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList()), 15000);
+				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList(),
+				objectMapper.writeValueAsString (putDataset.getFilterConditions ())), 15000);
 				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
@@ -535,7 +542,8 @@ public class Admin extends UntypedActor {
 											new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 											new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 											null, // notification list
-											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
+											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
+											new ObjectMapper().readValue (datasetInfo.getFilterConditions (), Filter.class)
 									);
 							log.debug("sending dataset: " + dataset);
 							sender.tell (dataset, getSelf());
@@ -650,13 +658,15 @@ public class Admin extends UntypedActor {
 						log.debug("data sources info received");
 						
 						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
+						final ObjectMapper objectMapper = new ObjectMapper ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
 							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
 									null, // notification list
-									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName())
+									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
+									objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
 							);
 							
 							pageBuilder.add (dataset);

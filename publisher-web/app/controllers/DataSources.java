@@ -5,22 +5,18 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import models.Domain.Function;
 import models.Domain.Function4;
-import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import play.Play;
 import play.libs.Akka;
-import play.libs.Json;
 import play.libs.F.Promise;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
@@ -28,6 +24,8 @@ import views.html.datasources.list;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {

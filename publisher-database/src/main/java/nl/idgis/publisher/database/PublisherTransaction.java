@@ -517,6 +517,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 		String datasetIdent = uds.getDatasetIdentification();
 		String datasetName = uds.getDatasetName();
+		final String filterConditions = uds.getFilterConditions ();
 		log.debug("update dataset" + datasetIdent);
 		
 		Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -526,6 +527,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		context.update(dataset)
 			.set(dataset.name, datasetName)
 			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.filterConditions, filterConditions)
 			.where(dataset.identification.eq(datasetIdent))
 			.execute();
 			
@@ -554,13 +556,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(dataset.identification.eq( datasetIdent ))
 				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDataset.name,
-						category.identification,category.name)));
+						category.identification,category.name, dataset.filterConditions)));
 	}
 
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
 		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 		String datasetIdent = cds.getDatasetIdentification();
 		String datasetName = cds.getDatasetName();
+		final String filterConditions = cds.getFilterConditions ();
 		log.debug("create dataset " + datasetIdent);
 
 		Integer sourceDatasetId = context.query().from(sourceDataset)
@@ -574,6 +577,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(dataset.identification, datasetIdent)
 					.set(dataset.name, datasetName)
 					.set(dataset.sourceDatasetId, sourceDatasetId)
+					.set(dataset.filterConditions, filterConditions)
 					.execute();
 				
 				Integer datasetId = context.query().from(dataset)
@@ -805,7 +809,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.orderBy(dataset.identification.asc())
 				.list(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDataset.name,
-						category.identification,category.name))
+						category.identification,category.name, dataset.filterConditions))
 		);
 	}
 

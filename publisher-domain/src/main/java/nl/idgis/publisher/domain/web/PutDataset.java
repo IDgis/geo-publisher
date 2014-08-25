@@ -2,11 +2,10 @@ package nl.idgis.publisher.domain.web;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * PutDataset combines data from dataset and datasetcolumn.
@@ -21,14 +20,17 @@ public class PutDataset extends Identifiable {
 	private final String datasetName;
 	private final String sourceDatasetIdentification;
 	private final List<Column> columnList;
+	private final Filter filterConditions;
 	
 	public PutDataset(final @JsonProperty("operation") CrudOperation operation, final @JsonProperty("id") String datasetIdentification, final @JsonProperty("name") String datasetName,
-			final @JsonProperty("sourceDataset") String sourceDatasetIdentification, final @JsonProperty("columnList") List<Column> columnList) {
+			final @JsonProperty("sourceDataset") String sourceDatasetIdentification, final @JsonProperty("columnList") List<Column> columnList,
+			final @JsonProperty("filterConditions") Filter filterConditions) {
 		super(datasetIdentification);
 		this.operation = operation;
 		this.datasetName = datasetName;
 		this.sourceDatasetIdentification = sourceDatasetIdentification;
 		this.columnList = columnList;
+		this.filterConditions = filterConditions;
 	}
 
 	public CrudOperation getOperation() {
@@ -45,6 +47,10 @@ public class PutDataset extends Identifiable {
 
 	public List<Column> getColumnList() {
 		return columnList;
+	}
+
+	public Filter getFilterConditions() {
+		return filterConditions;
 	}
 
 	@Override

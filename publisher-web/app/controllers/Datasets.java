@@ -58,7 +58,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-	private static int counter = 0;
 
 	public static Promise<Result> list (long page) {
 		return listByCategoryAndMessages(null, false, page);
@@ -119,55 +118,6 @@ public class Datasets extends Controller {
 			});
  
 		return list(1);
-	}
-	
-	private static List<Column> makeColumnList(){
-		List<Column> colList = new ArrayList<Column>();
-		Column col = new Column("FirstColumn","NUMERIC");
-		colList.add(col);
-		col = new Column("SecondColumn","TEXT");
-		colList.add(col);
-		col = new Column("ThirdColumn","DATE");
-		colList.add(col);
-		col = new Column("RandomColumn-"+Math.random(),"GEOMETRY");
-		colList.add(col);
-		return colList;
-	}
-	
-	public static Promise<Result> update(){
-		// TODO construct putdataset from form (putdataset.id != null)
-		final PutDataset putDataset = new PutDataset(CrudOperation.UPDATE,"1", "MyUpdatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
-		System.out.println("update dataset " + putDataset);
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
-			@Override
-			public Promise<Result> apply (final Response<?> a) throws Throwable {
-				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
-				
-				return list (0);
-			}
-		}); 
-		
-	}
-	
-	public static Promise<Result>  create() {
-		// TODO construct putdataset from form (putdataset.id == null)
-		final PutDataset putDataset = new PutDataset(CrudOperation.CREATE, "1", "MyCreatedDataset" + (counter++), "SomeSourceDataset", makeColumnList());		
-		System.out.println("create dataset " + putDataset);
-		
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-
-		return from(database).put(putDataset).executeFlat (new Function<Response<?>, Promise<Result>> () {
-			@Override
-			public Promise<Result> apply (final Response<?> a) throws Throwable {
-				flash (a.toString(), "Dataset " + putDataset.getDatasetName () + " is opgeslagen.");
-				
-				return list(0);
-			}
-		}); 
-		
 	}
 
 	private static DomainQuery<Page<SourceDatasetStats>> listSourceDatasets (final String dataSourceId, final String categoryId) {
@@ -264,7 +214,8 @@ public class Datasets extends Controller {
 								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
-								columns
+								columns,
+								dataset.getFilterConditions ()
 							);
 						
 						Logger.debug ("create dataset " + putDataset);
@@ -384,7 +335,8 @@ public class Datasets extends Controller {
 								dataset.getId (), 
 								dataset.getName (), 
 								sourceDataset.id (), 
-								columns
+								columns,
+								dataset.getFilterConditions ()
 							);
 						
 						Logger.debug ("update dataset " + putDataset);
