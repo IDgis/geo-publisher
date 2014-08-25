@@ -263,7 +263,8 @@ require ([
 	// =========================================================================
 	var filterTextarea = query ('textarea[name="filterConditions"]')[0],
 		filterEditorNode = dom.byId ('filter-editor');
-	
+
+	// Hide the original textarea, it is only used to submit the data.
 	domClass.add (filterTextarea, 'hidden');
 
 	function listColumns () {
@@ -275,6 +276,10 @@ require ([
 		});
 	}
 	
+	/**
+	 * Sets the value of the hidden textarea based on the contents of the filter editor: keeps
+	 * the textarea in sync with the rich DOM interface.
+	 */
 	function syncTextarea () {
 		var filterObject = { expression: listOperators (filterEditorNode)[0] },
 			value = json.stringify (filterObject);
@@ -315,7 +320,17 @@ require ([
 	
 	function onRemoveExpression (expressionContainer) {
 		var parent = expressionContainer.parentNode;
-		removeNode (expressionContainer); 
+		
+		// Locate a separator before this container and remove it:
+		var prev = query (expressionContainer).prev ()[0];
+		if (prev && domClass.contains (prev, 'js-filter-separator')) {
+			removeNode (prev);
+		}
+		
+		// Remove this node:
+		removeNode (expressionContainer);
+		
+		// Update the textarea and remove buttons:
 		syncTextarea ();
 		updateRemoveButtons (parent);
 	}
@@ -366,7 +381,7 @@ require ([
 		
 		for (var i = 0; i < children.length; ++ i) {
 			if (!isAnd && i > 0) {
-				put (list, 'div.filter-separator.filter-separator-or' + type + ' $', 'Of');
+				put (list, 'div.js-filter-separator.filter-separator.filter-separator-or' + type + ' $', 'Of');
 			}
 			put (list, children[i]);
 		}
@@ -434,7 +449,7 @@ require ([
 				type: 'operator',
 				operatorType: 'AND'
 			};
-			put (listNode, 'div.filter-separator.filter-separator-' + rootOperatorType + ' $', rootOperatorType);
+			put (listNode, 'div.js-filter-separator.filter-separator.filter-separator-' + rootOperatorType + ' $', rootOperatorType);
 		}
 
 		put (listNode, buildExpression (expression));
