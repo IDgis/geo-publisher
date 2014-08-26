@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -34,10 +35,20 @@ public class FilterEvaluatorTest {
 		String filterCondition = "{\"expression\":{\"type\":\"operator\",\"operatorType\":\"OR\",\"inputs\":[{\"type\":\"operator\",\"operatorType\":\"AND\",\"inputs\":[{\"type\":\"operator\",\"operatorType\":\"LESS_THAN_EQUAL\",\"inputs\":[{\"type\":\"column-ref\",\"column\":{\"name\":\"OPPV\",\"dataType\":\"NUMERIC\"}},{\"type\":\"value\",\"valueType\":\"NUMERIC\",\"value\":\"10000\"}]}]}]}}";
 		
 		ObjectMapper objectMapper = new ObjectMapper();						
+		
 		Filter filter = objectMapper.reader(Filter.class).readValue(filterCondition);
+		assertNotNull(filter);
+		
+		FilterExpression expression = filter.getExpression();
+		assertNotNull(expression);
+		
+		Set<Column> requiredColumns =  FilterEvaluator.getRequiredColumns(expression);
+		assertNotNull(requiredColumns);
+		assertEquals(1, requiredColumns.size());
+		assertTrue(requiredColumns.contains(new Column("OPPV", Type.NUMERIC)));
 		
 		List<Column> columns = Arrays.asList(new Column("OPPV", Type.NUMERIC));
-		FilterEvaluator evaluator = new FilterEvaluator(columns, filter.getExpression());		
+		FilterEvaluator evaluator = new FilterEvaluator(columns, expression);
 		 
 		assertFalse(evaluator.evaluate(new Record(Arrays.<Object>asList(5000))));
 		assertTrue(evaluator.evaluate(new Record(Arrays.<Object>asList(15000))));

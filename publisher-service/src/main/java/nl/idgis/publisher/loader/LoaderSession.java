@@ -2,6 +2,7 @@ package nl.idgis.publisher.loader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -51,31 +53,16 @@ public class LoaderSession extends AbstractSession {
 	
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) throws IOException {
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
 		this.loader = loader;
 		this.importJob = importJob;
+		this.filterEvaluator = filterEvaluator;
 		this.geometryDatabase = geometryDatabase;
 		this.database = database;
-		
-		String filterCondition = importJob.getFilterCondition();
-		if(filterCondition == null)  {
-			filterEvaluator = null;
-		} else {
-			ObjectMapper objectMapper = new ObjectMapper();
-			ObjectReader reader = objectMapper.reader(Filter.class);
-			Filter filter = reader.readValue(filterCondition);
-			
-			FilterExpression expression = filter.getExpression();
-			if(expression == null) {
-				filterEvaluator = null;
-			} else {
-				filterEvaluator = new FilterEvaluator(importJob.getColumns(), expression);
-			}
-		}
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, loader, importJob, geometryDatabase, database);
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
+		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
 	}
 	
 	@Override
@@ -242,11 +229,30 @@ public class LoaderSession extends AbstractSession {
 		} else {
 			insertCount++;
 			
+			List<Object> recordValues = record.getValues();
+			List<Column> columns = importJob.getColumns();			
+			
+			List<Object> values;
+			if(recordValues.size() > columns.size()) {
+				log.debug("creating smaller value list");
+				
+				values = new ArrayList<>(columns.size());
+				
+				Iterator<Object> valueItr = recordValues.iterator();
+				for(int i = 0; i< columns.size(); i++) {
+					values.add(valueItr.next());
+				}
+			} else {
+				log.debug("use value list from source record");
+				
+				values = recordValues;
+			}
+			
 			return Patterns.ask(geometryDatabase, new InsertRecord(
 					importJob.getCategoryId(),
 					importJob.getDatasetId(), 
-					importJob.getColumns(), 
-					record.getValues()), 15000);
+					columns, 
+					values), 15000);
 		}
 				
 				

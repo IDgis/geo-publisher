@@ -2,10 +2,13 @@ package nl.idgis.publisher.loader;
 
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import akka.dispatch.Mapper;
 
@@ -207,6 +210,26 @@ public class FilterEvaluator {
 		int i = 0;
 		for(Column column : columns) {
 			this.columns.put(column, i++);
+		}
+	}
+	
+	public static Set<Column> getRequiredColumns(FilterExpression expression) {
+		Set<Column> columns = new HashSet<>();
+		collectRequiredColumns(expression, columns);
+		return Collections.unmodifiableSet(columns);
+	}
+	
+	protected static void collectRequiredColumns(FilterExpression expression, Set<Column> columns) {
+		if(expression instanceof ColumnReferenceExpression) {
+			columns.add(((ColumnReferenceExpression) expression).getColumn());
+		} else if(expression instanceof OperatorExpression) {
+			for(FilterExpression input : ((OperatorExpression) expression).getInputs()) {
+				collectRequiredColumns(input, columns);
+			}
+		} else if(expression instanceof ValueExpression) {
+			// nothing to do
+		} else {
+			throw new IllegalArgumentException("unknown expression type: " + expression.getClass());
 		}
 	}
 
