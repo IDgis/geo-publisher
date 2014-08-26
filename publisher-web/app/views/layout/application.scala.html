@@ -122,6 +122,13 @@
 					<li class="active"><a href="@routes.Dashboard.index()"><span class="glyphicon glyphicon-dashboard"></span> Dashboard</a></li>
 					<li><a href="@routes.Datasets.list()"><span class="glyphicon glyphicon-th-list"></span> Datasets</a></li>
 					<li><a href="@routes.DataSources.list()"><span class="glyphicon glyphicon-hdd"></span> Brongegevens</a></li>
+					<li>
+						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> Logboek <span class="caret"></span></a>
+						<ul id="logging-menu" class="collapse nav nav-second-level">
+							<li><a href="@routes.Logging.tasks()">Taken</a></li>
+							<li><a href="@routes.Logging.messages()">Foutmeldingen</a></li>
+						</ul>
+					</li>
 				</ul>
 			</div>
 		</nav>
