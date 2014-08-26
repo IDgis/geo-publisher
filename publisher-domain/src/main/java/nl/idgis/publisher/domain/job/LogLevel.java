@@ -22,4 +22,15 @@ public enum LogLevel {
 		
 		return Collections.unmodifiableSet(retval);
 	}
+	
+	public static Set<LogLevel> all () {
+		final Set<LogLevel> allLogLevels = new HashSet<> ();
+		
+		allLogLevels.add (DEBUG);
+		allLogLevels.add (INFO);
+		allLogLevels.add (WARNING);
+		allLogLevels.add (ERROR);
+		
+		return Collections.unmodifiableSet (allLogLevels);
+	}
 }
