@@ -5,5 +5,6 @@ public enum Type {
 	TEXT,
 	NUMERIC,
 	DATE,
-	GEOMETRY
+	GEOMETRY, 
+	BOOLEAN
 }

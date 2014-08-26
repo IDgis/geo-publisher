@@ -8,18 +8,21 @@ import nl.idgis.publisher.domain.service.Column;
 
 public class ImportJobInfo extends JobInfo {
 	
-	private static final long serialVersionUID = 3455126057855131207L;
+
+	private static final long serialVersionUID = -6223087374147119878L;
 	
-	private final String categoryId, dataSourceId, sourceDatasetId, datasetId;
+	private final String categoryId, dataSourceId, sourceDatasetId, 
+		datasetId, filterCondition;
 	private final List<Column> columns; 
 	
-	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, List<Column> columns) {
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String filterCondition, List<Column> columns) {
 		super(id, JobType.HARVEST);
 		
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
-		this.datasetId = datasetId;
+		this.datasetId = datasetId;		
+		this.filterCondition = filterCondition;
 		this.columns = columns;
 	}
 	
@@ -41,13 +44,10 @@ public class ImportJobInfo extends JobInfo {
 	
 	public List<Column> getColumns() {
 		return Collections.unmodifiableList(columns);
-	}
+	}	
 
-	@Override
-	public String toString() {
-		return "ImportJob [categoryId=" + categoryId + ", dataSourceId="
-				+ dataSourceId + ", sourceDatasetId=" + sourceDatasetId
-				+ ", datasetId=" + datasetId + ", columns=" + columns + "]";
+	public String getFilterCondition() {
+		return filterCondition;
 	}
 
 	@Override
@@ -61,6 +61,8 @@ public class ImportJobInfo extends JobInfo {
 				+ ((dataSourceId == null) ? 0 : dataSourceId.hashCode());
 		result = prime * result
 				+ ((datasetId == null) ? 0 : datasetId.hashCode());
+		result = prime * result
+				+ ((filterCondition == null) ? 0 : filterCondition.hashCode());
 		result = prime * result
 				+ ((sourceDatasetId == null) ? 0 : sourceDatasetId.hashCode());
 		return result;
@@ -95,6 +97,11 @@ public class ImportJobInfo extends JobInfo {
 				return false;
 		} else if (!datasetId.equals(other.datasetId))
 			return false;
+		if (filterCondition == null) {
+			if (other.filterCondition != null)
+				return false;
+		} else if (!filterCondition.equals(other.filterCondition))
+			return false;
 		if (sourceDatasetId == null) {
 			if (other.sourceDatasetId != null)
 				return false;
@@ -103,7 +110,12 @@ public class ImportJobInfo extends JobInfo {
 		return true;
 	}
 
-
-
+	@Override
+	public String toString() {
+		return "ImportJobInfo [categoryId=" + categoryId + ", dataSourceId="
+				+ dataSourceId + ", sourceDatasetId=" + sourceDatasetId
+				+ ", datasetId=" + datasetId + ", filterCondition="
+				+ filterCondition + ", columns=" + columns + "]";
+	}
 	
 }
