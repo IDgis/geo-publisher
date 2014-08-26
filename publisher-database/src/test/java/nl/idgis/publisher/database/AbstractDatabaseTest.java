@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -14,7 +15,6 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
-import nl.idgis.publisher.utils.FileUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
@@ -42,13 +42,12 @@ public abstract class AbstractDatabaseTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		if(BASE_DIR.exists()) {			
-			while(!FileUtils.delete(BASE_DIR)) {				
-				Thread.sleep(10);
-			}
-		}
+		File dbDir;
+		do {
+			dbDir = new File(BASE_DIR, "" + Math.abs(new Random().nextInt()));
+		} while(dbDir.exists());
 		
-		String url = "jdbc:h2:" + BASE_DIR.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL";		
+		String url = "jdbc:h2:" + dbDir.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL";		
 		String user = "sa";
 		String password = "";
 		
