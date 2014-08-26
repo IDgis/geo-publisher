@@ -1,22 +1,28 @@
 package nl.idgis.publisher.domain.job;
 
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 
-public enum JobType implements MessageType {
+public enum JobType implements MessageType<MessageProperties> {
 	HARVEST(HarvestLogType.class), IMPORT, SERVICE;
-	
-	private final Class<? extends MessageType> contentClass;
+
+	private final Class<? extends MessageType<?>> logMessageEnum;
 
 	private JobType() {
 		this(null);
 	}
 	
-	private JobType(Class<? extends MessageType> contentClass) {
-		this.contentClass = contentClass;
+	private JobType(Class<? extends MessageType<?>> logMessageEnum) {
+		this.logMessageEnum = logMessageEnum;
 	}
 	
-	public Class<? extends MessageType> getContentClass() {
-		return contentClass;
+	@Override
+	public Class<? extends MessageProperties> getContentClass() {
+		return null;
+	}
+	
+	public Class<? extends MessageType<?>> getLogMessageEnum () {
+		return logMessageEnum;
 	}
 }

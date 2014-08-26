@@ -7,7 +7,7 @@ public final class MessageTypeUtils {
 	}	
 	
 	@SuppressWarnings("unchecked")
-	public static <T extends MessageType> T valueOf(Class<T> clazz, String name) {
+	public static <T extends MessageType<?>> T valueOf(Class<T> clazz, String name) {
 		if(Enum.class.isAssignableFrom(clazz)) {
 			return (T)Enum.valueOf(clazz.asSubclass(Enum.class), name);
 		}

@@ -50,7 +50,7 @@ public class Logging extends Controller {
 		}
 		
 		return from (database)
-			.query (new ListIssues (logLevels, page))
+			.query (new ListIssues (logLevels, null, page, 75l))
 			.execute (new Function<Page<Issue>, Result> () {
 				@Override
 				public Result apply (final Page<Issue> issues) throws Throwable {

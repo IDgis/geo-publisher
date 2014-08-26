@@ -8,18 +8,16 @@ import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
-
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.messages.Timeout;
-
 import nl.idgis.publisher.protocol.messages.Ack;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.OnSuccess;
@@ -111,10 +109,14 @@ public class HarvestSession extends AbstractSession {
 						}
 						
 						if(type != null) {
-							JobLog jobLog = new JobLog(
+							JobLog jobLog = JobLog.create (
 									LogLevel.INFO, 
-									type,
-									new HarvestLog(dataset.getId()));
+									type, 
+									new HarvestLog (
+											EntityType.SOURCE_DATASET, 
+											dataset.getId (), 
+											dataset.getTable().getName ()
+								));
 							
 							Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
 								.onSuccess(new OnSuccess<Object>() {

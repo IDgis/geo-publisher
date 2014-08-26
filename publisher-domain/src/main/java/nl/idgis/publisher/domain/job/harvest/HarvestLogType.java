@@ -2,7 +2,7 @@ package nl.idgis.publisher.domain.job.harvest;
 
 import nl.idgis.publisher.domain.MessageType;
 
-public enum HarvestLogType implements MessageType {
+public enum HarvestLogType implements MessageType<HarvestLog> {
 	
 	METADATA_PARSING_ERROR(MetadataLog.class),
 

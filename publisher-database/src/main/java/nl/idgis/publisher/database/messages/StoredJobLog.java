@@ -1,5 +1,6 @@
 package nl.idgis.publisher.database.messages;
 
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -10,7 +11,7 @@ public class StoredJobLog extends JobLog {
 	
 	private final JobInfo job;
 
-	public StoredJobLog(JobInfo job, LogLevel level, MessageType type, Object content) {
+	public StoredJobLog(JobInfo job, LogLevel level, MessageType<?> type, MessageProperties content) {
 		super(level, type, content);
 		
 		this.job = job;

@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.job.harvest;
 
+import nl.idgis.publisher.domain.web.EntityType;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -11,12 +13,13 @@ public class DatabaseLog extends HarvestLog {
 
 	@JsonCreator
 	public DatabaseLog(
+			@JsonProperty("entityType") EntityType entityType,
 			@JsonProperty("identification") String identification,
 			@JsonProperty("title") String title,
 			@JsonProperty("alternateTitle") String alternateTitle,
 			@JsonProperty("tableName") String tableName) {
 		
-		super(identification, title, alternateTitle);
+		super(entityType, identification, title, alternateTitle);
 		
 		this.tableName = tableName;
 	}
@@ -28,7 +31,7 @@ public class DatabaseLog extends HarvestLog {
 	@Override
 	public String toString() {
 		return "DatabaseTableName [tableName=" + tableName
-				+ ", identification=" + identification + "]";
+				+ ", identification=" + getIdentification () + "]";
 	}
 
 }

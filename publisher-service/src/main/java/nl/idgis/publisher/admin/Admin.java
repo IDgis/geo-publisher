@@ -676,7 +676,7 @@ public class Admin extends UntypedActor {
 				for(StoredJobLog jobLog : jobLogs.getList ()) {
 					JobInfo job = jobLog.getJob();
 					
-					MessageType type = jobLog.getType();
+					MessageType<?> type = jobLog.getType();
 					
 					dashboardIssues.add(
 						new Issue(

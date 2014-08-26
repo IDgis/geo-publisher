@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.job.harvest;
 
+import nl.idgis.publisher.domain.web.EntityType;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -13,6 +15,7 @@ public class MetadataLog extends HarvestLog {
 	
 	@JsonCreator
 	public MetadataLog(
+			@JsonProperty("entityType") EntityType entityType,
 			@JsonProperty("identification") String identification,
 			@JsonProperty("title") String title,
 			@JsonProperty("alternateTitle") String alternateTitle,
@@ -20,17 +23,13 @@ public class MetadataLog extends HarvestLog {
 			@JsonProperty("error") MetadataLogType error, 
 			@JsonProperty("value") Object value) {
 		
-		super(identification, title, alternateTitle);
+		super(entityType, identification, title, alternateTitle);
 		
 		this.field = field;
 		this.error = error;
 		this.value = value;
 	}
 	
-	public String getIdentification() {
-		return identification;
-	}
-
 	public MetadataField getField() {
 		return field;
 	}
@@ -45,7 +44,7 @@ public class MetadataLog extends HarvestLog {
 
 	@Override
 	public String toString() {
-		return "MetadataParsingError [identification=" + identification
+		return "MetadataParsingError [identification=" + getIdentification ()
 				+ ", field=" + field + ", error=" + error + ", value=" + value
 				+ "]";
 	}

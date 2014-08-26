@@ -80,6 +80,7 @@ import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.MessageTypeUtils;
 import nl.idgis.publisher.domain.job.JobLog;
@@ -556,12 +557,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 			LogLevel logLevel = LogLevel.valueOf(t.get(jobLog.level));
 			
-			Class<? extends MessageType> logTypeClass = jobType.getContentClass();
-			MessageType logType = MessageTypeUtils.valueOf(logTypeClass, t.get(jobLog.type));
+			Class<? extends MessageType<?>> logTypeClass = jobType.getLogMessageEnum ();
+			MessageType<?> logType = MessageTypeUtils.valueOf(logTypeClass, t.get(jobLog.type));
 			
 			String content = t.get(jobLog.content);
 			
-			Object contentObject;
+			MessageProperties contentObject;
 			if(content == null) {
 				contentObject = null;
 			} else {

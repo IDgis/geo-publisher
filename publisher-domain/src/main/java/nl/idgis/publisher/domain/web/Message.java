@@ -14,17 +14,17 @@ public final class Message extends Entity {
 
 	private static final long serialVersionUID = -1485836626413687756L;
 
-	private final MessageType type;
+	private final MessageType<?> type;
 	private final List<Object> values;
 	
 	@JsonCreator
-	public Message (final @JsonProperty("type") MessageType type, final @JsonProperty("values") List<Object> values) {
+	public Message (final @JsonProperty("type") MessageType<?> type, final @JsonProperty("values") List<Object> values) {
 		this.type = type;
 		this.values = values == null ? Collections.emptyList() : new ArrayList<> (values);
 	}
 	
 	@JsonGetter
-	public MessageType type () {
+	public MessageType<?> type () {
 		return this.type;
 	}
 	
