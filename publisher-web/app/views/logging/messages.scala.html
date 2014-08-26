@@ -1,22 +1,76 @@
 @(issues: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue], logLevels: Set[nl.idgis.publisher.domain.job.LogLevel])
 
 @import nl.idgis.publisher.domain.job.LogLevel
+@import nl.idgis.publisher.domain.web._
 
 
-@logLevelLink(label: String, logLevel: LogLevel) = {
+@logLevelLink(logLevel: LogLevel) = {
 	@if(logLevels.contains(logLevel)) {
 		@if(logLevels.size == 1) {
-			<a class="disabled" href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevels(logLevels), issues.currentPage)"><span class="glyphicon glyphicon-check"></span> @label</a>
+			<a class="disabled" href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevels(logLevels), issues.currentPage)"><span class="glyphicon glyphicon-check"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
 		} else {
-			<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWithout(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-check"></span> @label</a>
+			<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWithout(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-check"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
 		}
 	} else {
-		<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWith(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-unchecked"></span> @label</a>
+		<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWith(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-unchecked"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
 	}
 }
 
 @pageRef(targetPage: Long) = @{
 	routes.Logging.messagesWithFilter (controllers.Logging.logLevels(logLevels), targetPage)	  
+}
+
+@logLevelIcon(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "glyphicon glyphicon-wrench"
+	case LogLevel.INFO => "glyphicon glyphicon-bullhorn"
+	case LogLevel.ERROR => "glyphicon glyphicon-remove-sign"
+	case LogLevel.WARNING => "glyphicon glyphicon-warning-sign"
+	}
+}
+
+@logLevelClass(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "text-info"
+	case LogLevel.INFO => "text-info"
+	case LogLevel.ERROR => "text-danger"
+	case LogLevel.WARNING => "text-warning"
+	}
+}
+
+@logLevelTitle(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "Technische informatie"
+	case LogLevel.INFO => "Informatie"
+	case LogLevel.ERROR => "Fout"
+	case LogLevel.WARNING => "Waarschuwing"
+	}
+}
+
+@entityTypeName(entityType: EntityType) = @{
+	entityType match {
+	case EntityType.SOURCE_DATASET => "Brondataset"
+	case EntityType.DATASET => "Dataset"
+	case EntityType.NOTIFICATION => "Notificatie"
+	case EntityType.CATEGORY => "Categorie"
+	case EntityType.JOB => "Taak"
+	case EntityType.LOG_ITEM => "Melding"
+	case EntityType.DATA_SOURCE => "Gegevensbron"
+	case _ => entityType.name
+	}
+}
+
+@entityReference(ref: GenericMessageProperties) = {
+	@if(ref.entityType != null) {
+		<small>@entityTypeName(ref.entityType):</small>
+	}
+	@if(ref.title != null) {
+		@ref.title
+	} else {
+		@if(ref.identification != null) {
+			@ref.identification
+		}
+	}
 }
 
 @layout.application(
@@ -44,10 +98,10 @@
 						<div id="collapse-filter-loglevel" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li>@logLevelLink("Fout", LogLevel.ERROR)</li>
-									<li>@logLevelLink("Waarschuwing", LogLevel.WARNING)</li>
-									<li>@logLevelLink("Informatie", LogLevel.INFO)</li>
-									<li>@logLevelLink("Technische informatie", LogLevel.DEBUG)</li>
+									<li>@logLevelLink(LogLevel.ERROR)</li>
+									<li>@logLevelLink(LogLevel.WARNING)</li>
+									<li>@logLevelLink(LogLevel.INFO)</li>
+									<li>@logLevelLink(LogLevel.DEBUG)</li>
 								</ul>
 							</div>
 						</div>
@@ -66,11 +120,36 @@
 					</div>
 				} else {
 					@helper.pagination(issues, pageRef)
-					<ul>
+					<div class="list-group">
 					@for(issue <- issues.values) {
-						<li>@issue.when - @Domain.message(issue.message)</li>
+						<div class="list-group-item">
+							<div class="row">
+								<div class="col-lg-1">
+									<abbr class="h1 abbr-icon @logLevelClass(issue.logLevel)" title="@logLevelTitle(issue.logLevel)">
+										<span class="@logLevelIcon(issue.logLevel)"></span>
+									</abbr>
+								</div>
+								<div class="col-lg-11">
+									<div class="row">
+										<div class="col-lg-12">
+											<h4 class="list-group-item-heading">@Domain.message(issue.message)</h4>
+										</div>
+									</div>
+									<div class="row">
+										<div class="col-lg-4 text-muted">
+											@issue.when.toString("dd-MM-yyyy HH:mm:ss")
+										</div>
+										<div class="col-lg-8 text-muted">
+											@if(issue.message.properties != null) {
+												@entityReference(issue.message.properties)
+											}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
 					}
-					</ul>
+					</div>
 					@helper.pagination(issues, pageRef)
 				} 
 			</div>
