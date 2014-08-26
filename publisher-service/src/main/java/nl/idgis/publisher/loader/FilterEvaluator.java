@@ -1,9 +1,13 @@
 package nl.idgis.publisher.loader;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import akka.dispatch.Mapper;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
@@ -13,12 +17,16 @@ import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.Filter.ValueExpression;
 import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
+import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 
 public class FilterEvaluator {
 	
-	private abstract static class Value<T> {
+	protected abstract static class Value<T> {
 		
-		T t;
+		static final Mapper<String, Date> STRING_DATE_MAPPER = SimpleDateFormatMapper.isoDateAndDateTime();
+		
+		private T t;
 		
 		Value(T t) {
 			this.t = t;
@@ -26,6 +34,14 @@ public class FilterEvaluator {
 		
 		T getValue() {
 			return t;
+		}
+		
+		boolean isComparable() {
+			return false;
+		}
+		
+		String getStringValue() {
+			return t.toString().trim();
 		}
 		
 		abstract Type getType();
@@ -37,11 +53,11 @@ public class FilterEvaluator {
 				case NUMERIC:					
 					return new NumericValue(new BigDecimal(((Number)value).doubleValue()));
 				case DATE:
-				
-				case GEOMETRY:				
-				
+					return new DateValue((Date)value);
+				case GEOMETRY:
+					return new GeometryValue((WKBGeometry)value);
 				case TEXT:
-				
+					return new StringValue(value.toString());
 				default:
 					throw new IllegalArgumentException("unknown type: " + type);			
 			}
@@ -52,13 +68,13 @@ public class FilterEvaluator {
 				case BOOLEAN:
 					return new BooleanValue(Boolean.parseBoolean(value));
 				case NUMERIC:
-					return new NumericValue(new BigDecimal(value));								
-				case DATE:
-					
-				case GEOMETRY:			
-				
+					return new NumericValue(new BigDecimal(value));	
 				case TEXT:
-				
+					return new StringValue(value);					
+				case DATE:
+					return new DateValue(STRING_DATE_MAPPER.apply(value));
+				case GEOMETRY:
+					throw new IllegalArgumentException("cannot convert string to geometry");
 				default:
 					throw new IllegalArgumentException("unknown type: " + type);			
 			}
@@ -70,7 +86,19 @@ public class FilterEvaluator {
 		}
 	}
 	
-	private static class BooleanValue extends Value<Boolean> {
+	protected static abstract class ComparableValue<T extends Comparable<T>> extends Value<T> {
+
+		ComparableValue(T t) {
+			super(t);
+		}
+		
+		boolean isComparable() {
+			return true;
+		}
+		
+	}
+	
+	protected static class BooleanValue extends Value<Boolean> {
 		
 		public static BooleanValue TRUE = new BooleanValue(true);
 		public static BooleanValue FALSE = new BooleanValue(false);
@@ -85,7 +113,7 @@ public class FilterEvaluator {
 		}		
 	}
 	
-	private static class NumericValue extends Value<BigDecimal> {
+	protected static class NumericValue extends ComparableValue<BigDecimal> {
 
 		NumericValue(BigDecimal bd) {
 			super(bd);
@@ -94,6 +122,76 @@ public class FilterEvaluator {
 		@Override
 		Type getType() {
 			return Type.NUMERIC;
+		}
+		
+	}
+	
+	protected static class StringValue extends ComparableValue<String> {
+
+		StringValue(String s) {
+			super(s);			
+		}
+
+		@Override
+		Type getType() {
+			return Type.TEXT;
+		}
+		
+	}
+	
+	protected static class DateValue extends ComparableValue<Date> {
+
+		DateValue(Date d) {
+			super(d);
+		}
+
+		@Override
+		Type getType() {
+			return Type.DATE;
+		}
+		
+		public String getStringValue() {
+			Date date = getValue();
+			 
+			Calendar calendar = Calendar.getInstance();
+			calendar.setTime(date);
+			
+			return 
+				toString(calendar.get(Calendar.YEAR), 4) +
+				toString(calendar.get(Calendar.MONTH) + 1, 2) +
+				toString(calendar.get(Calendar.DAY_OF_MONTH), 2) +
+				"T" +
+				toString(calendar.get(Calendar.HOUR_OF_DAY), 2) +
+				":" +
+				toString(calendar.get(Calendar.MINUTE), 2) +
+				":" +
+				toString(calendar.get(Calendar.SECOND), 2);
+		}
+		
+		private String toString(int value, int digits) {
+			String strValue = "" + value;
+			
+			StringBuilder sb = new StringBuilder();
+			for(int i = strValue.length(); i < digits; i++) {
+				sb.append(0);
+			}
+			
+			sb.append(strValue);
+			
+			return sb.toString();
+		}
+		
+	}
+	
+	protected static class GeometryValue extends Value<WKBGeometry> {
+
+		GeometryValue(WKBGeometry g) {
+			super(g);
+		}
+
+		@Override
+		Type getType() {
+			return Type.GEOMETRY;
 		}
 		
 	}
@@ -132,69 +230,200 @@ public class FilterEvaluator {
 	}
 	
 	protected Value<?> evaluate(Record record, OperatorExpression operator) {
-		OperatorType type = operator.getOperatorType();
+		OperatorType operatorType = operator.getOperatorType();
 		List<FilterExpression> inputs = operator.getInputs();
 		
-		switch(type) {
+		int operatorArity = operatorType.getArity();
+		if(operatorArity > 0 && inputs.size() != operatorArity) {
+			throw new IllegalStateException("expected " + operatorArity + " inputs: " + inputs.size());
+		}
+		
+		switch(operatorType) {
 			case OR:
-				for(FilterExpression expression : inputs) {
-					Object expressionResult = evaluate(record, expression);
-					if(expressionResult instanceof BooleanValue) {
-						if(((BooleanValue) expressionResult).getValue()) {
-							return BooleanValue.TRUE;
-						}
-					} else {
-						throw new IllegalStateException("boolean input expected");
-					}
-				}
-				
-				return BooleanValue.FALSE;
-				
+				return evaluateOr(record, inputs);				
 			case AND:
-				for(FilterExpression expression : inputs) {
-					Object expressionResult = evaluate(record, expression);
-					if(expressionResult instanceof BooleanValue) {
-						if(!((BooleanValue) expressionResult).getValue()) {
-							return BooleanValue.FALSE;
-						}
-					} else {
-						throw new IllegalStateException("boolean input expected");
-					}
-				}
-				
-				return BooleanValue.TRUE;
-				
+				return evaluateAnd(record, inputs);				
+			case EQUALS:
+				return evaluateEquals(record, inputs);				
+			case NOT_EQUALS:
+				return evaluateNotEquals(record, inputs);				
+			case LESS_THAN:
+				return evaluateLessThan(record, inputs);				
 			case LESS_THAN_EQUAL:
-				if(compareNumeric(record, inputs) <= 0) {
-					return BooleanValue.FALSE;
-				}
-				
-				return BooleanValue.TRUE;
+				return evaluateLessThanEqual(record, inputs);				
+			case GREATER_THAN:
+				return evaluateGreaterThan(record, inputs);				
+			case GREATER_THAN_EQUAL:				
+				return evaluateGreaterThanEqual(record, inputs);				
+			case NOT_NULL:
+				return evaluateNotNull(record, inputs);				
+			case LIKE:			
+				return evaluateLike(record, inputs);
+			case IN:
+				return evaluateIn(record, inputs);
 				
 			default:
-				throw new IllegalArgumentException("unknown operator type: " + type);
+				throw new IllegalArgumentException("unknown operator type: " + operatorType);
 		}
 	}
 
-	protected int compareNumeric(Record record, List<FilterExpression> inputs) {
-		if(inputs.size() != 2) {
-			throw new IllegalArgumentException("exactly 2 inputs expected");
+	private BooleanValue evaluateIn(Record record, List<FilterExpression> inputs) {
+		Value<?> value = evaluate(record, inputs.get(0));
+		
+		String expr = evaluate(record, inputs.get(1)).getStringValue();
+		for(String s : expr.split(",")) {
+			if(compare(record, value, Value.toValue(value.getType(), s.trim())) == 0) {
+				return BooleanValue.TRUE;
+			}
 		}
-						
+		
+		return BooleanValue.FALSE;
+	}
+
+	private Value<?> evaluateLike(Record record, List<FilterExpression> inputs) {
+		String value = evaluate(record, inputs.get(0)).getStringValue();
+		
+		Value<?> expr = evaluate(record, inputs.get(1));
+		if(expr.getType() != Type.TEXT) {
+			throw new IllegalArgumentException("string expression expected");
+		}
+		
+		if(value.matches(
+			expr.getStringValue()
+			    .replace(".", "\\.")
+			    .replace("?", ".")
+			    .replace("%", ".*"))) {
+			
+			return BooleanValue.TRUE;
+		}
+		
+		return BooleanValue.FALSE;
+	}
+
+	private Value<?> evaluateNotNull(Record record, List<FilterExpression> inputs) {
+		if(evaluate(record, inputs.get(0)) == null) {
+			return BooleanValue.FALSE;
+		} 
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateGreaterThanEqual(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) >= 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateGreaterThan(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) > 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateLessThanEqual(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) <= 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateLessThan(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) < 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateNotEquals(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) == 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateEquals(Record record, List<FilterExpression> inputs) {
+		if(compare(record, inputs) != 0) {
+			return BooleanValue.FALSE;
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateAnd(Record record, List<FilterExpression> inputs) {
+		for(FilterExpression expression : inputs) {
+			Object expressionResult = evaluate(record, expression);
+			if(expressionResult instanceof BooleanValue) {
+				if(!((BooleanValue) expressionResult).getValue()) {
+					return BooleanValue.FALSE;
+				}
+			} else {
+				throw new IllegalStateException("boolean input expected");
+			}
+		}
+		
+		return BooleanValue.TRUE;
+	}
+
+	private Value<?> evaluateOr(Record record, List<FilterExpression> inputs) {
+		for(FilterExpression expression : inputs) {
+			Object expressionResult = evaluate(record, expression);
+			if(expressionResult instanceof BooleanValue) {
+				if(((BooleanValue) expressionResult).getValue()) {
+					return BooleanValue.TRUE;
+				}
+			} else {
+				throw new IllegalStateException("boolean input expected");
+			}
+		}
+		
+		return BooleanValue.FALSE;
+	}
+
+	private int compare(Record record, List<FilterExpression> inputs) {
 		Value<?> input0 = evaluate(record, inputs.get(0));
 		Value<?> input1 = evaluate(record, inputs.get(1));
 		
-		if(input0.getType() == Type.NUMERIC) {
-			if(input1.getType() == Type.NUMERIC) {
-				NumericValue numeric0 = (NumericValue)input0;
-				NumericValue numeric1 = (NumericValue)input1;
-				
-				return numeric0.getValue().compareTo(numeric1.getValue());
+		return compare(record, input0, input1);
+	}
+		
+	private int compare(Record record, Value<?> input0, Value<?> input1) {		
+		if(input0.getType() != input1.getType()) {
+			throw new IllegalStateException("inputs are of different types");
+		}
+		
+		if(input0.isComparable()) {
+			if(input1.isComparable()) {
+				switch(input0.getType()) {
+					case TEXT:
+						StringValue string0 = (StringValue)input0;
+						StringValue string1 = (StringValue)input1;
+						
+						return string0.getValue().compareTo(string1.getValue());
+					case NUMERIC:
+						NumericValue numeric0 = (NumericValue)input0;
+						NumericValue numeric1 = (NumericValue)input1;
+					
+						return numeric0.getValue().compareTo(numeric1.getValue());					
+					case DATE:
+						DateValue date0 = (DateValue)input0;
+						DateValue date1 = (DateValue)input1;
+						
+						return date0.getValue().compareTo(date1.getValue());
+					default:
+						throw new IllegalStateException("unknown comparable type: " + input0.getType());
+				}
 			} else {
-				throw new IllegalStateException("input1 is not a numeric:" + input1);
+				throw new IllegalStateException("input1 is not a comparable:" + input1);
 			}
 		} else {
-			throw new IllegalStateException("input0 is not a numeric: " + input0);
+			throw new IllegalStateException("input0 is not a comparable: " + input0);
 		}
 	}
 	

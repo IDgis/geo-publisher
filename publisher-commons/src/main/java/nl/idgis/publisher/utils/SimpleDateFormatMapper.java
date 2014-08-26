@@ -14,6 +14,25 @@ public class SimpleDateFormatMapper extends Mapper<String, Date> {
 		this.patterns = patterns;
 	}
 	
+	public static Mapper<String, Date> isoDateAndDateTime() {
+		final Mapper<String, Date> dateTime = isoDateTime();
+		final Mapper<String, Date> date = isoDate();		
+		
+		return new Mapper<String, Date>() {
+
+			@Override
+			public Date apply(String parameter) {
+				Date result = dateTime.apply(parameter);
+				if(result == null) {
+					return date.apply(parameter);
+				} else {
+					return result;
+				}
+			}
+			
+		};
+	}
+	
 	public static Mapper<String, Date> isoDateTime() {
 		return 
 			new SimpleDateFormatMapper(
