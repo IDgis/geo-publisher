@@ -1,4 +1,4 @@
-package nl.idgis.publisher.metadata;
+package nl.idgis.publisher.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -12,6 +12,21 @@ public class SimpleDateFormatMapper extends Mapper<String, Date> {
 	
 	public SimpleDateFormatMapper(String... patterns) {
 		this.patterns = patterns;
+	}
+	
+	public static Mapper<String, Date> isoDateTime() {
+		return 
+			new SimpleDateFormatMapper(
+				"yyyy-MM-dd'T'HH:mm:ss",
+				"yyyyMMdd'T'HH:mm:ss",
+				"yyyyMMdd'T'HHmmss");	
+	}
+	
+	public static Mapper<String, Date> isoDate() {
+		return 
+			new SimpleDateFormatMapper(
+				"yyyy-MM-dd",
+				"yyyyMMdd");
 	}
 
 	@Override
