@@ -35,7 +35,7 @@ public class JobLog implements Serializable {
 		return type;
 	}
 	
-	public Object getContent() {
+	public MessageProperties getContent() {
 		return content;
 	}
 

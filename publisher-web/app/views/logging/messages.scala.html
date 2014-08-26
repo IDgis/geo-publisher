@@ -68,7 +68,7 @@
 					@helper.pagination(issues, pageRef)
 					<ul>
 					@for(issue <- issues.values) {
-						<li>@Domain.message(issue.message)</li>
+						<li>@issue.when - @Domain.message(issue.message)</li>
 					}
 					</ul>
 					@helper.pagination(issues, pageRef)

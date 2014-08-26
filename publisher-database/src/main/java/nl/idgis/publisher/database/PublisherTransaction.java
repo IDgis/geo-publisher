@@ -93,6 +93,10 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -537,7 +541,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if (query.getSince () != null) {
-			baseQuery.where (jobLog.createTime.goe (new Timestamp (query.getSince ().toDateTime ().getMillis ())));
+			baseQuery.where (jobLog.createTime.goe (new Timestamp (query.getSince ().toDateTime (DateTimeZone.UTC).getMillis ())));
 		}
 		
 		List<StoredJobLog> jobLogs = new ArrayList<>();
@@ -548,7 +552,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					job.type,
 					jobLog.level, 
 					jobLog.type, 
-					jobLog.content)) {
+					jobLog.content,
+					jobLog.createTime)) {
 			
 			JobType jobType = JobType.valueOf(t.get(job.type));
 			
@@ -569,7 +574,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				contentObject = fromJson(logType.getContentClass(), content); 
 			}			
 			
-			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, contentObject));
+			final Timestamp ts = t.get (jobLog.createTime);
+			final LocalDateTime when = new LocalDateTime (ts.getTime ());
+			
+			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, when, contentObject));
 		}
 		
 		context.answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
