@@ -3,6 +3,7 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -164,6 +165,9 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertNotNull(t);
 		assertEquals("IMPORT", t.get(job.type));
 		
+		t = query().from(importJob).singleResult(importJob.all());
+		assertNotNull(importJob.filterConditions);
+		
 		t = query().from(importJobColumn)
 				.orderBy(importJobColumn.index.asc())
 				.singleResult(importJobColumn.all());
@@ -183,7 +187,10 @@ public class JobsTest extends AbstractDatabaseTest {
 		
 		ImportJobInfo importJobInfo = (ImportJobInfo)jobInfo;
 		assertEquals("testDataset", importJobInfo.getDatasetId());
-		assertEquals("testCategory", importJobInfo.getCategoryId());
+		assertEquals("testCategory", importJobInfo.getCategoryId());		
+		
+		String filterCondition = importJobInfo.getFilterCondition();
+		assertNotNull(filterCondition);
 		
 		assertColumns(importJobInfo.getColumns());
 		

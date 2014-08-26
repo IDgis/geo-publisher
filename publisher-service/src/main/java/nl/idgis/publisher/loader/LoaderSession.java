@@ -1,7 +1,12 @@
 package nl.idgis.publisher.loader;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 
 import nl.idgis.publisher.AbstractSession;
 import nl.idgis.publisher.database.messages.Commit;
@@ -10,6 +15,9 @@ import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.loader.messages.SessionStarted;
@@ -39,19 +47,22 @@ public class LoaderSession extends AbstractSession {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
-	private final ActorRef loader, geometryDatabase, database;	
+	private final ActorRef loader, geometryDatabase, database;
 	
-	private long totalCount = 0, count = 0;
+	private final FilterEvaluator filterEvaluator;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
+	private long totalCount = 0, insertCount = 0, filteredCount = 0;
+	
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
 		this.loader = loader;
 		this.importJob = importJob;
+		this.filterEvaluator = filterEvaluator;
 		this.geometryDatabase = geometryDatabase;
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, loader, importJob, geometryDatabase, database);
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
+		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
 	}
 	
 	@Override
@@ -122,7 +133,7 @@ public class LoaderSession extends AbstractSession {
 	private void handleGetProgress(GetProgress msg) {
 		log.debug("progress requested");
 		
-		getSender().tell(new Progress(count, totalCount), getSelf());		
+		getSender().tell(new Progress(insertCount + filteredCount, totalCount), getSelf());		
 	}
 
 	private void handleEnd(final End msg) {
@@ -205,17 +216,44 @@ public class LoaderSession extends AbstractSession {
 	}
 
 	private Future<Object> handleRecord(final Record record) {
-		count++;
+		
 		
 		if(log.isDebugEnabled()) { // Record.toString() is rather expensive
-			log.debug("record received: " + record + " " + count + "/" + totalCount);
+			log.debug("record received: " + record + " " + (insertCount + filteredCount) + "/" + totalCount + " (filtered: " + filteredCount + ")");
 		}
 		
-		return Patterns.ask(geometryDatabase, new InsertRecord(
-				importJob.getCategoryId(),
-				importJob.getDatasetId(), 
-				importJob.getColumns(), 
-				record.getValues()), 15000);
+		if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
+			filteredCount++;
+			
+			return Futures.successful((Object)new Ack());
+		} else {
+			insertCount++;
+			
+			List<Object> recordValues = record.getValues();
+			List<Column> columns = importJob.getColumns();			
+			
+			List<Object> values;
+			if(recordValues.size() > columns.size()) {
+				log.debug("creating smaller value list");
+				
+				values = new ArrayList<>(columns.size());
+				
+				Iterator<Object> valueItr = recordValues.iterator();
+				for(int i = 0; i< columns.size(); i++) {
+					values.add(valueItr.next());
+				}
+			} else {
+				log.debug("use value list from source record");
+				
+				values = recordValues;
+			}
+			
+			return Patterns.ask(geometryDatabase, new InsertRecord(
+					importJob.getCategoryId(),
+					importJob.getDatasetId(), 
+					columns, 
+					values), 15000);
+		}
 				
 				
 	}

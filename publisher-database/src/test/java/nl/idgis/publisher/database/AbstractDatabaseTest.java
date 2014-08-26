@@ -85,8 +85,8 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected Object ask(Object msg) throws Exception {
-		Future<Object> future = Patterns.ask(database, msg, 1000);
-		return Await.result(future, Duration.create(1, TimeUnit.SECONDS));
+		Future<Object> future = Patterns.ask(database, msg, 5000);
+		return Await.result(future, Duration.create(5, TimeUnit.SECONDS));
 	}
 	
 	@After

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+
 import scala.concurrent.Future;
 
 import nl.idgis.publisher.database.messages.CreateTable;
@@ -15,6 +18,8 @@ import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
@@ -197,8 +202,41 @@ public class Loader extends UntypedActor {
 									public void onSuccess(Object msg) throws Throwable {
 										log.debug("table created");
 										
+										List<Column> columns = new ArrayList<>();
+										columns.addAll(importJob.getColumns());										
+										
+										FilterEvaluator filterEvaluator;
+										String filterCondition = importJob.getFilterCondition();
+										if(filterCondition == null)  {
+											filterEvaluator = null;
+											
+											log.debug("no filter -> not filtering");
+										} else {
+											ObjectMapper objectMapper = new ObjectMapper();
+											ObjectReader reader = objectMapper.reader(Filter.class);
+											Filter filter = reader.readValue(filterCondition);
+											
+											FilterExpression expression = filter.getExpression();
+											if(expression == null) {
+												filterEvaluator = null;
+												
+												log.debug("empty filter -> not filtering");
+											} else {
+												for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
+													if(!columns.contains(column)) {
+														log.debug("querying additional column for filter: " + column);
+														columns.add(column);
+													}
+												}
+												
+												filterEvaluator = new FilterEvaluator(columns, expression);
+												
+												log.debug("filter evaluator constructed");
+											}
+										}
+										
 										List<String> columnNames = new ArrayList<>();
-										for(Column column : importJob.getColumns()) {
+										for(Column column : columns) {
 											columnNames.add(column.getName());
 										}
 										
@@ -208,7 +246,8 @@ public class Loader extends UntypedActor {
 														columnNames, 
 														LoaderSession.props(
 																getSelf(),
-																importJob, 
+																importJob,
+																filterEvaluator,
 																transaction, 
 																database)), getSelf());
 									}

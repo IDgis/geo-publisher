@@ -737,15 +737,22 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id);
 			
-			int datasetId = getDatasetId(context, query.getDatasetId());
-			
 			int versionId = getLastVersionId(context, query.getDatasetId());
 			
 			int importJobId = 
 				context.insert(importJob)
-					.set(importJob.jobId, jobId)
-					.set(importJob.datasetId, datasetId)
-					.set(importJob.sourceDatasetVersionId, versionId)
+					.columns(
+						importJob.jobId,
+						importJob.datasetId,
+						importJob.sourceDatasetVersionId,
+						importJob.filterConditions)
+					.select(new SQLSubQuery().from(dataset)
+							.where(dataset.identification.eq(query.getDatasetId()))
+							.list(
+								jobId,
+								dataset.id,
+								versionId,
+								dataset.filterConditions))
 					.executeWithKey(importJob.id);
 			
 				context.insert(importJobColumn)
@@ -755,7 +762,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						importJobColumn.name,
 						importJobColumn.dataType)
 					.select(new SQLSubQuery().from(datasetColumn)
-						.where(datasetColumn.datasetId.eq(datasetId))
+						.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+						.where(dataset.identification.eq(query.getDatasetId()))
 						.list(
 							importJobId,
 							datasetColumn.index,
@@ -909,9 +917,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private void executeGetImportJobs(QueryDSLContext context) {
 		SQLQuery query = context.query().from(job)
 			.join(importJob).on(importJob.jobId.eq(job.id))			
-			.join(dataset).on(dataset.id.eq(importJob.datasetId))			
-			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))				
+			.join(dataset).on(dataset.id.eq(importJob.datasetId))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 			.orderBy(job.createTime.asc())
@@ -922,6 +930,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		List<Tuple> baseList = query.clone()			
 			.list(
 					job.id,
+					importJob.filterConditions,
 					category.identification,
 					dataSource.identification,
 					sourceDataset.identification,
@@ -958,6 +967,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					t.get(dataSource.identification), 
 					t.get(sourceDataset.identification),
 					t.get(dataset.identification),
+					t.get(importJob.filterConditions),
 					columns));
 		}
 		

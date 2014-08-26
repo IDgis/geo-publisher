@@ -19,6 +19,7 @@ import nl.idgis.publisher.metadata.messages.GetTitle;
 import nl.idgis.publisher.metadata.messages.MetadataFailure;
 import nl.idgis.publisher.metadata.messages.MetadataQuery;
 import nl.idgis.publisher.metadata.messages.NotValid;
+import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.GetString;
 import nl.idgis.publisher.xml.messages.NotFound;
@@ -94,40 +95,37 @@ public class MetadataDocument extends UntypedActor {
 							"/gmd:citation" +
 							"/gmd:CI_Citation" +
 							"/gmd:alternateTitle" +
-							"/gco:CharacterString"))));
-		
-		SimpleDateFormatMapper dateTimeMapper = 
-			new SimpleDateFormatMapper(
-				"yyyy-MM-dd'T'HH:mm:ss",
-				"yyyyMMdd'T'HH:mm:ss",
-				"yyyyMMdd'T'HHmmss");
-		
-		SimpleDateFormatMapper dateMapper =
-			new SimpleDateFormatMapper(
-				"yyyy-MM-dd",
-				"yyyyMMdd");
+							"/gco:CharacterString"))));					
 		
 		queries.put(GetRevisionDate.class, 
 				Arrays.<QueryMapper<?>>asList(
 					new QueryMapper<>(
 						new GetString(namespaces,
 							getDatePath("revision") +
-							"/gco:DateTime"), dateTimeMapper),
+							"/gco:DateTime"), 
+							
+							SimpleDateFormatMapper.isoDateTime()),
 								
 					new QueryMapper<>(
 							new GetString(namespaces,
 								getDatePath("revision") +
-								"/gco:Date"), dateMapper),
+								"/gco:Date"),  
+								
+								SimpleDateFormatMapper.isoDate()),
 								
 					new QueryMapper<>(
 						new GetString(namespaces,
 							getDatePath("creation") +
-							"/gco:DateTime"), dateTimeMapper),
+							"/gco:DateTime"), 
+							
+							SimpleDateFormatMapper.isoDateTime()),
 								
 					new QueryMapper<>(
 							new GetString(namespaces,
 								getDatePath("creation") +
-								"/gco:Date"), dateMapper)								
+								"/gco:Date"), 
+								
+								SimpleDateFormatMapper.isoDate())								
 						
 					));
 	}
