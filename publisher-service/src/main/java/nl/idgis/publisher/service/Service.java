@@ -136,8 +136,15 @@ public class Service extends UntypedActor {
 				dataStore = result.second();
 			}
 			
-			if(!rest.addFeatureType(workspace, dataStore, new FeatureType(job.getTableName()))) {
-				throw new IllegalStateException("couldn't create feature type");
+			String tableName = job.getTableName();
+			if(hasTable(workspace, dataStore, tableName)) {
+				log.debug("feature type for table already exists");
+			} else {
+				log.debug("creating new feature type");
+				
+				if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
+					throw new IllegalStateException("couldn't create feature type");
+				}
 			}
 			
 			log.debug("service job succeeded: " + job);
@@ -149,5 +156,16 @@ public class Service extends UntypedActor {
 		}
 		
 		log.debug("service job finalized: " + job);
+	}
+
+	private boolean hasTable(Workspace workspace, DataStore dataStore, String tableName) throws Exception {
+					
+		for(FeatureType featureType : rest.getFeatureTypes(workspace, dataStore)) {
+			if(featureType.getNativeName().equals(tableName)) {
+				return true;
+			}
+		}
+
+		return false;
 	}	
 }
