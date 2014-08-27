@@ -220,15 +220,18 @@
 					<ul class="list-group">
 						@for(error <- errors.values) {
 							<li class="list-group-item">
+								@helper.issue(error)
+							@*
 							<div>
 								<p>
 									<strong>@Domain.message(error.message)</strong>									
 								</p>
 							</div>
+							*@
 							</li>
 						}
 					</ul>
-					<a href="#">
+					<a href="@routes.Logging.messages()">
 						<div class="panel-footer">
 							<div class="row">
 								<div class="col-xs-10">

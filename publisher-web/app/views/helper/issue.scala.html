@@ -1,0 +1,54 @@
+@(issue: nl.idgis.publisher.domain.web.Issue)
+
+@import nl.idgis.publisher.domain.job.LogLevel
+
+@title(issue: nl.idgis.publisher.domain.web.Issue) = @{
+	if(issue.message.properties.getTitle() != null) {
+		issue.message.properties.getTitle()
+	} else {
+		if(issue.message.properties.getIdentification() != null) {
+			issue.message.properties.getIdentification()
+		} else {
+			""
+		}
+	}
+}
+
+@logLevelIcon(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "glyphicon glyphicon-wrench"
+	case LogLevel.INFO => "glyphicon glyphicon-bullhorn"
+	case LogLevel.ERROR => "glyphicon glyphicon-remove-sign"
+	case LogLevel.WARNING => "glyphicon glyphicon-warning-sign"
+	}
+}
+
+@logLevelClass(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "text-info"
+	case LogLevel.INFO => "text-info"
+	case LogLevel.ERROR => "text-danger"
+	case LogLevel.WARNING => "text-warning"
+	}
+}
+
+@logLevelTitle(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "Technische informatie"
+	case LogLevel.INFO => "Informatie"
+	case LogLevel.ERROR => "Fout"
+	case LogLevel.WARNING => "Waarschuwing"
+	}
+}
+
+<div class="publisher-issue-short">
+	<div class="details">
+		<span class="@logLevelClass(issue.logLevel)"><abbr class="abbr-icon" title="@logLevelTitle(issue.logLevel)"><span class="@logLevelIcon(issue.logLevel)"></span></abbr> <abbr title="@title(issue)">@title(issue)</abbr></span>
+	</div>
+	<div>
+		<small>@Domain.message(issue.message)</small>
+	</div>
+	<div>
+		<small class="text-muted">@issue.when.toString("dd-MM-yyyy HH:mm:ss")</small> @if(issue.message.properties.getEntityType() != null){ - @helper.entityTypeName(issue.message.properties.getEntityType())}
+	</div>
+</div>

@@ -48,32 +48,6 @@
 	}
 }
 
-@entityTypeName(entityType: EntityType) = @{
-	entityType match {
-	case EntityType.SOURCE_DATASET => "Brondataset"
-	case EntityType.DATASET => "Dataset"
-	case EntityType.NOTIFICATION => "Notificatie"
-	case EntityType.CATEGORY => "Categorie"
-	case EntityType.JOB => "Taak"
-	case EntityType.LOG_ITEM => "Melding"
-	case EntityType.DATA_SOURCE => "Gegevensbron"
-	case _ => entityType.name
-	}
-}
-
-@entityReference(ref: MessageProperties) = {
-	@if(ref.getEntityType() != null) {
-		<small>@entityTypeName(ref.getEntityType()):</small>
-	}
-	@if(ref.getTitle() != null) {
-		@ref.getTitle()
-	} else {
-		@if(ref.getIdentification() != null) {
-			@ref.getIdentification()
-		}
-	}
-}
-
 @layout.application(
 	title = "Logboek - Foutmeldingen",
 	jsMain = routes.Assets.at("js/logging/main.js").url
@@ -142,7 +116,7 @@
 										</div>
 										<div class="col-lg-8 text-muted">
 											@if(issue.message.properties != null) {
-												@entityReference(issue.message.properties)
+												@helper.entityReference(issue.message.properties)
 											}
 										</div>
 									</div>
