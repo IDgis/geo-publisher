@@ -1223,14 +1223,17 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else { // existing dataset
 			Tuple existing = 
 					context.query().from(sourceDataset)
+						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
 						.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-					.singleResult(
-						sourceDataset.id,
-						sourceDatasetVersion.name,
-						category.identification,
-						sourceDatasetVersion.revision,
-						sourceDataset.deleteTime);
+						.where(dataSource.identification.eq(rsd.getDataSource())
+							.and(sourceDataset.identification.eq(dataset.getId())))
+						.singleResult(
+							sourceDataset.id,
+							sourceDatasetVersion.name,
+							category.identification,
+							sourceDatasetVersion.revision,
+							sourceDataset.deleteTime);
 			
 			sourceDatasetId = existing.get(sourceDataset.id);
 			
