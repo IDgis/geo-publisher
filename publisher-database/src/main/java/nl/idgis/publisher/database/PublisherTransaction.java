@@ -364,12 +364,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		Map<String, DatasetInfo> importedSourceDatasets = readDatasetInfo(
 			context.query().from(dataset)
 				.join(importJob).on(importJob.datasetId.eq(dataset.id))
+				.join(job).on(job.id.eq(importJob.jobId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
 				.orderBy(
 					dataset.id.asc(),
-					sourceDatasetVersionColumn.index.asc()));
+					sourceDatasetVersionColumn.index.asc())
+				.where(new SQLSubQuery().from(importJobSub)
+						.join(jobSub).on(jobSub.id.eq(importJobSub.jobId))
+						.where(importJobSub.datasetId.eq(importJob.datasetId)
+							.and(jobSub.createTime.gt(job.createTime)))						
+						.notExists()));
 		
 		List<DatasetStatus> datasetStatus = new ArrayList<>();
 		

@@ -4,6 +4,10 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +19,10 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
@@ -93,5 +101,20 @@ public abstract class AbstractDatabaseTest {
 	public void shutdown() throws Exception {
 		connection.close();		
 		system.shutdown();
+	}
+	
+	protected Dataset createTestDataset() {
+		return createTestDataset("testSourceDataset");
+	}
+
+	protected Dataset createTestDataset(String id) {
+		List<Column> columns = Arrays.asList(
+				new Column("col0", Type.TEXT),
+				new Column("col1", Type.NUMERIC));
+		Table table = new Table("My Test Table", columns);
+		
+		Timestamp revision = new Timestamp(new Date().getTime());
+		
+		return new Dataset(id, "testCategory", table, revision);		
 	}
 }
