@@ -15,6 +15,8 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QNotification.notification;
+import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -31,6 +33,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import nl.idgis.publisher.database.messages.AddNotification;
+import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
@@ -71,6 +75,7 @@ import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
@@ -87,6 +92,10 @@ import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.NotificationResult;
+import nl.idgis.publisher.domain.job.NotificationType;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -238,9 +247,67 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetDatasetStatus(context);
 		} else if(query instanceof TerminateJobs) {
 			executeTerminateJobs(context);
+		} else if(query instanceof AddNotification) {
+			executeAddNotification(context, (AddNotification)query);
+		} else if(query instanceof AddNotificationResult) {
+			executeAddNotificationResult(context, (AddNotificationResult)query);
+		} else if(query instanceof RemoveNotification) {
+			executeRemoveNotification(context, (RemoveNotification)query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeRemoveNotification(QueryDSLContext context, RemoveNotification query) {	
+		JobInfo job = query.getJob();
+		NotificationType type = query.getNotificationType();
+		
+		context.delete(notificationResult)
+			.where(new SQLSubQuery().from(notification)
+				.where(notification.id.eq(notificationResult.notificationId)
+					.and(notification.type.eq(type.name())
+					.and(notification.jobId.eq(job.getId()))))
+				.exists())
+			.execute();
+		
+		context.delete(notification)
+			.where(notification.type.eq(type.name())
+				.and(notification.jobId.eq(job.getId())))
+			.execute();
+		
+		context.ack();
+	}
+
+	private void executeAddNotificationResult(QueryDSLContext context, AddNotificationResult query) {
+		JobInfo job = query.getJob();
+		NotificationType type = query.getNotificationType();
+		NotificationResult result = query.getNotificationResult();
+		
+		context.insert(notificationResult)
+			.columns(
+				notificationResult.notificationId,
+				notificationResult.result)
+			.select(new SQLSubQuery().from(notification)
+				.where(notification.jobId.eq(job.getId())
+					.and(notification.type.eq(type.name())))				
+				.list(
+					notification.id,
+					result.name()))
+			.execute();
+		
+		context.ack();
+	}
+
+	private void executeAddNotification(QueryDSLContext context, AddNotification query) {
+		JobInfo job = query.getJob();
+		NotificationType notificationType = query.getNotificationType();
+		
+		context.insert(notification)
+			.set(notification.jobId, job.getId())
+			.set(notification.type, notificationType.name())
+			.execute();
+		
+		context.ack();
 	}
 
 	private void executeTerminateJobs(QueryDSLContext context) {
@@ -941,7 +1008,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.orderBy(job.createTime.asc())
+			.orderBy(job.id.asc(), job.createTime.asc())
 			.where(new SQLSubQuery().from(jobState)
 					.where(jobState.jobId.eq(job.id))
 					.notExists());
@@ -956,18 +1023,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					dataset.id,
 					dataset.identification);
 		
-		List<Tuple> columnList =
-			query
+		List<Tuple> columnList = 
+			query.clone()
 				.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id))							
 				.orderBy(importJobColumn.index.asc())
 				.list(job.id, importJobColumn.name, importJobColumn.dataType);
 		
+		List<Tuple> notificationList =
+				query.clone()
+					.join(notification).on(notification.jobId.eq(job.id))
+					.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
+					.list(job.id, notification.type, notificationResult.result);
+		
 		ListIterator<Tuple> columnIterator = columnList.listIterator();
+		ListIterator<Tuple> notificationIterator = notificationList.listIterator();
 		ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 		for(Tuple t : baseList) {
 			int jobId = t.get(job.id);
 			
-			ArrayList<Column> columns = new ArrayList<>();
+			List<Column> columns = new ArrayList<>();
 			for(; columnIterator.hasNext();) {
 				Tuple tc = columnIterator.next();
 				
@@ -977,7 +1051,32 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					break;
 				}
 				
-				columns.add(new Column(tc.get(importJobColumn.name), tc.get(importJobColumn.dataType)));
+				columns.add(new Column(
+						tc.get(importJobColumn.name), 
+						tc.get(importJobColumn.dataType)));
+			}
+			
+			List<Notification> notifications = new ArrayList<>();
+			for(; notificationIterator.hasNext();) {
+				Tuple tn = notificationIterator.next();
+				
+				int notificationJobId = tn.get(job.id);				
+				if(notificationJobId != jobId) {
+					notificationIterator.previous();
+					break;
+				}
+				
+				ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
+				
+				NotificationResult result;
+				String resultName = tn.get(notificationResult.result);
+				if(resultName == null) {
+					result = null;
+				} else {
+					result = notificationType.getResult(resultName);
+				}
+				
+				notifications.add(new Notification(notificationType, result));
 			}
 			
 			jobs.add(new ImportJobInfo(
@@ -987,7 +1086,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					t.get(sourceDataset.identification),
 					t.get(dataset.identification),
 					t.get(importJob.filterConditions),
-					columns));
+					columns,
+					notifications));
 		}
 		
 		context.answer(jobs);

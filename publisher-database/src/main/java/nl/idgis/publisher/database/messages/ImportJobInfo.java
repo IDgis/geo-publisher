@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import nl.idgis.publisher.domain.job.JobType;
+import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.service.Column;
 
 public class ImportJobInfo extends JobInfo {
@@ -15,8 +16,8 @@ public class ImportJobInfo extends JobInfo {
 		datasetId, filterCondition;
 	private final List<Column> columns; 
 	
-	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String filterCondition, List<Column> columns) {
-		super(id, JobType.HARVEST);
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String filterCondition, List<Column> columns, List<Notification> notifications) {
+		super(id, JobType.HARVEST, notifications);
 		
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
