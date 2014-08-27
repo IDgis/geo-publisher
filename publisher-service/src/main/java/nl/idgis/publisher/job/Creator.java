@@ -29,7 +29,7 @@ public class Creator extends Scheduled {
 	
 	private final ActorRef database;
 	
-	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
+	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);	
 	
 	public Creator(ActorRef database) {
 		this.database = database;
@@ -59,45 +59,66 @@ public class Creator extends Scheduled {
 			Timestamp sourceRevision = datasetStatus.getSourceRevision();
 			Timestamp importedRevision = datasetStatus.getImportedSourceRevision();
 			
+			boolean needsImport = false;
+			
 			if(importedRevision == null) {
-				log.debug("not yet imported");
-			} else {
+				needsImport = true;				
+				
+				log.debug("not yet imported -> needs import");
+			}  else {
+			
 				List<Column> importedSourceColumns = datasetStatus.getImportedSourceColumns();
 				List<Column> sourceColumns = datasetStatus.getSourceColumns();
 				
-				if(sourceRevision.getTime() != importedRevision.getTime()) {
-					log.debug("revision changed");
-										
-					if(sourceColumns.equals(importedSourceColumns)) {
-						log.debug("sourceColumns unchanged");
-					} else {
-						// TODO: check for confirmation
-						
-						log.debug("sourceColumns changed -> needs confirmation");
-						continue;
-					}
+				if(sourceRevision.getTime() == importedRevision.getTime()) {
+					log.debug("revision unchanged");				
 				} else {
-					List<Column> columns = datasetStatus.getColumns();
-					List<Column> importedColumns = datasetStatus.getImportedColumns();
+					needsImport = true;				
 					
-					String sourceDatasetId = datasetStatus.getSourceDatasetId();
-					String importedSourceDatasetId = datasetStatus.getImportedSourceDatasetId();
-					
-					// TODO: also check for filter changes
-					
-					if(!columns.equals(importedColumns)) {
-						log.debug("columns changed");
-					} else if(!sourceDatasetId.equals(importedSourceDatasetId)) {
-						log.debug("source dataset changed");
-					} else {
-						log.debug("no imported need for: " + datasetId);
-						continue;
-					}
+					log.debug("revision changed -> needs import");
 				}
+											
+				if(sourceColumns.equals(importedSourceColumns)) {
+					log.debug("sourceColumns unchanged");
+				} else {
+					// TODO: check for confirmation
+					
+					log.debug("sourceColumns changed -> needs confirmation");
+					continue;
+				}
+				
+				List<Column> columns = datasetStatus.getColumns();
+				List<Column> importedColumns = datasetStatus.getImportedColumns();
+				
+				String sourceDatasetId = datasetStatus.getSourceDatasetId();
+				String importedSourceDatasetId = datasetStatus.getImportedSourceDatasetId();
+				
+				// TODO: also check for filter changes
+				
+				if(columns.equals(importedColumns)) {
+					log.debug("columns unchanged");
+				} else {
+					needsImport = true;
+					
+					log.debug("columns changed -> needs import");				
+				} 
+				
+				if(sourceDatasetId.equals(importedSourceDatasetId)) {
+					log.debug("source dataset unchanged");
+				} else {
+					needsImport = true;
+					
+					log.debug("source dataset changed -> needs import");
+				} 
 			}
 			
-			log.debug("creating import job for: " + datasetId);
-			database.tell(new CreateImportJob(datasetId), getSelf());
+			if(needsImport) {
+				log.debug("creating import job for: " + datasetId);
+				
+				database.tell(new CreateImportJob(datasetId), getSelf());	
+			} else {
+				log.debug("no imported need for: " + datasetId);				
+			}
 		}
 	}
 	
