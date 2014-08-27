@@ -25,3 +25,13 @@ pipelineStages := Seq(rjs)
 resolvers += "idgis-public" at "http://nexus.idgis.eu/content/groups/public/"
 
 resolvers += "idgis-thirdparty" at "http://nexus.idgis.eu/content/repositories/thirdparty/"
+
+buildInfoSettings
+
+sourceGenerators in Compile <+= buildInfo
+
+buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
+
+buildInfoPackage := "planoview"
+
+buildInfoPackage := "publisher"
