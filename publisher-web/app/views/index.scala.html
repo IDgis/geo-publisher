@@ -194,24 +194,24 @@
 			
 			<!-- ERRORS  -->
 			<div class="col-lg-3">
-				<div class="panel panel-warning">
+				<div class="panel @if(errors.values.isEmpty){panel-success}else{panel-danger}">
 					<div class="panel-heading">
 						<div class="row">
-							<div class="col-xs-6">
+							<div class="col-xs-4">
 								<p class="announcement-heading">
 									<span class="glyphicon glyphicon-warning-sign"></span>
 								</p>
 							</div>
-							<div class="col-xs-6 text-right">
+							<div class="col-xs-8 text-right">
 								<p class="announcement-heading">
 									@if(errors.values.isEmpty) {
 										geen
 									} else {
-										@errors.values.size
+										@if(errors.hasMorePages){&gt; }@errors.values.size
 									}
 								</p>
 								<p class="announcement-text">
-									Foutmelding@if(errors.values.size != 1){en}
+									Nieuwe foutmelding@if(errors.values.size != 1){en}
 								</p>
 								
 							</div>
@@ -220,15 +220,18 @@
 					<ul class="list-group">
 						@for(error <- errors.values) {
 							<li class="list-group-item">
+								@helper.issue(error)
+							@*
 							<div>
 								<p>
 									<strong>@Domain.message(error.message)</strong>									
 								</p>
 							</div>
+							*@
 							</li>
 						}
 					</ul>
-					<a href="#">
+					<a href="@routes.Logging.messages()">
 						<div class="panel-footer">
 							<div class="row">
 								<div class="col-xs-10">

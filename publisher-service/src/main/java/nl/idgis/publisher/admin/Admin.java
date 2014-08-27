@@ -29,7 +29,6 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -55,7 +54,6 @@ import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Filter;
-import nl.idgis.publisher.domain.web.GenericMessageProperties;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
@@ -684,7 +682,7 @@ public class Admin extends UntypedActor {
 							"" + job.getId(),
 							new Message(
 								type,
-								createGenericMessageProperties (jobLog.getContent ())
+								jobLog.getContent ()
 							),
 							jobLog.getLevel(),
 							job.getJobType(),
@@ -708,9 +706,5 @@ public class Admin extends UntypedActor {
 				sender.tell(dashboardIssues.build(), self);
 			}
 		}, getContext().dispatcher());
-	}
-	
-	private GenericMessageProperties createGenericMessageProperties (final MessageProperties props) throws JsonProcessingException, IllegalArgumentException {
-		return objectMapper.treeToValue (objectMapper.valueToTree (props), GenericMessageProperties.class);
 	}
 }

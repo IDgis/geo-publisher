@@ -1,0 +1,12 @@
+@(entityType: nl.idgis.publisher.domain.web.EntityType)@{
+	entityType match {
+	case nl.idgis.publisher.domain.web.EntityType.SOURCE_DATASET => "Brondataset"
+	case nl.idgis.publisher.domain.web.EntityType.DATASET => "Dataset"
+	case nl.idgis.publisher.domain.web.EntityType.NOTIFICATION => "Notificatie"
+	case nl.idgis.publisher.domain.web.EntityType.CATEGORY => "Categorie"
+	case nl.idgis.publisher.domain.web.EntityType.JOB => "Taak"
+	case nl.idgis.publisher.domain.web.EntityType.LOG_ITEM => "Melding"
+	case nl.idgis.publisher.domain.web.EntityType.DATA_SOURCE => "Gegevensbron"
+	case _ => entityType.name
+	}
+}

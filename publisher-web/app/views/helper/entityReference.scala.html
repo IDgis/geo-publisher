@@ -1,0 +1,12 @@
+@(ref: nl.idgis.publisher.domain.MessageProperties)
+
+@if(ref.getEntityType() != null) {
+	<small>@helper.entityTypeName(ref.getEntityType()):</small>
+}
+@if(ref.getTitle() != null) {
+	@ref.getTitle()
+} else {
+	@if(ref.getIdentification() != null) {
+		@ref.getIdentification()
+	}
+}

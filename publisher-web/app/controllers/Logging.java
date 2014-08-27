@@ -8,6 +8,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+
 import models.Domain.Function;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.ListIssues;
@@ -19,7 +22,6 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import akka.actor.ActorSelection;
-
 import views.html.logging.messages;
 import views.html.logging.tasks;
 
@@ -54,6 +56,12 @@ public class Logging extends Controller {
 			.execute (new Function<Page<Issue>, Result> () {
 				@Override
 				public Result apply (final Page<Issue> issues) throws Throwable {
+					// Store the last access time of this page:
+					response ().setCookie (
+							"messagesDisplayTime",
+							"" + new LocalDateTime ().toDateTime (DateTimeZone.UTC).getMillis ()
+						);
+					
 					return ok (messages.render (issues, logLevels));
 				}
 			});

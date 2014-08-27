@@ -1,5 +1,6 @@
 package nl.idgis.publisher.domain.web;
 
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -11,10 +12,10 @@ public final class Message extends Entity {
 	private static final long serialVersionUID = -1485836626413687756L;
 
 	private final MessageType<?> type;
-	private final GenericMessageProperties properties;
+	private MessageProperties properties;
 	
 	@JsonCreator
-	public Message (final @JsonProperty("type") MessageType<?> type, final @JsonProperty("properties") GenericMessageProperties properties) {
+	public Message (final @JsonProperty("type") MessageType<?> type, final @JsonProperty("properties") MessageProperties properties) {
 		this.type = type;
 		this.properties = properties;
 	}
@@ -25,7 +26,7 @@ public final class Message extends Entity {
 	}
 	
 	@JsonGetter
-	public GenericMessageProperties properties () {
+	public MessageProperties properties () {
 		return properties;
 	}
 }

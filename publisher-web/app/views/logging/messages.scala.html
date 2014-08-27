@@ -1,6 +1,7 @@
 @(issues: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue], logLevels: Set[nl.idgis.publisher.domain.job.LogLevel])
 
 @import nl.idgis.publisher.domain.job.LogLevel
+@import nl.idgis.publisher.domain.MessageProperties
 @import nl.idgis.publisher.domain.web._
 
 
@@ -44,32 +45,6 @@
 	case LogLevel.INFO => "Informatie"
 	case LogLevel.ERROR => "Fout"
 	case LogLevel.WARNING => "Waarschuwing"
-	}
-}
-
-@entityTypeName(entityType: EntityType) = @{
-	entityType match {
-	case EntityType.SOURCE_DATASET => "Brondataset"
-	case EntityType.DATASET => "Dataset"
-	case EntityType.NOTIFICATION => "Notificatie"
-	case EntityType.CATEGORY => "Categorie"
-	case EntityType.JOB => "Taak"
-	case EntityType.LOG_ITEM => "Melding"
-	case EntityType.DATA_SOURCE => "Gegevensbron"
-	case _ => entityType.name
-	}
-}
-
-@entityReference(ref: GenericMessageProperties) = {
-	@if(ref.entityType != null) {
-		<small>@entityTypeName(ref.entityType):</small>
-	}
-	@if(ref.title != null) {
-		@ref.title
-	} else {
-		@if(ref.identification != null) {
-			@ref.identification
-		}
 	}
 }
 
@@ -141,7 +116,7 @@
 										</div>
 										<div class="col-lg-8 text-muted">
 											@if(issue.message.properties != null) {
-												@entityReference(issue.message.properties)
+												@helper.entityReference(issue.message.properties)
 											}
 										</div>
 									</div>
