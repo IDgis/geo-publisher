@@ -1,19 +1,57 @@
 @(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
-<ul class="list-group">
-	@for(task <- tasks.values) {
-		<li class="list-group-item task">
-			<div>
-				<strong>@task.title</strong>
+
+<div class="panel @if(tasks.values.size>0){panel-info}else{panel-success}">
+	<div class="panel-heading">
+		<div class="row">
+			<div class="col-xs-6">
+				<p class="announcement-heading">
+					<span class="glyphicon glyphicon-tasks"></span>
+				</p>
 			</div>
-			@if(task.progress != null) {
-				<div class="progress progress-striped active" >
-					<div class="progress-bar progress-bar-success" role="progressbar" 
-					  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-					  @task.progress%
-					</div>
+			<div class="col-xs-6 text-right">
+				<p class="announcement-heading">
+					@if(tasks.values.isEmpty) {
+						geen
+					} else {
+						@tasks.values.size
+					}
+				</p>
+				<p class="announcement-text">
+					Actieve @if(tasks.values.size != 1){taken}else{taak}
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<ul class="list-group">
+		@for(task <- tasks.values) {
+			<li class="list-group-item task">
+				<div>
+					<strong>@task.title</strong>
 				</div>
-			}
-			<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
-		</li>
-	}
-</ul>
+				@if(task.progress != null) {
+					<div class="progress progress-striped active" >
+						<div class="progress-bar progress-bar-success" role="progressbar" 
+						  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+						  @task.progress%
+						</div>
+					</div>
+				}
+				<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+			</li>
+		}
+	</ul>
+	
+	<a href="@routes.Logging.messages()">
+		<div class="panel-footer">
+			<div class="row">
+				<div class="col-xs-10">
+					Bekijk logboek
+				</div>
+				<div class="col-xs-2 text-right">
+					<span class="glyphicon glyphicon-circle-arrow-right"></span>
+				</div>
+			</div>
+		</div>
+	</a>
+</div>	

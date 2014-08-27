@@ -135,43 +135,8 @@
 			</div>
 			
 			<!-- ACTIVE TASKS -->
-			<div class="col-lg-3">
-				<div class="panel panel-success">
-					<div class="panel-heading">
-						<div class="row">
-							<div class="col-xs-6">
-								<p class="announcement-heading">
-									<span class="glyphicon glyphicon-tasks"></span>
-								</p>
-							</div>
-							<div class="col-xs-6 text-right">
-								<p class="announcement-heading">
-									@if(tasks.values.isEmpty) {
-										geen
-									} else {
-										@tasks.values.size
-									}
-								</p>
-								<p class="announcement-text">
-									Actieve @if(tasks.values.size != 1){taken}else{taak}
-								</p>
-							</div>
-						</div>
-					</div>
-					@helper.activeTasks(tasks)
-					<a href="#">
-						<div class="panel-footer">
-							<div class="row">
-								<div class="col-xs-10">
-									Bekijk logboek
-								</div>
-								<div class="col-xs-2 text-right">
-									<span class="glyphicon glyphicon-circle-arrow-right"></span>
-								</div>
-							</div>
-						</div>
-					</a>
-				</div>
+			<div class="col-lg-3" id="dashboard-panel-active-tasks">
+				@helper.activeTasks(tasks)
 			</div>
 			
 			<!-- ERRORS  -->
