@@ -158,25 +158,7 @@
 							</div>
 						</div>
 					</div>
-					<ul class="list-group">
-						@for(task <- tasks.values) {
-							<li class="list-group-item task">
-								<div>
-									<strong>@task.title</strong>
-								</div>
-								@if(task.progress != null) {
-									<div class="progress progress-striped active" >
-										<div class="progress-bar progress-bar-success" role="progressbar" 
-										  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-										  @task.progress%
-										</div>
-									</div>
-								}
-								<div class="text-muted">@Domain.message(task.message, MessageContext.ACTIVE)</div>
-							</li>
-						}
-						
-					</ul>
+					@helper.activeTasks(tasks)
 					<a href="#">
 						<div class="panel-footer">
 							<div class="row">
