@@ -1,7 +1,6 @@
 package nl.idgis.publisher.admin;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +29,7 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -38,6 +38,7 @@ import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
+import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
@@ -54,6 +55,7 @@ import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.GenericMessageProperties;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
@@ -85,6 +87,7 @@ import akka.pattern.Patterns;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
+import com.mysema.query.types.Order;
 
 public class Admin extends UntypedActor {
 	
@@ -166,6 +169,8 @@ public class Admin extends UntypedActor {
 			handleListDatasetColumns ((ListDatasetColumns) message);
 		} else if (message instanceof RefreshDataset) {
 			handleRefreshDataset(((RefreshDataset) message).getDatasetId());
+		} else if (message instanceof ListIssues) {
+			handleListIssues ((ListIssues)message);
 		} else {
 			unhandled (message);
 		}
@@ -328,36 +333,7 @@ public class Admin extends UntypedActor {
 	private void handleListDashboardIssues(Object object) {
 		log.debug ("handleListDashboardIssues");
 		
-		final ActorRef sender = getSender();
-		Patterns.ask(database, new GetJobLog(LogLevel.WARNING), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-				
-				@Override
-				@SuppressWarnings("unchecked")
-				public void onSuccess(Object msg) throws Throwable {
-					final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
-					
-					List<StoredJobLog> jobLogs = (List<StoredJobLog>)msg;
-					for(StoredJobLog jobLog : jobLogs) {
-						JobInfo job = jobLog.getJob();
-						
-						MessageType type = jobLog.getType();
-						
-						dashboardIssues.add(
-							new Issue(
-									"" + job.getId(),
-									new Message(
-											type,
-											Arrays.asList(jobLog.getContent())),
-									jobLog.getLevel(),
-									job.getJobType()));
-							
-					}
-					
-					sender.tell(dashboardIssues.build(), getSelf());
-				}
-				
-			}, getContext().dispatcher());
+		handleListIssues (new ListIssues (LogLevel.WARNING.andUp ()));
 	}
 
 	private void handleListDashboardActiveTasks(Object object) {
@@ -679,4 +655,62 @@ public class Admin extends UntypedActor {
 		
 	}
 
+	private void handleListIssues (final ListIssues listIssues) {
+		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
+		
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+
+		final long page = listIssues.getPage () != null ? Math.max (1, listIssues.getPage ()) : 1;
+		final long limit = listIssues.getLimit () != null ? Math.max (1, listIssues.getLimit ()) : ITEMS_PER_PAGE;
+		final long offset = Math.max (0, (page - 1) * limit);
+		
+		final Future<Object> issues = Patterns.ask (database, new GetJobLog (Order.DESC, offset, limit, listIssues.getLogLevels (), listIssues.getSince ()), 15000);
+		
+		issues.onSuccess (new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
+				
+				@SuppressWarnings("unchecked")
+				InfoList<StoredJobLog> jobLogs = (InfoList<StoredJobLog>)msg;
+				for(StoredJobLog jobLog : jobLogs.getList ()) {
+					JobInfo job = jobLog.getJob();
+					
+					MessageType<?> type = jobLog.getType();
+					
+					dashboardIssues.add(
+						new Issue(
+							"" + job.getId(),
+							new Message(
+								type,
+								createGenericMessageProperties (jobLog.getContent ())
+							),
+							jobLog.getLevel(),
+							job.getJobType(),
+							jobLog.getWhen ()
+						)
+					);
+					
+				}
+
+				// Paging:
+				long count = jobLogs.getCount();
+				long pages = count / limit + Math.min(1, count % limit);
+				
+				if(pages > 1) {
+					dashboardIssues
+						.setHasMorePages(true)
+						.setPageCount(pages)
+						.setCurrentPage(page);
+				}
+				
+				sender.tell(dashboardIssues.build(), self);
+			}
+		}, getContext().dispatcher());
+	}
+	
+	private GenericMessageProperties createGenericMessageProperties (final MessageProperties props) throws JsonProcessingException, IllegalArgumentException {
+		return objectMapper.treeToValue (objectMapper.valueToTree (props), GenericMessageProperties.class);
+	}
 }

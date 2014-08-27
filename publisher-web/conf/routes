@@ -28,6 +28,11 @@ GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(da
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)
 
+# Logging
+GET		/logging/messages								controllers.Logging.messages()
+GET		/logging/messages/:logLevels/:page				controllers.Logging.messagesWithFilter(logLevels: String, page: Long)
+GET		/logging/tasks									controllers.Logging.tasks()
+
 # User
 GET		/user/login										controllers.User.login(r: String)
 GET		/user/logout									controllers.User.logout()

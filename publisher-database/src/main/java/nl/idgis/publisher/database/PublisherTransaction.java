@@ -10,11 +10,11 @@ import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QVersion.version;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -31,8 +31,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.omg.CORBA.OMGVMCID;
-
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
@@ -44,12 +42,12 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
@@ -64,9 +62,9 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
-import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
@@ -82,6 +80,7 @@ import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.MessageTypeUtils;
 import nl.idgis.publisher.domain.job.JobLog;
@@ -95,6 +94,9 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -104,7 +106,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
@@ -526,20 +527,33 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 
 	private void executeGetJobLog(QueryDSLContext context, GetJobLog query) throws Exception {
+		final SQLQuery baseQuery = context.query().from(jobLog)
+				.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
+				.join(job).on(job.id.eq(jobState.jobId));
+		
+		if (query.getLogLevels () != null && !query.getLogLevels ().isEmpty ()) {
+			final List<String> logLevelStrings = new ArrayList<> (query.getLogLevels ().size ());
+			for (final LogLevel ll: query.getLogLevels ()) {
+				logLevelStrings.add (ll.name ());
+			}
+			
+			baseQuery.where (jobLog.level.in (logLevelStrings));
+		}
+		
+		if (query.getSince () != null) {
+			baseQuery.where (jobLog.createTime.goe (new Timestamp (query.getSince ().toDateTime (DateTimeZone.UTC).getMillis ())));
+		}
 		
 		List<StoredJobLog> jobLogs = new ArrayList<>();
 		for(Tuple t : 
-			applyListParams(
-				context.query().from(jobLog)
-					.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
-					.join(job).on(job.id.eq(jobState.jobId)),
-				query, jobLog.createTime)
+			applyListParams(baseQuery.clone (), query, jobLog.createTime)
 				.list(
 					job.id, 
 					job.type,
 					jobLog.level, 
 					jobLog.type, 
-					jobLog.content)) {
+					jobLog.content,
+					jobLog.createTime)) {
 			
 			JobType jobType = JobType.valueOf(t.get(job.type));
 			
@@ -548,22 +562,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 			LogLevel logLevel = LogLevel.valueOf(t.get(jobLog.level));
 			
-			Class<? extends MessageType> logTypeClass = jobType.getContentClass();
-			MessageType logType = MessageTypeUtils.valueOf(logTypeClass, t.get(jobLog.type));
+			Class<? extends MessageType<?>> logTypeClass = jobType.getLogMessageEnum ();
+			MessageType<?> logType = MessageTypeUtils.valueOf(logTypeClass, t.get(jobLog.type));
 			
 			String content = t.get(jobLog.content);
 			
-			Object contentObject;
+			MessageProperties contentObject;
 			if(content == null) {
 				contentObject = null;
 			} else {
 				contentObject = fromJson(logType.getContentClass(), content); 
 			}			
 			
-			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, contentObject));
+			final Timestamp ts = t.get (jobLog.createTime);
+			final LocalDateTime when = new LocalDateTime (ts.getTime ());
+			
+			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, when, contentObject));
 		}
 		
-		context.answer(jobLogs);
+		context.answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
 	}
 	
 	private <T, U> Map<T, List<U>> treeFold(SQLQuery query, Expression<T> id, Expression<U> value) {

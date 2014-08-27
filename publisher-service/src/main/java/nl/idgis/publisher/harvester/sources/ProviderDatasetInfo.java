@@ -6,7 +6,6 @@ import java.util.List;
 
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction3;
-
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
@@ -18,6 +17,7 @@ import nl.idgis.publisher.domain.job.harvest.MetadataLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.metadata.messages.GetAlternateTitle;
 import nl.idgis.publisher.metadata.messages.GetRevisionDate;
@@ -38,7 +38,6 @@ import nl.idgis.publisher.utils.WrongResultException;
 import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.NotFound;
 import nl.idgis.publisher.xml.messages.NotParseable;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -77,8 +76,16 @@ public class ProviderDatasetInfo extends UntypedActor {
 					
 					NotParseable notParsable = (NotParseable)msg;
 					
-					MetadataLog content = new MetadataLog(identification, null, null, null, null, notParsable.getReason());											
-					JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+					MetadataLog content = new MetadataLog (
+							EntityType.SOURCE_DATASET,
+							identification, 
+							null, 
+							null, 
+							null, 
+							null, 
+							notParsable.getReason()
+						);											
+					JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 					
 					Patterns.ask(harvesterSession, jobLog, 15000)
 						.onSuccess(new OnSuccess<Object>() {
@@ -160,8 +167,8 @@ public class ProviderDatasetInfo extends UntypedActor {
 										}
 										
 										if(error != null) {
-											MetadataLog content = new MetadataLog(identification, null, null, field, error, value);											
-											JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+											MetadataLog content = new MetadataLog(EntityType.SOURCE_DATASET, identification, null, null, field, error, value);											
+											JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 											
 											Patterns.ask(harvesterSession, jobLog, 15000)
 												.onSuccess(new OnSuccess<Object>() {
@@ -199,10 +206,10 @@ public class ProviderDatasetInfo extends UntypedActor {
 		if(tableName == null) {
 			log.warning("couldn't determine table name: " + alternateTitle);
 			
-			JobLog jobLog = new JobLog(
+			JobLog jobLog = JobLog.create (
 					LogLevel.ERROR, 
 					HarvestLogType.UNKNOWN_TABLE, 
-					new HarvestLog(identification, title, alternateTitle));
+					new HarvestLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle));
 			
 			Patterns.ask(harvesterSession, jobLog, 15000)
 				.onSuccess(new OnSuccess<Object>() {
@@ -232,8 +239,8 @@ public class ProviderDatasetInfo extends UntypedActor {
 							if(msg instanceof TableNotFound) {
 								log.error("table doesn't exist: " + tableName);
 								
-								JobLog jobLog = new JobLog(LogLevel.ERROR, HarvestLogType.TABLE_NOT_FOUND,
-									new DatabaseLog(identification, title, alternateTitle, tableName));
+								JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.TABLE_NOT_FOUND,
+									new DatabaseLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle, tableName));
 								
 								Patterns.ask(harvesterSession, jobLog, 15000)
 									.onSuccess(new OnSuccess<Object>() {

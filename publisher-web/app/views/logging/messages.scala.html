@@ -1,0 +1,159 @@
+@(issues: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue], logLevels: Set[nl.idgis.publisher.domain.job.LogLevel])
+
+@import nl.idgis.publisher.domain.job.LogLevel
+@import nl.idgis.publisher.domain.web._
+
+
+@logLevelLink(logLevel: LogLevel) = {
+	@if(logLevels.contains(logLevel)) {
+		@if(logLevels.size == 1) {
+			<a class="disabled" href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevels(logLevels), issues.currentPage)"><span class="glyphicon glyphicon-check"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
+		} else {
+			<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWithout(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-check"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
+		}
+	} else {
+		<a href="@routes.Logging.messagesWithFilter(controllers.Logging.logLevelsWith(logLevels, logLevel), 1)"><span class="glyphicon glyphicon-unchecked"></span> @logLevelTitle(logLevel) <span class="pull-right @logLevelClass(logLevel)"><span class="@logLevelIcon(logLevel)"></span></span></a>
+	}
+}
+
+@pageRef(targetPage: Long) = @{
+	routes.Logging.messagesWithFilter (controllers.Logging.logLevels(logLevels), targetPage)	  
+}
+
+@logLevelIcon(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "glyphicon glyphicon-wrench"
+	case LogLevel.INFO => "glyphicon glyphicon-bullhorn"
+	case LogLevel.ERROR => "glyphicon glyphicon-remove-sign"
+	case LogLevel.WARNING => "glyphicon glyphicon-warning-sign"
+	}
+}
+
+@logLevelClass(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "text-info"
+	case LogLevel.INFO => "text-info"
+	case LogLevel.ERROR => "text-danger"
+	case LogLevel.WARNING => "text-warning"
+	}
+}
+
+@logLevelTitle(logLevel: LogLevel) = @{
+	logLevel match {
+	case LogLevel.DEBUG => "Technische informatie"
+	case LogLevel.INFO => "Informatie"
+	case LogLevel.ERROR => "Fout"
+	case LogLevel.WARNING => "Waarschuwing"
+	}
+}
+
+@entityTypeName(entityType: EntityType) = @{
+	entityType match {
+	case EntityType.SOURCE_DATASET => "Brondataset"
+	case EntityType.DATASET => "Dataset"
+	case EntityType.NOTIFICATION => "Notificatie"
+	case EntityType.CATEGORY => "Categorie"
+	case EntityType.JOB => "Taak"
+	case EntityType.LOG_ITEM => "Melding"
+	case EntityType.DATA_SOURCE => "Gegevensbron"
+	case _ => entityType.name
+	}
+}
+
+@entityReference(ref: GenericMessageProperties) = {
+	@if(ref.entityType != null) {
+		<small>@entityTypeName(ref.entityType):</small>
+	}
+	@if(ref.title != null) {
+		@ref.title
+	} else {
+		@if(ref.identification != null) {
+			@ref.identification
+		}
+	}
+}
+
+@layout.application(
+	title = "Logboek - Foutmeldingen",
+	jsMain = routes.Assets.at("js/logging/main.js").url
+) {
+	<div class="page-content">
+		<h1 class="page-header">Foutmeldingen</h1>
+		
+		<div class="row">
+			
+			@* Filters: *@
+			<div class="col-lg-3 col-lg-push-9">
+				<div class="panel-group" id="filters-accordion">
+				
+					@* Loglevel: *@
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-loglevel">
+									Soort melding
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-loglevel" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li>@logLevelLink(LogLevel.ERROR)</li>
+									<li>@logLevelLink(LogLevel.WARNING)</li>
+									<li>@logLevelLink(LogLevel.INFO)</li>
+									<li>@logLevelLink(LogLevel.DEBUG)</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+				
+			</div>
+			
+			@* List of log messages: *@
+			<div class="col-lg-9 col-lg-pull-3">
+				@if(issues.values.isEmpty) {
+					<div class="alert alert-info">
+						Er zijn geen meldingen gevonden die voldoen aan de criteria. Pas de criteria aan
+						of toon <a href="@routes.Logging.messages()">alle meldingen</a>.
+					</div>
+				} else {
+					@helper.pagination(issues, pageRef)
+					<div class="list-group">
+					@for(issue <- issues.values) {
+						<div class="list-group-item">
+							<div class="row">
+								<div class="col-lg-1">
+									<abbr class="h1 abbr-icon @logLevelClass(issue.logLevel)" title="@logLevelTitle(issue.logLevel)">
+										<span class="@logLevelIcon(issue.logLevel)"></span>
+									</abbr>
+								</div>
+								<div class="col-lg-11">
+									<div class="row">
+										<div class="col-lg-12">
+											<h4 class="list-group-item-heading">@Domain.message(issue.message)</h4>
+										</div>
+									</div>
+									<div class="row">
+										<div class="col-lg-4 text-muted">
+											@issue.when.toString("dd-MM-yyyy HH:mm:ss")
+										</div>
+										<div class="col-lg-8 text-muted">
+											@if(issue.message.properties != null) {
+												@entityReference(issue.message.properties)
+											}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					}
+					</div>
+					@helper.pagination(issues, pageRef)
+				} 
+			</div>
+			
+		</div>
+	</div>
+}

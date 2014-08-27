@@ -577,10 +577,10 @@ public class Domain {
     
     public static String message (final Lang lang, final Message message, final MessageContext context) {
     	if (message.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) message.type (), context, message.values());
+    		return messageForEnumValue (lang, (Enum<?>) message.type (), context/*, message.values()*/);
     	}
     	
-    	return Messages.get (lang, message.type ().getClass ().getCanonicalName (), message.values());
+    	return Messages.get (lang, message.type ().getClass ().getCanonicalName ()/*, message.values()*/);
     }
     
     private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, final MessageContext context, Object... args) {
