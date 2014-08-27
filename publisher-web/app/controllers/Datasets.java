@@ -169,6 +169,30 @@ public class Datasets extends Controller {
 		return renderCreateForm (datasetForm);
 	}
 	
+	public static Promise<Result> createFormForSourceDataset (final String sourceDatasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.get (SourceDataset.class, sourceDatasetId)
+			.executeFlat (new Function<SourceDataset, Promise<Result>> () {
+				@Override
+				public Promise<Result> apply (final SourceDataset sourceDataset) throws Throwable {
+					if (sourceDataset == null) {
+						return Promise.pure ((Result) notFound ());
+					}
+					
+					final DatasetForm form = new DatasetForm ();
+					
+					form.setName (sourceDataset.name ());
+					form.setSourceDatasetId (sourceDatasetId);
+					form.setDataSourceId (sourceDataset.dataSource ().id ());
+					form.setCategoryId (sourceDataset.category ().id ());
+					
+					return renderCreateForm (Form.form (DatasetForm.class).fill (form));
+				}
+			});
+	}
+	
 	public static Promise<Result> submitCreate () {
 		Logger.debug ("submitCreate");
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
