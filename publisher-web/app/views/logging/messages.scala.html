@@ -112,7 +112,7 @@
 									</div>
 									<div class="row">
 										<div class="col-lg-4 text-muted">
-											@issue.when.toString("dd-MM-yyyy HH:mm:ss")
+											@{new org.joda.time.LocalDateTime(issue.when.getTime()).toString("dd-MM-yyyy HH:mm:ss")}
 										</div>
 										<div class="col-lg-8 text-muted">
 											@if(issue.message.properties != null) {

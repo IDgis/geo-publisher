@@ -1,10 +1,9 @@
 package nl.idgis.publisher.domain.query;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import org.joda.time.LocalDateTime;
 
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.response.Page;
@@ -23,7 +22,7 @@ public class ListIssues implements DomainQuery<Page<Issue>> {
 			
 	private final Set<LogLevel> logLevels;
 	private final Long page;
-	private final LocalDateTime since;
+	private final Timestamp since;
 	private final Long limit;
 	
 	public ListIssues () {
@@ -38,7 +37,7 @@ public class ListIssues implements DomainQuery<Page<Issue>> {
 		this (logLevels, null, page, null);
 	}
 	
-	public ListIssues (final Set<LogLevel> logLevels, final LocalDateTime since, final Long page, final Long limit) {
+	public ListIssues (final Set<LogLevel> logLevels, final Timestamp since, final Long page, final Long limit) {
 		this.logLevels = new HashSet<> (logLevels == null ? defaultLogLevels : logLevels);
 		this.page = page;
 		this.since = since;
@@ -53,7 +52,7 @@ public class ListIssues implements DomainQuery<Page<Issue>> {
 		return Collections.unmodifiableSet (logLevels);
 	}
 
-	public LocalDateTime getSince () {
+	public Timestamp getSince () {
 		return since;
 	}
 

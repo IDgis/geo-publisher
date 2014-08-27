@@ -94,9 +94,6 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDateTime;
-
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -547,7 +544,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if (query.getSince () != null) {
-			baseQuery.where (jobLog.createTime.goe (new Timestamp (query.getSince ().toDateTime (DateTimeZone.UTC).getMillis ())));
+			baseQuery.where (jobLog.createTime.gt (query.getSince ()));
 		}
 		
 		List<StoredJobLog> jobLogs = new ArrayList<>();
@@ -580,8 +577,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				contentObject = fromJson(logType.getContentClass(), content); 
 			}			
 			
-			final Timestamp ts = t.get (jobLog.createTime);
-			final LocalDateTime when = new LocalDateTime (ts.getTime ());
+			final Timestamp when = t.get (jobLog.createTime);
 			
 			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, when, contentObject));
 		}

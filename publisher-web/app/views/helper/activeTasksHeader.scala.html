@@ -1,0 +1,26 @@
+@(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
+
+<li class="dropdown-header">@if(tasks.values.isEmpty){geen actieve taken}else{@tasks.values.size actieve @if(tasks.values.size == 1){taak}else{taken}}</li>
+<li class="divider"></li>
+@for(task <- tasks.values) {
+	<li>
+		<a href="@routes.Dashboard.index()">
+			<div>
+				<p>@task.title</p>
+			</div>
+			@if(task.progress != null) {
+				<div class="progress progress-striped active" >
+					<div class="progress-bar progress-bar-success" role="progressbar" 
+					  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+					  @task.progress%
+					</div>
+				</div>
+			}
+			<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+		</a>
+	</li>
+}
+<li class="divider"></li>
+<li>
+	<a href="@routes.Logging.messages()" class="text-center">Bekijk logboek <span class="glyphicon glyphicon-chevron-right"></span></a>
+</li>

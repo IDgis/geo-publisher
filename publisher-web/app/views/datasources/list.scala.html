@@ -84,7 +84,7 @@
 					<div class="form-group has-feedback">
 						<div class="col-sm-12">
 							<input type="text" class="form-control col-sm-12" id="searchString" name="searchString" placeholder="Zoek op naam ...">
-							<span class="glyphicon glyphicon-search form-control-feedback"></span>
+							<button class="btn btn-link form-control-feedback" type="submit"><span class="glyphicon glyphicon-search"></span></button>
 						</div>
 					</div>
 					
@@ -166,7 +166,8 @@
 											}
 										</p>
 									</div>
-									<div class="col-md-2">
+									<div class="col-md-2 text-right">
+										<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="Nieuwe dataset toevoegen voor deze bron"><span class="glyphicon glyphicon-plus"></span></a>
 									</div>
 								</div>
 							</div>
