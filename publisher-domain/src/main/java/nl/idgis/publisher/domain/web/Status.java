@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.web;
 
-import org.joda.time.LocalDateTime;
+import java.sql.Timestamp;
 
 import nl.idgis.publisher.domain.StatusType;
 
@@ -13,10 +13,10 @@ public final class Status extends Entity {
 	private static final long serialVersionUID = -1318543837985040549L;
 	
 	private final StatusType type;
-	private final LocalDateTime since;
+	private final Timestamp since;
 	
 	@JsonCreator
-	public Status (final @JsonProperty("type") StatusType type, final @JsonProperty("since") LocalDateTime since) {
+	public Status (final @JsonProperty("type") StatusType type, final @JsonProperty("since") Timestamp since) {
 		this.type = type;
 		this.since = since;
 	}
@@ -28,7 +28,7 @@ public final class Status extends Entity {
 	
 	
 	@JsonGetter
-	public LocalDateTime since () {
+	public Timestamp since () {
 		return this.since; 
 	}
 }

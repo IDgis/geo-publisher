@@ -1,6 +1,8 @@
 package nl.idgis.publisher.admin;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,9 +69,6 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
-
-import org.joda.time.LocalDateTime;
-
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -290,7 +289,7 @@ public class Admin extends UntypedActor {
 									dataSourceInfo.getName(),
 									new Status (activeDataSources.contains(id) 
 											? DataSourceStatusType.OK
-											: DataSourceStatusType.NOT_CONNECTED, LocalDateTime.now ()));
+											: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
 							
 							pageBuilder.add (dataSource);
 						}
@@ -472,7 +471,7 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleGetDataSource (final GetEntity<?> getEntity) {
-		final DataSource dataSource = new DataSource (getEntity.id (), "DataSource: " + getEntity.id (), new Status (DataSourceStatusType.OK, LocalDateTime.now ()));
+		final DataSource dataSource = new DataSource (getEntity.id (), "DataSource: " + getEntity.id (), new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
 		
 		sender ().tell (dataSource, self ());
 	}
@@ -514,7 +513,7 @@ public class Admin extends UntypedActor {
 							Dataset dataset = 
 									new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 											new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-											new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
+											new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())),
 											null, // notification list
 											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 											new ObjectMapper().readValue (datasetInfo.getFilterConditions (), Filter.class)
@@ -637,7 +636,7 @@ public class Admin extends UntypedActor {
 						for(DatasetInfo datasetInfo : datasetInfoList) {
 							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-									new Status (DataSourceStatusType.OK, LocalDateTime.now ()),
+									new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())),
 									null, // notification list
 									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 									objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)

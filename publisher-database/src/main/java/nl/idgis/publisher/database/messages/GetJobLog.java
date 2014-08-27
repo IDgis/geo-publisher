@@ -1,12 +1,11 @@
 package nl.idgis.publisher.database.messages;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.job.LogLevel;
-
-import org.joda.time.LocalDateTime;
 
 import com.mysema.query.types.Order;
 
@@ -19,7 +18,7 @@ public class GetJobLog extends ListQuery {
 	private static final Long DEFAULT_LIMIT = 5L;
 	
 	private final Set<LogLevel> logLevels;
-	private final LocalDateTime since;
+	private final Timestamp since;
 	
 	public GetJobLog (final LogLevel baseLogLevel) {
 		this (baseLogLevel.andUp ());
@@ -29,7 +28,7 @@ public class GetJobLog extends ListQuery {
 		this(logLevels, null);
 	}
 	
-	public GetJobLog(Set<LogLevel> logLevels, LocalDateTime since) {
+	public GetJobLog(Set<LogLevel> logLevels, Timestamp since) {
 		this(DEFAULT_ORDER, logLevels, since);
 	}
 	
@@ -37,7 +36,7 @@ public class GetJobLog extends ListQuery {
 		this(order, logLevels, null);
 	}
 	
-	public GetJobLog(Order order, Set<LogLevel> logLevels, LocalDateTime since) {
+	public GetJobLog(Order order, Set<LogLevel> logLevels, Timestamp since) {
 		this(order, DEFAULT_OFFSET, DEFAULT_LIMIT, logLevels, since);
 	}
 	
@@ -45,7 +44,7 @@ public class GetJobLog extends ListQuery {
 		this(offset, limit, logLevels, null);
 	}
 	
-	public GetJobLog(Long offset, Long limit, Set<LogLevel> logLevels, LocalDateTime since) {
+	public GetJobLog(Long offset, Long limit, Set<LogLevel> logLevels, Timestamp since) {
 		this(DEFAULT_ORDER, offset, limit, logLevels, since);
 	}
 	
@@ -53,7 +52,7 @@ public class GetJobLog extends ListQuery {
 		this(order, offset, limit, logLevels, null);
 	}
 
-	public GetJobLog(Order order, Long offset, Long limit, Set<LogLevel> logLevels, LocalDateTime since) {
+	public GetJobLog(Order order, Long offset, Long limit, Set<LogLevel> logLevels, Timestamp since) {
 		super(order, offset, limit);
 		
 		this.logLevels = new HashSet<> (logLevels == null ? LogLevel.all () : logLevels);
@@ -65,7 +64,7 @@ public class GetJobLog extends ListQuery {
 		return Collections.unmodifiableSet (logLevels);
 	}
 	
-	public LocalDateTime getSince() {
+	public Timestamp getSince() {
 		return since;
 	}
 

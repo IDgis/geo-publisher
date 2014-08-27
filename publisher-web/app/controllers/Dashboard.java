@@ -2,7 +2,7 @@ package controllers;
 
 import static models.Domain.from;
 
-import org.joda.time.LocalDateTime;
+import java.sql.Timestamp;
 
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -12,6 +12,10 @@ import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Notification;
+
+import org.joda.time.DateTime;
+
+import play.Logger;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -43,16 +47,17 @@ public class Dashboard extends Controller {
 		final Http.Cookie messagesLastTime = request ().cookie ("messagesDisplayTime");
 		if (messagesLastTime != null && !messagesLastTime.value ().isEmpty ()) {
 			final long timestamp = Long.parseLong (messagesLastTime.value ());
+			Logger.debug ("Showing issues since: " + new Timestamp (timestamp));
 			listIssues = new ListIssues (
 					LogLevel.ERROR.andUp (), 
-					new LocalDateTime (timestamp), 
+					new Timestamp (timestamp), 
 					0l,
 					(long)errorCount
 				);
 		} else {
 			listIssues = new ListIssues (
 					LogLevel.ERROR.andUp (),
-					new LocalDateTime ().minusHours (12),
+					new Timestamp (new DateTime ().minusHours (12).getMillis ()),
 					0l,
 					(long)errorCount
 				);

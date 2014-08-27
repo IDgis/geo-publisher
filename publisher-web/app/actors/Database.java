@@ -1,5 +1,8 @@
 package actors;
 
+import java.sql.Timestamp;
+import java.util.Date;
+
 import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -12,9 +15,6 @@ import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
-
-import org.joda.time.LocalDateTime;
-
 import play.Logger;
 import play.Play;
 import play.libs.Akka;
@@ -67,7 +67,7 @@ public class Database extends UntypedActor {
 	private void handleListDataSources (final ListEntity<?> listEntity) {
 		Logger.debug ("List received for: " + listEntity.cls ().getCanonicalName ());
 		
-		final DataSource dataSource = new DataSource ("ds-1", "DataSource: ds-1", new Status (DataSourceStatusType.OK, LocalDateTime.now ()));
+		final DataSource dataSource = new DataSource ("ds-1", "DataSource: ds-1", new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
 		final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
 		
 		pageBuilder.add (dataSource);
@@ -94,7 +94,7 @@ public class Database extends UntypedActor {
 	}
 	
 	private void handleGetDataSource (final GetEntity<?> getEntity) {
-		final DataSource dataSource = new DataSource (getEntity.id (), "DataSource: " + getEntity.id (), new Status (DataSourceStatusType.OK, LocalDateTime.now ()));
+		final DataSource dataSource = new DataSource (getEntity.id (), "DataSource: " + getEntity.id (), new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
 		
 		sender ().tell (dataSource, self ());
 	}

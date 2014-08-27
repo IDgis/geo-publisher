@@ -8,14 +8,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDateTime;
-
 import models.Domain.Function;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Issue;
+import play.Logger;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -57,10 +55,17 @@ public class Logging extends Controller {
 				@Override
 				public Result apply (final Page<Issue> issues) throws Throwable {
 					// Store the last access time of this page:
-					response ().setCookie (
-							"messagesDisplayTime",
-							"" + new LocalDateTime ().toDateTime (DateTimeZone.UTC).getMillis ()
-						);
+					if (issues.currentPage () == 1 && logLevels.contains (LogLevel.ERROR)) {
+						if (issues.values ().isEmpty()) {
+							response ().discardCookie ("messageDisplayTime");
+						} else {
+							Logger.debug ("Storing last date: " + issues.values ().get (0).when ().getTime ());
+							response ().setCookie (
+									"messagesDisplayTime",
+									"" + issues.values ().get (0).when ().getTime ()
+								);
+						}
+					}
 					
 					return ok (messages.render (issues, logLevels));
 				}

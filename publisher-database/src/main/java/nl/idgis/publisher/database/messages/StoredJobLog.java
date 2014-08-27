@@ -1,6 +1,6 @@
 package nl.idgis.publisher.database.messages;
 
-import org.joda.time.LocalDateTime;
+import java.sql.Timestamp;
 
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
@@ -12,9 +12,9 @@ public class StoredJobLog extends JobLog {
 	private static final long serialVersionUID = -4960636730010087539L;
 	
 	private final JobInfo job;
-	private final LocalDateTime when;
+	private final Timestamp when;
 
-	public StoredJobLog(JobInfo job, LogLevel level, MessageType<?> type, final LocalDateTime when, MessageProperties content) {
+	public StoredJobLog(JobInfo job, LogLevel level, MessageType<?> type, final Timestamp when, MessageProperties content) {
 		super(level, type, content);
 
 		this.when = when;
@@ -25,7 +25,7 @@ public class StoredJobLog extends JobLog {
 		return job;
 	}
 
-	public LocalDateTime getWhen () {
+	public Timestamp getWhen () {
 		return when;
 	}
 	

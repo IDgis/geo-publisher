@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.web;
 
-import org.joda.time.LocalDateTime;
+import java.sql.Timestamp;
 
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -15,7 +15,7 @@ public final class Issue extends DashboardItem {
 	
 	private final JobType jobType;
 	private final LogLevel logLevel;
-	private final LocalDateTime when;
+	private final Timestamp when;
 	
 	@JsonCreator
 	public Issue(
@@ -23,7 +23,7 @@ public final class Issue extends DashboardItem {
 			final @JsonProperty("message") Message message,
 			final @JsonProperty("logLevel") LogLevel logLevel,
 			final @JsonProperty("jobType") JobType jobType,
-			final @JsonProperty("when") LocalDateTime when) {
+			final @JsonProperty("when") Timestamp when) {
 		
 		super(id, message);
 		
@@ -43,7 +43,7 @@ public final class Issue extends DashboardItem {
 	}
 	
 	@JsonGetter
-	public LocalDateTime when () {
+	public Timestamp when () {
 		return when;
 	}
 
