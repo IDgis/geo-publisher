@@ -3,9 +3,18 @@ nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
 nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.job.JobType.IMPORT=import
 
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend 
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=Fout in metadata
+nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum
+nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=titel
+nl.idgis.publisher.domain.job.harvest.MetadataField.ALTERNATE_TITLE=alternatieve titel
+
+nl.idgis.publisher.domain.job.harvest.MetadataLogType.NOT_FOUND=niet gevonden
+nl.idgis.publisher.domain.job.harvest.MetadataLogType.INVALID=ongeldig
+
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND.properties=alternateTitle,tableName
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden bij {0}: {1}
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend {0}
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR.properties=field,error
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=Fout in metadata: {0} {1}
 nl.idgis.publisher.domain.job.harvest.HarvestLogType.REGISTERED=Nieuw brondataset gevonden
 nl.idgis.publisher.domain.job.harvest.HarvestLogType.UPDATED=Bestaand brondataset bijgewerkt  
 

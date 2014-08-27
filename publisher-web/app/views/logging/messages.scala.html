@@ -1,6 +1,7 @@
 @(issues: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue], logLevels: Set[nl.idgis.publisher.domain.job.LogLevel])
 
 @import nl.idgis.publisher.domain.job.LogLevel
+@import nl.idgis.publisher.domain.MessageProperties
 @import nl.idgis.publisher.domain.web._
 
 
@@ -60,15 +61,15 @@
 	}
 }
 
-@entityReference(ref: GenericMessageProperties) = {
-	@if(ref.entityType != null) {
-		<small>@entityTypeName(ref.entityType):</small>
+@entityReference(ref: MessageProperties) = {
+	@if(ref.getEntityType() != null) {
+		<small>@entityTypeName(ref.getEntityType()):</small>
 	}
-	@if(ref.title != null) {
-		@ref.title
+	@if(ref.getTitle() != null) {
+		@ref.getTitle()
 	} else {
-		@if(ref.identification != null) {
-			@ref.identification
+		@if(ref.getIdentification() != null) {
+			@ref.getIdentification()
 		}
 	}
 }

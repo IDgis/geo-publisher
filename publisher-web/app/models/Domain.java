@@ -4,10 +4,19 @@ import static akka.pattern.Patterns.ask;
 import static play.libs.F.Promise.sequence;
 import static play.libs.F.Promise.wrap;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -16,6 +25,7 @@ import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
+import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.MessageContext;
@@ -27,8 +37,14 @@ import play.libs.F;
 import play.libs.F.Promise;
 import akka.actor.ActorSelection;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Domain {
 
+	private final static ObjectMapper objectMapper = new ObjectMapper ();
+	
 	public static DomainInstance from (final ActorSelection domainActor) {
 		return from (domainActor, 15000);
 	}
@@ -557,7 +573,7 @@ public class Domain {
     
     public static String message (final Lang lang, final Status status, final MessageContext context) {
     	if (status.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) status.type (), context, status.type().statusCategory());
+    		return messageForEnumValue (lang, (Enum<?>) status.type (), context, null);
     	}
     	
     	return Messages.get (lang, status.type ().getClass ().getCanonicalName (), status.type().statusCategory());
@@ -577,16 +593,83 @@ public class Domain {
     
     public static String message (final Lang lang, final Message message, final MessageContext context) {
     	if (message.type () instanceof Enum<?>) {
-    		return messageForEnumValue (lang, (Enum<?>) message.type (), context/*, message.values()*/);
+    		return messageForEnumValue (lang, (Enum<?>) message.type (), context, message.properties ());
     	}
     	
     	return Messages.get (lang, message.type ().getClass ().getCanonicalName ()/*, message.values()*/);
     }
     
-    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, final MessageContext context, Object... args) {
+    private static String messageForEnumValue (final Lang lang, final Enum<?> enumValue, final MessageContext context, final MessageProperties properties) {
     	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name ();
+    	final Object[] args = createMessageParameters (lang, enumValue, properties);
     	
     	return Messages.get (lang, context == null ? key : key + "." + context.name(), args);
+    }
+    
+    private static Object[] createMessageParameters (final Lang lang, final Enum<?> enumValue, final MessageProperties properties) {
+    	if (properties == null) {
+    		return new Object[0];
+    	}
+    	
+    	final BeanInfo beanInfo;
+		try {
+			beanInfo = Introspector.getBeanInfo (properties.getClass ());
+		} catch (IntrospectionException e) {
+			throw new RuntimeException (e);
+		}
+		
+    	final Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<> ();
+    	
+    	for (final PropertyDescriptor pd: beanInfo.getPropertyDescriptors ()) {
+    		if ("entityType".equals (pd.getName ()) || "title".equals (pd.getName ()) || "identification".equals (pd.getName ())) {
+    			continue;
+    		}
+    		if (pd.getReadMethod () == null) {
+    			continue;
+    		}
+    		
+    		propertyDescriptors.put (pd.getName (), pd);
+    	}
+
+    	// Special cases, zero or one arguments:
+    	if (propertyDescriptors.isEmpty ()) {
+    		return new Object[0];
+    	} else if (propertyDescriptors.size () == 1) {
+    		return new Object[] { getValue (lang, properties, propertyDescriptors.values().iterator().next()) };
+    	} 
+    	
+    	// Determine the order of the properties:
+    	final String key = enumValue.getDeclaringClass ().getCanonicalName () + "." + enumValue.name () + ".properties";
+    	if (!Messages.isDefined (lang, key)) {
+    		return new Object[0];
+    	}
+    	
+    	final String[] parts = Messages.get (lang, key).split (",");
+    	final ArrayList<Object> args = new ArrayList<> ();
+    	
+    	for (final String part: parts) {
+    		if (propertyDescriptors.containsKey (part.trim ())) {
+    			args.add (getValue (lang, properties, propertyDescriptors.get (part.trim ())));
+    		}
+    	}
+    	
+    	return args.toArray ();
+    }
+    
+    private static Object getValue (final Lang lang, final MessageProperties properties, final PropertyDescriptor propertyDescriptor) {
+    	final Object value;
+    	try {
+			value = propertyDescriptor.getReadMethod ().invoke (properties);
+		} catch (IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException (e);
+		}
+    	
+    	if (value instanceof Enum<?>) {
+    		return messageForEnumValue (lang, (Enum<?>)value, null, null);
+    	}
+    	
+    	return value;
     }
     
     public static class Constant<T> implements DomainQuery<T> {
@@ -601,5 +684,41 @@ public class Domain {
     	public T value () {
     		return value;
     	}
+    }
+    
+    public static class GenericMessageProperties {
+    	private EntityType entityType;
+    	private String title;
+    	private String identification;
+    	private final Map<String, Object> properties = new HashMap<String, Object> ();
+    	
+		public EntityType getEntityType() {
+			return entityType;
+		}
+		public void setEntityType(EntityType entityType) {
+			this.entityType = entityType;
+		}
+		public String getTitle() {
+			return title;
+		}
+		public void setTitle(String title) {
+			this.title = title;
+		}
+		public String getIdentification() {
+			return identification;
+		}
+		public void setIdentification(String identification) {
+			this.identification = identification;
+		}
+		
+		@JsonAnyGetter
+		public Map<String, Object> getProperties() {
+			return Collections.unmodifiableMap (properties);
+		}
+		
+		@JsonAnySetter
+		public void setProperty (final String name, final Object value) {
+			properties.put (name, value);
+		}
     }
 }
