@@ -18,16 +18,13 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
-import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-import nl.idgis.publisher.protocol.messages.Ack;
 
 import org.junit.Test;
 
@@ -35,6 +32,7 @@ import com.mysema.query.Tuple;
 
 public class NotificationTest extends AbstractDatabaseTest {
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testNotification() throws Exception {
 		insert(dataSource)
