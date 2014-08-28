@@ -121,7 +121,9 @@
 								<div class="col-md-5">
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
-											<span class="text-info"><span class="glyphicon-info-sign"></span> Structuurwijziging in de brongegevens.</span>
+											<p>
+												<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens.</span>
+											</p>
 										}
 									}
 									<p>
