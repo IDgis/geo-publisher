@@ -110,7 +110,7 @@
 				
 					@if(!onlyWithMessages) {
 						@for(dataset <- datasets.values) {
-						<div class="list-group-item js-dataset-item" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
+						<div class="list-group-item js-dataset-item@if(!dataset.activeNotifications.isEmpty){ list-group-item-warning}" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
 							<div class="row">
 								<div class="col-md-5">
 									<h4 class="list-group-item-heading">@dataset.name </h4>
