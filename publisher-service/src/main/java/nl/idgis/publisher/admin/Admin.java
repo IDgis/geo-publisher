@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -32,8 +33,11 @@ import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.notification.DatasetNotification;
+import nl.idgis.publisher.domain.notification.DatasetNotificationType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
@@ -50,9 +54,11 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
+import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
@@ -616,6 +622,19 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 		
 	}
+	
+	private static DatasetStatusType jobStateToDatasetStatus (final JobState jobState) {
+		switch (jobState) {
+		default:
+		case ABORTED:
+		case FAILED:
+			return DatasetStatusType.IMPORT_FAILED;
+		case STARTED:
+			return DatasetStatusType.IMPORTING;
+		case SUCCEEDED:
+			return DatasetStatusType.IMPORTED;
+		}
+	}
 
 	private void handleListDatasets (final ListDatasets listDatasets) {
 		String categoryId = listDatasets.categoryId();
@@ -637,10 +656,46 @@ public class Admin extends UntypedActor {
 						final ObjectMapper objectMapper = new ObjectMapper ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
+							// Determine dataset status and notification list:
+							final Status status;
+							final List<DashboardItem> notifications = new ArrayList<> ();
+							if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
+								// Set imported status:
+								if (datasetInfo.getLastJobState () != null) {
+									status = new Status (
+											jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
+											datasetInfo.getLastImportTime () != null
+												? datasetInfo.getLastImportTime ()
+												: new Timestamp (new Date ().getTime ())
+										);
+								} else {
+									status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+								}
+								
+								// Add a notification if the source schema has changed:
+								if (datasetInfo.getSourceDatasetColumnsChanged () != null && datasetInfo.getSourceDatasetColumnsChanged ()) {
+									// TODO: Report actual notifications here (the ID is now mocked).
+									notifications.add (new DashboardItem (
+											UUID.randomUUID ().toString (), 
+											new Message (
+												DatasetNotificationType.SOURCE_COLUMNS_CHANGED, 
+												new DatasetNotification (
+														EntityType.DATASET, 
+														datasetInfo.getId ().toString (), 
+														datasetInfo.getName ()
+													)
+											)
+										));
+								}
+							} else {
+								// Dataset has never been imported, don't report any notifications:
+								status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+							}
+							
 							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-									new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())),
-									null, // notification list
+									status,
+									notifications, // notification list
 									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 									objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
 							);

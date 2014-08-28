@@ -110,7 +110,7 @@
 				
 					@if(!onlyWithMessages) {
 						@for(dataset <- datasets.values) {
-						<div class="list-group-item js-dataset-item" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
+						<div class="list-group-item js-dataset-item@if(!dataset.activeNotifications.isEmpty){ list-group-item-warning}" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
 							<div class="row">
 								<div class="col-md-5">
 									<h4 class="list-group-item-heading">@dataset.name </h4>
@@ -119,11 +119,15 @@
 									<span class="label label-default">Source dataset: @dataset.sourceDataset.name</span>
 								</div>
 								<div class="col-md-5">
+									@if(!dataset.activeNotifications.isEmpty) {
+										@for(notification <- dataset.activeNotifications) {
+											<p>
+												<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens.</span>
+											</p>
+										}
+									}
 									<p>
-										<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
-									</p>
-									<p>
-										<a href="#">Logboek ...</a>
+										@helper.status(dataset.currentStatus, true)
 									</p>
 									<div class="progress js-progress hidden">
 										<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
