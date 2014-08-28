@@ -119,11 +119,13 @@
 									<span class="label label-default">Source dataset: @dataset.sourceDataset.name</span>
 								</div>
 								<div class="col-md-5">
+									@if(!dataset.activeNotifications.isEmpty) {
+										@for(notification <- dataset.activeNotifications) {
+											<span class="text-info"><span class="glyphicon-info-sign"></span> Structuurwijziging in de brongegevens.</span>
+										}
+									}
 									<p>
 										@helper.status(dataset.currentStatus, true)
-									</p>
-									<p>
-										<a href="#">Logboek ...</a>
 									</p>
 									<div class="progress js-progress hidden">
 										<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
