@@ -126,8 +126,6 @@ require ([
     	var badge = query ('.js-badge', taskDropdown)[0],
     		list = query ('.js-list', taskDropdown)[0];
     	
-    	console.log ('Active tasks: ', activeTasks);
-    	
     	// Update the badge:
     	domConstruct.empty (badge);
     	put (badge, document.createTextNode (activeTasks.list.length));
