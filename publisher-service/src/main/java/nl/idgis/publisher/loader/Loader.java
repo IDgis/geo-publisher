@@ -11,12 +11,21 @@ import com.fasterxml.jackson.databind.ObjectReader;
 
 import scala.concurrent.Future;
 
+import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
+import nl.idgis.publisher.database.messages.DatasetStatusInfo;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.NotificationResult;
+import nl.idgis.publisher.domain.job.NotificationType;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
@@ -144,12 +153,48 @@ public class Loader extends UntypedActor {
 		
 		return false;
 	}
-
-	private void handleImportJob(final ImportJobInfo importJob) {
-		log.debug("data import requested: " + importJob);
+		
+	private void handleDatasetStatus(final ImportJobInfo importJob, final DatasetStatusInfo datasetStatus, boolean isImporting) {
+		if(datasetStatus.isSourceDatasetColumnsChanged()) {
+			log.debug("source columns changed");
+			
+			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+				log.debug("notification already present");
+			} else {
+				log.debug("notification not present -> add it");
+				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
+				return;
+			}
+		} else {
+			log.debug("source columns not changed");
+			
+			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+				log.debug("notification present -> remove it");
+				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
+				return;
+			} else {
+				log.debug("notification not present");
+			}
+		}
+		
+		for(Notification notification : importJob.getNotifications()) {
+			NotificationType type = notification.getType();
+			NotificationResult result = notification.getResult();
+			
+			if(ImportNotificationType.SOURCE_COLUMNS_CHANGED.equals(type)) {
+				if(!ConfirmNotificationResult.OK.equals(result)) {
+					log.debug("column changes not (yet) accepted");
+					return;
+				}
+			} else {
+				log.error("unknown notification type: " + type.name());
+				return;
+			}
+		}
 		
 		final String dataSourceId = importJob.getDataSourceId();
-		if(isImporting(dataSourceId)) {
+		
+		if(isImporting) {
 			log.debug("already obtaining data from dataSource: " + dataSourceId);
 		} else {		
 			Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
@@ -170,6 +215,21 @@ public class Loader extends UntypedActor {
 					
 				}, getContext().dispatcher());
 		}
+	}
+
+	private void handleImportJob(final ImportJobInfo importJob) {
+		log.debug("data import requested: " + importJob);
+		
+		final boolean isImporting = isImporting(importJob.getDataSourceId());		
+		Patterns.ask(database, new GetDatasetStatus(importJob.getDatasetId()), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {					
+					handleDatasetStatus(importJob, (DatasetStatusInfo)msg, isImporting);
+				}
+				
+			}, getContext().dispatcher());
 	}
 
 	private void startImport(final ImportJobInfo importJob, final ActorRef dataSource) {

@@ -15,6 +15,9 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QNotification.notification;
+import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
+import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -24,20 +27,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 
+import nl.idgis.publisher.database.messages.AddNotification;
+import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
-import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
@@ -64,6 +67,7 @@ import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetInfo;
+import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
@@ -71,6 +75,7 @@ import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
@@ -87,12 +92,18 @@ import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.NotificationResult;
+import nl.idgis.publisher.domain.job.NotificationType;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
+import scala.collection.parallel.ParIterableLike.Exists;
 
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -103,6 +114,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
@@ -235,12 +247,70 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else if(query instanceof CreateServiceJob) {
 			executeCreateServiceJob(context, (CreateServiceJob)query);
 		} else if(query instanceof GetDatasetStatus) {
-			executeGetDatasetStatus(context);
+			executeGetDatasetStatus(context, (GetDatasetStatus)query);
 		} else if(query instanceof TerminateJobs) {
 			executeTerminateJobs(context);
+		} else if(query instanceof AddNotification) {
+			executeAddNotification(context, (AddNotification)query);
+		} else if(query instanceof AddNotificationResult) {
+			executeAddNotificationResult(context, (AddNotificationResult)query);
+		} else if(query instanceof RemoveNotification) {
+			executeRemoveNotification(context, (RemoveNotification)query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
+	}
+
+	private void executeRemoveNotification(QueryDSLContext context, RemoveNotification query) {	
+		JobInfo job = query.getJob();
+		NotificationType type = query.getNotificationType();
+		
+		context.delete(notificationResult)
+			.where(new SQLSubQuery().from(notification)
+				.where(notification.id.eq(notificationResult.notificationId)
+					.and(notification.type.eq(type.name())
+					.and(notification.jobId.eq(job.getId()))))
+				.exists())
+			.execute();
+		
+		context.delete(notification)
+			.where(notification.type.eq(type.name())
+				.and(notification.jobId.eq(job.getId())))
+			.execute();
+		
+		context.ack();
+	}
+
+	private void executeAddNotificationResult(QueryDSLContext context, AddNotificationResult query) {
+		JobInfo job = query.getJob();
+		NotificationType type = query.getNotificationType();
+		NotificationResult result = query.getNotificationResult();
+		
+		context.insert(notificationResult)
+			.columns(
+				notificationResult.notificationId,
+				notificationResult.result)
+			.select(new SQLSubQuery().from(notification)
+				.where(notification.jobId.eq(job.getId())
+					.and(notification.type.eq(type.name())))				
+				.list(
+					notification.id,
+					result.name()))
+			.execute();
+		
+		context.ack();
+	}
+
+	private void executeAddNotification(QueryDSLContext context, AddNotification query) {
+		JobInfo job = query.getJob();
+		NotificationType notificationType = query.getNotificationType();
+		
+		context.insert(notification)
+			.set(notification.jobId, job.getId())
+			.set(notification.type, notificationType.name())
+			.execute();
+		
+		context.ack();
 	}
 
 	private void executeTerminateJobs(QueryDSLContext context) {
@@ -295,132 +365,32 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}
 
-	private void executeGetDatasetStatus(QueryDSLContext context) {
-		QJobState jobStateSub = new QJobState("job_state_sub");
+	private void executeGetDatasetStatus(QueryDSLContext context, GetDatasetStatus query) {		
+		SQLQuery baseQuery = context.query().from(datasetStatus)
+			.join(dataset).on(dataset.id.eq(datasetStatus.id));
 		
-		Set<String> serviceCreated = new HashSet<>();
-		serviceCreated.addAll(
-			context.query().from(dataset)
-				.where(new SQLSubQuery().from(importJob)
-					.join(jobState).on(jobState.jobId.eq(importJob.jobId))
-					.where(importJob.datasetId.eq(dataset.id)
-						.and(jobState.state.eq(JobState.SUCCEEDED.name()))
-						.and(new SQLSubQuery().from(serviceJob)
-							.join(jobStateSub).on(jobStateSub.jobId.eq(serviceJob.jobId))							
-							.where(jobStateSub.state.eq(JobState.SUCCEEDED.name())
-								.and(serviceJob.datasetId.eq(dataset.id))
-								.and(jobStateSub.createTime.after(jobState.createTime)))
-							.exists()))
-					.exists())
-				.groupBy(dataset.identification)
-				.list(dataset.identification));
+		Expression<DatasetStatusInfo> expression = 
+				new QDatasetStatusInfo(					
+						dataset.identification, 
+						datasetStatus.columnsChanged, 
+						datasetStatus.filterConditionChanged, 
+						datasetStatus.sourceDatasetChanged, 
+						datasetStatus.imported, 
+						datasetStatus.serviceCreated, 
+						datasetStatus.sourceDatasetColumnsChanged, 
+						datasetStatus.sourceDatasetRevisionChanged);
 		
-		Map<String, List<Column>> datasets = treeFold(
-			context.query().from(datasetColumn)
-				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-				.orderBy(
-						datasetColumn.datasetId.asc(),
-						datasetColumn.index.asc()),
-						
-						dataset.identification,
-						new QColumn(datasetColumn.name, datasetColumn.dataType));
-		
-		QImportJob importJobSub = new QImportJob("import_job_sub");
-		QJob jobSub = new QJob("job_sub");
-		
-		Map<String, List<Column>> importedDatasets = treeFold(
-				context.query().from(importJobColumn)
-				.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
-				.join(job).on(job.id.eq(importJob.jobId))
-				.join(dataset).on(dataset.id.eq(importJob.datasetId))				
-				.orderBy(
-						importJobColumn.importJobId.asc(),
-						importJobColumn.index.asc())
-				.where(new SQLSubQuery().from(importJobSub)
-						.join(jobSub).on(jobSub.id.eq(importJobSub.jobId))
-						.where(importJobSub.datasetId.eq(importJob.datasetId)
-							.and(jobSub.createTime.gt(job.createTime)))						
-						.notExists()),
+		String datasourceId = query.getDatasetId();
+		if(datasourceId == null) {		
+			context.answer(
+				DatasetStatusInfo.class,
 				
-						dataset.identification,						
-						new QColumn(importJobColumn.name, importJobColumn.dataType));
-		
-		Map<String, DatasetInfo> sourceDatasets = readDatasetInfo(
-				context.query().from(dataset)					
-					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
-						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-									.notExists()))
-					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-					.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
-					.orderBy(
-						dataset.id.asc(),
-						sourceDatasetVersionColumn.index.asc()));
-	
-		Map<String, DatasetInfo> importedSourceDatasets = readDatasetInfo(
-			context.query().from(dataset)
-				.join(importJob).on(importJob.datasetId.eq(dataset.id))
-				.join(job).on(job.id.eq(importJob.jobId))
-				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
-				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
-				.orderBy(
-					dataset.id.asc(),
-					sourceDatasetVersionColumn.index.asc())
-				.where(new SQLSubQuery().from(importJobSub)
-						.join(jobSub).on(jobSub.id.eq(importJobSub.jobId))
-						.where(importJobSub.datasetId.eq(importJob.datasetId)
-							.and(jobSub.createTime.gt(job.createTime)))						
-						.notExists()));
-		
-		List<DatasetStatus> datasetStatus = new ArrayList<>();
-		
-		for(Map.Entry<String, List<Column>> datasetEntry : datasets.entrySet()) {
-			String datasetId = datasetEntry.getKey();
-						
-			List<Column> columns = datasetEntry.getValue();
-			
-			DatasetInfo sourceInfo = sourceDatasets.get(datasetId);
-			String sourceDatasetId = sourceInfo.getSourceDatasetId();
-			Timestamp sourceRevision = sourceInfo.getRevision();
-			List<Column> sourceColumns = sourceInfo.getColumns();
-			
-			List<Column> importedColumns = importedDatasets.get(datasetId);
-			
-			DatasetInfo importedInfo = importedSourceDatasets.get(datasetId);
-			String importedSourceDatasetId;
-			Timestamp importedSourceRevision;
-			List<Column> importedSourceColumns;
-			if(importedInfo == null) {
-				importedSourceDatasetId = null;
-				importedSourceRevision = null;
-				importedSourceColumns = null;
-			} else {
-				importedSourceDatasetId = importedInfo.getSourceDatasetId();
-				importedSourceRevision = importedInfo.getRevision();
-				importedSourceColumns = importedInfo.getColumns();
-			}
-
-			datasetStatus.add(
-				new DatasetStatus(
-					datasetId,
-					
-					sourceDatasetId,
-					importedSourceDatasetId,
-					
-					sourceRevision, 
-					importedSourceRevision,
-					
-					columns,
-					importedColumns,
-					sourceColumns, 
-					importedSourceColumns,
-					
-					serviceCreated.contains(datasetId)));			
+				baseQuery.list(expression));
+		} else {
+			context.answer(
+				baseQuery.where(dataset.identification.eq(datasourceId))
+				.singleResult(expression));
 		}
-		
-		context.answer(DatasetStatus.class, datasetStatus);
 	}
 
 	private Map<String, DatasetInfo> readDatasetInfo(SQLQuery query) {
@@ -941,7 +911,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.orderBy(job.createTime.asc())
+			.orderBy(job.id.asc(), job.createTime.asc())
 			.where(new SQLSubQuery().from(jobState)
 					.where(jobState.jobId.eq(job.id))
 					.notExists());
@@ -956,18 +926,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					dataset.id,
 					dataset.identification);
 		
-		List<Tuple> columnList =
-			query
+		List<Tuple> columnList = 
+			query.clone()
 				.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id))							
 				.orderBy(importJobColumn.index.asc())
 				.list(job.id, importJobColumn.name, importJobColumn.dataType);
 		
+		List<Tuple> notificationList =
+				query.clone()
+					.join(notification).on(notification.jobId.eq(job.id))
+					.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
+					.list(job.id, notification.type, notificationResult.result);
+		
 		ListIterator<Tuple> columnIterator = columnList.listIterator();
+		ListIterator<Tuple> notificationIterator = notificationList.listIterator();
 		ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 		for(Tuple t : baseList) {
 			int jobId = t.get(job.id);
 			
-			ArrayList<Column> columns = new ArrayList<>();
+			List<Column> columns = new ArrayList<>();
 			for(; columnIterator.hasNext();) {
 				Tuple tc = columnIterator.next();
 				
@@ -977,7 +954,32 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					break;
 				}
 				
-				columns.add(new Column(tc.get(importJobColumn.name), tc.get(importJobColumn.dataType)));
+				columns.add(new Column(
+						tc.get(importJobColumn.name), 
+						tc.get(importJobColumn.dataType)));
+			}
+			
+			List<Notification> notifications = new ArrayList<>();
+			for(; notificationIterator.hasNext();) {
+				Tuple tn = notificationIterator.next();
+				
+				int notificationJobId = tn.get(job.id);				
+				if(notificationJobId != jobId) {
+					notificationIterator.previous();
+					break;
+				}
+				
+				ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
+				
+				NotificationResult result;
+				String resultName = tn.get(notificationResult.result);
+				if(resultName == null) {
+					result = null;
+				} else {
+					result = notificationType.getResult(resultName);
+				}
+				
+				notifications.add(new Notification(notificationType, result));
 			}
 			
 			jobs.add(new ImportJobInfo(
@@ -987,7 +989,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					t.get(sourceDataset.identification),
 					t.get(dataset.identification),
 					t.get(importJob.filterConditions),
-					columns));
+					columns,
+					notifications));
 		}
 		
 		context.answer(jobs);

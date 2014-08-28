@@ -8,7 +8,7 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
-import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
@@ -127,25 +127,25 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		Iterator<DatasetStatus> itr = typedIterable.cast(DatasetStatus.class).iterator();
+		Iterator<DatasetStatusInfo> itr = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(itr);
 		
 		assertTrue(itr.hasNext());
 		
-		DatasetStatus status = itr.next();
-		assertEquals("testDataset", status.getDatasetId());
-		assertEquals(columns, status.getColumns());
-		assertNull(status.getImportedColumns());
-		assertNull(status.getImportedSourceColumns());
-		assertNull(status.getImportedSourceDatasetId());
-		assertEquals(table.getColumns(), status.getSourceColumns());
-		assertEquals(dataset.getId(), status.getSourceDatasetId());
-		assertEquals(dataset.getRevisionDate().getTime(), status.getSourceRevision().getTime());
+		DatasetStatusInfo status = itr.next();
+		assertEquals("testDataset", status.getDatasetId());		
 		assertNotNull(status);
 		
 		assertFalse(itr.hasNext());
+		
+		result = ask(new GetDatasetStatus("testDataset"));
+		assertEquals(DatasetStatusInfo.class, result.getClass());
+		
+		status = (DatasetStatusInfo)result;
+		assertEquals("testDataset", status.getDatasetId());		
+		assertNotNull(status);
 		
 		for(int i = 0; i < 10; i++) {
 			result = ask(new CreateImportJob("testDataset"));
@@ -158,22 +158,15 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		itr = typedIterable.cast(DatasetStatus.class).iterator();
+		itr = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(itr);
 		
 		assertTrue(itr.hasNext());
 		
 		status = itr.next();
-		assertEquals("testDataset", status.getDatasetId());
-		assertEquals(columns, status.getColumns());
-		assertEquals(columns, status.getImportedColumns());
-		assertEquals(table.getColumns(), status.getImportedSourceColumns());		
-		assertEquals("testSourceDataset", status.getImportedSourceDatasetId());
-		assertEquals(table.getColumns(), status.getSourceColumns());
-		assertEquals(dataset.getId(), status.getSourceDatasetId());
-		assertEquals(dataset.getRevisionDate().getTime(), status.getSourceRevision().getTime());
+		assertEquals("testDataset", status.getDatasetId());		
 		assertNotNull(status);
 		
 		assertFalse(itr.hasNext());

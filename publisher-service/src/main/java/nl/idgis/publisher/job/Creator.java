@@ -1,7 +1,6 @@
 package nl.idgis.publisher.job;
 
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
@@ -10,12 +9,11 @@ import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
@@ -29,7 +27,8 @@ public class Creator extends Scheduled {
 	
 	private final ActorRef database;
 	
-	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);	
+	//private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
+	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(1, TimeUnit.MINUTES);
 	
 	public Creator(ActorRef database) {
 		this.database = database;
@@ -50,66 +49,53 @@ public class Creator extends Scheduled {
 		}
 	}
 	
-	private void scheduleImportJobs(Iterable<DatasetStatus> datasetStatuses) {
+	private void scheduleImportJobs(Iterable<DatasetStatusInfo> datasetStatuses) {
 		log.debug("scheduling import jobs");
 		
-		for(DatasetStatus datasetStatus : datasetStatuses) {
+		for(DatasetStatusInfo datasetStatus : datasetStatuses) {
 			String datasetId = datasetStatus.getDatasetId();
-			
-			Timestamp sourceRevision = datasetStatus.getSourceRevision();
-			Timestamp importedRevision = datasetStatus.getImportedSourceRevision();
 			
 			boolean needsImport = false;
 			
-			if(importedRevision == null) {
+			if(!datasetStatus.isImported()) {
 				needsImport = true;				
 				
 				log.debug("not yet imported -> needs import");
-			}  else {
-			
-				List<Column> importedSourceColumns = datasetStatus.getImportedSourceColumns();
-				List<Column> sourceColumns = datasetStatus.getSourceColumns();
-				
-				if(sourceRevision.getTime() == importedRevision.getTime()) {
-					log.debug("revision unchanged");				
-				} else {
+			} else {
+								
+				if(datasetStatus.isSourceDatasetRevisionChanged()) {
 					needsImport = true;				
 					
-					log.debug("revision changed -> needs import");
+					log.debug("revision changed -> needs import");									
+				} else {
+					log.debug("revision unchanged");
 				}
 											
-				if(sourceColumns.equals(importedSourceColumns)) {
-					log.debug("sourceColumns unchanged");
-				} else {
-					// TODO: check for confirmation
+				if(datasetStatus.isSourceDatasetColumnsChanged()) {
+					needsImport = true;
 					
-					log.debug("sourceColumns changed -> needs confirmation");
-					continue;
+					log.debug("sourceColumns changed -> needs import");
+				} else {
+					log.debug("sourceColumns unchanged");					
 				}
 				
-				List<Column> columns = datasetStatus.getColumns();
-				List<Column> importedColumns = datasetStatus.getImportedColumns();
+				if(datasetStatus.isColumnsChanged()) {
+					needsImport = true;
+					
+					log.debug("columns changed -> needs import");					
+				} else {
+					log.debug("columns unchanged");				
+				}				
 				
-				String sourceDatasetId = datasetStatus.getSourceDatasetId();
-				String importedSourceDatasetId = datasetStatus.getImportedSourceDatasetId();
+				if(datasetStatus.isSourceDatasetChanged()) {
+					needsImport = true;
+					
+					log.debug("source dataset changed -> needs import");					
+				} else {
+					log.debug("source dataset unchanged");
+				}
 				
 				// TODO: also check for filter changes
-				
-				if(columns.equals(importedColumns)) {
-					log.debug("columns unchanged");
-				} else {
-					needsImport = true;
-					
-					log.debug("columns changed -> needs import");				
-				} 
-				
-				if(sourceDatasetId.equals(importedSourceDatasetId)) {
-					log.debug("source dataset unchanged");
-				} else {
-					needsImport = true;
-					
-					log.debug("source dataset changed -> needs import");
-				} 
 			}
 			
 			if(needsImport) {
@@ -151,8 +137,8 @@ public class Creator extends Scheduled {
 	private void doIterable(TypedIterable<?> msg) {
 		if(msg.contains(DataSourceStatus.class)) {
 			scheduleHarvestJobs(msg.cast(DataSourceStatus.class));
-		} else if(msg.contains(DatasetStatus.class)) {
-			Iterable<DatasetStatus> datasetStatuses = msg.cast(DatasetStatus.class);
+		} else if(msg.contains(DatasetStatusInfo.class)) {
+			Iterable<DatasetStatusInfo> datasetStatuses = msg.cast(DatasetStatusInfo.class);
 			
 			scheduleImportJobs(datasetStatuses);
 			scheduleServiceJobs(datasetStatuses);
@@ -161,8 +147,8 @@ public class Creator extends Scheduled {
 		}
 	}
 
-	private void scheduleServiceJobs(Iterable<DatasetStatus> datasetStatuses) {		
-		for(DatasetStatus datasetStatus : datasetStatuses) {
+	private void scheduleServiceJobs(Iterable<DatasetStatusInfo> datasetStatuses) {		
+		for(DatasetStatusInfo datasetStatus : datasetStatuses) {
 			String datasetId = datasetStatus.getDatasetId();
 			
 			if(datasetStatus.isServiceCreated()) {

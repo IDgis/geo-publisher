@@ -14,7 +14,6 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Timestamp;
@@ -25,7 +24,7 @@ import java.util.List;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.DatasetStatus;
+import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
@@ -47,6 +46,7 @@ import com.mysema.query.Tuple;
 
 public class JobsTest extends AbstractDatabaseTest {	
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testHarvestJob() throws Exception {
 		
@@ -78,6 +78,7 @@ public class JobsTest extends AbstractDatabaseTest {
 			.executeWithKey(dataSource.id);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testImportAndServiceJob() throws Exception {
 		int dataSourceId = insertDataSource();
@@ -133,27 +134,16 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		Iterator<DatasetStatus> i = typedIterable.cast(DatasetStatus.class).iterator();
+		Iterator<DatasetStatusInfo> i = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertTrue(i.hasNext());
 		
-		DatasetStatus datasetStatus = i.next();
+		DatasetStatusInfo datasetStatus = i.next();
 		assertNotNull(datasetStatus);
 		
-		assertColumns(datasetStatus.getColumns());		
-		assertColumns(datasetStatus.getSourceColumns());
-		
-		assertEquals("testDataset", datasetStatus.getDatasetId());		
-		assertEquals("testSourceDataset", datasetStatus.getSourceDatasetId());
-		assertEquals(testRevision, datasetStatus.getSourceRevision());
-		
-		// import* attributes should still be empty at this point
-		assertNull(datasetStatus.getImportedColumns());
-		assertNull(datasetStatus.getImportedSourceColumns());
-		assertNull(datasetStatus.getImportedSourceDatasetId());
-		assertNull(datasetStatus.getImportedSourceRevision());
-		
+		assertEquals("testDataset", datasetStatus.getDatasetId());
+		assertFalse(datasetStatus.isImported());		
 		assertFalse(datasetStatus.isServiceCreated());
 		
 		assertFalse(i.hasNext());
@@ -198,21 +188,15 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		i = typedIterable.cast(DatasetStatus.class).iterator();
+		i = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertTrue(i.hasNext());
 		
 		datasetStatus = i.next();
 		assertNotNull(datasetStatus);
-		
-		// import* attributes should be populated now
-		assertEquals(testRevision, datasetStatus.getImportedSourceRevision());
-		assertEquals("testSourceDataset", datasetStatus.getImportedSourceDatasetId());
-		
-		assertColumns(datasetStatus.getImportedSourceColumns());				
-		assertColumns(datasetStatus.getImportedColumns());		
-		
+		assertFalse(datasetStatus.isImported());
+		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
 		result = ask(new UpdateJobState(jobInfo, JobState.SUCCEEDED));
@@ -222,9 +206,9 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		i = typedIterable.cast(DatasetStatus.class).iterator();
+		i = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(i);
 		assertTrue(i.hasNext());
 		
@@ -251,9 +235,9 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
-		assertTrue(typedIterable.contains(DatasetStatus.class));
+		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
 		
-		i = typedIterable.cast(DatasetStatus.class).iterator();
+		i = typedIterable.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(i);
 		assertTrue(i.hasNext());
 		
