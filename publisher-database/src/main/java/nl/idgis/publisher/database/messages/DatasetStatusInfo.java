@@ -61,23 +61,23 @@ public class DatasetStatusInfo implements Serializable {
 	}
 	
 	public boolean isSourceDatasetRevisionChanged() {
-		return imported && sourceDatasetRevisionChanged;
+		return sourceDatasetRevisionChanged;
 	}
 	
 	public boolean isSourceDatasetColumnsChanged() {
-		return imported && sourceDatasetColumnsChanged;		
+		return sourceDatasetColumnsChanged;		
 	}
 	
 	public boolean isColumnsChanged() {
-		return imported && columnsChanged;
+		return columnsChanged;
 	}
 	
 	public boolean isFilterConditionChanged() {
-		return imported && filterConditionChanged;
+		return filterConditionChanged;
 	}
 	
 	public boolean isSourceDatasetChanged() {
-		return imported && sourceDatasetChanged;
+		return sourceDatasetChanged;
 	}
 
 	@Override

@@ -19,6 +19,10 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
+import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
@@ -38,6 +42,8 @@ import com.mysema.query.sql.dml.SQLUpdateClause;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
+
+import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -92,6 +98,12 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
+	protected <T> T ask(Object msg, Class<T> resultType) throws Exception {
+		Object result = ask(msg);		
+		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
+		return resultType.cast(result);		
+	}
+	
 	protected Object ask(Object msg) throws Exception {
 		Future<Object> future = Patterns.ask(database, msg, 500000000);
 		return Await.result(future, Duration.create(5, TimeUnit.HOURS));
@@ -116,5 +128,13 @@ public abstract class AbstractDatabaseTest {
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
 		return new Dataset(id, "testCategory", table, revision);		
+	}
+	
+	protected void executeJobs(Query query) throws Exception {
+		for(Object msg : ask(query, List.class)) {
+			assertTrue(msg instanceof JobInfo);			
+			
+			ask(new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
+		}
 	}
 }

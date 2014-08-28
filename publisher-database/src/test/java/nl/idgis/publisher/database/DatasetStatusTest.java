@@ -1,142 +1,297 @@
 package nl.idgis.publisher.database;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.database.messages.Updated;
-import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.database.messages.UpdateDataset;
+
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class DatasetStatusTest extends AbstractDatabaseTest {
+	
+	Dataset testDataset;
+	Table testTable;
 
-	@Test
-	public void testStatus() throws Exception {
+	@Before
+	public void createDataset() throws Exception {
 		insert(dataSource)
 			.set(dataSource.identification, "testDataSource")
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
-		
-		Dataset d = createTestDataset();
-		ask(new RegisterSourceDataset("testDataSource", d));
-		
-		Table t = d.getTable();
-		ask(new CreateDataset("testDataset", "My Test Dataset", d.getId(), t.getColumns(), ""));
-		
-		assertNull(
-			query().from(dataset)
-				.leftJoin(lastImportJob).on(lastImportJob.datasetId.eq(dataset.id))
-				.singleResult(lastImportJob.jobId));
-				
-		Object result = ask(new GetDatasetStatus("testDataset"));
-		assertEquals(DatasetStatusInfo.class, result.getClass());
-		
-		DatasetStatusInfo status = (DatasetStatusInfo)result;
-		assertFalse(status.isImported());
-		assertFalse(status.isColumnsChanged());
-		assertFalse(status.isServiceCreated());
-		assertFalse(status.isSourceDatasetColumnsChanged());
-		assertFalse(status.isSourceDatasetChanged());
-		assertFalse(status.isSourceDatasetRevisionChanged());
-		
-		ask(new CreateImportJob("testDataset"));
-		
-		assertNull(
-			query().from(dataset)
-				.leftJoin(lastImportJob).on(lastImportJob.datasetId.eq(dataset.id))
-				.singleResult(lastImportJob.jobId));
-		
-		result = ask(new GetDatasetStatus("testDataset"));
-		assertEquals(DatasetStatusInfo.class, result.getClass());
-		
-		status = (DatasetStatusInfo)result;
-		assertFalse(status.isImported());
-		assertFalse(status.isColumnsChanged());
-		assertFalse(status.isServiceCreated());
-		assertFalse(status.isSourceDatasetColumnsChanged());
-		assertFalse(status.isSourceDatasetChanged());
-		assertFalse(status.isSourceDatasetRevisionChanged());
-		 
-		for(JobInfo job : (List<JobInfo>)ask(new GetImportJobs())) {
-			ask(new UpdateJobState(job, JobState.SUCCEEDED));
-			
-			assertEquals(
-				job.getId(),
-					
-				query().from(dataset)
-					.leftJoin(lastImportJob).on(lastImportJob.datasetId.eq(dataset.id))
-					.singleResult(lastImportJob.jobId).intValue());
-		}
-		
-		
-		result = ask(new GetDatasetStatus("testDataset"));
-		assertEquals(DatasetStatusInfo.class, result.getClass());
-		
-		status = (DatasetStatusInfo)result;
-		assertTrue(status.isImported());
-		assertFalse(status.isColumnsChanged());
-		assertFalse(status.isServiceCreated());
-		assertFalse(status.isSourceDatasetColumnsChanged());
-		assertFalse(status.isSourceDatasetChanged());
-		assertFalse(status.isSourceDatasetRevisionChanged());
-		
-		t = new Table(
-				t.getName(),
-				Arrays.asList(t.getColumns().get(0)));
-		
-		d = new Dataset(
-			d.getId(),
-			d.getCategoryId(),
-			t,
-			d.getRevisionDate());
-		
-		assertEquals(
-				Updated.class,
-				
-				ask(new RegisterSourceDataset("testDataSource", d)).getClass());
-		
 	
-		result = ask(new GetDatasetStatus("testDataset"));
-		assertEquals(DatasetStatusInfo.class, result.getClass());
+		testDataset = createTestDataset();
+		ask(new RegisterSourceDataset("testDataSource", testDataset));
 		
-		status = (DatasetStatusInfo)result;
-		assertTrue(status.isImported());
-		assertFalse(status.isColumnsChanged());
-		assertFalse(status.isServiceCreated());
-		assertTrue(status.isSourceDatasetColumnsChanged());
-		assertFalse(status.isSourceDatasetChanged());
-		assertFalse(status.isSourceDatasetRevisionChanged());
+		testTable = testDataset.getTable();
+		ask(new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
+	}	
+
+	@Test
+	public void testImported() throws Exception {
+		// initially a dataset is not imported		
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isImported());		
 		
 		ask(new CreateImportJob("testDataset"));
 		
-		result = ask(new GetDatasetStatus("testDataset"));
-		assertEquals(DatasetStatusInfo.class, result.getClass());
+		// import job created, still not imported
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isImported());
 		
-		status = (DatasetStatusInfo)result;
-		assertTrue(status.isImported());
+		executeJobs(new GetImportJobs());
+		
+		// import job executed -> imported
+		assertTrue(
+			ask(
+				new GetDatasetStatus("testDataset"),
+				DatasetStatusInfo.class)
+				
+			.isImported());
+		
+		ask(new CreateImportJob("testDataset"));
+		
+		// a new import job created, but dataset is still imported
+		assertTrue(
+			ask(
+				new GetDatasetStatus("testDataset"),
+				DatasetStatusInfo.class)
+				
+			.isImported());
+		
+		executeJobs(new GetImportJobs());
+		
+		assertTrue(
+			ask(
+				new GetDatasetStatus("testDataset"),
+				DatasetStatusInfo.class)
+				
+			.isImported());
+	}
+	
+	@Test
+	public void testServiceCreated() throws Exception {
+		// initially a service is not yet created for a dataset
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		ask(new CreateImportJob("testDataset"));
+		
+		executeJobs(new GetImportJobs());
+		
+		// importing a dataset doesn't create a service
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		ask(new CreateServiceJob("testDataset"));
+		
+		// service job created, service still not created
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		executeJobs(new GetServiceJobs());
+		
+		// service job executed -> service created
+		assertTrue(
+				ask(
+					new GetDatasetStatus("testDataset"), 
+					DatasetStatusInfo.class)
+				
+				.isServiceCreated());
+		
+		ask(new CreateImportJob("testDataset"));
+		
+		// import job created, existing service still created
+		assertTrue(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		executeJobs(new GetImportJobs());
+		
+		// import job could(!) have introduced a new table -> service maybe(!) not created 
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		ask(new CreateServiceJob("testDataset"));
+		
+		// service job created, service still not created
+		assertFalse(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+		
+		executeJobs(new GetServiceJobs());
+		
+		// service job executed -> service created
+		assertTrue(
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class)
+			
+			.isServiceCreated());
+	}
+	
+	@Test
+	public void testDatasetChanged() throws Exception {
+		// not yet imported, changes are calculated between currently configured 
+		// dataset and last imported configuration		
+		DatasetStatusInfo status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
 		assertFalse(status.isColumnsChanged());
-		assertFalse(status.isServiceCreated());
-		assertTrue(status.isSourceDatasetColumnsChanged());  
 		assertFalse(status.isSourceDatasetChanged());
-		assertFalse(status.isSourceDatasetRevisionChanged());
+		assertFalse(status.isFilterConditionChanged());
+		
+		ask(new CreateImportJob("testDataset"));		
+		
+		// import job created, still not imported
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertFalse(status.isColumnsChanged());
+		assertFalse(status.isSourceDatasetChanged());
+		assertFalse(status.isFilterConditionChanged());
+		
+		executeJobs(new GetImportJobs());
+		
+		// import job executed -> imported, but still not changes
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertFalse(status.isColumnsChanged());
+		assertFalse(status.isSourceDatasetChanged());
+		assertFalse(status.isFilterConditionChanged());
+			
+		// remove second column
+		List<Column> newColumns = Arrays.asList(testTable.getColumns().get(0));
+		ask(new UpdateDataset(
+			"testDataset",
+			"My Test Dataset",
+			"testSourceDataset",
+			newColumns, ""));
+		
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertTrue(status.isColumnsChanged());
+		assertFalse(status.isSourceDatasetChanged());
+		assertFalse(status.isFilterConditionChanged());
+
+		// change source dataset 
+		ask(new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		ask(new UpdateDataset(
+				"testDataset",
+				"My Test Dataset",
+				"newSourceDataset",
+				newColumns, ""));
+		
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertTrue(status.isColumnsChanged());
+		assertTrue(status.isSourceDatasetChanged());
+		assertFalse(status.isFilterConditionChanged());
+		
+		// change filter condition 
+		ask(new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		ask(new UpdateDataset(
+				"testDataset",
+				"My Test Dataset",
+				"newSourceDataset",
+				newColumns, "fakeFilterCondition"));
+		
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertTrue(status.isColumnsChanged());
+		assertTrue(status.isSourceDatasetChanged());
+		assertTrue(status.isFilterConditionChanged());
+		
+		ask(new CreateImportJob("testDataset"));		
+		
+		// import job created, no changes yet
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertTrue(status.isColumnsChanged());
+		assertTrue(status.isSourceDatasetChanged());
+		assertTrue(status.isFilterConditionChanged());
+		
+		executeJobs(new GetImportJobs());
+		
+		// dataset updated
+		status = 
+			ask(
+				new GetDatasetStatus("testDataset"), 
+				DatasetStatusInfo.class);
+		
+		assertFalse(status.isColumnsChanged());
+		assertFalse(status.isSourceDatasetChanged());
+		assertFalse(status.isFilterConditionChanged());
+	}
+	
+	@Test
+	public void testSourceDatasetChanged() throws Exception {
+		// TODO
 	}
 }
