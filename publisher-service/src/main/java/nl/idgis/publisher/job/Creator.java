@@ -95,7 +95,13 @@ public class Creator extends Scheduled {
 					log.debug("source dataset unchanged");
 				}
 				
-				// TODO: also check for filter changes
+				if(datasetStatus.isFilterConditionChanged()) {
+					needsImport = true;
+					
+					log.debug("filter condition changed -> needs import");
+				} else {
+					log.debug("filter condition unchanged");
+				}
 			}
 			
 			if(needsImport) {
