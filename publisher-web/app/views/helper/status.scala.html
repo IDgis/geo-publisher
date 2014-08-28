@@ -1,11 +1,19 @@
-@(status: nl.idgis.publisher.domain.web.Status)
+@(status: nl.idgis.publisher.domain.web.Status, includeTime: Boolean = false)
 
 @import nl.idgis.publisher.domain.web.Status
 @import nl.idgis.publisher.domain.StatusType
 @import nl.idgis.publisher.domain.StatusType.StatusCategory
 
+@statusTime(status: Status) = {
+	@if(status.since == null) {
+		<strong>(tijdstip onbekend)</strong>
+	} else {
+		<strong>@{new org.joda.time.LocalDateTime(status.since.getTime()).toString("dd-MM-yyyy HH:mm:ss")}</strong>
+	} 
+}
+
 @doStatus(status: Status, textClass: String, iconClass: String) = {
-	<span class="@textClass"><span class="@iconClass"></span> @Domain.message(status)</span>
+	<span class="@textClass"><span class="@iconClass"></span> @Domain.message(status)@if(includeTime){: @statusTime(status)}</span>
 }
 
 @if(status.`type`.statusCategory == StatusCategory.INFO) {

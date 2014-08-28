@@ -18,6 +18,7 @@ import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -867,10 +868,17 @@ public class PublisherTransaction extends QueryDSLTransaction {
 								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
 							.notExists()))
 				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+				.leftJoin (datasetStatus).on (datasetStatus.id.eq (dataset.id))
+				.leftJoin (lastImportJob).on (lastImportJob.datasetId.eq (dataset.id))
 				.where(dataset.identification.eq( datasetIdent ))
 				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name, dataset.filterConditions)));
+						category.identification,category.name, dataset.filterConditions,
+						datasetStatus.imported,
+						datasetStatus.serviceCreated,
+						datasetStatus.sourceDatasetColumnsChanged,
+						lastImportJob.finishTime,
+						lastImportJob.finishState)));
 	}
 
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
@@ -1168,8 +1176,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
 										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
 									.notExists()))
-			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id));
-		
+			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+			.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
+			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId));
+			
 		if(categoryId != null) {
 			baseQuery.where(category.identification.eq(categoryId));
 		}
@@ -1179,7 +1189,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.orderBy(dataset.identification.asc())
 				.list(new QDatasetInfo(dataset.identification, dataset.name, 
 						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name, dataset.filterConditions))
+						category.identification,category.name, dataset.filterConditions,
+						datasetStatus.imported,
+						datasetStatus.serviceCreated,
+						datasetStatus.sourceDatasetColumnsChanged,
+						lastImportJob.finishTime,
+						lastImportJob.finishState))
 		);
 	}
 

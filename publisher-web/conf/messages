@@ -26,6 +26,11 @@ nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Struc
 nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
 nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
 
+nl.idgis.publisher.domain.web.DatasetStatusType.NOT_IMPORTED=Nog niet geïmporteerd
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTING=Bezig met importeren
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTED=Geïmporteerd
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORT_FAILED=Fout bij importeren
+
 # webapp generieke tekst 
 web.application.none=geen
 web.application.title=GIS publicatieomgeving
