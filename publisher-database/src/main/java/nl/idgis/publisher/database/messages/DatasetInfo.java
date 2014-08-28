@@ -7,12 +7,10 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import com.mysema.query.annotations.QueryProjection;
 
-public class DatasetInfo implements Serializable {
+public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
 	private static final long serialVersionUID = 1483600283295264723L;
 	
-	private final String id;
-	private final String name;
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
 	private final String filterConditions;
@@ -31,9 +29,8 @@ public class DatasetInfo implements Serializable {
 			final Boolean sourceDatasetColumnsChanged,
 			final Timestamp lastImportTime,
 			final String lastJobState) {
-		super();
-		this.id = id;
-		this.name = name;
+		super(id, name);
+		
 		this.sourceDatasetId = sourceDatasetId;
 		this.sourceDatasetName = sourceDatasetName;
 		this.categoryId = categoryId;
@@ -44,14 +41,6 @@ public class DatasetInfo implements Serializable {
 		this.sourceDatasetColumnsChanged = sourceDatasetColumnsChanged;
 		this.lastImportTime = lastImportTime;
 		this.lastJobState = lastJobState == null ? null : JobState.valueOf (lastJobState);
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	public String getName() {
-		return name;
 	}
 
 	public String getSourceDatasetId() {

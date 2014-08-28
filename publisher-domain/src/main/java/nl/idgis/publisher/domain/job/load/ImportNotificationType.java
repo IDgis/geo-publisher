@@ -4,7 +4,7 @@ import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.NotificationType;
 
-public enum ImportNotificationType implements NotificationType {
+public enum ImportNotificationType implements NotificationType<ImportNotificationProperties> {
 
 	SOURCE_COLUMNS_CHANGED;
 	
@@ -17,5 +17,10 @@ public enum ImportNotificationType implements NotificationType {
 				throw new UnsupportedOperationException();
 		
 		}
+	}
+
+	@Override
+	public Class<? extends ImportNotificationProperties> getContentClass () {
+		return ImportNotificationProperties.class;
 	}
 }

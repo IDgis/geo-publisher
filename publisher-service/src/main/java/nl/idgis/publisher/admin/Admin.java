@@ -22,6 +22,7 @@ import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
+import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
@@ -31,15 +32,18 @@ import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoredJobLog;
+import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.notification.DatasetNotification;
-import nl.idgis.publisher.domain.notification.DatasetNotificationType;
+import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -175,6 +179,8 @@ public class Admin extends UntypedActor {
 			handleRefreshDataset(((RefreshDataset) message).getDatasetId());
 		} else if (message instanceof ListIssues) {
 			handleListIssues ((ListIssues)message);
+		} else if (message instanceof ListActiveNotifications) {
+			handleListActiveNotifications ((ListActiveNotifications) message);
 		} else {
 			unhandled (message);
 		}
@@ -678,11 +684,12 @@ public class Admin extends UntypedActor {
 									notifications.add (new DashboardItem (
 											UUID.randomUUID ().toString (), 
 											new Message (
-												DatasetNotificationType.SOURCE_COLUMNS_CHANGED, 
-												new DatasetNotification (
+												ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
+												new ImportNotificationProperties (
 														EntityType.DATASET, 
 														datasetInfo.getId ().toString (), 
-														datasetInfo.getName ()
+														datasetInfo.getName (),
+														ConfirmNotificationResult.UNDETERMINED
 													)
 											)
 										));
@@ -761,6 +768,57 @@ public class Admin extends UntypedActor {
 				}
 				
 				sender.tell(dashboardIssues.build(), self);
+			}
+		}, getContext().dispatcher());
+	}
+	
+	private void handleListActiveNotifications (final ListActiveNotifications listNotifications) {
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+		
+		final long page = listNotifications.getPage () != null ? Math.max (1, listNotifications.getPage ()) : 1;
+		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : ITEMS_PER_PAGE;
+		final long offset = Math.max (0, (page - 1) * limit);
+
+		final Future<Object> notifications = Patterns.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()), 15000);
+		
+		notifications.onSuccess (new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
+				
+				@SuppressWarnings("unchecked")
+				final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
+				
+				for (final StoredNotification storedNotification: storedNotifications.getList ()) {
+					final JobInfo job = storedNotification.getJob ();
+					
+					dashboardNotifications.add (new Notification (
+						"" + storedNotification.getId (), 
+						new Message (
+							storedNotification.getType (), 
+							new ImportNotificationProperties (
+									EntityType.DATASET, 
+									storedNotification.getDataset ().getId (), 
+									storedNotification.getDataset ().getName (),
+									(ConfirmNotificationResult)storedNotification.getResult ()
+								)
+						)
+					));
+				}
+				
+				// Paging:
+				long count = storedNotifications.getCount ();
+				long pages = count / limit + Math.min(1, count % limit);
+				
+				if(pages > 1) {
+					dashboardNotifications
+						.setHasMorePages(true)
+						.setPageCount(pages)
+						.setCurrentPage(page);
+				}
+				
+				sender.tell (dashboardNotifications.build(), self);
 			}
 		}, getContext().dispatcher());
 	}
