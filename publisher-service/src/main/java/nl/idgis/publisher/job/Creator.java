@@ -27,8 +27,7 @@ public class Creator extends Scheduled {
 	
 	private final ActorRef database;
 	
-	//private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
-	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(1, TimeUnit.MINUTES);
+	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
 	
 	public Creator(ActorRef database) {
 		this.database = database;
