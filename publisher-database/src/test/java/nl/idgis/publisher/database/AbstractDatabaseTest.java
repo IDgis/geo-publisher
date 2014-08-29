@@ -19,8 +19,10 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
+import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
@@ -131,6 +133,20 @@ public abstract class AbstractDatabaseTest {
 			.set(dataSource.identification, dataSourceId)
 			.set(dataSource.name, "My Test DataSource")
 			.executeWithKey(dataSource.id);
+	}
+	
+	protected void insertDataset() throws Exception {
+		insertDataset("testDataset");
+	}
+		
+	protected void insertDataset(String datasetId) throws Exception {
+		insertDataSource();
+		
+		Dataset testDataset = createTestDataset();
+		ask(database, new RegisterSourceDataset("testDataSource", testDataset));
+		
+		Table testTable = testDataset.getTable();
+		ask(database, new CreateDataset(datasetId, "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
 	}
 	
 	protected int insertDataSource() {
