@@ -64,11 +64,11 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	public void actors() throws Exception {
 		Props jobReceiverProps = Props.create(JobReceiver.class);
 		
-		harvester = actorOf(jobReceiverProps);
-		loader = actorOf(jobReceiverProps);
-		service = actorOf(jobReceiverProps);
+		harvester = actorOf(jobReceiverProps, "harvesterMock");
+		loader = actorOf(jobReceiverProps, "loaderMock");
+		service = actorOf(jobReceiverProps, "serviceMock");
 		
-		initiator = actorOf(Initiator.props(database, harvester, loader, service));
+		initiator = actorOf(Initiator.props(database, harvester, loader, service), "initiator");
 	}
 	
 	@Test

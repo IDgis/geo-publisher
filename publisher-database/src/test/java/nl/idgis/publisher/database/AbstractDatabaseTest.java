@@ -82,11 +82,11 @@ public abstract class AbstractDatabaseTest {
 			.withValue("password", ConfigValueFactory.fromAnyRef(password));
 		
 		system = ActorSystem.create();
-		database = actorOf(PublisherDatabase.props(databaseConfig));
+		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 	}
 	
-	protected ActorRef actorOf(Props props) {
-		return system.actorOf(props);
+	protected ActorRef actorOf(Props props, String name) {
+		return system.actorOf(props, name);
 	}
 	
 	protected SQLInsertClause insert(RelationalPath<?> entity) {
