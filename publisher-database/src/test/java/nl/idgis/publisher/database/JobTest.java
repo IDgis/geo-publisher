@@ -44,7 +44,7 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-public class JobsTest extends AbstractDatabaseTest {	
+public class JobTest extends AbstractDatabaseTest {	
 
 	@SuppressWarnings("unchecked")
 	@Test
