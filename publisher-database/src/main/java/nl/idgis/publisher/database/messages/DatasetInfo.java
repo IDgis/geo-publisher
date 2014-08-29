@@ -2,10 +2,11 @@ package nl.idgis.publisher.database.messages;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import nl.idgis.publisher.domain.job.JobState;
-
-import com.mysema.query.annotations.QueryProjection;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
@@ -19,8 +20,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final Boolean sourceDatasetColumnsChanged;
 	private final Timestamp lastImportTime;
 	private final JobState lastJobState;
+	private final List<StoredNotification> notifications;
 
-	@QueryProjection
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName, 
 			final String filterConditions,
@@ -28,7 +29,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final Boolean serviceCreated,
 			final Boolean sourceDatasetColumnsChanged,
 			final Timestamp lastImportTime,
-			final String lastJobState) {
+			final String lastJobState,
+			final List<StoredNotification> notifications) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -41,6 +43,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.sourceDatasetColumnsChanged = sourceDatasetColumnsChanged;
 		this.lastImportTime = lastImportTime;
 		this.lastJobState = lastJobState == null ? null : JobState.valueOf (lastJobState);
+		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
 	}
 
 	public String getSourceDatasetId() {
@@ -81,6 +84,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
 	public JobState getLastJobState() {
 		return lastJobState;
+	}
+
+	public List<StoredNotification> getNotifications () {
+		return Collections.unmodifiableList (notifications);
 	}
 
 	@Override
