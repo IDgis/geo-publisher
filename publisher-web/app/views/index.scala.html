@@ -88,7 +88,7 @@
 					
 			<!-- NOTIFICATIONS -->
 			<div class="col-lg-3">
-				<div class="panel panel-info">
+				<div class="panel @if(notifications.values.isEmpty){panel-success}else{panel-info}">
 					<div class="panel-heading">
 						<div class="row">
 							<div class="col-xs-6">
@@ -101,7 +101,7 @@
 									@if(notifications.values.isEmpty) {
 										geen
 									} else {
-										@notifications.values.size
+										@if(notifications.hasMorePages){&gt; }@notifications.values.size
 									}
 								</p>
 								<p class="announcement-text">
@@ -110,15 +110,16 @@
 							</div>
 						</div>
 					</div>
-					<ul class="list-group">
+					<div class="list-group">
 						@for(notification <- notifications.values) {
-							<li class="list-group-item">
-								<a href="#">
-									 
-								</a>
-							</li>
+							<a class="list-group-item notification" href="#">
+								 <h4 class="list-group-item-heading">@helper.entityReference(notification.message.properties)</h4>
+								 <p class="list-group-item-text">
+								 	@Domain.message(notification.message)
+								 </p>
+							</a>
 						}
-					</ul>
+					</div>
 					<a href="@routes.Datasets.listWithMessages()">
 						<div class="panel-footer">
 							<div class="row">

@@ -36,6 +36,7 @@ import java.util.Map;
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
+import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
@@ -54,6 +55,7 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
+import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
@@ -81,6 +83,7 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.StoredJobLog;
+import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
@@ -89,6 +92,7 @@ import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.MessageTypeUtils;
+import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
@@ -103,9 +107,7 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-
 import scala.collection.parallel.ParIterableLike.Exists;
-
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -257,6 +259,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeAddNotificationResult(context, (AddNotificationResult)query);
 		} else if(query instanceof RemoveNotification) {
 			executeRemoveNotification(context, (RemoveNotification)query);
+		} else if (query instanceof GetNotifications) {
+			executeGetNotifications (context, (GetNotifications) query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
@@ -554,6 +558,68 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		context.answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
+	}
+	
+	private void executeGetNotifications (final QueryDSLContext context, final GetNotifications query) throws Exception {
+		final QNotification notificationSub = new QNotification ("notification_sub");
+		final QJob jobSub = new QJob ("job_sub");
+		final QImportJob importJobSub = new QImportJob ("import_job_sub");
+		final QDataset datasetSub = new QDataset ("dataset_sub");
+		final SQLQuery baseQuery = context.query ().from (notification)
+				.leftJoin (notificationResult).on (notificationResult.notificationId.eq (notification.id))
+				.join (job).on (job.id.eq (notification.jobId))
+				.join (importJob).on (importJob.jobId.eq (job.id))
+				.join (dataset).on (dataset.id.eq (importJob.datasetId))
+				.where (notificationResult.result.isNull().or(notificationResult.result.ne (ConfirmNotificationResult.OK.name ())))
+				.where (new SQLSubQuery ().from (notificationSub)
+						.join (jobSub).on (notificationSub.jobId.eq (jobSub.id))
+						.join (importJobSub).on (importJobSub.jobId.eq (jobSub.id))
+						.join (datasetSub).on (importJobSub.datasetId.eq (datasetSub.id))
+						.where (datasetSub.id.eq (dataset.id))
+						.where (jobSub.createTime.gt (job.createTime))
+						.where (notificationSub.type.eq (notification.type))
+						.notExists ());
+		
+		if (!query.isIncludeRejected ()) {
+			baseQuery.where (notificationResult.result.isNull ().or (notificationResult.result.ne (ConfirmNotificationResult.NOT_OK.name ())));
+		}
+		
+		if (query.getSince () != null) {
+			baseQuery.where (job.createTime.gt (query.getSince ()));
+		}
+		
+		final List<StoredNotification> notifications = new ArrayList<> ();
+		
+		for (final Tuple t: applyListParams (baseQuery.clone (), query, job.createTime)
+				.list (
+					notification.id,
+					notification.type,
+					notificationResult.result,
+					job.id,
+					job.type,
+					dataset.id,
+					dataset.name
+				)) {
+
+			final String result = t.get (notificationResult.result);
+			
+			notifications.add (new StoredNotification (
+					t.get (notification.id), 
+					ImportNotificationType.valueOf (t.get (notification.type)), 
+					result == null ? ConfirmNotificationResult.UNDETERMINED : ConfirmNotificationResult.valueOf (result), 
+					new JobInfo (
+						 t.get (job.id),
+						JobType.valueOf (t.get (job.type))
+					), 
+					new BaseDatasetInfo (
+						"" + t.get (dataset.id), 
+						t.get (dataset.name)
+					)
+				));
+		}
+		
+		context.answer (new InfoList<StoredNotification> (notifications, baseQuery.count ()));
+						
 	}
 	
 	private <T, U> Map<T, List<U>> treeFold(SQLQuery query, Expression<T> id, Expression<U> value) {

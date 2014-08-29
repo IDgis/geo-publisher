@@ -6,15 +6,15 @@ public class Notification implements Serializable {
 	
 	private static final long serialVersionUID = 5056361418085474033L;
 	
-	private final NotificationType type;
+	private final NotificationType<?> type;
 	private final NotificationResult result;
 	
-	public Notification(NotificationType type, NotificationResult result) {
+	public Notification(NotificationType<?> type, NotificationResult result) {
 		this.type = type;
 		this.result = result;
 	}
 
-	public NotificationType getType() {
+	public NotificationType<?> getType() {
 		return type;
 	}
 

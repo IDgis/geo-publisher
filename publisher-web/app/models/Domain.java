@@ -415,7 +415,7 @@ public class Domain {
 		}
 	}
 	
-	public final static class Query4<A, B, C, D> implements Query {
+	public final static class Query4<A, B, C, D> implements Query, Queryable {
 		protected final Query3<A, B, C> baseQuery;
 		protected final DomainQuery<D> query;
 		
@@ -511,6 +511,137 @@ public class Domain {
 					}
 				});
 		}
+
+		@Override
+		public <T extends Entity> Query get (final Class<T> cls, final String id) {
+			return query (id == null ? null : new GetEntity<> (cls, id));
+		}
+
+		@Override
+		public <T extends Entity> Query list (final Class<T> cls) {
+			return query (new ListEntity<> (cls, 0));
+		}
+
+		@Override
+		public <T extends Entity> Query list (final Class<T> cls, final long page) {
+			return query (new ListEntity<> (cls, page));
+		}
+
+		@Override
+		public <T extends Identifiable> Query put (final T value) {
+			return query (new PutEntity<> (value));
+		}
+
+		@Override
+		public <T extends Identifiable> Query delete(Class<? extends T> cls, final String id) {
+			return query (new DeleteEntity<> (cls, id));
+		}
+
+		@Override
+		public <T> Query5<A, B, C, D, T> query (final DomainQuery<T> domainQuery) {
+			return new Query5<> (this, domainQuery);
+		}
+	}
+	
+	public final static class Query5<A, B, C, D, E> implements Query {
+		protected final Query4<A, B, C, D> baseQuery;
+		protected final DomainQuery<E> query;
+		
+		public Query5 (final Query4<A, B, C, D> baseQuery, final DomainQuery<E> query) {
+			this.baseQuery = baseQuery;
+			this.query = query;
+		}
+		
+		private List<Promise<Object>> promises () {
+			final List<Promise<Object>> promises = new ArrayList<> ();
+			promises.add (
+					askDomain (
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.timeout
+					)
+				);
+			promises.add (
+					askDomain (
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.timeout
+					)
+				);
+			promises.add (
+					askDomain (
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.timeout
+					)
+				);
+			promises.add (
+					askDomain (
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						baseQuery.query, 
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.timeout
+					)
+				);
+			promises.add (
+					askDomain (
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.domainActor, 
+						query, 
+						baseQuery.baseQuery.baseQuery.baseQuery.domainInstance.timeout
+					)
+				);
+			
+			return promises;
+		}
+		
+		public <R> Promise<R> execute (final Function5<A, B, C, D, E, R> callback) {
+			return sequence (promises ())
+				.map (new F.Function<List<Object>, R> () {
+					@Override
+					public R apply (final List<Object> list) throws Throwable {
+						@SuppressWarnings("unchecked")
+						final A a = (A)list.get (0);
+						
+						@SuppressWarnings("unchecked")
+						final B b = (B)list.get (1);
+						
+						@SuppressWarnings("unchecked")
+						final C c = (C)list.get (2);
+						
+						@SuppressWarnings("unchecked")
+						final D d = (D)list.get (3);
+						
+						@SuppressWarnings("unchecked")
+						final E e = (E)list.get (4);
+						
+						return callback.apply (a, b, c, d, e);
+					}
+				});
+		}
+		
+		public <R> Promise<R> executeFlat (final Function5<A, B, C, D, E, Promise<R>> callback) {
+			return sequence (promises ())
+					.flatMap (new F.Function<List<Object>, Promise<R>> () {
+						@Override
+						public Promise<R> apply (final List<Object> list) throws Throwable {
+							@SuppressWarnings("unchecked")
+							final A a = (A)list.get (0);
+							
+							@SuppressWarnings("unchecked")
+							final B b = (B)list.get (1);
+							
+							@SuppressWarnings("unchecked")
+							final C c = (C)list.get (2);
+							
+							@SuppressWarnings("unchecked")
+							final D d = (D)list.get (3);
+							
+							@SuppressWarnings("unchecked")
+							final E e = (E)list.get (4);
+							
+							return callback.apply (a, b, c, d, e);
+						}
+					});
+		}
 	}
 	
 	public static interface Function<A, R> {
@@ -524,6 +655,9 @@ public class Domain {
 	}
     public static interface Function4<A, B, C, D, R> {
         R apply (A a, B b, C c, D d) throws Throwable;
+    }
+    public static interface Function5<A, B, C, D, E, R> {
+    	R apply (A a, B b, C c, D d, E e) throws Throwable;
     }
     
     private static Promise<Object> askDomain (final ActorSelection actorSelection, final DomainQuery<?> query, final long timeout) {
