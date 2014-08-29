@@ -45,7 +45,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 	public void testImported() throws Exception {
 		// initially a dataset is not imported		
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -55,7 +55,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job created, still not imported
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -65,7 +65,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job executed -> imported
 		assertTrue(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
@@ -75,7 +75,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// a new import job created, but dataset is still imported
 		assertTrue(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
@@ -84,7 +84,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		executeJobs(new GetImportJobs());
 		
 		assertTrue(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
@@ -95,7 +95,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 	public void testServiceCreated() throws Exception {
 		// initially a service is not yet created for a dataset
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -107,7 +107,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// importing a dataset doesn't create a service
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -117,7 +117,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// service job created, service still not created
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -127,7 +127,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// service job executed -> service created
 		assertTrue(
-				ask(database, 
+				askAssert(database, 
 					new GetDatasetStatus("testDataset"), 
 					DatasetStatusInfo.class)
 				
@@ -137,7 +137,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job created, existing service still created
 		assertTrue(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -147,7 +147,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job could(!) have introduced a new table -> service maybe(!) not created 
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -157,7 +157,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// service job created, service still not created
 		assertFalse(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -167,7 +167,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// service job executed -> service created
 		assertTrue(
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -179,7 +179,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		// not yet imported, changes are calculated between currently configured 
 		// dataset and last imported configuration		
 		DatasetStatusInfo status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -191,7 +191,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job created, still not imported
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -203,7 +203,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job executed -> imported, but still not changes
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -220,7 +220,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 			newColumns, ""));
 		
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -237,7 +237,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 				newColumns, ""));
 		
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -254,7 +254,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 				newColumns, "fakeFilterCondition"));
 		
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -266,7 +266,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// import job created, no changes yet
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -278,7 +278,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		
 		// dataset updated
 		status = 
-			ask(database, 
+			askAssert(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		

@@ -146,7 +146,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		askAssert(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		List<Tuple> tuples = query().from(sourceDatasetColumnDiff)
 			.list(sourceDatasetColumnDiff.all());
@@ -180,7 +180,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		askAssert(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		tuples = query().from(sourceDatasetColumnDiff)
 				.list(sourceDatasetColumnDiff.all());

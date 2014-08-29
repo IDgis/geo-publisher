@@ -74,18 +74,18 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	@Test
 	public void testHarvestJob() throws Exception {
 		ask(database, new CreateHarvestJob("testDataSource"));
-		ask(harvester, new GetLastReceivedJob(), HarvestJobInfo.class);
+		askAssert(harvester, new GetLastReceivedJob(), HarvestJobInfo.class);
 	}
 	
 	@Test
 	public void testImportJob() throws Exception {
 		ask(database, new CreateImportJob("testDataset"));		
-		ask(loader, new GetLastReceivedJob(), ImportJobInfo.class);
+		askAssert(loader, new GetLastReceivedJob(), ImportJobInfo.class);
 	}
 	
 	@Test
 	public void testServiceJob() throws Exception {
 		ask(database, new CreateServiceJob("testDataset"));		
-		ask(service, new GetLastReceivedJob(), ServiceJobInfo.class);
+		askAssert(service, new GetLastReceivedJob(), ServiceJobInfo.class);
 	}
 }

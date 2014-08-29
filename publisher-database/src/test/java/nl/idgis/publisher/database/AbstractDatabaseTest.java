@@ -105,7 +105,7 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
-	protected <T> T ask(ActorRef actorRef, Object msg, Class<T> resultType) throws Exception {
+	protected <T> T askAssert(ActorRef actorRef, Object msg, Class<T> resultType) throws Exception {
 		Object result = ask(actorRef, msg);		
 		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
 		return resultType.cast(result);
@@ -149,7 +149,7 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected void executeJobs(Query query) throws Exception {
-		for(Object msg : ask(database, query, List.class)) {
+		for(Object msg : askAssert(database, query, List.class)) {
 			assertTrue(msg instanceof JobInfo);			
 			
 			ask(database, new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
