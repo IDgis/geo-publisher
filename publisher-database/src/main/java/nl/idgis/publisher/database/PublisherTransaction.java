@@ -27,7 +27,6 @@ import java.sql.Timestamp;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -107,12 +106,14 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
@@ -120,6 +121,7 @@ import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
+
 import com.typesafe.config.Config;
 
 public class PublisherTransaction extends QueryDSLTransaction {
@@ -338,35 +340,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		context.ack();
 	}
-	
-	private static class DatasetInfo {
-		private String sourceDatasetId;
-		private Timestamp revision;		
-		private List<Column> columns;
-		
-		DatasetInfo(String sourceDatasetId, Timestamp revision) {
-			this.sourceDatasetId = sourceDatasetId;
-			this.revision = revision;
-			
-			columns = new ArrayList<>();
-		}
-		
-		public void addColumn(Column column) {
-			columns.add(column);
-		}
-
-		public Timestamp getRevision() {
-			return revision;
-		}
-
-		public List<Column> getColumns() {
-			return Collections.unmodifiableList(columns);
-		}
-
-		public String getSourceDatasetId() {
-			return sourceDatasetId;
-		}
-	}
 
 	private void executeGetDatasetStatus(QueryDSLContext context, GetDatasetStatus query) {		
 		SQLQuery baseQuery = context.query().from(datasetStatus)
@@ -394,45 +367,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				baseQuery.where(dataset.identification.eq(datasourceId))
 				.singleResult(expression));
 		}
-	}
-
-	private Map<String, DatasetInfo> readDatasetInfo(SQLQuery query) {
-		Map<String, DatasetInfo> datasetInfos = new HashMap<>();
-		
-		String lastId = null;
-		DatasetInfo currentDatasetInfo = null;
-		for(Tuple t : 
-			query.list(				
-				dataset.identification,
-				sourceDataset.identification,
-				sourceDatasetVersion.revision,
-				sourceDatasetVersionColumn.name,
-				sourceDatasetVersionColumn.dataType)) {
-			
-			String currentDatasetId = t.get(dataset.identification);
-			if(!currentDatasetId.equals(lastId)) {
-				if(currentDatasetInfo != null) {
-					datasetInfos.put(lastId, currentDatasetInfo);
-				}
-				
-				lastId = currentDatasetId;
-				
-				currentDatasetInfo = new DatasetInfo(
-						t.get(sourceDataset.identification),
-						t.get(sourceDatasetVersion.revision));				
-			}
-			
-			currentDatasetInfo.addColumn(
-				new Column(
-					t.get(sourceDatasetVersionColumn.name),
-					t.get(sourceDatasetVersionColumn.dataType)));
-		}
-		
-		if(currentDatasetInfo != null) {
-			datasetInfos.put(lastId, currentDatasetInfo);
-		}
-		
-		return datasetInfos;
 	}
 
 	private void executeCreateServiceJob(QueryDSLContext context, CreateServiceJob query) {
@@ -601,36 +535,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						
 	}
 	
-	private <T, U> Map<T, List<U>> treeFold(SQLQuery query, Expression<T> id, Expression<U> value) {
-		Map<T, List<U>> retval = new HashMap<>();
-		
-		T lastId = null;
-		List<U> currentValues = null;
-		for(Tuple t : 
-			query
-				.list(
-					id,
-					value)) {
-			
-			T currentId = t.get(id);
-			if(!currentId.equals(lastId)) {
-				if(currentValues != null) {
-					retval.put(lastId, currentValues);
-				}
-				
-				lastId = currentId;
-				currentValues = new ArrayList<>();
-			}
-			
-			currentValues.add(t.get(value));
-		}
-		
-		if(currentValues != null) {
-			retval.put(lastId, currentValues);
-		}
-		
-		return retval;
-	}
 
 	private void executeGetDataSourceStatus(QueryDSLContext context) {
 		QJobState jobStateSub = new QJobState("job_state_sub");			
@@ -954,7 +858,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		context.answer (createDatasetInfo (lastTuple, notifications));
 	}
-
+	
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
 		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 		String datasetIdent = cds.getDatasetIdentification();
