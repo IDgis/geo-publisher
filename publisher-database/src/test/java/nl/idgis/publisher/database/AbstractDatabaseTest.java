@@ -31,6 +31,7 @@ import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.pattern.Patterns;
 
 import com.mysema.query.sql.RelationalPath;
@@ -43,6 +44,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractDatabaseTest {
@@ -52,10 +54,11 @@ public abstract class AbstractDatabaseTest {
 	private ActorSystem system;	
 	private ExtendedPostgresTemplates templates;	
 	private Connection connection;	
-	private ActorRef database;
+	
+	protected ActorRef database;
 	
 	@Before
-	public void setUp() throws Exception {
+	public void database() throws Exception {
 		File dbDir;
 		do {
 			dbDir = new File(BASE_DIR, "" + Math.abs(new Random().nextInt()));
@@ -79,7 +82,11 @@ public abstract class AbstractDatabaseTest {
 			.withValue("password", ConfigValueFactory.fromAnyRef(password));
 		
 		system = ActorSystem.create();
-		database = system.actorOf(PublisherDatabase.props(databaseConfig));
+		database = actorOf(PublisherDatabase.props(databaseConfig));
+	}
+	
+	protected ActorRef actorOf(Props props) {
+		return system.actorOf(props);
 	}
 	
 	protected SQLInsertClause insert(RelationalPath<?> entity) {
@@ -98,21 +105,32 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
-	protected <T> T ask(Object msg, Class<T> resultType) throws Exception {
-		Object result = ask(msg);		
+	protected <T> T ask(ActorRef actorRef, Object msg, Class<T> resultType) throws Exception {
+		Object result = ask(actorRef, msg);		
 		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
-		return resultType.cast(result);		
+		return resultType.cast(result);
 	}
 	
-	protected Object ask(Object msg) throws Exception {
-		Future<Object> future = Patterns.ask(database, msg, 500000000);
-		return Await.result(future, Duration.create(5, TimeUnit.HOURS));
+	protected Object ask(ActorRef actorRef, Object msg) throws Exception {
+		Future<Object> future = Patterns.ask(actorRef, msg, 5000);
+		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
 	}
 	
 	@After
 	public void shutdown() throws Exception {
 		connection.close();		
 		system.shutdown();
+	}
+	
+	protected int insertDataSource(String dataSourceId) {
+		return insert(dataSource)
+			.set(dataSource.identification, dataSourceId)
+			.set(dataSource.name, "My Test DataSource")
+			.executeWithKey(dataSource.id);
+	}
+	
+	protected int insertDataSource() {
+		return insertDataSource("testDataSource");
 	}
 	
 	protected Dataset createTestDataset() {
@@ -131,10 +149,10 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected void executeJobs(Query query) throws Exception {
-		for(Object msg : ask(query, List.class)) {
+		for(Object msg : ask(database, query, List.class)) {
 			assertTrue(msg instanceof JobInfo);			
 			
-			ask(new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
+			ask(database, new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
 		}
 	}
 }

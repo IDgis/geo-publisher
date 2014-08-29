@@ -44,9 +44,9 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		testSourceDataset = createTestDataset();
 		testTable = testSourceDataset.getTable();
 		testColumns = testTable.getColumns();
-		ask(new RegisterSourceDataset("testDataSource", testSourceDataset));
+		ask(database, new RegisterSourceDataset("testDataSource", testSourceDataset));
 		
-		ask(new CreateDataset(
+		ask(database, new CreateDataset(
 			"testDataset", 
 			"My Test Dataset", 
 			testSourceDataset.getId(),			
@@ -60,13 +60,13 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		// columns and last imported columns 
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// no changes yet
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		ask(
+		ask(database,
 			new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
@@ -90,14 +90,14 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// dataset updated
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
 		Column newColumn = new Column("my_new_column", Type.GEOMETRY);		
-		ask(
+		ask(database, 
 				new UpdateDataset(
 					"testDataset", 
 					"My Test Dataset", 
@@ -129,7 +129,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		// version and last imported source dataset version
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// no changes yet
@@ -146,7 +146,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		ask(new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		List<Tuple> tuples = query().from(sourceDatasetColumnDiff)
 			.list(sourceDatasetColumnDiff.all());
@@ -162,7 +162,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// dataset updated
@@ -180,7 +180,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		ask(new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		tuples = query().from(sourceDatasetColumnDiff)
 				.list(sourceDatasetColumnDiff.all());
@@ -195,7 +195,7 @@ public class ColumnDiffTest extends AbstractDatabaseTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());

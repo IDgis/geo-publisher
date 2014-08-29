@@ -41,14 +41,14 @@ public class NotificationTest extends AbstractDatabaseTest {
 			.execute();
 		
 		Dataset dataset = createTestDataset();
-		ask(new RegisterSourceDataset("testDataSource", dataset));
+		ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		
 		Table table = dataset.getTable();
-		ask(new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), ""));
+		ask(database, new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), ""));
 		
-		ask(new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset"));
 		
-		List<ImportJobInfo> jobInfos = (List<ImportJobInfo>)ask(new GetImportJobs());
+		List<ImportJobInfo> jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
 		assertNotNull(jobInfos);
 		assertEquals(1, jobInfos.size());
 		
@@ -60,7 +60,7 @@ public class NotificationTest extends AbstractDatabaseTest {
 		assertNotNull(notifications);
 		assertTrue(notifications.isEmpty());
 		
-		ask(new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		ask(database, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		Tuple notificationTuple =  
 			query().from(notification)
@@ -69,7 +69,7 @@ public class NotificationTest extends AbstractDatabaseTest {
 		assertNotNull(notificationTuple);
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name(), notificationTuple.get(notification.type));
 		
-		jobInfos = (List<ImportJobInfo>)ask(new GetImportJobs());
+		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
 		assertNotNull(jobInfos);
 		assertEquals(1, jobInfos.size());
 		
@@ -86,7 +86,7 @@ public class NotificationTest extends AbstractDatabaseTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertNull(n.getResult());
 		
-		ask(new AddNotificationResult(
+		ask(database, new AddNotificationResult(
 				jobInfo, 
 				ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
 				ConfirmNotificationResult.OK));
@@ -108,7 +108,7 @@ public class NotificationTest extends AbstractDatabaseTest {
 				.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 				.singleResult(notificationResult.result));
 		
-		jobInfos = (List<ImportJobInfo>)ask(new GetImportJobs());
+		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
 		assertNotNull(jobInfos);
 		assertEquals(1, jobInfos.size());
 		
@@ -125,14 +125,14 @@ public class NotificationTest extends AbstractDatabaseTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertEquals(ConfirmNotificationResult.OK, n.getResult());
 		
-		ask(new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		ask(database, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		assertFalse(
 			query().from(notification)
 				.where(notification.type.eq(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name()))
 				.exists());
 		
-		jobInfos = (List<ImportJobInfo>)ask(new GetImportJobs());
+		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
 		assertNotNull(jobInfos);
 		assertEquals(1, jobInfos.size());
 		

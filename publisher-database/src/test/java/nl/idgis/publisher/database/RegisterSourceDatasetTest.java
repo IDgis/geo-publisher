@@ -30,7 +30,7 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		 
-		Object result = ask(new RegisterSourceDataset("testDataSource", createTestDataset()));
+		Object result = ask(database, new RegisterSourceDataset("testDataSource", createTestDataset()));
 		assertEquals(Registered.class, result.getClass());
 		
 		assertTrue(
@@ -59,21 +59,21 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 		
 		// fill database with other source datasets
 		for(int i = 0; i < 100; i++) {
-			Object result = ask(new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)));
+			Object result = ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)));
 			assertEquals(Registered.class, result.getClass());
 		}
 		
 		Dataset dataset = createTestDataset();		
-		Object result = ask(new RegisterSourceDataset("testDataSource", dataset));
+		Object result = ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		assertEquals(Registered.class, result.getClass());
 		
-		result = ask(new RegisterSourceDataset("testDataSource", dataset));
+		result = ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		assertEquals(AlreadyRegistered.class, result.getClass());
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		Dataset updatedDataset = createTestDataset();
-		result = ask(new RegisterSourceDataset("testDataSource", updatedDataset));
+		result = ask(database, new RegisterSourceDataset("testDataSource", updatedDataset));
 		assertEquals(Updated.class, result.getClass());
 		
 		assertEquals(2,
