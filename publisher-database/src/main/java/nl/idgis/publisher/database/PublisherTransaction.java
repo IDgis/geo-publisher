@@ -3,22 +3,23 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QNotification.notification;
+import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QNotification.notification;
-import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
-import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
-import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -69,7 +70,6 @@ import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
-import nl.idgis.publisher.database.messages.QDatasetInfo;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
@@ -107,7 +107,6 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
-import scala.collection.parallel.ParIterableLike.Exists;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -117,7 +116,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.expr.BooleanExpression;
@@ -561,58 +559,39 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	private void executeGetNotifications (final QueryDSLContext context, final GetNotifications query) throws Exception {
-		final QNotification notificationSub = new QNotification ("notification_sub");
-		final QJob jobSub = new QJob ("job_sub");
-		final QImportJob importJobSub = new QImportJob ("import_job_sub");
-		final QDataset datasetSub = new QDataset ("dataset_sub");
-		final SQLQuery baseQuery = context.query ().from (notification)
-				.leftJoin (notificationResult).on (notificationResult.notificationId.eq (notification.id))
-				.join (job).on (job.id.eq (notification.jobId))
-				.join (importJob).on (importJob.jobId.eq (job.id))
-				.join (dataset).on (dataset.id.eq (importJob.datasetId))
-				.where (notificationResult.result.isNull().or(notificationResult.result.ne (ConfirmNotificationResult.OK.name ())))
-				.where (new SQLSubQuery ().from (notificationSub)
-						.join (jobSub).on (notificationSub.jobId.eq (jobSub.id))
-						.join (importJobSub).on (importJobSub.jobId.eq (jobSub.id))
-						.join (datasetSub).on (importJobSub.datasetId.eq (datasetSub.id))
-						.where (datasetSub.id.eq (dataset.id))
-						.where (jobSub.createTime.gt (job.createTime))
-						.where (notificationSub.type.eq (notification.type))
-						.notExists ());
+		
+		final SQLQuery baseQuery = context.query ().from (datasetActiveNotification);
 		
 		if (!query.isIncludeRejected ()) {
-			baseQuery.where (notificationResult.result.isNull ().or (notificationResult.result.ne (ConfirmNotificationResult.NOT_OK.name ())));
+			baseQuery.where (datasetActiveNotification.notificationResult.ne (ConfirmNotificationResult.NOT_OK.name ()));
 		}
 		
 		if (query.getSince () != null) {
-			baseQuery.where (job.createTime.gt (query.getSince ()));
+			baseQuery.where (datasetActiveNotification.jobCreateTime.gt (query.getSince ()));
 		}
 		
 		final List<StoredNotification> notifications = new ArrayList<> ();
 		
-		for (final Tuple t: applyListParams (baseQuery.clone (), query, job.createTime)
+		for (final Tuple t: applyListParams (baseQuery.clone (), query, datasetActiveNotification.jobCreateTime)
 				.list (
-					notification.id,
-					notification.type,
-					notificationResult.result,
-					job.id,
-					job.type,
-					dataset.id,
-					dataset.name
+					datasetActiveNotification.notificationId,
+					datasetActiveNotification.notificationType,
+					datasetActiveNotification.notificationResult,
+					datasetActiveNotification.jobId,
+					datasetActiveNotification.jobType,
+					datasetActiveNotification.datasetId,
+					datasetActiveNotification.datasetName
 				)) {
-
-			final String result = t.get (notificationResult.result);
-			
 			notifications.add (new StoredNotification (
-					t.get (notification.id), 
-					ImportNotificationType.valueOf (t.get (notification.type)), 
-					result == null ? ConfirmNotificationResult.UNDETERMINED : ConfirmNotificationResult.valueOf (result), 
+					t.get (datasetActiveNotification.notificationId), 
+					ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)),
+					ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)),
 					new JobInfo (
-						 t.get (job.id),
-						JobType.valueOf (t.get (job.type))
+						 t.get (datasetActiveNotification.jobId),
+						JobType.valueOf (t.get (datasetActiveNotification.jobType))
 					), 
 					new BaseDatasetInfo (
-						"" + t.get (dataset.id), 
+						t.get (datasetActiveNotification.datasetIdentification), 
 						t.get (dataset.name)
 					)
 				));
@@ -923,28 +902,57 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private void executeGetDatasetInfo(QueryDSLContext context, GetDatasetInfo gds) {
 		String datasetIdent = gds.getId();
 		log.debug("get dataset " + datasetIdent);
+
+		final SQLQuery query = context.query().from(dataset)
+			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.join(sourceDatasetVersion).on(
+				sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
+				.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+						.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+							.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+						.notExists()))
+			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+			.leftJoin (datasetStatus).on (datasetStatus.id.eq (dataset.id))
+			.leftJoin (lastImportJob).on (lastImportJob.datasetId.eq (dataset.id))
+			.leftJoin (datasetActiveNotification).on (datasetActiveNotification.datasetId.eq (dataset.id))
+			.where(dataset.identification.eq( datasetIdent ))
+			.orderBy (datasetActiveNotification.jobCreateTime.desc ());
 		
-		context.answer(
-				context.query().from(dataset)
-				.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-				.join(sourceDatasetVersion).on(
-					sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
-					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-							.notExists()))
-				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
-				.leftJoin (datasetStatus).on (datasetStatus.id.eq (dataset.id))
-				.leftJoin (lastImportJob).on (lastImportJob.datasetId.eq (dataset.id))
-				.where(dataset.identification.eq( datasetIdent ))
-				.singleResult(new QDatasetInfo(dataset.identification, dataset.name, 
-						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name, dataset.filterConditions,
-						datasetStatus.imported,
-						datasetStatus.serviceCreated,
-						datasetStatus.sourceDatasetColumnsChanged,
-						lastImportJob.finishTime,
-						lastImportJob.finishState)));
+		final List<StoredNotification> notifications = new ArrayList<> ();
+		Tuple lastTuple = null;
+		
+		for (final Tuple t: query.list (
+				dataset.identification, 
+				dataset.name, 
+				sourceDataset.identification, 
+				sourceDatasetVersion.name,
+				category.identification,
+				category.name, 
+				dataset.filterConditions,
+				datasetStatus.imported,
+				datasetStatus.serviceCreated,
+				datasetStatus.sourceDatasetColumnsChanged,
+				lastImportJob.finishTime,
+				lastImportJob.finishState,
+				datasetActiveNotification.notificationId,
+				datasetActiveNotification.notificationType,
+				datasetActiveNotification.notificationResult,
+				datasetActiveNotification.jobId,
+				datasetActiveNotification.jobType
+			)) {
+			
+			if (t.get (datasetActiveNotification.notificationId) != null) {
+				notifications.add (createStoredNotification (t));
+			}
+			
+			lastTuple = t;
+		}
+		
+		if (lastTuple == null) {
+			context.answer ((Object) null);
+		}
+		
+		context.answer (createDatasetInfo (lastTuple, notifications));
 	}
 
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
@@ -1232,6 +1240,40 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
 	}
 
+	private StoredNotification createStoredNotification (final Tuple t) {
+		return new StoredNotification (
+				t.get (datasetActiveNotification.notificationId), 
+				ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)), 
+				ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)), 
+				new JobInfo (
+					t.get (datasetActiveNotification.jobId), 
+					JobType.valueOf (t.get (datasetActiveNotification.jobType))
+				), 
+				new BaseDatasetInfo (
+					t.get (dataset.identification), 
+					t.get (dataset.name)
+				)
+			);
+	}
+	
+	private nl.idgis.publisher.database.messages.DatasetInfo createDatasetInfo (final Tuple t, final List<StoredNotification> notifications) {
+		return new nl.idgis.publisher.database.messages.DatasetInfo (
+				t.get (dataset.identification), 
+				t.get (dataset.name), 
+				t.get (sourceDataset.identification), 
+				t.get (sourceDatasetVersion.name),
+				t.get (category.identification),
+				t.get (category.name), 
+				t.get (dataset.filterConditions),
+				t.get (datasetStatus.imported),
+				t.get (datasetStatus.serviceCreated),
+				t.get (datasetStatus.sourceDatasetColumnsChanged),
+				t.get (lastImportJob.finishTime),
+				t.get (lastImportJob.finishState),
+				notifications
+			);
+	}
+	
 	private void executeGetDatasetListInfo(QueryDSLContext context, GetDatasetListInfo dli) {
 		String categoryId = dli.getCategoryId();
 		
@@ -1244,24 +1286,65 @@ public class PublisherTransaction extends QueryDSLTransaction {
 									.notExists()))
 			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
 			.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId));
+			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))
+			.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
 			
 		if(categoryId != null) {
 			baseQuery.where(category.identification.eq(categoryId));
 		}
+
+		baseQuery
+			.orderBy (dataset.identification.asc ())
+			.orderBy (datasetActiveNotification.jobCreateTime.desc ());
 		
-		context.answer(
-				baseQuery
-				.orderBy(dataset.identification.asc())
-				.list(new QDatasetInfo(dataset.identification, dataset.name, 
-						sourceDataset.identification, sourceDatasetVersion.name,
-						category.identification,category.name, dataset.filterConditions,
-						datasetStatus.imported,
-						datasetStatus.serviceCreated,
-						datasetStatus.sourceDatasetColumnsChanged,
-						lastImportJob.finishTime,
-						lastImportJob.finishState))
-		);
+		final List<nl.idgis.publisher.database.messages.DatasetInfo> datasetInfos = new ArrayList<> ();
+		String currentIdentification = null;
+		final List<StoredNotification> notifications = new ArrayList<> ();
+		Tuple lastTuple = null;
+		
+		for (final Tuple t: baseQuery.list (
+				dataset.identification,
+				dataset.name,
+				sourceDataset.identification,
+				sourceDatasetVersion.name,
+				category.identification,
+				category.name,
+				dataset.filterConditions,
+				datasetStatus.imported,
+				datasetStatus.serviceCreated,
+				datasetStatus.sourceDatasetColumnsChanged,
+				lastImportJob.finishTime,
+				lastImportJob.finishState,
+				datasetActiveNotification.notificationId,
+				datasetActiveNotification.notificationType,
+				datasetActiveNotification.notificationResult,
+				datasetActiveNotification.jobId,
+				datasetActiveNotification.jobType
+			)) {
+		
+			// Emit a new dataset info:
+			final String datasetIdentification = t.get (dataset.identification);
+			if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
+				datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+				notifications.clear ();
+			}
+			
+			// Store the last seen tuple:
+			currentIdentification = datasetIdentification; 
+			lastTuple = t;
+			
+			// Add a notification:
+			final Integer notificationId = t.get (datasetActiveNotification.notificationId);
+			if (notificationId != null) {
+				notifications.add (createStoredNotification (t));
+			}
+		}
+		
+		if (currentIdentification != null) {
+			datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+		}
+
+		context.answer (datasetInfos);
 	}
 
 	private void executeGetCategoryInfo(QueryDSLContext context, GetCategoryInfo query) {

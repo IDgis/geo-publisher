@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -40,7 +39,6 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
-import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
@@ -184,6 +182,21 @@ public class Admin extends UntypedActor {
 		} else {
 			unhandled (message);
 		}
+	}
+
+	private Notification createNotification (final StoredNotification storedNotification) {
+		return new Notification (
+				"" + storedNotification.getId (), 
+				new Message (
+					storedNotification.getType (), 
+					new ImportNotificationProperties (
+							EntityType.DATASET, 
+							storedNotification.getDataset ().getId (), 
+							storedNotification.getDataset ().getName (),
+							(ConfirmNotificationResult)storedNotification.getResult ()
+						)
+				)
+			);
 	}
 	
 	private void handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
@@ -677,26 +690,16 @@ public class Admin extends UntypedActor {
 								} else {
 									status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
 								}
-								
-								// Add a notification if the source schema has changed:
-								if (datasetInfo.getSourceDatasetColumnsChanged () != null && datasetInfo.getSourceDatasetColumnsChanged ()) {
-									// TODO: Report actual notifications here (the ID is now mocked).
-									notifications.add (new DashboardItem (
-											UUID.randomUUID ().toString (), 
-											new Message (
-												ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
-												new ImportNotificationProperties (
-														EntityType.DATASET, 
-														datasetInfo.getId ().toString (), 
-														datasetInfo.getName (),
-														ConfirmNotificationResult.UNDETERMINED
-													)
-											)
-										));
-								}
 							} else {
 								// Dataset has never been imported, don't report any notifications:
 								status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+							}
+							
+							// Add notifications:
+							if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
+								for (final StoredNotification sn: datasetInfo.getNotifications ()) {
+									notifications.add (createNotification (sn));
+								}
 							}
 							
 							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
@@ -791,20 +794,7 @@ public class Admin extends UntypedActor {
 				final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
 				
 				for (final StoredNotification storedNotification: storedNotifications.getList ()) {
-					final JobInfo job = storedNotification.getJob ();
-					
-					dashboardNotifications.add (new Notification (
-						"" + storedNotification.getId (), 
-						new Message (
-							storedNotification.getType (), 
-							new ImportNotificationProperties (
-									EntityType.DATASET, 
-									storedNotification.getDataset ().getId (), 
-									storedNotification.getDataset ().getName (),
-									(ConfirmNotificationResult)storedNotification.getResult ()
-								)
-						)
-					));
+					dashboardNotifications.add (createNotification (storedNotification));
 				}
 				
 				// Paging:
