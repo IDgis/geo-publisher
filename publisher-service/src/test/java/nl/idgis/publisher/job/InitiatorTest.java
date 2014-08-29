@@ -6,6 +6,8 @@ import org.junit.Test;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -17,6 +19,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
+
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
@@ -28,16 +31,27 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	static class JobReceiver extends UntypedActor {
 		
+		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		ActorRef sender = null;
 		JobInfo lastJob = null;
 
 		@Override
-		public void onReceive(Object msg) throws Exception { 
+		public void onReceive(Object msg) throws Exception {
+			log.debug("message received: " + msg);
+			
 			if(msg instanceof JobInfo) {
-				lastJob = (JobInfo)msg;
+				lastJob = (JobInfo)msg;				
+				sendLastJob();
 			} else if(msg instanceof GetLastReceivedJob) {
-				if(lastJob != null) {
-					getSender().tell(lastJob, getSelf());
-				}
+				sender = getSender();
+				sendLastJob();	 
+			}
+		}
+		
+		private void sendLastJob() {
+			if(lastJob != null && sender != null) {
+				sender.tell(lastJob, getSelf());
 			}
 		}
 		
@@ -61,7 +75,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	}
 	
 	@Before	
-	public void actors() throws Exception {
+	public void actors() throws Exception {	
 		Props jobReceiverProps = Props.create(JobReceiver.class);
 		
 		harvester = actorOf(jobReceiverProps, "harvesterMock");
@@ -73,7 +87,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testHarvestJob() throws Exception {
-		ask(database, new CreateHarvestJob("testDataSource"));
+		ask(database, new CreateHarvestJob("testDataSource"));		
 		askAssert(harvester, new GetLastReceivedJob(), HarvestJobInfo.class);
 	}
 	
