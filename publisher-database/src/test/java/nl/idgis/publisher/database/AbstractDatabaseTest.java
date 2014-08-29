@@ -79,9 +79,13 @@ public abstract class AbstractDatabaseTest {
 			.withValue("url", ConfigValueFactory.fromAnyRef(url))
 			.withValue("templates", ConfigValueFactory.fromAnyRef("nl.idgis.publisher.database.ExtendedPostgresTemplates"))
 			.withValue("user", ConfigValueFactory.fromAnyRef(user))
-			.withValue("password", ConfigValueFactory.fromAnyRef(password));
+			.withValue("password", ConfigValueFactory.fromAnyRef(password));		
 		
-		system = ActorSystem.create();
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		system = ActorSystem.create("test", akkaConfig);
 		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 	}
 	
