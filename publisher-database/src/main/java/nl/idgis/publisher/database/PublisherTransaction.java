@@ -20,6 +20,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.database.QDatasetColumnDiff.datasetColumnDiff;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -48,6 +49,7 @@ import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
+import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
@@ -103,11 +105,14 @@ import nl.idgis.publisher.domain.job.NotificationType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.ColumnDiff;
+import nl.idgis.publisher.domain.service.ColumnDiffOperation;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
+import nl.idgis.publisher.domain.service.Type;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -264,6 +269,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetNotifications (context, (GetNotifications) query);
 		} else if (query instanceof StoreNotificationResult) {
 			executeStoreNotificationResult (context, (StoreNotificationResult) query);
+		} else if (query instanceof GetDatasetColumnDiff) {
+			executeGetDatasetColumnDiff (context, (GetDatasetColumnDiff) query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
@@ -1405,5 +1412,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 
 		context.answer (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
+	}
+	
+	private void executeGetDatasetColumnDiff (final QueryDSLContext context, final GetDatasetColumnDiff query) {
+		final SQLQuery baseQuery = context.query ().from (datasetColumnDiff)
+			.join (dataset).on (datasetColumnDiff.datasetId.eq (dataset.id))
+			.where (dataset.identification.eq (query.getDatasetIdentification ()))
+			.orderBy (datasetColumnDiff.name.asc ());
+		
+		final List<ColumnDiff> diffs = new ArrayList<> ();
+		
+		for (final Tuple t: baseQuery.clone ().list (datasetColumnDiff.diff, datasetColumnDiff.name, datasetColumnDiff.dataType)) {
+			diffs.add (new ColumnDiff (new Column (
+					t.get (datasetColumnDiff.name),
+					Type.valueOf (t.get (datasetColumnDiff.dataType))
+				), 
+				ColumnDiffOperation.valueOf (t.get (datasetColumnDiff.diff))
+			));
+		}
+		
+		context.answer (new InfoList<ColumnDiff> (diffs, baseQuery.count ()));
 	}
 }

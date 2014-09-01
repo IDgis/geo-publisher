@@ -1,8 +1,9 @@
-@(dataset: nl.idgis.publisher.domain.web.Dataset)
+@(dataset: nl.idgis.publisher.domain.web.Dataset, diffs: List[nl.idgis.publisher.domain.service.ColumnDiff])
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
 @import nl.idgis.publisher.domain.job.load.ImportNotificationProperties
+@import nl.idgis.publisher.domain.service.ColumnDiffOperation
 
 @categoryRefLink(cat: Category, cls: String = null) = {
 	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
@@ -61,7 +62,25 @@
 						}
 					</div>
 					<div class="panel-body">
+						Wijzigingen in kolommen:
 					</div>
+					<table class="table">
+						<tbody>
+							@for(diff <- diffs) {
+								<tr>
+									<th>@diff.getColumn().getName()</th>
+									<td>@diff.getColumn().getDataType().name</td>
+									<td>
+										@if(diff.getOperation().equals(ColumnDiffOperation.ADD)) {
+											Toegevoegd
+										} else {
+											Verwijderd
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
 					<div class="panel-footer">
 						@if(!notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
 							<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">Verwerpen</button>

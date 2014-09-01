@@ -17,6 +17,7 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
@@ -43,6 +44,7 @@ import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
+import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -55,8 +57,8 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
@@ -184,6 +186,8 @@ public class Admin extends UntypedActor {
 			handleListActiveNotifications ((ListActiveNotifications) message);
 		} else if (message instanceof PutNotificationResult) {
 			handlePutNotificationResult ((PutNotificationResult) message);
+		} else if (message instanceof ListDatasetColumnDiff) {
+			handleListDatasetColumnDiff ((ListDatasetColumnDiff) message);
 		} else {
 			unhandled (message);
 		}
@@ -286,6 +290,23 @@ public class Admin extends UntypedActor {
 		GetDatasetColumns di = new GetDatasetColumns(listColumns.getDatasetId());
 		
 		database.tell(di, getSender());
+	}
+	
+	private void handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+		
+		final Future<Object> result = Patterns.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ()), 15000);
+		
+		result.onSuccess(new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				@SuppressWarnings("unchecked")
+				final InfoList<ColumnDiff> diffs = (InfoList<ColumnDiff>) msg;
+				
+				sender.tell (diffs.getList (), self);
+			}
+		}, context ().dispatcher ());
 	}
 
 	private void handleListDataSources (final ListEntity<?> listEntity) {

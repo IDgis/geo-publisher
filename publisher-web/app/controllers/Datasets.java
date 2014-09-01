@@ -15,6 +15,7 @@ import models.Domain.Function2;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
+import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
@@ -24,6 +25,7 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
@@ -82,11 +84,12 @@ public class Datasets extends Controller {
 		
 		return from (database)
 			.get (Dataset.class, datasetId)
-			.execute (new Function<Dataset, Result> () {
+			.query (new ListDatasetColumnDiff (datasetId))
+			.execute (new Function2<Dataset, List<ColumnDiff>, Result> () {
 
 				@Override
-				public Result apply (final Dataset dataset) throws Throwable {
-					return ok (show.render (dataset));
+				public Result apply (final Dataset dataset, final List<ColumnDiff> diffs) throws Throwable {
+					return ok (show.render (dataset, diffs));
 				}
 			});
 	}
