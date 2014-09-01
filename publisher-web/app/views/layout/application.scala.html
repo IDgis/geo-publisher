@@ -39,16 +39,11 @@
 				
 				@* Top links: *@
 				<ul class="nav navbar-top-links navbar-right">
-					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge">1</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu dropdown-messages">
-							<li class="dropdown-header">1 dataset met structuurwijziging</li>
+					<li class="dropdown" id="event-dropdown-notifications">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
+						<ul class="js-list dropdown-menu dropdown-messages">
+							<li class="dropdown-header">geen datasets met structuurwijziging</li>
 							<li class="divider"></li>
-							<li>
-								<a href="#">
-									<strong>Structuurwijziging: dataset Sterrenwachten</strong>
-								</a>
-							</li>
 							<li class="divider"></li>
 							<li>
 								<a class="text-center" href="@routes.Datasets.listWithMessages()">Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
@@ -58,7 +53,7 @@
 					<li class="dropdown" id="event-dropdown-active-tasks">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Taken"><span class="glyphicon glyphicon-tasks"></span> <span class="js-badge badge hidden">0</span> <b class="caret"></b></a>
 						<ul class="js-list dropdown-menu dropdown-tasks">
-							<li class="dropdown-header">1 actieve taak</li>
+							<li class="dropdown-header">geen active taken</li>
 							<li class="divider"></li>
 							<li class="divider"></li>
 							<li>
@@ -66,24 +61,11 @@
 							</li>
 						</ul>
 					</li>
-					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge">1</span> <b class="caret"></b></a>
-						<ul class="dropdown-menu dropdown-alerts">
-							<li class="dropdown-header">1 nieuwe fout</li>
+					<li class="dropdown" id="event-dropdown-issues">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
+						<ul class="js-list dropdown-menu dropdown-alerts">
+							<li class="dropdown-header">geen nieuwe fouten</li>
 							<li class="divider"></li>
-							<li>
-								<a href="#">
-									<div>
-										<p>
-											<strong>Fout tijdens bijwerken</strong>
-											<span class="pull-right">1 dag geleden</span>
-										</p>
-									</div>
-									<p>
-										<span class="text-muted">Dataset</span> Geluidszone bedrijventerrein  
-									</p>
-								</a>
-							</li>
 							<li class="divider"></li>
 							<li><a href="#" class="text-center">Bekijk foutlogboek <span class="glyphicon glyphicon-chevron-right"></span></a></li>
 						</ul>

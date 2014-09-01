@@ -17,6 +17,7 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
+import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
@@ -30,6 +31,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
@@ -42,6 +44,7 @@ import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
+import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -49,10 +52,12 @@ import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
+import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
@@ -179,12 +184,16 @@ public class Admin extends UntypedActor {
 			handleListIssues ((ListIssues)message);
 		} else if (message instanceof ListActiveNotifications) {
 			handleListActiveNotifications ((ListActiveNotifications) message);
+		} else if (message instanceof PutNotificationResult) {
+			handlePutNotificationResult ((PutNotificationResult) message);
+		} else if (message instanceof ListDatasetColumnDiff) {
+			handleListDatasetColumnDiff ((ListDatasetColumnDiff) message);
 		} else {
 			unhandled (message);
 		}
 	}
 
-	private Notification createNotification (final StoredNotification storedNotification) {
+	private static Notification createNotification (final StoredNotification storedNotification) {
 		return new Notification (
 				"" + storedNotification.getId (), 
 				new Message (
@@ -281,6 +290,23 @@ public class Admin extends UntypedActor {
 		GetDatasetColumns di = new GetDatasetColumns(listColumns.getDatasetId());
 		
 		database.tell(di, getSender());
+	}
+	
+	private void handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+		
+		final Future<Object> result = Patterns.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ()), 15000);
+		
+		result.onSuccess(new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				@SuppressWarnings("unchecked")
+				final InfoList<ColumnDiff> diffs = (InfoList<ColumnDiff>) msg;
+				
+				sender.tell (diffs.getList (), self);
+			}
+		}, context ().dispatcher ());
 	}
 
 	private void handleListDataSources (final ListEntity<?> listEntity) {
@@ -538,14 +564,7 @@ public class Admin extends UntypedActor {
 						if(msg instanceof DatasetInfo) {
 							DatasetInfo datasetInfo = (DatasetInfo)msg;
 							log.debug("dataset info received");
-							Dataset dataset = 
-									new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-											new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-											new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())),
-											null, // notification list
-											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-											new ObjectMapper().readValue (datasetInfo.getFilterConditions (), Filter.class)
-									);
+							final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
 							log.debug("sending dataset: " + dataset);
 							sender.tell (dataset, getSelf());
 						} else {
@@ -655,6 +674,43 @@ public class Admin extends UntypedActor {
 		}
 	}
 
+	private static Dataset createDataset (final DatasetInfo datasetInfo, final ObjectMapper objectMapper) throws Throwable {
+		// Determine dataset status and notification list:
+		final Status status;
+		final List<DashboardItem> notifications = new ArrayList<> ();
+		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
+			// Set imported status:
+			if (datasetInfo.getLastJobState () != null) {
+				status = new Status (
+						jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
+						datasetInfo.getLastImportTime () != null
+							? datasetInfo.getLastImportTime ()
+							: new Timestamp (new Date ().getTime ())
+					);
+			} else {
+				status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+			}
+		} else {
+			// Dataset has never been imported, don't report any notifications:
+			status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+		}
+		
+		// Add notifications:
+		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
+			for (final StoredNotification sn: datasetInfo.getNotifications ()) {
+				notifications.add (createNotification (sn));
+			}
+		}
+		
+		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
+				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+				status,
+				notifications, // notification list
+				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
+				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
+		);
+	}
+	
 	private void handleListDatasets (final ListDatasets listDatasets) {
 		String categoryId = listDatasets.categoryId();
 		log.debug ("handleListDatasets categoryId=" + categoryId);
@@ -675,42 +731,7 @@ public class Admin extends UntypedActor {
 						final ObjectMapper objectMapper = new ObjectMapper ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
-							// Determine dataset status and notification list:
-							final Status status;
-							final List<DashboardItem> notifications = new ArrayList<> ();
-							if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
-								// Set imported status:
-								if (datasetInfo.getLastJobState () != null) {
-									status = new Status (
-											jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
-											datasetInfo.getLastImportTime () != null
-												? datasetInfo.getLastImportTime ()
-												: new Timestamp (new Date ().getTime ())
-										);
-								} else {
-									status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-								}
-							} else {
-								// Dataset has never been imported, don't report any notifications:
-								status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-							}
-							
-							// Add notifications:
-							if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
-								for (final StoredNotification sn: datasetInfo.getNotifications ()) {
-									notifications.add (createNotification (sn));
-								}
-							}
-							
-							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-									status,
-									notifications, // notification list
-									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-									objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
-							);
-							
-							pageBuilder.add (dataset);
+							pageBuilder.add (createDataset (datasetInfo, objectMapper));
 						}
 						
 						log.debug("sending dataset page");
@@ -812,4 +833,18 @@ public class Admin extends UntypedActor {
 			}
 		}, getContext().dispatcher());
 	}
-}
+	
+	private void handlePutNotificationResult (final PutNotificationResult query) {
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+		
+		final Future<Object> result = Patterns.ask (database, new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), 15000);
+		
+		result.onSuccess (new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				sender.tell ((Response<?>) msg, self);
+			}
+		}, context ().dispatcher ());
+	}
+} 

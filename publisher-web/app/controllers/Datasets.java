@@ -13,15 +13,19 @@ import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
+import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
+import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
@@ -46,6 +50,7 @@ import play.mvc.Security;
 import views.html.datasets.columns;
 import views.html.datasets.form;
 import views.html.datasets.list;
+import views.html.datasets.show;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -72,6 +77,48 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> listByCategoryWithMessages (String categoryId, long page) {
 		return listByCategoryAndMessages(categoryId, true, page);
+	}
+	
+	public static Promise<Result> show (final String datasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.query (new ListDatasetColumnDiff (datasetId))
+			.execute (new Function2<Dataset, List<ColumnDiff>, Result> () {
+
+				@Override
+				public Result apply (final Dataset dataset, final List<ColumnDiff> diffs) throws Throwable {
+					return ok (show.render (dataset, diffs));
+				}
+			});
+	}
+	
+	public static Promise<Result> setNotificationResult (final String datasetId, final String notificationId) {
+		final String[] resultString = request ().body ().asFormUrlEncoded ().get ("result");
+		if (resultString == null || resultString.length != 1 || resultString[0] == null) {
+			return Promise.pure ((Result) redirect (controllers.routes.Datasets.show (datasetId)));
+		}
+		
+		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf (resultString[0]);
+		
+		Logger.debug ("Conform notification: " + notificationId + ", " + result);
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.query (new PutNotificationResult (notificationId, result))
+			.execute (new Function<Response<?>, Result> () {
+				@Override
+				public Result apply (final Response<?> response) throws Throwable {
+					if (response.getOperationresponse ().equals (CrudResponse.OK)) {
+						flash ("success", "Resultaat van de structuurwijziging is opgeslagen");
+					} else {
+						flash ("danger", "Resultaat van de structuurwijziging kon niet worden opgeslagen");
+					}
+					return redirect (controllers.routes.Datasets.show (datasetId));
+				}
+			});
 	}
 	
 	public static Promise<Result> scheduleRefresh(String datasetId) {

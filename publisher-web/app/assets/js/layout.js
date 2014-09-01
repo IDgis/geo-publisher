@@ -77,7 +77,9 @@ require ([
     // Events:
     // =========================================================================
     var eventTypes = {
-    	'active-tasks': 'activeTasks'	
+    	'active-tasks': 'activeTasks',
+    	'notifications': 'notifications',
+    	'issues': 'issues'
     };
     
     function processEvents (data) {
@@ -120,20 +122,32 @@ require ([
     // =========================================================================
     // Update task list:
     // =========================================================================
-    var taskDropdown = dom.byId ('event-dropdown-active-tasks');
+    var taskDropdown = dom.byId ('event-dropdown-active-tasks'),
+    	notificationsDropdown = dom.byId ('event-dropdown-notifications'),
+    	issuesDropdown = dom.byId ('event-dropdown-issues');
+    
+    function updateEventDropdown (dropdown, data) {
+    	var badge = query ('.js-badge', dropdown)[0],
+			list = query ('.js-list', dropdown)[0];
+		
+		// Update the badge:
+		domConstruct.empty (badge);
+		put (badge, document.createTextNode ((data.hasMore ? '> ' : '') + data.list.length));
+		
+		domClass[data.list.length === 0 ? 'add' : 'remove'] (badge, 'hidden');
+		
+		// Update the contents of the list:
+		domConstruct.empty (list);
+		list.innerHTML = data.headerContent;
+    }
     
     topic.subscribe ('publisher/active-tasks', function (activeTasks) {
-    	var badge = query ('.js-badge', taskDropdown)[0],
-    		list = query ('.js-list', taskDropdown)[0];
-    	
-    	// Update the badge:
-    	domConstruct.empty (badge);
-    	put (badge, document.createTextNode (activeTasks.list.length));
-    	
-    	domClass[activeTasks.list.length === 0 ? 'add' : 'remove'] (badge, 'hidden');
-    	
-    	// Update the contents of the list:
-    	domConstruct.empty (list);
-    	list.innerHTML = activeTasks.headerContent;
+    	updateEventDropdown (taskDropdown, activeTasks);
+    });
+    topic.subscribe ('publisher/notifications', function (notifications) {
+    	updateEventDropdown (notificationsDropdown, notifications);
+    });
+    topic.subscribe ('publisher/issues', function (issues) {
+    	updateEventDropdown (issuesDropdown, issues);
     });
 });

@@ -7,6 +7,7 @@ GET		/												controllers.Dashboard.index()
 
 # Datasets
 GET		/datasets										controllers.Datasets.list(page: Long ?= 1)
+GET		/datasets/:datasetId							controllers.Datasets.show(datasetId: String)
 GET		/datasets/status/with-messages					controllers.Datasets.listWithMessages(page: Long ?= 1)
 GET		/datasets/category/:categoryId					controllers.Datasets.listByCategory(categoryId: String, page: Long ?= 1)
 GET		/datasets/status/with-messages/category/:categoryId	controllers.Datasets.listByCategoryWithMessages(categoryId: String, page: Long ?= 1)
@@ -19,6 +20,7 @@ POST	/datasets/:datasetId/edit						controllers.Datasets.submitEdit(datasetId: S
 GET 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId : String)
 GET		/datasets/$datasetId<[^\.]+>.json				controllers.Datasets.getDatasetJson(datasetId: String)
 POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datasetId: String)
+POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setNotificationResult(datasetId: String, notificationId: String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden

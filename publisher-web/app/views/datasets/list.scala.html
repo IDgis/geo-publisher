@@ -116,13 +116,13 @@
 									<h4 class="list-group-item-heading">@dataset.name </h4>
 									
 									@categoryRefLink(dataset.category, "label label-info")
-									<span class="label label-default">Source dataset: @dataset.sourceDataset.name</span>
+									<span class="label label-default">Brondataset: @dataset.sourceDataset.name</span>
 								</div>
 								<div class="col-md-5">
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
 											<p>
-												<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens.</span>
+												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens. <span class="glyphicon glyphicon-pencil"></span></a>
 											</p>
 										}
 									}
