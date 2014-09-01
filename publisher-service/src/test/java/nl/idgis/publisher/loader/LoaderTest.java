@@ -1,11 +1,16 @@
 package nl.idgis.publisher.loader;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,13 +23,24 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AbstractDatabaseTest;
+import nl.idgis.publisher.database.messages.AddNotificationResult;
+import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.Updated;
+import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -229,7 +245,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 	}
 
 	@Test
-	public void testImportJob() throws Exception {
+	public void testExecuteImportJob() throws Exception {
 		insertDataset();
 		ask(database, new CreateImportJob("testDataset"));
 		
@@ -237,6 +253,87 @@ public class LoaderTest extends AbstractDatabaseTest {
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo job : iterable.cast(ImportJobInfo.class)) {
 			askAssert(loader, job, Ack.class);
+		}
+		
+		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);
+	}
+	
+	@Test
+	public void testAddColumnsChangedNotification() throws Exception {
+		insertDataSource();		
+		
+		Dataset testDataset = createTestDataset();
+		Table testTable = testDataset.getTable();
+		List<Column> testColumns = testTable.getColumns();
+		
+		askAssert(database, new RegisterSourceDataset("testDataSource", testDataset), Registered.class);
+		
+		ask(database, new CreateDataset(
+				"testDataset", 
+				"My Test Dataset", 
+				testDataset.getId(), 
+				testColumns, 
+				"{ \"expression\": null }"));
+				
+		ask(database, new CreateImportJob("testDataset"));
+		executeJobs(new GetImportJobs());
+		
+		Table updatedTable = new Table(
+				testTable.getName(), 
+				Arrays.asList(testColumns.get(0)));		
+		Dataset updatedDataset = new Dataset(
+				testDataset.getId(),
+				testDataset.getCategoryId(),
+				updatedTable,
+				testDataset.getRevisionDate());
+		
+		askAssert(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
+		ask(database, new CreateImportJob("testDataset"));
+		
+		TypedIterable<?> iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(iterable.contains(ImportJobInfo.class));
+		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
+			assertFalse(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+			askAssert(loader, jobInfo, Ack.class);
+		}
+		
+		iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(iterable.contains(ImportJobInfo.class));
+		
+		Set<Integer> pendingJobs = new HashSet<>();
+		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
+			pendingJobs.add(jobInfo.getId());
+			
+			assertTrue(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+			
+			for(Notification notification : jobInfo.getNotifications()) {
+				if(notification.getType() == ImportNotificationType.SOURCE_COLUMNS_CHANGED) {
+					assertNull(notification.getResult());
+				}
+			}
+		}	
+		
+		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
+			if(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+				ask(database, new AddNotificationResult(
+						jobInfo, 
+						ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
+						ConfirmNotificationResult.OK));
+			}
+		}
+				
+		iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(iterable.contains(ImportJobInfo.class));
+		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
+			assertTrue(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+			
+			for(Notification notification : jobInfo.getNotifications()) {
+				if(notification.getType() == ImportNotificationType.SOURCE_COLUMNS_CHANGED) {
+					assertEquals(ConfirmNotificationResult.OK, notification.getResult());
+				}
+			}
+			
+			askAssert(loader, jobInfo, Ack.class);
 		}
 		
 		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);
