@@ -154,7 +154,12 @@ public abstract class AbstractDatabaseTest {
 		ask(database, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		Table testTable = testDataset.getTable();
-		ask(database, new CreateDataset(datasetId, "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
+		ask(database, new CreateDataset(
+				datasetId, 
+				"My Test Dataset", 
+				testDataset.getId(), 
+				testTable.getColumns(), 
+				"{ \"expression\": null }"));
 	}
 	
 	protected int insertDataSource() {
