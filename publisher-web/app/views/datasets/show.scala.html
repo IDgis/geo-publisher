@@ -2,6 +2,7 @@
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
+@import nl.idgis.publisher.domain.job.load.ImportNotificationProperties
 
 @categoryRefLink(cat: Category, cls: String = null) = {
 	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
@@ -52,14 +53,19 @@
 			@if(!dataset.activeNotifications.isEmpty) {
 			<div class="col-lg-6">
 				@for(notification <- dataset.activeNotifications) {
-				<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel panel-info">
+				<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
 					<div class="panel-heading">
 						Structuurwijziging
+						@if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+							(verworpen)
+						}
 					</div>
 					<div class="panel-body">
 					</div>
 					<div class="panel-footer">
-						<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">Verwerpen</button>
+						@if(!notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+							<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">Verwerpen</button>
+						}
 						<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">Toepassen</button>
 					</div>
 				</form>
