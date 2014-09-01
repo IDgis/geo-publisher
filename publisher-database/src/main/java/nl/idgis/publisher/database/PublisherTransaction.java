@@ -514,6 +514,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					datasetActiveNotification.jobId,
 					datasetActiveNotification.jobType,
 					datasetActiveNotification.datasetId,
+					datasetActiveNotification.datasetIdentification,
 					datasetActiveNotification.datasetName
 				)) {
 			notifications.add (new StoredNotification (
