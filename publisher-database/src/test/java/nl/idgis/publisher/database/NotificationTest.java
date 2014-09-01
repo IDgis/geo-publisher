@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Iterator;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.AddNotification;
@@ -25,6 +26,7 @@ import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import org.junit.Test;
 
@@ -32,7 +34,6 @@ import com.mysema.query.Tuple;
 
 public class NotificationTest extends AbstractDatabaseTest {
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testNotification() throws Exception {
 		insert(dataSource)
@@ -48,13 +49,17 @@ public class NotificationTest extends AbstractDatabaseTest {
 		
 		ask(database, new CreateImportJob("testDataset"));
 		
-		List<ImportJobInfo> jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
-		assertNotNull(jobInfos);
-		assertEquals(1, jobInfos.size());
+		TypedIterable<?> jobInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);		
+		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
-		ImportJobInfo jobInfo = (ImportJobInfo)jobInfos.get(0);
+		Iterator<ImportJobInfo> jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
+		assertTrue(jobInfoItr.hasNext());
+		ImportJobInfo jobInfo = jobInfoItr.next();;
+		
 		assertNotNull(jobInfo);		
 		assertEquals("testDataset", jobInfo.getDatasetId());
+		
+		assertFalse(jobInfoItr.hasNext());
 		
 		List<Notification> notifications = jobInfo.getNotifications();
 		assertNotNull(notifications);
@@ -69,11 +74,13 @@ public class NotificationTest extends AbstractDatabaseTest {
 		assertNotNull(notificationTuple);
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name(), notificationTuple.get(notification.type));
 		
-		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
-		assertNotNull(jobInfos);
-		assertEquals(1, jobInfos.size());
+		jobInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);		
+		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
-		jobInfo = (ImportJobInfo)jobInfos.get(0);
+		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
+		assertTrue(jobInfoItr.hasNext());
+		jobInfo = jobInfoItr.next();
+		
 		assertNotNull(jobInfo);		
 		assertEquals("testDataset", jobInfo.getDatasetId());
 		
@@ -108,11 +115,12 @@ public class NotificationTest extends AbstractDatabaseTest {
 				.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 				.singleResult(notificationResult.result));
 		
-		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
-		assertNotNull(jobInfos);
-		assertEquals(1, jobInfos.size());
+		jobInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);		
+		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
-		jobInfo = (ImportJobInfo)jobInfos.get(0);
+		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
+		assertTrue(jobInfoItr.hasNext());
+		jobInfo = jobInfoItr.next();
 		assertNotNull(jobInfo);		
 		assertEquals("testDataset", jobInfo.getDatasetId());
 		
@@ -132,11 +140,12 @@ public class NotificationTest extends AbstractDatabaseTest {
 				.where(notification.type.eq(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name()))
 				.exists());
 		
-		jobInfos = (List<ImportJobInfo>)ask(database, new GetImportJobs());
-		assertNotNull(jobInfos);
-		assertEquals(1, jobInfos.size());
+		jobInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);		
+		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
-		jobInfo = (ImportJobInfo)jobInfos.get(0);
+		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
+		assertTrue(jobInfoItr.hasNext());
+		jobInfo = jobInfoItr.next();
 		assertNotNull(jobInfo);		
 		assertEquals("testDataset", jobInfo.getDatasetId());
 		

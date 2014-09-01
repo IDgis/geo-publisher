@@ -1,6 +1,6 @@
 package nl.idgis.publisher.loader;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +20,7 @@ import akka.japi.Procedure;
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
@@ -32,6 +33,7 @@ import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractDatabaseTest {
 	
@@ -231,10 +233,10 @@ public class LoaderTest extends AbstractDatabaseTest {
 		insertDataset();
 		ask(database, new CreateImportJob("testDataset"));
 		
-		List<?> list = askAssert(database, new GetImportJobs(), List.class);
-		assertEquals(1, list.size());
-		for(Object o : list) {
-			askAssert(loader, o, Ack.class);
+		TypedIterable<?> iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(iterable.contains(ImportJobInfo.class));
+		for(ImportJobInfo job : iterable.cast(ImportJobInfo.class)) {
+			askAssert(loader, job, Ack.class);
 		}
 		
 		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);

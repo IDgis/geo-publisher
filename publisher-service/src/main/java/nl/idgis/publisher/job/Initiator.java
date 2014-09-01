@@ -3,7 +3,6 @@ package nl.idgis.publisher.job;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -17,6 +16,7 @@ import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.job.messages.Initiate;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -81,6 +81,8 @@ public class Initiator extends UntypedActor {
 	}
 	
 	private void scheduleInitiate() {
+		log.debug("scheduling next initiate message");
+		
 		getContext().system().scheduler().schedule(Duration.Zero(), INTERVAL, getSelf(), new Initiate(), getContext().dispatcher(), getSelf());
 	}
 	
@@ -96,13 +98,16 @@ public class Initiator extends UntypedActor {
 			
 			actorRefItr = actorRefs.entrySet().iterator();			
 			nextActorRef();
-		} else if(msg instanceof List) {
-			log.debug("job list received");
-			
-			List<JobInfo> jobs = (List<JobInfo>)msg;			
-			
-			jobItr = jobs.iterator();
-			nextJob();
+		} else if(msg instanceof TypedIterable) {
+			TypedIterable<?> typedIterable = (TypedIterable<?>)msg;
+			if(typedIterable.contains(JobInfo.class)) {			
+				log.debug("job list received");			
+				
+				jobItr = typedIterable.cast(JobInfo.class).iterator();
+				nextJob();
+			} else {
+				unhandled(msg);
+			}
 		}  else if(msg instanceof Ack) {
 			log.debug("job delivered");
 			

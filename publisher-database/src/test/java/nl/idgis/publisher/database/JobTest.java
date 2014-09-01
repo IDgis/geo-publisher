@@ -1,7 +1,6 @@
 package nl.idgis.publisher.database;
 
 import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
@@ -31,7 +30,6 @@ import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
@@ -46,7 +44,6 @@ import com.mysema.query.Tuple;
 
 public class JobTest extends AbstractDatabaseTest {	
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testHarvestJob() throws Exception {
 		
@@ -59,19 +56,20 @@ public class JobTest extends AbstractDatabaseTest {
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		result = ask(database, new GetHarvestJobs());		
-		assertTrue(result instanceof List);
+		TypedIterable<?> jobs = askAssert(database, new GetHarvestJobs(), TypedIterable.class);		
+		assertTrue(jobs.contains(HarvestJobInfo.class));
 		
-		List<HarvestJobInfo> jobs = (List<HarvestJobInfo>)result;
-		assertFalse(jobs.isEmpty());
+		Iterator<HarvestJobInfo> jobsItr = jobs.cast(HarvestJobInfo.class).iterator();
+		assertTrue(jobsItr.hasNext());
 		
-		HarvestJobInfo job = jobs.get(0);
+		HarvestJobInfo job = jobsItr.next();
 		assertNotNull(job);
 		
 		assertEquals("testDataSource", job.getDataSourceId());
+		
+		assertFalse(jobsItr.hasNext());
 	}	
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testImportAndServiceJob() throws Exception {
 		int dataSourceId = insertDataSource();
@@ -159,16 +157,13 @@ public class JobTest extends AbstractDatabaseTest {
 		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
-		result = ask(database, new GetImportJobs());
-		assertTrue(result instanceof List);
+		TypedIterable<?> importJobsInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(importJobsInfos.contains(ImportJobInfo.class));
 		
-		List<JobInfo> jobsInfos = (List<JobInfo>)result;
-		assertFalse(jobsInfos.isEmpty());
+		Iterator<ImportJobInfo> importJobsItr = importJobsInfos.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobsItr.hasNext());		
 		
-		JobInfo jobInfo = jobsInfos.get(0);
-		assertTrue(jobInfo instanceof ImportJobInfo);
-		
-		ImportJobInfo importJobInfo = (ImportJobInfo)jobInfo;
+		ImportJobInfo importJobInfo = importJobsItr.next();
 		assertEquals("testDataset", importJobInfo.getDatasetId());
 		assertEquals("testCategory", importJobInfo.getCategoryId());		
 		
@@ -192,7 +187,7 @@ public class JobTest extends AbstractDatabaseTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = ask(database, new UpdateJobState(jobInfo, JobState.SUCCEEDED));
+		result = ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = ask(database, new GetDatasetStatus());
@@ -211,16 +206,12 @@ public class JobTest extends AbstractDatabaseTest {
 		result = ask(database, new CreateServiceJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(database, new GetServiceJobs());
-		assertTrue(result instanceof List);
+		TypedIterable<?> serviceJobsInfos = askAssert(database, new GetServiceJobs(), TypedIterable.class);
+		assertTrue(serviceJobsInfos.contains(ServiceJobInfo.class));
 		
-		jobsInfos = (List<JobInfo>)result;
-		assertFalse(jobsInfos.isEmpty());
+		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
 		
-		jobInfo = jobsInfos.get(0);
-		assertTrue(jobInfo instanceof ServiceJobInfo);
-		
-		ServiceJobInfo serviceJobInfo = (ServiceJobInfo)jobInfo;
+		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
 		result = ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		

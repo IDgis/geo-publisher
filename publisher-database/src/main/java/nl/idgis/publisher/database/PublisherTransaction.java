@@ -432,6 +432,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeGetServiceJobs(QueryDSLContext context) {
 		context.answer(
+			ServiceJobInfo.class,
+				
 			context.query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
@@ -990,7 +992,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					notifications));
 		}
 		
-		context.answer(jobs);
+		context.answer(ImportJobInfo.class, jobs);
 	}
 
 	private void executeGetDatasetColumns(QueryDSLContext context, GetDatasetColumns dc) {		
@@ -1022,6 +1024,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeGetHarvestJobs(QueryDSLContext context) {
 		context.answer(
+			HarvestJobInfo.class,
+				
 			context.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
