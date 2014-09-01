@@ -1,0 +1,52 @@
+@(errors: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue])
+
+<div class="panel @if(errors.values.isEmpty){panel-success}else{panel-danger}">
+	<div class="panel-heading">
+		<div class="row">
+			<div class="col-xs-4">
+				<p class="announcement-heading">
+					<span class="glyphicon glyphicon-warning-sign"></span>
+				</p>
+			</div>
+			<div class="col-xs-8 text-right">
+				<p class="announcement-heading">
+					@if(errors.values.isEmpty) {
+						geen
+					} else {
+						@if(errors.hasMorePages){&gt; }@errors.values.size
+					}
+				</p>
+				<p class="announcement-text">
+					Nieuwe foutmelding@if(errors.values.size != 1){en}
+				</p>
+				
+			</div>
+		</div>
+	</div>
+	<ul class="list-group">
+		@for(error <- errors.values) {
+			<li class="list-group-item">
+				@helper.issue(error)
+			@*
+			<div>
+				<p>
+					<strong>@Domain.message(error.message)</strong>									
+				</p>
+			</div>
+			*@
+			</li>
+		}
+	</ul>
+	<a href="@routes.Logging.messages()">
+		<div class="panel-footer">
+			<div class="row">
+				<div class="col-xs-10">
+					Bekijk foutlogboek
+				</div>
+				<div class="col-xs-2 text-right">
+					<span class="glyphicon glyphicon-circle-arrow-right"></span>
+				</div>
+			</div>
+		</div>
+	</a>
+</div>

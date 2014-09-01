@@ -1,0 +1,19 @@
+@(issues: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Issue])
+
+<li class="dropdown-header">
+	@if(issues.values.isEmpty) {
+		geen nieuwe fouten
+	} else {
+		@if(issues.hasMorePages){&gt; }@issues.values.size nieuwe fout@if(issues.values.size>1){en}
+	}
+</li>
+<li class="divider"></li>
+@for(issue <- issues.values) {
+	<li>
+		<a href="@routes.Logging.messagesWithFilter("error", 1)">
+			@helper.issue(issue)
+		</a>
+	</li>
+}
+<li class="divider"></li>
+<li><a href="@routes.Logging.messages()" class="text-center">Bekijk foutlogboek <span class="glyphicon glyphicon-chevron-right"></span></a></li>

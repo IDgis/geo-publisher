@@ -31,7 +31,7 @@
 	
 	<div class="page-content">
 		<div class="row">
-			<!-- DATASOURCES -->
+			@* DATASOURCES *@
 			<div class="col-lg-3">
 				@if(dataSources.values.size == 0){
 					<div class="panel panel-warning">
@@ -86,112 +86,19 @@
 				</div>
 			</div>
 					
-			<!-- NOTIFICATIONS -->
-			<div class="col-lg-3">
-				<div class="panel @if(notifications.values.isEmpty){panel-success}else{panel-info}">
-					<div class="panel-heading">
-						<div class="row">
-							<div class="col-xs-6">
-								<p class="announcement-heading">
-									<span class="glyphicon glyphicon-bell"></span>
-								</p>
-							</div>
-							<div class="col-xs-6 text-right">
-								<p class="announcement-heading">
-									@if(notifications.values.isEmpty) {
-										geen
-									} else {
-										@if(notifications.hasMorePages){&gt; }@notifications.values.size
-									}
-								</p>
-								<p class="announcement-text">
-									Melding@if(notifications.values.size != 1){en}
-								</p>
-							</div>
-						</div>
-					</div>
-					<div class="list-group">
-						@for(notification <- notifications.values) {
-							<a class="list-group-item notification" href="#">
-								 <h4 class="list-group-item-heading">@helper.entityReference(notification.message.properties)</h4>
-								 <p class="list-group-item-text">
-								 	@Domain.message(notification.message)
-								 </p>
-							</a>
-						}
-					</div>
-					<a href="@routes.Datasets.listWithMessages()">
-						<div class="panel-footer">
-							<div class="row">
-								<div class="col-xs-10">
-									Alle datatasets met meldingen
-								</div>
-								<div class="col-xs-2 text-right">
-									<span class="glyphicon glyphicon-circle-arrow-right"></span>
-								</div>
-							</div>
-						</div>
-					</a>
-				</div>
+			@* NOTIFICATIONS *@
+			<div class="col-lg-3" id="dashboard-panel-notifications">
+				@helper.notifications(notifications)
 			</div>
 			
-			<!-- ACTIVE TASKS -->
+			@* ACTIVE TASKS *@
 			<div class="col-lg-3" id="dashboard-panel-active-tasks">
 				@helper.activeTasks(tasks)
 			</div>
 			
-			<!-- ERRORS  -->
-			<div class="col-lg-3">
-				<div class="panel @if(errors.values.isEmpty){panel-success}else{panel-danger}">
-					<div class="panel-heading">
-						<div class="row">
-							<div class="col-xs-4">
-								<p class="announcement-heading">
-									<span class="glyphicon glyphicon-warning-sign"></span>
-								</p>
-							</div>
-							<div class="col-xs-8 text-right">
-								<p class="announcement-heading">
-									@if(errors.values.isEmpty) {
-										geen
-									} else {
-										@if(errors.hasMorePages){&gt; }@errors.values.size
-									}
-								</p>
-								<p class="announcement-text">
-									Nieuwe foutmelding@if(errors.values.size != 1){en}
-								</p>
-								
-							</div>
-						</div>
-					</div>
-					<ul class="list-group">
-						@for(error <- errors.values) {
-							<li class="list-group-item">
-								@helper.issue(error)
-							@*
-							<div>
-								<p>
-									<strong>@Domain.message(error.message)</strong>									
-								</p>
-							</div>
-							*@
-							</li>
-						}
-					</ul>
-					<a href="@routes.Logging.messages()">
-						<div class="panel-footer">
-							<div class="row">
-								<div class="col-xs-10">
-									Bekijk foutlogboek
-								</div>
-								<div class="col-xs-2 text-right">
-									<span class="glyphicon glyphicon-circle-arrow-right"></span>
-								</div>
-							</div>
-						</div>
-					</a>
-				</div>
+			@* ERRORS  *@
+			<div class="col-lg-3" id="dashboard-panel-issues">
+				@helper.issues(errors)
 			</div>
 		</div>
 	</div>
