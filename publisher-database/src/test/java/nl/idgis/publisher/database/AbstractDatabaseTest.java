@@ -66,7 +66,7 @@ public abstract class AbstractDatabaseTest {
 			dbDir = new File(BASE_DIR, "" + Math.abs(new Random().nextInt()));
 		} while(dbDir.exists());
 		
-		String url = "jdbc:h2:" + dbDir.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL";		
+		String url = "jdbc:h2:" + dbDir.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=false";		
 		String user = "sa";
 		String password = "";
 		
