@@ -25,6 +25,7 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
+import nl.idgis.publisher.protocol.messages.Ack;
 
 public class InitiatorTest extends AbstractDatabaseTest {
 	
@@ -55,6 +56,8 @@ public class InitiatorTest extends AbstractDatabaseTest {
 			log.debug("message received: " + msg);
 			
 			if(msg instanceof JobInfo) {
+				getSender().tell(new Ack(), getSelf());
+				
 				jobs.add((JobInfo)msg);				
 				sendJobs();
 			} else if(msg instanceof GetReceivedJobs) {

@@ -154,7 +154,7 @@ public class Loader extends UntypedActor {
 		return false;
 	}
 		
-	private void handleDatasetStatus(final ImportJobInfo importJob, final DatasetStatusInfo datasetStatus, boolean isImporting) {
+	private boolean handleDatasetStatus(final ImportJobInfo importJob, final DatasetStatusInfo datasetStatus, boolean isImporting, final ActorRef sender) {
 		log.debug("dataset status received");
 		
 		if(datasetStatus.isSourceDatasetColumnsChanged()) {
@@ -165,7 +165,7 @@ public class Loader extends UntypedActor {
 			} else {
 				log.debug("notification not present -> add it");
 				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
-				return;
+				return false;
 			}
 		} else {
 			log.debug("source columns not changed");
@@ -173,7 +173,7 @@ public class Loader extends UntypedActor {
 			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification present -> remove it");
 				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
-				return;
+				return false;
 			} else {
 				log.debug("notification not present");
 			}
@@ -186,11 +186,11 @@ public class Loader extends UntypedActor {
 			if(ImportNotificationType.SOURCE_COLUMNS_CHANGED.equals(type)) {
 				if(!ConfirmNotificationResult.OK.equals(result)) {
 					log.debug("column changes not (yet) accepted");
-					return;
+					return false;
 				}
 			} else {
 				log.error("unknown notification type: " + type.name());
-				return;
+				return false;
 			}
 		}
 		
@@ -207,18 +207,22 @@ public class Loader extends UntypedActor {
 					@Override
 					public void onSuccess(Object msg) throws Throwable {
 						if(msg instanceof NotConnected) {
+							sender.tell(new Ack(), getSelf());
+							
 							log.warning("not connected: " + dataSourceId);
 						} else {
 							final ActorRef dataSource = (ActorRef)msg;
 							
 							log.debug("dataSource received");
 							
-							startImport(importJob, dataSource);
+							startImport(importJob, dataSource, sender);
 						}
 					}
 					
 				}, getContext().dispatcher());
 		}
+		
+		return true;
 	}
 
 	private void handleImportJob(final ImportJobInfo importJob) {
@@ -227,24 +231,29 @@ public class Loader extends UntypedActor {
 		final boolean isImporting = isImporting(importJob.getDataSourceId());		
 		log.debug("isImporting: " + isImporting);
 		
+		final ActorRef sender = getSender();
 		Patterns.ask(database, new GetDatasetStatus(importJob.getDatasetId()), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {					
-					handleDatasetStatus(importJob, (DatasetStatusInfo)msg, isImporting);
+					if(!handleDatasetStatus(importJob, (DatasetStatusInfo)msg, isImporting, sender)) {
+						sender.tell(new Ack(), getSelf());
+					}
 				}
 				
 			}, getContext().dispatcher());
 	}
 
-	private void startImport(final ImportJobInfo importJob, final ActorRef dataSource) {
+	private void startImport(final ImportJobInfo importJob, final ActorRef dataSource, final ActorRef sender) {
 		Patterns.ask(database, new UpdateJobState(importJob, JobState.STARTED), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("job started");
+					
+					sender.tell(new Ack(), getSelf());
 					
 					Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
 					.onSuccess(new OnSuccess<Object>() {

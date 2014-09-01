@@ -234,7 +234,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 		List<?> list = askAssert(database, new GetImportJobs(), List.class);
 		assertEquals(1, list.size());
 		for(Object o : list) {
-			loader.tell(o, ActorRef.noSender());
+			askAssert(loader, o, Ack.class);
 		}
 		
 		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);

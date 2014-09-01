@@ -2,27 +2,41 @@ package nl.idgis.publisher.job;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.job.messages.Initiate;
+import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.OnSuccess;
+import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
-public class Initiator extends Scheduled {
+public class Initiator extends UntypedActor {
+	
+	private static final FiniteDuration INTERVAL = Duration.create(10, TimeUnit.SECONDS);
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef database;
 	private final Map<Object, ActorRef> actorRefs;
+	
+	private ActorRef jobTarget;
+	private Iterator<JobInfo> jobItr;
+	
+	private Iterator<Entry<Object, ActorRef>> actorRefItr;
 	
 	public Initiator(ActorRef database, Map<Object, ActorRef> actorRefs) {
 		this.database = database;
@@ -37,32 +51,64 @@ public class Initiator extends Scheduled {
 		
 		return Props.create(Initiator.class, database,  Collections.unmodifiableMap(actorRefs));
 	}
+	
+	private void nextJob() {
+		if(jobItr.hasNext()) {
+			log.debug("sending job to target");
+			
+			jobTarget.tell(jobItr.next(), getSelf());
+		} else {
+			log.debug("all jobs sent");
+			
+			jobItr = null;			
+			nextActorRef();
+		}
+	}
+	
+	private void nextActorRef() {
+		if(actorRefItr.hasNext()) {
+			Entry<Object, ActorRef> actorRefEntry = actorRefItr.next();
+			
+			jobTarget = actorRefEntry.getValue();					
+			Object msg = actorRefEntry.getKey();
+			
+			log.debug("requesting jobs: " + msg);
+			database.tell(msg, getSelf());
+		} else {
+			actorRefItr = null;
+			scheduleInitiate();
+		}
+	}
+	
+	private void scheduleInitiate() {
+		getContext().system().scheduler().schedule(Duration.Zero(), INTERVAL, getSelf(), new Initiate(), getContext().dispatcher(), getSelf());
+	}
+	
+	@Override
+	public final void preStart() {
+		scheduleInitiate();
+	}
 
 	@Override
-	protected void doInitiate() {
-		log.debug("initiating jobs");
-		
-		for(final Map.Entry<Object, ActorRef> actorRefEntry : actorRefs.entrySet()) {
-			final Object msg = actorRefEntry.getKey();
-			final ActorRef actorRef = actorRefEntry.getValue();
+	public final void onReceive(Object msg) {
+		if(msg instanceof Initiate) {
+			log.debug("initiating jobs");
 			
-			log.debug("querying for jobs: " + msg);
+			actorRefItr = actorRefs.entrySet().iterator();			
+			nextActorRef();
+		} else if(msg instanceof List) {
+			log.debug("job list received");
 			
-			Patterns.ask(database, msg, 15000)
-				.onSuccess(new OnSuccess<Object>() {
-					
-					@Override
-					@SuppressWarnings("unchecked")
-					public void onSuccess(Object msg) throws Throwable {
-						List<? extends JobInfo> jobs = (List<? extends JobInfo>)msg;
-						for(JobInfo job : jobs) {
-							log.debug("dispatching job: " + job);
-							
-							actorRef.tell(job, getSelf());
-						}
-					}
-					
-				}, getContext().dispatcher());			
+			List<JobInfo> jobs = (List<JobInfo>)msg;			
+			
+			jobItr = jobs.iterator();
+			nextJob();
+		}  else if(msg instanceof Ack) {
+			log.debug("job delivered");
+			
+			nextJob();		
+		} else {		
+			unhandled(msg);
 		}
 	}
 }
