@@ -122,7 +122,7 @@
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
 											<p>
-												<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens.</span>
+												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens. <span class="glyphicon glyphicon-pencil"></span></a>
 											</p>
 										}
 									}

@@ -1,0 +1,9 @@
+@(dataset: nl.idgis.publisher.domain.web.Dataset)
+
+@layout.application(
+	title = "Dataset - " + dataset.name
+) {
+	<div class="page-content">
+		<h1 class="page-header">Dataset @dataset.name</h1>
+	</div>
+}

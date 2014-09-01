@@ -46,6 +46,7 @@ import play.mvc.Security;
 import views.html.datasets.columns;
 import views.html.datasets.form;
 import views.html.datasets.list;
+import views.html.datasets.show;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -72,6 +73,20 @@ public class Datasets extends Controller {
 	
 	public static Promise<Result> listByCategoryWithMessages (String categoryId, long page) {
 		return listByCategoryAndMessages(categoryId, true, page);
+	}
+	
+	public static Promise<Result> show (final String datasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.execute (new Function<Dataset, Result> () {
+
+				@Override
+				public Result apply (final Dataset dataset) throws Throwable {
+					return ok (show.render (dataset));
+				}
+			});
 	}
 	
 	public static Promise<Result> scheduleRefresh(String datasetId) {

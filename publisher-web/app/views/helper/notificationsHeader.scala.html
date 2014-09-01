@@ -10,7 +10,7 @@
 <li class="divider"></li>
 @for(notification <- notifications.values) {
 <li>
-	<a href="#">
+	<a href="@routes.Datasets.show(notification.message.properties.getIdentification())">
 		<h4>@helper.entityReference(notification.message.properties)</h4>
 		<p>
 			@Domain.message(notification.message)

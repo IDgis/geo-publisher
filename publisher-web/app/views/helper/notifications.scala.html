@@ -24,7 +24,7 @@
 	</div>
 	<div class="list-group">
 		@for(notification <- notifications.values) {
-			<a class="list-group-item notification" href="#">
+			<a class="list-group-item notification" href="@routes.Datasets.show(notification.message.properties.getIdentification())">
 				 <h4 class="list-group-item-heading">@helper.entityReference(notification.message.properties)</h4>
 				 <p class="list-group-item-text">
 				 	@Domain.message(notification.message)
