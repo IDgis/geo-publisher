@@ -3,6 +3,9 @@ package nl.idgis.publisher.loader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,9 +32,11 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -47,7 +52,10 @@ public class LoaderInitiator extends UntypedActor {
 	private final boolean dataSourceBusy;
 	private final ActorRef initiator, database, geometryDatabase, harvester;
 	
+	private boolean acknowledged = false;
 	private ActorRef dataSource, transaction;
+	
+	private Cancellable timeoutCancellable = null;
 	
 	public LoaderInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
 			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
@@ -89,7 +97,7 @@ public class LoaderInitiator extends UntypedActor {
 			} else {
 				log.debug("notification not present -> add it");
 				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
-				getContext().become(waitingForNotificationStored(false));
+				become("adding notification", waitingForNotificationStored(false));
 				return;
 			}
 		} else {
@@ -98,7 +106,7 @@ public class LoaderInitiator extends UntypedActor {
 			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification present -> remove it");
 				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
-				getContext().become(waitingForNotificationStored(true));
+				become("removing notification", waitingForNotificationStored(true));
 				return;
 			} else {
 				log.debug("notification not present");
@@ -132,7 +140,7 @@ public class LoaderInitiator extends UntypedActor {
 		} else {
 			log.debug("fetching dataSource from harvester: " + dataSourceId);			
 			harvester.tell(new GetDataSource(dataSourceId), getSelf());
-			getContext().become(waitingForDataSource());
+			become("fetching dataSource from harvester", waitingForDataSource());
 		}
 	}
 	
@@ -145,13 +153,14 @@ public class LoaderInitiator extends UntypedActor {
 			public void apply(Object msg) throws Exception { 
 				if(msg instanceof NotConnected) {					
 					log.warning("not connected: " + importJob.getDataSourceId());
+					
 					acknowledgeJobAndStop();
 				} else if(msg instanceof ActorRef) {
 					log.debug("dataSource received");
 					
 					dataSource = (ActorRef)msg;
 					database.tell(new UpdateJobState(importJob, JobState.STARTED), getSelf());
-					getContext().become(waitingForJobStateStored());
+					become("storing new started job state", waitingForJobStartedStateStored());
 				}
 			}
 			
@@ -166,9 +175,15 @@ public class LoaderInitiator extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
+					log.debug("notification stored");
+					
 					if(continueImport) {
+						log.debug("continuing loader initialization");
+						
 						requestDataSource();
 					} else {
+						log.debug("stopping");
+						
 						acknowledgeJobAndStop();
 					}
 				} else {
@@ -265,7 +280,7 @@ public class LoaderInitiator extends UntypedActor {
 							importJob.getColumns());
 					
 					transaction.tell(ct, getSelf());
-					getContext().become(waitingForTableCreated());
+					become("creating table", waitingForTableCreated());
 				} else {
 					unhandled(msg);
 				}
@@ -274,7 +289,7 @@ public class LoaderInitiator extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> waitingForJobStateStored() {
+	private Procedure<Object> waitingForJobStartedStateStored() {
 		return new Procedure<Object>() {
 
 			@Override
@@ -285,7 +300,7 @@ public class LoaderInitiator extends UntypedActor {
 					acknowledgeJob();
 					
 					geometryDatabase.tell(new StartTransaction(), getSelf());
-					getContext().become(waitingForTransactionCreated());
+					become("starting transaction", waitingForTransactionCreated());
 				} else {
 					unhandled(msg);
 				}
@@ -294,12 +309,54 @@ public class LoaderInitiator extends UntypedActor {
 		};
 	}
 	
+	private void scheduleTimeout() {
+		if(timeoutCancellable != null ) {
+			timeoutCancellable.cancel();
+		}
+		
+		timeoutCancellable = getContext().system().scheduler()
+				.scheduleOnce(					 
+					Duration.create(15,  TimeUnit.SECONDS), 
+					
+					getSelf(), new Timeout(), 
+					
+					getContext().dispatcher(), getSelf());
+	}
+
+	
+	private void become(final String stateMessage, final Procedure<Object> behavior) {
+		
+		scheduleTimeout();
+		
+		getContext().become(new Procedure<Object>() {			
+			
+			@Override
+			public void apply(Object msg) throws Exception {
+				scheduleTimeout();
+				
+				if(msg instanceof Timeout) {
+					if(!acknowledged) {
+						acknowledgeJob();
+					}
+					
+					log.error("timeout during: " + stateMessage);
+					
+					getContext().stop(getSelf());
+				} else {
+					behavior.apply(msg);
+				}
+			}
+			
+		});
+	}
+	
 	private void acknowledgeJobAndStop() {
 		acknowledgeJob();
 		getContext().stop(getSelf());
 	}
 
 	private void acknowledgeJob() {
-		initiator.tell(new Ack(), getSelf());		
+		acknowledged = true;
+		initiator.tell(new Ack(), getSelf());
 	}
 }
