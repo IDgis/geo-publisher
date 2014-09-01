@@ -129,6 +129,14 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected int insertDataSource(String dataSourceId) {
+		Integer retval = query().from(dataSource)
+			.where(dataSource.identification.eq(dataSourceId))
+			.singleResult(dataSource.id);
+		
+		if(retval != null) {
+			return retval;
+		}
+		
 		return insert(dataSource)
 			.set(dataSource.identification, dataSourceId)
 			.set(dataSource.name, "My Test DataSource")

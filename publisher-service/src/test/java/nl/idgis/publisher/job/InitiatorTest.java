@@ -1,5 +1,13 @@
 package nl.idgis.publisher.job;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,7 +28,17 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 
 public class InitiatorTest extends AbstractDatabaseTest {
 	
-	static class GetLastReceivedJob {
+	static class GetReceivedJobs {
+		
+		final int count;
+		
+		GetReceivedJobs(int count) {
+			this.count = count;
+		}
+		
+		int getCount() {
+			return count;
+		}
 		
 	}
 	
@@ -28,25 +46,27 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
+		Integer count = null;
 		ActorRef sender = null;
-		JobInfo lastJob = null;
+		List<JobInfo> jobs = new ArrayList<>();
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			log.debug("message received: " + msg);
 			
 			if(msg instanceof JobInfo) {
-				lastJob = (JobInfo)msg;				
-				sendLastJob();
-			} else if(msg instanceof GetLastReceivedJob) {
+				jobs.add((JobInfo)msg);				
+				sendJobs();
+			} else if(msg instanceof GetReceivedJobs) {
 				sender = getSender();
-				sendLastJob();	 
+				count = ((GetReceivedJobs) msg).getCount();
+				sendJobs();	 
 			}
 		}
 		
-		private void sendLastJob() {
-			if(lastJob != null && sender != null) {
-				sender.tell(lastJob, getSelf());
+		private void sendJobs() {
+			if(sender != null && count != null && jobs.size() == count) {
+				sender.tell(jobs, getSelf());
 			}
 		}
 		
@@ -58,7 +78,8 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Before
 	public void databaseContent() throws Exception {
-		insertDataset();
+		insertDataset("testDataset0");
+		insertDataset("testDataset1");
 	}	
 	
 	@Before	
@@ -78,20 +99,39 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	public void testHarvestJob() throws Exception {
 		ask(database, new CreateHarvestJob("testDataSource"));
 		initInitiator();
-		askAssert(harvester, new GetLastReceivedJob(), HarvestJobInfo.class);
+		
+		List<?> list = askAssert(harvester, new GetReceivedJobs(1), List.class);
+		assertEquals(HarvestJobInfo.class, list.get(0).getClass());
 	}
 	
 	@Test
 	public void testImportJob() throws Exception {
-		ask(database, new CreateImportJob("testDataset"));
+		ask(database, new CreateImportJob("testDataset0"));
+		ask(database, new CreateImportJob("testDataset1"));
 		initInitiator();
-		askAssert(loader, new GetLastReceivedJob(), ImportJobInfo.class);
+		
+		List<?> list = askAssert(loader, new GetReceivedJobs(2), List.class);
+		
+		Object job0 = list.get(0);
+		Object job1 = list.get(1);
+		
+		assertEquals(ImportJobInfo.class, job0.getClass());
+		assertEquals(ImportJobInfo.class, job1.getClass());
+		
+		Set<String> datasets = new HashSet<>();
+		datasets.add(((ImportJobInfo)job0).getDatasetId());
+		datasets.add(((ImportJobInfo)job1).getDatasetId());
+		
+		assertTrue(datasets.contains("testDataset0"));
+		assertTrue(datasets.contains("testDataset1"));
 	}
 	
 	@Test
 	public void testServiceJob() throws Exception {
-		ask(database, new CreateServiceJob("testDataset"));
+		ask(database, new CreateServiceJob("testDataset0"));
 		initInitiator();
-		askAssert(service, new GetLastReceivedJob(), ServiceJobInfo.class);
+		
+		List<?> list = askAssert(service, new GetReceivedJobs(1), List.class);
+		assertEquals(ServiceJobInfo.class, list.get(0).getClass());
 	}
 }
