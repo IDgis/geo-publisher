@@ -184,7 +184,7 @@ public class Admin extends UntypedActor {
 		}
 	}
 
-	private Notification createNotification (final StoredNotification storedNotification) {
+	private static Notification createNotification (final StoredNotification storedNotification) {
 		return new Notification (
 				"" + storedNotification.getId (), 
 				new Message (
@@ -538,14 +538,7 @@ public class Admin extends UntypedActor {
 						if(msg instanceof DatasetInfo) {
 							DatasetInfo datasetInfo = (DatasetInfo)msg;
 							log.debug("dataset info received");
-							Dataset dataset = 
-									new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-											new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-											new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())),
-											null, // notification list
-											new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-											new ObjectMapper().readValue (datasetInfo.getFilterConditions (), Filter.class)
-									);
+							final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
 							log.debug("sending dataset: " + dataset);
 							sender.tell (dataset, getSelf());
 						} else {
@@ -655,6 +648,43 @@ public class Admin extends UntypedActor {
 		}
 	}
 
+	private static Dataset createDataset (final DatasetInfo datasetInfo, final ObjectMapper objectMapper) throws Throwable {
+		// Determine dataset status and notification list:
+		final Status status;
+		final List<DashboardItem> notifications = new ArrayList<> ();
+		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
+			// Set imported status:
+			if (datasetInfo.getLastJobState () != null) {
+				status = new Status (
+						jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
+						datasetInfo.getLastImportTime () != null
+							? datasetInfo.getLastImportTime ()
+							: new Timestamp (new Date ().getTime ())
+					);
+			} else {
+				status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+			}
+		} else {
+			// Dataset has never been imported, don't report any notifications:
+			status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+		}
+		
+		// Add notifications:
+		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
+			for (final StoredNotification sn: datasetInfo.getNotifications ()) {
+				notifications.add (createNotification (sn));
+			}
+		}
+		
+		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
+				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+				status,
+				notifications, // notification list
+				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
+				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
+		);
+	}
+	
 	private void handleListDatasets (final ListDatasets listDatasets) {
 		String categoryId = listDatasets.categoryId();
 		log.debug ("handleListDatasets categoryId=" + categoryId);
@@ -675,42 +705,7 @@ public class Admin extends UntypedActor {
 						final ObjectMapper objectMapper = new ObjectMapper ();
 						
 						for(DatasetInfo datasetInfo : datasetInfoList) {
-							// Determine dataset status and notification list:
-							final Status status;
-							final List<DashboardItem> notifications = new ArrayList<> ();
-							if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
-								// Set imported status:
-								if (datasetInfo.getLastJobState () != null) {
-									status = new Status (
-											jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
-											datasetInfo.getLastImportTime () != null
-												? datasetInfo.getLastImportTime ()
-												: new Timestamp (new Date ().getTime ())
-										);
-								} else {
-									status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-								}
-							} else {
-								// Dataset has never been imported, don't report any notifications:
-								status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-							}
-							
-							// Add notifications:
-							if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
-								for (final StoredNotification sn: datasetInfo.getNotifications ()) {
-									notifications.add (createNotification (sn));
-								}
-							}
-							
-							final Dataset dataset =  new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-									new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-									status,
-									notifications, // notification list
-									new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-									objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
-							);
-							
-							pageBuilder.add (dataset);
+							pageBuilder.add (createDataset (datasetInfo, objectMapper));
 						}
 						
 						log.debug("sending dataset page");
