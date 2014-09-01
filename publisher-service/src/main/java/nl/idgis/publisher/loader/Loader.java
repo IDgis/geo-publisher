@@ -1,37 +1,10 @@
 package nl.idgis.publisher.loader;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-
-import scala.concurrent.Future;
-
-import nl.idgis.publisher.database.messages.AddNotification;
-import nl.idgis.publisher.database.messages.CreateTable;
-import nl.idgis.publisher.database.messages.DatasetStatusInfo;
-import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.RemoveNotification;
-import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
-import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.domain.job.Notification;
-import nl.idgis.publisher.domain.job.NotificationResult;
-import nl.idgis.publisher.domain.job.NotificationType;
-import nl.idgis.publisher.domain.job.load.ImportNotificationType;
-import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.web.Filter;
-import nl.idgis.publisher.domain.web.Filter.FilterExpression;
-import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.messages.NotConnected;
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.messages.ActiveJob;
@@ -41,12 +14,13 @@ import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
 
+import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
@@ -153,184 +127,13 @@ public class Loader extends UntypedActor {
 		
 		return false;
 	}
-		
-	private boolean handleDatasetStatus(final ImportJobInfo importJob, final DatasetStatusInfo datasetStatus, boolean isImporting, final ActorRef sender) {
-		log.debug("dataset status received");
-		
-		if(datasetStatus.isSourceDatasetColumnsChanged()) {
-			log.debug("source columns changed");
-			
-			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
-				log.debug("notification already present");
-			} else {
-				log.debug("notification not present -> add it");
-				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
-				return false;
-			}
-		} else {
-			log.debug("source columns not changed");
-			
-			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
-				log.debug("notification present -> remove it");
-				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
-				return false;
-			} else {
-				log.debug("notification not present");
-			}
-		}
-		
-		for(Notification notification : importJob.getNotifications()) {
-			NotificationType<?> type = notification.getType();
-			NotificationResult result = notification.getResult();
-			
-			if(ImportNotificationType.SOURCE_COLUMNS_CHANGED.equals(type)) {
-				if(!ConfirmNotificationResult.OK.equals(result)) {
-					log.debug("column changes not (yet) accepted");
-					return false;
-				}
-			} else {
-				log.error("unknown notification type: " + type.name());
-				return false;
-			}
-		}
-		
-		final String dataSourceId = importJob.getDataSourceId();
-		
-		if(isImporting) {
-			log.debug("already obtaining data from dataSource: " + dataSourceId);
-		} else {
-			log.debug("fetching dataSource from harvester: " + dataSourceId);
-			
-			Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-	
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof NotConnected) {
-							sender.tell(new Ack(), getSelf());
-							
-							log.warning("not connected: " + dataSourceId);
-						} else {
-							final ActorRef dataSource = (ActorRef)msg;
-							
-							log.debug("dataSource received");
-							
-							startImport(importJob, dataSource, sender);
-						}
-					}
-					
-				}, getContext().dispatcher());
-		}
-		
-		return true;
-	}
 
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
-		final boolean isImporting = isImporting(importJob.getDataSourceId());		
-		log.debug("isImporting: " + isImporting);
-		
-		final ActorRef sender = getSender();
-		Patterns.ask(database, new GetDatasetStatus(importJob.getDatasetId()), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {					
-					if(!handleDatasetStatus(importJob, (DatasetStatusInfo)msg, isImporting, sender)) {
-						sender.tell(new Ack(), getSelf());
-					}
-				}
-				
-			}, getContext().dispatcher());
+		getContext().actorOf(
+			LoaderInitiator.props(isImporting(importJob.getDataSourceId()), 
+				importJob, getSender(), database, geometryDatabase, harvester));
 	}
-
-	private void startImport(final ImportJobInfo importJob, final ActorRef dataSource, final ActorRef sender) {
-		Patterns.ask(database, new UpdateJobState(importJob, JobState.STARTED), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("job started");
-					
-					sender.tell(new Ack(), getSelf());
-					
-					Patterns.ask(geometryDatabase, new StartTransaction(), 15000)
-					.onSuccess(new OnSuccess<Object>() {
-
-						@Override
-						public void onSuccess(Object msg) throws Throwable {
-							TransactionCreated tc = (TransactionCreated)msg;
-							log.debug("database transaction created");
-							
-							final ActorRef transaction = tc.getActor();
-							
-							CreateTable ct = new CreateTable(
-									importJob.getCategoryId(),
-									importJob.getDatasetId(),  
-									importJob.getColumns());						
-							
-							Patterns.ask(transaction, ct, 15000)
-								.onSuccess(new OnSuccess<Object>() {
-
-									@Override
-									public void onSuccess(Object msg) throws Throwable {
-										log.debug("table created");
-										
-										List<Column> columns = new ArrayList<>();
-										columns.addAll(importJob.getColumns());										
-										
-										FilterEvaluator filterEvaluator;
-										String filterCondition = importJob.getFilterCondition();
-										if(filterCondition == null)  {
-											filterEvaluator = null;
-											
-											log.debug("no filter -> not filtering");
-										} else {
-											ObjectMapper objectMapper = new ObjectMapper();
-											ObjectReader reader = objectMapper.reader(Filter.class);
-											Filter filter = reader.readValue(filterCondition);
-											
-											FilterExpression expression = filter.getExpression();
-											if(expression == null) {
-												filterEvaluator = null;
-												
-												log.debug("empty filter -> not filtering");
-											} else {
-												for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
-													if(!columns.contains(column)) {
-														log.debug("querying additional column for filter: " + column);
-														columns.add(column);
-													}
-												}
-												
-												filterEvaluator = new FilterEvaluator(columns, expression);
-												
-												log.debug("filter evaluator constructed");
-											}
-										}
-										
-										List<String> columnNames = new ArrayList<>();
-										for(Column column : columns) {
-											columnNames.add(column.getName());
-										}
-										
-										dataSource.tell(
-												new GetDataset(
-														importJob.getSourceDatasetId(), 
-														columnNames, 
-														LoaderSession.props(
-																getSelf(),
-																importJob,
-																filterEvaluator,
-																transaction, 
-																database)), getSelf());
-									}
-																	
-							}, getContext().dispatcher());
-					}
-				}, getContext().dispatcher());
-			}
-		}, getContext().dispatcher());
-	}
+	
 }
