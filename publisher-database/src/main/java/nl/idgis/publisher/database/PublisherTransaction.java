@@ -81,6 +81,7 @@ import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.TerminateJobs;
@@ -261,6 +262,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeRemoveNotification(context, (RemoveNotification)query);
 		} else if (query instanceof GetNotifications) {
 			executeGetNotifications (context, (GetNotifications) query);
+		} else if (query instanceof StoreNotificationResult) {
+			executeStoreNotificationResult (context, (StoreNotificationResult) query);
 		} else {
 			throw new IllegalArgumentException("Unknown query");
 		}
@@ -1363,5 +1366,44 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.orderBy(version.id.desc())
 				.limit(1)
 				.singleResult(new QVersion(version.id, version.createTime)));
+	}
+	
+	private void executeStoreNotificationResult (final QueryDSLContext context, final StoreNotificationResult query) {
+		log.debug("storing notification result: " + query);
+
+		if (!context.query().from (notification)
+			.where (notification.id.eq (query.getNotificationId ()))
+			.exists ()) {
+			return;
+		}
+		
+		if (context.query ()
+			.from (notificationResult)
+			.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+			.exists ()) {
+			
+			if (query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
+				context
+					.delete (notificationResult)
+					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+					.execute ();
+			} else {
+				context
+					.update (notificationResult)
+					.set (notificationResult.result, query.getResult ().name ())
+					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+					.execute ();
+			}
+		} else {
+			if (!query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
+				context
+					.insert (notificationResult)
+					.set (notificationResult.notificationId, query.getNotificationId ())
+					.set (notificationResult.result, query.getResult ().name ())
+					.execute ();
+			}
+		}
+
+		context.answer (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
 	}
 }

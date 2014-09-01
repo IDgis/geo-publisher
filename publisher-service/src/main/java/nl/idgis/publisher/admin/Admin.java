@@ -30,6 +30,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
+import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
@@ -49,11 +50,13 @@ import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
+import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
@@ -179,6 +182,8 @@ public class Admin extends UntypedActor {
 			handleListIssues ((ListIssues)message);
 		} else if (message instanceof ListActiveNotifications) {
 			handleListActiveNotifications ((ListActiveNotifications) message);
+		} else if (message instanceof PutNotificationResult) {
+			handlePutNotificationResult ((PutNotificationResult) message);
 		} else {
 			unhandled (message);
 		}
@@ -807,4 +812,18 @@ public class Admin extends UntypedActor {
 			}
 		}, getContext().dispatcher());
 	}
-}
+	
+	private void handlePutNotificationResult (final PutNotificationResult query) {
+		final ActorRef sender = sender ();
+		final ActorRef self = self ();
+		
+		final Future<Object> result = Patterns.ask (database, new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), 15000);
+		
+		result.onSuccess (new OnSuccess<Object> () {
+			@Override
+			public void onSuccess (final Object msg) throws Throwable {
+				sender.tell ((Response<?>) msg, self);
+			}
+		}, context ().dispatcher ());
+	}
+} 

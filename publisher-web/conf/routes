@@ -20,6 +20,7 @@ POST	/datasets/:datasetId/edit						controllers.Datasets.submitEdit(datasetId: S
 GET 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId : String)
 GET		/datasets/$datasetId<[^\.]+>.json				controllers.Datasets.getDatasetJson(datasetId: String)
 POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datasetId: String)
+POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setNotificationResult(datasetId: String, notificationId: String)
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden

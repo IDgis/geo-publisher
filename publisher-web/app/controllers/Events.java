@@ -68,8 +68,6 @@ public class Events extends Controller {
 			.recover (new F.Function<Throwable, Object> () {
 				@Override
 				public Object apply (final Throwable a) throws Throwable {
-					Logger.debug ("Timeout during polling");
-					
 					final ObjectNode response = Json.newObject ();
 					response.put ("tag", tag.isEmpty () ? defaultTag : tag);
 					return response;
@@ -165,9 +163,6 @@ public class Events extends Controller {
 		
 		private void doUpdate () {
 			final ActorRef self = self ();
-			
-			Logger.debug ("Polling for event updates: " + String.format ("%s-%s-%s", tags[0], tags[1], tags[2]) + ", " + self ().path ());
-			
 			final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 			final ListIssues listIssues;
@@ -314,7 +309,6 @@ public class Events extends Controller {
 			if (Event.UPDATE.equals (msg)) {
 				doUpdate ();
 			} else if (Event.STOP.equals (msg)) {
-				Logger.debug ("Terminating event actor: " + self ().path ());
 				context ().stop (self ());
 			} else {
 				unhandled (msg);
