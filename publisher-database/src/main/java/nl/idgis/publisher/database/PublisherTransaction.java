@@ -526,7 +526,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					), 
 					new BaseDatasetInfo (
 						t.get (datasetActiveNotification.datasetIdentification), 
-						t.get (dataset.name)
+						t.get (datasetActiveNotification.datasetName)
 					)
 				));
 		}
