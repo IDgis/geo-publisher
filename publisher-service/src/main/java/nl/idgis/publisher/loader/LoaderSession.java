@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-
 import nl.idgis.publisher.AbstractSession;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
@@ -16,8 +13,6 @@ import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.web.Filter;
-import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.loader.messages.SessionStarted;

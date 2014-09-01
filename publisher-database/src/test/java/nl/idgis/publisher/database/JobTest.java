@@ -44,7 +44,7 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-public class JobsTest extends AbstractDatabaseTest {	
+public class JobTest extends AbstractDatabaseTest {	
 
 	@SuppressWarnings("unchecked")
 	@Test
@@ -52,14 +52,14 @@ public class JobsTest extends AbstractDatabaseTest {
 		
 		insertDataSource();	
 		
-		Object result = ask(new CreateHarvestJob("testDataSource"));
+		Object result = ask(database, new CreateHarvestJob("testDataSource"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		result = ask(new GetHarvestJobs());		
+		result = ask(database, new GetHarvestJobs());		
 		assertTrue(result instanceof List);
 		
 		List<HarvestJobInfo> jobs = (List<HarvestJobInfo>)result;
@@ -70,13 +70,6 @@ public class JobsTest extends AbstractDatabaseTest {
 		
 		assertEquals("testDataSource", job.getDataSourceId());
 	}	
-
-	private int insertDataSource() {
-		return insert(dataSource)
-			.set(dataSource.identification, "testDataSource")
-			.set(dataSource.name, "My Test DataSource")
-			.executeWithKey(dataSource.id);
-	}
 	
 	@SuppressWarnings("unchecked")
 	@Test
@@ -130,7 +123,7 @@ public class JobsTest extends AbstractDatabaseTest {
 				.execute();
 		}
 		
-		Object result = ask(new GetDatasetStatus());
+		Object result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -148,7 +141,7 @@ public class JobsTest extends AbstractDatabaseTest {
 		
 		assertFalse(i.hasNext());
 		
-		result = ask(new CreateImportJob("testDataset"));
+		result = ask(database, new CreateImportJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -166,7 +159,7 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
-		result = ask(new GetImportJobs());
+		result = ask(database, new GetImportJobs());
 		assertTrue(result instanceof List);
 		
 		List<JobInfo> jobsInfos = (List<JobInfo>)result;
@@ -184,7 +177,7 @@ public class JobsTest extends AbstractDatabaseTest {
 		
 		assertColumns(importJobInfo.getColumns());
 		
-		result = ask(new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -199,10 +192,10 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = ask(new UpdateJobState(jobInfo, JobState.SUCCEEDED));
+		result = ask(database, new UpdateJobState(jobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
@@ -215,10 +208,10 @@ public class JobsTest extends AbstractDatabaseTest {
 		datasetStatus = i.next();
 		assertFalse(datasetStatus.isServiceCreated());
 		
-		result = ask(new CreateServiceJob("testDataset"));
+		result = ask(database, new CreateServiceJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(new GetServiceJobs());
+		result = ask(database, new GetServiceJobs());
 		assertTrue(result instanceof List);
 		
 		jobsInfos = (List<JobInfo>)result;
@@ -228,10 +221,10 @@ public class JobsTest extends AbstractDatabaseTest {
 		assertTrue(jobInfo instanceof ServiceJobInfo);
 		
 		ServiceJobInfo serviceJobInfo = (ServiceJobInfo)jobInfo;
-		result = ask(new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
+		result = ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;

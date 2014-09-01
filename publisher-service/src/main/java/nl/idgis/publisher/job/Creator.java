@@ -27,8 +27,7 @@ public class Creator extends Scheduled {
 	
 	private final ActorRef database;
 	
-	//private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
-	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(1, TimeUnit.MINUTES);
+	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
 	
 	public Creator(ActorRef database) {
 		this.database = database;
@@ -95,7 +94,13 @@ public class Creator extends Scheduled {
 					log.debug("source dataset unchanged");
 				}
 				
-				// TODO: also check for filter changes
+				if(datasetStatus.isFilterConditionChanged()) {
+					needsImport = true;
+					
+					log.debug("filter condition changed -> needs import");
+				} else {
+					log.debug("filter condition unchanged");
+				}
 			}
 			
 			if(needsImport) {

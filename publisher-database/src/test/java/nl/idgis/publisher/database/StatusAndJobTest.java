@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public class StatusAndJobTest extends AbstractDatabaseTest {
 	
 	private void executeJob(Object msg) throws Exception {
-		Object result = ask(msg);
+		Object result = ask(database, msg);
 		assertTrue(result instanceof List);	
 		
 		List<?> list = (List<?>)result;
@@ -49,7 +49,7 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		assertTrue(listItem instanceof JobInfo);
 		
 		JobInfo jobInfo = (JobInfo)listItem;		
-		ask(new UpdateJobState(jobInfo, JobState.SUCCEEDED));
+		ask(database, new UpdateJobState(jobInfo, JobState.SUCCEEDED));
 		
 		assertNotNull(listItem);
 		
@@ -63,7 +63,7 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		Object result = ask(new GetDataSourceStatus());
+		Object result = ask(database, new GetDataSourceStatus());
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -82,12 +82,12 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = ask(new CreateHarvestJob("testDataSource"));
+		result = ask(database, new CreateHarvestJob("testDataSource"));
 		assertEquals(Ack.class, result.getClass());
 		
 		executeJob(new GetHarvestJobs());
 		
-		result = ask(new GetDataSourceStatus());
+		result = ask(database, new GetDataSourceStatus());
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -111,19 +111,19 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 			.execute();
 		
 		Dataset dataset = createTestDataset();
-		Object result = ask(new RegisterSourceDataset("testDataSource", dataset));
+		Object result = ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		assertEquals(Registered.class, result.getClass());
 		
 		Table table = dataset.getTable();
 		List<Column> columns = Arrays.asList(table.getColumns().get(0));
-		result = ask(new CreateDataset(
+		result = ask(database, new CreateDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				dataset.getId(),
 				columns,
 				"{ \"expression\": null }"));
 		
-		result = ask(new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -140,7 +140,7 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = ask(new GetDatasetStatus("testDataset"));
+		result = ask(database, new GetDatasetStatus("testDataset"));
 		assertEquals(DatasetStatusInfo.class, result.getClass());
 		
 		status = (DatasetStatusInfo)result;
@@ -148,13 +148,13 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		assertNotNull(status);
 		
 		for(int i = 0; i < 10; i++) {
-			result = ask(new CreateImportJob("testDataset"));
+			result = ask(database, new CreateImportJob("testDataset"));
 			assertEquals(Ack.class, result.getClass());
 		
 			executeJob(new GetImportJobs());
 		}
 		
-		result = ask(new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertEquals(TypedIterable.class, result.getClass());
 		
 		typedIterable = (TypedIterable<?>)result;

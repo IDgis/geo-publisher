@@ -19,6 +19,12 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
+import nl.idgis.publisher.database.messages.CreateDataset;
+import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
@@ -27,6 +33,7 @@ import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.pattern.Patterns;
 
 import com.mysema.query.sql.RelationalPath;
@@ -39,6 +46,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static org.junit.Assert.assertTrue;
+
 public abstract class AbstractDatabaseTest {
 	
 	private static final File BASE_DIR = new File("target/test-database");
@@ -46,16 +56,17 @@ public abstract class AbstractDatabaseTest {
 	private ActorSystem system;	
 	private ExtendedPostgresTemplates templates;	
 	private Connection connection;	
-	private ActorRef database;
+	
+	protected ActorRef database;
 	
 	@Before
-	public void setUp() throws Exception {
+	public void database() throws Exception {
 		File dbDir;
 		do {
 			dbDir = new File(BASE_DIR, "" + Math.abs(new Random().nextInt()));
 		} while(dbDir.exists());
 		
-		String url = "jdbc:h2:" + dbDir.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL";		
+		String url = "jdbc:h2:" + dbDir.getAbsolutePath() + "/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=false";		
 		String user = "sa";
 		String password = "";
 		
@@ -70,10 +81,18 @@ public abstract class AbstractDatabaseTest {
 			.withValue("url", ConfigValueFactory.fromAnyRef(url))
 			.withValue("templates", ConfigValueFactory.fromAnyRef("nl.idgis.publisher.database.ExtendedPostgresTemplates"))
 			.withValue("user", ConfigValueFactory.fromAnyRef(user))
-			.withValue("password", ConfigValueFactory.fromAnyRef(password));
+			.withValue("password", ConfigValueFactory.fromAnyRef(password));		
 		
-		system = ActorSystem.create();
-		database = system.actorOf(PublisherDatabase.props(databaseConfig));
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		system = ActorSystem.create("test", akkaConfig);
+		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
+	}
+	
+	protected ActorRef actorOf(Props props, String name) {
+		return system.actorOf(props, name);
 	}
 	
 	protected SQLInsertClause insert(RelationalPath<?> entity) {
@@ -92,15 +111,59 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
-	protected Object ask(Object msg) throws Exception {
-		Future<Object> future = Patterns.ask(database, msg, 500000000);
-		return Await.result(future, Duration.create(5, TimeUnit.HOURS));
+	protected <T> T askAssert(ActorRef actorRef, Object msg, Class<T> resultType) throws Exception {
+		Object result = ask(actorRef, msg);		
+		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
+		return resultType.cast(result);
+	}
+	
+	protected Object ask(ActorRef actorRef, Object msg) throws Exception {
+		Future<Object> future = Patterns.ask(actorRef, msg, 5000);
+		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
 	}
 	
 	@After
 	public void shutdown() throws Exception {
 		connection.close();		
 		system.shutdown();
+	}
+	
+	protected int insertDataSource(String dataSourceId) {
+		Integer retval = query().from(dataSource)
+			.where(dataSource.identification.eq(dataSourceId))
+			.singleResult(dataSource.id);
+		
+		if(retval != null) {
+			return retval;
+		}
+		
+		return insert(dataSource)
+			.set(dataSource.identification, dataSourceId)
+			.set(dataSource.name, "My Test DataSource")
+			.executeWithKey(dataSource.id);
+	}
+	
+	protected void insertDataset() throws Exception {
+		insertDataset("testDataset");
+	}
+		
+	protected void insertDataset(String datasetId) throws Exception {
+		insertDataSource();
+		
+		Dataset testDataset = createTestDataset();
+		ask(database, new RegisterSourceDataset("testDataSource", testDataset));
+		
+		Table testTable = testDataset.getTable();
+		ask(database, new CreateDataset(
+				datasetId, 
+				"My Test Dataset", 
+				testDataset.getId(), 
+				testTable.getColumns(), 
+				"{ \"expression\": null }"));
+	}
+	
+	protected int insertDataSource() {
+		return insertDataSource("testDataSource");
 	}
 	
 	protected Dataset createTestDataset() {
@@ -116,5 +179,13 @@ public abstract class AbstractDatabaseTest {
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
 		return new Dataset(id, "testCategory", table, revision);		
+	}
+	
+	protected void executeJobs(Query query) throws Exception {
+		for(Object msg : askAssert(database, query, List.class)) {
+			assertTrue(msg instanceof JobInfo);			
+			
+			ask(database, new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
+		}
 	}
 }

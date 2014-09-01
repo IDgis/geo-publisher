@@ -155,6 +155,8 @@ public class Loader extends UntypedActor {
 	}
 		
 	private void handleDatasetStatus(final ImportJobInfo importJob, final DatasetStatusInfo datasetStatus, boolean isImporting) {
+		log.debug("dataset status received");
+		
 		if(datasetStatus.isSourceDatasetColumnsChanged()) {
 			log.debug("source columns changed");
 			
@@ -178,7 +180,7 @@ public class Loader extends UntypedActor {
 		}
 		
 		for(Notification notification : importJob.getNotifications()) {
-			NotificationType type = notification.getType();
+			NotificationType<?> type = notification.getType();
 			NotificationResult result = notification.getResult();
 			
 			if(ImportNotificationType.SOURCE_COLUMNS_CHANGED.equals(type)) {
@@ -196,7 +198,9 @@ public class Loader extends UntypedActor {
 		
 		if(isImporting) {
 			log.debug("already obtaining data from dataSource: " + dataSourceId);
-		} else {		
+		} else {
+			log.debug("fetching dataSource from harvester: " + dataSourceId);
+			
 			Patterns.ask(harvester, new GetDataSource(dataSourceId), 15000)
 				.onSuccess(new OnSuccess<Object>() {
 	
@@ -221,6 +225,8 @@ public class Loader extends UntypedActor {
 		log.debug("data import requested: " + importJob);
 		
 		final boolean isImporting = isImporting(importJob.getDataSourceId());		
+		log.debug("isImporting: " + isImporting);
+		
 		Patterns.ask(database, new GetDatasetStatus(importJob.getDatasetId()), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
