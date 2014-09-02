@@ -88,7 +88,7 @@ public class Initiator extends UntypedActor {
 	
 	@Override
 	public final void preStart() {
-		scheduleInitiate();
+		getSelf().tell(new Initiate(), getSelf());
 	}
 
 	@Override
