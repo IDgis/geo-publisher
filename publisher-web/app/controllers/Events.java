@@ -17,7 +17,6 @@ import nl.idgis.publisher.domain.web.Notification;
 
 import org.joda.time.DateTime;
 
-import play.Logger;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F;
@@ -27,9 +26,11 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
+import play.mvc.Security;
 import scala.concurrent.duration.Duration;
 import views.html.helper.activeTasks;
 import views.html.helper.activeTasksHeader;
+import actions.JsonRestAuthenticator;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.OneForOneStrategy;
@@ -43,6 +44,7 @@ import akka.pattern.Patterns;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+@Security.Authenticated (JsonRestAuthenticator.class)
 public class Events extends Controller {
 
 	private final static ActorRef dispatcher = Akka.system ().actorOf (Props.create (Dispatcher.class), "event-dispatcher");
