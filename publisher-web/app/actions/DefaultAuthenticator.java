@@ -7,6 +7,7 @@ import play.mvc.Security.Authenticator;
 
 public class DefaultAuthenticator extends Authenticator {
 
+	@Override
     public String getUsername (final Context ctx) {
         final String username = ctx.session ().get ("username");
         
@@ -21,6 +22,7 @@ public class DefaultAuthenticator extends Authenticator {
     	return true;
     }
     
+    @Override
     public Result onUnauthorized (final Context ctx) {
     	if (ctx.session ().get ("username") == null) {
     		return redirect (routes.User.login (ctx.request ().uri ()));

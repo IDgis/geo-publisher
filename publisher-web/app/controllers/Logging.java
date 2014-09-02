@@ -19,10 +19,13 @@ import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
+import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 import views.html.logging.messages;
 import views.html.logging.tasks;
 
+@Security.Authenticated (DefaultAuthenticator.class)
 public class Logging extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
