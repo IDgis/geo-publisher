@@ -233,6 +233,8 @@ public class LoaderInitiator extends UntypedActor {
 			columnNames.add(column.getName());
 		}
 		
+		log.debug("requesting columns: " + columnNames);
+		
 		dataSource.tell(
 				new GetDataset(
 						importJob.getSourceDatasetId(), 
