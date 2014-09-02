@@ -48,7 +48,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 			Object o = t.getObject(j + 1);
 			
 			if(o == null) {
-				valueFutures.add(Futures.successful(null));
+				valueFutures.add(Futures.<Object>successful(new Converted(null)));
 			} else {
 				Future<Object> future = Patterns.ask(converter, new Convert(o), 15000);
 				future.onFailure(new OnFailure() {

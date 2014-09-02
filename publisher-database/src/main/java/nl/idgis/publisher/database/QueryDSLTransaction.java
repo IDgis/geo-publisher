@@ -28,7 +28,7 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 	}
 
 	@Override
-	protected void executeQuery(JdbcContext context, Query query) throws Exception {		
+	protected final void executeQuery(JdbcContext context, Query query) throws Exception {		
 		executeQuery(new QueryDSLContext(context, templates), query);
 	}
 	
