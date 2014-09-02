@@ -170,7 +170,7 @@ public class Domain {
 					@Override
 					public R apply (final Object a) throws Throwable {
 						@SuppressWarnings("unchecked")
-						final A value = a instanceof NotFound ? null : (A)a;
+						final A value = (A)a;
 						return callback.apply (value);
 					}
 				});
@@ -677,7 +677,17 @@ public class Domain {
 					query, 
 					timeout
 				)
-			);
+			).map (new F.Function<Object, Object>() {
+
+				@Override
+				public Object apply (Object o) throws Throwable {
+					if (o instanceof NotFound) {
+						return null;
+					} else {
+						return o;
+					}
+				}
+			});
     }
     
     private static Lang getLang (){

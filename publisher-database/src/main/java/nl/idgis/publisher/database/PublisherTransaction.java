@@ -867,9 +867,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		if (lastTuple == null) {
 			context.answer ((Object) null);
+		} else {		
+			context.answer (createDatasetInfo (lastTuple, notifications));
 		}
-		
-		context.answer (createDatasetInfo (lastTuple, notifications));
 	}
 	
 	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
