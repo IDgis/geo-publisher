@@ -7,6 +7,7 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -54,6 +55,8 @@ public abstract class JdbcTransaction extends UntypedActor {
 				context.finish();
 			} catch(SQLException e) {
 				log.error(e, "query failure");
+				
+				getSender().tell(new Failure(e), getSelf());
 				
 				connection.close();
 				getContext().stop(getSelf());

@@ -31,6 +31,7 @@ import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Futures;
+import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -46,6 +47,7 @@ public class LoaderSession extends AbstractSession {
 	
 	private final FilterEvaluator filterEvaluator;
 	
+	private boolean inFailure = false;
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
 	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
@@ -150,17 +152,25 @@ public class LoaderSession extends AbstractSession {
 	private void handleFailure(final Failure failure) {
 		log.error("import failed: " + failure.getCause());
 		
-		Patterns.ask(geometryDatabase, new Rollback(), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("transaction rolled back");
+		if(!inFailure) {
+			inFailure = true;
+		
+			Patterns.ask(geometryDatabase, new Rollback(), 15000)
+				.onComplete(new OnComplete<Object>() {
+	
+					@Override
+					public void onComplete(Throwable t, Object msg) throws Throwable {
+						if(t != null) {
+							log.warning("rollback failed");
+						} else {					
+							log.debug("transaction rolled back");
+						}
+						
+						finalizeSession(JobState.FAILED);
+					}
 					
-					finalizeSession(JobState.FAILED);
-				}
-				
-			}, getContext().dispatcher());
+				}, getContext().dispatcher());
+		}
 	}
 	
 	private void finalizeSession(JobState state) {
@@ -196,7 +206,7 @@ public class LoaderSession extends AbstractSession {
 			futures.add(handleRecord(record));
 		}
 		
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		Futures.sequence(futures, getContext().dispatcher())
 			.onSuccess(new OnSuccess<Iterable<Object>>() {
 	
@@ -204,7 +214,7 @@ public class LoaderSession extends AbstractSession {
 				public void onSuccess(Iterable<Object> msgs) throws Throwable {
 					log.debug("records processed");
 					
-					sender.tell(new NextItem(), self);
+					sender.tell(new NextItem(), getSelf());
 				}
 				
 			}, getContext().dispatcher());
@@ -243,11 +253,32 @@ public class LoaderSession extends AbstractSession {
 				values = recordValues;
 			}
 			
-			return Patterns.ask(geometryDatabase, new InsertRecord(
+			Future<Object> insertResult = Patterns.ask(geometryDatabase, new InsertRecord(
 					importJob.getCategoryId(),
 					importJob.getDatasetId(), 
 					columns, 
 					values), 15000);
+			
+			insertResult.onComplete(new OnComplete<Object>() {
+
+				@Override
+				public void onComplete(Throwable t, Object msg) throws Throwable {
+					if(t != null) {
+						log.debug("exception during insert record");
+						
+						getSelf().tell(new Failure(t), getSelf());
+					}
+					
+					if(msg instanceof Failure) {
+						log.debug("failed to insert record");
+						
+						getSelf().tell(msg, getSelf());
+					}
+				}
+				
+			}, getContext().dispatcher());
+			
+			return insertResult;
 		}
 				
 				
