@@ -13,10 +13,8 @@ import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
@@ -34,27 +32,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class StatusAndJobTest extends AbstractDatabaseTest {
-	
-	private void executeJob(Object msg) throws Exception {
-		Object result = ask(database, msg);
-		assertTrue(result instanceof List);	
-		
-		List<?> list = (List<?>)result;
-		
-		Iterator<?> listItr = list.iterator();
-		assertNotNull(listItr);
-		assertTrue(listItr.hasNext());
-		
-		Object listItem = listItr.next();
-		assertTrue(listItem instanceof JobInfo);
-		
-		JobInfo jobInfo = (JobInfo)listItem;		
-		ask(database, new UpdateJobState(jobInfo, JobState.SUCCEEDED));
-		
-		assertNotNull(listItem);
-		
-		assertFalse(listItr.hasNext());
-	}
 
 	@Test
 	public void testDataSource() throws Exception {
@@ -85,7 +62,7 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 		result = ask(database, new CreateHarvestJob("testDataSource"));
 		assertEquals(Ack.class, result.getClass());
 		
-		executeJob(new GetHarvestJobs());
+		executeJobs(new GetHarvestJobs());
 		
 		result = ask(database, new GetDataSourceStatus());
 		assertEquals(TypedIterable.class, result.getClass());
@@ -151,7 +128,7 @@ public class StatusAndJobTest extends AbstractDatabaseTest {
 			result = ask(database, new CreateImportJob("testDataset"));
 			assertEquals(Ack.class, result.getClass());
 		
-			executeJob(new GetImportJobs());
+			executeJobs(new GetImportJobs());
 		}
 		
 		result = ask(database, new GetDatasetStatus());

@@ -30,6 +30,7 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
+import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -182,10 +183,10 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected void executeJobs(Query query) throws Exception {
-		for(Object msg : askAssert(database, query, List.class)) {
-			assertTrue(msg instanceof JobInfo);			
-			
-			ask(database, new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED));
+		TypedIterable<?> iterable = askAssert(database, query, TypedIterable.class);
+		assertTrue(iterable.contains(JobInfo.class));
+		for(JobInfo job : iterable.cast(JobInfo.class)) {
+			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
 		}
 	}
 }

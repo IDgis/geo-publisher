@@ -16,6 +16,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
 
 import akka.actor.ActorRef;
@@ -137,6 +138,8 @@ public class Harvester extends UntypedActor {
 				startHarvesting(harvestJob);
 			}
 		} else {
+			getSender().tell(new Ack(), getSelf());
+			
 			log.debug("dataSource not connected: " + dataSourceId);
 		}
 	}
@@ -171,13 +174,17 @@ public class Harvester extends UntypedActor {
 		metadataDocumentFactory.tell(msg, getSender());
 	}
 
-	private void startHarvesting(final HarvestJobInfo harvestJob) {		
+	private void startHarvesting(final HarvestJobInfo harvestJob) {
+		
+		final ActorRef sender = getSender();
 		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.STARTED), 150000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("starting harvesting for dataSource: " + harvestJob);
+					
+					sender.tell(new Ack(), getSelf());
 					
 					ActorRef session = getContext().actorOf(HarvestSession.props(database, harvestJob));
 					

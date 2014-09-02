@@ -11,6 +11,7 @@ import com.typesafe.config.Config;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
 import nl.idgis.publisher.service.rest.ServiceRest;
@@ -98,6 +99,7 @@ public class Service extends UntypedActor {
 	private void handleServiceJob(final ServiceJobInfo job) {
 		log.debug("executing service job: " + job);
 		
+		final ActorRef sender = getSender();
 		Patterns.ask(database, new UpdateJobState(job, JobState.STARTED), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
@@ -105,6 +107,7 @@ public class Service extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("service job started: " + job);
 					
+					sender.tell(new Ack(), getSelf());
 					execute(job);
 				}
 				

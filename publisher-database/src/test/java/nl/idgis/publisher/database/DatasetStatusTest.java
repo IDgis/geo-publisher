@@ -1,7 +1,5 @@
 package nl.idgis.publisher.database;
 
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-
 import java.util.Arrays;
 import java.util.List;
 
