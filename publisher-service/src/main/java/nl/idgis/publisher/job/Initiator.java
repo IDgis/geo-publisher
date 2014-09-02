@@ -83,12 +83,12 @@ public class Initiator extends UntypedActor {
 	private void scheduleInitiate() {
 		log.debug("scheduling next initiate message");
 		
-		getContext().system().scheduler().schedule(Duration.Zero(), INTERVAL, getSelf(), new Initiate(), getContext().dispatcher(), getSelf());
+		getContext().system().scheduler().scheduleOnce(INTERVAL, getSelf(), new Initiate(), getContext().dispatcher(), getSelf());
 	}
 	
 	@Override
 	public final void preStart() {
-		scheduleInitiate();
+		getSelf().tell(new Initiate(), getSelf());
 	}
 
 	@Override
