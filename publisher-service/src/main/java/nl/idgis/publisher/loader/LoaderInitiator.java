@@ -238,7 +238,7 @@ public class LoaderInitiator extends UntypedActor {
 						importJob.getSourceDatasetId(), 
 						columnNames, 
 						LoaderSession.props(
-								getSelf(),
+								getContext().parent(),
 								importJob,
 								filterEvaluator,
 								transaction, 
