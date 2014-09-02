@@ -7,9 +7,9 @@ public class RemoveNotification extends Query {
 	private static final long serialVersionUID = -7852054940831000820L;
 	
 	private final JobInfo job;
-	private final NotificationType notificationType;
+	private final NotificationType<?> notificationType;
 
-	public RemoveNotification(JobInfo job, NotificationType notificationType) {
+	public RemoveNotification(JobInfo job, NotificationType<?> notificationType) {
 		this.job = job;
 		this.notificationType = notificationType;
 	}
@@ -18,7 +18,7 @@ public class RemoveNotification extends Query {
 		return job;
 	}
 
-	public NotificationType getNotificationType() {
+	public NotificationType<?> getNotificationType() {
 		return notificationType;
 	}
 

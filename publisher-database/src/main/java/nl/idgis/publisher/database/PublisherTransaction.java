@@ -27,12 +27,9 @@ import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Collection;import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
@@ -278,7 +275,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeRemoveNotification(QueryDSLContext context, RemoveNotification query) {	
 		JobInfo job = query.getJob();
-		NotificationType type = query.getNotificationType();
+		NotificationType<?> type = query.getNotificationType();
 		
 		context.delete(notificationResult)
 			.where(new SQLSubQuery().from(notification)
@@ -298,7 +295,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeAddNotificationResult(QueryDSLContext context, AddNotificationResult query) {
 		JobInfo job = query.getJob();
-		NotificationType type = query.getNotificationType();
+		NotificationType<?> type = query.getNotificationType();
 		NotificationResult result = query.getNotificationResult();
 		
 		context.insert(notificationResult)
@@ -318,7 +315,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private void executeAddNotification(QueryDSLContext context, AddNotification query) {
 		JobInfo job = query.getJob();
-		NotificationType notificationType = query.getNotificationType();
+		NotificationType<?> notificationType = query.getNotificationType();
 		
 		context.insert(notification)
 			.set(notification.jobId, job.getId())

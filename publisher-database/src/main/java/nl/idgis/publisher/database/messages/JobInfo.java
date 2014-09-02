@@ -38,9 +38,9 @@ public class JobInfo implements Serializable {
 		return Collections.unmodifiableList(notifications);
 	}
 	
-	public boolean hasNotification(NotificationType type) {
+	public boolean hasNotification(NotificationType<?> type) {
 		for(Notification notification : notifications) {
-			NotificationType currentType = notification.getType();
+			NotificationType<?> currentType = notification.getType();
 			if(currentType.equals(type)) {
 				return true;
 			}
