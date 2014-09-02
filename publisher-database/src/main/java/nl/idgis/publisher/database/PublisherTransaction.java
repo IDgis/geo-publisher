@@ -20,7 +20,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QDatasetColumnDiff.datasetColumnDiff;
+import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -1416,19 +1416,19 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	private void executeGetDatasetColumnDiff (final QueryDSLContext context, final GetDatasetColumnDiff query) {
-		final SQLQuery baseQuery = context.query ().from (datasetColumnDiff)
-			.join (dataset).on (datasetColumnDiff.datasetId.eq (dataset.id))
-			.where (dataset.identification.eq (query.getDatasetIdentification ()))
-			.orderBy (datasetColumnDiff.name.asc ());
-		
+		final SQLQuery baseQuery = context.query ().from (sourceDatasetColumnDiff)
+				.join (dataset).on (sourceDatasetColumnDiff.datasetId.eq (dataset.id))
+				.where (dataset.identification.eq (query.getDatasetIdentification ()))
+				.orderBy (sourceDatasetColumnDiff.name.asc ());
+			
 		final List<ColumnDiff> diffs = new ArrayList<> ();
 		
-		for (final Tuple t: baseQuery.clone ().list (datasetColumnDiff.diff, datasetColumnDiff.name, datasetColumnDiff.dataType)) {
+		for (final Tuple t: baseQuery.clone ().list (sourceDatasetColumnDiff.diff, sourceDatasetColumnDiff.name, sourceDatasetColumnDiff.dataType)) {
 			diffs.add (new ColumnDiff (new Column (
-					t.get (datasetColumnDiff.name),
-					Type.valueOf (t.get (datasetColumnDiff.dataType))
+					t.get (sourceDatasetColumnDiff.name),
+					Type.valueOf (t.get (sourceDatasetColumnDiff.dataType))
 				), 
-				ColumnDiffOperation.valueOf (t.get (datasetColumnDiff.diff))
+				ColumnDiffOperation.valueOf (t.get (sourceDatasetColumnDiff.diff))
 			));
 		}
 		
