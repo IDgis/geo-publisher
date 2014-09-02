@@ -6,11 +6,11 @@
 	categories: Page[Category],
 	sourceDatasets: Page[SourceDatasetStats],
 	columns: List[Column], 
-	datasetForm: Form[controllers.Datasets.DatasetForm])
+	datasetForm: Form[controllers.Datasets.DatasetForm],
+	createDataset: Boolean)
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 @datasetId = @{datasetForm("id").value()}
-@createDataset = @{datasetId == null || datasetId.isEmpty} 
 
 @layout.application(
 	title = "Nieuwe dataset toevoegen",

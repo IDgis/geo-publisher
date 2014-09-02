@@ -204,7 +204,7 @@ public class Datasets extends Controller {
 							", #sourcedatasets=" + sourceDatasets.pageCount() + 
 							", #columns: " + columns.size () + 
 							", datasetForm: " + datasetForm);
-					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm));
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, true));
 				}
 			});
 	}
@@ -324,7 +324,7 @@ public class Datasets extends Controller {
 							", #categories=" + categories.pageCount() + 
 							", #sourcedatasets=" + sourceDatasets.pageCount() + 
 							", #columns: " + columns.size ());
-					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm));
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, false));
 				}
 			});
 	}
