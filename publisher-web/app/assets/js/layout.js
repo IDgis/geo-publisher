@@ -114,10 +114,12 @@ require ([
     	});
     }
     
-    // Start polling the server for events:
-    setTimeout (function () {
-    	pollEvents ();
-    });
+    // Start polling the server for events if the event bar is available in the layout:
+    if (dom.byId ('event-bar')) {
+    	setTimeout (function () {
+    		pollEvents ();
+    	});
+    }
     
     // =========================================================================
     // Update task list:
