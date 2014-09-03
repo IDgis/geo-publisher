@@ -14,7 +14,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 		<scala.version>2.11.1</scala.version>
-		<play2.version>2.3.1</play2.version>
+		<play2.version>2.3.4</play2.version>
 		<scala.abi.version>2.11</scala.abi.version>
 		<deegree.version>3.4-pre13</deegree.version>
 		<querydsl.version>3.4.1</querydsl.version>
@@ -24,7 +24,7 @@
 		-->
 		<jackson.version>2.3.3</jackson.version>
 		<jodatime.version>2.3</jodatime.version>
-		<akka.version>2.3.3</akka.version>
+		<akka.version>2.3.4</akka.version>
 		<guava.version>17.0</guava.version>
 		<h2.version>1.4.180</h2.version>
 	</properties>
