@@ -31,6 +31,7 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.MessageContext;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Status;
+import play.Logger;
 import play.i18n.Lang;
 import play.i18n.Messages;
 import play.libs.F;
@@ -39,12 +40,9 @@ import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Domain {
 
-	private final static ObjectMapper objectMapper = new ObjectMapper ();
-	
 	public static DomainInstance from (final ActorSelection domainActor) {
 		return from (domainActor, 15000);
 	}
@@ -687,6 +685,11 @@ public class Domain {
 						return o;
 					}
 				}
+			}).recover (new F.Function<Throwable, Object> () {
+				@Override
+				public Object apply (final Throwable e) throws Throwable {
+					throw new DomainAccessException (e);
+				}
 			});
     }
     
@@ -863,6 +866,14 @@ public class Domain {
 		@JsonAnySetter
 		public void setProperty (final String name, final Object value) {
 			properties.put (name, value);
+		}
+    }
+    
+    public static class DomainAccessException extends Exception {
+		private static final long serialVersionUID = 5265653848067852534L;
+		
+		public DomainAccessException (final Throwable cause) {
+			super (cause);
 		}
     }
 }
