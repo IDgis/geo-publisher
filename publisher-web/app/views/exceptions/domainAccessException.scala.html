@@ -1,0 +1,20 @@
+@(exceptionId: String)
+
+@layout.applicationCentered(title = "Fout") {
+	
+	<div class="panel panel-danger panel-centered">
+		<div class="panel-heading">
+			<h3 class="panel-title">Fout</h3>
+		</div>
+		<div class="panel-body">
+			<p>
+				De publicatieservice is momenteel niet beschikbaar.
+			<p>
+			@if(exceptionId != null) {
+				<p>
+					De foutmelding is gerapporteerd met code <code>@exceptionId</code>. Vermeld deze code bij een vraag om assistentie.
+				</p>
+			}
+		</div>
+	</div>
+}
