@@ -227,7 +227,7 @@ public class Events extends Controller {
 						target.tell (response, self);
 						self.tell (Event.STOP, self);
 					} else {
-						scheduleUpdate (self);
+						self.tell (Event.SCHEDULE_UPDATE, self);
 					}
 				}
 			});
@@ -310,6 +310,8 @@ public class Events extends Controller {
 		public void onReceive (final Object msg) throws Exception {
 			if (Event.UPDATE.equals (msg)) {
 				doUpdate ();
+			} else if (Event.SCHEDULE_UPDATE.equals (msg)) {
+				scheduleUpdate (self ());
 			} else if (Event.STOP.equals (msg)) {
 				context ().stop (self ());
 			} else {
@@ -320,7 +322,8 @@ public class Events extends Controller {
 	
 	public static enum Event {
 		UPDATE,
-		STOP
+		STOP,
+		SCHEDULE_UPDATE
 	}
 
 	public final static class StartPoll {
