@@ -113,10 +113,10 @@ public class LoaderSessionInitiator extends UntypedActor {
 			}
 		}
 		
-		requestDataSource();
+		handleNotifications();
 	}
 
-	private void requestDataSource() {
+	private void handleNotifications() {
 		for(Notification notification : importJob.getNotifications()) {
 			NotificationType<?> type = notification.getType();
 			NotificationResult result = notification.getResult();
@@ -132,6 +132,10 @@ public class LoaderSessionInitiator extends UntypedActor {
 			}
 		}
 		
+		requestDataSource();
+	}
+
+	private void requestDataSource() {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
 		if(dataSourceBusy) {
@@ -180,7 +184,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 					if(continueImport) {
 						log.debug("continuing loader initialization");
 						
-						requestDataSource();
+						handleNotifications();
 					} else {
 						log.debug("stopping");
 						
