@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -28,6 +29,7 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StartTransaction;
@@ -53,15 +55,29 @@ import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractDatabaseTest {
 	
+	static class GetInsertCount {
+		
+	}
+	
 	static class TransactionMock extends UntypedActor {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		int insertCount = 0;
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);
 			
-			getSender().tell(new Ack(), getSelf());
+			if(msg instanceof GetInsertCount) {
+				getSender().tell(insertCount, getSelf());
+			} else {			
+				if(msg instanceof InsertRecord) {
+					insertCount++;
+				}
+			
+				getSender().tell(new Ack(), getSelf());
+			}
 		}
 		
 	}
@@ -233,10 +249,11 @@ public class LoaderTest extends AbstractDatabaseTest {
 	
 	ActorRef loader;
 	ActorRef databaseAdapter;
+	ActorRef geometryDatabaseMock;
 	
 	@Before
 	public void actors() {
-		ActorRef geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
+		geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
 		ActorRef dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
 		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");
@@ -256,6 +273,10 @@ public class LoaderTest extends AbstractDatabaseTest {
 		}
 		
 		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);
+		
+		int insertCount = askAssert(ActorSelection.apply(geometryDatabaseMock, "*"), 
+				new GetInsertCount(), Integer.class);
+		assertEquals(10, insertCount);
 	}
 	
 	@Test
@@ -336,6 +357,9 @@ public class LoaderTest extends AbstractDatabaseTest {
 			askAssert(loader, jobInfo, Ack.class);
 		}
 		
-		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);
+		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);		
+		
+		int count = askAssert(ActorSelection.apply(geometryDatabaseMock, "*"), new GetInsertCount(), Integer.class);
+		assertEquals(10, count);
 	}
 }
