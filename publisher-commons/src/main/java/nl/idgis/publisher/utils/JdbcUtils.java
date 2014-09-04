@@ -17,25 +17,41 @@ public class JdbcUtils {
 	
 	public static int runRev(Statement stmt, String path, int start) throws Exception {
 		for(int i = start; ; i++) {
-			StringBuilder sb = new StringBuilder(path + "/rev");
-			if(i < 100) {
-				sb.append("0");
-			}
-			
-			if(i < 10) {
-				sb.append("0");
-			}
-			
-			sb.append(i);			
-			sb.append(".sql");
-			
-			InputStream is = JdbcUtils.class.getClassLoader().getResourceAsStream(sb.toString());
+			InputStream is = getRev(path, i);
 			if(is == null) {
 				return i - 1;
 			}
 			
 			run(stmt, is);
 		}
+	}
+	
+	public static int maxRev(String path) {
+		return maxRev(path, 0);
+	}
+	
+	public static int maxRev(String path, int start) {
+		for(int i = start; ; i++) {
+			if(getRev(path, i + 1) == null) {
+				return i;
+			}
+		}
+	}
+
+	public static InputStream getRev(String path, int i) {
+		StringBuilder sb = new StringBuilder(path + "/rev");
+		if(i < 100) {
+			sb.append("0");
+		}
+		
+		if(i < 10) {
+			sb.append("0");
+		}
+		
+		sb.append(i);			
+		sb.append(".sql");
+		
+		return JdbcUtils.class.getClassLoader().getResourceAsStream(sb.toString());		
 	}
 	
 	public static void run(Statement stmt, InputStream is) throws Exception {

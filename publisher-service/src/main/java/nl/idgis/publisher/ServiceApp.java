@@ -20,6 +20,7 @@ import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
 import nl.idgis.publisher.utils.Boot;
+import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -91,8 +92,16 @@ public class ServiceApp extends UntypedActor {
 					
 					log.info("database version: " + version);
 					
-					database.tell(new TerminateJobs(), getSelf());
-					getContext().become(waitingForJobTermination());
+					int versionId = version.getId();					
+					int lastVersionId = JdbcUtils.maxRev("nl/idgis/publisher/database", versionId);
+					
+					if(versionId != lastVersionId) {
+						log.error("database obsolete, expected version id: " + lastVersionId);
+						getContext().stop(getSelf());
+					} else {					
+						database.tell(new TerminateJobs(), getSelf());
+						getContext().become(waitingForJobTermination());
+					}
 				} else {
 					unhandled(msg);
 				}
