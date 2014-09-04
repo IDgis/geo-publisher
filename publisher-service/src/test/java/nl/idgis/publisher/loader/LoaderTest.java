@@ -2,6 +2,7 @@ package nl.idgis.publisher.loader;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -28,21 +29,30 @@ import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.load.ImportLogType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -211,6 +221,8 @@ public class LoaderTest extends AbstractDatabaseTest {
 	
 	static class DatabaseAdapter extends UntypedActor {
 		
+		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
 		final ActorRef database;
 		
 		ActorRef sender = null;
@@ -222,6 +234,8 @@ public class LoaderTest extends AbstractDatabaseTest {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
+			log.debug("received: " + msg);
+			
 			if(msg instanceof GetFinishedState) {
 				sender = getSender();
 				sendFinishedState();
@@ -363,6 +377,45 @@ public class LoaderTest extends AbstractDatabaseTest {
 				}
 			}
 			
+			askAssert(loader, jobInfo, Ack.class);
+		}
+		
+		assertEquals(
+				JobState.FAILED,
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+		
+		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.ERROR), InfoList.class);
+		assertEquals(1, infoList.getCount().intValue());
+		
+		StoredJobLog jobLog = (StoredJobLog)infoList.getList().get(0);
+		assertEquals(LogLevel.ERROR, jobLog.getLevel());
+		assertEquals(ImportLogType.MISSING_COLUMNS, jobLog.getType());
+		
+		MessageProperties logContent = jobLog.getContent();
+		assertNotNull(logContent);
+		assertTrue(logContent instanceof MissingColumnsLog);
+		
+		MissingColumnsLog missingColumnsLog = (MissingColumnsLog)logContent;
+		assertEquals("testDataset", missingColumnsLog.getIdentification());
+		assertEquals("My Test Dataset", missingColumnsLog.getTitle());
+		assertEquals(EntityType.DATASET, missingColumnsLog.getEntityType());
+		
+		Set<Column> missingColumns = missingColumnsLog.getColumns();
+		assertNotNull(missingColumns);
+		assertTrue(missingColumns.contains(testColumns.get(1)));
+		
+		ask(database, new UpdateDataset(
+				"testDataset", 
+				"My Test Dataset", 
+				"testSourceDataset", 
+				Arrays.asList(testColumns.get(0)),
+				"{ \"expression\": null }"));
+		
+		ask(database, new CreateImportJob("testDataset"));
+		
+		iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(iterable.contains(ImportJobInfo.class));
+		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
 			askAssert(loader, jobInfo, Ack.class);
 		}
 		

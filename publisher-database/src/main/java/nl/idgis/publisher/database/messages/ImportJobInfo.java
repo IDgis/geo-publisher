@@ -9,22 +9,23 @@ import nl.idgis.publisher.domain.service.Column;
 
 public class ImportJobInfo extends JobInfo {
 	
-
-	private static final long serialVersionUID = -6223087374147119878L;
+	private static final long serialVersionUID = -7099595558614549074L;
 	
 	private final String categoryId, dataSourceId, sourceDatasetId, 
-		datasetId, filterCondition;
-	private final List<Column> columns; 
+		datasetId, datasetName, filterCondition;
+	private final List<Column> columns, sourceDatasetColumns; 
 	
-	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String filterCondition, List<Column> columns, List<Notification> notifications) {
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String datasetName, String filterCondition, List<Column> columns, List<Column> sourceDatasetColumns, List<Notification> notifications) {
 		super(id, JobType.HARVEST, notifications);
 		
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
-		this.datasetId = datasetId;		
+		this.datasetId = datasetId;
+		this.datasetName = datasetName;
 		this.filterCondition = filterCondition;
 		this.columns = columns;
+		this.sourceDatasetColumns = sourceDatasetColumns;
 	}
 	
 	public String getCategoryId() {
@@ -37,6 +38,10 @@ public class ImportJobInfo extends JobInfo {
 	
 	public String getDatasetId() {
 		return datasetId;
+	}
+	
+	public String getDatasetName() {
+		return datasetName;
 	}	
 
 	public String getDataSourceId() {
@@ -45,7 +50,11 @@ public class ImportJobInfo extends JobInfo {
 	
 	public List<Column> getColumns() {
 		return Collections.unmodifiableList(columns);
-	}	
+	}
+	
+	public List<Column> getSourceDatasetColumns() {
+		return Collections.unmodifiableList(sourceDatasetColumns);
+	}
 
 	public String getFilterCondition() {
 		return filterCondition;
@@ -63,7 +72,13 @@ public class ImportJobInfo extends JobInfo {
 		result = prime * result
 				+ ((datasetId == null) ? 0 : datasetId.hashCode());
 		result = prime * result
+				+ ((datasetName == null) ? 0 : datasetName.hashCode());
+		result = prime * result
 				+ ((filterCondition == null) ? 0 : filterCondition.hashCode());
+		result = prime
+				* result
+				+ ((sourceDatasetColumns == null) ? 0 : sourceDatasetColumns
+						.hashCode());
 		result = prime * result
 				+ ((sourceDatasetId == null) ? 0 : sourceDatasetId.hashCode());
 		return result;
@@ -98,10 +113,20 @@ public class ImportJobInfo extends JobInfo {
 				return false;
 		} else if (!datasetId.equals(other.datasetId))
 			return false;
+		if (datasetName == null) {
+			if (other.datasetName != null)
+				return false;
+		} else if (!datasetName.equals(other.datasetName))
+			return false;
 		if (filterCondition == null) {
 			if (other.filterCondition != null)
 				return false;
 		} else if (!filterCondition.equals(other.filterCondition))
+			return false;
+		if (sourceDatasetColumns == null) {
+			if (other.sourceDatasetColumns != null)
+				return false;
+		} else if (!sourceDatasetColumns.equals(other.sourceDatasetColumns))
 			return false;
 		if (sourceDatasetId == null) {
 			if (other.sourceDatasetId != null)
@@ -115,8 +140,10 @@ public class ImportJobInfo extends JobInfo {
 	public String toString() {
 		return "ImportJobInfo [categoryId=" + categoryId + ", dataSourceId="
 				+ dataSourceId + ", sourceDatasetId=" + sourceDatasetId
-				+ ", datasetId=" + datasetId + ", filterCondition="
-				+ filterCondition + ", columns=" + columns + "]";
-	}
+				+ ", datasetId=" + datasetId + ", datasetName=" + datasetName
+				+ ", filterCondition=" + filterCondition + ", columns="
+				+ columns + ", sourceDatasetColumns=" + sourceDatasetColumns
+				+ "]";
+	}	
 	
 }
