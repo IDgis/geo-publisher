@@ -43,7 +43,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-public class LoaderInitiator extends UntypedActor {
+public class LoaderSessionInitiator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -57,7 +57,7 @@ public class LoaderInitiator extends UntypedActor {
 	
 	private Cancellable timeoutCancellable = null;
 	
-	public LoaderInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
+	public LoaderSessionInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
 			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
 		
 		this.dataSourceBusy = dataSourceBusy;
@@ -69,7 +69,7 @@ public class LoaderInitiator extends UntypedActor {
 	}
 	
 	public static Props props(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
-		return Props.create(LoaderInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
+		return Props.create(LoaderSessionInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
 	}
 	
 	@Override
