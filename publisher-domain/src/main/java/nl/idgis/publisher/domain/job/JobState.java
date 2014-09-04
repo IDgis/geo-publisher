@@ -17,6 +17,10 @@ public enum JobState {
 		this.isFinished = isFinished;
 	}
 	
+	public boolean isFinished() {
+		return isFinished;
+	}
+	
 	private final static Set<JobState> finished = buildFinished();
 	
 	private static Set<JobState> buildFinished() {

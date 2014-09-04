@@ -205,7 +205,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 		}		
 	}
 	
-	static class WaitForSucceeded {
+	static class GetFinishedState {
 		
 	}
 	
@@ -214,7 +214,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 		final ActorRef database;
 		
 		ActorRef sender = null;
-		boolean succeeded = false;
+		JobState finishedState = null;
 		
 		DatabaseAdapter(ActorRef database) {
 			this.database = database;
@@ -222,16 +222,17 @@ public class LoaderTest extends AbstractDatabaseTest {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof WaitForSucceeded) {
+			if(msg instanceof GetFinishedState) {
 				sender = getSender();
-				sendWaitResponse();
+				sendFinishedState();
 			} else {			
 				if(msg instanceof UpdateJobState) {
 					UpdateJobState ujs = (UpdateJobState)msg;
 					
-					if(ujs.getState() == JobState.SUCCEEDED) {
-						succeeded = true;
-						sendWaitResponse();
+					JobState currentState = ujs.getState();
+					if(currentState.isFinished()) {					
+						finishedState = currentState;
+						sendFinishedState();					
 					}
 				}
 				
@@ -239,9 +240,12 @@ public class LoaderTest extends AbstractDatabaseTest {
 			}
 		}
 		
-		void sendWaitResponse() {
-			if(sender != null && succeeded) {
-				sender.tell(new Ack(), getSelf());
+		void sendFinishedState() {
+			if(sender != null && finishedState != null) {
+				sender.tell(finishedState, getSelf());
+				
+				sender = null;
+				finishedState = null;
 			}
 		}
 		
@@ -272,10 +276,15 @@ public class LoaderTest extends AbstractDatabaseTest {
 			askAssert(loader, job, Ack.class);
 		}
 		
-		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);
+		assertEquals(
+				JobState.SUCCEEDED, 				
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		int insertCount = askAssert(ActorSelection.apply(geometryDatabaseMock, "*"), 
-				new GetInsertCount(), Integer.class);
+		int insertCount = askAssert(
+				ActorSelection.apply(geometryDatabaseMock, "*"), 
+				new GetInsertCount(), 
+				Integer.class);
+		
 		assertEquals(10, insertCount);
 	}
 	
@@ -357,7 +366,9 @@ public class LoaderTest extends AbstractDatabaseTest {
 			askAssert(loader, jobInfo, Ack.class);
 		}
 		
-		askAssert(databaseAdapter, new WaitForSucceeded(), Ack.class);		
+		assertEquals(
+				JobState.SUCCEEDED,
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));		
 		
 		int count = askAssert(ActorSelection.apply(geometryDatabaseMock, "*"), new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
