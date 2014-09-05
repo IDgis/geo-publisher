@@ -356,7 +356,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 					} else {
 						MissingColumnsLog missingColumnsLog = new MissingColumnsLog(importJob.getDatasetId(), importJob.getDatasetName(), missingColumns);
 						
-						database.tell(new StoreLog(importJob, JobLog.create(LogLevel.INFO, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
+						database.tell(new StoreLog(importJob, JobLog.create(LogLevel.WARNING, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
 						become("storing missing columns log", waitingForMissingColumnsLogStored());
 					}
 				} else {

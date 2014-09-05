@@ -458,7 +458,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 		assertEquals(1, infoList.getCount().intValue());
 		
 		StoredJobLog jobLog = (StoredJobLog)infoList.getList().get(0);
-		assertEquals(LogLevel.INFO, jobLog.getLevel());
+		assertEquals(LogLevel.WARNING, jobLog.getLevel());
 		assertEquals(ImportLogType.MISSING_COLUMNS, jobLog.getType());
 		
 		MessageProperties logContent = jobLog.getContent();
