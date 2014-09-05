@@ -10,6 +10,7 @@ import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.GetString;
 import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
+import nl.idgis.publisher.xml.messages.UpdateString;
 
 import org.junit.Test;
 
@@ -87,5 +88,36 @@ public class XMLDocumentTest {
 		
 		response = Await.result(future, AWAIT_DURATION);
 		assertTrue(response instanceof ActorRef);
+	}
+	
+	@Test
+	public void testUpdateString() throws Exception{
+		ActorSystem system = ActorSystem.create();		
+		
+		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		
+		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");
+		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
+		
+		Object result = Await.result(future, AWAIT_DURATION);
+		assertTrue("didn't receive an ActorRef", result instanceof ActorRef);
+		
+		ActorRef document = (ActorRef)result;
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		namespaces.put("b", "bURI");
+		
+		future = Patterns.ask(document, new GetString(namespaces, "/a:a/b:b"), 15000);
+		result = Await.result(future, AWAIT_DURATION);		
+		assertEquals("Hello", result);
+		
+		future = Patterns.ask(document, new UpdateString(namespaces, "/a:a/b:b", "New Value"), 15000);
+		result = Await.result(future, AWAIT_DURATION);
+		assertTrue(result instanceof Ack);
+		
+		future = Patterns.ask(document, new GetString(namespaces, "/a:a/b:b"), 15000);
+		result = Await.result(future, AWAIT_DURATION);		
+		assertEquals("New Value", result);
 	}
 }

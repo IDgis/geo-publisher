@@ -1,24 +1,16 @@
 package nl.idgis.publisher.xml.messages;
 
-import java.io.Serializable;
+public class NotFound extends QueryFailure{
+	
+	private static final long serialVersionUID = 298975318219040192L;
 
-public class NotFound implements Serializable {
-	
-	private static final long serialVersionUID = 3662946738782038740L;
-	
-	private final String expression;
-	
-	public NotFound(String expression) {
-		this.expression = expression;
-	}
-	
-	public String getExpression() {
-		return expression;
+	public NotFound(Query<?> query) {
+		super(query);
 	}
 
 	@Override
 	public String toString() {
-		return "NotFound [expression=" + expression + "]";
-	}	
+		return "NotFound []";
+	}
 
 }
