@@ -6,6 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -16,8 +19,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -26,6 +30,7 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
+import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.GetImportJobs;
@@ -52,7 +57,13 @@ import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
+import nl.idgis.publisher.domain.web.Filter.ColumnReferenceExpression;
+import nl.idgis.publisher.domain.web.Filter.ValueExpression;
+import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -64,6 +75,16 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractDatabaseTest {
+	
+	static class SetInsertCount {
+		
+		final int count;
+		
+		SetInsertCount(int count) {
+			this.count = count;
+		}
+		
+	}
 	
 	static class GetInsertCount {
 		
@@ -77,17 +98,16 @@ public class LoaderTest extends AbstractDatabaseTest {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			log.debug("received: " + msg);
-			
-			if(msg instanceof GetInsertCount) {
-				getSender().tell(insertCount, getSelf());
-			} else {			
-				if(msg instanceof InsertRecord) {
-					insertCount++;
-				}
-			
-				getSender().tell(new Ack(), getSelf());
+			log.debug("received: " + msg);			
+					
+			if(msg instanceof InsertRecord) {
+				insertCount++;
+			} else if(msg instanceof Commit) {
+				getContext().parent().tell(new SetInsertCount(insertCount), getSelf());
+				getContext().stop(getSelf());
 			}
+		
+			getSender().tell(new Ack(), getSelf());
 		}
 		
 	}
@@ -95,35 +115,84 @@ public class LoaderTest extends AbstractDatabaseTest {
 	static class GeometryDatabaseMock extends UntypedActor {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		ActorRef sender;
+		Integer insertCount;
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);
 			
-			if(msg instanceof StartTransaction) {
+			if(msg instanceof SetInsertCount) {
+				insertCount = ((SetInsertCount) msg).count;
+				sendInsertCount();
+			} else if(msg instanceof GetInsertCount) {
+				sender = getSender();
+				sendInsertCount();
+			} else if(msg instanceof StartTransaction) {
 				ActorRef transaction = getContext().actorOf(Props.create(TransactionMock.class));				
 				getSender().tell(new TransactionCreated(transaction), getSelf());
 			} else {
 				unhandled(msg);
 			}
-		}		
+		}
+
+		private void sendInsertCount() {
+			if(sender != null && insertCount != null) {
+				sender.tell(insertCount, getSelf());
+				
+				sender = null;
+				insertCount = null;
+			}			
+		}	
+		
+		
+	}
+	
+	static class GetColumns {
+		
 	}
 	
 	static class DataSourceMock extends UntypedActor {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		ActorRef sender = null;
+		List<String> columns = null;
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);
 			
 			if(msg instanceof GetDataset) {
-				GetDataset gd = (GetDataset)msg;				
+				GetDataset gd = (GetDataset)msg;
+				
+				columns = gd.getColumns();
+				sendColumns();
+				
 				ActorRef receiver = getContext().actorOf(gd.getReceiverProps(), "receiver");
 				receiver.tell(new StartImport(10), getSelf());
-				getContext().become(waitingForStart());
+				getContext().become(waitingForStart(), true);
+			} else {
+				onReceiveElse(msg);
+			}
+		}
+		
+		private void onReceiveElse(Object msg) {
+			if(msg instanceof GetColumns) {
+				sender = getSender();
+				sendColumns();
 			} else {
 				unhandled(msg);
+			}
+		}
+		
+		private void sendColumns() {
+			if(sender != null && columns != null) {
+				sender.tell(columns, getSelf());
+				
+				sender = null;
+				columns = null;
 			}
 		}
 		
@@ -140,7 +209,8 @@ public class LoaderTest extends AbstractDatabaseTest {
 					if(itr.hasNext()) {
 						getSender().tell(itr.next(), getSelf());
 					} else {
-						getSender().tell(new End(), getSelf());						
+						getSender().tell(new End(), getSelf());
+						getContext().unbecome();
 					}
 				}
 				
@@ -151,7 +221,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 					if(msg instanceof NextItem) {
 						sendResponse();
 					} else {
-						unhandled(msg);
+						onReceiveElse(msg);
 					}
 				}
 			};
@@ -184,7 +254,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 						
 						getContext().become(sendingRecords(records));
 					} else {
-						unhandled(msg);
+						onReceiveElse(msg);
 					}
 				}
 				
@@ -266,13 +336,14 @@ public class LoaderTest extends AbstractDatabaseTest {
 	}
 	
 	ActorRef loader;
+	ActorRef dataSourceMock;
 	ActorRef databaseAdapter;
 	ActorRef geometryDatabaseMock;
 	
 	@Before
 	public void actors() {
 		geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
-		ActorRef dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
+		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
 		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");
 		
@@ -294,8 +365,16 @@ public class LoaderTest extends AbstractDatabaseTest {
 				JobState.SUCCEEDED, 				
 				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
 		
+		List<?> columns = askAssert(dataSourceMock, new GetColumns(), List.class);
+		Iterator<?> columnItr = columns.iterator();
+		assertTrue(columnItr.hasNext());
+		assertEquals("col0", columnItr.next());
+		assertTrue(columnItr.hasNext());
+		assertEquals("col1", columnItr.next());
+		assertFalse(columnItr.hasNext());
+		
 		int insertCount = askAssert(
-				ActorSelection.apply(geometryDatabaseMock, "*"), 
+				geometryDatabaseMock, 
 				new GetInsertCount(), 
 				Integer.class);
 		
@@ -380,15 +459,17 @@ public class LoaderTest extends AbstractDatabaseTest {
 			askAssert(loader, jobInfo, Ack.class);
 		}
 		
+		// the loader is still able to import, but informs us 
+		// about a missing column
 		assertEquals(
-				JobState.FAILED,
+				JobState.SUCCEEDED,
 				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.ERROR), InfoList.class);
+		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
 		
 		StoredJobLog jobLog = (StoredJobLog)infoList.getList().get(0);
-		assertEquals(LogLevel.ERROR, jobLog.getLevel());
+		assertEquals(LogLevel.WARNING, jobLog.getLevel());
 		assertEquals(ImportLogType.MISSING_COLUMNS, jobLog.getType());
 		
 		MessageProperties logContent = jobLog.getContent();
@@ -404,6 +485,14 @@ public class LoaderTest extends AbstractDatabaseTest {
 		assertNotNull(missingColumns);
 		assertTrue(missingColumns.contains(testColumns.get(1)));
 		
+		// loader shouldn't request those missing columns
+		List<?> columns = askAssert(dataSourceMock, new GetColumns(), List.class);
+		Iterator<?> columnItr = columns.iterator();
+		assertTrue(columnItr.hasNext());
+		assertEquals("col0", columnItr.next());
+		assertFalse(columnItr.hasNext());
+		
+		// update dataset to be in line with the latest source dataset
 		ask(database, new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
@@ -415,15 +504,94 @@ public class LoaderTest extends AbstractDatabaseTest {
 		
 		iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
-		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
-			askAssert(loader, jobInfo, Ack.class);
-		}
+		
+		Iterator<ImportJobInfo> itr = iterable.cast(ImportJobInfo.class).iterator();
+		assertTrue(itr.hasNext());		
+		askAssert(loader, itr.next(), Ack.class);
+		assertFalse(itr.hasNext());
 		
 		assertEquals(
 				JobState.SUCCEEDED,
 				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));		
 		
-		int count = askAssert(ActorSelection.apply(geometryDatabaseMock, "*"), new GetInsertCount(), Integer.class);
+		int count = askAssert(geometryDatabaseMock, new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
+		
+		// verify that the loader doens't inform us about missing 
+		// columns anymore (because we updated the dataset)
+		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		assertEquals(1, infoList.getCount().intValue());
+	}
+	
+	@Test
+	public void testMissingColumns() throws Exception {
+		insertDataset();
+		
+		insert(datasetColumn)
+			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.name, "col3")
+			.set(datasetColumn.dataType, Type.TEXT.name())
+			.set(datasetColumn.index, 3)	
+			.execute();
+		
+		insert(datasetColumn)
+			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.name, "col4")
+			.set(datasetColumn.dataType, Type.GEOMETRY.name())
+			.set(datasetColumn.index, 4)	
+			.execute();
+			
+		Filter filter = new Filter(
+				new OperatorExpression(
+						OperatorType.EQUALS, 
+						Arrays.asList(
+								new ColumnReferenceExpression(new Column("col3", Type.TEXT)),
+								new ValueExpression(Type.TEXT, "filterValue"))));
+		
+		ObjectMapper mapper = new ObjectMapper();
+		
+		update(dataset)
+			.set(dataset.filterConditions, mapper.writeValueAsString(filter)) 
+			.execute();
+		
+		ask(database, new CreateImportJob("testDataset"));
+		
+		TypedIterable<?> importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(importJobIterable.contains(ImportJobInfo.class));
+		
+		Iterator<ImportJobInfo> importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobItr.hasNext());
+		askAssert(loader, importJobItr.next(), Ack.class);
+		assertFalse(importJobItr.hasNext());
+		
+		assertEquals(
+				JobState.FAILED,
+				
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+		
+		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		assertEquals(2, infoList.getCount().intValue());
+		
+		update(dataset)
+			.set(dataset.filterConditions, mapper.writeValueAsString(new Filter(null))) 
+			.execute();
+		
+		ask(database, new CreateImportJob("testDataset"));
+		
+		importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(importJobIterable.contains(ImportJobInfo.class));
+		
+		importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobItr.hasNext());
+		askAssert(loader, importJobItr.next(), Ack.class);
+		assertFalse(importJobItr.hasNext());
+		
+		assertEquals(
+				JobState.SUCCEEDED,
+				
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+		
+		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		assertEquals(3, infoList.getCount().intValue());
 	}
 }
