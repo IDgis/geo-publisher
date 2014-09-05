@@ -1,6 +1,7 @@
 package nl.idgis.publisher.loader;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -50,6 +51,10 @@ public class FilterEvaluator {
 		abstract Type getType();
 		
 		static Value<?> toValue(Type type, Object value) {
+			if(value == null) {
+				return new NullValue();
+			}
+			
 			switch(type) {
 				case BOOLEAN:
 					return new BooleanValue((Boolean)value);
@@ -199,6 +204,19 @@ public class FilterEvaluator {
 		
 	}
 	
+	protected static class NullValue extends Value<Object> {
+
+		NullValue() {
+			super(null);
+		}
+
+		@Override
+		Type getType() {
+			return null;
+		}
+		
+	}
+	
 	private final Map<Column, Integer> columns;
 	private final FilterExpression rootExpression;
 	
@@ -254,7 +272,17 @@ public class FilterEvaluator {
 	
 	protected Value<?> evaluate(Record record, OperatorExpression operator) {
 		OperatorType operatorType = operator.getOperatorType();
-		List<FilterExpression> inputs = operator.getInputs();
+		
+		List<Value<?>> inputs = new ArrayList<>();
+		for(FilterExpression inputExpression : operator.getInputs()) {
+			 Value<?> inputValue = evaluate(record, inputExpression);
+			 
+			 if(inputValue instanceof NullValue) {
+				 return BooleanValue.FALSE;
+			 } else {
+				 inputs.add(inputValue);
+			 }
+		}
 		
 		int operatorArity = operatorType.getArity();
 		if(operatorArity > 0 && inputs.size() != operatorArity) {
@@ -290,10 +318,10 @@ public class FilterEvaluator {
 		}
 	}
 
-	private BooleanValue evaluateIn(Record record, List<FilterExpression> inputs) {
-		Value<?> value = evaluate(record, inputs.get(0));
+	private BooleanValue evaluateIn(Record record, List<Value<?>> inputs) {
+		Value<?> value = inputs.get(0);
 		
-		String expr = evaluate(record, inputs.get(1)).getStringValue();
+		String expr = inputs.get(1).getStringValue();
 		for(String s : expr.split(",")) {
 			if(compare(record, value, Value.toValue(value.getType(), s.trim())) == 0) {
 				return BooleanValue.TRUE;
@@ -303,10 +331,10 @@ public class FilterEvaluator {
 		return BooleanValue.FALSE;
 	}
 
-	private Value<?> evaluateLike(Record record, List<FilterExpression> inputs) {
-		String value = evaluate(record, inputs.get(0)).getStringValue();
+	private Value<?> evaluateLike(Record record, List<Value<?>> inputs) {
+		String value = inputs.get(0).getStringValue();
 		
-		Value<?> expr = evaluate(record, inputs.get(1));
+		Value<?> expr = inputs.get(1);
 		if(expr.getType() != Type.TEXT) {
 			throw new IllegalArgumentException("string expression expected");
 		}
@@ -323,15 +351,15 @@ public class FilterEvaluator {
 		return BooleanValue.FALSE;
 	}
 
-	private Value<?> evaluateNotNull(Record record, List<FilterExpression> inputs) {
-		if(evaluate(record, inputs.get(0)) == null) {
+	private Value<?> evaluateNotNull(Record record, List<Value<?>> inputs) {
+		if(inputs.get(0) instanceof NullValue) {
 			return BooleanValue.FALSE;
 		} 
 		
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateGreaterThanEqual(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateGreaterThanEqual(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) >= 0) {
 			return BooleanValue.FALSE;
 		}
@@ -339,7 +367,7 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateGreaterThan(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateGreaterThan(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) > 0) {
 			return BooleanValue.FALSE;
 		}
@@ -347,7 +375,7 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateLessThanEqual(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateLessThanEqual(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) <= 0) {
 			return BooleanValue.FALSE;
 		}
@@ -355,7 +383,7 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateLessThan(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateLessThan(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) < 0) {
 			return BooleanValue.FALSE;
 		}
@@ -363,7 +391,7 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateNotEquals(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateNotEquals(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) == 0) {
 			return BooleanValue.FALSE;
 		}
@@ -371,7 +399,7 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateEquals(Record record, List<FilterExpression> inputs) {
+	private Value<?> evaluateEquals(Record record, List<Value<?>> inputs) {
 		if(compare(record, inputs) != 0) {
 			return BooleanValue.FALSE;
 		}
@@ -379,11 +407,10 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateAnd(Record record, List<FilterExpression> inputs) {
-		for(FilterExpression expression : inputs) {
-			Object expressionResult = evaluate(record, expression);
-			if(expressionResult instanceof BooleanValue) {
-				if(!((BooleanValue) expressionResult).getValue()) {
+	private Value<?> evaluateAnd(Record record, List<Value<?>> inputs) {
+		for(Value<?> input : inputs) {
+			if(input instanceof BooleanValue) {
+				if(!((BooleanValue) input).getValue()) {
 					return BooleanValue.FALSE;
 				}
 			} else {
@@ -394,11 +421,10 @@ public class FilterEvaluator {
 		return BooleanValue.TRUE;
 	}
 
-	private Value<?> evaluateOr(Record record, List<FilterExpression> inputs) {
-		for(FilterExpression expression : inputs) {
-			Object expressionResult = evaluate(record, expression);
-			if(expressionResult instanceof BooleanValue) {
-				if(((BooleanValue) expressionResult).getValue()) {
+	private Value<?> evaluateOr(Record record, List<Value<?>> inputs) {
+		for(Value<?> input : inputs) {			
+			if(input instanceof BooleanValue) {
+				if(((BooleanValue) input).getValue()) {
 					return BooleanValue.TRUE;
 				}
 			} else {
@@ -409,9 +435,9 @@ public class FilterEvaluator {
 		return BooleanValue.FALSE;
 	}
 
-	private int compare(Record record, List<FilterExpression> inputs) {
-		Value<?> input0 = evaluate(record, inputs.get(0));
-		Value<?> input1 = evaluate(record, inputs.get(1));
+	private int compare(Record record, List<Value<?>> inputs) {
+		Value<?> input0 = inputs.get(0);
+		Value<?> input1 = inputs.get(1);
 		
 		return compare(record, input0, input1);
 	}

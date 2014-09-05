@@ -21,6 +21,7 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
 import nl.idgis.publisher.domain.web.Filter.ValueExpression;
+import nl.idgis.publisher.domain.web.Filter.ColumnReferenceExpression;
 import nl.idgis.publisher.loader.FilterEvaluator.BooleanValue;
 import nl.idgis.publisher.loader.FilterEvaluator.DateValue;
 import nl.idgis.publisher.loader.FilterEvaluator.Value;
@@ -265,5 +266,45 @@ public class FilterEvaluatorTest {
 		assertEquals(26, calendar.get(Calendar.DATE));		
 		assertEquals(15, calendar.get(Calendar.HOUR_OF_DAY));
 		assertEquals(7, calendar.get(Calendar.MINUTE));
+	}
+	
+	@Test
+	public void testNotNull() {
+		Column testColumn = new Column("col0", Type.TEXT);		
+		FilterEvaluator evaluator = new FilterEvaluator(Arrays.asList(testColumn), null);
+		
+		assertEquals(
+				BooleanValue.TRUE,
+					
+				evaluator.evaluate(new Record(Arrays.<Object>asList("Hello world!")), 
+					new OperatorExpression(
+							OperatorType.NOT_NULL,
+							Arrays.<FilterExpression>asList(
+									new ColumnReferenceExpression(testColumn)))));
+		
+		assertEquals(
+				BooleanValue.FALSE,
+
+				evaluator.evaluate(new Record(Arrays.<Object>asList(new Object[]{null})), 
+					new OperatorExpression(
+							OperatorType.NOT_NULL,
+							Arrays.<FilterExpression>asList(
+									new ColumnReferenceExpression(testColumn)))));
+	}
+	
+	@Test
+	public void testNullColumnValueEquals() {
+		Column testColumn = new Column("col0", Type.TEXT);		
+		FilterEvaluator evaluator = new FilterEvaluator(Arrays.asList(testColumn), null);
+		
+		assertEquals(
+				BooleanValue.FALSE,
+					
+				evaluator.evaluate(new Record(Arrays.asList(new Object[]{null})), 
+					new OperatorExpression(
+							OperatorType.EQUALS, 
+							Arrays.<FilterExpression>asList(
+									new ColumnReferenceExpression(testColumn),
+									new ValueExpression(Type.TEXT, "testString")))));
 	}
 }
