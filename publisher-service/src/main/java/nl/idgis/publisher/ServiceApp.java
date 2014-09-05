@@ -38,7 +38,7 @@ public class ServiceApp extends UntypedActor {
 	
 	private final Config config;
 	
-	private ActorRef geometryDatabase, database, harvester, loader, service;
+	private ActorRef database;
 	
 	public ServiceApp(Config config) {
 		this.config = config;
@@ -112,18 +112,18 @@ public class ServiceApp extends UntypedActor {
 	
 	private Procedure<Object> running() {
 		Config geometryDatabaseConfig = config.getConfig("geometry-database");
-		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
 		
-		ActorRef metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
+		final ActorRef metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
 		
 		Config harvesterConfig = config.getConfig("harvester");
-		harvester = getContext().actorOf(Harvester.props(database, metadataDocumentFactory, harvesterConfig), "harvester");
+		final ActorRef harvester = getContext().actorOf(Harvester.props(database, metadataDocumentFactory, harvesterConfig), "harvester");
 		
-		loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
+		final ActorRef service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
 		
 		ActorRef jobs = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
