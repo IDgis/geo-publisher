@@ -7,12 +7,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.duration.Duration;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
@@ -42,6 +36,8 @@ import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
 
+import scala.concurrent.duration.Duration;
+
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
@@ -49,6 +45,10 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 
 public class LoaderSessionInitiator extends UntypedActor {
 	
@@ -62,6 +62,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
 	private List<Column> requiredColumns = null;
+	private List<String >requestColumnNames = null;
 	private Set<Column> missingColumns = null;
 	private boolean continueImport = true, acknowledged = false;
 	
@@ -148,11 +149,39 @@ public class LoaderSessionInitiator extends UntypedActor {
 			}
 		}
 		
-		validateJob();
+		requestDataSource();		
 	}
 	
-	private void validateJob() throws Exception {
-		handleColumnsAndFilter();
+	private void prepareJob() throws Exception {
+		requiredColumns = new ArrayList<>();
+		requiredColumns.addAll(importJob.getColumns());
+		
+		String filterCondition = importJob.getFilterCondition();
+		if(filterCondition == null)  {
+			log.debug("no filter -> not filtering");
+		} else {
+			ObjectMapper objectMapper = new ObjectMapper();
+			ObjectReader reader = objectMapper.reader(Filter.class);
+			Filter filter = reader.readValue(filterCondition);
+			
+			FilterExpression expression = filter.getExpression();
+			if(expression == null) {
+				filterEvaluator = null;
+				
+				log.debug("empty filter -> not filtering");
+			} else {
+				for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
+					if(!requiredColumns.contains(column)) {
+						log.debug("querying additional column for filter: " + column);
+						requiredColumns.add(column);
+					}
+				}
+				
+				filterEvaluator = new FilterEvaluator(requiredColumns, expression);
+				
+				log.debug("filter evaluator constructed");
+			}
+		}
 		
 		missingColumns = new HashSet<Column>();
 		Set<Column> sourceDatasetColumns = new HashSet<Column>(importJob.getSourceDatasetColumns());
@@ -163,42 +192,23 @@ public class LoaderSessionInitiator extends UntypedActor {
 			}
 		}
 		
-		log.debug("missing columns: " + missingColumns);
-		
-		if(missingColumns.isEmpty()) {
-			requestDataSource();
-		} else {
-			database.tell(new UpdateJobState(importJob, JobState.FAILED), getSelf());
-			become("storing failed job state", waitingForJobFailedStateStored());
+		requestColumnNames = new ArrayList<>();
+		for(Column column : requiredColumns) {
+			if(missingColumns.contains(column)) {
+				log.debug("missing column removed: " + column);
+			} else {
+				requestColumnNames.add(column.getName());
+			}
 		}
 	}
 	
-	private Procedure<Object> waitingForLogStored() {
+	private Procedure<Object> waitingForMissingColumnsLogStored() {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					log.debug("log stored");
-					
-					acknowledgeJobAndStop();					
-				} else {
-					unhandled(msg);
-				}
-			}			
-		};
-	}
-	
-	private Procedure<Object> waitingForJobFailedStateStored() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					MissingColumnsLog missingColumnsLog = new MissingColumnsLog(importJob.getDatasetId(), importJob.getDatasetName(), missingColumns);
-					
-					database.tell(new StoreLog(importJob, JobLog.create(LogLevel.ERROR, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
-					become("storing log", waitingForLogStored());
+					startTransaction();
 				} else {
 					unhandled(msg);
 				}
@@ -271,17 +281,12 @@ public class LoaderSessionInitiator extends UntypedActor {
 	
 	private void startLoaderSession() throws IOException, JsonProcessingException {
 		
-		List<String> requiredColumnNames = new ArrayList<>();
-		for(Column column : requiredColumns) {
-			requiredColumnNames.add(column.getName());
-		}
-		
-		log.debug("requesting columns: " + requiredColumnNames);
+		log.debug("requesting columns: " + requestColumnNames);
 		
 		dataSource.tell(
 				new GetDataset(
 						importJob.getSourceDatasetId(), 
-						requiredColumnNames, 
+						requestColumnNames, 
 						LoaderSession.props(
 								getContext().parent(),
 								importJob,
@@ -290,39 +295,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 								database)), getSelf());
 		
 		getContext().stop(getSelf());
-	}
-
-	private void handleColumnsAndFilter() throws Exception {
-		requiredColumns = new ArrayList<>();
-		requiredColumns.addAll(importJob.getColumns());
-		
-		String filterCondition = importJob.getFilterCondition();
-		if(filterCondition == null)  {
-			log.debug("no filter -> not filtering");
-		} else {
-			ObjectMapper objectMapper = new ObjectMapper();
-			ObjectReader reader = objectMapper.reader(Filter.class);
-			Filter filter = reader.readValue(filterCondition);
-			
-			FilterExpression expression = filter.getExpression();
-			if(expression == null) {
-				filterEvaluator = null;
-				
-				log.debug("empty filter -> not filtering");
-			} else {
-				for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
-					if(!requiredColumns.contains(column)) {
-						log.debug("querying additional column for filter: " + column);
-						requiredColumns.add(column);
-					}
-				}
-				
-				filterEvaluator = new FilterEvaluator(requiredColumns, expression);
-				
-				log.debug("filter evaluator constructed");
-			}
-		}
-	}
+	}	
 	
 	private Procedure<Object> waitingForTableCreated() {
 		return new Procedure<Object>() {
@@ -376,14 +349,27 @@ public class LoaderSessionInitiator extends UntypedActor {
 					
 					acknowledgeJob();
 					
-					geometryDatabase.tell(new StartTransaction(), getSelf());
-					become("starting transaction", waitingForTransactionCreated());
+					prepareJob();
+					
+					if(missingColumns.isEmpty()) {
+						startTransaction();
+					} else {
+						MissingColumnsLog missingColumnsLog = new MissingColumnsLog(importJob.getDatasetId(), importJob.getDatasetName(), missingColumns);
+						
+						database.tell(new StoreLog(importJob, JobLog.create(LogLevel.INFO, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
+						become("storing missing columns log", waitingForMissingColumnsLogStored());
+					}
 				} else {
 					unhandled(msg);
 				}
 			}
 			
 		};
+	}
+	
+	private void startTransaction() {
+		geometryDatabase.tell(new StartTransaction(), getSelf());
+		become("starting transaction", waitingForTransactionCreated());
 	}
 	
 	private void scheduleTimeout() {
