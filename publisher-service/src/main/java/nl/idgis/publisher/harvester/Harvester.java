@@ -14,7 +14,6 @@ import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
