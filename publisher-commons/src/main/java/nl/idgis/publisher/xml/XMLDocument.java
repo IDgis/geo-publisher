@@ -1,15 +1,21 @@
 package nl.idgis.publisher.xml;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.xml.messages.Close;
+import nl.idgis.publisher.xml.messages.GetContent;
 import nl.idgis.publisher.xml.messages.GetString;
 import nl.idgis.publisher.xml.messages.MultipleNodes;
 import nl.idgis.publisher.xml.messages.NotFound;
@@ -147,11 +153,24 @@ public class XMLDocument extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Query) {
 			handleQuery((Query<?>)msg);
+		} else if(msg instanceof GetContent) {
+			handleGetContent((GetContent)msg);
 		} else if(msg instanceof Close) {
 			handleClose((Close)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetContent(GetContent msg) throws Exception {
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		ByteArrayOutputStream boas = new ByteArrayOutputStream();
+		t.transform(new DOMSource(document), new StreamResult(boas));
+		boas.close();
+		
+		getSender().tell(boas.toByteArray(), getSelf());
 	}
 
 	@Override
