@@ -3,6 +3,9 @@ nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
 nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.job.JobType.IMPORT=import
 
+nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
+nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
+
 nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum
 nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=titel
 nl.idgis.publisher.domain.job.harvest.MetadataField.ALTERNATE_TITLE=alternatieve titel
