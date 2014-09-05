@@ -33,6 +33,7 @@ import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
@@ -120,6 +121,17 @@ public abstract class AbstractDatabaseTest {
 	
 	protected Object ask(ActorRef actorRef, Object msg) throws Exception {
 		Future<Object> future = Patterns.ask(actorRef, msg, 5000);
+		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
+	}
+	
+	protected <T> T askAssert(ActorSelection actorSelection, Object msg, Class<T> resultType) throws Exception {
+		Object result = ask(actorSelection, msg);		
+		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
+		return resultType.cast(result);
+	}
+	
+	protected Object ask(ActorSelection actorSelection, Object msg) throws Exception {
+		Future<Object> future = Patterns.ask(actorSelection, msg, 5000);
 		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
 	}
 	

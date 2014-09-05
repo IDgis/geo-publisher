@@ -2,7 +2,9 @@ package nl.idgis.publisher.loader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
@@ -18,14 +20,19 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
+import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.NotificationType;
+import nl.idgis.publisher.domain.job.load.ImportLogType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
@@ -43,7 +50,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-public class LoaderInitiator extends UntypedActor {
+public class LoaderSessionInitiator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -52,12 +59,17 @@ public class LoaderInitiator extends UntypedActor {
 	private final boolean dataSourceBusy;
 	private final ActorRef initiator, database, geometryDatabase, harvester;
 	
-	private boolean acknowledged = false;
+	private DatasetStatusInfo datasetStatus = null;
+	private FilterEvaluator filterEvaluator = null;
+	private List<Column> requiredColumns = null;
+	private Set<Column> missingColumns = null;
+	private boolean continueImport = true, acknowledged = false;
+	
 	private ActorRef dataSource, transaction;
 	
-	private Cancellable timeoutCancellable = null;
+	private Cancellable timeoutCancellable = null;	
 	
-	public LoaderInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
+	public LoaderSessionInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
 			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
 		
 		this.dataSourceBusy = dataSourceBusy;
@@ -69,7 +81,7 @@ public class LoaderInitiator extends UntypedActor {
 	}
 	
 	public static Props props(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
-		return Props.create(LoaderInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
+		return Props.create(LoaderSessionInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
 	}
 	
 	@Override
@@ -80,13 +92,15 @@ public class LoaderInitiator extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof DatasetStatusInfo) {
-			handleDatasetStatusInfo((DatasetStatusInfo)msg);
+			datasetStatus = (DatasetStatusInfo)msg;
+			
+			handleDatasetStatusInfo();
 		} else {
 			unhandled(msg);
 		}
 	}
 
-	private void handleDatasetStatusInfo(DatasetStatusInfo datasetStatus) {
+	private void handleDatasetStatusInfo() throws Exception {
 		log.debug("dataset status received");
 		
 		if(datasetStatus.isSourceDatasetColumnsChanged()) {
@@ -96,8 +110,10 @@ public class LoaderInitiator extends UntypedActor {
 				log.debug("notification already present");
 			} else {
 				log.debug("notification not present -> add it");
-				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
-				become("adding notification", waitingForNotificationStored(false));
+				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
+				
+				continueImport = false;
+				become("adding notification", waitingForNotificationStored());
 				return;
 			}
 		} else {
@@ -106,17 +122,17 @@ public class LoaderInitiator extends UntypedActor {
 			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification present -> remove it");
 				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
-				become("removing notification", waitingForNotificationStored(true));
+				become("removing notification", waitingForNotificationStored());
 				return;
 			} else {
 				log.debug("notification not present");
 			}
 		}
 		
-		requestDataSource();
+		handleNotifications();
 	}
 
-	private void requestDataSource() {
+	private void handleNotifications() throws Exception {
 		for(Notification notification : importJob.getNotifications()) {
 			NotificationType<?> type = notification.getType();
 			NotificationResult result = notification.getResult();
@@ -132,6 +148,65 @@ public class LoaderInitiator extends UntypedActor {
 			}
 		}
 		
+		validateJob();
+	}
+	
+	private void validateJob() throws Exception {
+		handleColumnsAndFilter();
+		
+		missingColumns = new HashSet<Column>();
+		Set<Column> sourceDatasetColumns = new HashSet<Column>(importJob.getSourceDatasetColumns());
+		
+		for(Column requiredColumn : requiredColumns) {
+			if(!sourceDatasetColumns.contains(requiredColumn)) {
+				missingColumns.add(requiredColumn);
+			}
+		}
+		
+		log.debug("missing columns: " + missingColumns);
+		
+		if(missingColumns.isEmpty()) {
+			requestDataSource();
+		} else {
+			database.tell(new UpdateJobState(importJob, JobState.FAILED), getSelf());
+			become("storing failed job state", waitingForJobFailedStateStored());
+		}
+	}
+	
+	private Procedure<Object> waitingForLogStored() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("log stored");
+					
+					acknowledgeJobAndStop();					
+				} else {
+					unhandled(msg);
+				}
+			}			
+		};
+	}
+	
+	private Procedure<Object> waitingForJobFailedStateStored() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					MissingColumnsLog missingColumnsLog = new MissingColumnsLog(importJob.getDatasetId(), importJob.getDatasetName(), missingColumns);
+					
+					database.tell(new StoreLog(importJob, JobLog.create(LogLevel.ERROR, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
+					become("storing log", waitingForLogStored());
+				} else {
+					unhandled(msg);
+				}
+			}			
+		};
+	}
+
+	private void requestDataSource() {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
 		if(dataSourceBusy) {
@@ -160,14 +235,14 @@ public class LoaderInitiator extends UntypedActor {
 					
 					dataSource = (ActorRef)msg;
 					database.tell(new UpdateJobState(importJob, JobState.STARTED), getSelf());
-					become("storing new started job state", waitingForJobStartedStateStored());
+					become("storing started job state", waitingForJobStartedStateStored());
 				}
 			}
 			
 		};
 	}
 	
-	private Procedure<Object> waitingForNotificationStored(final boolean continueImport) {
+	private Procedure<Object> waitingForNotificationStored() {
 		log.debug("waiting for notification stored");
 		
 		return new Procedure<Object>() {
@@ -180,7 +255,7 @@ public class LoaderInitiator extends UntypedActor {
 					if(continueImport) {
 						log.debug("continuing loader initialization");
 						
-						requestDataSource();
+						handleNotifications();
 					} else {
 						log.debug("stopping");
 						
@@ -195,14 +270,34 @@ public class LoaderInitiator extends UntypedActor {
 	}
 	
 	private void startLoaderSession() throws IOException, JsonProcessingException {
-		List<Column> columns = new ArrayList<>();
-		columns.addAll(importJob.getColumns());										
 		
-		FilterEvaluator filterEvaluator;
+		List<String> requiredColumnNames = new ArrayList<>();
+		for(Column column : requiredColumns) {
+			requiredColumnNames.add(column.getName());
+		}
+		
+		log.debug("requesting columns: " + requiredColumnNames);
+		
+		dataSource.tell(
+				new GetDataset(
+						importJob.getSourceDatasetId(), 
+						requiredColumnNames, 
+						LoaderSession.props(
+								getContext().parent(),
+								importJob,
+								filterEvaluator,
+								transaction, 
+								database)), getSelf());
+		
+		getContext().stop(getSelf());
+	}
+
+	private void handleColumnsAndFilter() throws Exception {
+		requiredColumns = new ArrayList<>();
+		requiredColumns.addAll(importJob.getColumns());
+		
 		String filterCondition = importJob.getFilterCondition();
 		if(filterCondition == null)  {
-			filterEvaluator = null;
-			
 			log.debug("no filter -> not filtering");
 		} else {
 			ObjectMapper objectMapper = new ObjectMapper();
@@ -216,37 +311,17 @@ public class LoaderInitiator extends UntypedActor {
 				log.debug("empty filter -> not filtering");
 			} else {
 				for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
-					if(!columns.contains(column)) {
+					if(!requiredColumns.contains(column)) {
 						log.debug("querying additional column for filter: " + column);
-						columns.add(column);
+						requiredColumns.add(column);
 					}
 				}
 				
-				filterEvaluator = new FilterEvaluator(columns, expression);
+				filterEvaluator = new FilterEvaluator(requiredColumns, expression);
 				
 				log.debug("filter evaluator constructed");
 			}
 		}
-		
-		List<String> columnNames = new ArrayList<>();
-		for(Column column : columns) {
-			columnNames.add(column.getName());
-		}
-		
-		log.debug("requesting columns: " + columnNames);
-		
-		dataSource.tell(
-				new GetDataset(
-						importJob.getSourceDatasetId(), 
-						columnNames, 
-						LoaderSession.props(
-								getContext().parent(),
-								importJob,
-								filterEvaluator,
-								transaction, 
-								database)), getSelf());
-		
-		getContext().stop(getSelf());
 	}
 	
 	private Procedure<Object> waitingForTableCreated() {

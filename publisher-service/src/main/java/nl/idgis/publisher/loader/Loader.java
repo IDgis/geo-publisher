@@ -132,7 +132,7 @@ public class Loader extends UntypedActor {
 		log.debug("data import requested: " + importJob);
 		
 		getContext().actorOf(
-			LoaderInitiator.props(isImporting(importJob.getDataSourceId()), 
+			LoaderSessionInitiator.props(isImporting(importJob.getDataSourceId()), 
 				importJob, getSender(), database, geometryDatabase, harvester));
 	}
 	
