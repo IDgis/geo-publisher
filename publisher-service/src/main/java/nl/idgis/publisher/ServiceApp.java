@@ -15,6 +15,7 @@ import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
@@ -113,8 +114,10 @@ public class ServiceApp extends UntypedActor {
 		Config geometryDatabaseConfig = config.getConfig("geometry-database");
 		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
 		
+		ActorRef metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
+		
 		Config harvesterConfig = config.getConfig("harvester");
-		harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
+		harvester = getContext().actorOf(Harvester.props(database, metadataDocumentFactory, harvesterConfig), "harvester");
 		
 		loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 		
