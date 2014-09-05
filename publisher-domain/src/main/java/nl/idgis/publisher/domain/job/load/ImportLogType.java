@@ -4,7 +4,8 @@ import nl.idgis.publisher.domain.MessageType;
 
 public enum ImportLogType implements MessageType<ImportLog>{
 
-	MISSING_COLUMNS(MissingColumnsLog.class);
+	MISSING_COLUMNS(MissingColumnsLog.class),
+	MISSING_FILTER_COLUMNS(MissingColumnsLog.class);
 	
 	private final Class<? extends ImportLog> contentClass;
 	

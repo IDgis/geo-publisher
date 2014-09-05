@@ -63,7 +63,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 	private FilterEvaluator filterEvaluator = null;
 	private List<Column> requiredColumns = null;
 	private List<String >requestColumnNames = null;
-	private Set<Column> missingColumns = null;
+	private Set<Column> missingColumns = null, missingFilterColumns = null;
 	private boolean continueImport = true, acknowledged = false;
 	
 	private ActorRef dataSource, transaction;
@@ -152,7 +152,19 @@ public class LoaderSessionInitiator extends UntypedActor {
 		requestDataSource();		
 	}
 	
-	private void prepareJob() throws Exception {
+	private void prepareJob() throws Exception {		
+		missingColumns = new HashSet<Column>();
+		
+		Set<Column> sourceDatasetColumns = new HashSet<Column>(importJob.getSourceDatasetColumns());
+		
+		for(Column column : importJob.getColumns()) {
+			if(!sourceDatasetColumns.contains(column)) {
+				missingColumns.add(column);
+			}
+		}
+		
+		missingFilterColumns = new HashSet<>();
+		
 		requiredColumns = new ArrayList<>();
 		requiredColumns.addAll(importJob.getColumns());
 		
@@ -171,6 +183,10 @@ public class LoaderSessionInitiator extends UntypedActor {
 				log.debug("empty filter -> not filtering");
 			} else {
 				for(Column column : FilterEvaluator.getRequiredColumns(expression)) {
+					if(!sourceDatasetColumns.contains(column)) {
+						missingFilterColumns.add(column);
+					}
+					
 					if(!requiredColumns.contains(column)) {
 						log.debug("querying additional column for filter: " + column);
 						requiredColumns.add(column);
@@ -180,15 +196,6 @@ public class LoaderSessionInitiator extends UntypedActor {
 				filterEvaluator = new FilterEvaluator(requiredColumns, expression);
 				
 				log.debug("filter evaluator constructed");
-			}
-		}
-		
-		missingColumns = new HashSet<Column>();
-		Set<Column> sourceDatasetColumns = new HashSet<Column>(importJob.getSourceDatasetColumns());
-		
-		for(Column requiredColumn : requiredColumns) {
-			if(!sourceDatasetColumns.contains(requiredColumn)) {
-				missingColumns.add(requiredColumn);
 			}
 		}
 		
@@ -202,13 +209,44 @@ public class LoaderSessionInitiator extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> waitingForMissingColumnsLogStored() {
+	private Procedure<Object> waitingForJobFailedStored() { 
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					startTransaction();
+					getContext().stop(getSelf());
+				} else {
+					unhandled(msg);
+				}
+				
+			}
+		};
+	}
+	
+	private Procedure<Object> waitingForLogsStored(final int totalLogCount) {
+		return new Procedure<Object>() {
+			
+			int currentLogCount = 0;
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					currentLogCount++;
+					
+					if(currentLogCount == totalLogCount) {
+						if(continueImport) {						
+							startTransaction();
+						} else {
+							database.tell(
+									new UpdateJobState(
+											importJob, 
+											JobState.FAILED), 
+									getSelf());
+							
+							become("storing failed job state", waitingForJobFailedStored());
+						}
+					}
 				} else {
 					unhandled(msg);
 				}
@@ -245,7 +283,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 					
 					dataSource = (ActorRef)msg;
 					database.tell(new UpdateJobState(importJob, JobState.STARTED), getSelf());
-					become("storing started job state", waitingForJobStartedStateStored());
+					become("storing started job state", waitingForJobStartedStored());
 				}
 			}
 			
@@ -339,7 +377,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> waitingForJobStartedStateStored() {
+	private Procedure<Object> waitingForJobStartedStored() {
 		return new Procedure<Object>() {
 
 			@Override
@@ -351,13 +389,47 @@ public class LoaderSessionInitiator extends UntypedActor {
 					
 					prepareJob();
 					
-					if(missingColumns.isEmpty()) {
+					int logCount = 0;
+					if(!missingColumns.isEmpty()) {
+						database.tell(
+								new StoreLog(
+										importJob, 
+										JobLog.create(
+												LogLevel.WARNING, 
+												ImportLogType.MISSING_COLUMNS, 
+												
+												new MissingColumnsLog(
+														importJob.getDatasetId(), 
+														importJob.getDatasetName(), 
+														missingColumns))), 
+								getSelf());
+						
+						logCount++;						
+					}
+					
+					if(!missingFilterColumns.isEmpty()) {
+						database.tell(
+								new StoreLog(
+										importJob, 
+										JobLog.create(
+												LogLevel.ERROR, 
+												ImportLogType.MISSING_FILTER_COLUMNS, 
+												
+												new MissingColumnsLog(
+														importJob.getDatasetId(), 
+														importJob.getDatasetName(), 
+														missingFilterColumns))), 
+								getSelf());
+						
+						continueImport = false;
+						
+						logCount++;	
+					}
+					
+					if(logCount == 0) {
 						startTransaction();
 					} else {
-						MissingColumnsLog missingColumnsLog = new MissingColumnsLog(importJob.getDatasetId(), importJob.getDatasetName(), missingColumns);
-						
-						database.tell(new StoreLog(importJob, JobLog.create(LogLevel.WARNING, ImportLogType.MISSING_COLUMNS, missingColumnsLog)), getSelf());
-						become("storing missing columns log", waitingForMissingColumnsLogStored());
+						become("storing missing columns log", waitingForLogsStored(logCount));
 					}
 				} else {
 					unhandled(msg);

@@ -6,6 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -15,6 +18,8 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -52,7 +57,13 @@ import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
+import nl.idgis.publisher.domain.web.Filter.ColumnReferenceExpression;
+import nl.idgis.publisher.domain.web.Filter.ValueExpression;
+import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -510,5 +521,77 @@ public class LoaderTest extends AbstractDatabaseTest {
 		// columns anymore (because we updated the dataset)
 		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
+	}
+	
+	@Test
+	public void testMissingColumns() throws Exception {
+		insertDataset();
+		
+		insert(datasetColumn)
+			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.name, "col3")
+			.set(datasetColumn.dataType, Type.TEXT.name())
+			.set(datasetColumn.index, 3)	
+			.execute();
+		
+		insert(datasetColumn)
+			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.name, "col4")
+			.set(datasetColumn.dataType, Type.GEOMETRY.name())
+			.set(datasetColumn.index, 4)	
+			.execute();
+			
+		Filter filter = new Filter(
+				new OperatorExpression(
+						OperatorType.EQUALS, 
+						Arrays.asList(
+								new ColumnReferenceExpression(new Column("col3", Type.TEXT)),
+								new ValueExpression(Type.TEXT, "filterValue"))));
+		
+		ObjectMapper mapper = new ObjectMapper();
+		
+		update(dataset)
+			.set(dataset.filterConditions, mapper.writeValueAsString(filter)) 
+			.execute();
+		
+		ask(database, new CreateImportJob("testDataset"));
+		
+		TypedIterable<?> importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(importJobIterable.contains(ImportJobInfo.class));
+		
+		Iterator<ImportJobInfo> importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobItr.hasNext());
+		askAssert(loader, importJobItr.next(), Ack.class);
+		assertFalse(importJobItr.hasNext());
+		
+		assertEquals(
+				JobState.FAILED,
+				
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+		
+		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		assertEquals(2, infoList.getCount().intValue());
+		
+		update(dataset)
+			.set(dataset.filterConditions, mapper.writeValueAsString(new Filter(null))) 
+			.execute();
+		
+		ask(database, new CreateImportJob("testDataset"));
+		
+		importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		assertTrue(importJobIterable.contains(ImportJobInfo.class));
+		
+		importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobItr.hasNext());
+		askAssert(loader, importJobItr.next(), Ack.class);
+		assertFalse(importJobItr.hasNext());
+		
+		assertEquals(
+				JobState.SUCCEEDED,
+				
+				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+		
+		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		assertEquals(3, infoList.getCount().intValue());
 	}
 }
