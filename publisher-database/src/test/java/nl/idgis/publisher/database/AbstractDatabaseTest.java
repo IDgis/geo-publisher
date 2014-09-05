@@ -50,6 +50,7 @@ import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -120,8 +121,13 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected Object ask(ActorRef actorRef, Object msg) throws Exception {
-		Future<Object> future = Patterns.ask(actorRef, msg, 5000);
-		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
+		try {
+			Future<Object> future = Patterns.ask(actorRef, msg, 5000);
+			return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
+		} catch(Throwable t) {
+			fail(t.getMessage());
+			return null;
+		}
 	}
 	
 	protected <T> T askAssert(ActorSelection actorSelection, Object msg, Class<T> resultType) throws Exception {
@@ -131,8 +137,13 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected Object ask(ActorSelection actorSelection, Object msg) throws Exception {
-		Future<Object> future = Patterns.ask(actorSelection, msg, 5000);
-		return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
+		try {
+			Future<Object> future = Patterns.ask(actorSelection, msg, 5000);
+			return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
+		} catch(Throwable t) {
+			fail(t.getMessage());
+			return null;
+		}
 	}
 	
 	@After
