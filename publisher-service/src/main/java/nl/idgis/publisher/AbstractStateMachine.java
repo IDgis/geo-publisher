@@ -41,7 +41,11 @@ public abstract class AbstractStateMachine<T> extends UntypedActor {
 	
 	protected abstract void timeout(T state);
 	
-	protected void become(final T state, final Procedure<Object> behavior) {
+	protected void become(T state, Procedure<Object> behavior) {
+		become(state, behavior, true);
+	}
+	
+	protected void become(final T state, final Procedure<Object> behavior, boolean discardOld) {
 		
 		scheduleTimeout();
 		
@@ -60,6 +64,6 @@ public abstract class AbstractStateMachine<T> extends UntypedActor {
 				}
 			}
 			
-		});
+		}, discardOld);
 	}
 }

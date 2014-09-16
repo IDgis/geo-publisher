@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import com.typesafe.config.Config;
 
+import nl.idgis.publisher.AbstractStateMachine;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
@@ -16,17 +17,14 @@ import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
 import nl.idgis.publisher.service.rest.ServiceRest;
 import nl.idgis.publisher.service.rest.Workspace;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Pair;
-import akka.pattern.Patterns;
+import akka.japi.Procedure;
 
-public class Service extends UntypedActor {
+public class Service extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -96,70 +94,93 @@ public class Service extends UntypedActor {
 		return null;
 	}
 	
-	private void handleServiceJob(final ServiceJobInfo job) {
+	private Procedure<Object> waitingForJobCompletedStored(final ActorRef initiator) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("job completed");
+					
+					initiator.tell(new Ack(), getSelf());
+					
+					getContext().unbecome();
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
+	private Procedure<Object> waitingForJobStartedStored(final ActorRef initiator, final ServiceJobInfo job) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("job started");
+					
+					try {
+						String schemaName = job.getSchemaName();
+						
+						Workspace workspace;
+						DataStore dataStore;
+						
+						Pair<Workspace, DataStore> result = findDataStore(schemaName);
+						if(result == null) {
+							workspace = new Workspace(schemaName);
+							if(rest.addWorkspace(workspace)) {					
+								Map<String, String> connectionParameters = new HashMap<>(Service.this.connectionParameters);
+								connectionParameters.put("schema", schemaName);
+								dataStore = new DataStore("publisher-geometry", connectionParameters);
+								if(!rest.addDataStore(workspace, dataStore)) {
+									throw new IllegalStateException("coulnd't create datastore");
+								}
+							} else {
+								throw new IllegalStateException("couldn't create workspace");
+							}
+						} else {
+							workspace = result.first();
+							dataStore = result.second();
+						}
+						
+						String tableName = job.getTableName();
+						if(hasTable(workspace, dataStore, tableName)) {
+							log.debug("feature type for table already exists");
+						} else {
+							log.debug("creating new feature type");
+							
+							if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
+								throw new IllegalStateException("couldn't create feature type");
+							}
+						}
+						
+						log.debug("service job succeeded: " + job);
+						database.tell(new UpdateJobState(job, JobState.SUCCEEDED), getSelf());
+					} catch(Exception e) {
+						log.error(e, "service job failed: " + job);
+						
+						database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());
+					}
+					
+					become("storing job completed state", waitingForJobCompletedStored(initiator));
+					
+					initiator.tell(new Ack(), getSelf());
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
+	private void handleServiceJob(ServiceJobInfo job) {
 		log.debug("executing service job: " + job);
 		
-		final ActorRef sender = getSender();
-		Patterns.ask(database, new UpdateJobState(job, JobState.STARTED), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("service job started: " + job);
-					
-					sender.tell(new Ack(), getSelf());
-					execute(job);
-				}
-				
-			}, getContext().dispatcher());
-	}
-
-	private void execute(ServiceJobInfo job) {
-		try {
-			String schemaName = job.getSchemaName();
-			
-			Workspace workspace;
-			DataStore dataStore;
-			
-			Pair<Workspace, DataStore> result = findDataStore(schemaName);
-			if(result == null) {
-				workspace = new Workspace(schemaName);
-				if(rest.addWorkspace(workspace)) {					
-					Map<String, String> connectionParameters = new HashMap<>(this.connectionParameters);
-					connectionParameters.put("schema", schemaName);
-					dataStore = new DataStore("publisher-geometry", connectionParameters);
-					if(!rest.addDataStore(workspace, dataStore)) {
-						throw new IllegalStateException("coulnd't create datastore");
-					}
-				} else {
-					throw new IllegalStateException("couldn't create workspace");
-				}
-			} else {
-				workspace = result.first();
-				dataStore = result.second();
-			}
-			
-			String tableName = job.getTableName();
-			if(hasTable(workspace, dataStore, tableName)) {
-				log.debug("feature type for table already exists");
-			} else {
-				log.debug("creating new feature type");
-				
-				if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
-					throw new IllegalStateException("couldn't create feature type");
-				}
-			}
-			
-			log.debug("service job succeeded: " + job);
-			database.tell(new UpdateJobState(job, JobState.SUCCEEDED), getSelf());
-		} catch(Exception e) {
-			log.error(e, "service job failed: " + job);
-			
-			database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());
-		}
-		
-		log.debug("service job finalized: " + job);
-	}
+		database.tell(new UpdateJobState(job, JobState.STARTED), getSelf());
+		become("storing started job state", waitingForJobStartedStored(getSender(), job), false);
+	}	
 
 	private boolean hasTable(Workspace workspace, DataStore dataStore, String tableName) throws Exception {
 					
@@ -170,5 +191,10 @@ public class Service extends UntypedActor {
 		}
 
 		return false;
-	}	
+	}
+
+	@Override
+	protected void timeout(String state) {
+		log.debug("timeout during: " + state);
+	}
 }
