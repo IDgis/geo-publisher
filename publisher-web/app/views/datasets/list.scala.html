@@ -6,7 +6,7 @@
 @import nl.idgis.publisher.domain.web._
 
 @categoryRefLink(cat: Category, cls: String = null) = {
-	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>Categorie: @cat.name</a>
+	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
 }
 
 @categoryLink(cat: Category, cls: String = null) = {
@@ -14,7 +14,7 @@
 }
 
 @allCategoriesLink() = {
-	<a href="@routes.Datasets.list()">Alle categori&euml;n</a>
+	<a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 }
 
 @pageRef(targetPage: Long) = @{	  
@@ -25,12 +25,12 @@
 }
 
 @layout.application(
-	title = "Datasets",
+	title = Domain.message("web.application.page.datasets.title"),
 	jsMain = routes.Assets.at("js/datasets/main.js").url
 ) {
 
 	<div class="page-content">
-		<h1 class="page-header">Datasets</h1>
+		<h1 class="page-header">@Domain.message("web.application.page.datasets.title")</h1>
 		
 		<div class="row">
 		
@@ -40,14 +40,14 @@
 					@* New dataset button: *@
 					<div class="form-group">
 						<div class="col-sm-12">
-							<a href="@routes.Datasets.createForm()" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> Maak een nieuwe dataset ...</a>
+							<a href="@routes.Datasets.createForm()" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newdataset")</a>
 						</div>
 					</div>
 				
 					@* Search dataset input: *@
 					<div class="form-group has-feedback">
 						<div class="col-sm-12">
-							<input type="text" class="form-control col-sm-12" placeholder="Datasetnaam ...">
+							<input type="text" class="form-control col-sm-12" placeholder=@Domain.message("web.application.page.datasets.list.search.placeholder")>
 							<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
 						</div>
 					</div>
@@ -61,7 +61,7 @@
 						<div class="panel-heading">
 							<h4 class="panel-title">
 								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-tags">
-									Categori&euml;n
+									@Domain.message("web.application.page.datasets.list.filtercategorie.title")
 								</a>
 							</h4>
 						</div>
@@ -81,16 +81,16 @@
 						<div class="panel-heading">
 							<h4 class="panel-title">
 								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-status">
-									Status
+									@Domain.message("web.application.page.datasets.list.status.title")
 								</a>
 							</h4>
 						</div>
 						<div id="collapse-filter-status" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li><a href="@routes.Datasets.list()">Geimporteerd</a></li>
-									<li@if(onlyWithMessages){ class="active"}><a href="@routes.Datasets.listWithMessages()">Structuurwijzigingen</a></li>
-									<li><a href="@routes.Datasets.list()">Fouten bij importeren</a></li>
+									<li><a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.status.imported")</a></li>
+									<li@if(onlyWithMessages){ class="active"}><a href="@routes.Datasets.listWithMessages()">@Domain.message("web.application.page.datasets.list.status.structuralchange")</a></li>
+									<li><a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.status.importerrors")</a></li>
 								</ul>
 							</div>
 						</div>
@@ -103,7 +103,7 @@
 			<div class="col-lg-9 col-lg-pull-3">
 				@if(datasets.values.isEmpty) {
 					<div class="alert alert-info">
-						Er zijn geen datasets gevonden die voldoen aan de criteria. 
+						@Domain.message("web.application.page.datasets.list.alert.nodatasets")Er zijn geen datasets gevonden die voldoen aan de criteria. 
 					</div>
 				} else {
 				<div class="list-group" id="dataset-list">
@@ -113,16 +113,16 @@
 						<div class="list-group-item js-dataset-item@if(!dataset.activeNotifications.isEmpty){ list-group-item-warning}" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
 							<div class="row">
 								<div class="col-md-5">
-									<h4 class="list-group-item-heading">@dataset.name </h4>
+									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning">@dataset.name</a></h4>
 									
 									@categoryRefLink(dataset.category, "label label-info")
-									<span class="label label-default">Brondataset: @dataset.sourceDataset.name</span>
+									<span class="label label-default">@Domain.message("web.application.page.datasets.list.sourcedatasetref"): @dataset.sourceDataset.name</span>
 								</div>
 								<div class="col-md-5">
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
 											<p>
-												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens. <span class="glyphicon glyphicon-pencil"></span></a>
+												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> @Domain.message("web.application.page.datasets.list.structuralchange")<span class="glyphicon glyphicon-pencil"></span></a>
 											</p>
 										}
 									}
@@ -136,9 +136,9 @@
 								</div>
 								<div class="col-md-2">
 									<div class="btn-group pull-right">
-										<a href="@routes.Datasets.editForm(dataset.id)" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
-										<a href="#" class="btn btn-default js-dataset-refresh" title="Verversen uit brondata"><span class="js-icon glyphicon glyphicon-refresh"></span></a>
-										<a href="@routes.Datasets.delete(dataset.id)" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+										<a href="@routes.Datasets.editForm(dataset.id)" class="btn btn-default" title=@Domain.message("web.application.page.datasets.list.button.edit")><span class="glyphicon glyphicon-edit"></span></a>
+										<a href="#" class="btn btn-default js-dataset-refresh" title=@Domain.message("web.application.page.datasets.list.button.refresh")><span class="js-icon glyphicon glyphicon-refresh"></span></a>
+										<a href="@routes.Datasets.delete(dataset.id)" class="btn btn-warning" title=@Domain.message("web.application.page.datasets.list.button.remove")><span class="glyphicon glyphicon-remove"></span></a>
 									</div>
 								</div>
 							</div>
@@ -167,9 +167,9 @@
 							</div>
 							<div class="col-md-2">
 								<div class="btn-group pull-right">
-									<a href="#" class="btn btn-default" title="Bewerken"><span class="glyphicon glyphicon-edit"></span></a>
-									<a href="#" class="btn btn-default" title="Verversen uit brondata"><span class="glyphicon glyphicon-refresh"></span></a>
-									<a href="#" class="btn btn-warning" title="Verwijderen"><span class="glyphicon glyphicon-remove"></span></a>
+										<a href="#" class="btn btn-default" title=@Domain.message("web.application.page.datasets.list.button.edit")><span class="glyphicon glyphicon-edit"></span></a>
+										<a href="#" class="btn btn-default js-dataset-refresh" title=@Domain.message("web.application.page.datasets.list.button.refresh")><span class="js-icon glyphicon glyphicon-refresh"></span></a>
+										<a href="#" class="btn btn-warning" title=@Domain.message("web.application.page.datasets.list.button.remove")><span class="glyphicon glyphicon-remove"></span></a>
 								</div>
 							</div>
 						</div>

@@ -13,21 +13,21 @@
 @datasetId = @{datasetForm("id").value()}
 
 @layout.application(
-	title = "Nieuwe dataset toevoegen",
+	title = Domain.message("web.application.page.datasets.form.title"),
 	jsMain = routes.Assets.at("js/datasets/form.js").url
 ) {
 	<div class="page-content">
 	@if(createDataset){
-		<h1 class="page-header">Nieuwe dataset toevoegen</h1>
+		<h1 class="page-header">@Domain.message("web.application.page.datasets.form.header.new")</h1>
 	}else{
-		<h1 class="page-header">Dataset aanpassen</h1>
+		<h1 class="page-header">@Domain.message("web.application.page.datasets.form.header.edit")</h1>
 	}
 		@if(datasetForm.hasErrors) {
 			<div class="alert alert-danger">
-				<h4>De dataset kan niet worden opgeslagen</h4>
-				<p>Niet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.<p>
+				<h4>@Domain.message("web.application.page.datasets.form.errors.header")</h4>
+				<p>@Domain.message("web.application.page.datasets.form.errors.text")<p>
 				@if(datasetForm.hasGlobalErrors) {
-					<h5>Validatiefouten</h5>
+					<h5>@Domain.message("web.application.page.datasets.form.globalerrors.header")</h5>
 					<ul>
 						@for(error <- datasetForm.globalErrors) {
 							<li>@error.message</li>
@@ -40,9 +40,9 @@
 		<form @if(createDataset){action="@routes.Datasets.submitCreate()"}else{action="@routes.Datasets.submitEdit(datasetId)"} method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
-				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">Algemene gegevens</a></li>
-				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">Kolommen</span> }else{ Kolommen } <span class="badge">0</span></a></li>
-				<li id="tab-filters"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-filters" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("filterConditions").errors.isEmpty){ <span class="text-danger">Filters</span> } else { Filters } <span class="badge js-filter-count">0</span></a></li>
+				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">@Domain.message("web.application.page.datasets.form.tab.general.title")</a></li>
+				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.columns.title")</span> }else{ @Domain.message("web.application.page.datasets.form.tab.columns.title") } <span class="badge">0</span></a></li>
+				<li id="tab-filters"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-filters" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("filterConditions").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.filters.title")</span> } else { @Domain.message("web.application.page.datasets.form.tab.filters.title") } <span class="badge js-filter-count">0</span></a></li>
 			</ul>
 			
 			<div class="tab-content">
@@ -52,55 +52,55 @@
 						<div class="col-lg-8">
 							@helper.inputText(
 								datasetForm("name"), 
-								'_label -> "Naam", 
+								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.name.label"), 
 								'id -> "input-name", 
 								'class -> "form-control", 
-								'placeholder -> "Naam ...", 
-								'_help -> "De naam van de dataset"
+								'placeholder -> Domain.message("web.application.page.datasets.form.tab.general.field.name.placeholder"), 
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.name.help")
 							)
 							
 							@helper.select(
 								datasetForm("dataSourceId"),
 								helper.options(
-									"" -> "Selecteer een gegevensbron ..."
+									"" -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.option")
 								) ++
 								dataSources.values.map (dataSource => { dataSource.id -> dataSource.name }),
-								'_label -> "Gegegensbron",
+								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.label"),
 								'id -> "input-datasource",
 								'class -> "form-control",
-								'_help -> "De gegevensbron die de gegevens voor deze dataset bevat"
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.help")
 							)
 							
 							@helper.select(
 								datasetForm("categoryId"),
 								helper.options(
-									"" -> "Selecteer een categorie ..."
+									"" -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.option")
 								) ++
 								categories.values.map (category => { category.id -> category.name }),
-								'_label -> "Categorie",
+								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.label"),
 								'id -> "input-category",
 								'class -> "form-control",
-								'_help -> "De categorie van de dataset"
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.help")
 							)
 
 							@helper.select(
 								datasetForm("sourceDatasetId"),
 								helper.options(
-									"" -> "Selecteer een dataset ..."
+									"" -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.option")
 								) ++
 								sourceDatasets.values.map (sourceDataset => { sourceDataset.sourceDataset.id -> sourceDataset.sourceDataset.name }),
 								if(sourceDatasets.values.isEmpty) { 'disabled -> "disabled" } else { Symbol("data-has-value") -> "true" },
-								'_label -> "Dataset",
+								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.label"),
 								'id -> "input-source-dataset",
 								'class -> "form-control",
-								'_help -> "De dataset uit de brongegevens waar deze dataset op is gebaseerd."
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.help")
 							)
 							
 							@if(createDataset){
 								<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
-									<label class="control-label col-sm-3" for="input-id">Tabelnaam</label>
+									<label class="control-label col-sm-3" for="input-id">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.label")</label>
 								    <div class="controls col-sm-9">
-											<input type="text" class="form-control" id="input-id" placeholder="Tabelnaam ..." name="@datasetForm("id").name" value="@datasetForm("id").value">
+											<input type="text" class="form-control" id="input-id" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholder") name="@datasetForm("id").name" value="@datasetForm("id").value">
 											<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
 											@if(!datasetForm("id").errors.isEmpty) {
 										        <div class="help-block">
@@ -111,16 +111,16 @@
 										        	</ul>
 										        </div>
 										    }
-									    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+									    <span class="help-block">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.help")</span>
 									</div>
 								</div>
 							}else{
 								<div class="form-group has-feedback">
-									<label class="control-label col-sm-3" for="input-id-readonly">Tabelnaam</label>
+									<label class="control-label col-sm-3" for="input-id-readonly">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.label")</label>
 								    <div class="controls col-sm-9">
-										<input type="text" class="form-control" id="input-id-readonly" placeholder="Tabelnaam ..." name="@{datasetForm("id").name + "XX"}" value="@datasetForm("id").value" readonly>
-										<input type="hidden" class="form-control" id="input-id" placeholder="Tabelnaam hidden..." name="@datasetForm("id").name" value="@datasetForm("id").value">
-									    <span class="help-block">De naam van de tabel die wordt gebruikt om deze dataset op te slaan</span>
+										<input type="text" class="form-control" id="input-id-readonly" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholder") name="@{datasetForm("id").name + "XX"}" value="@datasetForm("id").value" readonly>
+										<input type="hidden" class="form-control" id="input-id" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholderhidden") name="@datasetForm("id").name" value="@datasetForm("id").value">
+									    <span class="help-block">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.help")</span>
 									</div>
 								</div>
 							}
@@ -133,11 +133,11 @@
 						<div class="col-lg-8">
 							<div class="form-horizontal" role="form">
 								<div class="form-group@if(!datasetForm("columns").errors.isEmpty){ has-error}">
-									<label class="col-sm-3 control-label">Geselecteerde kolommen</label>
+									<label class="col-sm-3 control-label">@Domain.message("web.application.page.datasets.form.tab.columns.label")</label>
 									<div class="col-sm-9">
 										@if(!datasetForm("columns").errors.isEmpty) {
 											<div class="alert alert-danger">
-												Selecteer tenminste &eacute;&eacute;n kolom.
+												@Domain.message("web.application.page.datasets.form.tab.columns.alert")
 											</div>
 										}
 										<div id="column-list" class="list-group">
@@ -155,7 +155,7 @@
 						<div class="col-lg-12">
 							@if(!datasetForm("filterConditions").errors.isEmpty) {
 								<div class="alert alert-danger">
-									Het opgegeven filter is ongeldig.
+									@Domain.message("web.application.page.datasets.form.tab.filters.alert")
 								</div>
 							}
 							<textarea name="@datasetForm("filterConditions").name">@datasetForm("filterConditions").value</textarea>
@@ -166,8 +166,8 @@
 				</div>
 			
 			<div>
-				<button type="submit" class="btn btn-primary">Opslaan</button>
-				<a href="@routes.Datasets.list()" class="btn btn-default">Annuleren</a>
+				<button type="submit" class="btn btn-primary">@Domain.message("web.application.button.save")</button>
+				<a href="@routes.Datasets.list()" class="btn btn-default">@Domain.message("web.application.button.cancel")</a>
 			</div>
 		
 		</form>

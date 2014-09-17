@@ -7,17 +7,13 @@
 @import org.joda.time.LocalDateTime
 @import nl.idgis.publisher.domain.web.MessageContext
 
-@dateTimeToMessage(date: LocalDateTime) = {
-	1 dag geleden
-}
 
-
-@layout.application(title = "GIS publicatieomgeving", jsMain = routes.Assets.at("js/dashboard/main.js").url) {
+@layout.application(title = Domain.message("web.application.title"), jsMain = routes.Assets.at("js/dashboard/main.js").url) {
 
 	<div class="jumbotron">
 		<div class="row">
 			<div class="col-lg-8">
-				<h1>GIS publicatieomgeving</h1>
+				<h1> @Domain.message("web.application.title")</h1>
 			</div>
 			<div class="col-lg-4">
 				<div class="well">
@@ -48,13 +44,17 @@
 							<div class="col-xs-8 text-right">
 								<p class="announcement-heading">
 									@if(dataSources.values.isEmpty) {
-										geen
+										@Domain.message("web.application.none")
 									} else {
 										@dataSources.values.size
 									}
 								</p>
 								<p class="announcement-text">
-									Actieve gegevensbron@if(dataSources.values.size != 1){nen}
+								@if(dataSources.values.size != 1){
+								  	@Domain.message("web.application.page.dashboard.panel.datassources")
+								}else{
+									@Domain.message("web.application.page.dashboard.panel.datassource")
+								}
 								</p>
 							</div>
 						</div>
@@ -75,7 +75,7 @@
 						<div class="panel-footer">
 							<div class="row">
 								<div class="col-xs-10">
-									Bekijk status
+									@Domain.message("web.application.page.dashboard.panel.datassources.status")
 								</div>
 								<div class="col-xs-2 text-right">
 									<span class="glyphicon glyphicon-circle-arrow-right"></span>
@@ -106,7 +106,7 @@
 	<footer class="container">
 		<div class="row">
 			<div class="col-lg-10">
-				GEO Publisher @publisher.BuildInfo.version
+				@Domain.message("web.application.name") @publisher.BuildInfo.version
 			</div>
 			<div class="col-lg-2">
 				<div class="img-container">
