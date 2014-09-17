@@ -33,8 +33,8 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.protocol.messages.Ack;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -51,7 +51,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef initiator, database, geometryDatabase, harvester;
+	private final ActorRef initiator, database, geometryDatabase;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
@@ -63,17 +63,16 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	private ActorRef dataSource, transaction;	
 	
 	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef initiator, 
-			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
+			ActorRef database, ActorRef geometryDatabase) {
 		
 		this.importJob = importJob;
 		this.initiator = initiator;
 		this.database = database;
 		this.geometryDatabase = geometryDatabase;
-		this.harvester = harvester;
 	}
 	
-	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
-		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase, harvester);
+	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase) {
+		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase);
 	}
 	
 	@Override
@@ -249,7 +248,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
 		log.debug("fetching dataSource from harvester: " + dataSourceId);			
-		harvester.tell(new GetDataSource(dataSourceId), getSelf());
+		getContext().parent().tell(new GetDataSource(dataSourceId), getSelf());
 		become("fetching dataSource from harvester", waitingForDataSource());		
 	}
 	
@@ -262,6 +261,10 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 			public void apply(Object msg) throws Exception { 
 				if(msg instanceof NotConnected) {					
 					log.warning("not connected: " + importJob.getDataSourceId());
+					
+					acknowledgeJobAndStop();
+				} else if(msg instanceof Busy) {
+					log.debug("busy: " + importJob.getDataSourceId());
 					
 					acknowledgeJobAndStop();
 				} else if(msg instanceof ActorRef) {
