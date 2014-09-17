@@ -205,7 +205,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					getContext().stop(getSelf());
+					acknowledgeJobAndStop();
 				} else {
 					unhandled(msg);
 				}
@@ -315,6 +315,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 						importJob.getSourceDatasetId(), 
 						requestColumnNames, 
 						LoaderSession.props(
+								initiator,
 								getContext().parent(),
 								importJob,
 								filterEvaluator,
@@ -373,8 +374,6 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
 					log.debug("job started");
-					
-					acknowledgeJob();
 					
 					prepareJob();
 					
