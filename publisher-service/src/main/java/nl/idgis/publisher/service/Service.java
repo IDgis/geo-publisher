@@ -164,9 +164,7 @@ public class Service extends AbstractStateMachine<String> {
 						database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());
 					}
 					
-					become("storing job completed state", waitingForJobCompletedStored(initiator));
-					
-					initiator.tell(new Ack(), getSelf());
+					become("storing job completed state", waitingForJobCompletedStored(initiator));					
 				} else {
 					unhandled(msg);
 				}
