@@ -122,7 +122,7 @@ public class Service extends AbstractStateMachine<String> {
 					log.debug("job started");
 					
 					try {
-						String schemaName = job.getSchemaName();
+						String schemaName = job.getSchemaName().toLowerCase();
 						
 						Workspace workspace;
 						DataStore dataStore;
@@ -145,7 +145,7 @@ public class Service extends AbstractStateMachine<String> {
 							dataStore = result.second();
 						}
 						
-						String tableName = job.getTableName();
+						String tableName = job.getTableName().toLowerCase();
 						if(hasTable(workspace, dataStore, tableName)) {
 							log.debug("feature type for table already exists");
 						} else {
