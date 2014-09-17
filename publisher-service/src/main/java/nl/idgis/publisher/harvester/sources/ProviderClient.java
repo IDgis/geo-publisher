@@ -13,7 +13,7 @@ import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.utils.Ask;
-
+import nl.idgis.publisher.xml.messages.Close;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -138,18 +138,31 @@ public class ProviderClient extends UntypedActor {
 
 							@Override
 							public void onSuccess(Object o) throws Throwable {
-								ActorRef metadataDocument = (ActorRef)o;
+								final ActorRef metadataDocument = (ActorRef)o;
+								
+								log.debug("metadata parsed");
 								
 								Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000)
 									.onSuccess(new OnSuccess<Object>() {
 
 										@Override
 										public void onSuccess(Object o) throws Throwable {
-											String alternateTitle = (String)o;
+											final String alternateTitle = (String)o;
 											
-											log.debug("metadata parsed");
+											log.debug("alternate title read from metadata");
 											
-											processMetadata(gd, alternateTitle);
+											Patterns.ask(metadataDocument, new Close(), 15000)
+												.onSuccess(new OnSuccess<Object>() {
+
+													@Override
+													public void onSuccess(Object msg) throws Throwable {
+														log.debug("metadata document closed");
+														
+														processMetadata(gd, alternateTitle);
+													}
+													
+												}, getContext().dispatcher());
+											
 										}
 										
 									}, getContext().dispatcher());
