@@ -43,14 +43,15 @@ public class LoaderSession extends AbstractSession {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
-	private final ActorRef loader, geometryDatabase, database;
+	private final ActorRef initiator, loader, geometryDatabase, database;
 	
 	private final FilterEvaluator filterEvaluator;
 	
 	private boolean inFailure = false;
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
+	public LoaderSession(ActorRef initiator, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
+		this.initiator = initiator;
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
@@ -58,8 +59,8 @@ public class LoaderSession extends AbstractSession {
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
+	public static Props props(ActorRef initiator, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
+		return Props.create(LoaderSession.class, initiator, loader, importJob, filterEvaluator, geometryDatabase, database);
 	}
 	
 	@Override
@@ -70,6 +71,8 @@ public class LoaderSession extends AbstractSession {
 				@Override
 				public void onSuccess(Object msg) throws Throwable {
 					log.debug("sessions started");
+					
+					initiator.tell(new Ack(), getSelf());
 					
 					scheduleTimeout();
 				}

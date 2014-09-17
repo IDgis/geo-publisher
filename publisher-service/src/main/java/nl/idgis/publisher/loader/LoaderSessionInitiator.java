@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.AbstractStateMachine;
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
@@ -33,15 +33,10 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
-import nl.idgis.publisher.messages.Timeout;
+import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.protocol.messages.Ack;
-
-import scala.concurrent.duration.Duration;
-
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
@@ -50,14 +45,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
-public class LoaderSessionInitiator extends UntypedActor {
+public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private final ImportJobInfo importJob;
 	
-	private final boolean dataSourceBusy;
-	private final ActorRef initiator, database, geometryDatabase, harvester;
+	private final ActorRef initiator, database, geometryDatabase;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
@@ -66,23 +60,19 @@ public class LoaderSessionInitiator extends UntypedActor {
 	private Set<Column> missingColumns = null, missingFilterColumns = null;
 	private boolean continueImport = true, acknowledged = false;
 	
-	private ActorRef dataSource, transaction;
+	private ActorRef dataSource, transaction;	
 	
-	private Cancellable timeoutCancellable = null;	
-	
-	public LoaderSessionInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
-			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
+	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef initiator, 
+			ActorRef database, ActorRef geometryDatabase) {
 		
-		this.dataSourceBusy = dataSourceBusy;
 		this.importJob = importJob;
 		this.initiator = initiator;
 		this.database = database;
 		this.geometryDatabase = geometryDatabase;
-		this.harvester = harvester;
 	}
 	
-	public static Props props(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
-		return Props.create(LoaderSessionInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
+	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase) {
+		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase);
 	}
 	
 	@Override
@@ -215,7 +205,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					getContext().stop(getSelf());
+					acknowledgeJobAndStop();
 				} else {
 					unhandled(msg);
 				}
@@ -257,14 +247,9 @@ public class LoaderSessionInitiator extends UntypedActor {
 	private void requestDataSource() {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
-		if(dataSourceBusy) {
-			log.debug("already obtaining data from dataSource: " + dataSourceId);
-			acknowledgeJobAndStop();
-		} else {
-			log.debug("fetching dataSource from harvester: " + dataSourceId);			
-			harvester.tell(new GetDataSource(dataSourceId), getSelf());
-			become("fetching dataSource from harvester", waitingForDataSource());
-		}
+		log.debug("fetching dataSource from harvester: " + dataSourceId);			
+		getContext().parent().tell(new GetDataSource(dataSourceId), getSelf());
+		become("fetching dataSource from harvester", waitingForDataSource());		
 	}
 	
 	private Procedure<Object> waitingForDataSource() {
@@ -276,6 +261,10 @@ public class LoaderSessionInitiator extends UntypedActor {
 			public void apply(Object msg) throws Exception { 
 				if(msg instanceof NotConnected) {					
 					log.warning("not connected: " + importJob.getDataSourceId());
+					
+					acknowledgeJobAndStop();
+				} else if(msg instanceof Busy) {
+					log.debug("busy: " + importJob.getDataSourceId());
 					
 					acknowledgeJobAndStop();
 				} else if(msg instanceof ActorRef) {
@@ -326,6 +315,7 @@ public class LoaderSessionInitiator extends UntypedActor {
 						importJob.getSourceDatasetId(), 
 						requestColumnNames, 
 						LoaderSession.props(
+								initiator,
 								getContext().parent(),
 								importJob,
 								filterEvaluator,
@@ -385,8 +375,6 @@ public class LoaderSessionInitiator extends UntypedActor {
 				if(msg instanceof Ack) {
 					log.debug("job started");
 					
-					acknowledgeJob();
-					
 					prepareJob();
 					
 					int logCount = 0;
@@ -444,45 +432,12 @@ public class LoaderSessionInitiator extends UntypedActor {
 		become("starting transaction", waitingForTransactionCreated());
 	}
 	
-	private void scheduleTimeout() {
-		if(timeoutCancellable != null ) {
-			timeoutCancellable.cancel();
+	protected void timeout(String state) {
+		if(!acknowledged) {
+			acknowledgeJob();
 		}
 		
-		timeoutCancellable = getContext().system().scheduler()
-				.scheduleOnce(					 
-					Duration.create(15,  TimeUnit.SECONDS), 
-					
-					getSelf(), new Timeout(), 
-					
-					getContext().dispatcher(), getSelf());
-	}
-
-	
-	private void become(final String stateMessage, final Procedure<Object> behavior) {
-		
-		scheduleTimeout();
-		
-		getContext().become(new Procedure<Object>() {			
-			
-			@Override
-			public void apply(Object msg) throws Exception {
-				scheduleTimeout();
-				
-				if(msg instanceof Timeout) {
-					if(!acknowledged) {
-						acknowledgeJob();
-					}
-					
-					log.error("timeout during: " + stateMessage);
-					
-					getContext().stop(getSelf());
-				} else {
-					behavior.apply(msg);
-				}
-			}
-			
-		});
+		log.error("timeout during: " + state);
 	}
 	
 	private void acknowledgeJobAndStop() {

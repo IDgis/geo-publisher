@@ -59,7 +59,7 @@ public class ServiceRestTest {
 		
 		pgListenThread.start();		
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + PgServer.DEFAULT_PORT + "/test", "postgres", "postgres");
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + PG_PORT + "/test", "postgres", "postgres");
 		
 		Statement stmt = connection.createStatement();		
 		stmt.execute("create table \"test_table\"(\"id\" serial, \"test\" integer)");

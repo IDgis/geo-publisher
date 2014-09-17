@@ -7,15 +7,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
@@ -25,6 +29,8 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
+import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 public class InitiatorTest extends AbstractDatabaseTest {
@@ -40,6 +46,11 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		int getCount() {
 			return count;
 		}
+
+		@Override
+		public String toString() {
+			return "GetReceivedJobs [count=" + count + "]";
+		}
 		
 	}
 	
@@ -50,26 +61,62 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		Integer count = null;
 		ActorRef sender = null;
 		List<JobInfo> jobs = new ArrayList<>();
+		
+		final ActorRef database;
+		
+		JobReceiver(ActorRef database) {
+			this.database = database;
+		}
+		
+		Procedure<Object> waitingForDatabaseAck(final JobInfo job, final ActorRef initiator) {
+			return new Procedure<Object>() {
+
+				@Override
+				public void apply(Object msg) throws Exception {
+					if(msg instanceof Ack) {
+						jobs.add(job);				
+						sendJobs();
+						
+						initiator.tell(new Ack(), getSelf());
+						getContext().unbecome();
+					} else {
+						onElse(msg);
+					}
+				}
+				
+			};
+		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			log.debug("message received: " + msg);
 			
 			if(msg instanceof JobInfo) {
-				getSender().tell(new Ack(), getSelf());
+				database.tell(new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED), getSelf());
 				
-				jobs.add((JobInfo)msg);				
-				sendJobs();
-			} else if(msg instanceof GetReceivedJobs) {
-				sender = getSender();
-				count = ((GetReceivedJobs) msg).getCount();
-				sendJobs();	 
+				getContext().become(waitingForDatabaseAck((JobInfo)msg, getSender()));
+			} else {
+				onElse(msg);
 			}
 		}
 		
-		private void sendJobs() {
+		void onElse(Object msg) {
+			if(msg instanceof GetReceivedJobs) {
+				sender = getSender();
+				count = ((GetReceivedJobs) msg).getCount();
+				sendJobs();	 
+			} else {
+				unhandled(msg);
+			}
+		}
+		
+		void sendJobs() {
 			if(sender != null && count != null && jobs.size() == count) {
 				sender.tell(jobs, getSelf());
+				
+				sender = null;
+				count = null;
+				jobs = new ArrayList<>();
 			}
 		}
 		
@@ -87,7 +134,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Before	
 	public void actors() throws Exception {	
-		Props jobReceiverProps = Props.create(JobReceiver.class);
+		Props jobReceiverProps = Props.create(JobReceiver.class, database);
 		
 		harvester = actorOf(jobReceiverProps, "harvesterMock");
 		loader = actorOf(jobReceiverProps, "loaderMock");
@@ -136,5 +183,25 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		
 		List<?> list = askAssert(service, new GetReceivedJobs(1), List.class);
 		assertEquals(ServiceJobInfo.class, list.get(0).getClass());
+	}
+	
+	@Test
+	public void testTimeout() throws Exception {
+		actorOf(Initiator.props(database, harvester, loader, service, Duration.create(1, TimeUnit.MILLISECONDS)), "initiator");
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
 	}
 }
