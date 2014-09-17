@@ -51,6 +51,8 @@ web.application.name=GEO Publisher
 web.application.none=geen
 web.application.yes=ja
 web.application.no=nee
+web.application.thereis=Er is
+web.application.thereare=Er zijn
 web.application.removed=Verwijderd
 web.application.added=Toegevoegd
 
@@ -152,5 +154,28 @@ web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ong
 
 # SourceDatasets
 web.application.page.sourcedatasets.title=Brongegevens
+web.application.page.sourcedatasets.list.search.placeholder=Zoek op naam ...
+web.application.page.sourcedatasets.list.alert.nosourcedatasets=Er zijn geen brongegevens gevonden die voldoen aan de criteria.
+web.application.page.sourcedatasets.list.alert.adapt=Pas de criteria aan of toon 
+web.application.page.sourcedatasets.list.alert.show=alle brongegevens
+web.application.page.sourcedatasets.list.button.newdataset=Nieuwe dataset toevoegen voor deze bron
+web.application.page.sourcedatasets.list.nodatasetcoupled=Er zijn geen gekoppelde datasets.
+web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
+web.application.page.sourcedatasets.list.datasetcoupledparam=Er is {0} dataset gekoppeld.
+web.application.page.sourcedatasets.list.datasetscoupled=datasets gekoppeld.
+web.application.page.sourcedatasets.list.datasetscoupledparam=Er zijn {0} datasets gekoppeld.
+web.application.page.sourcedatasets.list.datasources.ref
+
+
+# DataSources
+web.application.page.datasources.title=Gegevensbronnen
+web.application.page.datasources.ref=Gegevensbron
+web.application.page.datasources.all=Alle gegevensbronnen
+
+
+
+
+
+
 
 

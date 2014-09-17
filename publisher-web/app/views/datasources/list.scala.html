@@ -16,18 +16,18 @@
 
 @dataSourceRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>Gegevensbron: @ref.name</a>
+		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>Gegevensbron: @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	}
 }
 
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.list()">Alle gegevensbronnen</a>
+		<a href="@routes.DataSources.list()">@Domain.message("web.application.page.datasources.all")</a>
 	} else {
-		<a href="@routes.DataSources.listByCategory(currentCategory.id)">Alle gegevensbronnen</a>
+		<a href="@routes.DataSources.listByCategory(currentCategory.id)">@Domain.message("web.application.page.datasources.all")</a>
 	}
 }
 
@@ -41,17 +41,17 @@
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>Categorie: @ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorie.ref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>Categorie: @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorie.ref"): @ref.name</a>
 	}
 }
 
 @allCategoriesLink() = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.list()">Alle categori&euml;n</a>
+		<a href="@routes.DataSources.list()">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">Alle categori&euml;n</a>
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	}
 }
 
@@ -69,11 +69,11 @@
 }
 
 @layout.application(
-	title = "Gegevensbronnen",
+	title = Domain.message("web.application.page.sourcedatasets.title"),
 	jsMain = routes.Assets.at("js/datasources/main.js").url
 ) {
 	<div class="page-content">
-		<h1 class="page-header">Brongegevens</h1>
+		<h1 class="page-header">@Domain.message("web.application.page.sourcedatasets.title")</h1>
 		
 		<div class="row">
 		
@@ -83,7 +83,7 @@
 					@* Search source_dataset input: *@
 					<div class="form-group has-feedback">
 						<div class="col-sm-12">
-							<input type="text" class="form-control col-sm-12" id="searchString" name="searchString" placeholder="Zoek op naam ...">
+							<input type="text" class="form-control col-sm-12" id="searchString" name="searchString" placeholder=@Domain.message("web.application.page.sourcedatasets.list.search.placeholder")>
 							<button class="btn btn-link form-control-feedback" type="submit"><span class="glyphicon glyphicon-search"></span></button>
 						</div>
 					</div>
@@ -96,7 +96,7 @@
 						<div class="panel-heading">
 							<h4 class="panel-title">
 								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-datasources">
-									Gegevensbronnen
+									@Domain.message("web.application.page.datasources.title")
 								</a>
 							</h4>
 						</div>
@@ -116,7 +116,7 @@
 						<div class="panel-heading">
 							<h4 class="panel-title">
 								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-categories">
-									Categori&euml;n
+									@Domain.message("web.application.page.datasets.list.filtercategorie.title")
 								</a>
 							</h4>
 						</div>
@@ -135,12 +135,12 @@
 				</div>
 			</div>
 			
-			@* List of datasources: *@
+			@* List of sourceDatasets: *@
 			<div class="col-lg-9 col-lg-pull-3">
 				@if(sourceDatasets.values.isEmpty) {
 					<div class="alert alert-info">
-						Er zijn geen brongegevens gevonden die voldoen aan de criteria. Pas de criteria aan
-						of toon <a href="@routes.DataSources.list()">alle brongegevens</a>.
+						@Domain.message("web.application.page.sourcedatasets.list.alert.nosourcedatasets") 
+						@Domain.message("web.application.page.sourcedatasets.list.alert.adapt") <a href="@routes.DataSources.list()">@Domain.message("web.application.page.sourcedatasets.list.alert.show")</a>.
 					</div>
 				} else {
 				@helper.pagination(sourceDatasets, pageRef)
@@ -156,18 +156,20 @@
 									<div class="col-md-5">
 										<p>
 											@if(dataset.datasetCount == 0) {
-												<span class="glyphicon glyphicon-th-list"></span> Er zijn geen gekoppelde datasets.
+												<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.nodatasetcoupled")
 											} else {
 												@if(dataset.datasetCount == 1) {
-													<span class="glyphicon glyphicon-th-list"></span> Er is <strong>1</strong> dataset gekoppeld.
+													<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereis") <strong>1</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupled")
+													@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupledparam", 1L) *@
 												} else {
-													<span class="glyphicon glyphicon-th-list"></span> Er zijn <strong>@dataset.datasetCount</strong> datasets gekoppeld.
+													<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereare") <strong>@dataset.datasetCount</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupled")
+													@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupledparam", dataset.datasetCount)*@
 												}
 											}
 										</p>
 									</div>
 									<div class="col-md-2 text-right">
-										<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="Nieuwe dataset toevoegen voor deze bron"><span class="glyphicon glyphicon-plus"></span></a>
+										<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title=@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")><span class="glyphicon glyphicon-plus"></span></a>
 									</div>
 								</div>
 							</div>
