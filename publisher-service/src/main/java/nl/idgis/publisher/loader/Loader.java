@@ -117,23 +117,12 @@ public class Loader extends UntypedActor {
 		
 		getSender().tell(new Ack(), getSelf());
 	}
-	
-	private boolean isImporting(String dataSourceId) {
-		for(ImportJobInfo job : sessions.keySet()) {
-			if(job.getDataSourceId().equals(dataSourceId)) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
 
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
 		getContext().actorOf(
-			LoaderSessionInitiator.props(isImporting(importJob.getDataSourceId()), 
-				importJob, getSender(), database, geometryDatabase, harvester));
+			LoaderSessionInitiator.props(importJob, getSender(), database, geometryDatabase, harvester));
 	}
 	
 }

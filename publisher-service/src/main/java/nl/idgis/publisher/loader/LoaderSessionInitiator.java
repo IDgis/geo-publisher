@@ -51,7 +51,6 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private final ImportJobInfo importJob;
 	
-	private final boolean dataSourceBusy;
 	private final ActorRef initiator, database, geometryDatabase, harvester;
 	
 	private DatasetStatusInfo datasetStatus = null;
@@ -63,10 +62,9 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, 
+	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef initiator, 
 			ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
 		
-		this.dataSourceBusy = dataSourceBusy;
 		this.importJob = importJob;
 		this.initiator = initiator;
 		this.database = database;
@@ -74,8 +72,8 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 		this.harvester = harvester;
 	}
 	
-	public static Props props(boolean dataSourceBusy, ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
-		return Props.create(LoaderSessionInitiator.class, dataSourceBusy, importJob, initiator, database, geometryDatabase, harvester);
+	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase, ActorRef harvester) {
+		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase, harvester);
 	}
 	
 	@Override
@@ -250,14 +248,9 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	private void requestDataSource() {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
-		if(dataSourceBusy) {
-			log.debug("already obtaining data from dataSource: " + dataSourceId);
-			acknowledgeJobAndStop();
-		} else {
-			log.debug("fetching dataSource from harvester: " + dataSourceId);			
-			harvester.tell(new GetDataSource(dataSourceId), getSelf());
-			become("fetching dataSource from harvester", waitingForDataSource());
-		}
+		log.debug("fetching dataSource from harvester: " + dataSourceId);			
+		harvester.tell(new GetDataSource(dataSourceId), getSelf());
+		become("fetching dataSource from harvester", waitingForDataSource());		
 	}
 	
 	private Procedure<Object> waitingForDataSource() {
