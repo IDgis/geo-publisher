@@ -74,6 +74,9 @@ import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
+
 public class LoaderTest extends AbstractDatabaseTest {
 	
 	static class SetInsertCount {

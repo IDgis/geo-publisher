@@ -108,6 +108,12 @@
 			</dependency>
 			<dependency>
 				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-commons</artifactId>
+				<classifier>tests</classifier>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
 				<artifactId>publisher-monitor</artifactId>
 				<version>${project.version}</version>
 			</dependency>

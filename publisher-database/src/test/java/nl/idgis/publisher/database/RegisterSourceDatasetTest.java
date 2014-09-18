@@ -21,6 +21,8 @@ import nl.idgis.publisher.domain.service.Dataset;
 
 import org.junit.Test;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+
 public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 
 	@Test

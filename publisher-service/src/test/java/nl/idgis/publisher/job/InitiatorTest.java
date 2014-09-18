@@ -33,6 +33,9 @@ import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
+
 public class InitiatorTest extends AbstractDatabaseTest {
 	
 	static class GetReceivedJobs {
