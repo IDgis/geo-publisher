@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import nl.idgis.publisher.database.JdbcContext;
+
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.domain.service.Type;
@@ -31,19 +31,19 @@ public class DatabaseTransaction extends JdbcTransaction {
 	}
 
 	@Override
-	protected void executeQuery(JdbcContext context, Query query) throws Exception {
+	protected void executeQuery(Query query) throws Exception {
 		if(query instanceof DescribeTable) {
-			handleDescribeTable(context, (DescribeTable)query);
+			handleDescribeTable((DescribeTable)query);
 		} else if(query instanceof PerformCount){
-			handlePerformCount(context, (PerformCount)query);
+			handlePerformCount((PerformCount)query);
 		} else if(query instanceof FetchTable) {
-			handleFetchTable(context, (FetchTable)query);
+			handleFetchTable((FetchTable)query);
 		} else {
 			unhandled(query);
 		}
 	}
 	
-	private void handleDescribeTable(JdbcContext context, DescribeTable query) throws SQLException {
+	private void handleDescribeTable(DescribeTable query) throws SQLException {
 		String requestedTableName = query.getTableName();
 		
 		final String sql;
@@ -61,7 +61,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 					+ "' " + "order by column_id";
 		}
 		
-		Statement stmt = context.getConnection().createStatement();
+		Statement stmt = connection.createStatement();
 		
 		ArrayList<Column> columns = new ArrayList<>();
 		
@@ -97,27 +97,27 @@ public class DatabaseTransaction extends JdbcTransaction {
 		stmt.close();
 		
 		if(columns.isEmpty()) {
-			context.answer(new TableNotFound());
+			answer(new TableNotFound());
 		} else {
-			context.answer(new TableDescription(columns.toArray(new Column[columns.size()])));
+			answer(new TableDescription(columns.toArray(new Column[columns.size()])));
 		}
 	}
 	
-	private void handlePerformCount(JdbcContext context, PerformCount query) throws SQLException {
+	private void handlePerformCount(PerformCount query) throws SQLException {
 		String sql = "select count(*) from " + query.getTableName();
 		
-		Statement stmt = context.getConnection().createStatement();
+		Statement stmt = connection.createStatement();
 		
 		ResultSet rs = stmt.executeQuery(sql);
 		rs.next();
 		
-		context.answer(rs.getLong(1));
+		answer(rs.getLong(1));
 		
 		rs.close();		
 		stmt.close();	
 	}
 	
-	private void handleFetchTable(JdbcContext context, FetchTable msg) throws SQLException {
+	private void handleFetchTable(FetchTable msg) throws SQLException {
 		log.debug("fetch table: " + msg);
 		
 		StringBuilder sb = new StringBuilder("select ");
@@ -133,7 +133,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		sb.append(" from ");
 		sb.append(msg.getTableName());
 		
-		Statement stmt = context.getConnection().createStatement();
+		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(sb.toString());
 		
 		if(converter == null) {
@@ -141,6 +141,6 @@ public class DatabaseTransaction extends JdbcTransaction {
 		}
 		
 		ActorRef cursor = getContext().actorOf(DatabaseCursor.props(rs, msg.getMessageSize(), converter));
-		context.answerStreaming(cursor);
+		answerStreaming(cursor);
 	}
 }
