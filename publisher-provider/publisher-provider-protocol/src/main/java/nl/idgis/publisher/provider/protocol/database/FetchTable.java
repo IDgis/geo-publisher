@@ -1,14 +1,13 @@
 package nl.idgis.publisher.provider.protocol.database;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-import nl.idgis.publisher.stream.messages.Start;
+import nl.idgis.publisher.database.messages.Query;
 
-public class FetchTable extends Start implements Serializable {
-	
-	private static final long serialVersionUID = -8614620366541045176L;
+public class FetchTable extends Query {	
+
+	private static final long serialVersionUID = -4715978918212247943L;
 	
 	private final String tableName;
 	private final List<String> columnNames;

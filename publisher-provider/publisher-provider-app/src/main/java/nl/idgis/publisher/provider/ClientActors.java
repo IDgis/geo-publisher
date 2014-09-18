@@ -34,20 +34,9 @@ public class ClientActors extends MessageProtocolActors {
 	protected void createActors(ActorRef messagePackagerProvider) {
 		log.debug("creating client actors");
 		
-		Config databaseConfig = config.getConfig("database");
-
-		String driver;
-		if(databaseConfig.hasPath("driver")) {
-			driver = databaseConfig.getString("driver");
-		} else {
-			driver = null;
-		}
+		Config databaseConfig = config.getConfig("database");		
 		
-		getContext().actorOf(Database.props(
-				driver,
-				databaseConfig.getString("url"),
-				databaseConfig.getString("user"),
-				databaseConfig.getString("password")), "database");
+		getContext().actorOf(Database.props(databaseConfig), "database");
 
 		getContext().actorOf(Metadata.props(
 				new File(config.getString("metadata.folder"))), "metadata");

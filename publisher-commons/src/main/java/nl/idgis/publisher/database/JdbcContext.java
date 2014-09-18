@@ -10,6 +10,7 @@ import java.util.List;
 import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
@@ -90,19 +91,32 @@ public class JdbcContext {
 		answer((Object)msg);
 	}
 	
-	public void answer(Object msg) {
+	private void answer() {
 		if(answered) {
 			throw new IllegalArgumentException("query already answered");
-		} else {
-			Object response = msg == null ? new NotFound() : msg;
-			
-			if(log.isDebugEnabled()) {
-				log.debug("responding to query: " + query + ", response: " + response);
-			}
-			
-			sender.tell(response, self);
-			answered = true;
 		}
+		
+		answered = true;
+	}
+	
+	public void answerStreaming(ActorRef cursor) {
+		answer();
+		
+		log.debug("answering streaming to query: " + query);
+		
+		cursor.tell(new NextItem(), sender);
+	}
+	
+	public void answer(Object msg) {
+		answer();
+		
+		Object response = msg == null ? new NotFound() : msg;
+		
+		if(log.isDebugEnabled()) {
+			log.debug("responding to query: " + query + ", response: " + response);
+		}
+		
+		sender.tell(response, self);		
 	}
 	
 	public void execute(String sql) throws SQLException {
