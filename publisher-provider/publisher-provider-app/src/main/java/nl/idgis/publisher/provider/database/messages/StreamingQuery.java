@@ -4,14 +4,14 @@ import java.io.Serializable;
 
 import nl.idgis.publisher.stream.messages.Start;
 
-public class Query extends Start implements Serializable {
+public class StreamingQuery extends Start implements Serializable {
 	
-	private static final long serialVersionUID = 7073260568794388261L;
+	private static final long serialVersionUID = 3463657688909957892L;
 	
 	private final String sql;
 	private final int messageSize;
 	
-	public Query(String sql, int messageSize) {
+	public StreamingQuery(String sql, int messageSize) {
 		this.sql = sql;
 		this.messageSize = messageSize;
 	}
@@ -26,7 +26,7 @@ public class Query extends Start implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Query [sql=" + sql + ", messageSize=" + messageSize + "]";
+		return "StreamingQuery [sql=" + sql + ", messageSize=" + messageSize + "]";
 	}
 	
 }

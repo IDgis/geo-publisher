@@ -16,8 +16,8 @@ import akka.event.LoggingAdapter;
 import akka.japi.Function2;
 import akka.pattern.Patterns;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.database.messages.Convert;
-import nl.idgis.publisher.provider.database.messages.Converted;
+import nl.idgis.publisher.provider.database.messages.ConvertValue;
+import nl.idgis.publisher.provider.database.messages.ConvertedValue;
 import nl.idgis.publisher.provider.protocol.database.Record;
 import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.stream.StreamCursor;
@@ -48,9 +48,9 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 			Object o = t.getObject(j + 1);
 			
 			if(o == null) {
-				valueFutures.add(Futures.<Object>successful(new Converted(null)));
+				valueFutures.add(Futures.<Object>successful(new ConvertedValue(null)));
 			} else {
-				Future<Object> future = Patterns.ask(converter, new Convert(o), 15000);
+				Future<Object> future = Patterns.ask(converter, new ConvertValue(o), 15000);
 				future.onFailure(new OnFailure() {
 
 					@Override
@@ -66,8 +66,8 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 
 				@Override
 				public List<Object> apply(List<Object> values, Object value) throws Exception {
-					if(value instanceof Converted) {
-						values.add(((Converted) value).getValue());
+					if(value instanceof ConvertedValue) {
+						values.add(((ConvertedValue) value).getValue());
 					} else if(value instanceof Failure) {
 						Throwable cause = ((Failure) value).getCause();
 						

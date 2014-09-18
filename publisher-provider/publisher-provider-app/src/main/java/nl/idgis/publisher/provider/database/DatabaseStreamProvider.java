@@ -9,10 +9,10 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.provider.database.messages.Query;
+import nl.idgis.publisher.provider.database.messages.StreamingQuery;
 import nl.idgis.publisher.stream.StreamProvider;
 
-public class DatabaseStreamProvider extends StreamProvider<Query> {
+public class DatabaseStreamProvider extends StreamProvider<StreamingQuery> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -34,7 +34,7 @@ public class DatabaseStreamProvider extends StreamProvider<Query> {
 	}
 	
 	@Override
-	protected Props start(Query msg) throws SQLException {
+	protected Props start(StreamingQuery msg) throws SQLException {
 		String sql = msg.getSql();
 		int messageSize = msg.getMessageSize();
 		

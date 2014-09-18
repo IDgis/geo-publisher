@@ -2,22 +2,22 @@ package nl.idgis.publisher.provider.database.messages;
 
 import java.io.Serializable;
 
-public class Converted implements Serializable {	
-	
-	private static final long serialVersionUID = 5886839531054876794L;
+public class ConvertValue implements Serializable {
+
+	private static final long serialVersionUID = -6889915789134347280L;
 	
 	private final Object value;
 
-	public Converted(Object value) {
+	public ConvertValue(Object value) {		
 		this.value = value;
 	}
 	
 	public Object getValue() {
-		return this.value;
+		return value;
 	}
 
 	@Override
 	public String toString() {
-		return "Converted [value=" + value + "]";
+		return "ConvertValue [value=" + value + "]";
 	}
 }
