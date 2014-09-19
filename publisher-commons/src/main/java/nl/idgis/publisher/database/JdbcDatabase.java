@@ -3,9 +3,9 @@ package nl.idgis.publisher.database;
 import java.sql.Connection;
 
 import scala.concurrent.duration.Duration;
-import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
@@ -14,11 +14,9 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.actor.SupervisorStrategy.Directive;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
-import akka.pattern.Patterns;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.jolbox.bonecp.BoneCP;
@@ -70,44 +68,25 @@ public abstract class JdbcDatabase extends UntypedActor {
 			handleStartTransaction((StartTransaction)msg);
 		} else if(msg instanceof Query) {			
 			handleQuery((Query)msg);
+		} else if(msg instanceof StreamingQuery) {
+			handleStreamingQuery((StreamingQuery)msg);
 		} else {
 			onReceiveNonQuery(msg);
 		}
 	}
 
+	private void handleStreamingQuery(final StreamingQuery query) {
+		log.debug("executing query in autocommit mode");
+		
+		ActorRef streamingAutoCommit = getContext().actorOf(StreamingAutoCommit.props(query, getSender()));
+		getSelf().tell(new StartTransaction(), streamingAutoCommit);
+	}
+
 	private void handleQuery(final Query query) {
 		log.debug("executing query in autocommit mode");
 		
-		final ActorRef self = getSelf(), sender = getSender();
-		
-		Patterns.ask(self, new StartTransaction(), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-				
-				public void onSuccess(final Object msg) throws Throwable {
-					log.debug("transaction created");
-					
-					final TransactionCreated tc = (TransactionCreated)msg;
-					
-					Patterns.ask(tc.getActor(), query, 15000)
-						.onSuccess(new OnSuccess<Object>() {
-
-							@Override
-							public void onSuccess(final Object queryResponse) throws Throwable {
-								log.debug("query executed");
-								
-								Patterns.ask(tc.getActor(), new Commit(), 15000)
-									.onSuccess(new OnSuccess<Object>() {
-
-										@Override
-										public void onSuccess(Object msg) throws Throwable {
-											log.debug("transaction completed");												
-											sender.tell(queryResponse, self);
-										}
-									}, getContext().dispatcher());
-							}
-						}, getContext().dispatcher());
-				}
-		}, getContext().dispatcher());
+		ActorRef autoCommit = getContext().actorOf(AutoCommit.props(query, getSender()));
+		getSelf().tell(new StartTransaction(), autoCommit);
 	}
 
 	private void handleStartTransaction(StartTransaction msg) {

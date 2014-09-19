@@ -1,8 +1,8 @@
 package nl.idgis.publisher.provider.database;
 
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.database.messages.Convert;
-import nl.idgis.publisher.provider.database.messages.Converted;
+import nl.idgis.publisher.provider.database.messages.ConvertValue;
+import nl.idgis.publisher.provider.database.messages.ConvertedValue;
 import nl.idgis.publisher.provider.protocol.database.UnsupportedType;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -32,12 +32,12 @@ public class DatabaseConverter extends UntypedActor {
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
-		if(msg instanceof Convert) {
-			Convert convert = (Convert)msg;
+		if(msg instanceof ConvertValue) {
+			ConvertValue convert = (ConvertValue)msg;
 			
 			Object response;
 			try {
-				response = new Converted(convert(convert.getValue()));
+				response = new ConvertedValue(convert(convert.getValue()));
 			} catch(Exception e) {
 				log.warning("couldn't convert value");
 				response = new Failure(e);

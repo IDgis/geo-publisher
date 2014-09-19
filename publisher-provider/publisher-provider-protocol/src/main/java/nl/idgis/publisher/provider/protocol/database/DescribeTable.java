@@ -1,10 +1,10 @@
 package nl.idgis.publisher.provider.protocol.database;
 
-import java.io.Serializable;
+import nl.idgis.publisher.database.messages.Query;
 
-public class DescribeTable implements Serializable {
-	
-	private static final long serialVersionUID = -5970461010970719731L;
+public class DescribeTable extends Query {
+
+	private static final long serialVersionUID = -7243209795589257031L;
 	
 	private final String tableName;
 	

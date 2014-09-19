@@ -139,10 +139,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		super(config, connection);
 	}
 	
-	private void insertSourceDatasetColumns(QueryDSLContext context, int versionId, List<Column> columns) {
+	private void insertSourceDatasetColumns(int versionId, List<Column> columns) {
 		int i = 0;
 		for(Column column : columns) {			
-			context.insert(sourceDatasetVersionColumn)
+			insert(sourceDatasetVersionColumn)
 				.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
 				.set(sourceDatasetVersionColumn.index, i++)
 				.set(sourceDatasetVersionColumn.name, column.getName())
@@ -151,10 +151,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}
 	
-	private void insertDatasetColumns(QueryDSLContext context, int datasetId, List<Column> columns) {
+	private void insertDatasetColumns(int datasetId, List<Column> columns) {
 		int i = 0;
 		for(Column column : columns) {			
-			context.insert(datasetColumn)
+			insert(datasetColumn)
 				.set(datasetColumn.datasetId, datasetId)
 				.set(datasetColumn.index, i++)
 				.set(datasetColumn.name, column.getName())
@@ -163,18 +163,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}
 	
-	private int getCategoryId(QueryDSLContext context, String identification) {
-		Integer id = context.query().from(category)
+	private int getCategoryId(String identification) {
+		Integer id = query().from(category)
 			.where(category.identification.eq(identification))
 			.singleResult(category.id);
 		
 		if(id == null) {
-			context.insert(category)
+			insert(category)
 				.set(category.identification, identification)
 				.set(category.name, identification)
 				.execute();
 			
-			return getCategoryId(context, identification);
+			return getCategoryId(identification);
 		} else {
 			return id;
 		}
@@ -205,81 +205,81 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	@Override
-	protected void executeQuery(QueryDSLContext context, Query query) throws Exception {
+	protected void executeQuery(Query query) throws Exception {
 		if(query instanceof GetVersion) {
-			executeGetVersion(context);
+			executeGetVersion();
 		} else if(query instanceof RegisterSourceDataset) {
-			executeRegisterSourceDataset(context, (RegisterSourceDataset)query);
+			executeRegisterSourceDataset((RegisterSourceDataset)query);
 		} else if(query instanceof GetCategoryListInfo) {
-			executeGetCategoryListInfo(context);
+			executeGetCategoryListInfo();
 		} else if(query instanceof GetCategoryInfo) {
-			executeGetCategoryInfo(context, (GetCategoryInfo)query);			
+			executeGetCategoryInfo((GetCategoryInfo)query);			
 		} else if(query instanceof GetDatasetListInfo) {
-			executeGetDatasetListInfo(context, (GetDatasetListInfo)query);			
+			executeGetDatasetListInfo((GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
-			executeGetDataSourceInfo(context);
+			executeGetDataSourceInfo();
 		} else if(query instanceof GetSourceDatasetInfo) {			
-			executeGetSourceDatasetInfo(context, (GetSourceDatasetInfo)query);			
+			executeGetSourceDatasetInfo((GetSourceDatasetInfo)query);			
 		} else if(query instanceof GetSourceDatasetListInfo) {			
-			executeGetSourceDatasetListInfo(context, (GetSourceDatasetListInfo)query);			
+			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof StoreLog) {
-			executeStoreLog(context, (StoreLog)query);
+			executeStoreLog((StoreLog)query);
 		} else if(query instanceof GetHarvestJobs){
-			executeGetHarvestJobs(context);
+			executeGetHarvestJobs();
 		} else if(query instanceof GetSourceDatasetColumns) {
-			executeGetSourceDatasetColumns(context, (GetSourceDatasetColumns)query);
+			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
 		} else if(query instanceof GetDatasetColumns) {
-			executeGetDatasetColumns(context, (GetDatasetColumns)query);
+			executeGetDatasetColumns((GetDatasetColumns)query);
 		} else if(query instanceof GetImportJobs) {				
-			executeGetImportJobs(context);
+			executeGetImportJobs();
 		} else if(query instanceof CreateDataset) {
-			executeCreateDataset(context, (CreateDataset)query);
+			executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
-			executeGetDatasetInfo(context, (GetDatasetInfo)query);
+			executeGetDatasetInfo((GetDatasetInfo)query);
 		} else if(query instanceof UpdateDataset) {						
-			executeUpdatedataset(context, (UpdateDataset)query);
+			executeUpdatedataset((UpdateDataset)query);
 		} else if(query instanceof DeleteDataset) {
-			executeDeleteDataset(context, (DeleteDataset)query);
+			executeDeleteDataset((DeleteDataset)query);
 		} else if(query instanceof CreateHarvestJob) {
-			executeCreateHarvestJob(context, (CreateHarvestJob)query);
+			executeCreateHarvestJob((CreateHarvestJob)query);
 		} else if(query instanceof CreateImportJob) {
-			executeCreateImportJob(context, (CreateImportJob)query);
+			executeCreateImportJob((CreateImportJob)query);
 		} else if(query instanceof UpdateJobState) {
-			executeUpdateJobState(context, (UpdateJobState)query);
+			executeUpdateJobState((UpdateJobState)query);
 		} else if(query instanceof GetDataSourceStatus) {
-			executeGetDataSourceStatus(context);
+			executeGetDataSourceStatus();
 		} else if(query instanceof GetJobLog) {
-			executeGetJobLog(context, (GetJobLog)query);
+			executeGetJobLog((GetJobLog)query);
 		} else if(query instanceof GetServiceJobs) {
-			executeGetServiceJobs(context);
+			executeGetServiceJobs();
 		} else if(query instanceof CreateServiceJob) {
-			executeCreateServiceJob(context, (CreateServiceJob)query);
+			executeCreateServiceJob((CreateServiceJob)query);
 		} else if(query instanceof GetDatasetStatus) {
-			executeGetDatasetStatus(context, (GetDatasetStatus)query);
+			executeGetDatasetStatus((GetDatasetStatus)query);
 		} else if(query instanceof TerminateJobs) {
-			executeTerminateJobs(context);
+			executeTerminateJobs();
 		} else if(query instanceof AddNotification) {
-			executeAddNotification(context, (AddNotification)query);
+			executeAddNotification((AddNotification)query);
 		} else if(query instanceof AddNotificationResult) {
-			executeAddNotificationResult(context, (AddNotificationResult)query);
+			executeAddNotificationResult((AddNotificationResult)query);
 		} else if(query instanceof RemoveNotification) {
-			executeRemoveNotification(context, (RemoveNotification)query);
+			executeRemoveNotification((RemoveNotification)query);
 		} else if (query instanceof GetNotifications) {
-			executeGetNotifications (context, (GetNotifications) query);
+			executeGetNotifications ((GetNotifications) query);
 		} else if (query instanceof StoreNotificationResult) {
-			executeStoreNotificationResult (context, (StoreNotificationResult) query);
+			executeStoreNotificationResult ((StoreNotificationResult) query);
 		} else if (query instanceof GetDatasetColumnDiff) {
-			executeGetDatasetColumnDiff (context, (GetDatasetColumnDiff) query);
+			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
 		} else {
-			throw new IllegalArgumentException("Unknown query");
+			unhandled(query);
 		}
 	}
 
-	private void executeRemoveNotification(QueryDSLContext context, RemoveNotification query) {	
+	private void executeRemoveNotification(RemoveNotification query) {	
 		JobInfo job = query.getJob();
 		NotificationType<?> type = query.getNotificationType();
 		
-		context.delete(notificationResult)
+		delete(notificationResult)
 			.where(new SQLSubQuery().from(notification)
 				.where(notification.id.eq(notificationResult.notificationId)
 					.and(notification.type.eq(type.name())
@@ -287,20 +287,20 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.exists())
 			.execute();
 		
-		context.delete(notification)
+		delete(notification)
 			.where(notification.type.eq(type.name())
 				.and(notification.jobId.eq(job.getId())))
 			.execute();
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeAddNotificationResult(QueryDSLContext context, AddNotificationResult query) {
+	private void executeAddNotificationResult(AddNotificationResult query) {
 		JobInfo job = query.getJob();
 		NotificationType<?> type = query.getNotificationType();
 		NotificationResult result = query.getNotificationResult();
 		
-		context.insert(notificationResult)
+		insert(notificationResult)
 			.columns(
 				notificationResult.notificationId,
 				notificationResult.result)
@@ -312,25 +312,25 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					result.name()))
 			.execute();
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeAddNotification(QueryDSLContext context, AddNotification query) {
+	private void executeAddNotification(AddNotification query) {
 		JobInfo job = query.getJob();
 		NotificationType<?> notificationType = query.getNotificationType();
 		
-		context.insert(notification)
+		insert(notification)
 			.set(notification.jobId, job.getId())
 			.set(notification.type, notificationType.name())
 			.execute();
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeTerminateJobs(QueryDSLContext context) {
+	private void executeTerminateJobs() {
 		final QJobState jobStateSub = new QJobState("job_state_sub");
 		
-		long result = context.insert(jobState)
+		long result = insert(jobState)
 			.columns(
 				jobState.jobId,
 				jobState.state)
@@ -347,11 +347,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		log.debug("jobs terminated: " + result);
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeGetDatasetStatus(QueryDSLContext context, GetDatasetStatus query) {		
-		SQLQuery baseQuery = context.query().from(datasetStatus)
+	private void executeGetDatasetStatus(GetDatasetStatus query) {		
+		SQLQuery baseQuery = query().from(datasetStatus)
 			.join(dataset).on(dataset.id.eq(datasetStatus.id));
 		
 		Expression<DatasetStatusInfo> expression = 
@@ -367,21 +367,21 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		String datasourceId = query.getDatasetId();
 		if(datasourceId == null) {		
-			context.answer(
+			answer(
 				DatasetStatusInfo.class,
 				
 				baseQuery.list(expression));
 		} else {
-			context.answer(
+			answer(
 				baseQuery.where(dataset.identification.eq(datasourceId))
 				.singleResult(expression));
 		}
 	}
 
-	private void executeCreateServiceJob(QueryDSLContext context, CreateServiceJob query) {
+	private void executeCreateServiceJob(CreateServiceJob query) {
 		log.debug("creating service job: " + query);
 		
-		if(context.query().from(job)
+		if(query().from(job)
 			.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 			.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 			.where(dataset.identification.eq(query.getDatasetId()))
@@ -391,15 +391,15 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.notExists())
 			.notExists()) {
 			
-			int jobId = context.insert(job)
+			int jobId = insert(job)
 					.set(job.type, "SERVICE")
 					.executeWithKey(job.id);
 			
-			int datasetId = getDatasetId(context, query.getDatasetId());
+			int datasetId = getDatasetId(query.getDatasetId());
 			
-			int versionId = getLastVersionId(context, query.getDatasetId());
+			int versionId = getLastVersionId(query.getDatasetId());
 			
-			context.insert(serviceJob)
+			insert(serviceJob)
 				.set(serviceJob.jobId, jobId)
 				.set(serviceJob.datasetId, datasetId)
 				.set(serviceJob.sourceDatasetVersionId, versionId)
@@ -410,30 +410,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			log.debug("already exist an service job for this dataset");
 		}		
 				
-		context.ack();
+		ack();
 	}
 
-	private Integer getLastVersionId(QueryDSLContext context,
-			String datasetIdentification) {
-		return context.query().from(sourceDatasetVersion)
+	private Integer getLastVersionId(String datasetIdentification) {
+		return query().from(sourceDatasetVersion)
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 				.where(dataset.identification.eq(datasetIdentification))
 				.singleResult(sourceDatasetVersion.id.max());
 	}
 
-	private Integer getDatasetId(QueryDSLContext context,
-			String datasetIdentification) {
-		return context.query().from(dataset)
+	private Integer getDatasetId(String datasetIdentification) {
+		return query().from(dataset)
 			.where(dataset.identification.eq(datasetIdentification))
 			.singleResult(dataset.id);
 	}
 
-	private void executeGetServiceJobs(QueryDSLContext context) {
-		context.answer(
+	private void executeGetServiceJobs() {
+		answer(
 			ServiceJobInfo.class,
 				
-			context.query().from(serviceJob)
+			query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
 				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
@@ -447,8 +445,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			
 	}
 
-	private void executeGetJobLog(QueryDSLContext context, GetJobLog query) throws Exception {
-		final SQLQuery baseQuery = context.query().from(jobLog)
+	private void executeGetJobLog(GetJobLog query) throws Exception {
+		final SQLQuery baseQuery = query().from(jobLog)
 				.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
 				.join(job).on(job.id.eq(jobState.jobId));
 		
@@ -500,12 +498,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, when, contentObject));
 		}
 		
-		context.answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
+		answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
 	}
 	
-	private void executeGetNotifications (final QueryDSLContext context, final GetNotifications query) throws Exception {
+	private void executeGetNotifications (final GetNotifications query) throws Exception {
 		
-		final SQLQuery baseQuery = context.query ().from (datasetActiveNotification);
+		final SQLQuery baseQuery = query ().from (datasetActiveNotification);
 		
 		if (!query.isIncludeRejected ()) {
 			baseQuery.where (datasetActiveNotification.notificationResult.ne (ConfirmNotificationResult.NOT_OK.name ()));
@@ -543,19 +541,19 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				));
 		}
 		
-		context.answer (new InfoList<StoredNotification> (notifications, baseQuery.count ()));
+		answer (new InfoList<StoredNotification> (notifications, baseQuery.count ()));
 						
 	}
 	
 
-	private void executeGetDataSourceStatus(QueryDSLContext context) {
+	private void executeGetDataSourceStatus() {
 		QJobState jobStateSub = new QJobState("job_state_sub");			
 		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");			
 		
-		context.answer(
+		answer(
 			DataSourceStatus.class,
 				
-			context.query().from(jobState)
+			query().from(jobState)
 				.join(harvestJob).on(harvestJob.jobId.eq(jobState.jobId))
 				.rightJoin(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.where(isFinished(jobState))
@@ -573,42 +571,42 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 
-	private void executeUpdateJobState(QueryDSLContext context, UpdateJobState query) {
+	private void executeUpdateJobState(UpdateJobState query) {
 		log.debug("updating job state: " + query);
 		
-		Integer jobId = getUnfinishedJobQuery(context,  query.getJob())
+		Integer jobId = getUnfinishedJobQuery( query.getJob())
 				.singleResult(job.id);
 		
 		if(jobId == null) {
 			throw new IllegalStateException("job not found");
 		}
 		
-		context.insert(jobState)
+		insert(jobState)
 			.set(jobState.jobId, jobId)
 			.set(jobState.state, query.getState().name())
 			.execute();
 		
-		context.ack();
+		ack();
 	}
 
-	private SQLQuery getUnfinishedJobQuery(QueryDSLContext context, JobInfo job) {		
+	private SQLQuery getUnfinishedJobQuery(JobInfo job) {		
 		if(job instanceof ImportJobInfo) {
-			return getUnfinishedJobQuery(context, (ImportJobInfo)job);
+			return getUnfinishedJobQuery((ImportJobInfo)job);
 		} else if(job instanceof HarvestJobInfo) {
-			return getUnfinishedJobQuery(context, (HarvestJobInfo)job);
+			return getUnfinishedJobQuery((HarvestJobInfo)job);
 		} else if(job instanceof ServiceJobInfo) {
-			return getUnfinishedJobQuery(context, (ServiceJobInfo)job);		
+			return getUnfinishedJobQuery((ServiceJobInfo)job);		
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
 	}
 	
-	private SQLQuery getLastJobQuery(QueryDSLContext context, ImportJobInfo ij) {
+	private SQLQuery getLastJobQuery(ImportJobInfo ij) {
 		QJob jobSub = new QJob("job_sub");
 		QImportJob importJobSub = new QImportJob("import_job_sub");
 		QDataset datasetSub = new QDataset("dataset_sub");
 		
-		return context.query().from(job)
+		return query().from(job)
 			.join(importJob).on(importJob.jobId.eq(job.id))
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))
 			.where(dataset.identification.eq(ij.getDatasetId())
@@ -620,12 +618,12 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.notExists()));
 	}
 	
-	private SQLQuery getLastJobQuery(QueryDSLContext context, HarvestJobInfo hj) {
+	private SQLQuery getLastJobQuery(HarvestJobInfo hj) {
 		QJob jobSub = new QJob("job_sub");
 		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");
 		QDataSource dataSourceSub = new QDataSource("data_source_sub");
 		
-		return context.query().from(job)
+		return query().from(job)
 			.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 			.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 			.where(dataSource.identification.eq(hj.getDataSourceId())
@@ -637,7 +635,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.notExists()));
 	}
 	
-	private SQLQuery getLastJobQuery(QueryDSLContext context, ServiceJobInfo sj) {
+	private SQLQuery getLastJobQuery(ServiceJobInfo sj) {
 		QJob jobSub = new QJob("job_sub");
 		QServiceJob serviceJobSub = new QServiceJob("service_job_sub");
 		QDataset datasetSub = new QDataset("dataset_sub");
@@ -645,7 +643,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 		QCategory categorySub = new QCategory("category_sub");
 		
-		return context.query().from(job)
+		return query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
@@ -666,13 +664,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				
 	}
 	
-	private SQLQuery getLastJobQuery(QueryDSLContext context, JobInfo job) {		
+	private SQLQuery getLastJobQuery(JobInfo job) {		
 		if(job instanceof ImportJobInfo) {
-			return getLastJobQuery(context, (ImportJobInfo)job);
+			return getLastJobQuery((ImportJobInfo)job);
 		} else if(job instanceof HarvestJobInfo) {
-			return getLastJobQuery(context, (HarvestJobInfo)job);
+			return getLastJobQuery((HarvestJobInfo)job);
 		} else if(job instanceof ServiceJobInfo) {
-			return getLastJobQuery(context, (ServiceJobInfo)job);		
+			return getLastJobQuery((ServiceJobInfo)job);		
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
@@ -711,8 +709,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		};
 	}
 
-	private SQLQuery getUnfinishedJobQuery(QueryDSLContext context, ImportJobInfo ij) {
-		return context.query().from(job)
+	private SQLQuery getUnfinishedJobQuery(ImportJobInfo ij) {
+		return query().from(job)
 				.join(importJob).on(importJob.jobId.eq(job.id))
 				.join(dataset).on(dataset.id.eq(importJob.datasetId))
 				.where(dataset.identification.eq(ij.getDatasetId()))
@@ -728,8 +726,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.notExists();
 	}
 	
-	private SQLQuery getUnfinishedJobQuery(QueryDSLContext context, ServiceJobInfo sj) {
-		return context.query().from(job)
+	private SQLQuery getUnfinishedJobQuery(ServiceJobInfo sj) {
+		return query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
@@ -740,18 +738,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.where(unfinishedState());
 	}
 
-	private SQLQuery getUnfinishedJobQuery(QueryDSLContext context, HarvestJobInfo hj) {
-		return context.query().from(job)
+	private SQLQuery getUnfinishedJobQuery(HarvestJobInfo hj) {
+		return query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.where(dataSource.identification.eq(hj.getDataSourceId()))
 				.where(unfinishedState());
 	}
 
-	private void executeCreateImportJob(QueryDSLContext context, CreateImportJob query) {
+	private void executeCreateImportJob(CreateImportJob query) {
 		log.debug("creating import job: " + query);
 		
-		if(context.query().from(job)
+		if(query().from(job)
 			.join(importJob).on(importJob.jobId.eq(job.id))
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))
 			.where(dataset.identification.eq(query.getDatasetId()))
@@ -761,14 +759,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.notExists())
 			.notExists()) {
 			
-			int jobId = context.insert(job)
+			int jobId = insert(job)
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id);
 			
-			int versionId = getLastVersionId(context, query.getDatasetId());
+			int versionId = getLastVersionId(query.getDatasetId());
 			
 			int importJobId = 
-				context.insert(importJob)
+				insert(importJob)
 					.columns(
 						importJob.jobId,
 						importJob.datasetId,
@@ -783,7 +781,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 								dataset.filterConditions))
 					.executeWithKey(importJob.id);
 			
-				context.insert(importJobColumn)
+				insert(importJobColumn)
 					.columns(
 						importJobColumn.importJobId,
 						importJobColumn.index,
@@ -804,13 +802,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			log.debug("already exist an import job for this dataset");
 		}
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeCreateHarvestJob(QueryDSLContext context, CreateHarvestJob query) {
+	private void executeCreateHarvestJob(CreateHarvestJob query) {
 		log.debug("creating harvest job: " + query);
 		
-		if(context.query().from(job)
+		if(query().from(job)
 			.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 			.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 			.where(dataSource.identification.eq(query.getDataSourceId()))
@@ -820,15 +818,15 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.notExists())
 			.notExists()) {
 			
-			int jobId = context.insert(job)
+			int jobId = insert(job)
 				.set(job.type, "HARVEST")
 				.executeWithKey(job.id);
 			
-			int dataSourceId = context.query().from(dataSource)
+			int dataSourceId = query().from(dataSource)
 				.where(dataSource.identification.eq(query.getDataSourceId()))
 				.singleResult(dataSource.id);
 			
-			context.insert(harvestJob)
+			insert(harvestJob)
 				.set(harvestJob.jobId, jobId)				
 				.set(harvestJob.dataSourceId, dataSourceId)
 				.execute();
@@ -838,11 +836,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			log.debug("already exist a harvest job for this dataSource");
 		}
 		
-		context.ack();
+		ack();
 	}
 
-	private void executeDeleteDataset(QueryDSLContext context, DeleteDataset dds) {
-		Long nrOfDatasetColumnsDeleted = context.delete(datasetColumn)
+	private void executeDeleteDataset(DeleteDataset dds) {
+		Long nrOfDatasetColumnsDeleted = delete(datasetColumn)
 				.where(
 					new SQLSubQuery().from(dataset)
 					.where(dataset.identification.eq(dds.getId())
@@ -850,53 +848,53 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.execute();
 		log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
 		
-		Long nrOfDatasetsDeleted = context.delete(dataset)
+		Long nrOfDatasetsDeleted = delete(dataset)
 			.where(dataset.identification.eq(dds.getId()))
 			.execute();
 		log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
 		
 		if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
-			context.answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
+			answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
 		} else {
-			context.answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
+			answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
 		}
 	}
 
-	private void executeUpdatedataset(QueryDSLContext context, UpdateDataset uds) {
+	private void executeUpdatedataset(UpdateDataset uds) {
 		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 		String datasetIdent = uds.getDatasetIdentification();
 		String datasetName = uds.getDatasetName();
 		final String filterConditions = uds.getFilterConditions ();
 		log.debug("update dataset" + datasetIdent);
 		
-		Integer sourceDatasetId = context.query().from(sourceDataset)
+		Integer sourceDatasetId = query().from(sourceDataset)
 				.where(sourceDataset.identification.eq(sourceDatasetIdent))
 				.singleResult(sourceDataset.id);
 
-		context.update(dataset)
+		update(dataset)
 			.set(dataset.name, datasetName)
 			.set(dataset.sourceDatasetId, sourceDatasetId)
 			.set(dataset.filterConditions, filterConditions)
 			.where(dataset.identification.eq(datasetIdent))
 			.execute();
 			
-		Integer datasetId = getDatasetId(context, datasetIdent);
+		Integer datasetId = getDatasetId(datasetIdent);
 		
-		context.delete(datasetColumn)
+		delete(datasetColumn)
 			.where(datasetColumn.datasetId.eq(datasetId))
 			.execute();
 		
-		insertDatasetColumns(context, datasetId, uds.getColumnList());
-		context.answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
+		insertDatasetColumns(datasetId, uds.getColumnList());
+		answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
 		
 		log.debug("dataset updated");
 	}
 
-	private void executeGetDatasetInfo(QueryDSLContext context, GetDatasetInfo gds) {
+	private void executeGetDatasetInfo(GetDatasetInfo gds) {
 		String datasetIdent = gds.getId();
 		log.debug("get dataset " + datasetIdent);
 
-		final SQLQuery query = context.query().from(dataset)
+		final SQLQuery query = query().from(dataset)
 			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.join(sourceDatasetVersion).on(
 				sourceDatasetVersion.sourceDatasetId.eq(dataset.sourceDatasetId)
@@ -942,44 +940,44 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if (lastTuple == null) {
-			context.answer ((Object) null);
+			answer ((Object) null);
 		} else {		
-			context.answer (createDatasetInfo (lastTuple, notifications));
+			answer (createDatasetInfo (lastTuple, notifications));
 		}
 	}
 	
-	private void executeCreateDataset(QueryDSLContext context, CreateDataset cds) {
+	private void executeCreateDataset(CreateDataset cds) {
 		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 		String datasetIdent = cds.getDatasetIdentification();
 		String datasetName = cds.getDatasetName();
 		final String filterConditions = cds.getFilterConditions ();
 		log.debug("create dataset " + datasetIdent);
 
-		Integer sourceDatasetId = context.query().from(sourceDataset)
+		Integer sourceDatasetId = query().from(sourceDataset)
 				.where(sourceDataset.identification.eq(sourceDatasetIdent))
 				.singleResult(sourceDataset.id);
 			if(sourceDatasetId == null) {
 				log.error("sourceDataset not found: " + sourceDatasetIdent);
-				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+				answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
 			} else {
-				context.insert(dataset)
+				insert(dataset)
 					.set(dataset.identification, datasetIdent)
 					.set(dataset.name, datasetName)
 					.set(dataset.sourceDatasetId, sourceDatasetId)
 					.set(dataset.filterConditions, filterConditions)
 					.execute();
 				
-				Integer datasetId = getDatasetId(context, datasetIdent);
+				Integer datasetId = getDatasetId(datasetIdent);
 				
-				insertDatasetColumns(context, datasetId, cds.getColumnList());					
-				context.answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
+				insertDatasetColumns(datasetId, cds.getColumnList());					
+				answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
 				
 				log.debug("dataset inserted");
 			}
 	}
 
-	private void executeGetImportJobs(QueryDSLContext context) {
-		SQLQuery query = context.query().from(job)
+	private void executeGetImportJobs() {
+		SQLQuery query = query().from(job)
 			.join(importJob).on(importJob.jobId.eq(job.id))			
 			.join(dataset).on(dataset.id.eq(importJob.datasetId))
 			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
@@ -1064,7 +1062,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					notifications));
 		}
 		
-		context.answer(ImportJobInfo.class, jobs);
+		answer(ImportJobInfo.class, jobs);
 	}
 
 	private List<Column> getColumns(ListIterator<Tuple> columnIterator, int jobId, StringPath name, StringPath dataType) {
@@ -1085,21 +1083,21 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return importJobColumns;
 	}
 
-	private void executeGetDatasetColumns(QueryDSLContext context, GetDatasetColumns dc) {		
+	private void executeGetDatasetColumns(GetDatasetColumns dc) {		
 		log.debug("get columns for dataset: " + dc.getDatasetId());
 		
-		context.answer(
-			context.query().from(datasetColumn)
+		answer(
+			query().from(datasetColumn)
 			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 			.where(dataset.identification.eq(dc.getDatasetId()))
 			.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
 	}
 
-	private void executeGetSourceDatasetColumns(QueryDSLContext context, GetSourceDatasetColumns sdc) {
+	private void executeGetSourceDatasetColumns(GetSourceDatasetColumns sdc) {
 		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
 
-		context.answer(
-			context.query().from(sourceDatasetVersionColumn)
+		answer(
+			query().from(sourceDatasetVersionColumn)
 			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
 					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
 							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
@@ -1112,11 +1110,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)));
 	}
 
-	private void executeGetHarvestJobs(QueryDSLContext context) {
-		context.answer(
+	private void executeGetHarvestJobs() {
+		answer(
 			HarvestJobInfo.class,
 				
-			context.query().from(job)
+			query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.orderBy(job.createTime.asc())
@@ -1126,10 +1124,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.list(new QHarvestJobInfo(job.id, dataSource.identification)));
 	}
 
-	private void executeStoreLog(QueryDSLContext context, StoreLog query) throws Exception {
+	private void executeStoreLog(StoreLog query) throws Exception {
 		log.debug("storing log line: " + query);
 		
-		Integer jobStateId = getLastJobQuery(context, query.getJob())
+		Integer jobStateId = getLastJobQuery(query.getJob())
 			.join(jobState).on(jobState.jobId.eq(job.id))
 			.orderBy(jobState.id.desc())
 			.limit(1)
@@ -1141,14 +1139,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		JobLog jl = query.getJobLog();
 		
-		context.insert(jobLog)
+		insert(jobLog)
 			.set(jobLog.jobStateId, jobStateId)
 			.set(jobLog.level, jl.getLevel().name())
 			.set(jobLog.type, jl.getType().name())
 			.set(jobLog.content, toJson(jl.getContent()))
 			.execute();
 		
-		context.ack();
+		ack();
 	}
 	
 	private <T> T fromJson(Class<T> clazz, String json) throws JsonProcessingException, IOException {
@@ -1162,15 +1160,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return om.writeValueAsString(content);
 	}
 
-	private void executeGetSourceDatasetListInfo(QueryDSLContext context,
-			GetSourceDatasetListInfo sdi) {
+	private void executeGetSourceDatasetListInfo(GetSourceDatasetListInfo sdi) {
 		log.debug(sdi.toString());
 		
 		String categoryId = sdi.getCategoryId();
 		String dataSourceId = sdi.getDataSourceId();
 		String searchStr = sdi.getSearchString();
 		
-		SQLQuery baseQuery = context.query().from(sourceDataset)
+		SQLQuery baseQuery = query().from(sourceDataset)
 				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
 					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
 							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
@@ -1196,7 +1193,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		applyListParams(listQuery, sdi, sourceDatasetVersion.name);
 		
-		context.answer(
+		answer(
 			new InfoList<SourceDatasetInfo>(			
 				listQuery					
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
@@ -1212,12 +1209,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		);
 	}
 
-	private void executeGetSourceDatasetInfo(QueryDSLContext context,
-			GetSourceDatasetInfo sdi) {
+	private void executeGetSourceDatasetInfo(GetSourceDatasetInfo sdi) {
 		log.debug(sdi.toString());
 		String sourceDatasetId = sdi.getId();
 		
-		SQLQuery baseQuery = context.query().from(sourceDataset)
+		SQLQuery baseQuery = query().from(sourceDataset)
 				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
 						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
 								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
@@ -1233,7 +1229,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		SQLQuery listQuery = baseQuery.clone()					
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 		
-		context.answer(
+		answer(
 			listQuery					
 				.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 				.groupBy(dataSource.identification).groupBy(dataSource.name)
@@ -1246,9 +1242,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		);
 	}
 
-	private void executeGetDataSourceInfo(QueryDSLContext context) {
-		context.answer(
-			context.query().from(dataSource)
+	private void executeGetDataSourceInfo() {
+		answer(
+			query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
 	}
@@ -1287,10 +1283,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			);
 	}
 	
-	private void executeGetDatasetListInfo(QueryDSLContext context, GetDatasetListInfo dli) {
+	private void executeGetDatasetListInfo(GetDatasetListInfo dli) {
 		String categoryId = dli.getCategoryId();
 		
-		SQLQuery baseQuery = context.query().from(dataset)
+		SQLQuery baseQuery = query().from(dataset)
 			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
 						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
@@ -1357,24 +1353,24 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			datasetInfos.add (createDatasetInfo (lastTuple, notifications));
 		}
 
-		context.answer (datasetInfos);
+		answer (datasetInfos);
 	}
 
-	private void executeGetCategoryInfo(QueryDSLContext context, GetCategoryInfo query) {
-		context.answer(
-				context.query().from(category)
+	private void executeGetCategoryInfo(GetCategoryInfo query) {
+		answer(
+				query().from(category)
 				.where(category.identification.eq(query.getId()))
 				.singleResult(new QCategoryInfo(category.identification,category.name)));
 	}
 
-	private void executeGetCategoryListInfo(QueryDSLContext context) {
-		context.answer(
-				context.query().from(category)
+	private void executeGetCategoryListInfo() {
+		answer(
+				query().from(category)
 				.orderBy(category.identification.asc())
 				.list(new QCategoryInfo(category.identification,category.name)));
 	}
 
-	private void executeRegisterSourceDataset(QueryDSLContext context, RegisterSourceDataset rsd) {
+	private void executeRegisterSourceDataset(RegisterSourceDataset rsd) {
 		log.debug("registering source dataset: " + rsd);
 		
 		Dataset dataset = rsd.getDataset();
@@ -1382,7 +1378,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		Table table = dataset.getTable();
 		
 		final Integer versionId =
-			context.query().from(sourceDatasetVersion)
+			query().from(sourceDatasetVersion)
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(rsd.getDataSource())
@@ -1392,7 +1388,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		Integer sourceDatasetId = null;
 		if(versionId == null) { // new dataset
 			sourceDatasetId = 
-				context.insert(sourceDataset)
+				insert(sourceDataset)
 					.columns(
 						sourceDataset.dataSourceId,
 						sourceDataset.identification)
@@ -1404,7 +1400,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.executeWithKey(sourceDataset.id);
 		} else { // existing dataset
 			Tuple existing = 
-					context.query().from(sourceDataset)
+					query().from(sourceDataset)
 						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
 						.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
@@ -1424,7 +1420,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
 			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 			
-			List<Column> existingColumns = context.query().from(sourceDatasetVersionColumn)
+			List<Column> existingColumns = query().from(sourceDatasetVersionColumn)
 					.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
 					.orderBy(sourceDatasetVersionColumn.index.asc())
 					.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
@@ -1435,11 +1431,11 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					&& existingDeleteTime == null
 					&& existingColumns.equals(table.getColumns())) {
 				
-				context.answer(new AlreadyRegistered());
+				answer(new AlreadyRegistered());
 				return;
 			} else {
 				if(existingDeleteTime != null) { // reviving dataset
-					context.update(sourceDataset)
+					update(sourceDataset)
 						.setNull(sourceDataset.deleteTime)						
 						.execute();
 				}
@@ -1447,73 +1443,70 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		int newVersionId = 
-			context.insert(sourceDatasetVersion)
+			insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.name, table.getName())
-				.set(sourceDatasetVersion.categoryId, getCategoryId(context, dataset.getCategoryId()))
+				.set(sourceDatasetVersion.categoryId, getCategoryId(dataset.getCategoryId()))
 				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 				.executeWithKey(sourceDatasetVersion.id);
 		
-		insertSourceDatasetColumns(context, newVersionId, table.getColumns());
+		insertSourceDatasetColumns(newVersionId, table.getColumns());
 		
 		if(versionId == null) {
-			context.answer(new Registered());
+			answer(new Registered());
 		} else {
-			context.answer(new Updated());
+			answer(new Updated());
 		}
 	}
 
-	private void executeGetVersion(QueryDSLContext context) {
+	private void executeGetVersion() {
 		log.debug("database version requested");
 		
-		context.answer(
-			context.query().from(version)
+		answer(
+			query().from(version)
 				.orderBy(version.id.desc())
 				.limit(1)
 				.singleResult(new QVersion(version.id, version.createTime)));
 	}
 	
-	private void executeStoreNotificationResult (final QueryDSLContext context, final StoreNotificationResult query) {
+	private void executeStoreNotificationResult (final StoreNotificationResult query) {
 		log.debug("storing notification result: " + query);
 
-		if (!context.query().from (notification)
+		if (!query().from (notification)
 			.where (notification.id.eq (query.getNotificationId ()))
 			.exists ()) {
 			return;
 		}
 		
-		if (context.query ()
+		if (query ()
 			.from (notificationResult)
 			.where (notificationResult.notificationId.eq (query.getNotificationId ()))
 			.exists ()) {
 			
-			if (query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
-				context
-					.delete (notificationResult)
+			if (query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {				
+				delete (notificationResult)
 					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
 					.execute ();
 			} else {
-				context
-					.update (notificationResult)
+				update (notificationResult)
 					.set (notificationResult.result, query.getResult ().name ())
 					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
 					.execute ();
 			}
 		} else {
 			if (!query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
-				context
-					.insert (notificationResult)
+				insert (notificationResult)
 					.set (notificationResult.notificationId, query.getNotificationId ())
 					.set (notificationResult.result, query.getResult ().name ())
 					.execute ();
 			}
 		}
 
-		context.answer (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
+		answer (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
 	}
 	
-	private void executeGetDatasetColumnDiff (final QueryDSLContext context, final GetDatasetColumnDiff query) {
-		final SQLQuery baseQuery = context.query ().from (sourceDatasetColumnDiff)
+	private void executeGetDatasetColumnDiff (final GetDatasetColumnDiff query) {
+		final SQLQuery baseQuery = query ().from (sourceDatasetColumnDiff)
 				.join (dataset).on (sourceDatasetColumnDiff.datasetId.eq (dataset.id))
 				.where (dataset.identification.eq (query.getDatasetIdentification ()))
 				.orderBy (sourceDatasetColumnDiff.name.asc ());
@@ -1529,6 +1522,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			));
 		}
 		
-		context.answer (new InfoList<ColumnDiff> (diffs, baseQuery.count ()));
+		answer (new InfoList<ColumnDiff> (diffs, baseQuery.count ()));
 	}
 }
