@@ -8,6 +8,10 @@
   </appender>
   
   <!-- 
+  	<logger name="nl.idgis.publisher.database" level="debug"/>
+   -->
+  
+  <!-- 
   	<logger name="nl.idgis.publisher.provider.database" level="debug"/>
    -->
    
