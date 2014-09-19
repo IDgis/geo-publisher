@@ -47,6 +47,23 @@ nl.idgis.publisher.domain.web.DatasetStatusType.IMPORT_FAILED=Fout bij importere
 # Generieke tekst 
 web.application.title=GIS publicatieomgeving
 web.application.name=GEO Publisher
+web.application.notavailable=De publicatieservice is momenteel niet beschikbaar.
+web.application.notavailable.code=De foutmelding is gerapporteerd met code {0}. Vermeld deze code bij een vraag om assistentie.
+
+web.application.EntityType.SOURCE_DATASET=Brondataset
+web.application.EntityType.DATASET=Dataset
+web.application.EntityType.NOTIFICATION=Notificatie
+web.application.EntityType.CATEGORY=Categorie
+web.application.EntityType.JOB=Taak
+web.application.EntityType.LOG_ITEM=Melding
+web.application.EntityType.DATA_SOURCE=Gegevensbron
+
+web.application.loglevel.title.
+web.application.loglevel.title.DEBUG=Technische informatie
+web.application.loglevel.title.INFO=Informatie
+web.application.loglevel.title.ERROR=Fout
+web.application.loglevel.title.WARNING=Waarschuwing
+
 
 web.application.none=geen
 web.application.yes=ja
@@ -66,6 +83,14 @@ web.application.button.save=Opslaan
 
 # Dashboard
 web.application.page.dashboard.title=Dashboard
+web.application.page.dashboard.showlog=Bekijk logboek
+web.application.page.dashboard.showerrorlog=Bekijk foutlogboek
+web.application.page.dashboard.alldatasetswitherrors=Alle datatasets met meldingen
+web.application.page.dashboard.nodatasetswitherrors=Geen datatasets met meldingen
+web.application.page.dashboard.datasetwithstructuralchange=dataset met structuurwijziging
+web.application.page.dashboard.datasetswithstructuralchange=datasets met structuurwijziging
+web.application.page.dashboard.timeunknown=tijdstip onbekend
+
 web.application.page.dashboard.panel.datassource=Actieve gegevensbron
 web.application.page.dashboard.panel.datassources=Actieve gegevensbronnen
 web.application.page.dashboard.panel.datassources.status=Bekijk status
@@ -73,8 +98,11 @@ web.application.page.dashboard.panel.notification=Melding
 web.application.page.dashboard.panel.notifications=Meldingen
 web.application.page.dashboard.panel.task=Actieve taak
 web.application.page.dashboard.panel.tasks=Actieve taken
+web.application.page.dashboard.panel.notasks=geen actieve taken
 web.application.page.dashboard.panel.error=Foutmelding
 web.application.page.dashboard.panel.errors=Foutmeldingen
+web.application.page.dashboard.panel.newerror=Nieuwe foutmelding
+web.application.page.dashboard.panel.newerrors=Nieuwe foutmeldingen
 
 # Datasets
 web.application.page.datasets.title=Datasets

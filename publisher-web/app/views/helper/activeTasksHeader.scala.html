@@ -1,6 +1,6 @@
 @(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
 
-<li class="dropdown-header">@if(tasks.values.isEmpty){geen actieve taken}else{@tasks.values.size actieve @if(tasks.values.size == 1){taak}else{taken}}</li>
+<li class="dropdown-header">@if(tasks.values.isEmpty){@Domain.message("web.application.page.dashboard.panel.notasks")}else{@tasks.values.size @if(tasks.values.size == 1){@Domain.message("web.application.page.dashboard.panel.task")}else{@Domain.message("web.application.page.dashboard.panel.tasks")}}</li>
 <li class="divider"></li>
 @for(task <- tasks.values) {
 	<li>
@@ -22,5 +22,5 @@
 }
 <li class="divider"></li>
 <li>
-	<a href="@routes.Logging.messages()" class="text-center">Bekijk logboek <span class="glyphicon glyphicon-chevron-right"></span></a>
+	<a href="@routes.Logging.messages()" class="text-center">@Domain.message("web.application.page.dashboard.showlog") <span class="glyphicon glyphicon-chevron-right"></span></a>
 </li>

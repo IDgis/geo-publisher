@@ -2,9 +2,14 @@
 
 <li class="dropdown-header">
 	@if(issues.values.isEmpty) {
-		geen nieuwe fouten
+		@Domain.message("web.application.none")
 	} else {
-		@if(issues.hasMorePages){&gt; }@issues.values.size nieuwe fout@if(issues.values.size>1){en}
+		@if(issues.hasMorePages){&gt; }@issues.values.size 
+		@if(issues.values.size != 1){
+			@Domain.message("web.application.page.dashboard.panel.newerrors")
+		}else{
+			@Domain.message("web.application.page.dashboard.panel.newerror")
+		}
 	}
 </li>
 <li class="divider"></li>
@@ -16,4 +21,4 @@
 	</li>
 }
 <li class="divider"></li>
-<li><a href="@routes.Logging.messages()" class="text-center">Bekijk foutlogboek <span class="glyphicon glyphicon-chevron-right"></span></a></li>
+<li><a href="@routes.Logging.messages()" class="text-center">@Domain.message("web.application.page.dashboard.showerrorlog") <span class="glyphicon glyphicon-chevron-right"></span></a></li>

@@ -11,13 +11,17 @@
 			<div class="col-xs-6 text-right">
 				<p class="announcement-heading">
 					@if(tasks.values.isEmpty) {
-						geen
+						@Domain.message("web.application.none")
 					} else {
 						@tasks.values.size
 					}
 				</p>
 				<p class="announcement-text">
-					Actieve @if(tasks.values.size != 1){taken}else{taak}
+					@if(tasks.values.size != 1){
+						@Domain.message("web.application.page.dashboard.panel.tasks")
+					}else{
+						@Domain.message("web.application.page.dashboard.panel.task")
+					}
 				</p>
 			</div>
 		</div>
@@ -46,7 +50,7 @@
 		<div class="panel-footer">
 			<div class="row">
 				<div class="col-xs-10">
-					Bekijk logboek
+					@Domain.message("web.application.page.dashboard.showlog")
 				</div>
 				<div class="col-xs-2 text-right">
 					<span class="glyphicon glyphicon-circle-arrow-right"></span>
