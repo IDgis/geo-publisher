@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.protocol.database.Column;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -36,7 +36,14 @@ public class DatabaseTransaction extends JdbcTransaction {
 			handleDescribeTable((DescribeTable)query);
 		} else if(query instanceof PerformCount){
 			handlePerformCount((PerformCount)query);
-		} else if(query instanceof FetchTable) {
+		} else {
+			unhandled(query);
+		}
+	}
+	
+	@Override
+	protected void executeQuery(StreamingQuery query) throws Exception {
+		if(query instanceof FetchTable) {
 			handleFetchTable((FetchTable)query);
 		} else {
 			unhandled(query);

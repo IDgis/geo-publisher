@@ -11,12 +11,11 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.Rollback;
+import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
-
 import nl.idgis.publisher.utils.TypedIterable;
-
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -35,7 +34,13 @@ public abstract class JdbcTransaction extends UntypedActor {
 		this.connection = connection;
 	}
 	
-	protected abstract void executeQuery(Query query) throws Exception;
+	protected void executeQuery(Query query) throws Exception {
+		unhandled(query);
+	}
+	
+	protected void executeQuery(StreamingQuery query) throws Exception {
+		unhandled(query);
+	}
 	
 	@Override
 	public void postStop() throws Exception {
@@ -60,20 +65,32 @@ public abstract class JdbcTransaction extends UntypedActor {
 			getContext().stop(getSelf());
 		} else if(msg instanceof Query) {
 			try {				 
-				executeQuery((Query)msg);
+				executeQuery((Query)msg);				
 				
 				finish();
 			} catch(SQLException e) {
-				log.error(e, "query failure");
+				failure(e);
+			}
+		} else if(msg instanceof StreamingQuery) {
+			try {				 
+				executeQuery((StreamingQuery)msg);				
 				
-				getSender().tell(new Failure(e), getSelf());
-				
-				connection.close();
-				getContext().stop(getSelf());
+				finish();
+			} catch(SQLException e) {
+				failure(e);
 			}
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void failure(SQLException e) throws SQLException {
+		log.error(e, "query failure");
+		
+		getSender().tell(new Failure(e), getSelf());
+		
+		connection.close();
+		getContext().stop(getSelf());
 	}
 	
 public static class Prepared {
@@ -169,5 +186,7 @@ public static class Prepared {
 		if(!answered) {
 			throw new IllegalStateException("query not answered");
 		}
+		
+		answered = false;
 	}
 }

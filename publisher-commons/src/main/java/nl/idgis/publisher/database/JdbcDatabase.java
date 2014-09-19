@@ -3,12 +3,11 @@ package nl.idgis.publisher.database;
 import java.sql.Connection;
 
 import scala.concurrent.duration.Duration;
-
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -68,10 +67,19 @@ public abstract class JdbcDatabase extends UntypedActor {
 		if(msg instanceof StartTransaction) {
 			handleStartTransaction((StartTransaction)msg);
 		} else if(msg instanceof Query) {			
-			handleQuery((Query)msg);		 
+			handleQuery((Query)msg);
+		} else if(msg instanceof StreamingQuery) {
+			handleStreamingQuery((StreamingQuery)msg);
 		} else {
 			onReceiveNonQuery(msg);
 		}
+	}
+
+	private void handleStreamingQuery(final StreamingQuery query) {
+		log.debug("executing query in autocommit mode");
+		
+		ActorRef streamingAutoCommit = getContext().actorOf(StreamingAutoCommit.props(query, getSender()));
+		getSelf().tell(new StartTransaction(), streamingAutoCommit);
 	}
 
 	private void handleQuery(final Query query) {

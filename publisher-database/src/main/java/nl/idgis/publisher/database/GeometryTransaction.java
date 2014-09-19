@@ -30,7 +30,7 @@ public class GeometryTransaction extends JdbcTransaction {
 		} else if(query instanceof InsertRecord) {			
 			insertRecord((InsertRecord)query);
 		} else {
-			throw new IllegalArgumentException("Unknown query");
+			unhandled(query);
 		}
 	}
 	

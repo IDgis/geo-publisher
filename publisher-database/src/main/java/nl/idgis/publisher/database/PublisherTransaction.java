@@ -271,7 +271,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else if (query instanceof GetDatasetColumnDiff) {
 			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
 		} else {
-			throw new IllegalArgumentException("Unknown query");
+			unhandled(query);
 		}
 	}
 

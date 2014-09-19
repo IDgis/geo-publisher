@@ -3,10 +3,10 @@ package nl.idgis.publisher.provider.protocol.database;
 import java.util.Collections;
 import java.util.List;
 
-import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.StreamingQuery;
 
-public class FetchTable extends Query {	
-
+public class FetchTable extends StreamingQuery {
+	
 	private static final long serialVersionUID = -4715978918212247943L;
 	
 	private final String tableName;
