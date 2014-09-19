@@ -9,14 +9,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
-
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -33,10 +28,8 @@ import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.pattern.Patterns;
 
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.SQLQuery;
@@ -50,7 +43,9 @@ import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -114,37 +109,7 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
-	protected <T> T askAssert(ActorRef actorRef, Object msg, Class<T> resultType) throws Exception {
-		Object result = ask(actorRef, msg);		
-		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
-		return resultType.cast(result);
-	}
 	
-	protected Object ask(ActorRef actorRef, Object msg) throws Exception {
-		try {
-			Future<Object> future = Patterns.ask(actorRef, msg, 5000);
-			return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
-		} catch(Throwable t) {
-			fail(t.getMessage());
-			return null;
-		}
-	}
-	
-	protected <T> T askAssert(ActorSelection actorSelection, Object msg, Class<T> resultType) throws Exception {
-		Object result = ask(actorSelection, msg);		
-		assertTrue("Unexpected result type: " + result.getClass(), resultType.isInstance(result));
-		return resultType.cast(result);
-	}
-	
-	protected Object ask(ActorSelection actorSelection, Object msg) throws Exception {
-		try {
-			Future<Object> future = Patterns.ask(actorSelection, msg, 5000);
-			return Await.result(future, Duration.create(5, TimeUnit.MINUTES));
-		} catch(Throwable t) {
-			fail(t.getMessage());
-			return null;
-		}
-	}
 	
 	@After
 	public void shutdown() throws Exception {

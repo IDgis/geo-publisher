@@ -15,6 +15,9 @@ import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.Query;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
+
 public class CreatorTest extends AbstractDatabaseTest {
 	
 	static class GetLastReceivedQuery {

@@ -28,6 +28,12 @@
 		</dependency>
 		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-commons</artifactId>
+			<classifier>tests</classifier>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-domain</artifactId>
 		</dependency>
 		<dependency>

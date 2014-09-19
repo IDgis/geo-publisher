@@ -3,18 +3,17 @@ package nl.idgis.publisher.protocol;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Destroyed;
 import nl.idgis.publisher.protocol.messages.Envelope;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Message;
 import nl.idgis.publisher.protocol.messages.StopPackager;
 import nl.idgis.publisher.protocol.messages.Unreachable;
-
 import scala.collection.Iterator;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
-
 import akka.actor.ActorPath;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -94,7 +93,7 @@ public class MessageDispatcher extends UntypedActor {
 							} else {
 								log.debug("requesting packager for source: " + sourceName);
 								
-								GetMessagePackager request = new GetMessagePackager(envelope.getSourceName());
+								GetMessagePackager request = new GetMessagePackager(envelope.getSourceName(), false);
 								Future<Object> packager = Patterns.ask(messagePackagerProvider, request, 10);
 								
 								packager.onSuccess(new OnSuccess<Object>() {
@@ -132,6 +131,8 @@ public class MessageDispatcher extends UntypedActor {
 			
 			String targetName = sb.toString();
 			getContext().parent().tell(new Destroyed(targetName), getSelf());
+		} else if(msg instanceof Ack) {
+			log.debug("message acknowledged by: " + getSender());
 		} else {
 			unhandled(msg);
 		}

@@ -23,6 +23,9 @@ import nl.idgis.publisher.domain.service.Table;
 import org.junit.Before;
 import org.junit.Test;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
+
 public class DatasetStatusTest extends AbstractDatabaseTest {
 	
 	Dataset testDataset;

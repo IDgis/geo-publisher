@@ -42,6 +42,9 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
+import static nl.idgis.publisher.utils.TestPatterns.ask;
+import static nl.idgis.publisher.utils.TestPatterns.askAssert;
+
 public class JobTest extends AbstractDatabaseTest {	
 
 	@Test

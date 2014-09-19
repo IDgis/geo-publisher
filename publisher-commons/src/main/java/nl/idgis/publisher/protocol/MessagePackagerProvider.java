@@ -1,7 +1,10 @@
 package nl.idgis.publisher.protocol;
 
 import java.net.URLEncoder;
+import java.util.HashSet;
+import java.util.Set;
 
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.StopPackager;
 
@@ -23,6 +26,7 @@ public class MessagePackagerProvider extends UntypedActor {
 	private final ActorRef messageTarget;
 	
 	private BiMap<String, ActorRef> messagePackagers;
+	private Set<ActorRef> persistentPackagers;
 	
 	private MessagePackagerProvider(ActorRef messageTarget, String pathPrefix) {
 		this.messageTarget = messageTarget;
@@ -36,6 +40,7 @@ public class MessagePackagerProvider extends UntypedActor {
 	@Override
 	public void preStart() {
 		messagePackagers = HashBiMap.create();
+		persistentPackagers = new HashSet<>();
 	}
 
 	@Override
@@ -57,6 +62,12 @@ public class MessagePackagerProvider extends UntypedActor {
 				messagePackagers.put(targetName, packager);
 			}
 			
+			if(gmp.getPersistent()) {
+				if(persistentPackagers.add(packager)) {
+					log.debug("packager marked as persistent");
+				}
+			}
+			
 			getSender().tell(packager, getSelf());
 		} else if(msg instanceof Terminated) {
 			ActorRef packager = ((Terminated) msg).getActor();
@@ -72,13 +83,18 @@ public class MessagePackagerProvider extends UntypedActor {
 			
 			log.debug("stop requested: " + targetName);
 			if(messagePackagers.containsKey(targetName)) {
-				log.debug("stopping packager for target: " + targetName);
-				
 				ActorRef packager = messagePackagers.get(targetName);
-				getContext().stop(packager);
+				if(persistentPackagers.contains(packager)) {
+					log.error("stop requested for persistent packager for target '" + targetName + "' -> not stopping");
+				} else {
+					log.debug("stopping packager");
+					getContext().stop(packager);
+				}
 			} else {
-				log.warning("no packager for target: " + targetName);
+				log.warning("no packager for target");
 			}
+			
+			getSender().tell(new Ack(), getSelf());
 		} else {
 			unhandled(msg);
 		}

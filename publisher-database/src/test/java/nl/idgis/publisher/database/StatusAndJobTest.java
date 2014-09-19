@@ -25,11 +25,14 @@ import nl.idgis.publisher.utils.TypedIterable;
 import org.junit.Test;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import static nl.idgis.publisher.utils.TestPatterns.ask;
 
 public class StatusAndJobTest extends AbstractDatabaseTest {
 
