@@ -164,18 +164,10 @@ web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
 web.application.page.sourcedatasets.list.datasetcoupledparam=Er is {0} dataset gekoppeld.
 web.application.page.sourcedatasets.list.datasetscoupled=datasets gekoppeld.
 web.application.page.sourcedatasets.list.datasetscoupledparam=Er zijn {0} datasets gekoppeld.
-web.application.page.sourcedatasets.list.datasources.ref
 
 
 # DataSources
 web.application.page.datasources.title=Gegevensbronnen
 web.application.page.datasources.ref=Gegevensbron
 web.application.page.datasources.all=Alle gegevensbronnen
-
-
-
-
-
-
-
 
