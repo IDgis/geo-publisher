@@ -1,235 +1,235 @@
 # --------------
 #    Enums
 # --------------
-nl.idgis.publisher.domain.job.JobType.HARVEST.ACTIVE=XBezig met harvesten
-nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=XBezig met importeren
-nl.idgis.publisher.domain.job.JobType.HARVEST=Xharvest
-nl.idgis.publisher.domain.job.JobType.IMPORT=Ximport
+nl.idgis.publisher.domain.job.JobType.HARVEST.ACTIVE=Bezig met harvesten
+nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
+nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
+nl.idgis.publisher.domain.job.JobType.IMPORT=import
 
-nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=Xverwijzing naar kolommen die niet meer bestaan
-nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=Xfilter bevat verwijzing naar kolommen die niet meer bestaan
+nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
+nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
 
-nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=XStructuurwijziging in de brontabel
+nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=Structuurwijziging in de brontabel
 
-nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=Xrevisiedatum
-nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=Xtitel
-nl.idgis.publisher.domain.job.harvest.MetadataField.ALTERNATE_TITLE=Xalternatieve titel
+nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum
+nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=titel
+nl.idgis.publisher.domain.job.harvest.MetadataField.ALTERNATE_TITLE=alternatieve titel
 
-nl.idgis.publisher.domain.job.harvest.MetadataLogType.NOT_FOUND=Xniet gevonden
-nl.idgis.publisher.domain.job.harvest.MetadataLogType.INVALID=Xongeldig
+nl.idgis.publisher.domain.job.harvest.MetadataLogType.NOT_FOUND=niet gevonden
+nl.idgis.publisher.domain.job.harvest.MetadataLogType.INVALID=ongeldig
 
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND.properties=XalternateTitle,tableName
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=XBrontabel niet gevonden bij {0}: {1}
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=XBrontabel niet bekend {0}
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR.properties=Xfield,error
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=XFout in metadata: {0} {1}
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.REGISTERED=XNieuw brondataset gevonden
-nl.idgis.publisher.domain.job.harvest.HarvestLogType.UPDATED=XBestaand brondataset bijgewerkt  
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND.properties=alternateTitle,tableName
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.TABLE_NOT_FOUND=Brontabel niet gevonden bij {0}: {1}
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UNKNOWN_TABLE=Brontabel niet bekend {0}
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR.properties=field,error
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.METADATA_PARSING_ERROR=Fout in metadata: {0} {1}
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.REGISTERED=Nieuw brondataset gevonden
+nl.idgis.publisher.domain.job.harvest.HarvestLogType.UPDATED=Bestaand brondataset bijgewerkt  
 
-nl.idgis.publisher.domain.web.Notification=XNotificatie {0}
+nl.idgis.publisher.domain.web.Notification=Notificatie {0}
 
-nl.idgis.publisher.domain.web.DashboardActiveTaskType.IMPORTER_STARTED=XHarvester bezig met bijwerken
-nl.idgis.publisher.domain.web.DashboardActiveTaskType.HARVESTER_STARTED=XImporter bezig met bijwerken
+nl.idgis.publisher.domain.web.DashboardActiveTaskType.IMPORTER_STARTED=Harvester bezig met bijwerken
+nl.idgis.publisher.domain.web.DashboardActiveTaskType.HARVESTER_STARTED=Importer bezig met bijwerken
 
-nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=XStructuurwijziging
+nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Structuurwijziging
 
-nl.idgis.publisher.domain.web.DataSourceStatusType.OK=XOk
-nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=XNiet verbonden
+nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
+nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
 
-nl.idgis.publisher.domain.web.DatasetStatusType.NOT_IMPORTED=XNog niet geïmporteerd
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTING=XBezig met importeren
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTED=XGeïmporteerd
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORT_FAILED=XFout bij importeren
+nl.idgis.publisher.domain.web.DatasetStatusType.NOT_IMPORTED=Nog niet geïmporteerd
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTING=Bezig met importeren
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTED=Geïmporteerd
+nl.idgis.publisher.domain.web.DatasetStatusType.IMPORT_FAILED=Fout bij importeren
 
 # --------------
 # Web applicatie 
 # --------------
 # Generieke tekst 
-web.application.title=XGIS publicatieomgeving
-web.application.name=XGEO Publisher
-web.application.notavailable=XDe publicatieservice is momenteel niet beschikbaar.
-web.application.notavailable.code=XDe foutmelding is gerapporteerd met code {0}. Vermeld deze code bij een vraag om assistentie.
+web.application.title=GIS publicatieomgeving
+web.application.name=GEO Publisher
+web.application.notavailable=De publicatieservice is momenteel niet beschikbaar.
+web.application.notavailable.code=De foutmelding is gerapporteerd met code {0}. Vermeld deze code bij een vraag om assistentie.
 
-web.application.EntityType.SOURCE_DATASET=XBrondataset
-web.application.EntityType.DATASET=XDataset
-web.application.EntityType.NOTIFICATION=XNotificatie
-web.application.EntityType.CATEGORY=XCategorie
-web.application.EntityType.JOB=XTaak
-web.application.EntityType.LOG_ITEM=XMelding
-web.application.EntityType.DATA_SOURCE=XGegevensbron
+web.application.EntityType.SOURCE_DATASET=Brondataset
+web.application.EntityType.DATASET=Dataset
+web.application.EntityType.NOTIFICATION=Notificatie
+web.application.EntityType.CATEGORY=Categorie
+web.application.EntityType.JOB=Taak
+web.application.EntityType.LOG_ITEM=Melding
+web.application.EntityType.DATA_SOURCE=Gegevensbron
 
-web.application.loglevel.title.DEBUG=XTechnische informatie
-web.application.loglevel.title.INFO=XInformatie
-web.application.loglevel.title.ERROR=XFout
-web.application.loglevel.title.WARNING=XWaarschuwing
+web.application.loglevel.title.DEBUG=Technische informatie
+web.application.loglevel.title.INFO=Informatie
+web.application.loglevel.title.ERROR=Fout
+web.application.loglevel.title.WARNING=Waarschuwing
 
 
-web.application.none=Xgeen
-web.application.yes=Xja
-web.application.no=Xnee
-web.application.thereis=XEr is
-web.application.thereare=XEr zijn
-web.application.removed=XVerwijderd
-web.application.added=XToegevoegd
+web.application.none=geen
+web.application.yes=ja
+web.application.no=nee
+web.application.thereis=Er is
+web.application.thereare=Er zijn
+web.application.removed=Verwijderd
+web.application.added=Toegevoegd
 
-web.application.login=XInloggen
-web.application.login.FAILED=XInloggen mislukt.
+web.application.login=Inloggen
+web.application.login.FAILED=Inloggen mislukt.
 
 # Widgets
-web.application.button.ok=XOk
-web.application.button.cancel=XAnnuleren
-web.application.button.save=XOpslaan
+web.application.button.ok=Ok
+web.application.button.cancel=Annuleren
+web.application.button.save=Opslaan
 
 # Application
-web.application.layout.togglenavigation=XToggle navigation
-web.application.layout.nodatasetswithstructuralchange=Xgeen datasets met structuurwijziging
-web.application.layout.alldatasetswitherrors=XAlle datasets met meldingen
-web.application.layout.notasks=Xgeen actieve taken
-web.application.layout.noerrors=Xgeen nieuwe fouten
-web.application.layout.showlog=XBekijk logboek
-web.application.layout.showerrorlog=XBekijk foutlogboek
-web.application.layout.profile=XProfiel
-web.application.layout.logout=XAfmelden
+web.application.layout.togglenavigation=Toggle navigation
+web.application.layout.nodatasetswithstructuralchange=geen datasets met structuurwijziging
+web.application.layout.alldatasetswitherrors=Alle datasets met meldingen
+web.application.layout.notasks=geen actieve taken
+web.application.layout.noerrors=geen nieuwe fouten
+web.application.layout.showlog=Bekijk logboek
+web.application.layout.showerrorlog=Bekijk foutlogboek
+web.application.layout.profile=Profiel
+web.application.layout.logout=Afmelden
 
-web.application.layout.dropdowntitle.notifications=XNieuwe meldingen
-web.application.layout.dropdowntitle.tasks=XTaken
-web.application.layout.dropdowntitle.errors=XNieuwe fouten
+web.application.layout.dropdowntitle.notifications=Nieuwe meldingen
+web.application.layout.dropdowntitle.tasks=Taken
+web.application.layout.dropdowntitle.errors=Nieuwe fouten
 
-web.application.layout.sidebar.dashboard=XDashboard
-web.application.layout.sidebar.datasets=XDatasets
-web.application.layout.sidebar.sourcedatasets=XBrongegevens
-web.application.layout.sidebar.log=XLogboek
-web.application.layout.sidebar.log.tasks=XTaken
-web.application.layout.sidebar.log.errors=XFoutmeldingen
+web.application.layout.sidebar.dashboard=Dashboard
+web.application.layout.sidebar.datasets=Datasets
+web.application.layout.sidebar.sourcedatasets=Brongegevens
+web.application.layout.sidebar.log=Logboek
+web.application.layout.sidebar.log.tasks=Taken
+web.application.layout.sidebar.log.errors=Foutmeldingen
 
 # Logging
-web.application.log.messages.title=XLogboek - Foutmeldingen
-web.application.log.messages.header=XFoutmeldingen
-web.application.log.messages.alert.header=XNieuwe foutmeldingen.
-web.application.log.messages.alert.text=XEr zijn nieuwe foutmeldingen gerapporteerd.
-web.application.log.messages.alert.ref=XToon foutmeldingen.
-web.application.log.messages.loglevel.header=XSoort melding
-web.application.log.messages.list.alert.noissues=XEr zijn geen meldingen gevonden die voldoen aan de criteria.
-web.application.log.messages.list.alert.adapt=XPas de criteria aan of toon 
-web.application.log.messages.list.alert.show=Xalle meldingen
+web.application.log.messages.title=Logboek - Foutmeldingen
+web.application.log.messages.header=Foutmeldingen
+web.application.log.messages.alert.header=Nieuwe foutmeldingen.
+web.application.log.messages.alert.text=Er zijn nieuwe foutmeldingen gerapporteerd.
+web.application.log.messages.alert.ref=Toon foutmeldingen.
+web.application.log.messages.loglevel.header=Soort melding
+web.application.log.messages.list.alert.noissues=Er zijn geen meldingen gevonden die voldoen aan de criteria.
+web.application.log.messages.list.alert.adapt=Pas de criteria aan of toon 
+web.application.log.messages.list.alert.show=alle meldingen
 
-web.application.log.tasks.title=XLogboek - Taken
+web.application.log.tasks.title=Logboek - Taken
 
 # Dashboard
-web.application.page.dashboard.title=XDashboard
-web.application.page.dashboard.showlog=XBekijk logboek
-web.application.page.dashboard.showerrorlog=XBekijk foutlogboek
-web.application.page.dashboard.alldatasetswitherrors=XAlle datatasets met meldingen
-web.application.page.dashboard.nodatasetswitherrors=XGeen datatasets met meldingen
-web.application.page.dashboard.datasetwithstructuralchange=Xdataset met structuurwijziging
-web.application.page.dashboard.datasetswithstructuralchange=Xdatasets met structuurwijziging
-web.application.page.dashboard.timeunknown=Xtijdstip onbekend
+web.application.page.dashboard.title=Dashboard
+web.application.page.dashboard.showlog=Bekijk logboek
+web.application.page.dashboard.showerrorlog=Bekijk foutlogboek
+web.application.page.dashboard.alldatasetswitherrors=Alle datatasets met meldingen
+web.application.page.dashboard.nodatasetswitherrors=Geen datatasets met meldingen
+web.application.page.dashboard.datasetwithstructuralchange=dataset met structuurwijziging
+web.application.page.dashboard.datasetswithstructuralchange=datasets met structuurwijziging
+web.application.page.dashboard.timeunknown=tijdstip onbekend
 
-web.application.page.dashboard.panel.datassource=XActieve gegevensbron
-web.application.page.dashboard.panel.datassources=XActieve gegevensbronnen
-web.application.page.dashboard.panel.datassources.status=XBekijk status
-web.application.page.dashboard.panel.notification=XMelding
-web.application.page.dashboard.panel.notifications=XMeldingen
-web.application.page.dashboard.panel.task=XActieve taak
-web.application.page.dashboard.panel.tasks=XActieve taken
-web.application.page.dashboard.panel.notasks=Xgeen actieve taken
-web.application.page.dashboard.panel.error=XFoutmelding
-web.application.page.dashboard.panel.errors=XFoutmeldingen
-web.application.page.dashboard.panel.newerror=XNieuwe foutmelding
-web.application.page.dashboard.panel.newerrors=XNieuwe foutmeldingen
+web.application.page.dashboard.panel.datassource=Actieve gegevensbron
+web.application.page.dashboard.panel.datassources=Actieve gegevensbronnen
+web.application.page.dashboard.panel.datassources.status=Bekijk status
+web.application.page.dashboard.panel.notification=Melding
+web.application.page.dashboard.panel.notifications=Meldingen
+web.application.page.dashboard.panel.task=Actieve taak
+web.application.page.dashboard.panel.tasks=Actieve taken
+web.application.page.dashboard.panel.notasks=geen actieve taken
+web.application.page.dashboard.panel.error=Foutmelding
+web.application.page.dashboard.panel.errors=Foutmeldingen
+web.application.page.dashboard.panel.newerror=Nieuwe foutmelding
+web.application.page.dashboard.panel.newerrors=Nieuwe foutmeldingen
 
 # Datasets
-web.application.page.datasets.title=XDatasets
+web.application.page.datasets.title=Datasets
 
-web.application.page.datasets.list.allcategories=XAlle categoriën
-web.application.page.datasets.list.categorie.ref=XCategorie
-web.application.page.datasets.list.sourcedatasetref=XBrondataset
-web.application.page.datasets.list.structuralchange=XStructuurwijziging in de brongegevens.
-web.application.page.datasets.list.button.edit=XBewerken
-web.application.page.datasets.list.button.refresh=XVerversen uit brondata
-web.application.page.datasets.list.button.remove=XVerwijderen 
+web.application.page.datasets.list.allcategories=Alle categoriën
+web.application.page.datasets.list.categorie.ref=Categorie
+web.application.page.datasets.list.sourcedatasetref=Brondataset
+web.application.page.datasets.list.structuralchange=Structuurwijziging in de brongegevens.
+web.application.page.datasets.list.button.edit=Bewerken
+web.application.page.datasets.list.button.refresh=Verversen uit brondata
+web.application.page.datasets.list.button.remove=Verwijderen 
 
-web.application.page.datasets.list.button.newdataset=XMaak een nieuwe dataset ...
-web.application.page.datasets.list.search.placeholder=XDatasetnaam ...
-web.application.page.datasets.list.filtercategorie.title=XCategoriën
-web.application.page.datasets.list.status.title=XStatus
-web.application.page.datasets.list.status.imported=XGeïmporteerd
-web.application.page.datasets.list.status.structuralchange=XStructuurwijzigingen
-web.application.page.datasets.list.status.importerrors=XFouten bij importeren
+web.application.page.datasets.list.button.newdataset=Maak een nieuwe dataset ...
+web.application.page.datasets.list.search.placeholder=Datasetnaam ...
+web.application.page.datasets.list.filtercategorie.title=Categoriën
+web.application.page.datasets.list.status.title=Status
+web.application.page.datasets.list.status.imported=Geïmporteerd
+web.application.page.datasets.list.status.structuralchange=Structuurwijzigingen
+web.application.page.datasets.list.status.importerrors=Fouten bij importeren
 
-web.application.page.datasets.list.alert.nodatasets=XEr zijn geen datasets gevonden die voldoen aan de criteria.
+web.application.page.datasets.list.alert.nodatasets=Er zijn geen datasets gevonden die voldoen aan de criteria.
 
-web.application.page.datasets.show.title=XDataset
-web.application.page.datasets.show.heading=XOverzicht
-web.application.page.datasets.show.field.datasetname=XNaam
-web.application.page.datasets.show.field.datasetid=XTabelnaam
-web.application.page.datasets.show.field.sourcedatasetname=XBrondataset
-web.application.page.datasets.show.field.datasetstatus=XStatus
-web.application.page.datasets.show.field.datasetcategorie=XCategorie
-web.application.page.datasets.show.field.datasethasfilters=XHeeft filtercondities
+web.application.page.datasets.show.title=Dataset
+web.application.page.datasets.show.heading=Overzicht
+web.application.page.datasets.show.field.datasetname=Naam
+web.application.page.datasets.show.field.datasetid=Tabelnaam
+web.application.page.datasets.show.field.sourcedatasetname=Brondataset
+web.application.page.datasets.show.field.datasetstatus=Status
+web.application.page.datasets.show.field.datasetcategorie=Categorie
+web.application.page.datasets.show.field.datasethasfilters=Heeft filtercondities
 
-web.application.page.datasets.show.form.headingnotaccepted=XStructuurwijziging (verworpen)
-web.application.page.datasets.show.form.heading=XStructuurwijziging		
-web.application.page.datasets.show.form.body=XWijzigingen in kolommen:
+web.application.page.datasets.show.form.headingnotaccepted=Structuurwijziging (verworpen)
+web.application.page.datasets.show.form.heading=Structuurwijziging		
+web.application.page.datasets.show.form.body=Wijzigingen in kolommen:
 
-web.application.page.datasets.show.button.OK=XToepassen
-web.application.page.datasets.show.button.NOK=XVerwerpen
+web.application.page.datasets.show.button.OK=Toepassen
+web.application.page.datasets.show.button.NOK=Verwerpen
 
-web.application.page.datasets.form.title=XNieuwe dataset toevoegen
-web.application.page.datasets.form.header.new=XNieuwe dataset toevoegen
-web.application.page.datasets.form.header.edit=XDataset aanpassen
-web.application.page.datasets.form.errors.header=XDe dataset kan niet worden opgeslagen
-web.application.page.datasets.form.errors.text=XNiet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.
-web.application.page.datasets.form.globalerrors.header=XValidatiefouten
+web.application.page.datasets.form.title=Nieuwe dataset toevoegen
+web.application.page.datasets.form.header.new=Nieuwe dataset toevoegen
+web.application.page.datasets.form.header.edit=Dataset aanpassen
+web.application.page.datasets.form.errors.header=De dataset kan niet worden opgeslagen
+web.application.page.datasets.form.errors.text=Niet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.
+web.application.page.datasets.form.globalerrors.header=Validatiefouten
 
-web.application.page.datasets.form.tab.general.title=XAlgemene gegevens
-web.application.page.datasets.form.tab.columns.title=XKolommen
-web.application.page.datasets.form.tab.filters.title=XFilters
+web.application.page.datasets.form.tab.general.title=Algemene gegevens
+web.application.page.datasets.form.tab.columns.title=Kolommen
+web.application.page.datasets.form.tab.filters.title=Filters
 
-web.application.page.datasets.form.tab.general.field.name.label=XNaam
-web.application.page.datasets.form.tab.general.field.name.placeholder=XNaam ...
-web.application.page.datasets.form.tab.general.field.name.help=XDe naam van de dataset
+web.application.page.datasets.form.tab.general.field.name.label=Naam
+web.application.page.datasets.form.tab.general.field.name.placeholder=Naam ...
+web.application.page.datasets.form.tab.general.field.name.help=De naam van de dataset
 
-web.application.page.datasets.form.tab.general.field.datasourceid.option=XSelecteer een gegevensbron ...
-web.application.page.datasets.form.tab.general.field.datasourceid.label=XGegegensbron
-web.application.page.datasets.form.tab.general.field.datasourceid.help=XDe gegevensbron die de gegevens voor deze dataset bevat.
+web.application.page.datasets.form.tab.general.field.datasourceid.option=Selecteer een gegevensbron ...
+web.application.page.datasets.form.tab.general.field.datasourceid.label=Gegegensbron
+web.application.page.datasets.form.tab.general.field.datasourceid.help=De gegevensbron die de gegevens voor deze dataset bevat.
 
-web.application.page.datasets.form.tab.general.field.categoryid.option=XSelecteer een categorie ...
-web.application.page.datasets.form.tab.general.field.categoryid.label=XCategorie
-web.application.page.datasets.form.tab.general.field.categoryid.help=XDe categorie van de dataset.
+web.application.page.datasets.form.tab.general.field.categoryid.option=Selecteer een categorie ...
+web.application.page.datasets.form.tab.general.field.categoryid.label=Categorie
+web.application.page.datasets.form.tab.general.field.categoryid.help=De categorie van de dataset.
 
-web.application.page.datasets.form.tab.general.field.sourcedatasetid.option=XSelecteer een dataset ...
-web.application.page.datasets.form.tab.general.field.sourcedatasetid.label=XDataset
-web.application.page.datasets.form.tab.general.field.sourcedatasetid.help=XDe dataset uit de brongegevens waar deze dataset op is gebaseerd.
+web.application.page.datasets.form.tab.general.field.sourcedatasetid.option=Selecteer een dataset ...
+web.application.page.datasets.form.tab.general.field.sourcedatasetid.label=Dataset
+web.application.page.datasets.form.tab.general.field.sourcedatasetid.help=De dataset uit de brongegevens waar deze dataset op is gebaseerd.
 
-web.application.page.datasets.form.tab.general.field.tablename.label=XTabelnaam
-web.application.page.datasets.form.tab.general.field.tablename.placeholder=XTabelnaam ....
-web.application.page.datasets.form.tab.general.field.tablename.placeholderhidden=XTabelnaam hidden....
-web.application.page.datasets.form.tab.general.field.tablename.help=XDe naam van de tabel die wordt gebruikt om deze dataset op te slaan.
+web.application.page.datasets.form.tab.general.field.tablename.label=Tabelnaam
+web.application.page.datasets.form.tab.general.field.tablename.placeholder=Tabelnaam ....
+web.application.page.datasets.form.tab.general.field.tablename.placeholderhidden=Tabelnaam hidden....
+web.application.page.datasets.form.tab.general.field.tablename.help=De naam van de tabel die wordt gebruikt om deze dataset op te slaan.
 
-web.application.page.datasets.form.tab.columns.label=XGeselecteerde kolommen
-web.application.page.datasets.form.tab.columns.alert=XSelecteer tenminste één kolom.
+web.application.page.datasets.form.tab.columns.label=Geselecteerde kolommen
+web.application.page.datasets.form.tab.columns.alert=Selecteer tenminste één kolom.
 
-web.application.page.datasets.form.tab.filters.alert=XHet opgegeven filter is ongeldig.
+web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
 
 
 # SourceDatasets
-web.application.page.sourcedatasets.title=XBrongegevens
-web.application.page.sourcedatasets.list.search.placeholder=XZoek op naam ...
-web.application.page.sourcedatasets.list.alert.nosourcedatasets=XEr zijn geen brongegevens gevonden die voldoen aan de criteria.
-web.application.page.sourcedatasets.list.alert.adapt=XPas de criteria aan of toon 
-web.application.page.sourcedatasets.list.alert.show=Xalle brongegevens
-web.application.page.sourcedatasets.list.button.newdataset=XNieuwe dataset toevoegen voor deze bron
-web.application.page.sourcedatasets.list.nodatasetcoupled=XEr zijn geen gekoppelde datasets.
-web.application.page.sourcedatasets.list.datasetcoupled=Xdataset gekoppeld.
-web.application.page.sourcedatasets.list.datasetcoupledparam=XEr is {0} dataset gekoppeld.
-web.application.page.sourcedatasets.list.datasetscoupled=Xdatasets gekoppeld.
-web.application.page.sourcedatasets.list.datasetscoupledparam=XEr zijn {0} datasets gekoppeld.
+web.application.page.sourcedatasets.title=Brongegevens
+web.application.page.sourcedatasets.list.search.placeholder=Zoek op naam ...
+web.application.page.sourcedatasets.list.alert.nosourcedatasets=Er zijn geen brongegevens gevonden die voldoen aan de criteria.
+web.application.page.sourcedatasets.list.alert.adapt=Pas de criteria aan of toon 
+web.application.page.sourcedatasets.list.alert.show=alle brongegevens
+web.application.page.sourcedatasets.list.button.newdataset=Nieuwe dataset toevoegen voor deze bron
+web.application.page.sourcedatasets.list.nodatasetcoupled=Er zijn geen gekoppelde datasets.
+web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
+web.application.page.sourcedatasets.list.datasetcoupledparam=Er is {0} dataset gekoppeld.
+web.application.page.sourcedatasets.list.datasetscoupled=datasets gekoppeld.
+web.application.page.sourcedatasets.list.datasetscoupledparam=Er zijn {0} datasets gekoppeld.
 
 
 # DataSources
-web.application.page.datasources.title=XGegevensbronnen
-web.application.page.datasources.ref=XGegevensbron
-web.application.page.datasources.all=XAlle gegevensbronnen
+web.application.page.datasources.title=Gegevensbronnen
+web.application.page.datasources.ref=Gegevensbron
+web.application.page.datasources.all=Alle gegevensbronnen
 
