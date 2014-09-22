@@ -706,6 +706,18 @@ public class Domain {
         return lang;
     }
     
+    public static String message (final String msgKey) {
+    	return Messages.get (getLang (), msgKey);
+    }
+	
+    public static String message (final String msgKey, final Long arg) {
+    	return Messages.get (getLang (), msgKey, arg);
+    }
+	
+    public static String message (final String msgKey, final String args) {
+    	return Messages.get (getLang (), msgKey, args);
+    }
+	
     public static String message (final Status status) {
     	return message (status, null);
     }

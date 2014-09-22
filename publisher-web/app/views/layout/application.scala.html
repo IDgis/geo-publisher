@@ -29,53 +29,53 @@
 			<div class="container-fluid">
 				<div class="navbar-header">
 					<button class="navbar-toggle" data-target=".sidebar-collapse" data-toggle="collapse" type="button">
-						<span class="sr-only">Toggle navigation</span>
+						<span class="sr-only">@Domain.message("web.application.layout.togglenavigation")</span>
 						<span class="icon-bar"></span>
 						<span class="icon-bar"></span>
 						<span class="icon-bar"></span>
 					</button>
-					<a class="navbar-brand" href="#"><span class="glyphicon glyphicon-cloud"></span> GIS publicatieomgeving</a>
+					<a class="navbar-brand" href="#"><span class="glyphicon glyphicon-cloud"></span> @Domain.message("web.application.title")</a>
 				</div>
 				
 				@* Top links: *@
 				<ul class="nav navbar-top-links navbar-right" id="event-bar">
 					<li class="dropdown" id="event-dropdown-notifications">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe meldingen"><span class="glyphicon glyphicon-bell"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title=@Domain.message("web.application.layout.dropdowntitle.notifications")><span class="glyphicon glyphicon-bell"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
 						<ul class="js-list dropdown-menu dropdown-messages">
-							<li class="dropdown-header">geen datasets met structuurwijziging</li>
+							<li class="dropdown-header">@Domain.message("web.application.layout.nodatasetswithstructuralchange")</li>
 							<li class="divider"></li>
 							<li class="divider"></li>
 							<li>
-								<a class="text-center" href="@routes.Datasets.listWithMessages()">Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
+								<a class="text-center" href="@routes.Datasets.listWithMessages()">@Domain.message("web.application.layout.alldatasetswitherrors")Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
 							</li>
 						</ul>
 					</li>
 					<li class="dropdown" id="event-dropdown-active-tasks">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Taken"><span class="glyphicon glyphicon-tasks"></span> <span class="js-badge badge hidden">0</span> <b class="caret"></b></a>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title=@Domain.message("web.application.layout.dropdowntitle.tasks")><span class="glyphicon glyphicon-tasks"></span> <span class="js-badge badge hidden">0</span> <b class="caret"></b></a>
 						<ul class="js-list dropdown-menu dropdown-tasks">
-							<li class="dropdown-header">geen active taken</li>
+							<li class="dropdown-header">@Domain.message("web.application.layout.notasks")</li>
 							<li class="divider"></li>
 							<li class="divider"></li>
 							<li>
-								<a href="#" class="text-center">Bekijk logboek <span class="glyphicon glyphicon-chevron-right"></span></a>
+								<a href="#" class="text-center">@Domain.message("web.application.layout.showlog") <span class="glyphicon glyphicon-chevron-right"></span></a>
 							</li>
 						</ul>
 					</li>
 					<li class="dropdown" id="event-dropdown-issues">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Nieuwe fouten"><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" title=@Domain.message("web.application.layout.dropdowntitle.errors")><span class="glyphicon glyphicon-warning-sign"></span> <span class="badge js-badge">1</span> <b class="caret"></b></a>
 						<ul class="js-list dropdown-menu dropdown-alerts">
-							<li class="dropdown-header">geen nieuwe fouten</li>
+							<li class="dropdown-header">@Domain.message("web.application.layout.noerrors")</li>
 							<li class="divider"></li>
 							<li class="divider"></li>
-							<li><a href="#" class="text-center">Bekijk foutlogboek <span class="glyphicon glyphicon-chevron-right"></span></a></li>
+							<li><a href="#" class="text-center">@Domain.message("web.application.layout.showerrorlog") <span class="glyphicon glyphicon-chevron-right"></span></a></li>
 						</ul>
 					</li>
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> @session.get("username") <b class="caret"></b></a>
 						<ul class="dropdown-menu">
-							<li><a href="#"><span class="glyphicon glyphicon-user"></span> Profiel</a></li>
+							<li><a href="#"><span class="glyphicon glyphicon-user"></span> @Domain.message("web.application.layout.profile")</a></li>
 							<li class="divider"></a>
-							<li><a href="@routes.User.logout()"><span class="glyphicon glyphicon-off"></span> Afmelden</a></li>
+							<li><a href="@routes.User.logout()"><span class="glyphicon glyphicon-off"></span> @Domain.message("web.application.layout.logout")</a></li>
 						</ul>
 					</li>
 				</ul>
@@ -87,14 +87,14 @@
 		<nav class="navbar-default navbar-static-side" role="navigation">
 			<div class="sidebar-collapse">
 				<ul class="nav" id="side-menu">
-					<li class="active"><a href="@routes.Dashboard.index()"><span class="glyphicon glyphicon-dashboard"></span> Dashboard</a></li>
-					<li><a href="@routes.Datasets.list()"><span class="glyphicon glyphicon-th-list"></span> Datasets</a></li>
-					<li><a href="@routes.DataSources.list()"><span class="glyphicon glyphicon-hdd"></span> Brongegevens</a></li>
+					<li class="active"><a href="@routes.Dashboard.index()"><span class="glyphicon glyphicon-dashboard"></span> @Domain.message("web.application.layout.sidebar.dashboard")</a></li>
+					<li><a href="@routes.Datasets.list()"><span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")</a></li>
+					<li><a href="@routes.DataSources.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.sourcedatasets")</a></li>
 					<li>
-						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> Logboek <span class="caret"></span></a>
+						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> @Domain.message("web.application.layout.sidebar.log") <span class="caret"></span></a>
 						<ul id="logging-menu" class="collapse nav nav-second-level">
-							@* <li><a href="@routes.Logging.tasks()">Taken</a></li> *@
-							<li><a href="@routes.Logging.messages()">Foutmeldingen</a></li>
+							@* <li><a href="@routes.Logging.tasks()">@Domain.message("web.application.layout.sidebar.log.tasks")</a></li> *@
+							<li><a href="@routes.Logging.messages()">@Domain.message("web.application.layout.sidebar.log.errors")</a></li>
 						</ul>
 					</li>
 				</ul>

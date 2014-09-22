@@ -62,7 +62,7 @@ public class Logging extends Controller {
 						if (issues.values ().isEmpty()) {
 							response ().discardCookie ("messageDisplayTime");
 						} else {
-							Logger.debug ("Storing last date: " + issues.values ().get (0).when ().getTime ());
+							Logger.debug ("Storing last date: " + issues.values ().get (0).when ());
 							response ().setCookie (
 									"messagesDisplayTime",
 									"" + issues.values ().get (0).when ().getTime ()

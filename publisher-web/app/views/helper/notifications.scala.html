@@ -11,13 +11,17 @@
 			<div class="col-xs-6 text-right">
 				<p class="announcement-heading">
 					@if(notifications.values.isEmpty) {
-						geen
+						@Domain.message("web.application.none")
 					} else {
 						@if(notifications.hasMorePages){&gt; }@notifications.values.size
 					}
 				</p>
 				<p class="announcement-text">
-					Melding@if(notifications.values.size != 1){en}
+					@if(notifications.values.size != 1){
+						@Domain.message("web.application.page.dashboard.panel.notifications")
+					}else{
+						@Domain.message("web.application.page.dashboard.panel.notification")
+					}
 				</p>
 			</div>
 		</div>
@@ -36,7 +40,7 @@
 		<div class="panel-footer">
 			<div class="row">
 				<div class="col-xs-10">
-					Alle datatasets met meldingen
+					@Domain.message("web.application.page.dashboard.alldatasetswitherrors")
 				</div>
 				<div class="col-xs-2 text-right">
 					<span class="glyphicon glyphicon-circle-arrow-right"></span>

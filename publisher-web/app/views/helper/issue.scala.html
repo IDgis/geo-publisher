@@ -34,10 +34,10 @@
 
 @logLevelTitle(logLevel: LogLevel) = @{
 	logLevel match {
-	case LogLevel.DEBUG => "Technische informatie"
-	case LogLevel.INFO => "Informatie"
-	case LogLevel.ERROR => "Fout"
-	case LogLevel.WARNING => "Waarschuwing"
+	case LogLevel.DEBUG => Domain.message("web.application.loglevel.title.DEBUG")
+	case LogLevel.INFO => Domain.message("web.application.loglevel.title.INFO")
+	case LogLevel.ERROR => Domain.message("web.application.loglevel.title.ERROR")
+	case LogLevel.WARNING => Domain.message("web.application.loglevel.title.WARNING")
 	}
 }
 

@@ -5,20 +5,20 @@
 	<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
 		<div class="container-fluid">
 			<div class="navbar-header">
-				<a class="navbar-brand" href="#"><span class="glyphicon glyphicon-cloud"></span> GIS publicatieomgeving</a>
+				<a class="navbar-brand" href="#"><span class="glyphicon glyphicon-cloud"></span>  @Domain.message("web.application.title")</a>
 			</div>
 		</div>
 	</nav>
 
 	<div class="panel panel-default panel-centered">
 		<div class="panel-heading">
-			<h3 class="panel-title">Inloggen</h3>
+			<h3 class="panel-title">@Domain.message("web.application.login")</h3>
 		</div>
 		<div class="panel-body">
 		
 			@if(form.hasGlobalErrors) {
 				<div class="alert alert-danger">
-					<strong>Inloggen mislukt.</strong> @form.globalError.message
+					<strong>@Domain.message("web.application.login.FAILED")</strong> @form.globalError.message
 				</div>
 			}
 			
