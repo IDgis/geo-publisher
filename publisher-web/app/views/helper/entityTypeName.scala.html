@@ -1,12 +1,12 @@
 @(entityType: nl.idgis.publisher.domain.web.EntityType)@{
 	entityType match {
-	case nl.idgis.publisher.domain.web.EntityType.SOURCE_DATASET => @Domain.message("web.application.EntityType.SOURCE_DATASET")
-	case nl.idgis.publisher.domain.web.EntityType.DATASET => @Domain.message("web.application.EntityType.DATASET")
-	case nl.idgis.publisher.domain.web.EntityType.NOTIFICATION => @Domain.message("web.application.EntityType.NOTIFICATION")
-	case nl.idgis.publisher.domain.web.EntityType.CATEGORY => @Domain.message("web.application.EntityType.CATEGORY")
-	case nl.idgis.publisher.domain.web.EntityType.JOB => @Domain.message("web.application.EntityType.JOB")
-	case nl.idgis.publisher.domain.web.EntityType.LOG_ITEM => @Domain.message("web.application.EntityType.LOG_ITEM")
-	case nl.idgis.publisher.domain.web.EntityType.DATA_SOURCE => @Domain.message("web.application.EntityType.DATA_SOURCE")
+	case nl.idgis.publisher.domain.web.EntityType.SOURCE_DATASET => Domain.message("web.application.EntityType.SOURCE_DATASET")
+	case nl.idgis.publisher.domain.web.EntityType.DATASET => Domain.message("web.application.EntityType.DATASET")
+	case nl.idgis.publisher.domain.web.EntityType.NOTIFICATION => Domain.message("web.application.EntityType.NOTIFICATION")
+	case nl.idgis.publisher.domain.web.EntityType.CATEGORY => Domain.message("web.application.EntityType.CATEGORY")
+	case nl.idgis.publisher.domain.web.EntityType.JOB => Domain.message("web.application.EntityType.JOB")
+	case nl.idgis.publisher.domain.web.EntityType.LOG_ITEM => Domain.message("web.application.EntityType.LOG_ITEM")
+	case nl.idgis.publisher.domain.web.EntityType.DATA_SOURCE => Domain.message("web.application.EntityType.DATA_SOURCE")
 	case _ => entityType.name
 	}
 }
