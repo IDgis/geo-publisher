@@ -8,9 +8,11 @@ import com.typesafe.config.Config;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.monitor.messages.Tree;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import nl.idgis.publisher.provider.messages.Connect;
+import nl.idgis.publisher.provider.messages.Stop;
 import nl.idgis.publisher.utils.Boot;
 
 import akka.actor.ActorRef;
@@ -23,14 +25,12 @@ import akka.event.LoggingAdapter;
 public class App extends UntypedActor {
 
 	private final Config config;	
-	private final LoggingAdapter log;
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private ActorRef client;
 	private Connect connectMessage;
 
 	public App(Config config) {
-		log = Logging.getLogger(getContext().system(), this);
-
 		this.config = config;		
 	}
 	
@@ -65,13 +65,25 @@ public class App extends UntypedActor {
 					connectMessage, system.dispatcher(), getSelf());
 		} else if (msg instanceof ConnectionClosed) {
 			client.tell(connectMessage, getSelf());
+		} else if (msg instanceof Stop) {
+			log.info("stop requested");
+			
+			getSender().tell(new Ack(), getSelf());
+			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
 		}
 	}
+	
+	private static ActorRef app;
 
 	public static void main(String[] args) {
 		Boot boot = Boot.init("provider");
-		boot.startApplication(App.props(boot.getConfig()));
+		app = boot.startApplication(App.props(boot.getConfig()));
+		boot.awaitTermination();
+	}
+	
+	public static void stop(String[] args) {		
+		app.tell(new Stop(), ActorRef.noSender());
 	}
 }

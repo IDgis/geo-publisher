@@ -103,7 +103,7 @@ public class Boot {
 		return monitor;
 	}
 	
-	public void startApplication(Props props) {
+	public ActorRef startApplication(Props props) {
 		final ActorRef app = actorSystem.actorOf(props, "app");
 		
 		if(monitor != null) {
@@ -115,5 +115,11 @@ public class Boot {
 		}
 		
 		actorSystem.actorOf(Terminator.props(app), "app-terminator");
+		
+		return app;
+	}
+	
+	public void awaitTermination() {
+		actorSystem.awaitTermination();
 	}
 }
