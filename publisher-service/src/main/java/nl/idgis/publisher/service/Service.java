@@ -10,8 +10,12 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.AbstractStateMachine;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
+import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.service.ServiceLogType;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
@@ -113,6 +117,26 @@ public class Service extends AbstractStateMachine<String> {
 		};
 	}
 	
+	private Procedure<Object> waitingJobLogStored(final ServiceJobInfo job, final ActorRef initiator) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("verified job log stored"); 
+					
+					log.debug("service job succeeded: " + job);
+					database.tell(new UpdateJobState(job, JobState.SUCCEEDED), getSelf());
+					
+					become("storing job completed state", waitingForJobCompletedStored(initiator));
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
 	private Procedure<Object> waitingForJobStartedStored(final ActorRef initiator, final ServiceJobInfo job) {
 		return new Procedure<Object>() {
 
@@ -148,23 +172,26 @@ public class Service extends AbstractStateMachine<String> {
 						String tableName = job.getTableName().toLowerCase();
 						if(hasTable(workspace, dataStore, tableName)) {
 							log.debug("feature type for table already exists");
+							
+							database.tell(new StoreLog(job, JobLog.create(LogLevel.INFO, ServiceLogType.VERIFIED)), getSelf());
+							become("storing verified job log", waitingJobLogStored(job, initiator));
 						} else {
 							log.debug("creating new feature type");
 							
 							if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
-								throw new IllegalStateException("couldn't create feature type");
+								database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());						
+								become("storing job completed state", waitingForJobCompletedStored(initiator));
+							} else {
+								database.tell(new StoreLog(job, JobLog.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
+								become("storing add job log", waitingJobLogStored(job, initiator));
 							}
 						}
-						
-						log.debug("service job succeeded: " + job);
-						database.tell(new UpdateJobState(job, JobState.SUCCEEDED), getSelf());
 					} catch(Exception e) {
 						log.error(e, "service job failed: " + job);
 						
-						database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());
-					}
-					
-					become("storing job completed state", waitingForJobCompletedStored(initiator));					
+						database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());						
+						become("storing job completed state", waitingForJobCompletedStored(initiator));
+					}					
 				} else {
 					unhandled(msg);
 				}

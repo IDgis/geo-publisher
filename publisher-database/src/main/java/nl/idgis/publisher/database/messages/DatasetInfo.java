@@ -9,8 +9,8 @@ import java.util.List;
 import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
-
-	private static final long serialVersionUID = 1483600283295264723L;
+	
+	private static final long serialVersionUID = 3081865522869238736L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -18,9 +18,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final Boolean imported;
 	private final Boolean serviceCreated;
 	private final Boolean sourceDatasetColumnsChanged;
-	private final Timestamp lastImportTime;
-	private final JobState lastJobState;
-	private final List<StoredNotification> notifications;
+	private final Timestamp lastImportTime, lastServiceTime;
+	private final JobState lastImportJobState, lastServiceJobState;
+	private final boolean serviceLayerVerified, serviceLayerAdded;
+	private final List<StoredNotification> notifications;	
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName, 
@@ -29,7 +30,11 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final Boolean serviceCreated,
 			final Boolean sourceDatasetColumnsChanged,
 			final Timestamp lastImportTime,
-			final String lastJobState,
+			final String lastImportJobState,
+			final Timestamp lastServiceTime,
+			final String lastServiceJobState,
+			final boolean serviceLayerVerified,
+			final boolean serviceLayerAdded,
 			final List<StoredNotification> notifications) {
 		super(id, name);
 		
@@ -42,8 +47,20 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.serviceCreated = serviceCreated;
 		this.sourceDatasetColumnsChanged = sourceDatasetColumnsChanged;
 		this.lastImportTime = lastImportTime;
-		this.lastJobState = lastJobState == null ? null : JobState.valueOf (lastJobState);
+		this.lastImportJobState = toJobState(lastImportJobState);
+		this.lastServiceTime = lastServiceTime;
+		this.lastServiceJobState = toJobState(lastServiceJobState);
+		this.serviceLayerVerified = serviceLayerVerified;
+		this.serviceLayerAdded = serviceLayerAdded;
 		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
+	}
+	
+	private static JobState toJobState(String jobStateName) {
+		if(jobStateName == null) {
+			return null;
+		} else {
+			return JobState.valueOf(jobStateName);
+		}
 	}
 
 	public String getSourceDatasetId() {
@@ -82,20 +99,46 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		return lastImportTime;
 	}
 
-	public JobState getLastJobState() {
-		return lastJobState;
+	public JobState getLastImportJobState() {
+		return lastImportJobState;
+	}
+	
+	public Timestamp getLastServiceTime() {
+		return lastServiceTime;
+	}
+
+	public JobState getLastServiceJobState() {
+		return lastServiceJobState;
 	}
 
 	public List<StoredNotification> getNotifications () {
 		return Collections.unmodifiableList (notifications);
 	}
+	
+	public boolean isServiceLayerVerified() {
+		return serviceLayerVerified;
+	}
+
+	public boolean isServiceLayerAdded() {
+		return serviceLayerAdded;
+	}
 
 	@Override
 	public String toString() {
-		return "DatasetInfo [id=" + id + ", name=" + name
-				+ ", sourceDatasetId=" + sourceDatasetId
+		return "DatasetInfo [sourceDatasetId=" + sourceDatasetId
 				+ ", sourceDatasetName=" + sourceDatasetName + ", categoryId="
-				+ categoryId + ", categoryName=" + categoryName + "]";
+				+ categoryId + ", categoryName=" + categoryName
+				+ ", filterConditions=" + filterConditions + ", imported="
+				+ imported + ", serviceCreated=" + serviceCreated
+				+ ", sourceDatasetColumnsChanged="
+				+ sourceDatasetColumnsChanged + ", lastImportTime="
+				+ lastImportTime + ", lastServiceTime=" + lastServiceTime
+				+ ", lastImportJobState=" + lastImportJobState
+				+ ", lastServiceJobState=" + lastServiceJobState
+				+ ", serviceLayerVerified=" + serviceLayerVerified
+				+ ", serviceLayerAdded=" + serviceLayerAdded
+				+ ", notifications=" + notifications + "]";
 	}
 
+		
 }

@@ -23,6 +23,10 @@ public class JobLog implements Serializable {
 		this.content = content;
 	}
 	
+	public static <T extends MessageProperties> JobLog create (final LogLevel level, final MessageType<T> type) {
+		return new JobLog (level, type);
+	}
+	
 	public static <T extends MessageProperties> JobLog create (final LogLevel level, final MessageType<T> type, final T content) {
 		return new JobLog (level, type, content);
 	}

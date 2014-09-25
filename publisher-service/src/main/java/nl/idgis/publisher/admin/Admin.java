@@ -681,9 +681,9 @@ public class Admin extends UntypedActor {
 		final List<DashboardItem> notifications = new ArrayList<> ();
 		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
 			// Set imported status:
-			if (datasetInfo.getLastJobState () != null) {
+			if (datasetInfo.getLastImportJobState () != null) {
 				importStatus = new Status (
-						jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
+						jobStateToDatasetStatus (datasetInfo.getLastImportJobState ()),
 						datasetInfo.getLastImportTime () != null
 							? datasetInfo.getLastImportTime ()
 							: new Timestamp (new Date ().getTime ())
@@ -696,8 +696,33 @@ public class Admin extends UntypedActor {
 			importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
 		}
 		
-		// TODO: determine actual status 
-		serviceStatus = new Status (DatasetServiceStatusType.NOT_VERIFIED,  new Timestamp (new Date ().getTime ()));
+		final DatasetServiceStatusType serviceStatusType;		
+		final Timestamp lastServiceTime = datasetInfo.getLastServiceTime () != null
+				? datasetInfo.getLastServiceTime ()
+				: new Timestamp (new Date ().getTime ());
+		
+		if (datasetInfo.getServiceCreated() != null && datasetInfo.getServiceCreated()) {			
+			if (datasetInfo.isServiceLayerAdded()) {
+				serviceStatusType = DatasetServiceStatusType.ADDED;
+			} else if (datasetInfo.isServiceLayerVerified()) {
+				serviceStatusType = DatasetServiceStatusType.VERIFIED;
+			} else {
+				serviceStatusType = DatasetServiceStatusType.NOT_VERIFIED;
+			}
+		} else {
+			JobState serviceJobState = datasetInfo.getLastServiceJobState();
+			if( serviceJobState == null) {
+				serviceStatusType = DatasetServiceStatusType.NOT_VERIFIED;				
+			} else {			
+				if (datasetInfo.isServiceLayerVerified()) {
+					serviceStatusType = DatasetServiceStatusType.ADD_FAILED;
+				} else {
+					serviceStatusType = DatasetServiceStatusType.VERIFY_FAILED;
+				}
+			}
+		}
+		
+		serviceStatus = new Status (serviceStatusType, lastServiceTime);
 		
 		// Add notifications:
 		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
