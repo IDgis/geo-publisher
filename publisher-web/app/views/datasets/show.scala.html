@@ -37,7 +37,10 @@
 							</tr>
 							<tr>
 								<th>@Domain.message("web.application.page.datasets.show.field.datasetstatus")</th>
-								<td>@helper.status(dataset.currentStatus, true)</td>
+								<td>
+									<p>@helper.status(dataset.currentImportStatus, true)</p>
+									<p>@helper.status(dataset.currentServiceStatus, true)</p>
+								</td>
 							</tr>
 							<tr>
 								<th>@Domain.message("web.application.page.datasets.show.field.datasetcategorie")</th>

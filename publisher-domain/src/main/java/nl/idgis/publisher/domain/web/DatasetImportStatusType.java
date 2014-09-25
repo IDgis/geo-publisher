@@ -2,7 +2,7 @@ package nl.idgis.publisher.domain.web;
 
 import nl.idgis.publisher.domain.StatusType;
 
-public enum DatasetStatusType implements StatusType {
+public enum DatasetImportStatusType implements StatusType {
 	NOT_IMPORTED (StatusCategory.INFO),
 	IMPORTING (StatusCategory.INFO),
 	IMPORTED (StatusCategory.SUCCESS),
@@ -10,7 +10,7 @@ public enum DatasetStatusType implements StatusType {
 	
 	private final StatusCategory category;
 	
-	DatasetStatusType (final StatusCategory category) {
+	DatasetImportStatusType (final StatusCategory category) {
 		this.category = category;
 	}
 

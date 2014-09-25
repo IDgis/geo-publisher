@@ -65,7 +65,8 @@ import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
-import nl.idgis.publisher.domain.web.DatasetStatusType;
+import nl.idgis.publisher.domain.web.DatasetImportStatusType;
+import nl.idgis.publisher.domain.web.DatasetServiceStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
@@ -661,39 +662,42 @@ public class Admin extends UntypedActor {
 		
 	}
 	
-	private static DatasetStatusType jobStateToDatasetStatus (final JobState jobState) {
+	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
 		switch (jobState) {
 		default:
 		case ABORTED:
 		case FAILED:
-			return DatasetStatusType.IMPORT_FAILED;
+			return DatasetImportStatusType.IMPORT_FAILED;
 		case STARTED:
-			return DatasetStatusType.IMPORTING;
+			return DatasetImportStatusType.IMPORTING;
 		case SUCCEEDED:
-			return DatasetStatusType.IMPORTED;
+			return DatasetImportStatusType.IMPORTED;
 		}
 	}
 
 	private static Dataset createDataset (final DatasetInfo datasetInfo, final ObjectMapper objectMapper) throws Throwable {
 		// Determine dataset status and notification list:
-		final Status status;
+		final Status importStatus, serviceStatus;
 		final List<DashboardItem> notifications = new ArrayList<> ();
 		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
 			// Set imported status:
 			if (datasetInfo.getLastJobState () != null) {
-				status = new Status (
+				importStatus = new Status (
 						jobStateToDatasetStatus (datasetInfo.getLastJobState ()),
 						datasetInfo.getLastImportTime () != null
 							? datasetInfo.getLastImportTime ()
 							: new Timestamp (new Date ().getTime ())
 					);
 			} else {
-				status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+				importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
 			}
 		} else {
 			// Dataset has never been imported, don't report any notifications:
-			status = new Status (DatasetStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
+			importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
 		}
+		
+		// TODO: determine actual status 
+		serviceStatus = new Status (DatasetServiceStatusType.NOT_VERIFIED,  new Timestamp (new Date ().getTime ()));
 		
 		// Add notifications:
 		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
@@ -704,7 +708,8 @@ public class Admin extends UntypedActor {
 		
 		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-				status,
+				importStatus,
+				serviceStatus,
 				notifications, // notification list
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
