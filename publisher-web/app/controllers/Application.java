@@ -12,6 +12,7 @@ public class Application extends Controller {
 				routes.javascript.DataSources.listByDataSourceAndCategoryJson(),
 				routes.javascript.Datasets.listColumnsAction(),
 				routes.javascript.Datasets.getDatasetJson (),
+				routes.javascript.Datasets.status (),
 				routes.javascript.Datasets.scheduleRefresh (),
 				routes.javascript.Events.events (),
 				routes.javascript.Events.eventsWithTag ()
