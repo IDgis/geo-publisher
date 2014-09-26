@@ -8,9 +8,9 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-public class DatasetInfo extends BaseDatasetInfo implements Serializable {
-	
-	private static final long serialVersionUID = 3081865522869238736L;
+public class DatasetInfo extends BaseDatasetInfo implements Serializable {		
+
+	private static final long serialVersionUID = 6610907891041680317L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -20,7 +20,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final Boolean sourceDatasetColumnsChanged;
 	private final Timestamp lastImportTime, lastServiceTime;
 	private final JobState lastImportJobState, lastServiceJobState;
-	private final boolean serviceLayerVerified, serviceLayerAdded;
+	private final Boolean serviceLayerVerified, serviceLayerAdded;
 	private final List<StoredNotification> notifications;	
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
@@ -33,8 +33,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final String lastImportJobState,
 			final Timestamp lastServiceTime,
 			final String lastServiceJobState,
-			final boolean serviceLayerVerified,
-			final boolean serviceLayerAdded,
+			final Boolean serviceLayerVerified,
+			final Boolean serviceLayerAdded,
 			final List<StoredNotification> notifications) {
 		super(id, name);
 		
@@ -116,11 +116,11 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	}
 	
 	public boolean isServiceLayerVerified() {
-		return serviceLayerVerified;
+		return serviceLayerVerified != null && serviceLayerVerified;
 	}
 
 	public boolean isServiceLayerAdded() {
-		return serviceLayerAdded;
+		return serviceLayerAdded != null && serviceLayerAdded;
 	}
 
 	@Override
