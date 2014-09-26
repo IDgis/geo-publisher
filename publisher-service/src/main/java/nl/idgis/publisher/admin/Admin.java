@@ -30,6 +30,7 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
@@ -107,18 +108,19 @@ public class Admin extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader;
+	private final ActorRef database, harvester, loader, service;
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
 		this.database = database;
 		this.harvester = harvester;
 		this.loader = loader;
+		this.service = service;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
-		return Props.create(Admin.class, database, harvester, loader);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
+		return Props.create(Admin.class, database, harvester, loader, service);
 	}
 
 	@Override
@@ -392,6 +394,7 @@ public class Admin extends UntypedActor {
 		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
 		final Future<Object> harvestJobs = Patterns.ask(harvester, new GetActiveJobs(), 15000);
 		final Future<Object> loaderJobs = Patterns.ask(loader, new GetActiveJobs(), 15000);
+		final Future<Object> serviceJobs = Patterns.ask(service, new GetActiveJobs(), 15000);
 		
 		final Future<Map<String, String>> dataSourceNames = dataSourceInfo.map(new Mapper<Object, Map<String, String>>() {
 			
@@ -440,45 +443,78 @@ public class Admin extends UntypedActor {
 			
 		}, getContext().dispatcher());
 		
-		final Future<Iterable<ActiveTask>> activeLoaderTasks = 
+		final Future<Iterable<ActiveTask>> activeDatasetTasks = 
 			loaderJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
 				
 				public Future<Iterable<ActiveTask>> apply(Object msg) {
-					ActiveJobs activeJobs = (ActiveJobs)msg;
+					final ActiveJobs activeLoaderJobs = (ActiveJobs)msg;
 					
-					List<Future<ActiveTask>> activeTasks = new ArrayList<>(); 
-					Map<String, Future<Object>> datasetInfos = new HashMap<String, Future<Object>>();
-					for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
-						final ImportJobInfo job = (ImportJobInfo)activeJob.getJob();
-						final Progress progress = (Progress)activeJob.getProgress();
+					final Map<String, Future<Object>> datasetInfos = new HashMap<String, Future<Object>>();
+					
+					return serviceJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
 						
-						String datasetId = job.getDatasetId();
-						if(!datasetInfos.containsKey(datasetId)) {
-							datasetInfos.put(
-									datasetId,							
-									Patterns.ask(
-											database, 
-											new GetDatasetInfo(datasetId), 
-											15000));
-						}
-						
-						activeTasks.add(datasetInfos.get(datasetId).map(new Mapper<Object, ActiveTask>() {
-							
-							public ActiveTask apply(Object msg) {
-								DatasetInfo datasetInfo = (DatasetInfo)msg;
-								
-								return new ActiveTask(
-									"" + job.getId(),
-									datasetInfo.getName(),
-									new Message(JobType.IMPORT, new DefaultMessageProperties (
-											EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
-									(int)(progress.getCount() * 100 / progress.getTotalCount()));
+						private Future<Object> getDatasetInfo(String datasetId) {
+							if(!datasetInfos.containsKey(datasetId)) {
+								datasetInfos.put(
+										datasetId,							
+										Patterns.ask(
+												database, 
+												new GetDatasetInfo(datasetId), 
+												15000));
 							}
 							
-						}, getContext().dispatcher()));
-					}
+							return datasetInfos.get(datasetId);
+						}
+						
+						public Future<Iterable<ActiveTask>> apply(Object msg) {
+							final ActiveJobs activeServiceJobs = (ActiveJobs)msg;
+							
+							List<Future<ActiveTask>> activeTasks = new ArrayList<>();
+							for(ActiveJob activeLoaderJob : activeLoaderJobs.getActiveJobs()) {
+								final ImportJobInfo job = (ImportJobInfo)activeLoaderJob.getJob();
+								final Progress progress = (Progress)activeLoaderJob.getProgress();								
+								
+								activeTasks.add(getDatasetInfo(job.getDatasetId()).map(new Mapper<Object, ActiveTask>() {
+									
+									public ActiveTask apply(Object msg) {
+										DatasetInfo datasetInfo = (DatasetInfo)msg;
+										
+										return new ActiveTask(
+											"" + job.getId(),
+											datasetInfo.getName(),
+											new Message(JobType.IMPORT, new DefaultMessageProperties (
+													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
+											(int)(progress.getCount() * 100 / progress.getTotalCount()));
+									}
+									
+								}, getContext().dispatcher()));
+							}
+							
+							for(ActiveJob activeServiceJob : activeServiceJobs.getActiveJobs()) {								
+								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
+								final Progress progress = (Progress)activeServiceJob.getProgress();
+								
+								activeTasks.add(getDatasetInfo(job.getTableName()).map(new Mapper<Object, ActiveTask>() {
+									
+									public ActiveTask apply(Object msg) {
+										DatasetInfo datasetInfo = (DatasetInfo)msg;
+										
+										return new ActiveTask(
+											"" + job.getId(),
+											datasetInfo.getName(),
+											new Message(JobType.SERVICE, new DefaultMessageProperties (
+													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
+											(int)(progress.getCount() * 100 / progress.getTotalCount()));
+									}
+									
+								}, getContext().dispatcher()));
+							}
+							
+							return Futures.sequence(activeTasks, getContext().dispatcher());
+						}
+						
+					}, getContext().dispatcher());		
 					
-					return Futures.sequence(activeTasks, getContext().dispatcher());
 				}
 				
 			}, getContext().dispatcher());
@@ -487,7 +523,7 @@ public class Admin extends UntypedActor {
 		activeHarvestTasks.flatMap(new Mapper<Iterable<ActiveTask>, Future<Iterable<ActiveTask>>>() {
 			
 			public Future<Iterable<ActiveTask>> apply(final Iterable<ActiveTask> activeHarvestTasks) {
-				return activeLoaderTasks.map(new Mapper<Iterable<ActiveTask>, Iterable<ActiveTask>>() {
+				return activeDatasetTasks.map(new Mapper<Iterable<ActiveTask>, Iterable<ActiveTask>>() {
 					
 					public Iterable<ActiveTask> apply(final Iterable<ActiveTask> activeLoaderTasks) {
 						return Iterables.concat(activeHarvestTasks, activeLoaderTasks);

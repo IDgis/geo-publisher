@@ -1,10 +1,14 @@
 package nl.idgis.publisher.service;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import scala.concurrent.duration.Duration;
 
 import com.typesafe.config.Config;
 
@@ -16,11 +20,15 @@ import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.service.ServiceLogType;
+import nl.idgis.publisher.messages.ActiveJob;
+import nl.idgis.publisher.messages.ActiveJobs;
+import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
 import nl.idgis.publisher.service.rest.ServiceRest;
 import nl.idgis.publisher.service.rest.Workspace;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -72,11 +80,33 @@ public class Service extends AbstractStateMachine<String> {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ServiceJobInfo) {
 			handleServiceJob((ServiceJobInfo)msg);
+		} else if(msg instanceof GetActiveJobs) {
+			handleGetActiveJobs();
 		} else {		
 			unhandled(msg);
 		}
 	}
 	
+	private void unhandled(ServiceJobInfo job, Object msg) {
+		if(msg instanceof GetActiveJobs) {
+			handleGetActiveJobs(job);
+		} else {
+			unhandled(msg);
+		}
+	}
+	
+	private void handleGetActiveJobs(ServiceJobInfo job) {
+		log.debug("active job: " + job);
+		
+		getSender().tell(new ActiveJobs(Arrays.asList(new ActiveJob(job))), getSelf());
+	}
+	
+	private void handleGetActiveJobs() {
+		log.debug("no active job");
+		
+		getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
+	}
+
 	private Pair<Workspace, DataStore> findDataStore(String schemaName) throws Exception {
 		for(Workspace workspace : rest.getWorkspaces()) {
 			log.debug("in workspace: " + workspace.getName());
@@ -98,7 +128,7 @@ public class Service extends AbstractStateMachine<String> {
 		return null;
 	}
 	
-	private Procedure<Object> waitingForJobCompletedStored(final ActorRef initiator) {
+	private Procedure<Object> waitingForJobCompletedStored(final ServiceJobInfo job, final ActorRef initiator) {
 		return new Procedure<Object>() {
 
 			@Override
@@ -110,7 +140,7 @@ public class Service extends AbstractStateMachine<String> {
 					
 					getContext().unbecome();
 				} else {
-					unhandled(msg);
+					unhandled(job, msg);
 				}
 			}
 			
@@ -126,15 +156,27 @@ public class Service extends AbstractStateMachine<String> {
 					log.debug("verified job log stored"); 
 					
 					log.debug("service job succeeded: " + job);
-					database.tell(new UpdateJobState(job, JobState.SUCCEEDED), getSelf());
+					tellDatabaseDelayed(new UpdateJobState(job, JobState.SUCCEEDED));
 					
-					become("storing job completed state", waitingForJobCompletedStored(initiator));
+					become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 				} else {
-					unhandled(msg);
+					unhandled(job, msg);
 				}
 			}
 			
 		};
+	}
+	
+	private void tellDatabaseDelayed(Object msg) {
+		getContext()
+			.system()
+			.scheduler()
+				.scheduleOnce(
+						Duration.create(10, TimeUnit.SECONDS), 
+						database, 
+						msg, 
+						getContext().dispatcher(), 
+						getSelf());
 	}
 	
 	private Procedure<Object> waitingForJobStartedStored(final ActorRef initiator, final ServiceJobInfo job) {
@@ -179,8 +221,8 @@ public class Service extends AbstractStateMachine<String> {
 							log.debug("creating new feature type");
 							
 							if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
-								database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());						
-								become("storing job completed state", waitingForJobCompletedStored(initiator));
+								tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
+								become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 							} else {
 								database.tell(new StoreLog(job, JobLog.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
 								become("storing add job log", waitingJobLogStored(job, initiator));
@@ -189,11 +231,11 @@ public class Service extends AbstractStateMachine<String> {
 					} catch(Exception e) {
 						log.error(e, "service job failed: " + job);
 						
-						database.tell(new UpdateJobState(job, JobState.FAILED), getSelf());						
-						become("storing job completed state", waitingForJobCompletedStored(initiator));
+						tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
+						become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 					}					
 				} else {
-					unhandled(msg);
+					unhandled(job, msg);
 				}
 			}
 			
