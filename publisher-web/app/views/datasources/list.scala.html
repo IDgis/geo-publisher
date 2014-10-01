@@ -2,7 +2,8 @@
 	dataSources: List[nl.idgis.publisher.domain.web.DataSource],
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentDataSource: nl.idgis.publisher.domain.web.DataSource,
-	currentCategory: nl.idgis.publisher.domain.web.Category)
+	currentCategory: nl.idgis.publisher.domain.web.Category,
+	search: String)
 
 @import nl.idgis.publisher.domain.web._
 
@@ -58,14 +59,14 @@
 @pageRef(targetPage: Long) = @{	  
 	if(currentCategory == null)
 		if(currentDataSource == null)
-			routes.DataSources.list(targetPage)
+			routes.DataSources.list(search, targetPage)
 		else
-			routes.DataSources.listByDataSource(currentDataSource.id, targetPage) 
+			routes.DataSources.listByDataSource(currentDataSource.id, search, targetPage) 
 	else
 		if(currentDataSource == null)
-			routes.DataSources.listByCategory(currentCategory.id, targetPage)
+			routes.DataSources.listByCategory(currentCategory.id, search, targetPage)
 		else
-			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, targetPage)
+			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, targetPage)
 }
 
 @layout.application(
