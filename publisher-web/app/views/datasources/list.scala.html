@@ -42,9 +42,9 @@
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorie.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorie.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	}
 }
 
