@@ -34,6 +34,7 @@ import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.loader.messages.Busy;
+import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -314,16 +315,50 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 				new GetDataset(
 						importJob.getSourceDatasetId(), 
 						requestColumnNames, 
-						LoaderSession.props(
-								initiator,
-								getContext().parent(),
+						LoaderSession.props(								
+								getContext().parent(), // loader
 								importJob,
 								filterEvaluator,
 								transaction, 
 								database)), getSelf());
 		
-		getContext().stop(getSelf());
+		become("starting session", waitingForSessionStarted());
 	}	
+	
+	private Procedure<Object> waitingForSessionStartedAck() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("session started ack");
+					
+					acknowledgeJobAndStop();
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
+	private Procedure<Object> waitingForSessionStarted() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("session started");
+					
+					getContext().parent().tell(new SessionStarted(importJob, getSender()), getSelf());
+					become("registering session start", waitingForSessionStartedAck());
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
 	
 	private Procedure<Object> waitingForTableCreated() {
 		return new Procedure<Object>() {

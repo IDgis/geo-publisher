@@ -174,7 +174,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 				sendColumns();
 				
 				ActorRef receiver = getContext().actorOf(gd.getReceiverProps(), "receiver");
-				receiver.tell(new StartImport(10), getSelf());
+				receiver.tell(new StartImport(getSender(), 10), getSelf());
 				getContext().become(waitingForStart(), true);
 			} else {
 				onReceiveElse(msg);
