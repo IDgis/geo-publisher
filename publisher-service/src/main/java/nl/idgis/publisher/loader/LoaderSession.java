@@ -15,7 +15,6 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
-import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.messages.Timeout;
@@ -43,15 +42,14 @@ public class LoaderSession extends AbstractSession {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
-	private final ActorRef initiator, loader, geometryDatabase, database;
+	private final ActorRef loader, geometryDatabase, database;
 	
 	private final FilterEvaluator filterEvaluator;
 	
 	private boolean inFailure = false;
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
-	public LoaderSession(ActorRef initiator, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {
-		this.initiator = initiator;
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {		
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
@@ -59,25 +57,8 @@ public class LoaderSession extends AbstractSession {
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef initiator, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, initiator, loader, importJob, filterEvaluator, geometryDatabase, database);
-	}
-	
-	@Override
-	public void preStart() throws Exception {
-		Patterns.ask(loader, new SessionStarted(importJob, getSelf()), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("sessions started");
-					
-					initiator.tell(new Ack(), getSelf());
-					
-					scheduleTimeout();
-				}
-				
-			}, getContext().dispatcher());		
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
+		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
 	}
 
 	@Override
@@ -118,9 +99,15 @@ public class LoaderSession extends AbstractSession {
 	private void handleStartImport(StartImport msg) {
 		log.info("starting import");
 		
-		totalCount = msg.getCount();
+		totalCount = msg.getCount();		
 		
-		getSender().tell(new Ack(), getSelf());		
+		// data source
+		getSender().tell(new Ack(), getSelf());
+		
+		// session initiator
+		msg.getInitiator().tell(new Ack(), getSelf());
+		
+				
 		getContext().become(importing());
 	}
 

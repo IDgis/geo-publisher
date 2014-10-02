@@ -68,7 +68,7 @@ public class ProviderClient extends UntypedActor {
 		harvester.tell(new DataSourceConnected(msg.getName()), getSelf());
 	}
 	
-	private void processMetadata(final GetDataset gd, String alternateTitle) {
+	private void processMetadata(final GetDataset gd, String alternateTitle, final ActorRef initiator) {
 		log.debug("processing metadata");
 		
 		final String tableName = ProviderUtils.getTableName(alternateTitle);
@@ -87,7 +87,7 @@ public class ProviderClient extends UntypedActor {
 						log.debug("count: " + count + ", starting import");
 						
 						final ActorRef receiver = getContext().actorOf(gd.getReceiverProps());
-						Patterns.ask(receiver, new StartImport(count), 15000)
+						Patterns.ask(receiver, new StartImport(initiator, count), 15000)
 							.onSuccess(new OnSuccess<Object>() {
 
 								@Override
@@ -123,7 +123,9 @@ public class ProviderClient extends UntypedActor {
 	}
 	
 	private void handleGetDataset(final GetDataset gd) {
-		log.debug("retrieving data from provider");				
+		log.debug("retrieving data from provider");
+		
+		final ActorRef initiator = getSender();
 						
 		Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
 			.onSuccess(new OnSuccess<Object>() {
@@ -158,7 +160,7 @@ public class ProviderClient extends UntypedActor {
 													public void onSuccess(Object msg) throws Throwable {
 														log.debug("metadata document closed");
 														
-														processMetadata(gd, alternateTitle);
+														processMetadata(gd, alternateTitle, initiator);
 													}
 													
 												}, getContext().dispatcher());
