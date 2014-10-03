@@ -31,16 +31,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
-	public static Promise<Result> list (final long page) {
-		return listByDataSourceAndCategory (null, null, page);
+	public static Promise<Result> list (final String search, final long page) {
+		return listByDataSourceAndCategory (null, null, search, page);
 	}
 	
-	public static Promise<Result> listByDataSource (final String dataSourceId, final long page) {
-		return listByDataSourceAndCategory (dataSourceId, null, page);
+	public static Promise<Result> listByDataSource (final String dataSourceId, final String search, final long page) {
+		return listByDataSourceAndCategory (dataSourceId, null, search, page);
 	}
 	
-	public static Promise<Result> listByCategory (final String categoryId, final long page) {
-		return listByDataSourceAndCategory (null, categoryId, page);
+	public static Promise<Result> listByCategory (final String categoryId, final String search, final long page) {
+		return listByDataSourceAndCategory (null, categoryId, search, page);
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
@@ -74,8 +74,8 @@ public class DataSources extends Controller {
 			});
 	}
 	
-	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final long page) {
-			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, null, page);
+	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final String search, final long page) {
+			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, search, page);
 	}
 	
 	public static Promise<Result> search (final String search, final long page) {
@@ -105,7 +105,7 @@ public class DataSources extends Controller {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {
 									
-									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory));
+									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search));
 								}
 								
 							});

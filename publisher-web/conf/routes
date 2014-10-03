@@ -24,12 +24,12 @@ POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setN
 
 # Datasources
 # http://localhost:9000/datasources/searching?searchString=gevonden
-GET		/datasources/searching							controllers.DataSources.search(searchString: String, page: Long ?= 1)
-GET		/datasources									controllers.DataSources.list(page: Long ?= 1)
-GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, page: Long ?= 1)
-GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, page: Long ?= 1)
+GET		/datasources/searching							controllers.DataSources.search(searchString: String ?="", page: Long ?= 1)
+GET		/datasources									controllers.DataSources.list(searchString: String ?="", page: Long ?= 1)
+GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, searchString: String ?="", page: Long ?= 1)
+GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, searchString: String ?="", page: Long ?= 1)
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
-GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, page: Long ?= 1)
+GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, searchString: String ?="", page: Long ?= 1)
 
 # Logging
 GET		/logging/messages								controllers.Logging.messages()
