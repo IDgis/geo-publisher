@@ -7,6 +7,9 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.admin.Admin;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
+import nl.idgis.publisher.database.messages.GetHarvestJobs;
+import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
@@ -125,7 +128,13 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(Admin.props(database, harvester, loader), "admin");
 		
-		getContext().actorOf(Initiator.props(database, harvester, loader, service), "jobInitiator");
+		getContext().actorOf(
+				Initiator.props()
+					.add(harvester, new GetHarvestJobs())
+					.add(loader, new GetImportJobs())
+					.add(service, new GetServiceJobs())
+					.create(database), 
+				"jobInitiator");
 		
 		getContext().actorOf(Creator.props(database), "jobCreator");
 		
