@@ -1,12 +1,12 @@
 package controllers;
 
+import models.Domain;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.mvc.Controller;
 import play.mvc.Result;
 import views.html.login;
-
 import static play.data.Form.form;
 
 public class User extends Controller {
@@ -83,7 +83,7 @@ public class User extends Controller {
 		
 		public String validate () {
 			if (!configUsername.equals (username) || !configPassword.equals (password)) {
-				return "Ongeldige gebruikersnaam of wachtwoord";
+				return Domain.message("web.application.login.failed.message");
 			}
 			
 			return null;
