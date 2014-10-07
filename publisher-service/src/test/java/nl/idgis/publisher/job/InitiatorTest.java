@@ -13,18 +13,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import scala.concurrent.duration.Duration;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
-
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
+import nl.idgis.publisher.database.messages.GetHarvestJobs;
+import nl.idgis.publisher.database.messages.GetImportJobs;
+import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
@@ -32,7 +33,6 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.protocol.messages.Ack;
-
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
@@ -55,7 +55,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 			return "GetReceivedJobs [count=" + count + "]";
 		}
 		
-	}
+	}	
 	
 	static class JobReceiver extends UntypedActor {
 		
@@ -69,6 +69,10 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		
 		JobReceiver(ActorRef database) {
 			this.database = database;
+		}
+		
+		static Props props(ActorRef database) {
+			return Props.create(JobReceiver.class, database);
 		}
 		
 		Procedure<Object> waitingForDatabaseAck(final JobInfo job, final ActorRef initiator) {
@@ -111,7 +115,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 			} else {
 				unhandled(msg);
 			}
-		}
+		}		
 		
 		void sendJobs() {
 			if(sender != null && count != null && jobs.size() == count) {
@@ -125,33 +129,53 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		
 	}
 	
-	ActorRef harvester;
-	ActorRef loader;
-	ActorRef service;
+	static class BrokenJobReceiver extends JobReceiver {
+		
+		int skipMessageCount = 0;
+		
+		BrokenJobReceiver(ActorRef database) {
+			super(database);
+		}
+
+		static Props props(ActorRef database) {
+			return Props.create(BrokenJobReceiver.class, database);
+		}
+		
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			log.debug("message received");
+			
+			if(msg instanceof GetReceivedJobs) {
+				super.onReceive(msg);
+			} else {
+				if(++skipMessageCount == 5) {
+					log.debug("message processed");
+					
+					skipMessageCount = 0;
+					super.onReceive(msg);
+				} else {
+					log.debug("message ignored");
+				}
+			}
+		}
+	}
 	
 	@Before
 	public void databaseContent() throws Exception {
 		insertDataset("testDataset0");
 		insertDataset("testDataset1");
-	}	
-	
-	@Before	
-	public void actors() throws Exception {	
-		Props jobReceiverProps = Props.create(JobReceiver.class, database);
-		
-		harvester = actorOf(jobReceiverProps, "harvesterMock");
-		loader = actorOf(jobReceiverProps, "loaderMock");
-		service = actorOf(jobReceiverProps, "serviceMock");
-	}
-
-	private void initInitiator() {
-		actorOf(Initiator.props(database, harvester, loader, service), "initiator");
 	}
 	
 	@Test
 	public void testHarvestJob() throws Exception {
 		ask(database, new CreateHarvestJob("testDataSource"));
-		initInitiator();
+		
+		ActorRef harvester = actorOf(JobReceiver.props(database), "harvesterMock");
+		actorOf(
+			Initiator.props()
+				.add(harvester, new GetHarvestJobs())
+				.create(database), 
+			"initiator");
 		
 		List<?> list = askAssert(harvester, new GetReceivedJobs(1), List.class);
 		assertEquals(HarvestJobInfo.class, list.get(0).getClass());
@@ -161,7 +185,13 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	public void testImportJob() throws Exception {
 		ask(database, new CreateImportJob("testDataset0"));
 		ask(database, new CreateImportJob("testDataset1"));
-		initInitiator();
+		
+		ActorRef loader = actorOf(JobReceiver.props(database), "loaderMock");
+		actorOf(
+			Initiator.props()
+				.add(loader, new GetImportJobs())
+				.create(database), 
+			"initiator");
 		
 		List<?> list = askAssert(loader, new GetReceivedJobs(2), List.class);
 		
@@ -182,29 +212,57 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	@Test
 	public void testServiceJob() throws Exception {
 		ask(database, new CreateServiceJob("testDataset0"));
-		initInitiator();
+
+		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
+		actorOf(
+			Initiator.props()
+				.add(service, new GetServiceJobs())
+				.create(database), 
+			"initiator");
 		
 		List<?> list = askAssert(service, new GetReceivedJobs(1), List.class);
 		assertEquals(ServiceJobInfo.class, list.get(0).getClass());
 	}
 	
 	@Test
+	public void testInterval() throws Exception {
+		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
+		actorOf(
+			Initiator.props()
+				.add(service, new GetServiceJobs())
+				.create(database, Duration.create(1, TimeUnit.MILLISECONDS)), 
+			"initiator");
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
+		
+		Thread.sleep(100);
+		
+		ask(database, new CreateServiceJob("testDataset0"));
+		askAssert(service, new GetReceivedJobs(1), List.class);
+	}
+	
+	@Test
 	public void testTimeout() throws Exception {
-		actorOf(Initiator.props(database, harvester, loader, service, Duration.create(1, TimeUnit.MILLISECONDS)), "initiator");
-		
-		Thread.sleep(100);
-		
 		ask(database, new CreateServiceJob("testDataset0"));
-		askAssert(service, new GetReceivedJobs(1), List.class);
 		
-		Thread.sleep(100);
+		ActorRef service = actorOf(BrokenJobReceiver.props(database), "serviceMock");
+		actorOf(
+			Initiator.props()
+				.add(service, new GetServiceJobs())
+				.create(
+						database, 
+						Duration.create(1, TimeUnit.MILLISECONDS), 
+						Duration.create(1, TimeUnit.MILLISECONDS)), 
+			"initiator");
 		
-		ask(database, new CreateServiceJob("testDataset0"));
-		askAssert(service, new GetReceivedJobs(1), List.class);
-		
-		Thread.sleep(100);
-		
-		ask(database, new CreateServiceJob("testDataset0"));
 		askAssert(service, new GetReceivedJobs(1), List.class);
 	}
 }

@@ -8,9 +8,6 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
@@ -22,33 +19,50 @@ import akka.event.LoggingAdapter;
 
 public class Initiator extends UntypedActor {
 	
-	private static final FiniteDuration DEFAULT_INTERVAL = Duration.create(10, TimeUnit.SECONDS);
-	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef database;
 	private final Map<Object, ActorRef> actorRefs;
-	private final FiniteDuration interval;
+	private final FiniteDuration pollInterval, dispatcherTimeout;
 	
 	private final Map<ActorRef, Object> dispatchers = new HashMap<>();
 	
-	public Initiator(ActorRef database, Map<Object, ActorRef> actorRefs, FiniteDuration interval) {
+	public Initiator(ActorRef database, Map<Object, ActorRef> actorRefs, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
 		this.database = database;
 		this.actorRefs = actorRefs;
-		this.interval = interval;
+		this.pollInterval = pollInterval;
+		this.dispatcherTimeout = dispatcherTimeout;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
-		return props(database, harvester, loader, service, DEFAULT_INTERVAL);
-	}
-	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, FiniteDuration interval) {
-		Map<Object, ActorRef> actorRefs = new HashMap<>();
-		actorRefs.put(new GetHarvestJobs(), harvester);
-		actorRefs.put(new GetImportJobs(), loader);
-		actorRefs.put(new GetServiceJobs(), service);
+	public static class PropsFactory {
 		
-		return Props.create(Initiator.class, database,  Collections.unmodifiableMap(actorRefs), interval);
+		private static final FiniteDuration 
+			DEFAULT_POLL_INTERVAL = Duration.create(10, TimeUnit.SECONDS),
+			DEFAULT_DISPATCHER_TIMEOUT = Duration.create(15, TimeUnit.SECONDS);
+		
+		final Map<Object, ActorRef> actorRefs = new HashMap<>();
+		
+		public PropsFactory add(ActorRef target, Object msg) {
+			actorRefs.put(msg, target);
+			
+			return this;
+		}
+		
+		public Props create(ActorRef database) {
+			return create(database, DEFAULT_POLL_INTERVAL, DEFAULT_DISPATCHER_TIMEOUT);
+		}
+		
+		public Props create(ActorRef database, FiniteDuration pollInterval) {
+			return create(database, pollInterval, DEFAULT_DISPATCHER_TIMEOUT);
+		}
+		
+		public Props create(ActorRef database, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
+			return Props.create(Initiator.class, database,  Collections.unmodifiableMap(actorRefs), pollInterval, dispatcherTimeout);
+		}
+	}
+	
+	public static PropsFactory props() {
+		return new PropsFactory();
 	}
 	
 	@Override
@@ -59,7 +73,7 @@ public class Initiator extends UntypedActor {
 			
 			log.debug("starting initiation dispatcher for: " + target);
 			
-			ActorRef dispatcher = getContext().actorOf(InitiatorDispatcher.props(target));
+			ActorRef dispatcher = getContext().actorOf(InitiatorDispatcher.props(target, dispatcherTimeout));
 			database.tell(msg, dispatcher);
 			
 			dispatchers.put(dispatcher, msg);
@@ -77,7 +91,7 @@ public class Initiator extends UntypedActor {
 				log.debug("scheduling new job retrieval: " + databaseMsg);
 				
 				ActorSystem system = getContext().system();
-				system.scheduler().scheduleOnce(interval, database, databaseMsg, system.dispatcher(), dispatcher);
+				system.scheduler().scheduleOnce(pollInterval, database, databaseMsg, system.dispatcher(), dispatcher);
 			} else {
 				unhandled(msg);
 			}

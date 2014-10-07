@@ -3,7 +3,11 @@ package nl.idgis.publisher.job;
 import java.util.Iterator;
 
 import nl.idgis.publisher.protocol.messages.Ack;
+
+import scala.concurrent.duration.FiniteDuration;
+
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -14,60 +18,99 @@ public class InitiatorDispatcher extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final FiniteDuration timeout;
 	private final ActorRef target;
 	
-	public InitiatorDispatcher(ActorRef target) {		
+	private Cancellable timeoutCancellable;
+	
+	public InitiatorDispatcher(ActorRef target, FiniteDuration timeout) {	
 		this.target = target;
+		this.timeout = timeout;
 	}
 	
-	public static Props props(ActorRef target) {
-		return Props.create(InitiatorDispatcher.class, target);
+	public static Props props(ActorRef target, FiniteDuration timeout) {
+		return Props.create(InitiatorDispatcher.class, target, timeout);
 	}
 	
-	private Procedure<Object> consuming(final Iterator<?> itr) {
-		return new Procedure<Object>() {
-			
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					if(!next(itr)) {
-						getContext().unbecome();
-					}
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
+	@Override
+	public void preStart() throws Exception {
+		
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Iterable) {
-			log.debug("new iterable received: " + msg + " for: " + target);
+			log.debug("iterable received");
 			
-			Iterator<?> itr = ((Iterable<?>) msg).iterator();
-			if(next(itr)) {
-				getContext().become(consuming(itr));
+			final Iterator<?> i = ((Iterable<?>) msg).iterator();
+			
+			if(i.hasNext()) {
+				tellTarget(i.next());
+				
+				getContext().become(new Procedure<Object>() {
+
+					@Override
+					public void apply(Object msg) throws Exception {
+						if(msg instanceof Ack) {
+							log.debug("ack received");
+							
+							if(i.hasNext()) {
+								tellTarget(i.next());
+							} else {
+								stop();
+							}
+						} else {
+							log.debug("unhandled (waiting for Ack): " + msg);
+							
+							unhandled(msg);
+						}
+					}
+					
+				});
+			} else {
+				stop();
 			}
 		} else {
+			log.debug("unhandled (waiting for Iterable): " + msg);
+			
 			unhandled(msg);
 		}
 	}
+	
+	private void tellTarget(Object msg) {
+		log.debug("sending message to target: " + msg);
+		
+		target.tell(msg, getSelf());
+		
+		cancelTimeout();
+		
+		timeoutCancellable = getContext().system().scheduler().scheduleOnce(timeout, new Runnable() {
 
-	private boolean next(Iterator<?> itr) {
-		if(itr.hasNext()) {
-			log.debug("sending message to target");
+			@Override
+			public void run() {
+				log.debug("timeout");
+				
+				timeoutCancellable = null;
+				
+				stop();				
+			}
 			
-			target.tell(itr.next(), getSelf());
-			
-			return true;
-		} else {
-			log.debug("dispatching finished");
-			
-			getContext().parent().tell(new Ack(), getSelf());
-			
-			return false;
+		}, getContext().dispatcher());
+	}
+
+	private void cancelTimeout() {
+		if(timeoutCancellable != null) {
+			timeoutCancellable.cancel();
+			timeoutCancellable = null;
 		}
+	}
+	
+	private void stop() {
+		log.debug("stopping");
+		
+		cancelTimeout();
+		
+		getContext().parent().tell(new Ack(), getSelf());
+		getContext().become(receive());
 	}
 }
