@@ -73,7 +73,11 @@ web.application.removed=Verwijderd
 web.application.added=Toegevoegd
 
 web.application.login=Inloggen
-web.application.login.FAILED=Inloggen mislukt.
+web.application.login.button=Inloggen
+web.application.login.placeholder.user=E-mail
+web.application.login.placeholder.password=Wachwoord
+web.application.login.failed.message=Ongeldige gebruikersnaam of wachtwoord
+web.application.login.failed=Inloggen mislukt.
 
 # Widgets
 web.application.button.ok=Ok

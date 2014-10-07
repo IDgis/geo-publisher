@@ -1,6 +1,6 @@
 @(form: Form[controllers.User.Login])
 
-@layout.applicationCentered("Inloggen") {
+@layout.applicationCentered(Domain.message("web.application.login")) {
 
 	<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
 		<div class="container-fluid">
@@ -18,7 +18,7 @@
 		
 			@if(form.hasGlobalErrors) {
 				<div class="alert alert-danger">
-					<strong>@Domain.message("web.application.login.FAILED")</strong> @form.globalError.message
+					<strong>@Domain.message("web.application.login.failed")</strong> @form.globalError.message
 				</div>
 			}
 			
@@ -26,12 +26,12 @@
 				<input type="hidden" name="returnUrl" value="@form("returnUrl").value">
 				<fieldset>
 					<div class="form-group">
-						<input class="form-control" type="email" autofocus name="username" placeholder="E-mail" value="@form("username").value">
+						<input class="form-control" type="email" autofocus name="username" placeholder=@Domain.message("web.application.login.placeholder.user") value="@form("username").value">
 					</div>
 					<div class="form-group">
-						<input class="form-control" type="password" name="password" placeholder="Wachtwoord">
+						<input class="form-control" type="password" name="password" placeholder=@Domain.message("web.application.login.placeholder.password")>
 					</div>
-					<button class="btn btn-lg btn-success btn-block" href="@routes.Dashboard.index()" type="submit">Inloggen</a>
+					<button class="btn btn-lg btn-success btn-block" href="@routes.Dashboard.index()" type="submit">@Domain.message("web.application.login.button")</a>
 				</fieldset>
 			</form>
 		</div>
