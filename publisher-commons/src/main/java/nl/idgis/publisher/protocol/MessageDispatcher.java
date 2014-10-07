@@ -66,7 +66,7 @@ public class MessageDispatcher extends UntypedActor {
 	
 					@Override
 					public void onFailure(Throwable t) throws Throwable {
-						log.warning("actorRef lookup failed"); 
+						log.warning("actorRef lookup failed, message: " + message); 
 						
 						sender.tell(new Unreachable(targetName, t.getMessage()), sender);
 					}
