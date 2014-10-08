@@ -49,7 +49,7 @@ public class MessageDispatcher extends UntypedActor {
 			if(message instanceof Unreachable
 				|| message instanceof Destroyed) {
 				
-				log.debug("stopping packager");
+				log.debug("stopping packager: " + message);
 				messagePackagerProvider.tell(new StopPackager(message.getTargetName()), getSelf());
 			} else {
 				final ActorRef sender = getSender();
@@ -130,6 +130,7 @@ public class MessageDispatcher extends UntypedActor {
 			}
 			
 			String targetName = sb.toString();
+			log.debug("terminated: " + targetName);						
 			getContext().parent().tell(new Destroyed(targetName), getSelf());
 		} else if(msg instanceof Ack) {
 			log.debug("message acknowledged by: " + getSender());
