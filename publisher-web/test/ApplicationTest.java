@@ -51,6 +51,10 @@ public class ApplicationTest {
     }
 
     
+    /**
+     * Make a Html context
+     * @throws Exception
+     */
     @Before
     public void setUp() throws Exception {
         Map<String, String> flashData = Collections.emptyMap();
@@ -61,12 +65,6 @@ public class ApplicationTest {
         Http.Context.current.set(context);
     }
 
-
-    @Test
-    public void simpleCheck() {
-        int a = 1 + 1;
-        assertThat(a).isEqualTo(2);
-    }
 
     @Test
     public void renderLogin() {

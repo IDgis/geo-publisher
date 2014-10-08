@@ -39,7 +39,7 @@ public class TestLogin {
     	
     	System.out.println("=========================================================");
     	System.out.println("                -------------------------");
-    	System.out.println("                    SELENIUM TEST");
+    	System.out.println("                    SELENIUM IDE TEST");
     	System.out.println("                -------------------------");
     	
     }
