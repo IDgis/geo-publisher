@@ -33,7 +33,7 @@ public class AutoCommit extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				log.debug("transaction completed");
 				
-				target.tell(answer, getSelf());
+				target.tell(answer, getContext().parent());
 				
 				getContext().stop(getSelf());
 			}
