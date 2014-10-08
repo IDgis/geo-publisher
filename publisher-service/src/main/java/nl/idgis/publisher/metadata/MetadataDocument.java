@@ -219,7 +219,7 @@ public class MetadataDocument extends UntypedActor {
 							} else if(result == null) {
 								result = msg;
 							} else {
-								log.warning("additional (ignored) query result: " + result);
+								log.debug("additional (ignored) query result: " + result);
 							}
 						}
 						
