@@ -69,7 +69,7 @@ public class IntegrationTest {
                 /*
                  * The application is started 
                  */
-                assertThat(browser.pageSource()).doesNotContain(Domain.message("web.application.login.FAILED"));
+                assertThat(browser.pageSource()).doesNotContain(Domain.message("web.application.login.failed"));
                 // This will only work when there is a service  
 //                assertThat(browser.pageSource()).contains(Domain.message("web.application.layout.sidebar.dashboard"));
             }
@@ -88,7 +88,7 @@ public class IntegrationTest {
                 browser.find("input[name=password]").text(configPassword + "XXX");
                 browser.find("button[type=submit]").click();
 
-                assertThat(browser.pageSource()).contains(Domain.message("web.application.login.FAILED"));
+                assertThat(browser.pageSource()).contains(Domain.message("web.application.login.failed"));
             }
         });
     }
