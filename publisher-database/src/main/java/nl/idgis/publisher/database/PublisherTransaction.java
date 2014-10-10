@@ -67,6 +67,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
+import nl.idgis.publisher.database.messages.PerformQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
@@ -111,12 +112,14 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysema.query.QueryMetadata;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
@@ -269,8 +272,23 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeStoreNotificationResult ((StoreNotificationResult) query);
 		} else if (query instanceof GetDatasetColumnDiff) {
 			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
+		} else if (query instanceof PerformQuery) {
+			executePerformQuery((PerformQuery)query);
 		} else {
 			unhandled(query);
+		}
+	}
+
+	private void executePerformQuery(PerformQuery query) {
+		QueryMetadata metadata = query.getMetadata();
+		
+		List<Expression<?>> projection = metadata.getProjection();
+		if(projection.size() == 1) {	
+			answerQuery(metadata, projection.get(0));
+		} else {		
+			answer(
+				Tuple.class,		
+				query(metadata).list(projection.toArray(new Expression<?>[projection.size()])));
 		}
 	}
 
