@@ -21,14 +21,14 @@ public class Initiator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
+	private final ActorRef source;
 	private final Map<Object, ActorRef> actorRefs;
 	private final FiniteDuration pollInterval, dispatcherTimeout;
 	
 	private final Map<ActorRef, Object> dispatchers = new HashMap<>();
 	
-	public Initiator(ActorRef database, Map<Object, ActorRef> actorRefs, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
-		this.database = database;
+	public Initiator(ActorRef source, Map<Object, ActorRef> actorRefs, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
+		this.source = source;
 		this.actorRefs = actorRefs;
 		this.pollInterval = pollInterval;
 		this.dispatcherTimeout = dispatcherTimeout;
@@ -48,16 +48,16 @@ public class Initiator extends UntypedActor {
 			return this;
 		}
 		
-		public Props create(ActorRef database) {
-			return create(database, DEFAULT_POLL_INTERVAL, DEFAULT_DISPATCHER_TIMEOUT);
+		public Props create(ActorRef source) {
+			return create(source, DEFAULT_POLL_INTERVAL, DEFAULT_DISPATCHER_TIMEOUT);
 		}
 		
-		public Props create(ActorRef database, FiniteDuration pollInterval) {
-			return create(database, pollInterval, DEFAULT_DISPATCHER_TIMEOUT);
+		public Props create(ActorRef source, FiniteDuration pollInterval) {
+			return create(source, pollInterval, DEFAULT_DISPATCHER_TIMEOUT);
 		}
 		
-		public Props create(ActorRef database, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
-			return Props.create(Initiator.class, database,  Collections.unmodifiableMap(actorRefs), pollInterval, dispatcherTimeout);
+		public Props create(ActorRef source, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
+			return Props.create(Initiator.class, source,  Collections.unmodifiableMap(actorRefs), pollInterval, dispatcherTimeout);
 		}
 	}
 	
@@ -74,7 +74,7 @@ public class Initiator extends UntypedActor {
 			log.debug("starting initiation dispatcher for: " + target);
 			
 			ActorRef dispatcher = getContext().actorOf(InitiatorDispatcher.props(target, dispatcherTimeout));
-			database.tell(msg, dispatcher);
+			source.tell(msg, dispatcher);
 			
 			dispatchers.put(dispatcher, msg);
 		}
@@ -86,12 +86,12 @@ public class Initiator extends UntypedActor {
 			final ActorRef dispatcher = getSender();
 			
 			if(dispatchers.containsKey(dispatcher)) {				
-				final Object databaseMsg = dispatchers.get(dispatcher);
+				final Object fetchMsg = dispatchers.get(dispatcher);
 				
-				log.debug("scheduling new job retrieval: " + databaseMsg);
+				log.debug("scheduling new job retrieval: " + fetchMsg);
 				
 				ActorSystem system = getContext().system();
-				system.scheduler().scheduleOnce(pollInterval, database, databaseMsg, system.dispatcher(), dispatcher);
+				system.scheduler().scheduleOnce(pollInterval, source, fetchMsg, system.dispatcher(), dispatcher);
 			} else {
 				unhandled(msg);
 			}
