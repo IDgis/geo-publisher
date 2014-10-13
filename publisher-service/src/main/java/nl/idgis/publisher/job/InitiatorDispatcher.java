@@ -40,7 +40,7 @@ public class InitiatorDispatcher extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Iterable) {
-			log.debug("iterable received");
+			log.debug("iterable received: " + msg);
 			
 			final Iterator<?> i = ((Iterable<?>) msg).iterator();
 			
