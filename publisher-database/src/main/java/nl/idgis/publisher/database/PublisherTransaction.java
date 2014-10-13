@@ -225,9 +225,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else if(query instanceof GetSourceDatasetListInfo) {			
 			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof StoreLog) {
-			executeStoreLog((StoreLog)query);
-		} else if(query instanceof GetHarvestJobs){
-			executeGetHarvestJobs();
+			executeStoreLog((StoreLog)query);		
 		} else if(query instanceof GetSourceDatasetColumns) {
 			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
 		} else if(query instanceof GetDatasetColumns) {
@@ -1131,21 +1129,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.and(dataSource.identification.eq(sdc.getDataSourceId())))
 			.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)));
 	}
-
-	private void executeGetHarvestJobs() {
-		answer(
-			HarvestJobInfo.class,
-				
-			query().from(job)
-				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
-				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
-				.orderBy(job.createTime.asc())
-				.where(new SQLSubQuery().from(jobState)
-						.where(jobState.jobId.eq(job.id))
-						.notExists())
-				.list(new QHarvestJobInfo(job.id, dataSource.identification)));
-	}
-
+	
 	private void executeStoreLog(StoreLog query) throws Exception {
 		log.debug("storing log line: " + query);
 		
