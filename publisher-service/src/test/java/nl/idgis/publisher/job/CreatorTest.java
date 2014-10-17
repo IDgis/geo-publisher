@@ -6,22 +6,18 @@ import org.junit.Test;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import nl.idgis.publisher.database.AbstractDatabaseTest;
+
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.Query;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.utils.TypedIterable;
+
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
-import static org.junit.Assert.assertTrue;
 
-public class CreatorTest extends AbstractDatabaseTest {
+public class CreatorTest extends AbstractJobManagerTest {
 	
 	static class GetLastReceivedQuery {
 		
@@ -64,11 +60,10 @@ public class CreatorTest extends AbstractDatabaseTest {
 		
 	}
 	
-	ActorRef manager, managerAdapter;
+	ActorRef managerAdapter;
 	
 	@Before
-	public void actors() {
-		manager = actorOf(JobManager.props(database), "manager");
+	public void actors() {		
 		managerAdapter = actorOf(Props.create(ManagerAdapter.class, manager), "managerAdapter");		
 	}
 
@@ -76,14 +71,7 @@ public class CreatorTest extends AbstractDatabaseTest {
 		actorOf(Creator.props(managerAdapter), "creator");
 	}
 	
-	@Override
-	protected void executeJobs(Query query) throws Exception {
-		TypedIterable<?> iterable = askAssert(manager, query, TypedIterable.class);
-		assertTrue(iterable.contains(JobInfo.class));
-		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
-		}
-	}
+	
 	
 	private void harvest() throws Exception {
 		ask(manager, new CreateHarvestJob("testDataSource"));		
