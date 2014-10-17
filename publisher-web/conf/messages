@@ -36,10 +36,16 @@ nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Struc
 nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
 nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
 
-nl.idgis.publisher.domain.web.DatasetStatusType.NOT_IMPORTED=Nog niet geïmporteerd
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTING=Bezig met importeren
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORTED=Geïmporteerd
-nl.idgis.publisher.domain.web.DatasetStatusType.IMPORT_FAILED=Fout bij importeren
+nl.idgis.publisher.domain.web.DatasetImportStatusType.NOT_IMPORTED=Nog niet geïmporteerd
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTING=Bezig met importeren
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTED=Geïmporteerd
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORT_FAILED=Fout bij importeren
+
+nl.idgis.publisher.domain.web.DatasetServiceStatusType.NOT_VERIFIED=Nog geen laag beschikbaar 
+nl.idgis.publisher.domain.web.DatasetServiceStatusType.VERIFIED=Bestaande laag gevonden
+nl.idgis.publisher.domain.web.DatasetServiceStatusType.VERIFY_FAILED=Fout bij zoeken naar bestaande laag
+nl.idgis.publisher.domain.web.DatasetServiceStatusType.ADDED=Laag toegevoegd
+nl.idgis.publisher.domain.web.DatasetServiceStatusType.ADD_FAILED=Fout bij toevoegen laag
 
 # --------------
 # Web applicatie 

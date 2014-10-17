@@ -126,7 +126,7 @@ public class ServiceApp extends UntypedActor {
 		
 		service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
 		
-		getContext().actorOf(Admin.props(database, harvester, loader), "admin");
+		getContext().actorOf(Admin.props(database, harvester, loader, service), "admin");
 		
 		getContext().actorOf(
 				Initiator.props()

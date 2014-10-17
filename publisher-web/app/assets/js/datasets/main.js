@@ -73,19 +73,37 @@ require ([
 		
 		query ('.js-dataset-item').forEach (function (rowNode) {
 			var identification = domAttr.get (rowNode, 'data-dataset-id'),
+				statusNode = query ('.js-status', rowNode)[0],
 				progressNode = query ('.js-progress', rowNode)[0],
 				linkNode = query ('.js-dataset-refresh', rowNode)[0],
 				iconNode = query ('.js-icon', linkNode)[0];
 			
 			if (!(identification in taskProgress)) {
-				domClass.add (progressNode, 'hidden');
-				domClass.remove (linkNode, 'disabled');
-				if (identification in previousProgress) {
-					domClass.remove (iconNode, 'rotating');
+				var showStatus = function() {
+					domClass.remove (statusNode, 'hidden');
+					domClass.add (progressNode, 'hidden');
+					domClass.remove (linkNode, 'disabled');
+				};
+				
+				if (identification in previousProgress) {			
+					var route = jsRoutes.controllers.Datasets.status(identification);
+					xhr.get(route.url, {
+						handleAs: 'text'
+					}).then (function(data) {
+						statusNode.innerHTML = data;
+						
+						showStatus();
+												
+						domClass.remove (iconNode, 'rotating');
+					});				
+				} else {
+					showStatus();
 				}
+				
 				return;
 			}
 			
+			domClass.add (statusNode, 'hidden');
 			domClass.remove (progressNode, 'hidden');
 			
 			var bar = query ('.progress-bar', progressNode)[0];

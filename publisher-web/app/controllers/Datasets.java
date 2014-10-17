@@ -51,6 +51,7 @@ import views.html.datasets.columns;
 import views.html.datasets.form;
 import views.html.datasets.list;
 import views.html.datasets.show;
+import views.html.datasets.status;
 import actions.DefaultAuthenticator;
 import actors.Database;
 import akka.actor.ActorSelection;
@@ -90,6 +91,20 @@ public class Datasets extends Controller {
 				@Override
 				public Result apply (final Dataset dataset, final List<ColumnDiff> diffs) throws Throwable {
 					return ok (show.render (dataset, diffs));
+				}
+			});
+	}
+	
+	public static Promise<Result> status (final String datasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.execute (new Function<Dataset, Result> () {
+
+				@Override
+				public Result apply (final Dataset dataset) throws Throwable {					
+					return ok (status.render (dataset));
 				}
 			});
 	}
