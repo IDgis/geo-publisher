@@ -12,6 +12,11 @@ import scala.concurrent.Future;
 import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.messages.CreateHarvestJob;
+import nl.idgis.publisher.database.messages.CreateImportJob;
+import nl.idgis.publisher.database.messages.CreateServiceJob;
+import nl.idgis.publisher.database.messages.GetDataSourceStatus;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
@@ -25,21 +30,18 @@ import akka.pattern.Patterns;
 import akka.pattern.PipeToSupport.PipeableFuture;
 import akka.util.Timeout;
 
-public class Jobs extends UntypedActor {
+public class JobManager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, service;
+	private final ActorRef database;
 	
-	public Jobs(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
-		this.database = database;
-		this.harvester = harvester;
-		this.loader = loader;
-		this.service = service;
+	public JobManager(ActorRef database) {
+		this.database = database;	
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
-		return Props.create(Jobs.class, database, harvester, loader, service);
+	public static Props props(ActorRef database) {
+		return Props.create(JobManager.class, database);
 	}
 	
 	private AsyncSQLQuery query() {
@@ -52,15 +54,7 @@ public class Jobs extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		getContext().actorOf(
-				Initiator.props()
-					.add(harvester, new GetHarvestJobs())
-					.add(loader, new GetImportJobs())
-					.add(service, new GetServiceJobs())
-					.create(getSelf()), 
-				"initiator");
 		
-		getContext().actorOf(Creator.props(database), "creator");
 	}
 
 	@Override
@@ -72,6 +66,16 @@ public class Jobs extends UntypedActor {
 		} else if(msg instanceof GetHarvestJobs) {
 			handleGetHarvestJobs();
 		} else if(msg instanceof GetServiceJobs) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof CreateHarvestJob) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof CreateImportJob) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof CreateServiceJob) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof GetDataSourceStatus) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof GetDatasetStatus) {
 			database.forward(msg, getContext());
 		} else {
 			unhandled(msg);

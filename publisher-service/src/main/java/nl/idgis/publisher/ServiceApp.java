@@ -11,7 +11,7 @@ import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
-import nl.idgis.publisher.job.Jobs;
+import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -124,7 +124,7 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service), "admin");
 		
-		getContext().actorOf(Jobs.props(database, harvester, loader, service), "jobs");
+		getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
