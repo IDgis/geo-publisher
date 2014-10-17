@@ -1,4 +1,4 @@
-package nl.idgis.publisher.database;
+package nl.idgis.publisher.job;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QJob.job;
@@ -9,7 +9,6 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceData
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -45,21 +44,21 @@ import com.mysema.query.Tuple;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class JobTest extends AbstractDatabaseTest {	
+public class JobTest extends AbstractJobManagerTest {	
 
 	@Test
 	public void testHarvestJob() throws Exception {
 		
 		insertDataSource();	
 		
-		Object result = ask(database, new CreateHarvestJob("testDataSource"));
+		Object result = ask(manager, new CreateHarvestJob("testDataSource"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		TypedIterable<?> jobs = askAssert(database, new GetHarvestJobs(), TypedIterable.class);		
+		TypedIterable<?> jobs = askAssert(manager, new GetHarvestJobs(), TypedIterable.class);		
 		assertTrue(jobs.contains(HarvestJobInfo.class));
 		
 		Iterator<HarvestJobInfo> jobsItr = jobs.cast(HarvestJobInfo.class).iterator();
@@ -124,7 +123,7 @@ public class JobTest extends AbstractDatabaseTest {
 				.execute();
 		}
 		
-		Object result = ask(database, new GetDatasetStatus());
+		Object result = ask(manager, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -142,7 +141,7 @@ public class JobTest extends AbstractDatabaseTest {
 		
 		assertFalse(i.hasNext());
 		
-		result = ask(database, new CreateImportJob("testDataset"));
+		result = ask(manager, new CreateImportJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -175,7 +174,7 @@ public class JobTest extends AbstractDatabaseTest {
 		
 		assertColumns(importJobInfo.getColumns());
 		
-		result = ask(database, new GetDatasetStatus());
+		result = ask(manager, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -193,7 +192,7 @@ public class JobTest extends AbstractDatabaseTest {
 		result = ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(database, new GetDatasetStatus());
+		result = ask(manager, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
@@ -206,7 +205,7 @@ public class JobTest extends AbstractDatabaseTest {
 		datasetStatus = i.next();
 		assertFalse(datasetStatus.isServiceCreated());
 		
-		result = ask(database, new CreateServiceJob("testDataset"));
+		result = ask(manager, new CreateServiceJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		TypedIterable<?> serviceJobsInfos = askAssert(database, new GetServiceJobs(), TypedIterable.class);
@@ -218,7 +217,7 @@ public class JobTest extends AbstractDatabaseTest {
 		result = ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(database, new GetDatasetStatus());
+		result = ask(manager, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
