@@ -4,7 +4,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnFailure;
-import akka.dispatch.OnSuccess;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -46,25 +45,21 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public Result result(final Function4<T, U, V, W, Void> f) {
-			return new Result(future, 
-				parent.result(new AbstractFunction3<T, U, V, Void>() {
-	
-					@Override
-					public Void apply(final T t, final U u, final V v) {
-						future.onSuccess(new OnSuccess<W>() {
-	
-							@Override
-							public void onSuccess(W w) throws Throwable {
-								f.apply(t,  u,  v, w);
-							}
-							
-						}, executionContext);
+		public <R> Result<R> result(final Function4<T, U, V, W, R> f) {
+			return new Result<R>(future.flatMap(new Mapper<W, Future<R>>() {
+				
+				public Future<R> apply(final W w) {
+					return parent.result(new AbstractFunction3<T, U, V, R>() {
+
+						@Override
+						public R apply(T t, U u, V v) {
+							return f.apply(t, u, v, w);
+						}
 						
-						return null;
-					}
-					
-				}));
+					}).returnValue();
+				}
+				
+			}, executionContext));
 		}
 	}
 	
@@ -78,25 +73,21 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public Result result(final Function3<T, U, V, Void> f) {
-			return new Result(future,
-				parent.result(new AbstractFunction2<T, U, Void>() {
-	
-					@Override
-					public Void apply(final T t, final U u) {
-						future.onSuccess(new OnSuccess<V>() {
-	
-							@Override
-							public void onSuccess(V v) throws Throwable {
-								f.apply(t,  u,  v);
-							}
-							
-						}, executionContext);
+		public <R> Result<R> result(final Function3<T, U, V, R> f) {
+			return new Result<R>(future.flatMap(new Mapper<V, Future<R>>() {
+				
+				public Future<R> apply(final V v) {
+					return parent.result(new AbstractFunction2<T, U, R>() {
+
+						@Override
+						public R apply(T t, U u) {
+							return f.apply(t, u, v);
+						}
 						
-						return null;
-					}
-					
-				}));
+					}).returnValue();
+				}
+				
+			}, executionContext));
 		}
 		
 		public <W> Collector4<T, U, V, W> collect(Future<W> future) {
@@ -114,25 +105,21 @@ public class FutureUtils {
 			this.parent = parent;			
 		}
 		
-		public Result result(final Function2<T, U, Void> f) {			
-			return new Result(future,
-				parent.result(new AbstractFunction1<T, Void>() {
-	
-					@Override
-					public Void apply(final T t) { 
-						future.onSuccess(new OnSuccess<U>() {
-	
-							@Override
-							public void onSuccess(U u) throws Throwable {
-								f.apply(t, u);
-							}
-							
-						}, executionContext);
+		public <R> Result<R> result(final Function2<T, U, R> f) {			
+			return new Result<R>(future.flatMap(new Mapper<U, Future<R>>() {
+				
+				public Future<R> apply(final U u) {
+					return parent.result(new AbstractFunction1<T, R>() {
+
+						@Override
+						public R apply(T t) {
+							return f.apply(t, u);
+						}
 						
-						return null;
-					}
-					
-				}));
+					}).returnValue();
+				}
+				
+			}, executionContext));
 		}
 		
 		public <V> Collector3<T, U, V> collect(Future<V> future) {
@@ -146,17 +133,15 @@ public class FutureUtils {
 			super(future);
 		}
 		
-		public Result result(final Function1<T, Void> f) {
-			future.onSuccess(new OnSuccess<T>() {
+		public <R> Result<R> result(final Function1<T, R> f) {
+			return new Result<R>(future.map(new Mapper<T, R>() {
 
 				@Override
-				public void onSuccess(T t) throws Throwable {
-					f.apply(t);
+				public R apply(T t) {
+					return f.apply(t);
 				}
 				
-			}, executionContext);
-			
-			return new Result(future);
+			}, executionContext));
 		}
 		
 		public <U> Collector2<T, U> collect(Future<U> future) {
@@ -164,26 +149,20 @@ public class FutureUtils {
 		}
 	}
 	
-	public class Result {
+	public class Result<T> {
 		
-		private Future<?> future;
-		private Result parent;
+		private final Future<T> future;
 		
-		private Result(Future<?> future) {
-			this(future, null);
-		}
-
-		public Result(Future<?> future, Result parent) {
+		private Result(Future<T> future) {
 			this.future = future;
-			this.parent = parent;
+		}
+		
+		public Future<T> returnValue() {
+			return future;
 		}
 		
 		public void failure(OnFailure onFailure) {
 			future.onFailure(onFailure, executionContext);
-			
-			if(parent != null) {
-				parent.failure(onFailure);
-			}
 		}
 	}
 	

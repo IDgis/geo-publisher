@@ -13,11 +13,9 @@ import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
-
 import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -88,12 +86,45 @@ public class FutureUtilsTest {
 					return null;
 				}
 				
-			})
+			})			
 			.failure(new OnFailure() {
 
 				@Override
 				public void onFailure(Throwable t) throws Throwable {
 					testPromise.success(true);
+				}
+				
+			});
+	}
+	
+	@Test
+	public void testCollectReturnValue() {
+		f
+			.collect(		
+				f
+					.collect(Futures.successful("Hello world!"))
+					.collect(Futures.successful(42))
+					.result(new AbstractFunction2<String, Integer, Integer>() {
+		
+						@Override
+						public Integer apply(String s, Integer i) {
+							return 47;
+						}
+						
+					})
+					.returnValue())
+			.result(new AbstractFunction1<Integer, Void>() {
+
+				@Override
+				public Void apply(Integer i) {
+					try {
+						assertEquals(new Integer(47), i);
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+					
+					return null;
 				}
 				
 			});
