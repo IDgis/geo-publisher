@@ -1,17 +1,34 @@
 package nl.idgis.publisher.job;
 
+import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
+import static nl.idgis.publisher.database.QNotification.notification;
+import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.Future;
+import scala.runtime.AbstractFunction4;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.path.StringPath;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
@@ -20,12 +37,25 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
+import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
+import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.NotificationResult;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.FutureUtils.Collector1;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.pattern.PipeToSupport.PipeableFuture;
 import akka.util.Timeout;
@@ -36,6 +66,8 @@ public class JobManager extends UntypedActor {
 	
 	private final ActorRef database;
 	
+	private final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
+	
 	public JobManager(ActorRef database) {
 		this.database = database;	
 	}
@@ -44,8 +76,61 @@ public class JobManager extends UntypedActor {
 		return Props.create(JobManager.class, database);
 	}
 	
+	private AsyncSQLQuery query(ActorRef transaction) {
+		return new AsyncSQLQuery(transaction, timeout, getContext().dispatcher());
+	}
+	
 	private AsyncSQLQuery query() {
-		return new AsyncSQLQuery(database, new Timeout(15, TimeUnit.SECONDS), getContext().dispatcher());
+		return query(database);
+	}
+	
+	public <T> Collector1<T> collect(Future<T> future) {
+		return new FutureUtils(getContext().dispatcher()).collect(future);
+	}
+	
+	private Future<Object> transactional(final Function<ActorRef, Future<Object>> handler) {
+		return Patterns.ask(database, new StartTransaction(), timeout)
+			.flatMap(new Mapper<Object, Future<Object>>() {
+
+				@Override
+				public Future<Object> checkedApply(Object msg) throws Exception {
+					if(msg instanceof TransactionCreated) {
+						log.debug("transaction created");
+						
+						final ActorRef transaction = ((TransactionCreated)msg).getActor();
+						
+						return handler.apply(transaction).flatMap(new Mapper<Object, Future<Object>>() {
+							
+							public Future<Object> checkedApply(final Object result) {
+								log.debug("query result obtained");
+								
+								return Patterns.ask(transaction, new Commit(), timeout)
+									.map(new Mapper<Object, Object>() {
+										
+										public Object apply(Object msg) {
+											if(msg instanceof Ack) {
+												log.debug("committed");
+												
+												if(result != null) {
+													return result;
+												}
+												
+												return new Ack();
+											} else {
+												log.debug("commit failed");
+												
+												return msg;
+											}
+										}
+										
+									}, getContext().dispatcher());
+							}
+						}, getContext().dispatcher());
+					} else {
+						throw new IllegalArgumentException("TransactionCreated expected");
+					}
+				}				
+			}, getContext().dispatcher());			
 	}
 	
 	private <T> PipeableFuture<T> pipe(Future<T> future) {
@@ -62,7 +147,7 @@ public class JobManager extends UntypedActor {
 		log.debug("jobs: " + msg);
 		
 		if(msg instanceof GetImportJobs) {
-			database.forward(msg, getContext());
+			handleGetImportJobs();
 		} else if(msg instanceof GetHarvestJobs) {
 			handleGetHarvestJobs();
 		} else if(msg instanceof GetServiceJobs) {
@@ -80,6 +165,142 @@ public class JobManager extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private void handleGetImportJobs() {
+		log.debug("fetching import jobs");
+		
+		pipe(
+			transactional(new Function<ActorRef, Future<Object>>() {
+	
+				@Override
+				public Future<Object> apply(ActorRef transaction) throws Exception {
+					AsyncSQLQuery query = query(transaction).from(job)
+						.join(importJob).on(importJob.jobId.eq(job.id))			
+						.join(dataset).on(dataset.id.eq(importJob.datasetId))
+						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
+						.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+						.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+						.orderBy(job.id.asc(), job.createTime.asc())
+						.where(new SQLSubQuery().from(jobState)
+								.where(jobState.jobId.eq(job.id))
+								.notExists());
+					
+					return collect(
+						query.clone()			
+							.list(
+								job.id,
+								importJob.filterConditions,
+								category.identification,
+								dataSource.identification,
+								sourceDataset.identification,
+								dataset.id,
+								dataset.name,
+								dataset.identification))
+					
+					.collect(
+						query.clone()
+							.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id))							
+							.orderBy(importJobColumn.index.asc())
+							.list(job.id, importJobColumn.name, importJobColumn.dataType))
+						
+					.collect(
+						query.clone()
+							.join(lastSourceDatasetVersion).on(lastSourceDatasetVersion.datasetId.eq(dataset.id))
+							.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(lastSourceDatasetVersion.sourceDatasetVersionId))
+							.orderBy(sourceDatasetVersionColumn.index.asc())
+							.list(job.id, sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType))
+						
+					.collect(
+						query.clone()
+							.join(notification).on(notification.jobId.eq(job.id))
+							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
+							.list(job.id, notification.type, notificationResult.result))
+						
+					.result(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, Object>() {
+	
+						@Override
+						public TypedList<ImportJobInfo> apply(							
+							TypedList<Tuple> baseList,						
+							TypedList<Tuple> importJobColumnsList, 
+							TypedList<Tuple> sourceDatasetColumnsList, 
+							TypedList<Tuple> jobNotificationsList) {
+							
+							ArrayList<ImportJobInfo> jobs = new ArrayList<>();
+							
+							ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
+							ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
+							ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
+							
+							for(Tuple t : baseList) {
+								int jobId = t.get(job.id);
+								
+								List<Notification> notifications = new ArrayList<>();
+								for(; jobNotifications.hasNext();) {
+									Tuple tn = jobNotifications.next();
+									
+									int notificationJobId = tn.get(job.id);				
+									if(notificationJobId != jobId) {
+										jobNotifications.previous();
+										break;
+									}
+									
+									ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
+									
+									NotificationResult result;
+									String resultName = tn.get(notificationResult.result);
+									if(resultName == null) {
+										result = null;
+									} else {
+										result = notificationType.getResult(resultName);
+									}
+									
+									notifications.add(new Notification(notificationType, result));
+								}
+								
+								jobs.add(new ImportJobInfo(
+										t.get(job.id),
+										t.get(category.identification),
+										t.get(dataSource.identification), 
+										t.get(sourceDataset.identification),
+										t.get(dataset.identification),
+										t.get(dataset.name),
+										t.get(importJob.filterConditions),
+										getColumns(importJobColumns, jobId, importJobColumn.name, importJobColumn.dataType),
+										getColumns(sourceDatasetColumns, jobId, sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType),
+										notifications));
+							}						
+	
+							return new TypedList<>(ImportJobInfo.class, jobs);
+						}
+						
+					})
+					
+					.returnValue();				
+				}
+				
+			}))
+			
+			.pipeTo(getSender(), getSelf());
+	}
+	
+	private List<Column> getColumns(ListIterator<Tuple> columnIterator, int jobId, StringPath name, StringPath dataType) {
+		List<Column> importJobColumns = new ArrayList<>();
+		for(; columnIterator.hasNext();) {
+			Tuple tc = columnIterator.next();
+			
+			int columnJobId = tc.get(job.id);				
+			if(columnJobId != jobId) {
+				columnIterator.previous();
+				break;
+			}
+			
+			importJobColumns.add(new Column(
+					tc.get(name), 
+					tc.get(dataType)));
+		}
+		return importJobColumns;
 	}
 	
 	private void handleGetHarvestJobs() {
