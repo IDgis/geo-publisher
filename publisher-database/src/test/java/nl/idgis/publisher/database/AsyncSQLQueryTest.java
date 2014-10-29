@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 
 import org.junit.Test;
 
@@ -25,7 +25,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	public void testTuple() throws Exception {
 		insertDataset();
 		
-		Future<TypedIterable<Tuple>> future = new AsyncSQLQuery(database, new Timeout(1, TimeUnit.SECONDS), dispatcher())
+		Future<TypedList<Tuple>> future = new AsyncSQLQuery(database, new Timeout(1, TimeUnit.SECONDS), dispatcher())
 			.from(category)
 			.list(category.id, category.name);
 		
@@ -40,7 +40,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	public void testProjection() throws Exception {
 		insertDataset();
 		
-		Future<TypedIterable<String>> future = new AsyncSQLQuery(database, new Timeout(1, TimeUnit.SECONDS), dispatcher())
+		Future<TypedList<String>> future = new AsyncSQLQuery(database, new Timeout(1, TimeUnit.SECONDS), dispatcher())
 			.from(category)
 			.list(category.name);
 		

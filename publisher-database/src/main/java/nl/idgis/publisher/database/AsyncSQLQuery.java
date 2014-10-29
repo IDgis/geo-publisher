@@ -1,7 +1,7 @@
 package nl.idgis.publisher.database;
 
 import nl.idgis.publisher.database.messages.PerformQuery;
-import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -41,39 +41,39 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 	}
 
 	@Override
-	public Future<TypedIterable<Tuple>> list(Expression<?>... args) {
+	public Future<TypedList<Tuple>> list(Expression<?>... args) {
 		queryMixin.addProjection(args);
 		
 		return Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
-			.map(new Mapper<Object, TypedIterable<Tuple>>() {
+			.map(new Mapper<Object, TypedList<Tuple>>() {
 				
 				@Override
 				@SuppressWarnings("unchecked")
-				public TypedIterable<Tuple> apply(Object parameter) {
-					return (TypedIterable<Tuple>)parameter;
+				public TypedList<Tuple> apply(Object parameter) {
+					return (TypedList<Tuple>)parameter;
 				}
 				
 			}, executionContext);
 	}
 
 	@Override
-	public <RT> Future<TypedIterable<RT>> list(Expression<RT> projection) {
+	public <RT> Future<TypedList<RT>> list(Expression<RT> projection) {
 		queryMixin.addProjection(projection);
 		
 		return Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
-			.map(new Mapper<Object, TypedIterable<RT>>() {
+			.map(new Mapper<Object, TypedList<RT>>() {
 				
 				@Override
 				@SuppressWarnings("unchecked")
-				public TypedIterable<RT> apply(Object parameter) {
-					return (TypedIterable<RT>)parameter;
+				public TypedList<RT> apply(Object parameter) {
+					return (TypedList<RT>)parameter;
 				}
 				
 			}, executionContext);
 	}
 
 	@Override
-	public Future<TypedIterable<Tuple>> list(Object... args) {
+	public Future<TypedList<Tuple>> list(Object... args) {
 		Expression<?>[] exprArgs = new Expression<?>[args.length];
 		
 		int i = 0;

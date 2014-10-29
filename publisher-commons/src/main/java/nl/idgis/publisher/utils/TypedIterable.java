@@ -10,7 +10,7 @@ public class TypedIterable<T> implements Iterable<T>, Serializable {
 	private static final long serialVersionUID = -6088987471942777255L;
 	
 	private final Class<T> contentType;
-	private final Iterable<T> content;
+	protected final Iterable<T> content;
 	
 	public TypedIterable(Class<T> contentType, Iterable<T> content) {
 		this.contentType = contentType;
@@ -36,6 +36,10 @@ public class TypedIterable<T> implements Iterable<T>, Serializable {
 	}
 	
 	public Collection<T> asCollection() {
+		if(content instanceof Collection) {
+			return (Collection<T>)content;
+		}
+		
 		return new AbstractCollection<T>() {
 			
 			private Integer size;
