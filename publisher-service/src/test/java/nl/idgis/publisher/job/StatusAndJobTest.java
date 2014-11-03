@@ -20,7 +20,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 
 import org.junit.Test;
 
@@ -42,12 +42,12 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 			.execute();
 		
 		Object result = ask(manager, new GetDataSourceStatus());
-		assertEquals(TypedIterable.class, result.getClass());
+		assertEquals(TypedList.class, result.getClass());
 		
-		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DataSourceStatus.class));
+		TypedList<?> typedList = (TypedList<?>)result;
+		assertTrue(typedList.contains(DataSourceStatus.class));
 		
-		Iterator<DataSourceStatus> itr = typedIterable.cast(DataSourceStatus.class).iterator();
+		Iterator<DataSourceStatus> itr = typedList.cast(DataSourceStatus.class).iterator();
 		assertNotNull(itr);
 		assertTrue(itr.hasNext());
 		
@@ -66,12 +66,12 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		executeJobs(new GetHarvestJobs());
 		
 		result = ask(manager, new GetDataSourceStatus());
-		assertEquals(TypedIterable.class, result.getClass());
+		assertEquals(TypedList.class, result.getClass());
 		
-		typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DataSourceStatus.class));
+		typedList = (TypedList<?>)result;
+		assertTrue(typedList.contains(DataSourceStatus.class));
 		
-		itr = typedIterable.cast(DataSourceStatus.class).iterator();
+		itr = typedList.cast(DataSourceStatus.class).iterator();
 		assertNotNull(itr);
 		assertTrue(itr.hasNext());
 		
@@ -102,12 +102,12 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 				"{ \"expression\": null }"));
 		
 		result = ask(manager, new GetDatasetStatus());
-		assertEquals(TypedIterable.class, result.getClass());
+		assertEquals(TypedList.class, result.getClass());
 		
-		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
+		TypedList<?> typedList = (TypedList<?>)result;
+		assertTrue(typedList.contains(DatasetStatusInfo.class));
 		
-		Iterator<DatasetStatusInfo> itr = typedIterable.cast(DatasetStatusInfo.class).iterator();
+		Iterator<DatasetStatusInfo> itr = typedList.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(itr);
 		
 		assertTrue(itr.hasNext());
@@ -133,12 +133,12 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		}
 		
 		result = ask(manager, new GetDatasetStatus());
-		assertEquals(TypedIterable.class, result.getClass());
+		assertEquals(TypedList.class, result.getClass());
 		
-		typedIterable = (TypedIterable<?>)result;
-		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
+		typedList = (TypedList<?>)result;
+		assertTrue(typedList.contains(DatasetStatusInfo.class));
 		
-		itr = typedIterable.cast(DatasetStatusInfo.class).iterator();
+		itr = typedList.cast(DatasetStatusInfo.class).iterator();
 		assertNotNull(itr);
 		
 		assertTrue(itr.hasNext());
