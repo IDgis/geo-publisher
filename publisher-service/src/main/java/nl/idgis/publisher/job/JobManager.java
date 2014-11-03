@@ -20,15 +20,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.Future;
-import scala.runtime.AbstractFunction4;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.path.StringPath;
-
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
@@ -39,20 +33,18 @@ import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
-import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Collector1;
 import nl.idgis.publisher.utils.TypedList;
+
+import scala.concurrent.Future;
+import scala.runtime.AbstractFunction4;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
@@ -60,77 +52,24 @@ import akka.pattern.Patterns;
 import akka.pattern.PipeToSupport.PipeableFuture;
 import akka.util.Timeout;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.path.StringPath;
+
 public class JobManager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
+	private final DatabaseRef database;
 	
 	private final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 	
 	public JobManager(ActorRef database) {
-		this.database = database;	
+		this.database = new DatabaseRef(database, timeout, getContext().dispatcher(), log);	
 	}
 	
 	public static Props props(ActorRef database) {
 		return Props.create(JobManager.class, database);
-	}
-	
-	private AsyncSQLQuery query(ActorRef transaction) {
-		return new AsyncSQLQuery(transaction, timeout, getContext().dispatcher());
-	}
-	
-	private AsyncSQLQuery query() {
-		return query(database);
-	}
-	
-	public <T> Collector1<T> collect(Future<T> future) {
-		return new FutureUtils(getContext().dispatcher()).collect(future);
-	}
-	
-	private Future<Object> transactional(final Function<ActorRef, Future<Object>> handler) {
-		return Patterns.ask(database, new StartTransaction(), timeout)
-			.flatMap(new Mapper<Object, Future<Object>>() {
-
-				@Override
-				public Future<Object> checkedApply(Object msg) throws Exception {
-					if(msg instanceof TransactionCreated) {
-						log.debug("transaction created");
-						
-						final ActorRef transaction = ((TransactionCreated)msg).getActor();
-						
-						return handler.apply(transaction).flatMap(new Mapper<Object, Future<Object>>() {
-							
-							public Future<Object> checkedApply(final Object result) {
-								log.debug("query result obtained");
-								
-								return Patterns.ask(transaction, new Commit(), timeout)
-									.map(new Mapper<Object, Object>() {
-										
-										public Object apply(Object msg) {
-											if(msg instanceof Ack) {
-												log.debug("committed");
-												
-												if(result != null) {
-													return result;
-												}
-												
-												return new Ack();
-											} else {
-												log.debug("commit failed");
-												
-												return msg;
-											}
-										}
-										
-									}, getContext().dispatcher());
-							}
-						}, getContext().dispatcher());
-					} else {
-						throw new IllegalArgumentException("TransactionCreated expected");
-					}
-				}				
-			}, getContext().dispatcher());			
 	}
 	
 	private <T> PipeableFuture<T> pipe(Future<T> future) {
@@ -171,11 +110,11 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching import jobs");
 		
 		pipe(
-			transactional(new Function<ActorRef, Future<Object>>() {
+			database.transactional(new Function<TransactionHandler, Future<Object>>() {
 	
 				@Override
-				public Future<Object> apply(ActorRef transaction) throws Exception {
-					AsyncSQLQuery query = query(transaction).from(job)
+				public Future<Object> apply(TransactionHandler transaction) throws Exception {
+					AsyncSQLQuery query = transaction.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))
 						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
@@ -187,7 +126,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return collect(
+					return transaction.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -307,7 +246,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching harvest jobs");
 		
 		pipe(
-			query().from(job)
+			database.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.orderBy(job.createTime.asc())
