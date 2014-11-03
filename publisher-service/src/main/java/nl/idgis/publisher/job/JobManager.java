@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -33,15 +34,14 @@ import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
+import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.utils.TypedList;
-
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction4;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -90,7 +90,7 @@ public class JobManager extends UntypedActor {
 		} else if(msg instanceof GetHarvestJobs) {
 			handleGetHarvestJobs();
 		} else if(msg instanceof GetServiceJobs) {
-			database.forward(msg, getContext());
+			handleGetServiceJobs();			
 		} else if(msg instanceof CreateHarvestJob) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof CreateImportJob) {
@@ -106,6 +106,25 @@ public class JobManager extends UntypedActor {
 		}
 	}
 	
+	private void handleGetServiceJobs() {
+		log.debug("fetching service jobs");
+		
+		pipe(
+			database.query().from(serviceJob)
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
+				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+				.where(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(serviceJob.jobId))
+						.notExists())
+				.list(new QServiceJobInfo(
+						serviceJob.jobId, 
+						category.identification, 
+						dataset.identification)))
+						
+			.pipeTo(getSender(), getSelf());		
+	}
+
 	private void handleGetImportJobs() {
 		log.debug("fetching import jobs");
 		
