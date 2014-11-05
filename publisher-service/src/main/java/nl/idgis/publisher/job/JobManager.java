@@ -16,13 +16,17 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
+import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.QJobState;
 import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
@@ -35,16 +39,21 @@ import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedList;
 import scala.concurrent.Future;
+import scala.runtime.AbstractFunction2;
 import scala.runtime.AbstractFunction4;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
+import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
@@ -54,6 +63,7 @@ import akka.util.Timeout;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.path.StringPath;
 
 public class JobManager extends UntypedActor {
@@ -92,7 +102,8 @@ public class JobManager extends UntypedActor {
 		} else if(msg instanceof GetServiceJobs) {
 			handleGetServiceJobs();			
 		} else if(msg instanceof CreateHarvestJob) {
-			database.forward(msg, getContext());
+			pipe(handleCreateHarvestJob((CreateHarvestJob)msg))
+				.pipeTo(getSender(), getSelf());
 		} else if(msg instanceof CreateImportJob) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof CreateServiceJob) {
@@ -104,6 +115,112 @@ public class JobManager extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private <T extends Collection<? extends Enum<?>>> Collection<String> enumsToStrings(final T enums) {
+		return new AbstractCollection<String>() {
+
+			@Override
+			public Iterator<String> iterator() {
+				final Iterator<? extends Enum<?>> enumIterator = enums.iterator();
+				
+				return new Iterator<String>() {
+
+					@Override
+					public boolean hasNext() {
+						return enumIterator.hasNext();
+					}
+
+					@Override
+					public String next() {
+						return enumIterator.next().name();
+					}
+
+					@Override
+					public void remove() {
+						enumIterator.remove();
+					}					
+				};	
+			}
+
+			@Override
+			public int size() {				
+				return enums.size();
+			}
+		};
+	}
+	
+	private BooleanExpression isFinished(QJobState jobState) {
+		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
+	}
+	
+	private Future<Object> handleCreateHarvestJob(final CreateHarvestJob msg) {
+		log.debug("creating harvest job: " + msg.getDataSourceId());
+		
+		return database.transactional(new Function<TransactionHandler, Future<Object>>() {
+
+			@Override
+			public Future<Object> apply(final TransactionHandler transaction) throws Exception {				
+				return transaction.query().from(job)
+					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
+					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
+					.where(dataSource.identification.eq(msg.getDataSourceId()))
+					.where(new SQLSubQuery().from(jobState)
+							.where(jobState.jobId.eq(job.id))
+							.where(isFinished(jobState))
+							.notExists())
+					.notExists()
+				
+				.flatMap(new Mapper<Boolean, Future<Object>>() {
+					
+					@Override
+					public Future<Object> apply(Boolean notExists) {
+						if(notExists) {
+							return transaction.collect(
+								transaction.query().from(dataSource)
+									.where(dataSource.identification.eq(msg.getDataSourceId()))
+									.singleResult(dataSource.id))
+							.collect(
+								transaction.insert(job)
+									.set(job.type, "HARVEST")
+									.executeWithKey(job.id))
+									
+							.result(new AbstractFunction2<Integer, Integer, Object>() {
+
+								@Override
+								public Object apply(Integer jobId, Integer dataSourceId) {
+									log.debug("job created and dataSourceId determined");
+									
+									return 
+										transaction.insert(harvestJob)
+											.set(harvestJob.jobId, jobId)				
+											.set(harvestJob.dataSourceId, dataSourceId)
+											.execute();
+								}
+								
+							})
+							
+							.returnValue().map(new Mapper<Object, Object>() {
+								
+								@Override
+								public Object apply(Object o) {
+									log.debug("harvest job created");
+									
+									return new Ack();
+								}
+								
+							}, getContext().dispatcher());
+							
+						} else {
+							log.debug("already exist a harvest job for this dataSource");
+							
+							return Futures.successful((Object)new Ack());
+						}
+					}
+					
+				}, getContext().dispatcher());
+			}			
+		});
 	}
 	
 	private void handleGetServiceJobs() {
