@@ -17,6 +17,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,16 +39,20 @@ import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedList;
+
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction2;
 import scala.runtime.AbstractFunction4;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -63,7 +68,6 @@ import akka.util.Timeout;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.expr.BooleanExpression;
-import com.mysema.query.types.path.StringPath;
 
 public class JobManager extends UntypedActor {
 	
@@ -308,8 +312,24 @@ public class JobManager extends UntypedActor {
 										t.get(dataset.identification),
 										t.get(dataset.name),
 										t.get(importJob.filterConditions),
-										getColumns(importJobColumns, jobId, importJobColumn.name, importJobColumn.dataType),
-										getColumns(sourceDatasetColumns, jobId, sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType),
+										consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+											
+											@Override
+											public Column apply(Tuple t) {
+												return new Column(
+													t.get(importJobColumn.name), 
+													t.get(importJobColumn.dataType));
+											}
+										}),
+										consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+											
+											@Override
+											public Column apply(Tuple t) {
+												return new Column(
+													t.get(sourceDatasetVersionColumn.name),
+													t.get(sourceDatasetVersionColumn.dataType));
+											} 
+										}),
 										notifications));
 							}						
 	
@@ -324,24 +344,6 @@ public class JobManager extends UntypedActor {
 			}))
 			
 			.pipeTo(getSender(), getSelf());
-	}
-	
-	private List<Column> getColumns(ListIterator<Tuple> columnIterator, int jobId, StringPath name, StringPath dataType) {
-		List<Column> importJobColumns = new ArrayList<>();
-		for(; columnIterator.hasNext();) {
-			Tuple tc = columnIterator.next();
-			
-			int columnJobId = tc.get(job.id);				
-			if(columnJobId != jobId) {
-				columnIterator.previous();
-				break;
-			}
-			
-			importJobColumns.add(new Column(
-					tc.get(name), 
-					tc.get(dataType)));
-		}
-		return importJobColumns;
 	}
 	
 	private void handleGetHarvestJobs() {
