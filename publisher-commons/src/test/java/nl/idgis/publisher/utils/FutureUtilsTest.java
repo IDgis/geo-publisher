@@ -131,6 +131,39 @@ public class FutureUtilsTest {
 	}
 	
 	@Test
+	public void testCollectFlatReturnValue() {
+		f
+			.collect(		
+				f
+					.collect(Futures.successful("Hello world!"))
+					.collect(Futures.successful(42))
+					.flatResult(new AbstractFunction2<String, Integer, Future<Integer>>() {
+		
+						@Override
+						public Future<Integer> apply(String s, Integer i) {
+							return Futures.successful(47);
+						}
+						
+					})
+					.returnValue())
+			.result(new AbstractFunction1<Integer, Void>() {
+
+				@Override
+				public Void apply(Integer i) {
+					try {
+						assertEquals(new Integer(47), i);
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+					
+					return null;
+				}
+				
+			});
+	}
+	
+	@Test
 	public void testCast() {
 		
 		Future<Object> objectFuture = Futures.<Object>successful("Hello world!");
