@@ -67,6 +67,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
+import nl.idgis.publisher.database.messages.PerformInsert;
 import nl.idgis.publisher.database.messages.PerformQuery;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
@@ -112,7 +113,6 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
-
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -126,6 +126,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
+import com.mysema.query.types.SubQueryExpression;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
 import com.mysema.query.types.path.StringPath;
@@ -272,6 +273,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
 		} else if (query instanceof PerformQuery) {
 			executePerformQuery((PerformQuery)query);
+		} else if (query instanceof PerformInsert) {
+			executePerformInsert((PerformInsert)query);
 		} else {
 			unhandled(query);
 		}
@@ -287,6 +290,24 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			answer(
 				Tuple.class,		
 				query(metadata).list(projection.toArray(new Expression<?>[projection.size()])));
+		}
+	}
+	
+	private void executePerformInsert(PerformInsert query) {
+		SQLInsertClause insert = insert(query.getEntity());
+		
+		SubQueryExpression<?> subQuery = query.getSubQuery();
+		if(subQuery != null) {
+			answer(
+				insert
+					.select(subQuery)
+					.execute());
+		} else {
+			answer(
+				insert
+					.columns(query.getColumns())
+					.values((Object[])query.getValues())
+					.execute());
 		}
 	}
 
