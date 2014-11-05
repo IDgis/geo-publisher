@@ -15,7 +15,6 @@ import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 
@@ -36,9 +35,11 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
+import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
+import nl.idgis.publisher.database.messages.ServiceJobInfo;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.Notification;
@@ -62,7 +63,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
 import akka.pattern.Patterns;
-import akka.pattern.PipeToSupport.PipeableFuture;
 import akka.util.Timeout;
 
 import com.mysema.query.Tuple;
@@ -85,8 +85,9 @@ public class JobManager extends UntypedActor {
 		return Props.create(JobManager.class, database);
 	}
 	
-	private <T> PipeableFuture<T> pipe(Future<T> future) {
-		return Patterns.pipe(future, getContext().dispatcher());
+	private <T> void returnToSender(Future<T> future) {
+		Patterns.pipe(future, getContext().dispatcher())
+			.pipeTo(getSender(), getSelf());
 	}
 	
 	@Override
@@ -99,14 +100,13 @@ public class JobManager extends UntypedActor {
 		log.debug("jobs: " + msg);
 		
 		if(msg instanceof GetImportJobs) {
-			handleGetImportJobs();
+			returnToSender(handleGetImportJobs());
 		} else if(msg instanceof GetHarvestJobs) {
-			handleGetHarvestJobs();
+			returnToSender(handleGetHarvestJobs());
 		} else if(msg instanceof GetServiceJobs) {
-			handleGetServiceJobs();			
+			returnToSender(handleGetServiceJobs());			
 		} else if(msg instanceof CreateHarvestJob) {
-			pipe(handleCreateHarvestJob((CreateHarvestJob)msg))
-				.pipeTo(getSender(), getSelf());
+			returnToSender(handleCreateHarvestJob((CreateHarvestJob)msg));			
 		} else if(msg instanceof CreateImportJob) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof CreateServiceJob) {
@@ -193,10 +193,10 @@ public class JobManager extends UntypedActor {
 		});
 	}
 	
-	private void handleGetServiceJobs() {
+	private Future<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
 		log.debug("fetching service jobs");
 		
-		pipe(
+		return
 			database.query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
@@ -207,15 +207,13 @@ public class JobManager extends UntypedActor {
 				.list(new QServiceJobInfo(
 						serviceJob.jobId, 
 						category.identification, 
-						dataset.identification)))
-						
-			.pipeTo(getSender(), getSelf());		
+						dataset.identification));
 	}
 
-	private void handleGetImportJobs() {
+	private Future<TypedList<ImportJobInfo>> handleGetImportJobs() {
 		log.debug("fetching import jobs");
 		
-		pipe(
+		return
 			database.transactional(new Function<TransactionHandler, Future<TypedList<ImportJobInfo>>>() {
 	
 				@Override
@@ -341,15 +339,13 @@ public class JobManager extends UntypedActor {
 					.returnValue();				
 				}
 				
-			}))
-			
-			.pipeTo(getSender(), getSelf());
+			});
 	}
 	
-	private void handleGetHarvestJobs() {
+	private Future<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
 		log.debug("fetching harvest jobs");
-		
-		pipe(
+
+		return
 			database.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
@@ -357,8 +353,6 @@ public class JobManager extends UntypedActor {
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
 						.notExists())
-				.list(new QHarvestJobInfo(job.id, dataSource.identification)))
-			
-			.pipeTo(getSender(), getSelf());
+				.list(new QHarvestJobInfo(job.id, dataSource.identification));
 	}
 }
