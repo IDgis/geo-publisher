@@ -295,23 +295,26 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private void executePerformInsert(PerformInsert query) {
 		SQLInsertClause insert = insert(query.getEntity());
 		
+		
+		Path<?>[] columns = query.getColumns();
+		
 		SubQueryExpression<?> subQuery = query.getSubQuery();
 		if(subQuery != null) {
-			answer(
-				insert
-					.select(subQuery)
-					.execute());
+			insert
+				.columns(columns)
+				.select(subQuery);
 		} else {
 			insert
-				.columns(query.getColumns())
+				.columns(columns)
 				.values((Object[])query.getValues());
-			
-			Path<?> key = query.getKey();
-			if(key != null) {
-				answer(insert.executeWithKey(key));
-			} else {
-				answer(insert.execute());
-			}
+		}
+		
+		Path<?> key = query.getKey();
+		
+		if(key != null) {
+			answer(insert.executeWithKey(key));
+		} else {
+			answer(insert.execute());
 		}
 	}
 
