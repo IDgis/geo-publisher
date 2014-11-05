@@ -100,15 +100,15 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 			public T checkedApply(TypedList<T> list) {
 				Iterator<T> itr = list.iterator();
 				
-				if(itr.hasNext()) {
-					return null;
-				} else {
+				if(itr.hasNext()) {					
 					T retval = itr.next();
 					if(itr.hasNext()) {
 						throw new NonUniqueResultException();
 					} else {
 						return retval;
 					}
+				} else {
+					return null;
 				}
 			}
 		}, executionContext);
