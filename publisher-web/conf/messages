@@ -219,6 +219,8 @@ web.application.page.datasets.form.tab.general.field.tablename.help=De naam van 
 
 web.application.page.datasets.form.tab.columns.label=Geselecteerde kolommen
 web.application.page.datasets.form.tab.columns.alert=Selecteer tenminste één kolom.
+web.application.page.datasets.form.tab.columns.button.select_all=Selecteer alle kolommen.
+web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer alle kolommen.
 
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
