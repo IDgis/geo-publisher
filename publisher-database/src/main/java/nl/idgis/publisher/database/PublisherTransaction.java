@@ -24,12 +24,12 @@ import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 
+import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Timestamp;
-import java.util.AbstractCollection;
 import java.util.ArrayList;
-import java.util.Collection;import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -53,7 +53,6 @@ import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
@@ -73,7 +72,6 @@ import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
-import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
@@ -716,39 +714,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		} else {
 			throw new IllegalArgumentException("unknown job type");
 		}
-	}
-	
-	private <T extends Collection<? extends Enum<?>>> Collection<String> enumsToStrings(final T enums) {
-		return new AbstractCollection<String>() {
-
-			@Override
-			public Iterator<String> iterator() {
-				final Iterator<? extends Enum<?>> enumIterator = enums.iterator();
-				
-				return new Iterator<String>() {
-
-					@Override
-					public boolean hasNext() {
-						return enumIterator.hasNext();
-					}
-
-					@Override
-					public String next() {
-						return enumIterator.next().name();
-					}
-
-					@Override
-					public void remove() {
-						enumIterator.remove();
-					}					
-				};	
-			}
-
-			@Override
-			public int size() {				
-				return enums.size();
-			}
-		};
 	}
 
 	private SQLQuery getUnfinishedJobQuery(ImportJobInfo ij) {

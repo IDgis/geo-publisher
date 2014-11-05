@@ -16,10 +16,9 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
-import java.util.AbstractCollection;
+import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
@@ -115,39 +114,6 @@ public class JobManager extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
-	}
-	
-	private <T extends Collection<? extends Enum<?>>> Collection<String> enumsToStrings(final T enums) {
-		return new AbstractCollection<String>() {
-
-			@Override
-			public Iterator<String> iterator() {
-				final Iterator<? extends Enum<?>> enumIterator = enums.iterator();
-				
-				return new Iterator<String>() {
-
-					@Override
-					public boolean hasNext() {
-						return enumIterator.hasNext();
-					}
-
-					@Override
-					public String next() {
-						return enumIterator.next().name();
-					}
-
-					@Override
-					public void remove() {
-						enumIterator.remove();
-					}					
-				};	
-			}
-
-			@Override
-			public int size() {				
-				return enums.size();
-			}
-		};
 	}
 	
 	private BooleanExpression isFinished(QJobState jobState) {
