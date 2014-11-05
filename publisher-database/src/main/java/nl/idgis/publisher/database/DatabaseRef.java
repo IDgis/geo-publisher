@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database;
 
+import com.mysema.query.sql.RelationalPath;
+
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
@@ -77,6 +79,10 @@ public class DatabaseRef {
 	
 	public AsyncSQLQuery query() {
 		return new AsyncSQLQuery(actor, timeout, executionContext);
+	}
+	
+	public AsyncSQLInsertClause insert(RelationalPath<?> entity) {
+		return new AsyncSQLInsertClause(actor, timeout, executionContext, entity);
 	}
 
 	// TODO: remove method
