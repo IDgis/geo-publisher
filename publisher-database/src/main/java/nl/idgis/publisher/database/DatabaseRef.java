@@ -33,37 +33,33 @@ public class DatabaseRef {
 		this.log = log;
 	}
 	
-	public Future<Object> transactional(final Function<TransactionHandler, Future<Object>> handler) {
+	public <T> Future<T> transactional(final Function<TransactionHandler, Future<T>> handler) {
 		return Patterns.ask(actor, new StartTransaction(), timeout)
-			.flatMap(new Mapper<Object, Future<Object>>() {
+			.flatMap(new Mapper<Object, Future<T>>() {
 
 				@Override
-				public Future<Object> checkedApply(Object msg) throws Exception {
+				public Future<T> checkedApply(Object msg) throws Exception {
 					if(msg instanceof TransactionCreated) {
 						log.debug("transaction created");
 						
 						final ActorRef transaction = ((TransactionCreated)msg).getActor();
-						return handler.apply(new TransactionHandler(transaction, timeout, executionContext)).flatMap(new Mapper<Object, Future<Object>>() {
+						return handler.apply(new TransactionHandler(transaction, timeout, executionContext)).flatMap(new Mapper<T, Future<T>>() {
 							
-							public Future<Object> checkedApply(final Object result) {
+							public Future<T> checkedApply(final T result) {
 								log.debug("query result obtained");
 								
 								return Patterns.ask(transaction, new Commit(), timeout)
-									.map(new Mapper<Object, Object>() {
+									.map(new Mapper<Object, T>() {
 										
-										public Object apply(Object msg) {
+										public T checkedApply(Object msg) throws Exception {
 											if(msg instanceof Ack) {
 												log.debug("committed");
 												
-												if(result != null) {
-													return result;
-												}
-												
-												return new Ack();
+												return result;
 											} else {
 												log.debug("commit failed");
 												
-												return msg;
+												throw new IllegalStateException("commit failed");
 											}
 										}
 										
