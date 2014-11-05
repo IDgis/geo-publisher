@@ -28,7 +28,7 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 	private final RelationalPath<?> entity;	
 	
 	@Nullable
-    private SubQueryExpression<?> subQuery;	
+    private SubQueryExpression<?> subQuery;
 	
 	private final List<Path<?>> columns = new ArrayList<Path<?>>();
 
@@ -51,6 +51,22 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 				@Override
 				public Long apply(Object o) {
 					return (Long)o;
+				}
+				
+			}, executionContext);
+	}
+	
+	public <T> Future<T> executeWithKey(Path<T> path) {
+		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
+		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
+		
+		return Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path), timeout)
+			.map(new Mapper<Object, T>() {
+				
+				@Override
+				@SuppressWarnings("unchecked")
+				public T apply(Object o) {
+					return (T)o;
 				}
 				
 			}, executionContext);

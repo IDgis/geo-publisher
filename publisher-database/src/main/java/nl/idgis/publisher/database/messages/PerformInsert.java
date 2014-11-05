@@ -17,11 +17,18 @@ public class PerformInsert extends Query {
 
     private final Expression<?>[] values;
     
+    private final Path<?> key;
+    
     public PerformInsert(RelationalPath<?> entity, SubQueryExpression<?> subQuery, Path<?>[] columns, Expression<?>[] values) {
+    	this(entity, subQuery, columns, values, null);
+    }
+    
+    public PerformInsert(RelationalPath<?> entity, SubQueryExpression<?> subQuery, Path<?>[] columns, Expression<?>[] values, Path<?> key) {
     	this.entity = entity;
     	this.subQuery = subQuery;
     	this.columns = columns;
     	this.values = values;
+    	this.key = key;
     }
 
 	public RelationalPath<?> getEntity() {
@@ -38,5 +45,9 @@ public class PerformInsert extends Query {
 
 	public Expression<?>[] getValues() {
 		return values;
+	}
+	
+	public Path<?> getKey() {
+		return key;
 	}
 }

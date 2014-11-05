@@ -126,6 +126,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
+import com.mysema.query.types.Path;
 import com.mysema.query.types.SubQueryExpression;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
@@ -303,11 +304,16 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					.select(subQuery)
 					.execute());
 		} else {
-			answer(
-				insert
-					.columns(query.getColumns())
-					.values((Object[])query.getValues())
-					.execute());
+			insert
+				.columns(query.getColumns())
+				.values((Object[])query.getValues());
+			
+			Path<?> key = query.getKey();
+			if(key != null) {
+				answer(insert.executeWithKey(key));
+			} else {
+				answer(insert.execute());
+			}
 		}
 	}
 

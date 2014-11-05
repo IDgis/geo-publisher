@@ -43,4 +43,27 @@ public class AsyncInsertClauseTest extends AbstractDatabaseTest {
 		assertEquals("id", queryResult.get(dataSource.identification));
 		assertEquals("name", queryResult.get(dataSource.name));
 	}
+	
+	@Test
+	public void testExecuteWithKey() throws Exception {
+		assertTrue(query().from(dataSource).notExists());
+		
+		AsyncSQLInsertClause insert = new AsyncSQLInsertClause(database, new Timeout(1, TimeUnit.SECONDS), dispatcher(), dataSource);
+		
+		Future<Integer> future = insert
+			.set(dataSource.identification, "id")
+			.set(dataSource.name, "name")		
+			.executeWithKey(dataSource.id);
+		
+		Integer generatedKey = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		assertNotNull(generatedKey);
+		
+		Integer queryResult = query()
+			.from(dataSource)
+			.singleResult(
+				dataSource.id);
+		
+		assertNotNull(queryResult);
+		assertEquals(queryResult, generatedKey);
+	}
 }
