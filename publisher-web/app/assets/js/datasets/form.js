@@ -37,6 +37,8 @@ require ([
 		categorySelect = dom.byId('input-category'),
 		datasetSelect = dom.byId('input-source-dataset'),
 		idInput = dom.byId ('input-id'),
+		buttonSelectAllColumns = dom.byId ('button-select-all-columns'),
+		buttonSelectNoColumns = dom.byId ('button-select-no-columns'),
 		dataSource = dataSourceSelect.value,
 		category = categorySelect.value;	
 	
@@ -116,6 +118,32 @@ require ([
 	on(categorySelect, 'change', function(event) {
 		category = this.value;
 		onFormChange();
+	});
+	
+	function selectAllColumns() {
+		query('#tab-columns span.badge')[0].innerHTML =
+			query('input', columnList)
+				.filter(function(item) {
+					item.checked=true;
+					return item.checked;
+				}).length;
+	}
+	
+	on(buttonSelectAllColumns, 'click', function(event) {
+		selectAllColumns();
+	});
+	
+	function selectNoColumns() {
+		query('#tab-columns span.badge')[0].innerHTML =
+			query('input', columnList)
+				.filter(function(item) {
+					item.checked=false;
+					return item.checked;
+				}).length;
+	}
+	
+	on(buttonSelectNoColumns, 'click', function(event) {
+		selectNoColumns();
 	});
 	
 	var columnList = dom.byId('column-list');

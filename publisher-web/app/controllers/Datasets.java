@@ -484,7 +484,7 @@ public class Datasets extends Controller {
 	
 					@Override
 					public Result apply(List<Column> c) throws Throwable {
-						return ok(columns.render(c, null));
+						return ok(columns.render(c, null, false));
 					}
 				});
 	}
