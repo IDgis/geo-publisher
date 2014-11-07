@@ -12,6 +12,6 @@ public class TypedList<T> extends TypedIterable<T> {
 	}
 
 	public ListIterator<T> listIterator() {
-		return ((List<T>)content).listIterator();
+		return ((List<T>)getContent()).listIterator();
 	}
 }
