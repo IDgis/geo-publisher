@@ -13,6 +13,7 @@ import java.util.Random;
 import org.junit.After;
 import org.junit.Before;
 
+import scala.concurrent.ExecutionContext;
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.JobInfo;
@@ -26,24 +27,23 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.TypedIterable;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
+import com.mysema.query.QueryMetadata;
+import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
-
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static org.junit.Assert.assertTrue;
-
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
@@ -109,6 +109,9 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
+	protected SQLQuery query(QueryMetadata metadata) {
+		return new SQLQuery(connection, new Configuration(templates), metadata);
+	}
 	
 	
 	@After
@@ -176,5 +179,9 @@ public abstract class AbstractDatabaseTest {
 		for(JobInfo job : iterable.cast(JobInfo.class)) {
 			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
 		}
+	}
+	
+	protected ExecutionContext dispatcher() {
+		return system.dispatcher();
 	}
 }

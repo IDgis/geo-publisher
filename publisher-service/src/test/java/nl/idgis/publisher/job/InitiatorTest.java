@@ -13,12 +13,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import scala.concurrent.duration.Duration;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
+
 import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
@@ -33,6 +35,7 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.protocol.messages.Ack;
+
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
@@ -166,15 +169,22 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		insertDataset("testDataset1");
 	}
 	
+	ActorRef manager;
+	
+	@Before
+	public void actors() throws Exception {
+		manager = actorOf(JobManager.props(database), "manager");
+	}
+	
 	@Test
 	public void testHarvestJob() throws Exception {
-		ask(database, new CreateHarvestJob("testDataSource"));
+		ask(manager, new CreateHarvestJob("testDataSource"));
 		
 		ActorRef harvester = actorOf(JobReceiver.props(database), "harvesterMock");
 		actorOf(
 			Initiator.props()
-				.add(harvester, new GetHarvestJobs())
-				.create(database), 
+				.add(harvester, "harvester", new GetHarvestJobs())
+				.create(manager), 
 			"initiator");
 		
 		List<?> list = askAssert(harvester, new GetReceivedJobs(1), List.class);
@@ -183,14 +193,14 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testImportJob() throws Exception {
-		ask(database, new CreateImportJob("testDataset0"));
-		ask(database, new CreateImportJob("testDataset1"));
+		ask(manager, new CreateImportJob("testDataset0"));
+		ask(manager, new CreateImportJob("testDataset1"));
 		
 		ActorRef loader = actorOf(JobReceiver.props(database), "loaderMock");
 		actorOf(
 			Initiator.props()
-				.add(loader, new GetImportJobs())
-				.create(database), 
+				.add(loader, "loader", new GetImportJobs())
+				.create(manager), 
 			"initiator");
 		
 		List<?> list = askAssert(loader, new GetReceivedJobs(2), List.class);
@@ -211,13 +221,13 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testServiceJob() throws Exception {
-		ask(database, new CreateServiceJob("testDataset0"));
+		ask(manager, new CreateServiceJob("testDataset0"));
 
 		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
 		actorOf(
 			Initiator.props()
-				.add(service, new GetServiceJobs())
-				.create(database), 
+				.add(service, "service", new GetServiceJobs())
+				.create(manager), 
 			"initiator");
 		
 		List<?> list = askAssert(service, new GetReceivedJobs(1), List.class);
@@ -229,36 +239,36 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
 		actorOf(
 			Initiator.props()
-				.add(service, new GetServiceJobs())
-				.create(database, Duration.create(1, TimeUnit.MILLISECONDS)), 
+				.add(service, "service", new GetServiceJobs())
+				.create(manager, Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");
 		
 		Thread.sleep(100);
 		
-		ask(database, new CreateServiceJob("testDataset0"));
+		ask(manager, new CreateServiceJob("testDataset0"));
 		askAssert(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		ask(database, new CreateServiceJob("testDataset0"));
+		ask(manager, new CreateServiceJob("testDataset0"));
 		askAssert(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		ask(database, new CreateServiceJob("testDataset0"));
+		ask(manager, new CreateServiceJob("testDataset0"));
 		askAssert(service, new GetReceivedJobs(1), List.class);
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		ask(database, new CreateServiceJob("testDataset0"));
+		ask(manager, new CreateServiceJob("testDataset0"));
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(database), "serviceMock");
 		actorOf(
 			Initiator.props()
-				.add(service, new GetServiceJobs())
+				.add(service, "service", new GetServiceJobs())
 				.create(
-						database, 
+						manager, 
 						Duration.create(1, TimeUnit.MILLISECONDS), 
 						Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");
