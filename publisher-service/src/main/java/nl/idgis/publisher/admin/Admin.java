@@ -1,10 +1,6 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -16,14 +12,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.DatabaseRef;
-import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
-import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetColumns;
@@ -38,8 +31,6 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.QCategoryInfo;
-import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
@@ -87,6 +78,7 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
+import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -112,7 +104,6 @@ import akka.util.Timeout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
-import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
 
 public class Admin extends UntypedActor {
@@ -155,8 +146,7 @@ public class Admin extends UntypedActor {
 			if (listEntity.cls ().equals (DataSource.class)) {
 				handleListDataSources (listEntity);
 			} else if (listEntity.cls ().equals (Category.class)) {
-//				handleListCategories (listEntity);
-				handleListCategories_NEW(listEntity);
+				handleListCategories(listEntity);
 			} else if (listEntity.cls ().equals (Dataset.class)) {
 				handleListDatasets (null);
 			} else if (listEntity.cls ().equals (Notification.class)) {
@@ -382,44 +372,20 @@ public class Admin extends UntypedActor {
 		}, getContext().dispatcher());
 	}
 	
-	private void handleListCategories (final ListEntity<?> listEntity) {
+
+	private void handleListCategories(final ListEntity<?> listEntity){
 		log.debug ("handleCategoryList");
 		final ActorRef sender = getSender(), self = getSelf();
-
-/* ! */ final Future<Object> categoryListInfo = Patterns.ask(database, new GetCategoryListInfo(), 15000);
-		categoryListInfo.onSuccess(new OnSuccess<Object>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public void onSuccess(Object msg) throws Throwable {
-				List<CategoryInfo> categoryListInfoList = (List<CategoryInfo>) msg;
-				log.debug("data sources info received");
-				final Page.Builder<Category> pageBuilder = new Page.Builder<>();
-				for (CategoryInfo categoryInfo : categoryListInfoList) {
-					pageBuilder.add(new Category(categoryInfo.getId(), categoryInfo.getName()));
-				}
-				log.debug("sending category list");
-				sender.tell(pageBuilder.build(), self);
-			}
-		}, getContext().dispatcher());
-	}
-	
-	private void handleListCategories_NEW(final ListEntity<?> listEntity){
-		log.debug ("handleCategoryList NEW");
-		final ActorRef sender = getSender(), self = getSelf();
  
-/* ! */ final Future<TypedList<CategoryInfo>> categoryListInfo = 
+		final Future<TypedList<Category>> categoryList = 
 				databaseRef.query().from(category)
 				.orderBy(category.identification.asc())
-				.list(new QCategoryInfo(category.identification,category.name));
-		categoryListInfo.onSuccess(new OnSuccess<TypedList<CategoryInfo>>() {
+				.list(new QCategory(category.identification,category.name));
+		categoryList.onSuccess(new OnSuccess<TypedList<Category>>() {
 			@Override
-			public void onSuccess(TypedList<CategoryInfo> msg) throws Throwable {
-				List<CategoryInfo> categoryListInfoList = (List<CategoryInfo>) msg.getContent();
-				log.debug("data sources info received");
-				final Page.Builder<Category> pageBuilder = new Page.Builder<> ();
-				for(CategoryInfo categoryInfo : categoryListInfoList) {
-					pageBuilder.add (new Category (categoryInfo.getId(), categoryInfo.getName()));
-				}
+			public void onSuccess(TypedList<Category> msg) throws Throwable {
+				log.debug("category info received");
+				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> (msg.asCollection());
 				log.debug("sending category list");
 				sender.tell (pageBuilder.build (), self);
 			}
@@ -616,16 +582,18 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender();
 		
-		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(getEntity.id ()), 15000);
-				categoryInfo.onSuccess(new OnSuccess<Object>() {
+		final Future<Category> categoryInfo = 
+				databaseRef.query().from(category)
+				.where(category.identification.eq(getEntity.id ()))
+				.singleResult(new QCategory(category.identification,category.name));
+
+				categoryInfo.onSuccess(new OnSuccess<Category>() {
 					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof CategoryInfo) {
-							CategoryInfo categoryInfo = (CategoryInfo)msg;
+					public void onSuccess(Category msg) throws Throwable {
+						if(msg != null) {
 							log.debug("category info received");
-							Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
-							log.debug("sending category: " + category);
-							sender.tell (category, getSelf());
+							log.debug("sending category: " + msg);
+							sender.tell (msg, getSelf());
 						} else {
 							sender.tell (new NotFound(), getSelf());
 						}

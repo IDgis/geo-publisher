@@ -14,16 +14,15 @@ import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QLastServiceJob.lastServiceJob;
+import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
-import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
-
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 
 import java.io.IOException;
@@ -44,8 +43,6 @@ import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
-import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
@@ -68,7 +65,6 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.PerformInsert;
 import nl.idgis.publisher.database.messages.PerformQuery;
-import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
@@ -212,10 +208,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetVersion();
 		} else if(query instanceof RegisterSourceDataset) {
 			executeRegisterSourceDataset((RegisterSourceDataset)query);
-		} else if(query instanceof GetCategoryListInfo) {
-			executeGetCategoryListInfo();
-		} else if(query instanceof GetCategoryInfo) {
-			executeGetCategoryInfo((GetCategoryInfo)query);			
 		} else if(query instanceof GetDatasetListInfo) {
 			executeGetDatasetListInfo((GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
@@ -1371,20 +1363,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 
 		answer (datasetInfos);
-	}
-
-	private void executeGetCategoryInfo(GetCategoryInfo query) {
-		answer(
-				query().from(category)
-				.where(category.identification.eq(query.getId()))
-				.singleResult(new QCategoryInfo(category.identification,category.name)));
-	}
-
-	private void executeGetCategoryListInfo() {
-		answer(
-				query().from(category)
-				.orderBy(category.identification.asc())
-				.list(new QCategoryInfo(category.identification,category.name)));
 	}
 
 	private void executeRegisterSourceDataset(RegisterSourceDataset rsd) {
