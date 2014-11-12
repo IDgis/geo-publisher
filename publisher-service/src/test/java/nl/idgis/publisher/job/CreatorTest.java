@@ -68,7 +68,7 @@ public class CreatorTest extends AbstractJobManagerTest {
 	}
 
 	private void initCreator() {
-		actorOf(Creator.props(managerAdapter), "creator");
+		actorOf(Creator.props(managerAdapter, database), "creator");
 	}
 	
 	

@@ -35,7 +35,7 @@ public class JobSystem extends UntypedActor {
 					.create(manager), 
 				"initiator");
 		
-		getContext().actorOf(Creator.props(manager), "creator");
+		getContext().actorOf(Creator.props(manager, database), "creator");
 	}
 
 	@Override

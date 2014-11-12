@@ -25,16 +25,17 @@ public class Creator extends Scheduled {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef manager;
+	private final ActorRef jobManager, database;
 	
 	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
 	
-	public Creator(ActorRef manager) {
-		this.manager = manager;
+	public Creator(ActorRef jobManager, ActorRef database) {
+		this.jobManager = jobManager;
+		this.database = database;
 	}
 	
-	public static Props props(ActorRef manager) {
-		return Props.create(Creator.class, manager);
+	public static Props props(ActorRef jobManager, ActorRef database) {
+		return Props.create(Creator.class, jobManager, database);
 	}
 	
 	@Override
@@ -106,7 +107,7 @@ public class Creator extends Scheduled {
 			if(needsImport) {
 				log.debug("creating import job for: " + datasetId);
 				
-				manager.tell(new CreateImportJob(datasetId), getSelf());	
+				jobManager.tell(new CreateImportJob(datasetId), getSelf());	
 			} else {
 				log.debug("no imported need for: " + datasetId);				
 			}
@@ -132,7 +133,7 @@ public class Creator extends Scheduled {
 				|| timeDiff > HARVEST_INTERVAL.toMillis()) {
 				
 				log.debug("creating harvest job for: " + dataSourceId);				
-				manager.tell(new CreateHarvestJob(dataSourceId), getSelf());				
+				jobManager.tell(new CreateHarvestJob(dataSourceId), getSelf());				
 			} else {
 				log.debug("not yet creating harvest job for: " + dataSourceId);
 			}
@@ -161,7 +162,7 @@ public class Creator extends Scheduled {
 			} else {
 				log.debug("creating service for dataset: " + datasetId);
 				
-				manager.tell(new CreateServiceJob(datasetId), getSelf());
+				jobManager.tell(new CreateServiceJob(datasetId), getSelf());
 			}
 		}
 	}
@@ -170,8 +171,8 @@ public class Creator extends Scheduled {
 	protected void doInitiate() {
 		log.debug("requesting statuses");
 		
-		manager.tell(new GetDataSourceStatus(), getSelf());
-		manager.tell(new GetDatasetStatus(), getSelf());
+		database.tell(new GetDataSourceStatus(), getSelf());
+		database.tell(new GetDatasetStatus(), getSelf());
 	}
 
 }

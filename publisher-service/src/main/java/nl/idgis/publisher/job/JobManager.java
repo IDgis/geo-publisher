@@ -31,8 +31,6 @@ import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.GetDataSourceStatus;
-import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.GetServiceJobs;
@@ -113,10 +111,6 @@ public class JobManager extends UntypedActor {
 			returnToSender(handleCreateImportJob((CreateImportJob)msg));			
 		} else if(msg instanceof CreateServiceJob) {
 			returnToSender(handleCreateServiceJob((CreateServiceJob)msg));
-		} else if(msg instanceof GetDataSourceStatus) {
-			database.forward(msg, getContext());
-		} else if(msg instanceof GetDatasetStatus) {
-			database.forward(msg, getContext());
 		} else {
 			unhandled(msg);
 		}

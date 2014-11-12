@@ -41,7 +41,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		Object result = ask(manager, new GetDataSourceStatus());
+		Object result = ask(database, new GetDataSourceStatus());
 		assertEquals(TypedList.class, result.getClass());
 		
 		TypedList<?> typedList = (TypedList<?>)result;
@@ -65,7 +65,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		
 		executeJobs(new GetHarvestJobs());
 		
-		result = ask(manager, new GetDataSourceStatus());
+		result = ask(database, new GetDataSourceStatus());
 		assertEquals(TypedList.class, result.getClass());
 		
 		typedList = (TypedList<?>)result;
@@ -101,7 +101,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 				columns,
 				"{ \"expression\": null }"));
 		
-		result = ask(manager, new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertEquals(TypedList.class, result.getClass());
 		
 		TypedList<?> typedList = (TypedList<?>)result;
@@ -118,7 +118,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = ask(manager, new GetDatasetStatus("testDataset"));
+		result = ask(database, new GetDatasetStatus("testDataset"));
 		assertEquals(DatasetStatusInfo.class, result.getClass());
 		
 		status = (DatasetStatusInfo)result;
@@ -132,7 +132,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 			executeJobs(new GetImportJobs());
 		}
 		
-		result = ask(manager, new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertEquals(TypedList.class, result.getClass());
 		
 		typedList = (TypedList<?>)result;

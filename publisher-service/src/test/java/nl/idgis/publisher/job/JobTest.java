@@ -123,7 +123,7 @@ public class JobTest extends AbstractJobManagerTest {
 				.execute();
 		}
 		
-		Object result = ask(manager, new GetDatasetStatus());
+		Object result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -174,7 +174,7 @@ public class JobTest extends AbstractJobManagerTest {
 		
 		assertColumns(importJobInfo.getColumns());
 		
-		result = ask(manager, new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -192,7 +192,7 @@ public class JobTest extends AbstractJobManagerTest {
 		result = ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(manager, new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
@@ -217,7 +217,7 @@ public class JobTest extends AbstractJobManagerTest {
 		result = ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(manager, new GetDatasetStatus());
+		result = ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;

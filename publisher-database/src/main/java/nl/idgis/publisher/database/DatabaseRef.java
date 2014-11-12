@@ -6,10 +6,11 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
+
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
-import akka.actor.UntypedActorContext;
 import akka.dispatch.Mapper;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
@@ -79,10 +80,5 @@ public class DatabaseRef {
 	
 	public AsyncSQLInsertClause insert(RelationalPath<?> entity) {
 		return new AsyncSQLInsertClause(actor, timeout, executionContext, entity);
-	}
-
-	// TODO: remove method
-	public void forward(Object msg, UntypedActorContext context) {
-		actor.forward(msg, context);
-	}
+	}	
 }
