@@ -329,7 +329,7 @@ public class JobManager extends UntypedActor {
 							.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
 								@Override
-								public Future<Long> apply(Integer jobId, Integer dataSourceId) {
+								public Future<Long> apply(Integer dataSourceId, Integer jobId) {
 									log.debug("job created and dataSourceId determined");
 									
 									return 
