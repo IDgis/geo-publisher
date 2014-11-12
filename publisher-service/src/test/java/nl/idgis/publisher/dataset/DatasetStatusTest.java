@@ -1,10 +1,11 @@
-package nl.idgis.publisher.database;
+package nl.idgis.publisher.dataset;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
@@ -26,7 +27,7 @@ import org.junit.Test;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class DatasetStatusTest extends AbstractDatabaseTest {
+public class DatasetStatusTest extends AbstractServiceTest {
 	
 	Dataset testDataset;
 	Table testTable;
@@ -52,7 +53,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 			
 			.isImported());		
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// import job created, still not imported
 		assertFalse(
@@ -72,7 +73,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 				
 			.isImported());
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// a new import job created, but dataset is still imported
 		assertTrue(
@@ -102,7 +103,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 			
 			.isServiceCreated());
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		
 		executeJobs(new GetImportJobs());
 		
@@ -114,7 +115,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 			
 			.isServiceCreated());
 		
-		ask(database, new CreateServiceJob("testDataset"));
+		ask(jobManager, new CreateServiceJob("testDataset"));
 		
 		// service job created, service still not created
 		assertFalse(
@@ -134,7 +135,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 				
 				.isServiceCreated());
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// import job created, existing service still created
 		assertTrue(
@@ -154,7 +155,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 			
 			.isServiceCreated());
 		
-		ask(database, new CreateServiceJob("testDataset"));
+		ask(jobManager, new CreateServiceJob("testDataset"));
 		
 		// service job created, service still not created
 		assertFalse(
@@ -188,7 +189,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		assertFalse(status.isSourceDatasetChanged());
 		assertFalse(status.isFilterConditionChanged());
 		
-		ask(database, new CreateImportJob("testDataset"));		
+		ask(jobManager, new CreateImportJob("testDataset"));		
 		
 		// import job created, still not imported
 		status = 
@@ -263,7 +264,7 @@ public class DatasetStatusTest extends AbstractDatabaseTest {
 		assertTrue(status.isSourceDatasetChanged());
 		assertTrue(status.isFilterConditionChanged());
 		
-		ask(database, new CreateImportJob("testDataset"));		
+		ask(jobManager, new CreateImportJob("testDataset"));		
 		
 		// import job created, no changes yet
 		status = 

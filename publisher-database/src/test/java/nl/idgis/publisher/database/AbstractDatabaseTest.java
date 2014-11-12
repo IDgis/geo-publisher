@@ -16,17 +16,13 @@ import org.junit.Before;
 import scala.concurrent.ExecutionContext;
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
-import nl.idgis.publisher.utils.TypedIterable;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -43,9 +39,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static org.junit.Assert.assertTrue;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -171,14 +165,6 @@ public abstract class AbstractDatabaseTest {
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
 		return new Dataset(id, "testCategory", table, revision);		
-	}
-	
-	protected void executeJobs(Query query) throws Exception {
-		TypedIterable<?> iterable = askAssert(database, query, TypedIterable.class);
-		assertTrue(iterable.contains(JobInfo.class));
-		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
-		}
 	}
 	
 	protected ExecutionContext dispatcher() {

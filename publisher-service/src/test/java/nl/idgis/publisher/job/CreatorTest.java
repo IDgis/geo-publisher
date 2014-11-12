@@ -7,6 +7,8 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
+import nl.idgis.publisher.AbstractServiceTest;
+
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
@@ -17,7 +19,7 @@ import nl.idgis.publisher.database.messages.Query;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class CreatorTest extends AbstractJobManagerTest {
+public class CreatorTest extends AbstractServiceTest {
 	
 	static class GetLastReceivedQuery {
 		
@@ -64,7 +66,7 @@ public class CreatorTest extends AbstractJobManagerTest {
 	
 	@Before
 	public void actors() {		
-		managerAdapter = actorOf(Props.create(ManagerAdapter.class, manager), "managerAdapter");		
+		managerAdapter = actorOf(Props.create(ManagerAdapter.class, jobManager), "managerAdapter");		
 	}
 
 	private void initCreator() {
@@ -74,7 +76,7 @@ public class CreatorTest extends AbstractJobManagerTest {
 	
 	
 	private void harvest() throws Exception {
-		ask(manager, new CreateHarvestJob("testDataSource"));		
+		ask(jobManager, new CreateHarvestJob("testDataSource"));		
 		executeJobs(new GetHarvestJobs());
 	}
 
@@ -97,7 +99,7 @@ public class CreatorTest extends AbstractJobManagerTest {
 	public void testServiceJob() throws Exception {
 		insertDataset();
 		harvest();
-		ask(manager, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		initCreator();
 		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateServiceJob.class);

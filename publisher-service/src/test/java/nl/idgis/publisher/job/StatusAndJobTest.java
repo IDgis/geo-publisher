@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import nl.idgis.publisher.AbstractServiceTest;
+
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
@@ -15,10 +17,12 @@ import nl.idgis.publisher.database.messages.GetHarvestJobs;
 import nl.idgis.publisher.database.messages.GetImportJobs;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -32,7 +36,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 
-public class StatusAndJobTest extends AbstractJobManagerTest {
+public class StatusAndJobTest extends AbstractServiceTest {
 
 	@Test
 	public void testDataSource() throws Exception {
@@ -60,7 +64,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = ask(manager, new CreateHarvestJob("testDataSource"));
+		result = ask(jobManager, new CreateHarvestJob("testDataSource"));
 		assertEquals(Ack.class, result.getClass());
 		
 		executeJobs(new GetHarvestJobs());
@@ -126,7 +130,7 @@ public class StatusAndJobTest extends AbstractJobManagerTest {
 		assertNotNull(status);
 		
 		for(int i = 0; i < 10; i++) {
-			result = ask(manager, new CreateImportJob("testDataset"));
+			result = ask(jobManager, new CreateImportJob("testDataset"));
 			assertEquals(Ack.class, result.getClass());
 		
 			executeJobs(new GetImportJobs());
