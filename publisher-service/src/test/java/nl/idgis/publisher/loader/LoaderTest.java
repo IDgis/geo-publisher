@@ -531,15 +531,19 @@ public class LoaderTest extends AbstractServiceTest {
 	public void testMissingColumns() throws Exception {
 		insertDataset();
 		
+		int datasetId = query().from(dataset)
+			.where(dataset.identification.eq("testDataset"))
+			.singleResult(dataset.id);
+		
 		insert(datasetColumn)
-			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.datasetId, datasetId)
 			.set(datasetColumn.name, "col3")
 			.set(datasetColumn.dataType, Type.TEXT.name())
 			.set(datasetColumn.index, 3)	
 			.execute();
 		
 		insert(datasetColumn)
-			.set(datasetColumn.datasetId, 1)
+			.set(datasetColumn.datasetId, datasetId)
 			.set(datasetColumn.name, "col4")
 			.set(datasetColumn.dataType, Type.GEOMETRY.name())
 			.set(datasetColumn.index, 4)	
