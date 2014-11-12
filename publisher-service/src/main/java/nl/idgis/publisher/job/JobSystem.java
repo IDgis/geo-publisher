@@ -3,6 +3,7 @@ package nl.idgis.publisher.job;
 import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.job.messages.JobManagerRequest;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -11,6 +12,8 @@ import akka.actor.UntypedActor;
 public class JobSystem extends UntypedActor {
 	
 	private final ActorRef database, harvester, loader, service;
+	
+	private ActorRef jobManager;
 	
 	public JobSystem(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
 		this.database = database;
@@ -25,7 +28,7 @@ public class JobSystem extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		ActorRef manager = getContext().actorOf(
+		jobManager = getContext().actorOf(
 				JobManager.props(database), "manager");
 		
 		getContext().actorOf(
@@ -33,15 +36,19 @@ public class JobSystem extends UntypedActor {
 					.add(harvester, "harvester", new GetHarvestJobs())
 					.add(loader, "loader", new GetImportJobs())
 					.add(service, "service", new GetServiceJobs())
-					.create(manager), 
+					.create(jobManager), 
 				"initiator");
 		
-		getContext().actorOf(Creator.props(manager, database), "creator");
+		getContext().actorOf(Creator.props(jobManager, database), "creator");
 	}
 
 	@Override
-	public void onReceive(Object msg) throws Exception { 
-		unhandled(msg);
+	public void onReceive(Object msg) throws Exception {
+		if(msg instanceof JobManagerRequest) {
+			jobManager.forward(msg, getContext());
+		} else {		
+			unhandled(msg);
+		}
 	}
 
 }
