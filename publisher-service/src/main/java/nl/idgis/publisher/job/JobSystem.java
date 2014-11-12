@@ -1,8 +1,9 @@
 package nl.idgis.publisher.job;
 
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.GetServiceJobs;
+import nl.idgis.publisher.job.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.messages.GetServiceJobs;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

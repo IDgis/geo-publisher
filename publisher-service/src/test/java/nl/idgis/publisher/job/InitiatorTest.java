@@ -22,20 +22,21 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AbstractDatabaseTest;
-import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.CreateImportJob;
-import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.protocol.messages.Ack;
 
+import nl.idgis.publisher.domain.job.JobState;
+
+import nl.idgis.publisher.job.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateServiceJob;
+import nl.idgis.publisher.job.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.protocol.messages.Ack;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 

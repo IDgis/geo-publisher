@@ -8,20 +8,19 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 import nl.idgis.publisher.AbstractServiceTest;
-
-import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.CreateImportJob;
-import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.job.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateServiceJob;
+import nl.idgis.publisher.job.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.messages.JobManagerRequest;
 
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class CreatorTest extends AbstractServiceTest {
 	
-	static class GetLastReceivedQuery {
+	static class GetLastReceivedRequest {
 		
 	}
 	
@@ -29,7 +28,7 @@ public class CreatorTest extends AbstractServiceTest {
 		
 		final ActorRef manager;
 		
-		Query lastQuery = null;
+		JobManagerRequest lastRequest = null;
 		ActorRef sender = null;
 		
 		public ManagerAdapter(ActorRef manager) {
@@ -38,25 +37,25 @@ public class CreatorTest extends AbstractServiceTest {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof GetLastReceivedQuery) {
+			if(msg instanceof GetLastReceivedRequest) {
 				sender = getSender();
-				sendLastQuery();				
+				sendLastRequest();				
 			} else {			
 				if(msg instanceof CreateHarvestJob
 					|| msg instanceof CreateImportJob
 					|| msg instanceof CreateServiceJob) {
 					
-					lastQuery = (Query)msg;
-					sendLastQuery();
+					lastRequest = (JobManagerRequest)msg;
+					sendLastRequest();
 				}
 					
 				manager.tell(msg, getSender());
 			}
 		}
 		
-		private void sendLastQuery() {
-			if(sender != null && lastQuery != null) {
-				sender.tell(lastQuery, getSelf());
+		private void sendLastRequest() {
+			if(sender != null && lastRequest != null) {
+				sender.tell(lastRequest, getSelf());
 			}
 		}
 		
@@ -84,7 +83,7 @@ public class CreatorTest extends AbstractServiceTest {
 	public void testHarvestJob() throws Exception {
 		insertDataSource();
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateHarvestJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateHarvestJob.class);
 	}
 	
 	@Test
@@ -92,7 +91,7 @@ public class CreatorTest extends AbstractServiceTest {
 		insertDataset();
 		harvest();
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateImportJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateImportJob.class);
 	}	
 	
 	@Test
@@ -102,6 +101,6 @@ public class CreatorTest extends AbstractServiceTest {
 		ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateServiceJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateServiceJob.class);
 	}
 }
