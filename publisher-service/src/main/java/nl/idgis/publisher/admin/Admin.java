@@ -78,6 +78,7 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.QCategory;
+import nl.idgis.publisher.domain.web.QDataSource;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -107,6 +108,7 @@ import com.google.common.collect.Iterables;
 import com.mysema.query.types.Order;
 
 import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 public class Admin extends UntypedActor {
 	
@@ -131,6 +133,11 @@ public class Admin extends UntypedActor {
 	
 	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
+	}
+
+	private <T> void returnToSender(Future<T> future) {
+		Patterns.pipe(future, getContext().dispatcher())
+			.pipeTo(getSender(), getSelf());
 	}
 
 	@Override
@@ -328,7 +335,11 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender(), self = getSelf();
 		
 		final Future<Object> activeDataSources = Patterns.ask(harvester, new GetActiveDataSources(), 15000);
-		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
+		
+		final Future<TypedList<DataSource>> dataSourceInfo =
+				databaseRef.query().from(dataSource)
+				.orderBy(dataSource.identification.asc())
+				.list(new QDataSource(dataSource.identification, dataSource.name, null));
 		
 		activeDataSources.onSuccess(new OnSuccess<Object>() {
 			
@@ -338,25 +349,25 @@ public class Admin extends UntypedActor {
 				final Set<String> activeDataSources = (Set<String>)msg;
 				log.debug("active data sources received");
 				
-				dataSourceInfo.onSuccess(new OnSuccess<Object>() {
+				dataSourceInfo.onSuccess(new OnSuccess<TypedList<DataSource>>() {
 
 					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						List<DataSourceInfo> dataSourceInfoList = (List<DataSourceInfo>)msg;
+					public void onSuccess(TypedList<DataSource> msg) throws Throwable {
+						List<DataSource> dataSourceList = (List<DataSource>)msg;
 						log.debug("data sources info received");
 						
 						final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
 						
-						for(DataSourceInfo dataSourceInfo : dataSourceInfoList) {
-							final String id = dataSourceInfo.getId();
-							final DataSource dataSource = new DataSource (
+						for(DataSource dataSource : dataSourceList) {
+							final String id = dataSource.id();
+							final DataSource dataSourceBuilt = new DataSource (
 									id, 
-									dataSourceInfo.getName(),
+									dataSource.name(),
 									new Status (activeDataSources.contains(id) 
 											? DataSourceStatusType.OK
 											: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
 							
-							pageBuilder.add (dataSource);
+							pageBuilder.add (dataSourceBuilt);
 						}
 						
 						log.debug("sending data source page");

@@ -3,6 +3,7 @@ package nl.idgis.publisher.domain.web;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mysema.query.annotations.QueryProjection;
 
 public final class DataSource extends Identifiable {
 
@@ -12,6 +13,7 @@ public final class DataSource extends Identifiable {
 	private final Status status;
 	
 	@JsonCreator
+	@QueryProjection
 	public DataSource (final @JsonProperty("id") String id, final @JsonProperty("name") String name, final @JsonProperty("status") Status status) {
 		super (id);
 		
