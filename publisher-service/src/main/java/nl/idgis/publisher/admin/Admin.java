@@ -1,5 +1,10 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,7 +23,6 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
-import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
@@ -108,11 +112,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.mysema.query.types.Order;
-
-import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
 public class Admin extends UntypedActor {
 	
