@@ -112,19 +112,20 @@ public class Admin extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, service;
+	private final ActorRef database, harvester, loader, service, jobSystem;
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;
+		this.jobSystem = jobSystem;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
-		return Props.create(Admin.class, database, harvester, loader, service);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
+		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
 	}
 
 	@Override
@@ -276,7 +277,7 @@ public class Admin extends UntypedActor {
 		log.debug("requesting to refresh dataset: " + datasetId);
 		
 		final ActorRef sender = getSender(), self = getSelf();
-		Patterns.ask(database, new CreateImportJob(datasetId), 15000)
+		Patterns.ask(jobSystem, new CreateImportJob(datasetId), 15000)
 			.onComplete(new OnComplete<Object>() {
 
 				@Override
