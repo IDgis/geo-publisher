@@ -2,6 +2,7 @@ package nl.idgis.publisher.domain.response;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,6 +52,13 @@ public final class Page<T extends Entity> implements Serializable {
 		
 		public long getCurrentPage() {
 			return currentPage;
+		}
+		
+		public Builder(){
+		}
+		
+		public Builder(Collection<A> collection){
+			this.list.addAll(collection);
 		}
 		
 		public Builder<A> setCurrentPage(long currentPage) {

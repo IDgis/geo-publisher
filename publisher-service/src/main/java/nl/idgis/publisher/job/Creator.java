@@ -25,16 +25,16 @@ public class Creator extends Scheduled {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
+	private final ActorRef manager;
 	
 	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
 	
-	public Creator(ActorRef database) {
-		this.database = database;
+	public Creator(ActorRef manager) {
+		this.manager = manager;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(Creator.class, database);
+	public static Props props(ActorRef manager) {
+		return Props.create(Creator.class, manager);
 	}
 	
 	@Override
@@ -106,7 +106,7 @@ public class Creator extends Scheduled {
 			if(needsImport) {
 				log.debug("creating import job for: " + datasetId);
 				
-				database.tell(new CreateImportJob(datasetId), getSelf());	
+				manager.tell(new CreateImportJob(datasetId), getSelf());	
 			} else {
 				log.debug("no imported need for: " + datasetId);				
 			}
@@ -132,7 +132,7 @@ public class Creator extends Scheduled {
 				|| timeDiff > HARVEST_INTERVAL.toMillis()) {
 				
 				log.debug("creating harvest job for: " + dataSourceId);				
-				database.tell(new CreateHarvestJob(dataSourceId), getSelf());				
+				manager.tell(new CreateHarvestJob(dataSourceId), getSelf());				
 			} else {
 				log.debug("not yet creating harvest job for: " + dataSourceId);
 			}
@@ -161,7 +161,7 @@ public class Creator extends Scheduled {
 			} else {
 				log.debug("creating service for dataset: " + datasetId);
 				
-				database.tell(new CreateServiceJob(datasetId), getSelf());
+				manager.tell(new CreateServiceJob(datasetId), getSelf());
 			}
 		}
 	}
@@ -170,8 +170,8 @@ public class Creator extends Scheduled {
 	protected void doInitiate() {
 		log.debug("requesting statuses");
 		
-		database.tell(new GetDataSourceStatus(), getSelf());
-		database.tell(new GetDatasetStatus(), getSelf());
+		manager.tell(new GetDataSourceStatus(), getSelf());
+		manager.tell(new GetDatasetStatus(), getSelf());
 	}
 
 }

@@ -16,6 +16,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -133,7 +134,15 @@ public static class Prepared {
 	
 	public void answer(TypedIterable<?> msg) {
 		answer((Object)msg);
-	}	
+	}
+	
+	public <T> void answer(Class<T> type, List<T> msg) {
+		answer(new TypedList<>(type, msg));
+	}
+	
+	public void answer(TypedList<?> msg) {
+		answer((Object)msg);
+	}
 	
 	/**
 	 * 

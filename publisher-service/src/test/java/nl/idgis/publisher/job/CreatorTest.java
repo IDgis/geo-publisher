@@ -7,7 +7,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
-import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.CreateHarvestJob;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.CreateServiceJob;
@@ -18,21 +17,21 @@ import nl.idgis.publisher.database.messages.Query;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class CreatorTest extends AbstractDatabaseTest {
+public class CreatorTest extends AbstractJobManagerTest {
 	
 	static class GetLastReceivedQuery {
 		
 	}
 	
-	static class DatabaseAdapter extends UntypedActor {
+	static class ManagerAdapter extends UntypedActor {
 		
-		final ActorRef database;
+		final ActorRef manager;
 		
 		Query lastQuery = null;
 		ActorRef sender = null;
 		
-		public DatabaseAdapter(ActorRef database) {
-			this.database = database;
+		public ManagerAdapter(ActorRef manager) {
+			this.manager = manager;
 		}
 
 		@Override
@@ -49,7 +48,7 @@ public class CreatorTest extends AbstractDatabaseTest {
 					sendLastQuery();
 				}
 					
-				database.tell(msg, getSender());
+				manager.tell(msg, getSender());
 			}
 		}
 		
@@ -61,19 +60,21 @@ public class CreatorTest extends AbstractDatabaseTest {
 		
 	}
 	
-	ActorRef databaseAdapter;
+	ActorRef managerAdapter;
 	
 	@Before
-	public void actors() {
-		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");		
+	public void actors() {		
+		managerAdapter = actorOf(Props.create(ManagerAdapter.class, manager), "managerAdapter");		
 	}
 
 	private void initCreator() {
-		actorOf(Creator.props(databaseAdapter), "creator");
+		actorOf(Creator.props(managerAdapter), "creator");
 	}
 	
+	
+	
 	private void harvest() throws Exception {
-		ask(database, new CreateHarvestJob("testDataSource"));		
+		ask(manager, new CreateHarvestJob("testDataSource"));		
 		executeJobs(new GetHarvestJobs());
 	}
 
@@ -81,7 +82,7 @@ public class CreatorTest extends AbstractDatabaseTest {
 	public void testHarvestJob() throws Exception {
 		insertDataSource();
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateHarvestJob.class);
+		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateHarvestJob.class);
 	}
 	
 	@Test
@@ -89,16 +90,16 @@ public class CreatorTest extends AbstractDatabaseTest {
 		insertDataset();
 		harvest();
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateImportJob.class);
+		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateImportJob.class);
 	}	
 	
 	@Test
 	public void testServiceJob() throws Exception {
 		insertDataset();
 		harvest();
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateServiceJob.class);
+		askAssert(managerAdapter, new GetLastReceivedQuery(), CreateServiceJob.class);
 	}
 }

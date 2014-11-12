@@ -1,5 +1,9 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -7,18 +11,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.database.messages.CategoryInfo;
+import nl.idgis.publisher.database.DatabaseRef;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
-import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
-import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
@@ -36,6 +38,7 @@ import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -58,6 +61,7 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.ActiveTask;
@@ -77,6 +81,7 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
+import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -85,6 +90,7 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+import nl.idgis.publisher.utils.TypedList;
 import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -96,6 +102,7 @@ import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
+import akka.util.Timeout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -110,10 +117,16 @@ public class Admin extends UntypedActor {
 	
 	private final ActorRef database, harvester, loader, service;
 	
+	// TODO this will replace the database ActorRef
+	private final DatabaseRef databaseRef;
+	
+	private final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
+	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
 		this.database = database;
+		this.databaseRef = new DatabaseRef(database, timeout, getContext().dispatcher(), log);	
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;
@@ -123,6 +136,11 @@ public class Admin extends UntypedActor {
 		return Props.create(Admin.class, database, harvester, loader, service);
 	}
 
+	private <T> void returnToSender(Future<T> future) {
+		Patterns.pipe(future, getContext().dispatcher())
+			.pipeTo(getSender(), getSelf());
+	}
+	
 	@Override
 	public void onReceive (final Object message) throws Exception {
 		if (message instanceof ListEntity<?>) {
@@ -131,7 +149,7 @@ public class Admin extends UntypedActor {
 			if (listEntity.cls ().equals (DataSource.class)) {
 				handleListDataSources (listEntity);
 			} else if (listEntity.cls ().equals (Category.class)) {
-				handleListCategories (listEntity);
+				handleListCategories(listEntity);
 			} else if (listEntity.cls ().equals (Dataset.class)) {
 				handleListDatasets (null);
 			} else if (listEntity.cls ().equals (Notification.class)) {
@@ -290,9 +308,23 @@ public class Admin extends UntypedActor {
 	}
 
 	private void handleListDatasetColumns (final ListDatasetColumns listColumns) {
-		GetDatasetColumns di = new GetDatasetColumns(listColumns.getDatasetId());
-		
-		database.tell(di, getSender());
+		log.debug ("handleListDatasetColumns");
+		final ActorRef sender = getSender(), self = getSelf();
+ 
+		final Future<TypedList<Column>> columnList = 
+				databaseRef.query().from(datasetColumn)
+				.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+				.where(dataset.identification.eq(listColumns.getDatasetId()))
+				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
+				
+		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
+			@Override
+			public void onSuccess(TypedList<Column> msg) throws Throwable {
+				log.debug("category info received");
+				log.debug("sending category list");
+				sender.tell (msg.asCollection(), self);
+			}
+		}, getContext().dispatcher());
 	}
 	
 	private void handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
@@ -357,29 +389,24 @@ public class Admin extends UntypedActor {
 		}, getContext().dispatcher());
 	}
 	
-	private void handleListCategories (final ListEntity<?> listEntity) {
+
+	private void handleListCategories(final ListEntity<?> listEntity){
 		log.debug ("handleCategoryList");
-		
 		final ActorRef sender = getSender(), self = getSelf();
-		
-		final Future<Object> categoryListInfo = Patterns.ask(database, new GetCategoryListInfo(), 15000);
-				categoryListInfo.onSuccess(new OnSuccess<Object>() {
-					@SuppressWarnings("unchecked")
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						List<CategoryInfo> categoryListInfoList = (List<CategoryInfo>)msg;
-						log.debug("data sources info received");
-						
-						final Page.Builder<Category> pageBuilder = new Page.Builder<> ();
-						
-						for(CategoryInfo categoryInfo : categoryListInfoList) {
-							pageBuilder.add (new Category (categoryInfo.getId(), categoryInfo.getName()));
-						}
-						
-						log.debug("sending category list");
-						sender.tell (pageBuilder.build (), self);
-					}
-				}, getContext().dispatcher());
+ 
+		final Future<TypedList<Category>> categoryList = 
+				databaseRef.query().from(category)
+				.orderBy(category.identification.asc())
+				.list(new QCategory(category.identification,category.name));
+		categoryList.onSuccess(new OnSuccess<TypedList<Category>>() {
+			@Override
+			public void onSuccess(TypedList<Category> msg) throws Throwable {
+				log.debug("category info received");
+				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> (msg.asCollection());
+				log.debug("sending category list");
+				sender.tell (pageBuilder.build (), self);
+			}
+		}, getContext().dispatcher());
 	}
 	
 	private void handleListDashboardIssues(Object object) {
@@ -572,16 +599,18 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender();
 		
-		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(getEntity.id ()), 15000);
-				categoryInfo.onSuccess(new OnSuccess<Object>() {
+		final Future<Category> categoryInfo = 
+				databaseRef.query().from(category)
+				.where(category.identification.eq(getEntity.id ()))
+				.singleResult(new QCategory(category.identification,category.name));
+
+				categoryInfo.onSuccess(new OnSuccess<Category>() {
 					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof CategoryInfo) {
-							CategoryInfo categoryInfo = (CategoryInfo)msg;
+					public void onSuccess(Category msg) throws Throwable {
+						if(msg != null) {
 							log.debug("category info received");
-							Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
-							log.debug("sending category: " + category);
-							sender.tell (category, getSelf());
+							log.debug("sending category: " + msg);
+							sender.tell (msg, getSelf());
 						} else {
 							sender.tell (new NotFound(), getSelf());
 						}

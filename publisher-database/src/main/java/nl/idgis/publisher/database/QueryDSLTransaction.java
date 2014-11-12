@@ -2,12 +2,15 @@ package nl.idgis.publisher.database;
 
 import java.sql.Connection;
 
+import com.mysema.query.QueryMetadata;
+import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLTemplates;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
+import com.mysema.query.types.Expression;
 import com.typesafe.config.Config;
 
 public abstract class QueryDSLTransaction extends JdbcTransaction {
@@ -34,6 +37,10 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 		return new SQLQuery(connection, templates);
 	}
 	
+	protected SQLQuery query(QueryMetadata metadata) {
+		return new SQLQuery(connection, new Configuration(templates), metadata);
+	}
+	
 	protected SQLInsertClause insert(RelationalPath<?> entity) {
 		return new SQLInsertClause(connection, templates, entity);
 	}
@@ -44,5 +51,10 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 	
 	protected SQLDeleteClause delete(RelationalPath<?> entity) {
 		return new SQLDeleteClause(connection, templates, entity);
+	}
+	
+	@SuppressWarnings("unchecked")
+	protected <T> void answerQuery(QueryMetadata metadata, Expression<T> expression) {
+		answer((Class<T>)expression.getType(), query(metadata).list(expression));
 	}
 }

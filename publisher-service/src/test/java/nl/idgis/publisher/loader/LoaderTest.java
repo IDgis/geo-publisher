@@ -28,7 +28,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-import nl.idgis.publisher.database.AbstractDatabaseTest;
+import nl.idgis.publisher.job.AbstractJobManagerTest;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -77,7 +77,7 @@ import nl.idgis.publisher.utils.TypedIterable;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class LoaderTest extends AbstractDatabaseTest {
+public class LoaderTest extends AbstractJobManagerTest {
 	
 	static class SetInsertCount {
 		
@@ -356,7 +356,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 	@Test
 	public void testExecuteImportJob() throws Exception {
 		insertDataset();
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		
 		TypedIterable<?> iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
@@ -401,7 +401,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 				testColumns, 
 				"{ \"expression\": null }"));
 				
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		Table updatedTable = new Table(
@@ -414,7 +414,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 				testDataset.getRevisionDate());
 		
 		askAssert(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		
 		TypedIterable<?> iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
@@ -503,7 +503,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 				Arrays.asList(testColumns.get(0)),
 				"{ \"expression\": null }"));
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		
 		iterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
@@ -557,7 +557,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 			.set(dataset.filterConditions, mapper.writeValueAsString(filter)) 
 			.execute();
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		
 		TypedIterable<?> importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobIterable.contains(ImportJobInfo.class));
@@ -579,7 +579,7 @@ public class LoaderTest extends AbstractDatabaseTest {
 			.set(dataset.filterConditions, mapper.writeValueAsString(new Filter(null))) 
 			.execute();
 		
-		ask(database, new CreateImportJob("testDataset"));
+		ask(manager, new CreateImportJob("testDataset"));
 		
 		importJobIterable = askAssert(database, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobIterable.contains(ImportJobInfo.class));

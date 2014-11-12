@@ -32,10 +32,14 @@ public class TypedIterable<T> implements Iterable<T>, Serializable {
 
 	@Override
 	public Iterator<T> iterator() {
-		return content.iterator();
+		return getContent().iterator();
 	}
 	
 	public Collection<T> asCollection() {
+		if(getContent() instanceof Collection) {
+			return (Collection<T>)getContent();
+		}
+		
 		return new AbstractCollection<T>() {
 			
 			private Integer size;
@@ -66,7 +70,11 @@ public class TypedIterable<T> implements Iterable<T>, Serializable {
 	@Override
 	public String toString() {
 		return "TypedIterable [contentType=" + contentType + ", content="
-				+ content + "]";
+				+ getContent() + "]";
+	}
+
+	public Iterable<T> getContent() {
+		return content;
 	}
 
 }

@@ -7,15 +7,11 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.admin.Admin;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
 import nl.idgis.publisher.harvester.Harvester;
-import nl.idgis.publisher.job.Creator;
-import nl.idgis.publisher.job.Initiator;
+import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -128,15 +124,7 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service), "admin");
 		
-		getContext().actorOf(
-				Initiator.props()
-					.add(harvester, new GetHarvestJobs())
-					.add(loader, new GetImportJobs())
-					.add(service, new GetServiceJobs())
-					.create(database), 
-				"jobInitiator");
-		
-		getContext().actorOf(Creator.props(database), "jobCreator");
+		getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
