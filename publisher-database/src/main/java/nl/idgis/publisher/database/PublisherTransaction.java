@@ -17,11 +17,10 @@ import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
-import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
-
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 
 import java.io.IOException;
@@ -43,7 +42,6 @@ import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
-import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
@@ -217,8 +215,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeStoreLog((StoreLog)query);		
 		} else if(query instanceof GetSourceDatasetColumns) {
 			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
-		} else if(query instanceof GetDatasetColumns) {
-			executeGetDatasetColumns((GetDatasetColumns)query);
 		} else if(query instanceof CreateDataset) {
 			executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
@@ -815,16 +811,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				log.debug("dataset inserted");
 			}
 	}	
-
-	private void executeGetDatasetColumns(GetDatasetColumns dc) {		
-		log.debug("get columns for dataset: " + dc.getDatasetId());
-		
-		answer(
-			query().from(datasetColumn)
-			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-			.where(dataset.identification.eq(dc.getDatasetId()))
-			.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
-	}
 
 	private void executeGetSourceDatasetColumns(GetSourceDatasetColumns sdc) {
 		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());

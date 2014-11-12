@@ -36,6 +36,7 @@ import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -58,6 +59,7 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.ActiveTask;
@@ -109,6 +111,8 @@ import com.mysema.query.types.Order;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
 public class Admin extends UntypedActor {
 	
@@ -306,10 +310,24 @@ public class Admin extends UntypedActor {
 		database.tell(di, getSender());
 	}
 
-	private void handleListDatasetColumns (final ListDatasetColumns listColumns) {
-		GetDatasetColumns di = new GetDatasetColumns(listColumns.getDatasetId());
-		
-		database.tell(di, getSender());
+	private void handleListDatasetColumns(final ListDatasetColumns listColumns) {
+		log.debug("handleListDatasetColumns");
+		final ActorRef sender = getSender(), self = getSelf();
+
+		final Future<TypedList<Column>> columnList = databaseRef.query().from(datasetColumn).join(dataset)
+				.on(dataset.id.eq(datasetColumn.datasetId))
+				.where(dataset.identification.eq(listColumns.getDatasetId()))
+				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
+
+		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
+			@Override
+			public void onSuccess(TypedList<Column> msg) throws Throwable {
+				log.debug("category info received");
+				log.debug("sending category list");
+				sender.tell(msg.asCollection(), self);
+			}
+		}, getContext().dispatcher());
+
 	}
 	
 	private void handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
