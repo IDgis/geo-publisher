@@ -3,6 +3,7 @@ package nl.idgis.publisher.database;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -22,7 +23,6 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -64,7 +64,23 @@ public abstract class AbstractDatabaseTest {
 		
 		connection = DriverManager.getConnection(url, user, password);
 		Statement stmt = connection.createStatement();
+		
+		// create database
 		JdbcUtils.runRev(stmt, "nl/idgis/publisher/database");
+		
+		// adjust sequence start values to ensure that sequences do not 
+		// provide the same values during the tests and potentially
+		// masking relational integrity issues
+		ResultSet rs = stmt.executeQuery("select SEQUENCE_SCHEMA || '.' || SEQUENCE_NAME from INFORMATION_SCHEMA.SEQUENCES");
+		int sequenceValue = 1;
+		while(rs.next()) {
+			Statement seqStmt = connection.createStatement();			
+			seqStmt.executeUpdate("alter sequence " + rs.getString(1) + " restart with " + sequenceValue);
+			sequenceValue += 1000;
+			seqStmt.close();
+		}
+		rs.close();
+		
 		stmt.close();
 		
 		templates = new ExtendedPostgresTemplates();
