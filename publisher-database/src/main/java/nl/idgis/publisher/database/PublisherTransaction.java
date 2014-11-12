@@ -46,7 +46,6 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
-import nl.idgis.publisher.database.messages.GetDatasetColumns;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
@@ -220,8 +219,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeStoreLog((StoreLog)query);		
 		} else if(query instanceof GetSourceDatasetColumns) {
 			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
-		} else if(query instanceof GetDatasetColumns) {
-			executeGetDatasetColumns((GetDatasetColumns)query);
 		} else if(query instanceof GetImportJobs) {				
 			executeGetImportJobs();
 		} else if(query instanceof CreateDataset) {
@@ -1088,16 +1085,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					tc.get(dataType)));
 		}
 		return importJobColumns;
-	}
-
-	private void executeGetDatasetColumns(GetDatasetColumns dc) {		
-		log.debug("get columns for dataset: " + dc.getDatasetId());
-		
-		answer(
-			query().from(datasetColumn)
-			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-			.where(dataset.identification.eq(dc.getDatasetId()))
-			.list(new QColumn(datasetColumn.name, datasetColumn.dataType)));
 	}
 
 	private void executeGetSourceDatasetColumns(GetSourceDatasetColumns sdc) {
