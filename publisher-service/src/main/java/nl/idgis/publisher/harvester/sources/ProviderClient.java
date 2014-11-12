@@ -4,7 +4,7 @@ import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
-import nl.idgis.publisher.metadata.messages.GetAlternateTitle;
+import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
@@ -13,7 +13,7 @@ import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.utils.Ask;
-import nl.idgis.publisher.xml.messages.Close;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -140,39 +140,17 @@ public class ProviderClient extends UntypedActor {
 
 							@Override
 							public void onSuccess(Object o) throws Throwable {
-								final ActorRef metadataDocument = (ActorRef)o;
-								
+								MetadataDocument metadataDocument = (MetadataDocument)o;
 								log.debug("metadata parsed");
 								
-								Patterns.ask(metadataDocument, new GetAlternateTitle(), 15000)
-									.onSuccess(new OnSuccess<Object>() {
-
-										@Override
-										public void onSuccess(Object o) throws Throwable {
-											final String alternateTitle = (String)o;
-											
-											log.debug("alternate title read from metadata");
-											
-											Patterns.ask(metadataDocument, new Close(), 15000)
-												.onSuccess(new OnSuccess<Object>() {
-
-													@Override
-													public void onSuccess(Object msg) throws Throwable {
-														log.debug("metadata document closed");
-														
-														processMetadata(gd, alternateTitle, initiator);
-													}
-													
-												}, getContext().dispatcher());
-											
-										}
-										
-									}, getContext().dispatcher());
+								String alternateTitle = metadataDocument.getAlternateTitle();
+								log.debug("alternate title read from metadata");
+								
+								processMetadata(gd, alternateTitle, initiator);
 							}
-							
 						}, getContext().dispatcher());
 				}
-			}, getContext().dispatcher());
+			}, getContext().dispatcher());								
 	}
 
 	private void handleListDatasets() {

@@ -1,11 +1,13 @@
 package nl.idgis.publisher.xml;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -13,34 +15,19 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.xml.messages.Close;
-import nl.idgis.publisher.xml.messages.GetContent;
-import nl.idgis.publisher.xml.messages.GetString;
-import nl.idgis.publisher.xml.messages.MultipleNodes;
-import nl.idgis.publisher.xml.messages.NotFound;
-import nl.idgis.publisher.xml.messages.NotTextOnly;
-import nl.idgis.publisher.xml.messages.Query;
-import nl.idgis.publisher.xml.messages.UpdateString;
+import nl.idgis.publisher.xml.exceptions.MultipleNodes;
+import nl.idgis.publisher.xml.exceptions.NotFound;
+import nl.idgis.publisher.xml.exceptions.NotTextOnly;
+import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
-public class XMLDocument extends UntypedActor {
-	
-	public static Props props(Document document) {
-		return Props.create(XMLDocument.class, document);
-	}
-	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+public class XMLDocument {
 	
 	private final Document document;
 	
@@ -48,35 +35,13 @@ public class XMLDocument extends UntypedActor {
 	
 	public XMLDocument(Document document) {
 		this.document = document;
+		
+		xf = XPathFactory.newInstance();
 	}
 	
-	private void handleClose(Close msg) {
-		log.debug("closing document");
-		
-		getSender().tell(new Ack(), getSelf());
-		getContext().stop(getSelf());
-	}
-
-	private void handleGetString(final GetString query, XPath xpath,
-			String expression) {
-		try {
-			String s = xpath.evaluate(expression, document);
-			if(s.isEmpty()) {
-				sendNotFound(query);
-			} else {
-				getSender().tell(s, getSelf());
-			}
-		} catch(Exception e) {
-			sendNotFound(query);
-		}
-	}
-
-	private void handleQuery(final Query<?> query) throws Exception {
-		
+	private XPath getXPath(final BiMap<String, String> namespaces) {
 		XPath xpath = xf.newXPath();
 		xpath.setNamespaceContext(new NamespaceContext() {
-			
-			BiMap<String, String> namespaces = query.getNamespaces();
 
 			@Override
 			public String getNamespaceURI(String prefix) {				
@@ -96,47 +61,25 @@ public class XMLDocument extends UntypedActor {
 			
 		});
 		
-		String expression = query.getExpression();
-		log.debug("evaluating expression: " + expression);
-		
-		if(query instanceof GetString) {
-			handleGetString((GetString)query, xpath, expression);
-		} else if(query instanceof UpdateString) {
-			handleUpdateQuery((UpdateString)query, xpath, expression);
-		} else {
-			unhandled(query);
-		}
+		return xpath;
 	}
-
-	private void handleUpdateQuery(final UpdateString query, XPath xpath, String expression) {
-		
-		NodeList nodeList;
+	
+	public String getString(String path) throws NotFound {
+		return getString(HashBiMap.<String, String>create(), path);
+	}
+	
+	public String getString(BiMap<String, String> namespaces, String path) throws NotFound {
 		try {
-			nodeList = (NodeList)xpath.evaluate(expression, document, XPathConstants.NODESET);
+			String s = getXPath(namespaces).evaluate(path, document);
+			if(s.isEmpty()) {
+				throw new NotFound(namespaces, path);
+			} else {
+				return s;
+			}
 		} catch(Exception e) {
-			sendNotFound(query);
-			return;
+			throw new NotFound(namespaces, path, e);
 		}
-		
-		switch(nodeList.getLength()) {
-			case 0:
-				sendNotFound(query);
-				break;
-			case 1:
-				Node n = nodeList.item(0);
-				
-				if(isTextOnly(n)) {
-					n.setTextContent(((UpdateString) query).getNewValue());
-					sendAck();
-				} else {
-					sendNotTextOnly(query);
-				}
-				
-				break;
-			default:
-				sendMultipleNodes(query);
-		}
-	}
+	}	
 
 	private boolean isTextOnly(Node n) {
 		NodeList children = n.getChildNodes();
@@ -147,50 +90,47 @@ public class XMLDocument extends UntypedActor {
 		}
 		
 		return true;
-	}
-
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Query) {
-			handleQuery((Query<?>)msg);
-		} else if(msg instanceof GetContent) {
-			handleGetContent((GetContent)msg);
-		} else if(msg instanceof Close) {
-			handleClose((Close)msg);
-		} else {
-			unhandled(msg);
+	}	
+	
+	public void updateString(BiMap<String, String> namespaces, String expression, String newValue) throws QueryFailure {
+		NodeList nodeList;
+		try {
+			nodeList = (NodeList)getXPath(namespaces).evaluate(expression, document, XPathConstants.NODESET);
+		} catch(Exception e) {
+			throw new NotFound(namespaces, expression, e);
 		}
-	}
-
-	private void handleGetContent(GetContent msg) throws Exception {
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
 		
-		ByteArrayOutputStream boas = new ByteArrayOutputStream();
-		t.transform(new DOMSource(document), new StreamResult(boas));
-		boas.close();
+		switch(nodeList.getLength()) {
+			case 0:
+				throw new NotFound(namespaces, expression);				
+			case 1:
+				Node n = nodeList.item(0);
+				
+				if(isTextOnly(n)) {
+					n.setTextContent(newValue);
+				} else {
+					throw new NotTextOnly(namespaces, expression);
+				}
+				
+				break;
+			default:
+				throw new MultipleNodes(namespaces, expression);
+		}
 		
-		getSender().tell(boas.toByteArray(), getSelf());
 	}
 
-	@Override
-	public void preStart() throws Exception {
-		 xf = XPathFactory.newInstance();
-	}
-
-	private void sendAck() {
-		getSender().tell(new Ack(), getSelf());
-	}
-
-	private void sendMultipleNodes(Query<?> query) {
-		getSender().tell(new MultipleNodes(query), getSelf());
-	}
-
-	private void sendNotFound(final Query<?> query) {
-		getSender().tell(new NotFound(query), getSelf());
-	}
-
-	private void sendNotTextOnly(Query<?> query) {
-		getSender().tell(new NotTextOnly(query), getSelf());
+	public byte[] getContent() throws IOException {
+		try {
+			TransformerFactory tf = TransformerFactory.newInstance();
+			Transformer t = tf.newTransformer();
+			
+			ByteArrayOutputStream boas = new ByteArrayOutputStream();
+			t.transform(new DOMSource(document), new StreamResult(boas));
+			boas.close();
+			
+			return boas.toByteArray();
+		} catch(TransformerException e) {
+			throw new IOException("Couldn't serialize xml", e);
+		}
 	}
 }

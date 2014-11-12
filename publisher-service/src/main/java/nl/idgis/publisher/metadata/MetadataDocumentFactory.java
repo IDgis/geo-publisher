@@ -1,6 +1,7 @@
 package nl.idgis.publisher.metadata;
 
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
+import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.XMLDocumentFactory;
 import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
@@ -52,11 +53,11 @@ public class MetadataDocumentFactory extends UntypedActor {
 						
 						sender.tell(msg, getSelf());
 					} else {					
-						ActorRef xmlDocument = (ActorRef)msg;					
+						XMLDocument xmlDocument = (XMLDocument)msg;					
 						
 						log.debug("metadata document parsed");
 						
-						sender.tell(getContext().actorOf(MetadataDocument.props(xmlDocument)), getSelf());
+						sender.tell(new MetadataDocument(xmlDocument), getSelf());
 					}
 				}
 				

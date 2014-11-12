@@ -9,13 +9,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-import nl.idgis.publisher.metadata.messages.GetAlternateTitle;
-import nl.idgis.publisher.metadata.messages.GetRevisionDate;
-import nl.idgis.publisher.metadata.messages.GetTitle;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.xml.messages.Close;
 import nl.idgis.publisher.xml.messages.NotParseable;
 
 import org.apache.commons.io.IOUtils;
@@ -47,23 +43,17 @@ public class MetadataDocumentTest {
 		Future<Object> future = Patterns.ask(factory, new ParseMetadataDocument(content), 15000);
 		
 		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an ActorRef", result instanceof ActorRef);
+		assertTrue("didn't receive a MetadataDocument", result instanceof MetadataDocument);
 		
-		ActorRef document = (ActorRef)result;
+		MetadataDocument document = (MetadataDocument)result;
 		
-		future = Patterns.ask(document, new GetTitle(), 15000);
-		result = Await.result(future, AWAIT_DURATION);
-		
+		result = document.getTitle();		
 		assertEquals("wrong title", "Zeer kwetsbare gebieden", result);
 		
-		future = Patterns.ask(document, new GetAlternateTitle(), 15000);
-		result = Await.result(future, AWAIT_DURATION);
-		
+		result = document.getAlternateTitle();		
 		assertEquals("wrong alternate title", "B4.wav_polygon (b4\\b46)", result);
 		
-		future = Patterns.ask(document, new GetRevisionDate(), 15000);
-		result = Await.result(future, AWAIT_DURATION);
-		
+		result = document.getRevisionDate();		
 		assertTrue("wrong GetRivisionDate response type", result instanceof Date);
 		
 		Date date = (Date)result;
@@ -74,11 +64,6 @@ public class MetadataDocumentTest {
 		assertEquals(2009, calendar.get(Calendar.YEAR));
 		assertEquals(Calendar.AUGUST, calendar.get(Calendar.MONTH));
 		assertEquals(14, calendar.get(Calendar.DAY_OF_MONTH));
-		
-		future = Patterns.ask(document, new Close(), 15000);
-		result = Await.result(future, AWAIT_DURATION);
-		
-		assertTrue(result instanceof Ack);
 	}
 	
 	@Test
