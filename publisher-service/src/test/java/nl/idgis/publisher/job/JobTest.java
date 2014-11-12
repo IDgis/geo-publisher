@@ -1,4 +1,4 @@
-package nl.idgis.publisher.database;
+package nl.idgis.publisher.job;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QJob.job;
@@ -9,7 +9,6 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceData
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -20,21 +19,25 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.CreateImportJob;
-import nl.idgis.publisher.database.messages.CreateServiceJob;
+import nl.idgis.publisher.AbstractServiceTest;
+
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.GetServiceJobs;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
+
+import nl.idgis.publisher.job.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateServiceJob;
+import nl.idgis.publisher.job.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
 
@@ -45,21 +48,21 @@ import com.mysema.query.Tuple;
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class JobTest extends AbstractDatabaseTest {	
+public class JobTest extends AbstractServiceTest {	
 
 	@Test
 	public void testHarvestJob() throws Exception {
 		
 		insertDataSource();	
 		
-		Object result = ask(database, new CreateHarvestJob("testDataSource"));
+		Object result = ask(jobManager, new CreateHarvestJob("testDataSource"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		TypedIterable<?> jobs = askAssert(database, new GetHarvestJobs(), TypedIterable.class);		
+		TypedIterable<?> jobs = askAssert(jobManager, new GetHarvestJobs(), TypedIterable.class);		
 		assertTrue(jobs.contains(HarvestJobInfo.class));
 		
 		Iterator<HarvestJobInfo> jobsItr = jobs.cast(HarvestJobInfo.class).iterator();
@@ -142,7 +145,7 @@ public class JobTest extends AbstractDatabaseTest {
 		
 		assertFalse(i.hasNext());
 		
-		result = ask(database, new CreateImportJob("testDataset"));
+		result = ask(jobManager, new CreateImportJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -160,11 +163,11 @@ public class JobTest extends AbstractDatabaseTest {
 		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
-		TypedIterable<?> importJobsInfos = askAssert(database, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> importJobsInfos = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobsInfos.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> importJobsItr = importJobsInfos.cast(ImportJobInfo.class).iterator();
-		assertTrue(importJobsItr.hasNext());		
+		assertTrue(importJobsItr.hasNext());
 		
 		ImportJobInfo importJobInfo = importJobsItr.next();
 		assertEquals("testDataset", importJobInfo.getDatasetId());
@@ -206,10 +209,10 @@ public class JobTest extends AbstractDatabaseTest {
 		datasetStatus = i.next();
 		assertFalse(datasetStatus.isServiceCreated());
 		
-		result = ask(database, new CreateServiceJob("testDataset"));
+		result = ask(jobManager, new CreateServiceJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
-		TypedIterable<?> serviceJobsInfos = askAssert(database, new GetServiceJobs(), TypedIterable.class);
+		TypedIterable<?> serviceJobsInfos = askAssert(jobManager, new GetServiceJobs(), TypedIterable.class);
 		assertTrue(serviceJobsInfos.contains(ServiceJobInfo.class));
 		
 		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();

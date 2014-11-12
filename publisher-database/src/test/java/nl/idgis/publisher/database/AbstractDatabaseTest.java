@@ -3,6 +3,7 @@ package nl.idgis.publisher.database;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -13,39 +14,32 @@ import java.util.Random;
 import org.junit.After;
 import org.junit.Before;
 
+import scala.concurrent.ExecutionContext;
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
-import nl.idgis.publisher.utils.TypedIterable;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
+import com.mysema.query.QueryMetadata;
+import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
-
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static org.junit.Assert.assertTrue;
-
 import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -70,7 +64,23 @@ public abstract class AbstractDatabaseTest {
 		
 		connection = DriverManager.getConnection(url, user, password);
 		Statement stmt = connection.createStatement();
+		
+		// create database
 		JdbcUtils.runRev(stmt, "nl/idgis/publisher/database");
+		
+		// adjust sequence start values to ensure that sequences do not 
+		// provide the same values during the tests and potentially
+		// masking relational integrity issues
+		ResultSet rs = stmt.executeQuery("select SEQUENCE_SCHEMA || '.' || SEQUENCE_NAME from INFORMATION_SCHEMA.SEQUENCES");
+		int sequenceValue = 1;
+		while(rs.next()) {
+			Statement seqStmt = connection.createStatement();			
+			seqStmt.executeUpdate("alter sequence " + rs.getString(1) + " restart with " + sequenceValue);
+			sequenceValue += 1000;
+			seqStmt.close();
+		}
+		rs.close();
+		
 		stmt.close();
 		
 		templates = new ExtendedPostgresTemplates();
@@ -109,6 +119,9 @@ public abstract class AbstractDatabaseTest {
 		return new SQLQuery(connection, templates);
 	}
 	
+	protected SQLQuery query(QueryMetadata metadata) {
+		return new SQLQuery(connection, new Configuration(templates), metadata);
+	}
 	
 	
 	@After
@@ -170,11 +183,7 @@ public abstract class AbstractDatabaseTest {
 		return new Dataset(id, "testCategory", table, revision);		
 	}
 	
-	protected void executeJobs(Query query) throws Exception {
-		TypedIterable<?> iterable = askAssert(database, query, TypedIterable.class);
-		assertTrue(iterable.contains(JobInfo.class));
-		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
-		}
+	protected ExecutionContext dispatcher() {
+		return system.dispatcher();
 	}
 }

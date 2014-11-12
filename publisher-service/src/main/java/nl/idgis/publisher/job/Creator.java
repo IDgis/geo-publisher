@@ -6,14 +6,16 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.CreateImportJob;
-import nl.idgis.publisher.database.messages.CreateServiceJob;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
+
 import nl.idgis.publisher.domain.job.JobState;
+
+import nl.idgis.publisher.job.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateServiceJob;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;
@@ -25,16 +27,17 @@ public class Creator extends Scheduled {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
+	private final ActorRef jobManager, database;
 	
 	private static final FiniteDuration HARVEST_INTERVAL = Duration.create(15, TimeUnit.MINUTES);
 	
-	public Creator(ActorRef database) {
+	public Creator(ActorRef jobManager, ActorRef database) {
+		this.jobManager = jobManager;
 		this.database = database;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(Creator.class, database);
+	public static Props props(ActorRef jobManager, ActorRef database) {
+		return Props.create(Creator.class, jobManager, database);
 	}
 	
 	@Override
@@ -106,7 +109,7 @@ public class Creator extends Scheduled {
 			if(needsImport) {
 				log.debug("creating import job for: " + datasetId);
 				
-				database.tell(new CreateImportJob(datasetId), getSelf());	
+				jobManager.tell(new CreateImportJob(datasetId), getSelf());	
 			} else {
 				log.debug("no imported need for: " + datasetId);				
 			}
@@ -132,7 +135,7 @@ public class Creator extends Scheduled {
 				|| timeDiff > HARVEST_INTERVAL.toMillis()) {
 				
 				log.debug("creating harvest job for: " + dataSourceId);				
-				database.tell(new CreateHarvestJob(dataSourceId), getSelf());				
+				jobManager.tell(new CreateHarvestJob(dataSourceId), getSelf());				
 			} else {
 				log.debug("not yet creating harvest job for: " + dataSourceId);
 			}
@@ -161,7 +164,7 @@ public class Creator extends Scheduled {
 			} else {
 				log.debug("creating service for dataset: " + datasetId);
 				
-				database.tell(new CreateServiceJob(datasetId), getSelf());
+				jobManager.tell(new CreateServiceJob(datasetId), getSelf());
 			}
 		}
 	}

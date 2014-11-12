@@ -7,73 +7,75 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
-import nl.idgis.publisher.database.AbstractDatabaseTest;
-import nl.idgis.publisher.database.messages.CreateHarvestJob;
-import nl.idgis.publisher.database.messages.CreateImportJob;
-import nl.idgis.publisher.database.messages.CreateServiceJob;
-import nl.idgis.publisher.database.messages.GetHarvestJobs;
-import nl.idgis.publisher.database.messages.GetImportJobs;
-import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.job.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateServiceJob;
+import nl.idgis.publisher.job.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.messages.JobManagerRequest;
 
 import static nl.idgis.publisher.utils.TestPatterns.ask;
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
-public class CreatorTest extends AbstractDatabaseTest {
+public class CreatorTest extends AbstractServiceTest {
 	
-	static class GetLastReceivedQuery {
+	static class GetLastReceivedRequest {
 		
 	}
 	
-	static class DatabaseAdapter extends UntypedActor {
+	static class ManagerAdapter extends UntypedActor {
 		
-		final ActorRef database;
+		final ActorRef manager;
 		
-		Query lastQuery = null;
+		JobManagerRequest lastRequest = null;
 		ActorRef sender = null;
 		
-		public DatabaseAdapter(ActorRef database) {
-			this.database = database;
+		public ManagerAdapter(ActorRef manager) {
+			this.manager = manager;
 		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof GetLastReceivedQuery) {
+			if(msg instanceof GetLastReceivedRequest) {
 				sender = getSender();
-				sendLastQuery();				
+				sendLastRequest();				
 			} else {			
 				if(msg instanceof CreateHarvestJob
 					|| msg instanceof CreateImportJob
 					|| msg instanceof CreateServiceJob) {
 					
-					lastQuery = (Query)msg;
-					sendLastQuery();
+					lastRequest = (JobManagerRequest)msg;
+					sendLastRequest();
 				}
 					
-				database.tell(msg, getSender());
+				manager.tell(msg, getSender());
 			}
 		}
 		
-		private void sendLastQuery() {
-			if(sender != null && lastQuery != null) {
-				sender.tell(lastQuery, getSelf());
+		private void sendLastRequest() {
+			if(sender != null && lastRequest != null) {
+				sender.tell(lastRequest, getSelf());
 			}
 		}
 		
 	}
 	
-	ActorRef databaseAdapter;
+	ActorRef managerAdapter;
 	
 	@Before
-	public void actors() {
-		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");		
+	public void actors() {		
+		managerAdapter = actorOf(Props.create(ManagerAdapter.class, jobManager), "managerAdapter");		
 	}
 
 	private void initCreator() {
-		actorOf(Creator.props(databaseAdapter), "creator");
+		actorOf(Creator.props(managerAdapter, database), "creator");
 	}
 	
+	
+	
 	private void harvest() throws Exception {
-		ask(database, new CreateHarvestJob("testDataSource"));		
+		ask(jobManager, new CreateHarvestJob("testDataSource"));		
 		executeJobs(new GetHarvestJobs());
 	}
 
@@ -81,7 +83,7 @@ public class CreatorTest extends AbstractDatabaseTest {
 	public void testHarvestJob() throws Exception {
 		insertDataSource();
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateHarvestJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateHarvestJob.class);
 	}
 	
 	@Test
@@ -89,16 +91,16 @@ public class CreatorTest extends AbstractDatabaseTest {
 		insertDataset();
 		harvest();
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateImportJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateImportJob.class);
 	}	
 	
 	@Test
 	public void testServiceJob() throws Exception {
 		insertDataset();
 		harvest();
-		ask(database, new CreateImportJob("testDataset"));
+		ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		initCreator();
-		askAssert(databaseAdapter, new GetLastReceivedQuery(), CreateServiceJob.class);
+		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateServiceJob.class);
 	}
 }

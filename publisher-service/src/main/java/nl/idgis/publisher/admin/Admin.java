@@ -10,7 +10,6 @@ import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.CreateImportJob;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
@@ -36,6 +35,7 @@ import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -80,12 +80,16 @@ import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
+
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
+import nl.idgis.publisher.job.messages.CreateImportJob;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

@@ -1,8 +1,8 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.messages;
 
-public class CreateHarvestJob extends Query {
+public class CreateHarvestJob extends CreateJob {	
 
-	private static final long serialVersionUID = -8790717151606018078L;
+	private static final long serialVersionUID = -2292102304377571130L;
 	
 	private final String dataSourceId;
 	
