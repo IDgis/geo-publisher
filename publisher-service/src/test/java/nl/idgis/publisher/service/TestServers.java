@@ -47,6 +47,8 @@ public class TestServers {
 		
 		Statement stmt = connection.createStatement();		
 		stmt.execute("create table \"test_table\"(\"id\" serial, \"test\" integer)");
+		stmt.execute("create schema \"b0\"");
+		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
 		
 		stmt.close();
 				
