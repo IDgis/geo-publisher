@@ -2,6 +2,7 @@ package nl.idgis.publisher.harvester.sources;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.metadata.MetadataDocument;
@@ -112,22 +113,23 @@ public class ProviderClient extends UntypedActor {
 					handleListDatasets();
 				} else if(msg instanceof ConnectionClosed) {
 					handleConnectionClosed();
+				} else if(msg instanceof GetDatasetMetadata) {
+					handleGetDatasetMetadata((GetDatasetMetadata)msg);
 				} else if(msg instanceof GetDataset) {
 					handleGetDataset((GetDataset)msg);
 				} else {
 					unhandled(msg);
 				} 
-			}
-			
+			}			
 		};
 	}
 	
-	private void handleGetDataset(final GetDataset gd) {
-		log.debug("retrieving data from provider");
+	private void handleGetDatasetMetadata(GetDatasetMetadata gdm) {				
+		log.debug("retrieving dataset metadata from provider");
 		
-		final ActorRef initiator = getSender();
+		final ActorRef sender = getSender();
 						
-		Ask.ask(getContext(), metadata, new GetMetadata(gd.getId()), 15000)
+		Ask.ask(getContext(), metadata, new GetMetadata(gdm.getDatasetId()), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 
 				@Override
@@ -143,14 +145,32 @@ public class ProviderClient extends UntypedActor {
 								MetadataDocument metadataDocument = (MetadataDocument)o;
 								log.debug("metadata parsed");
 								
-								String alternateTitle = metadataDocument.getAlternateTitle();
-								log.debug("alternate title read from metadata");
-								
-								processMetadata(gd, alternateTitle, initiator);
+								sender.tell(metadataDocument, getSelf());
 							}
 						}, getContext().dispatcher());
 				}
-			}, getContext().dispatcher());								
+			}, getContext().dispatcher());	
+	}
+	
+	private void handleGetDataset(final GetDataset gd) {
+		log.debug("retrieving data from provider");
+		
+		final ActorRef initiator = getSender();
+		
+		Patterns.ask(getSelf(), new GetDatasetMetadata(gd.getId()), 15000)
+			.onSuccess(new OnSuccess<Object>() {
+
+				@Override
+				public void onSuccess(Object msg) throws Throwable {
+					MetadataDocument metadataDocument = (MetadataDocument)msg;
+					
+					String alternateTitle = metadataDocument.getAlternateTitle();
+					log.debug("alternate title read from metadata");
+					
+					processMetadata(gd, alternateTitle, initiator);
+				}
+				
+			}, getContext().dispatcher());
 	}
 
 	private void handleListDatasets() {
