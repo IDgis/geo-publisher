@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.DatabaseRef;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -29,13 +30,13 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
@@ -676,33 +677,60 @@ public class Admin extends UntypedActor {
 				}, getContext().dispatcher());
 	}
 	
-	private void handleGetSourceDataset (final GetEntity<?> getEntity) {
-		log.debug ("handleSourceDataset");
-		
+	private void handleGetSourceDataset(final GetEntity<?> getEntity) {
+		log.debug("handleSourceDataset");
+
 		final ActorRef sender = getSender();
-		
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetInfo(getEntity.id ()), 15000);
-				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof SourceDatasetInfo) {
-							SourceDatasetInfo sourceDatasetInfo = (SourceDatasetInfo)msg;
-							log.debug("sourcedataset info received");
-							final SourceDataset sourceDataset = new SourceDataset (
-									sourceDatasetInfo.getId(), 
-									sourceDatasetInfo.getName(),
-									new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
-									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
-							);
-							log.debug("sending source_dataset: " + sourceDataset);
-							sender.tell (sourceDataset, getSelf());
-						} else {
-							sender.tell (new NotFound(), getSelf());
-						}
-					}
-				}, getContext().dispatcher());
+
+		String sourceDatasetId = getEntity.id();
+
+		AsyncSQLQuery baseQuery = databaseRef
+				.query()
+				.from(sourceDataset)
+				.join(sourceDatasetVersion)
+				.on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id).and(
+						new SQLSubQuery()
+								.from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id))).notExists()))
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId)).join(category)
+				.on(sourceDatasetVersion.categoryId.eq(category.id));
+
+		if (sourceDatasetId != null) {
+			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
+		}
+
+		AsyncSQLQuery listQuery = baseQuery.clone().leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+
+		final Future<SourceDatasetInfo> sourceDatasetInfo = listQuery
+				.groupBy(sourceDataset.identification)
+				.groupBy(sourceDatasetVersion.name)
+				.groupBy(dataSource.identification)
+				.groupBy(dataSource.name)
+				.groupBy(category.identification)
+				.groupBy(category.name)
+				.singleResult(
+						new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name,
+								dataSource.identification, dataSource.name, category.identification, category.name,
+								dataset.count()));
+
+		sourceDatasetInfo.onSuccess(new OnSuccess<SourceDatasetInfo>() {
+			@Override
+			public void onSuccess(SourceDatasetInfo msg) throws Throwable {
+				if (msg != null) {
+					log.debug("sourcedataset info received");
+					final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
+							EntityType.CATEGORY, msg.getCategoryId(), msg.getCategoryName()), new EntityRef(
+							EntityType.DATA_SOURCE, msg.getDataSourceId(), msg.getDataSourceName()));
+					log.debug("sending sourcedataset: " + sourceDataset);
+					sender.tell(sourceDataset, getSelf());
+				} else {
+					sender.tell(new NotFound(), getSelf());
+				}
+			}
+		}, getContext().dispatcher());
 	}
-	
+
 	private void handleListSourceDatasets (final ListSourceDatasets message) {
 		
 		log.debug ("handleListSourceDatasets");

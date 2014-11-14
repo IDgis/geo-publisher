@@ -46,7 +46,6 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -203,8 +202,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetDatasetListInfo((GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
 			executeGetDataSourceInfo();
-		} else if(query instanceof GetSourceDatasetInfo) {			
-			executeGetSourceDatasetInfo((GetSourceDatasetInfo)query);			
 		} else if(query instanceof GetSourceDatasetListInfo) {			
 			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof StoreLog) {
@@ -894,39 +891,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 							dataset.count())),
 							
 				baseQuery.count()
-			)
-		);
-	}
-
-	private void executeGetSourceDatasetInfo(GetSourceDatasetInfo sdi) {
-		log.debug(sdi.toString());
-		String sourceDatasetId = sdi.getId();
-		
-		SQLQuery baseQuery = query().from(sourceDataset)
-				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-									.notExists()))
-				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
-		
-		if(sourceDatasetId != null) {				
-			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
-		}
-			
-		SQLQuery listQuery = baseQuery.clone()					
-				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
-		
-		answer(
-			listQuery					
-				.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
-				.groupBy(dataSource.identification).groupBy(dataSource.name)
-				.groupBy(category.identification).groupBy(category.name)						
-				.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
-						dataSource.identification, dataSource.name,
-						category.identification,category.name,
-						dataset.count())
 			)
 		);
 	}
