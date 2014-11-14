@@ -4,6 +4,9 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -15,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
@@ -27,7 +31,6 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -85,7 +88,6 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.QCategory;
-import nl.idgis.publisher.domain.web.QDataSource;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -112,9 +114,12 @@ import akka.util.Timeout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
+import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
 
 public class Admin extends UntypedActor {
+	
+	private final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 	
 	private final long ITEMS_PER_PAGE = 20;
 	
@@ -305,9 +310,35 @@ public class Admin extends UntypedActor {
 	}
 	
 	private void handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {
-		GetSourceDatasetColumns di = new GetSourceDatasetColumns(listColumns.getDataSourceId(), listColumns.getSourceDatasetId());
-		
-		database.tell(di, getSender());
+		log.debug("handleListSourceDatasetColumns");
+		final ActorRef sender = getSender(), self = getSelf();
+
+		final Future<TypedList<Column>> columnList = databaseRef
+				.query()
+				.from(sourceDatasetVersionColumn)
+				.join(sourceDatasetVersion)
+				.on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId).and(
+						new SQLSubQuery()
+								.from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id))).notExists()))
+				.join(sourceDataset)
+				.on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+				.join(dataSource)
+				.on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.where(sourceDataset.identification.eq(listColumns.getSourceDatasetId()).and(
+						dataSource.identification.eq(listColumns.getDataSourceId())))
+				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
+
+		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
+			@Override
+			public void onSuccess(TypedList<Column> msg) throws Throwable {
+				log.debug("sourcedataset column list received");
+				log.debug("sending sourcedataset column list");
+				sender.tell(msg.asCollection(), self);
+			}
+		}, getContext().dispatcher());
+
 	}
 
 	private void handleListDatasetColumns(final ListDatasetColumns listColumns) {
@@ -322,8 +353,8 @@ public class Admin extends UntypedActor {
 		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
 			@Override
 			public void onSuccess(TypedList<Column> msg) throws Throwable {
-				log.debug("category info received");
-				log.debug("sending category list");
+				log.debug("dataset column list received");
+				log.debug("sending dataset column list");
 				sender.tell(msg.asCollection(), self);
 			}
 		}, getContext().dispatcher());

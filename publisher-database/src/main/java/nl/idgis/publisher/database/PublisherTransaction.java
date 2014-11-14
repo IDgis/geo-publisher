@@ -47,7 +47,6 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
 import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
@@ -213,8 +212,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof StoreLog) {
 			executeStoreLog((StoreLog)query);		
-		} else if(query instanceof GetSourceDatasetColumns) {
-			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
 		} else if(query instanceof CreateDataset) {
 			executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
@@ -812,23 +809,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			}
 	}	
 
-	private void executeGetSourceDatasetColumns(GetSourceDatasetColumns sdc) {
-		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
-
-		answer(
-			query().from(sourceDatasetVersionColumn)
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
-					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-							.notExists()))
-			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
-				.and(dataSource.identification.eq(sdc.getDataSourceId())))
-			.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)));
-	}
-	
 	private void executeStoreLog(StoreLog query) throws Exception {
 		log.debug("storing log line: " + query);
 		
