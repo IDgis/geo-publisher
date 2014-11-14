@@ -19,12 +19,10 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.DatabaseRef;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
-import nl.idgis.publisher.database.messages.CategoryInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
@@ -638,21 +636,22 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender();
 		
-		final Future<Object> categoryInfo = Patterns.ask(database, new GetCategoryInfo(getEntity.id ()), 15000);
-				categoryInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof CategoryInfo) {
-							CategoryInfo categoryInfo = (CategoryInfo)msg;
-							log.debug("category info received");
-							Category category = new Category (categoryInfo.getId(), categoryInfo.getName());
-							log.debug("sending category: " + category);
-							sender.tell (category, getSelf());
-						} else {
-							sender.tell (new NotFound(), getSelf());
-						}
-					}
-				}, getContext().dispatcher());
+		final Future<Category> categoryList = databaseRef.query().from(category)
+				.where(category.identification.eq(getEntity.id()))
+				.singleResult(new QCategory(category.identification, category.name));
+
+		categoryList.onSuccess(new OnSuccess<Category>() {
+			public void onSuccess(Category msg) throws Throwable {
+				if (msg != null) {
+					log.debug("category received");
+					log.debug("sending category: " + category);
+					sender.tell(category, getSelf());
+				} else {
+					sender.tell(new NotFound(), getSelf());
+				}
+			}
+		}, getContext().dispatcher());
+
 	}
 	
 	private void handleGetDataset (final GetEntity<?> getEntity) {

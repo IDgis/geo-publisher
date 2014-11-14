@@ -37,7 +37,6 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
@@ -200,8 +199,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeRegisterSourceDataset((RegisterSourceDataset)query);
 		} else if(query instanceof GetCategoryListInfo) {
 			executeGetCategoryListInfo();
-		} else if(query instanceof GetCategoryInfo) {
-			executeGetCategoryInfo((GetCategoryInfo)query);			
 		} else if(query instanceof GetDatasetListInfo) {
 			executeGetDatasetListInfo((GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
@@ -1055,13 +1052,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 
 		answer (datasetInfos);
-	}
-
-	private void executeGetCategoryInfo(GetCategoryInfo query) {
-		answer(
-				query().from(category)
-				.where(category.identification.eq(query.getId()))
-				.singleResult(new QCategoryInfo(category.identification,category.name)));
 	}
 
 	private void executeGetCategoryListInfo() {
