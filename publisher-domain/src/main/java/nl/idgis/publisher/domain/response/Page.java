@@ -2,6 +2,7 @@ package nl.idgis.publisher.domain.response;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -78,6 +79,11 @@ public final class Page<T extends Entity> implements Serializable {
 		
 		public void add (final A value) {
 			list.add (value);
+		}
+		
+		public void addAll (Collection<A> collection) {
+			list.addAll (collection);
+			
 		}
 		
 		public Page<A> build () {
