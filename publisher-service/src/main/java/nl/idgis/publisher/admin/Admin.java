@@ -34,6 +34,7 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
@@ -353,10 +354,10 @@ public class Admin extends UntypedActor {
 		
 		final Future<Object> activeDataSources = Patterns.ask(harvester, new GetActiveDataSources(), 15000);
 		
-		final Future<TypedList<DataSource>> dataSourceInfo =
+		final Future<TypedList<DataSourceInfo>> dataSourceInfo =
 				databaseRef.query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
-				.list(new QDataSource(dataSource.identification, dataSource.name, null));
+				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 		
 		activeDataSources.onSuccess(new OnSuccess<Object>() {
 			
@@ -366,20 +367,20 @@ public class Admin extends UntypedActor {
 				final Set<String> activeDataSources = (Set<String>)msg;
 				log.debug("active data sources received");
 				
-				dataSourceInfo.onSuccess(new OnSuccess<TypedList<DataSource>>() {
+				dataSourceInfo.onSuccess(new OnSuccess<TypedList<DataSourceInfo>>() {
 
 					@Override
-					public void onSuccess(TypedList<DataSource> msg) throws Throwable {
-						List<DataSource> dataSourceList = (List<DataSource>)msg;
+					public void onSuccess(TypedList<DataSourceInfo> msg) throws Throwable {
+						List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg.asCollection();
 						log.debug("data sources info received");
 						
 						final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
 						
-						for(DataSource dataSource : dataSourceList) {
-							final String id = dataSource.id();
+						for(DataSourceInfo dataSourceInfo : dataSourceList) {
+							final String id = dataSourceInfo.getId() ;
 							final DataSource dataSourceBuilt = new DataSource (
 									id, 
-									dataSource.name(),
+									dataSourceInfo.getName(),
 									new Status (activeDataSources.contains(id) 
 											? DataSourceStatusType.OK
 											: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
