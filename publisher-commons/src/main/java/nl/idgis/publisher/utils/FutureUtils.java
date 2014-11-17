@@ -317,4 +317,12 @@ public class FutureUtils {
 				
 			}, executionContext);
 	}
+	
+	public <T, S> Future<S> map(Future<T> future, Function1<T, S> f) {
+		return future.map(f, executionContext);
+	}
+	
+	public <T, S> Future<S> flatMap(Future<T> future, Function1<T, Future<S>> f) {
+		return future.flatMap(f, executionContext);
+	}
 }
