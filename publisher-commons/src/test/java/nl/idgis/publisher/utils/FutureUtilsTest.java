@@ -1,5 +1,7 @@
 package nl.idgis.publisher.utils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +19,7 @@ import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -227,6 +230,34 @@ public class FutureUtilsTest {
 					} catch(Throwable t) {
 						testPromise.failure(t);
 					}
+				}
+				
+			});
+	}
+	
+	@Test
+	public void testMap() throws Exception {
+		Map<String, Future<String>> input = new HashMap<String, Future<String>>();
+		
+		input.put("foo", Futures.successful("bar"));
+		
+		Future<Map<String, String>> outputFuture = f.map(input);
+		assertNotNull(outputFuture);
+		
+		f
+			.collect(outputFuture)
+			.result(new AbstractFunction1<Map<String, String>, Void>() {
+
+				@Override
+				public Void apply(Map<String, String> output) {
+					try {
+						assertEquals("bar", output.get("foo"));
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+					
+					return null;
 				}
 				
 			});

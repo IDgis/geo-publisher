@@ -1,12 +1,18 @@
 package nl.idgis.publisher.utils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
-
 import scala.Function1;
 import scala.Function2;
 import scala.Function3;
@@ -282,5 +288,33 @@ public class FutureUtils {
 	
 	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {		 
 		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
+	}
+	
+	public <K, V> Future<Map<K, V>> map(Map<K, Future<V>> input) {
+		final List<K> keys = new ArrayList<K>();
+		List<Future<V>> values = new ArrayList<Future<V>>();
+		
+		for(Map.Entry<K, Future<V>> entry : input.entrySet()) {
+			keys.add(entry.getKey());
+			values.add(entry.getValue());
+		}
+		
+		return Futures.sequence(values, executionContext)
+			.map(new Mapper<Iterable<V>, Map<K, V>>() {
+				
+				public Map<K, V> apply(Iterable<V> i) {
+					Map<K, V> retval = new HashMap<K, V>();
+					
+					Iterator<K> keyItr = keys.iterator();
+					Iterator<V> valueItr = i.iterator();
+					
+					while(keyItr.hasNext()) {
+						retval.put(keyItr.next(), valueItr.next());
+					}
+					
+					return retval;
+				}
+				
+			}, executionContext);
 	}
 }
