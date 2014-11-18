@@ -2,10 +2,13 @@ package nl.idgis.publisher.xml;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -133,4 +136,84 @@ public class XMLDocument {
 			throw new IOException("Couldn't serialize xml", e);
 		}
 	}
+	
+	/**
+	 * Get the node list for a certain xpath in a document.
+	 * @param namespaces
+	 * @param path
+	 * @return nodeList
+	 */
+	public NodeList getNodeList(BiMap<String, String> namespaces, String path) {
+		NodeList nodeList = null;
+		try {
+			nodeList = (NodeList)getXPath(namespaces).evaluate(path, document, XPathConstants.NODESET);
+		} catch(Exception e) {
+			
+		}
+		return nodeList;		
+	}
+
+	/**
+	 * Get the node for a certain xpath in a document.
+	 * @param namespaces
+	 * @param path
+	 * @return nodeList
+	 */
+	public Node getNode(BiMap<String, String> namespaces, String path) {
+		Node node = null;
+		try {
+			node = (Node)getXPath(namespaces).evaluate(path, document, XPathConstants.NODE);
+		} catch(Exception e) {
+			
+		}
+		return node;		
+	}
+
+	/**
+	 * Remove all nodes from a document that belong to a given xpath. 
+	 * @param relevant namespaces for the nodes in the document
+	 * @param xpath expression
+	 * @return nr of removed nodes
+	 */
+	public int removeNodes(BiMap<String, String> namespaces, String path) {
+		NodeList nodeList= getNodeList(namespaces, path);
+		int nrOfNodes = nodeList.getLength();
+		for (int i = 0; i < nrOfNodes; i++) {
+			Node node = nodeList.item(i);
+			Node removedNode = node.getParentNode().removeChild(node);
+//			System.out.println(""+i+" node: "+removedNode);
+		} 
+		return nrOfNodes;
+	}
+	
+	/**
+	 * Add a Node with the proper namespace and optional text content.
+	 * @param parentNode the new node will be a child of parentNode 
+	 * @param namespaceUri e.g. "http://www.isotc211.org/2005/gmd"
+	 * @param nodeName e.g. "gmd:name"
+	 * @param nodeContent text content of the node or null if this node will have further children
+	 * @return the node added
+	 */
+	public Node addNode(Node parentNode, String namespaceUri, String nodeName,  String nodeContent){
+        Node node ;
+        if (nodeContent != null){
+        	node = document.createElement(nodeName);
+        	node.appendChild(document.createTextNode(nodeContent));
+        }else{
+        	node = document.createElementNS(namespaceUri, nodeName);
+        }
+        parentNode.appendChild(node);
+        return node;
+	}
+
+	public static final void prettyPrint(Node xml) throws Exception {
+		Transformer tf = TransformerFactory.newInstance().newTransformer();
+		tf.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+		tf.setOutputProperty(OutputKeys.INDENT, "yes");
+		Writer out = new StringWriter();
+		tf.transform(new DOMSource(xml), new StreamResult(out));
+		System.out.println(out.toString());
+	}
+
+	
 }
