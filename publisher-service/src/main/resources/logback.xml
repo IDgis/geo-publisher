@@ -8,6 +8,10 @@
   </appender>
   
   <!--  
+  	<logger name="nl.idgis.publisher.metadata.MetadataGenerator" level="debug"/>
+  -->
+  
+  <!--  
   	<logger name="nl.idgis.publisher.ServiceApp" level="debug"/>
    -->
    

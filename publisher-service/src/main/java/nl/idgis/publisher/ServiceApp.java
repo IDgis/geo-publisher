@@ -5,17 +5,21 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.admin.Admin;
+
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
+
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.metadata.MetadataGenerator;
+import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
@@ -128,6 +132,13 @@ public class ServiceApp extends UntypedActor {
 		ActorRef jobs = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobs), "admin");
+		
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, service, harvester));
+		getContext().system().scheduler().schedule(
+				Duration.create(10, TimeUnit.SECONDS), 
+				Duration.create(10, TimeUnit.SECONDS),
+				metadataGenerator, new GenerateMetadata(), 
+				getContext().dispatcher(), getSelf());
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
