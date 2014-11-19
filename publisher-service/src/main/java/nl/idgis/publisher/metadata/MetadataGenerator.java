@@ -13,6 +13,7 @@ import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 import akka.util.Timeout;
 
 import scala.concurrent.Future;
@@ -23,7 +24,6 @@ import nl.idgis.publisher.database.DatabaseRef;
 
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.service.messages.GetContent;
 import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -35,6 +35,7 @@ import nl.idgis.publisher.database.QJobState;
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QJobState.jobState;
@@ -79,6 +80,17 @@ public class MetadataGenerator extends UntypedActor {
 
 	private void generateMetadata() {		
 		log.debug("generating metadata");
+		
+		getContext().become(new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				log.debug("busy");
+				
+				unhandled(msg);
+			}
+			
+		});
 		
 		final ActorRef sender = getSender();
 		
@@ -139,6 +151,9 @@ public class MetadataGenerator extends UntypedActor {
 									log.debug("dataset processed: " + datasetId);
 								}
 								
+								log.debug("metadata generated");
+								
+								getContext().unbecome();
 								sender.tell(new Ack(), getSelf());
 								
 								return null;
@@ -173,6 +188,8 @@ public class MetadataGenerator extends UntypedActor {
 		return f.flatMap(dataSources, new Mapper<Map<String, ActorRef>, Future<Map<String, MetadataDocument>>>() {
 			
 			public Future<Map<String, MetadataDocument>> apply(Map<String, ActorRef> dataSources) {
+				log.debug("dataSources collected");
+				
 				return getMetadata(dataSources, queryResult);
 			}
 		});
@@ -182,13 +199,15 @@ public class MetadataGenerator extends UntypedActor {
 		Map<String, Future<MetadataDocument>> metadataDocuments = new HashMap<String, Future<MetadataDocument>>();
 		
 		for(Tuple item : queryResult) {
-			String datasetId = item.get(dataset.identification);
+			String sourceDatasetId = item.get(sourceDataset.identification);
 			String dataSourceId = item.get(dataSource.identification);
 			
-			log.debug("fetching metadata: " + datasetId);
+			log.debug("fetching metadata: " + sourceDatasetId);
 			
-			ActorRef dataSource = dataSources.get(dataSourceId);			
-			metadataDocuments.put(datasetId, f.ask(dataSource, new GetMetadata(datasetId), MetadataDocument.class));
+			ActorRef dataSource = dataSources.get(dataSourceId);
+			log.debug("dataSource: " + dataSource);
+			
+			metadataDocuments.put(sourceDatasetId, f.ask(dataSource, new GetDatasetMetadata(sourceDatasetId), MetadataDocument.class));
 		}
 		
 		return f.map(metadataDocuments);
