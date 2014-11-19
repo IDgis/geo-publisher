@@ -1,5 +1,6 @@
 package nl.idgis.publisher.metadata;
 
+import java.io.IOException;
 import java.util.Date;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
@@ -16,6 +17,10 @@ public class MetadataDocument {
 	
 	private final XMLDocument xmlDocument;
 	private final BiMap<String, String> namespaces;
+	
+	byte[] getContent() throws IOException {
+		return xmlDocument.getContent();
+	}
 	
 	public String getTitle() throws NotFound {
 		return xmlDocument.getString(namespaces, 

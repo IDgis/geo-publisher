@@ -1,5 +1,6 @@
 package nl.idgis.publisher;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
@@ -17,8 +18,10 @@ import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.MetadataGenerator;
+import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -133,7 +136,13 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobs), "admin");
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, service, harvester));
+		Config metadataConfig = config.getConfig("metadata");
+		
+		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")), harvester);
+		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")), harvester);
+		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")), harvester);		
+		
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget));
 		getContext().system().scheduler().schedule(
 				Duration.create(10, TimeUnit.SECONDS), 
 				Duration.create(10, TimeUnit.SECONDS),

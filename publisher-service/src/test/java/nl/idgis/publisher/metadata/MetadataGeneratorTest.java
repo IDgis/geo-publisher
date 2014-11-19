@@ -1,7 +1,6 @@
 package nl.idgis.publisher.metadata;
 
 import org.junit.Before;
-import org.junit.Test;
 
 import akka.actor.ActorRef;
 
@@ -12,7 +11,6 @@ import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.AbstractServiceTest;
-
 import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
@@ -21,7 +19,9 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	@Before
 	public void actor() {
-		metadataGenerator = actorOf(MetadataGenerator.props(database, ActorRef.noSender(), ActorRef.noSender()), "metadataGenerator");
+		// TODO: repair bootstrapping
+		
+		metadataGenerator = actorOf(MetadataGenerator.props(database, ActorRef.noSender(), ActorRef.noSender(), null, null, null), "metadataGenerator");
 	}
 	
 	//@Test
