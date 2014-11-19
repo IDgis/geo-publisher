@@ -25,7 +25,9 @@ import nl.idgis.publisher.database.DatabaseRef;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.messages.GetContent;
+import nl.idgis.publisher.service.messages.Layer;
 import nl.idgis.publisher.service.messages.ServiceContent;
+import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -144,9 +146,10 @@ public class MetadataGenerator extends UntypedActor {
 								log.debug("metadata documents collected");
 								
 								for(Tuple item : queryResult) {
-									String datasetId = item.get(dataset.identification);
-									
+									String datasetId = item.get(dataset.identification);									
 									MetadataDocument metadataDocument = metadataDocuments.get(datasetId);
+									
+									processDataset(metadataDocument, item.get(category.identification), datasetId, serviceContent);
 									
 									log.debug("dataset processed: " + datasetId);
 								}
@@ -182,6 +185,19 @@ public class MetadataGenerator extends UntypedActor {
 		}
 		
 		return f.map(dataSources);	
+	}
+	
+	private void processDataset(MetadataDocument document, String schemaName, String tableName, ServiceContent serviceContent) {
+		for(VirtualService service : serviceContent.getServices()) {
+			for(Layer layer : service.getLayers()) {
+				if(schemaName.equals(layer.getSchemaName()) && 
+					tableName.equals(layer.getTableName())) {
+					
+					log.debug("layer for table " + schemaName + "." + tableName + ": " + layer.getName() + " (service: " + service.getName() + ")");
+					// TODO: actual document modification
+				}
+			}
+		}
 	}
 	
 	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSources, final TypedList<Tuple> queryResult) {
