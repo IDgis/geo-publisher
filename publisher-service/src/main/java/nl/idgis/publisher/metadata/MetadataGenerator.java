@@ -1,7 +1,10 @@
 package nl.idgis.publisher.metadata;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.mysema.query.Tuple;
@@ -146,14 +149,25 @@ public class MetadataGenerator extends UntypedActor {
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
 								log.debug("metadata documents collected");
 								
+								Map<String, Set<String>> operatesOn = new HashMap<String, Set<String>>();
+								
 								for(Tuple item : queryResult) {
 									String datasetId = item.get(dataset.identification);
 									String datasetUuid = item.get(dataset.uuid);
 									MetadataDocument metadataDocument = metadataDocuments.get(datasetId);
 									
-									processDataset(metadataDocument, datasetUuid, item.get(category.identification), datasetId, serviceContent);
+									processDataset(operatesOn, metadataDocument, datasetUuid, item.get(category.identification), datasetId, serviceContent);
 									
 									log.debug("dataset processed: " + datasetId);
+								}
+								
+								for(Entry<String, Set<String>> operatesOnEntry : operatesOn.entrySet()) {
+									String serviceName = operatesOnEntry.getKey();
+									Set<String> serviceOperatesOn = operatesOnEntry.getValue();
+									
+									// TODO: process service
+									
+									log.debug("service processed: " + serviceName);
 								}
 								
 								log.debug("metadata generated");
@@ -189,14 +203,33 @@ public class MetadataGenerator extends UntypedActor {
 		return f.map(dataSources);	
 	}
 	
-	private void processDataset(MetadataDocument document, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private void processService(MetadataDocument metadataDocument, Set<String> operatesOn) {
+		// TODO: service metadata modification
+	}
+	
+	private void processDataset(Map<String, Set<String>> operatesOn, MetadataDocument metadataDocument, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+		// TODO: dataset metadata modification (prepare / clean)
+		
 		for(VirtualService service : serviceContent.getServices()) {
+			String serviceName = service.getName();
+			
 			for(Layer layer : service.getLayers()) {
 				if(schemaName.equals(layer.getSchemaName()) && 
 					tableName.equals(layer.getTableName())) {
 					
-					log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + service.getName() + ")");
-					// TODO: actual document modification
+					log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + serviceName + ")");
+					
+					final Set<String> serviceOperatesOn;
+					if(operatesOn.containsKey(serviceName)) {
+						serviceOperatesOn = operatesOn.get(serviceName);						
+					} else {
+						serviceOperatesOn = new HashSet<String>();
+						operatesOn.put(serviceName, serviceOperatesOn);
+					}
+					
+					serviceOperatesOn.add(datasetUuid);
+					
+					// TODO: dataset metadata modification (add service linkage)
 				}
 			}
 		}
