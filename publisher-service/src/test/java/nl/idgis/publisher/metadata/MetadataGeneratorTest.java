@@ -17,11 +17,11 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator;
 	
-	@Before
+	//@Before
 	public void actor() {
 		// TODO: repair bootstrapping
 		
-		metadataGenerator = actorOf(MetadataGenerator.props(database, ActorRef.noSender(), ActorRef.noSender(), null, null, null), "metadataGenerator");
+		metadataGenerator = actorOf(MetadataGenerator.props(database, ActorRef.noSender(), ActorRef.noSender(), null, null, null, null), "metadataGenerator");
 	}
 	
 	//@Test

@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -63,19 +64,22 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
+	private final Config constants;
+	
 	private FutureUtils f;
 	
-	public MetadataGenerator(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget) {
+	public MetadataGenerator(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
 		this.database = new DatabaseRef(database, Timeout.apply(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
 		this.service = service;
 		this.harvester = harvester;
 		this.serviceMetadataSource = serviceMetadataSource;
 		this.datasetMetadataTarget = datasetMetadataTarget;
 		this.serviceMetadataTarget = serviceMetadataTarget;
+		this.constants = constants;
 	}
 	
-	public static Props props(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget) {
-		return Props.create(MetadataGenerator.class, database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget);
+	public static Props props(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		return Props.create(MetadataGenerator.class, database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
 	}
 	
 	@Override
