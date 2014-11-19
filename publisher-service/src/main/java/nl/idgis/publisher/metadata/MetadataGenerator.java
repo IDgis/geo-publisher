@@ -184,14 +184,14 @@ public class MetadataGenerator extends UntypedActor {
 
 										@Override
 										public void onComplete(Throwable t, Iterable<Void> i) throws Throwable {
+											getContext().unbecome();
+											
+											sender.tell(new Ack(), getSelf());
+											
 											if(t != null) {
 												log.error("metadata generation failed: {}", t);
 											} else {											
-												log.debug("metadata generated");
-											
-												getContext().unbecome();
-											
-												sender.tell(new Ack(), getSelf());
+												log.debug("metadata generated");	
 											}
 										}
 										
