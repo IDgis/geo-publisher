@@ -126,7 +126,8 @@ public class MetadataGenerator extends UntypedActor {
 						dataSource.identification,
 						sourceDataset.identification,
 						category.identification, 
-						dataset.identification))
+						dataset.identification,
+						dataset.uuid))
 			.collect(
 				f.ask(service, new GetContent(), ServiceContent.class))		
 			.result(new AbstractFunction2<TypedList<Tuple>, ServiceContent, Void>() {
@@ -146,10 +147,11 @@ public class MetadataGenerator extends UntypedActor {
 								log.debug("metadata documents collected");
 								
 								for(Tuple item : queryResult) {
-									String datasetId = item.get(dataset.identification);									
+									String datasetId = item.get(dataset.identification);
+									String datasetUuid = item.get(dataset.uuid);
 									MetadataDocument metadataDocument = metadataDocuments.get(datasetId);
 									
-									processDataset(metadataDocument, item.get(category.identification), datasetId, serviceContent);
+									processDataset(metadataDocument, datasetUuid, item.get(category.identification), datasetId, serviceContent);
 									
 									log.debug("dataset processed: " + datasetId);
 								}
@@ -187,13 +189,13 @@ public class MetadataGenerator extends UntypedActor {
 		return f.map(dataSources);	
 	}
 	
-	private void processDataset(MetadataDocument document, String schemaName, String tableName, ServiceContent serviceContent) {
+	private void processDataset(MetadataDocument document, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		for(VirtualService service : serviceContent.getServices()) {
 			for(Layer layer : service.getLayers()) {
 				if(schemaName.equals(layer.getSchemaName()) && 
 					tableName.equals(layer.getTableName())) {
 					
-					log.debug("layer for table " + schemaName + "." + tableName + ": " + layer.getName() + " (service: " + service.getName() + ")");
+					log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + service.getName() + ")");
 					// TODO: actual document modification
 				}
 			}
