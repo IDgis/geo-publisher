@@ -178,7 +178,7 @@ public class MetadataDocument {
 	 * Dataset metadata: Dataset Identifier
 	 */
 	
-	private String getDatasetIdentifierPath() {
+	private String getDatasetIdentifierCodePath() {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -191,10 +191,25 @@ public class MetadataDocument {
 				;
 	}
 	
-	public String getDatasetIdentifier() {
+	private String getDatasetIdentifierPath() {
+		return 
+				"/gmd:MD_Metadata" +
+				"/gmd:identificationInfo" +
+				"/gmd:MD_DataIdentification" +
+				"/gmd:citation" +
+				"/gmd:CI_Citation" +
+				"/gmd:identifier" +
+				"/gmd:MD_Identifier" +
+				"/gmd:code" +
+				"/gco:CharacterString"
+				;
+	}
+	
+	public String getDatasetIdentifierCode() {
 		try {
-			return xmlDocument.getString(namespaces, getDatasetIdentifierPath());
+			return xmlDocument.getString(namespaces, getDatasetIdentifierCodePath());
 		} catch (NotFound e) {
+			e.printStackTrace();
 		}
 		return null;
 	}
@@ -204,14 +219,14 @@ public class MetadataDocument {
 	}
 	
 	public void setDatasetIdentifier(String datasetIdentifier) throws NotFound{
-		Node diNode = xmlDocument.getNode(namespaces, getDatasetIdentifierPath());
-		if (diNode==null){
-			throw new NotFound(namespaces, getDatasetIdentifierPath());
+		removeDatasetIdentifier();
+		Node codeNode = xmlDocument.getNode(namespaces, getDatasetIdentifierCodePath());
+		if (codeNode==null){
+			throw new NotFound(namespaces, getDatasetIdentifierCodePath());
 		}else{
 			String gco = namespaces.get("gco");
 
-			removeDatasetIdentifier();
-	        xmlDocument.addNode(diNode, gco, "gco:CharacterString", datasetIdentifier);
+	        Node diNode = xmlDocument.addNode(codeNode, gco, "gco:CharacterString", datasetIdentifier);
 		}
 	}
 	

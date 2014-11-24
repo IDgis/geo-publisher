@@ -143,13 +143,13 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current id
-		String result = document.getDatasetIdentifier();		
+		String result = document.getDatasetIdentifierCode();	
 		assertTrue("No dataset id found", result.indexOf("bc509f92-5d8c-4169-818b-49ff6a7576c3") > -1);
 
 		document.setDatasetIdentifier("aaaa-bbbb-cccc-dddd-eeee");
 		
 		// check the new dataset id is correct 
-		result = document.getDatasetIdentifier();		
+		result = document.getDatasetIdentifierCode();		
 		assertTrue("No dataset id found", result.indexOf("aaaa-bbbb-cccc-dddd-eeee") > -1);
 		
 	}
