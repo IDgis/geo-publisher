@@ -5,9 +5,14 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -16,6 +21,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import nl.idgis.publisher.xml.exceptions.MultipleNodes;
@@ -188,6 +194,66 @@ public class XMLDocument {
 		return nrOfNodes;
 	}
 	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, List<QName> followingSiblings, QName name) throws XPathExpressionException {
+		addNode(namespaces, parentPath, followingSiblings, name, null, Collections.<QName, String>emptyMap());	
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, QName name,  String content, Map<QName, String> attributes) throws XPathExpressionException {
+		addNode(namespaces, parentPath, Collections.<QName>emptyList(), name, content, attributes);
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, QName name,  String content) throws XPathExpressionException {
+		addNode(namespaces, parentPath, Collections.<QName>emptyList(), name, content, Collections.<QName, String>emptyMap());
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, List<QName> followingSiblings, QName name,  String content) throws XPathExpressionException {
+		addNode(namespaces, parentPath, followingSiblings, name, content,  Collections.<QName, String>emptyMap());	
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, List<QName> followingSiblings, QName name,  Map<QName, String> attributes) throws XPathExpressionException {
+		addNode(namespaces, parentPath, followingSiblings, name, null, attributes);
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, QName name,  Map<QName, String> attributes) throws XPathExpressionException {
+		addNode(namespaces, parentPath, Collections.<QName>emptyList(), name, null, attributes);
+	}
+	
+	public void addNode(BiMap<String, String> namespaces, String parentPath, List<QName> followingSiblings, QName name,  String content, Map<QName, String> attributes) throws XPathExpressionException {
+		XPath xpath = getXPath(namespaces);
+		
+		Node parentNode = (Node)xpath.evaluate(parentPath, document, XPathConstants.NODE);
+		
+		Element newElement = document.createElementNS(name.getNamespaceURI(), name.getLocalPart());
+		
+		if(content != null) {
+			newElement.appendChild(document.createTextNode(content));
+		}		
+		
+		for(Map.Entry<QName, String> attribute : attributes.entrySet()) {
+			QName attributeName = attribute.getKey();
+			
+			newElement.setAttributeNS(attributeName.getNamespaceURI(), attributeName.getLocalPart(), attribute.getValue());
+		}
+		
+		if(!followingSiblings.isEmpty()) {
+			NodeList children = parentNode.getChildNodes();
+			for(int i = 0; i < children.getLength(); i++) {
+				Node childNode = children.item(i);
+				QName childName = new QName(childNode.getNamespaceURI(), childNode.getLocalName());
+				
+				for(QName followingSibling : followingSiblings) {
+					if(followingSibling.equals(childName)) {
+						parentNode.insertBefore(newElement, childNode);
+						
+						return;
+					}
+				}
+			}
+		}
+		
+		parentNode.appendChild(newElement);
+	}
+	
 	/**
 	 * Add a Node with the proper namespace and optional text content.
 	 * @param parentNode the new node will be a child of parentNode 
@@ -228,14 +294,17 @@ public class XMLDocument {
         return elem;
 	}
 
-	public static final void prettyPrint(Node xml) throws Exception {
-		Transformer tf = TransformerFactory.newInstance().newTransformer();
-		tf.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-		tf.setOutputProperty(OutputKeys.INDENT, "yes");
-		Writer out = new StringWriter();
-		tf.transform(new DOMSource(xml), new StreamResult(out));
-		System.out.println(out.toString());
-	}
+	public String toString() {
+		try {
+			Transformer tf = TransformerFactory.newInstance().newTransformer();
+			tf.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			tf.setOutputProperty(OutputKeys.INDENT, "yes");
+			Writer out = new StringWriter();
+			tf.transform(new DOMSource(document), new StreamResult(out));
 
-	
+			return out.toString();
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+	}	
 }
