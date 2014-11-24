@@ -183,7 +183,7 @@ public class XMLDocument {
 		for (int i = 0; i < nrOfNodes; i++) {
 			Node node = nodeList.item(i);
 			Node removedNode = node.getParentNode().removeChild(node);
-//			System.out.println(""+(i+1)+" node removed: "+removedNode);
+//			System.out.println("#"+(i+1)+" node removed: "+removedNode.getNodeName());
 		} 
 		return nrOfNodes;
 	}

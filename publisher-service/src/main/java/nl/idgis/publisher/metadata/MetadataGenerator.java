@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.w3c.dom.Element;
+
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.typesafe.config.Config;
@@ -23,13 +25,10 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.util.Timeout;
-
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
-
 import nl.idgis.publisher.database.DatabaseRef;
-
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.messages.GetContent;
@@ -38,12 +37,10 @@ import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.database.QServiceJob;
 import nl.idgis.publisher.database.QJobState;
-
 import nl.idgis.publisher.domain.job.JobState;
-
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -241,15 +238,31 @@ public class MetadataGenerator extends UntypedActor {
 	}
 	
 	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<String> operatesOn) {
-		// TODO: service metadata modification
+		metadataDocument.removeOperatesOn();
+		
+		String href = constants.getString("operatesOn.href");
+		log.debug("service href: " + href);
 	
+		for (String uuid : operatesOn) {
+			try {
+				metadataDocument.addOperatesOn(uuid, href + "&id=" + uuid);
+			} catch (NotFound e) {
+				e.printStackTrace();
+			}
+		}
+	
+		log.debug("service operatesOn uuidref: " + ((Element)metadataDocument.getOperatesOn()).getAttribute("uuidref"));
 		log.debug("service processed: " + serviceName);
 		
 		return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());
 	}
 	
 	private Future<Void> processDataset(Map<String, Set<String>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
-		// TODO: dataset metadata modification (prepare / clean)
+		try {
+			metadataDocument.removeServiceLinkage();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		for(VirtualService service : serviceContent.getServices()) {
 			String serviceName = service.getName();
@@ -270,7 +283,26 @@ public class MetadataGenerator extends UntypedActor {
 					
 					serviceOperatesOn.add(datasetUuid);
 					
-					// TODO: dataset metadata modification (add service linkage)
+					// WMS
+					String linkage = constants.getString("onlineResource.wms") ;
+					String protocol = "OGC:WMS";
+					String name = layer.getName();
+					try {
+						metadataDocument.addServiceLinkage(linkage, protocol, name);
+					} catch (NotFound e) {
+						e.printStackTrace();
+					}
+					
+					// WFS
+					linkage = constants.getString("onlineResource.wfs") ;
+					protocol = "OGC:WFS";
+					name = layer.getName();
+					try {
+						metadataDocument.addServiceLinkage(linkage, protocol, name);
+					} catch (NotFound e) {
+						e.printStackTrace();
+					}
+					
 				}
 			}
 		}
