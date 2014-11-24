@@ -2,28 +2,26 @@ package nl.idgis.publisher.harvester.sources;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction3;
+
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
-import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
 import nl.idgis.publisher.domain.job.harvest.MetadataLog;
+import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.web.EntityType;
+
 import nl.idgis.publisher.harvester.sources.messages.Finished;
-import nl.idgis.publisher.metadata.messages.GetAlternateTitle;
-import nl.idgis.publisher.metadata.messages.GetRevisionDate;
-import nl.idgis.publisher.metadata.messages.GetTitle;
-import nl.idgis.publisher.metadata.messages.MetadataFailure;
-import nl.idgis.publisher.metadata.messages.NotValid;
+import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
@@ -33,16 +31,14 @@ import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
-import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.WrongResultException;
-import nl.idgis.publisher.xml.messages.Close;
-import nl.idgis.publisher.xml.messages.NotFound;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.messages.NotParseable;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
 import akka.dispatch.OnComplete;
-import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -102,101 +98,84 @@ public class ProviderDatasetInfo extends UntypedActor {
 					return;
 				}
 				
-				final ActorRef metadataDocument = (ActorRef)msg;
+				MetadataDocument metadataDocument = (MetadataDocument)msg;				
 				
-				FutureUtils f = new FutureUtils(getContext().dispatcher());
+				String title; 
+				String alternateTitle; 
+				Date revisionDate;
 				
-				f
-					.collect(f.ask(metadataDocument, new GetTitle(), String.class))
-					.collect(f.ask(metadataDocument, new GetAlternateTitle(), String.class))
-					.collect(f.ask(metadataDocument, new GetRevisionDate(), Date.class))
-					.result(new AbstractFunction3<String, String, Date, Void>() {
-
-						@Override
-						public Void apply(String title, String alternateTitle, Date revisionDate) {
-							log.debug("metadata title: " + title);
-							log.debug("metadata alternate title: " + alternateTitle);
-							log.debug("metadata revision date: " + revisionDate);
-							
-							processMetadata(sender, identification, title, alternateTitle, revisionDate);
-							
-							metadataDocument.tell(new Close(), getSelf());
-							
-							return null;
-						}						
-					})
-					.failure(new OnFailure() {
+				List<MetadataLogType> errors = new ArrayList<>();
+				List<MetadataField> fields = new ArrayList<>();					
+				List<Object> values = new ArrayList<>();
+				
+				try {
+					title = metadataDocument.getTitle();
+					log.debug("metadata title: " + title);
+				} catch(NotFound nf) {
+					title = null;
+					
+					errors.add(MetadataLogType.NOT_FOUND);
+					fields.add(MetadataField.TITLE);						
+					values.add(null);
+				}
+				
+				try {
+					alternateTitle = metadataDocument.getAlternateTitle();
+					log.debug("metadata alternate title: " + alternateTitle);
+				} catch(NotFound nf) {
+					alternateTitle = null;
+					
+					errors.add(MetadataLogType.NOT_FOUND);
+					fields.add(MetadataField.ALTERNATE_TITLE);						
+					values.add(null);
+				}
+				
+				try {
+					revisionDate = metadataDocument.getRevisionDate();
+					log.debug("metadata revision date: " + revisionDate);
+				} catch(NotFound nf) {
+					revisionDate = null;
+					
+					errors.add(MetadataLogType.NOT_FOUND);
+					fields.add(MetadataField.REVISION_DATE);						
+					values.add(null);
+				}
+				
+				if(errors.isEmpty()) {
+					processMetadata(sender, identification, title, alternateTitle, revisionDate);
+				} else {
+					Iterator<MetadataLogType> errorsItr = errors.iterator();
+					Iterator<MetadataField> fieldsItr = fields.iterator();
+					Iterator<Object> valuesItr = values.iterator();
+					
+					List<Future<Object>> futures = new ArrayList<>();
+					for(;errorsItr.hasNext();) {
+						MetadataLogType error = errorsItr.next();
+						MetadataField field = fieldsItr.next();
+						Object value = valuesItr.next();
 						
-						boolean nextRequested = false;
+						MetadataLog content = new MetadataLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle, field, error, value);
+						JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+						
+						futures.add(Patterns.ask(harvesterSession, jobLog, 15000));
+					}
+					
+					Futures.sequence(futures, getContext().dispatcher())
+						.onComplete(new OnComplete<Iterable<Object>>() {
 
-						@Override
-						public void onFailure(Throwable t) throws Throwable {
-							if(t instanceof WrongResultException) {
-								WrongResultException wre = (WrongResultException)t;
-								
-								Object context = wre.getContext();
-								Object result = wre.getResult();
-								
-								log.debug("metadata incorrect: " + context + " " + result);
-								
-								if(result instanceof MetadataFailure) {
-									MetadataFailure failure = (MetadataFailure)result;
-									List<NotValid<?>> notValid = failure.getNotValid();
-									List<NotFound> notFound = failure.getNotFound();
-									
-									MetadataField field = null;
-									if(context instanceof GetTitle) {
-										field = MetadataField.TITLE;
-									} else if(context instanceof GetAlternateTitle) {
-										field = MetadataField.ALTERNATE_TITLE;
-									} else if(context instanceof GetRevisionDate) {
-										field = MetadataField.REVISION_DATE;
-									}
-									
-									if(field != null) {
-										
-										Object value = null;
-										MetadataLogType error = null;
-										if(notValid.isEmpty()) {
-											if(!notFound.isEmpty()) {
-												error = MetadataLogType.NOT_FOUND;
-											}
-										} else {
-											error = MetadataLogType.NOT_VALID;
-											value = notValid.get(0).getValue();
-										}
-										
-										if(error != null) {
-											MetadataLog content = new MetadataLog(EntityType.SOURCE_DATASET, identification, null, null, field, error, value);											
-											JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
-											
-											Patterns.ask(harvesterSession, jobLog, 15000)
-												.onSuccess(new OnSuccess<Object>() {
-
-													@Override
-													public void onSuccess(Object msg) throws Throwable {
-														log.debug("metadata parsing error saved");
-													}
-													
-												}, getContext().dispatcher());
-										}
-										
-									}									
-									
+							@Override
+							public void onComplete(Throwable t, Iterable<Object> msg) throws Throwable {
+								if(t != null) {
+									log.error("couldn't store parsing error(s): {}", t);
+								} else {
+									log.debug("metadata parsing error(s) saved");
 								}
 								
-							} else {							
-								log.error(t, "couldn't parse metadata");
+								sender.tell(new NextItem(), getSelf());
 							}
 							
-							if(!nextRequested) {
-								metadataDocument.tell(new Close(), getSelf());
-								
-								sender.tell(new NextItem(), getSelf());
-								nextRequested = true;
-							}
-						}
-					});
+						}, getContext().dispatcher());
+				}
 			}
 		};
 	}

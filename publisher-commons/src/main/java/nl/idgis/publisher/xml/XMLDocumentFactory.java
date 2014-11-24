@@ -56,6 +56,6 @@ public class XMLDocumentFactory extends UntypedActor {
 			throw new IllegalArgumentException("Content not parseable", e);
 		}
 		
-		getSender().tell(getContext().actorOf(XMLDocument.props(document)), getSelf());
+		getSender().tell(new XMLDocument(document), getSelf());
 	}
 }

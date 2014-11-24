@@ -28,6 +28,7 @@ import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
@@ -798,6 +799,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			} else {
 				insert(dataset)
 					.set(dataset.identification, datasetIdent)
+					.set(dataset.uuid, UUID.randomUUID().toString())
 					.set(dataset.name, datasetName)
 					.set(dataset.sourceDatasetId, sourceDatasetId)
 					.set(dataset.filterConditions, filterConditions)

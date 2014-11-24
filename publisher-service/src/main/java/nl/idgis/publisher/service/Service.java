@@ -1,8 +1,10 @@
 package nl.idgis.publisher.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -13,17 +15,24 @@ import scala.concurrent.duration.Duration;
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.AbstractStateMachine;
+
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+
 import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.service.ServiceLogType;
+
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.messages.GetContent;
+import nl.idgis.publisher.service.messages.Layer;
+import nl.idgis.publisher.service.messages.ServiceContent;
+import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
 import nl.idgis.publisher.service.rest.ServiceRest;
@@ -82,14 +91,52 @@ public class Service extends AbstractStateMachine<String> {
 			handleServiceJob((ServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			handleGetActiveJobs();
-		} else {		
+		} else if(msg instanceof GetContent) {
+			handleGetContent();
+		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private void handleGetContent() throws Exception {
+		log.debug("get content");
+		
+		List<VirtualService> virtualServices = new ArrayList<VirtualService>();
+		
+		for(Workspace workspace : rest.getWorkspaces()) {
+			String workspaceName = workspace.getName();
+			
+			log.debug("processing workspace: " + workspaceName);
+			
+			List<Layer> layers = new ArrayList<Layer>();
+			
+			for(DataStore dataStore : rest.getDataStores(workspace)) {
+				String dataStoreName = dataStore.getName();
+				
+				log.debug("processing dataStore: " + dataStoreName);
+				
+				for(FeatureType featureType : rest.getFeatureTypes(workspace, dataStore)) {
+					String featureTypeName = featureType.getName();
+					
+					log.debug("processing featureType: " + featureTypeName);					
+					
+					String schemaNama = dataStore.getConnectionParameters().get("schema");
+					String tableName = featureType.getNativeName();
+					layers.add(new Layer(featureTypeName, schemaNama, tableName));
+				}
+			}
+			
+			virtualServices.add(new VirtualService(workspaceName, layers));
+		}
+		
+		getSender().tell(new ServiceContent(virtualServices), getSelf());
+	}
+
 	private void unhandled(ServiceJobInfo job, Object msg) {
 		if(msg instanceof GetActiveJobs) {
 			handleGetActiveJobs(job);
+		} else if(msg instanceof GetContent) {
+			stash();
 		} else {
 			unhandled(msg);
 		}
@@ -138,6 +185,7 @@ public class Service extends AbstractStateMachine<String> {
 					
 					initiator.tell(new Ack(), getSelf());
 					
+					unstashAll();
 					getContext().unbecome();
 				} else {
 					unhandled(job, msg);

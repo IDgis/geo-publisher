@@ -1,20 +1,28 @@
 package nl.idgis.publisher;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.admin.Admin;
+
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
+
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.metadata.FileMetadataStore;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.metadata.MetadataGenerator;
+import nl.idgis.publisher.metadata.MetadataStore;
+import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
@@ -37,7 +45,7 @@ public class ServiceApp extends UntypedActor {
 	
 	private final Config config;
 	
-	private ActorRef geometryDatabase, database, harvester, loader, service;
+	private ActorRef database;
 	
 	public ServiceApp(Config config) {
 		this.config = config;
@@ -111,20 +119,35 @@ public class ServiceApp extends UntypedActor {
 	
 	private Procedure<Object> running() {
 		Config geometryDatabaseConfig = config.getConfig("geometry-database");
-		geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
+		
+		final ActorRef metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
 		
 		Config harvesterConfig = config.getConfig("harvester");
-		harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
+		final ActorRef harvester = getContext().actorOf(Harvester.props(database, metadataDocumentFactory, harvesterConfig), "harvester");
 		
-		loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
+		final ActorRef service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
 		
 		ActorRef jobs = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobs), "admin");
+		
+		Config metadataConfig = config.getConfig("metadata");
+		
+		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")), harvester);
+		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")), harvester);
+		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")), harvester);		
+		
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")));
+		getContext().system().scheduler().schedule(
+				Duration.create(10, TimeUnit.SECONDS), 
+				Duration.create(10, TimeUnit.SECONDS),
+				metadataGenerator, new GenerateMetadata(), 
+				getContext().dispatcher(), getSelf());
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();

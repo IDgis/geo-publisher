@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-import nl.idgis.publisher.xml.messages.NotFound;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 
 public class MetadataFailure implements Serializable {
 

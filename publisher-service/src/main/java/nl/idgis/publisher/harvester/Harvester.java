@@ -14,7 +14,6 @@ import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
@@ -35,21 +34,21 @@ import com.typesafe.config.Config;
 public class Harvester extends UntypedActor {
 	
 	private final Config config;
-	private final ActorRef database;
+	private final ActorRef database, metadataDocumentFactory;
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
 	
 	private BiMap<String, ActorRef> dataSources;
-	private ActorRef metadataDocumentFactory;
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
 
-	public Harvester(ActorRef database, Config config) {
+	public Harvester(ActorRef database, ActorRef metadataDocumentFactory, Config config) {
 		this.database = database;
+		this.metadataDocumentFactory = metadataDocumentFactory;
 		this.config = config;
 	}
 	
-	public static Props props(ActorRef database, Config config) {
-		return Props.create(Harvester.class, database, config);
+	public static Props props(ActorRef database, ActorRef metadataDocumentFactory, Config config) {
+		return Props.create(Harvester.class, database, metadataDocumentFactory, config);
 	}
 
 	@Override
@@ -62,8 +61,6 @@ public class Harvester extends UntypedActor {
 		getContext().actorOf(Server.props(name, getSelf(), port, sslConfig), "server");
 		
 		dataSources = HashBiMap.create();
-		
-		metadataDocumentFactory = getContext().actorOf(MetadataDocumentFactory.props(), "metadataDocumentFactory");
 		
 		sessions = HashBiMap.create();
 	}

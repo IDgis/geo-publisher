@@ -8,10 +8,10 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.Cancellable;
-import akka.actor.UntypedActor;
+import akka.actor.UntypedActorWithStash;
 import akka.japi.Procedure;
 
-public abstract class AbstractStateMachine<T> extends UntypedActor {
+public abstract class AbstractStateMachine<T> extends UntypedActorWithStash {
 		
 	private final FiniteDuration timeoutDuration;
 	
