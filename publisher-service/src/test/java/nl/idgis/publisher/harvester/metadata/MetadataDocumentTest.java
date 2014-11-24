@@ -134,6 +134,26 @@ public class MetadataDocumentTest {
 		assertTrue("Unexpected protocol found", result==null?true:result.indexOf("protocol") == -1);
 	}
 	
+	/*
+	 * Dataset metadata: Service Linkage
+	 */
+	
+	@Test
+	public void testDatasetIdentifier() throws Exception{
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		// check the current id
+		String result = document.getDatasetIdentifier();		
+		assertTrue("No dataset id found", result.indexOf("bc509f92-5d8c-4169-818b-49ff6a7576c3") > -1);
+
+		document.setDatasetIdentifier("aaaa-bbbb-cccc-dddd-eeee");
+		
+		// check the new dataset id is correct 
+		result = document.getDatasetIdentifier();		
+		assertTrue("No dataset id found", result.indexOf("aaaa-bbbb-cccc-dddd-eeee") > -1);
+		
+	}
+	
 	
 	/*
 	 * Service metadata: serviceType

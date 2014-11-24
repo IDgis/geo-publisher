@@ -173,6 +173,49 @@ public class MetadataDocument {
 //		}
 	}
 	
+	
+	/*
+	 * Dataset metadata: Dataset Identifier
+	 */
+	
+	private String getDatasetIdentifierPath() {
+		return 
+				"/gmd:MD_Metadata" +
+				"/gmd:identificationInfo" +
+				"/gmd:MD_DataIdentification" +
+				"/gmd:citation" +
+				"/gmd:CI_Citation" +
+				"/gmd:identifier" +
+				"/gmd:MD_Identifier" +
+				"/gmd:code"
+				;
+	}
+	
+	public String getDatasetIdentifier() {
+		try {
+			return xmlDocument.getString(namespaces, getDatasetIdentifierPath());
+		} catch (NotFound e) {
+		}
+		return null;
+	}
+
+	public int removeDatasetIdentifier(){
+		return xmlDocument.removeNodes(namespaces, getDatasetIdentifierPath());		
+	}
+	
+	public void setDatasetIdentifier(String datasetIdentifier) throws NotFound{
+		Node diNode = xmlDocument.getNode(namespaces, getDatasetIdentifierPath());
+		if (diNode==null){
+			throw new NotFound(namespaces, getDatasetIdentifierPath());
+		}else{
+			String gco = namespaces.get("gco");
+
+			removeDatasetIdentifier();
+	        xmlDocument.addNode(diNode, gco, "gco:CharacterString", datasetIdentifier);
+		}
+	}
+	
+	
 	/*
 	 * Service metadata: serviceType
 	 */
