@@ -18,6 +18,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
@@ -116,6 +117,7 @@ public class JobTest extends AbstractServiceTest {
 				.set(dataset.name, "My Test Dataset")
 				.set(dataset.identification, "testDataset")
 				.set(dataset.sourceDatasetId, sourceDatasetId)
+				.set(dataset.uuid, UUID.randomUUID().toString())
 				.executeWithKey(dataset.id);
 		
 		for(int i = 0; i < 10; i++) {
