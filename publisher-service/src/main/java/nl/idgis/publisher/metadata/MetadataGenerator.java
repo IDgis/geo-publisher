@@ -37,12 +37,12 @@ import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.database.QServiceJob;
 import nl.idgis.publisher.database.QJobState;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QJobState.jobState;
@@ -238,78 +238,71 @@ public class MetadataGenerator extends UntypedActor {
 	}
 	
 	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<String> operatesOn) {
-		metadataDocument.removeOperatesOn();
+		try {
+			metadataDocument.removeOperatesOn();
+			
+			String href = constants.getString("operatesOn.href");
+			log.debug("service href: " + href);
 		
-		String href = constants.getString("operatesOn.href");
-		log.debug("service href: " + href);
-	
-		for (String uuid : operatesOn) {
-			try {
-				metadataDocument.addOperatesOn(uuid, href + "&id=" + uuid);
-			} catch (NotFound e) {
-				e.printStackTrace();
+			for (String uuid : operatesOn) {
+				metadataDocument.addOperatesOn(uuid, href + "&id=" + uuid);			
 			}
-		}
-	
-		log.debug("service operatesOn uuidref: " + ((Element)metadataDocument.getOperatesOn()).getAttribute("uuidref"));
-		log.debug("service processed: " + serviceName);
 		
-		return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());
+			log.debug("service operatesOn uuidref: " + ((Element)metadataDocument.getOperatesOn()).getAttribute("uuidref"));
+			log.debug("service processed: " + serviceName);
+			
+			return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());
+		} catch(Exception e) {
+			return Futures.failed(e);
+		}
 	}
 	
 	private Future<Void> processDataset(Map<String, Set<String>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
-			metadataDocument.removeServiceLinkage();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		for(VirtualService service : serviceContent.getServices()) {
-			String serviceName = service.getName();
+			metadataDocument.removeServiceLinkage();		
 			
-			for(Layer layer : service.getLayers()) {
-				if(schemaName.equals(layer.getSchemaName()) && 
-					tableName.equals(layer.getTableName())) {
-					
-					log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + serviceName + ")");
-					
-					final Set<String> serviceOperatesOn;
-					if(operatesOn.containsKey(serviceName)) {
-						serviceOperatesOn = operatesOn.get(serviceName);						
-					} else {
-						serviceOperatesOn = new HashSet<String>();
-						operatesOn.put(serviceName, serviceOperatesOn);
-					}
-					
-					serviceOperatesOn.add(datasetUuid);
-					
-					// WMS
-					String linkage = constants.getString("onlineResource.wms") ;
-					String protocol = "OGC:WMS";
-					String name = layer.getName();
-					try {
+			for(VirtualService service : serviceContent.getServices()) {
+				String serviceName = service.getName();
+				
+				for(Layer layer : service.getLayers()) {
+					if(schemaName.equals(layer.getSchemaName()) && 
+						tableName.equals(layer.getTableName())) {
+						
+						log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + serviceName + ")");
+						
+						final Set<String> serviceOperatesOn;
+						if(operatesOn.containsKey(serviceName)) {
+							serviceOperatesOn = operatesOn.get(serviceName);						
+						} else {
+							serviceOperatesOn = new HashSet<String>();
+							operatesOn.put(serviceName, serviceOperatesOn);
+						}
+						
+						serviceOperatesOn.add(datasetUuid);
+						
+						// WMS
+						String linkage = constants.getString("onlineResource.wms") ;
+						String protocol = "OGC:WMS";
+						String name = layer.getName();
+						
+						metadataDocument.addServiceLinkage(linkage, protocol, name);					
+						
+						// WFS
+						linkage = constants.getString("onlineResource.wfs") ;
+						protocol = "OGC:WFS";
+						name = layer.getName();
+						
 						metadataDocument.addServiceLinkage(linkage, protocol, name);
-					} catch (NotFound e) {
-						e.printStackTrace();
 					}
-					
-					// WFS
-					linkage = constants.getString("onlineResource.wfs") ;
-					protocol = "OGC:WFS";
-					name = layer.getName();
-					try {
-						metadataDocument.addServiceLinkage(linkage, protocol, name);
-					} catch (NotFound e) {
-						e.printStackTrace();
-					}
-					
 				}
 			}
+			
+			log.debug("dataset processed: " + datasetId);
+			
+			return datasetMetadataTarget.put(datasetUuid, metadataDocument, getContext().dispatcher());
+		} catch(Exception e) {
+			return Futures.failed(e);
 		}
-		
-		log.debug("dataset processed: " + datasetId);
-		
-		return datasetMetadataTarget.put(datasetUuid, metadataDocument, getContext().dispatcher());
 	}
 	
 	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSources, final TypedList<Tuple> queryResult) {
