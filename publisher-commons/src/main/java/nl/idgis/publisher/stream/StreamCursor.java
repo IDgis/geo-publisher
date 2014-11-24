@@ -76,14 +76,19 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			} else {
 				log.debug("end");
 				getSender().tell(new End(), getSelf());
-				getContext().stop(getSelf());
+				stop();
 			}
 		} else if (msg instanceof Stop) {
 			log.debug("stopped");
-			getContext().stop(getSelf());
+			stop();
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private void stop() {
+		timeoutCancellable.cancel();
+		getContext().stop(getSelf());
 	}
 	
 	@SuppressWarnings("unchecked")
