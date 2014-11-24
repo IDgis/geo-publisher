@@ -23,7 +23,9 @@ import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotTextOnly;
 import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -170,9 +172,9 @@ public class XMLDocument {
 	}
 
 	/**
-	 * Remove all nodes from a document that belong to a given xpath. 
+	 * Remove all nodes from a document given by an xpath expression. 
 	 * @param relevant namespaces for the nodes in the document
-	 * @param xpath expression
+	 * @param xpath expression that points to the node(s) to be removed
 	 * @return nr of removed nodes
 	 */
 	public int removeNodes(BiMap<String, String> namespaces, String path) {
@@ -181,7 +183,7 @@ public class XMLDocument {
 		for (int i = 0; i < nrOfNodes; i++) {
 			Node node = nodeList.item(i);
 			Node removedNode = node.getParentNode().removeChild(node);
-//			System.out.println(""+i+" node: "+removedNode);
+//			System.out.println(""+(i+1)+" node removed: "+removedNode);
 		} 
 		return nrOfNodes;
 	}
@@ -204,6 +206,26 @@ public class XMLDocument {
         }
         parentNode.appendChild(node);
         return node;
+	}
+
+	/**
+	 * Add a Node with the proper namespace and optional attributes.
+	 * @param parentNode the new node will be a child of parentNode 
+	 * @param namespaceUri e.g. "http://www.isotc211.org/2005/gmd"
+	 * @param nodeName e.g. "gmd:name"
+	 * @param attributes in string array [attr1.name, attr1.value, attr2.name, attr2.value, ...]
+	 * @return the node added
+	 */
+	public Node addNodeWithAttributes(Node parentNode, String namespaceUri, String nodeName,  String[] attributes){
+        Element elem ;
+        elem = document.createElementNS(namespaceUri, nodeName);
+        if (attributes.length > 0){
+        	for (int i = 0; i < attributes.length; i+=2) {				
+        		elem.setAttribute(attributes[i],  attributes[i+1]);
+        	} 
+        }
+        parentNode.appendChild(elem);
+        return elem;
 	}
 
 	public static final void prettyPrint(Node xml) throws Exception {
