@@ -8,7 +8,6 @@ import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
