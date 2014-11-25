@@ -243,7 +243,7 @@ public class MetadataGenerator extends UntypedActor {
 			log.debug("service href: " + href);
 		
 			for (String uuid : operatesOn) {
-				String uuidref = href + "&id=" + uuid;
+				String uuidref = href + uuid;
 				log.debug("service operatesOn uuidref: " + uuidref);
 				
 				metadataDocument.addOperatesOn(uuid, uuidref);			
