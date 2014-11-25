@@ -1,4 +1,4 @@
-package nl.idgis.publisher.harvester.metadata;
+package nl.idgis.publisher.metadata;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.messages.NotParseable;
 
 import org.apache.commons.io.IOUtils;
@@ -22,6 +23,7 @@ import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.Patterns;
@@ -159,7 +161,7 @@ public class MetadataDocumentTest {
 	 * Service metadata: serviceType
 	 */
 	
-	@Test
+	@Test(expected=NotFound.class)
 	public void testServiceServiceType() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -168,7 +170,7 @@ public class MetadataDocumentTest {
 		
 		// add new srv:serviceType childnode
 		document.addServiceType("OGC:WMS");
-		String result = document.getServiceType();
+		String result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
 		assertNotNull("No service type found", result);
 		assertTrue("No service type found", result.indexOf("OGC:WMS") > -1);
 		
@@ -177,8 +179,7 @@ public class MetadataDocumentTest {
 		assertTrue("There should be one removed linkage", i==1);
 		
 		// check srv:SV_ServiceIdentification has no srv:serviceType child node anymore
-		result = document.getServiceType();		
-		assertTrue("Unexpected service type found", result==null?true:result.indexOf("OGC:WMS") == -1);
+		result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());		
 	}
 	
 	/*

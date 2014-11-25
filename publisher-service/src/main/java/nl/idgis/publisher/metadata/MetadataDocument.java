@@ -14,8 +14,8 @@ import com.google.common.collect.HashBiMap;
 
 public class MetadataDocument {
 	
-	private final XMLDocument xmlDocument;
-	private final BiMap<String, String> namespaces;
+	protected final XMLDocument xmlDocument;
+	protected final BiMap<String, String> namespaces;
 	
 	byte[] getContent() throws IOException {
 		return xmlDocument.getContent();
@@ -164,12 +164,7 @@ public class MetadataDocument {
 	        
 	        Node nameNode = xmlDocument.addNode(onlineResourceNode, gmd, "gmd:name", null);			
 	        xmlDocument.addNode(nameNode, gco, "gco:CharacterString", name);
-		}
-//		try {
-//			xmlDocument.prettyPrint(dtopNode.getParentNode());
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
+		}		
 	}
 	
 	
@@ -225,7 +220,7 @@ public class MetadataDocument {
 		}else{
 			String gco = namespaces.get("gco");
 
-	        Node diNode = xmlDocument.addNode(codeNode, gco, "gco:CharacterString", datasetIdentifier);
+	        xmlDocument.addNode(codeNode, gco, "gco:CharacterString", datasetIdentifier);
 		}
 	}
 	
@@ -238,25 +233,9 @@ public class MetadataDocument {
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
 	}
 	
-	public String getServiceIdentification() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceIdentificationPath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-	private String getServiceTypePath(){
+	protected String getServiceTypePath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:serviceType";
-	}
-	
-	public String getServiceType() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceTypePath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
+	}	
 	
 	public int removeServiceType(){
 		return xmlDocument.removeNodes(namespaces, getServiceTypePath());		
