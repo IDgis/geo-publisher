@@ -9,8 +9,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.w3c.dom.Element;
-
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.typesafe.config.Config;
@@ -245,10 +243,12 @@ public class MetadataGenerator extends UntypedActor {
 			log.debug("service href: " + href);
 		
 			for (String uuid : operatesOn) {
-				metadataDocument.addOperatesOn(uuid, href + "&id=" + uuid);			
+				String uuidref = href + "&id=" + uuid;
+				log.debug("service operatesOn uuidref: " + uuidref);
+				
+				metadataDocument.addOperatesOn(uuid, uuidref);			
 			}
-		
-			log.debug("service operatesOn uuidref: " + ((Element)metadataDocument.getOperatesOn()).getAttribute("uuidref"));
+			
 			log.debug("service processed: " + serviceName);
 			
 			return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());

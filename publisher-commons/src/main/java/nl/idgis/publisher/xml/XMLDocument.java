@@ -4,10 +4,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -23,7 +29,6 @@ import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotTextOnly;
 import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -34,7 +39,7 @@ import com.google.common.collect.HashBiMap;
 
 public class XMLDocument {
 	
-	private final Document document;
+	protected final Document document;
 	
 	private XPathFactory xf;
 	
@@ -140,102 +145,187 @@ public class XMLDocument {
 	}
 	
 	/**
-	 * Get the node list for a certain xpath in a document.
-	 * @param namespaces
-	 * @param path
-	 * @return nodeList
-	 */
-	public NodeList getNodeList(BiMap<String, String> namespaces, String path) {
-		NodeList nodeList = null;
-		try {
-			nodeList = (NodeList)getXPath(namespaces).evaluate(path, document, XPathConstants.NODESET);
-		} catch(Exception e) {
-			
-		}
-		return nodeList;		
-	}
-
-	/**
-	 * Get the node for a certain xpath in a document.
-	 * @param namespaces
-	 * @param path
-	 * @return nodeList
-	 */
-	public Node getNode(BiMap<String, String> namespaces, String path) {
-		Node node = null;
-		try {
-			node = (Node)getXPath(namespaces).evaluate(path, document, XPathConstants.NODE);
-		} catch(Exception e) {
-			
-		}
-		return node;		
-	}
-
-	/**
 	 * Remove all nodes from a document given by an xpath expression. 
 	 * @param relevant namespaces for the nodes in the document
 	 * @param xpath expression that points to the node(s) to be removed
 	 * @return nr of removed nodes
+	 * @throws NotFound 
 	 */
-	public int removeNodes(BiMap<String, String> namespaces, String path) {
-		NodeList nodeList= getNodeList(namespaces, path);
-		int nrOfNodes = nodeList.getLength();
-		for (int i = 0; i < nrOfNodes; i++) {
-			Node node = nodeList.item(i);
-			Node removedNode = node.getParentNode().removeChild(node);
-//			System.out.println("#"+(i+1)+" node removed: "+removedNode.getNodeName());
-		} 
-		return nrOfNodes;
+	public int removeNodes(BiMap<String, String> namespaces, String path) throws NotFound {
+		try {
+			NodeList nodeList = (NodeList)getXPath(namespaces).evaluate(path, document, XPathConstants.NODESET);
+			
+			int nrOfNodes = nodeList.getLength();
+			for (int i = 0; i < nrOfNodes; i++) {
+				Node node = nodeList.item(i);
+				node.getParentNode().removeChild(node);
+			} 
+			
+			return nrOfNodes;
+		} catch(Exception e) {
+			throw new NotFound(namespaces, path, e);
+		}
 	}
 	
-	/**
-	 * Add a Node with the proper namespace and optional text content.
-	 * @param parentNode the new node will be a child of parentNode 
-	 * @param namespaceUri e.g. "http://www.isotc211.org/2005/gmd"
-	 * @param nodeName e.g. "gmd:name"
-	 * @param nodeContent text content of the node or null if this node will have further children
-	 * @return the node added
-	 */
-	public Node addNode(Node parentNode, String namespaceUri, String nodeName,  String nodeContent){
-        Node node ;
-        if (nodeContent != null){
-        	node = document.createElement(nodeName);
-        	node.appendChild(document.createTextNode(nodeContent));
-        }else{
-        	node = document.createElementNS(namespaceUri, nodeName);
-        }
-        parentNode.appendChild(node);
-        return node;
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name) throws NotFound {
+		return addNode(namespaces, parentPath, followingSiblings, name, null, null);	
 	}
-
-	/**
-	 * Add a Node with the proper namespace and optional attributes.
-	 * @param parentNode the new node will be a child of parentNode 
-	 * @param namespaceUri e.g. "http://www.isotc211.org/2005/gmd"
-	 * @param nodeName e.g. "gmd:name"
-	 * @param attributes in string array [attr1.name, attr1.value, attr2.name, attr2.value, ...]
-	 * @return the node added
-	 */
-	public Node addNodeWithAttributes(Node parentNode, String namespaceUri, String nodeName,  String[] attributes){
-        Element elem ;
-        elem = document.createElementNS(namespaceUri, nodeName);
-        if (attributes.length > 0){
-        	for (int i = 0; i < attributes.length; i+=2) {				
-        		elem.setAttribute(attributes[i],  attributes[i+1]);
-        	} 
-        }
-        parentNode.appendChild(elem);
-        return elem;
-	}
-
-	public static final void prettyPrint(Node xml) throws Exception {
-		Transformer tf = TransformerFactory.newInstance().newTransformer();
-		tf.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-		tf.setOutputProperty(OutputKeys.INDENT, "yes");
-		Writer out = new StringWriter();
-		tf.transform(new DOMSource(xml), new StreamResult(out));
-		System.out.println(out.toString());
-	}
-
 	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String name,  String content, Map<String, String> attributes) throws NotFound {
+		return addNode(namespaces, parentPath, null, name, content, attributes);
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String name) throws NotFound {
+		return addNode(namespaces, parentPath, null, name, null, null);
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String name,  String content) throws NotFound {
+		return addNode(namespaces, parentPath, null, name, content, null);
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name,  String content) throws NotFound {
+		return addNode(namespaces, parentPath, followingSiblings, name, content,  null);	
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name,  Map<String, String> attributes) throws NotFound {
+		return addNode(namespaces, parentPath, followingSiblings, name, null, attributes);
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String name,  Map<String, String> attributes) throws NotFound {
+		return addNode(namespaces, parentPath, null, name, null, attributes);
+	}
+	
+	protected static QName toQName(BiMap<String, String> namespaces, String name) {
+		if(name.contains(":")) {
+			String[] nameParts = name.split(":");
+			
+			if(namespaces.containsKey(nameParts[0])) {
+				return new QName(namespaces.get(nameParts[0]), nameParts[1]);
+			} else {
+				throw new IllegalArgumentException("Unmapped prefix: " + nameParts[0]);
+			}
+		} else {
+			return new QName(name);
+		}
+	}
+	
+	protected static QName[] toQNames(BiMap<String, String> namespaces, String... names) {
+		List<QName> retval = new ArrayList<>();
+		
+		for(String name : names) {
+			retval.add(toQName(namespaces, name));
+		}
+		
+		return retval.toArray(new QName[retval.size()]);
+	}
+	
+	protected Element createElement(Node context, BiMap<String, String> namespaces, String name, String content, Map<String, String> attributes) {
+		if(name.contains("/")) {
+			int separatorIndex = name.indexOf("/");
+			
+			Element newElement = createElement(context, namespaces, name.substring(0, separatorIndex), null, null);
+			newElement.appendChild(createElement(context, namespaces, name.substring(separatorIndex + 1), content, attributes));
+			
+			return newElement;
+		} else {
+			QName qName = toQName(namespaces, name);
+			
+			Element newElement = document.createElementNS(qName.getNamespaceURI(), getQualifiedName(context, qName));
+			
+			if(content != null) {
+				newElement.appendChild(document.createTextNode(content));
+			}		
+			
+			if(attributes != null) {
+				for(Map.Entry<String, String> attribute : attributes.entrySet()) {
+					QName attributeName = toQName(namespaces, attribute.getKey());
+					
+					newElement.setAttributeNS(attributeName.getNamespaceURI(), getQualifiedName(context, attributeName), attribute.getValue());
+				}
+			}
+			
+			return newElement;
+		}
+	}
+
+	private static String getQualifiedName(Node context, QName qName) {
+		String prefix = context.lookupPrefix(qName.getNamespaceURI());
+		
+		if(prefix == null) {
+			return qName.getLocalPart();
+		} else {
+			return prefix + ":" + qName.getLocalPart();
+		}
+	}
+	
+	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name, String content, Map<String, String> attributes) throws NotFound {
+		XPath xpath = getXPath(namespaces);
+		
+		try {
+			Node parentNode = (Node)xpath.evaluate(parentPath, document, XPathConstants.NODE);
+			
+			Element newElement = createElement(parentNode, namespaces, name, content, attributes);
+			QName newElementName = new QName(newElement.getNamespaceURI(), newElement.getLocalName());
+			
+			int sameElementCount = 1;
+			
+			Set<QName> followingSiblingsSet = new HashSet<QName>();
+			if(followingSiblings != null) {
+				for(String followingSibling : followingSiblings) {
+					followingSiblingsSet.add(toQName(namespaces, followingSibling));
+				}
+			}
+			
+			NodeList children = parentNode.getChildNodes();
+			
+			for(int i = 0; i < children.getLength(); i++) {
+				Node childNode = children.item(i);
+				if(childNode.getNodeType() == Node.ELEMENT_NODE) {
+					QName childName = new QName(childNode.getNamespaceURI(), childNode.getLocalName());
+					
+					if(followingSiblingsSet.contains(childName)) {
+						parentNode.insertBefore(newElement, childNode);
+						
+						return getResultXPath(parentPath, name, sameElementCount);
+					}
+					
+					if(newElementName.equals(childName)) {
+						sameElementCount++;
+					}
+				}
+			}			
+			
+			parentNode.appendChild(newElement);
+			
+			return getResultXPath(parentPath, name, sameElementCount);			 
+		} catch(Exception e) {
+			throw new NotFound(namespaces, parentPath, e);
+		}
+	}
+
+	private String getResultXPath(String parentPath, String name, int sameElementCount) {
+		if(name.contains("/")) {
+			int separatorIndex = name.indexOf("/");
+			
+			return parentPath + "/" + name.substring(0, separatorIndex) 
+					+ "[" + sameElementCount + "]/"
+					+ name.substring(separatorIndex + 1);
+		} else {
+			return parentPath + "/" + name + "[" + sameElementCount + "]";
+		}
+	}
+
+	public String toString() {
+		try {
+			Transformer tf = TransformerFactory.newInstance().newTransformer();
+			tf.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			tf.setOutputProperty(OutputKeys.INDENT, "yes");
+			Writer out = new StringWriter();
+			tf.transform(new DOMSource(document), new StreamResult(out));
+
+			return out.toString();
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+	}	
 }

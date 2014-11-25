@@ -2,20 +2,21 @@ package nl.idgis.publisher.metadata;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.exceptions.NotFound;
-
-import org.w3c.dom.Node;
+import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
 public class MetadataDocument {
 	
-	private final XMLDocument xmlDocument;
-	private final BiMap<String, String> namespaces;
+	protected final XMLDocument xmlDocument;
+	protected final BiMap<String, String> namespaces;
 	
 	byte[] getContent() throws IOException {
 		return xmlDocument.getContent();
@@ -52,7 +53,7 @@ public class MetadataDocument {
 		return getDate("creation");
 	}
 
-	private Date getDate(String codeListValue) throws NotFound {
+	protected Date getDate(String codeListValue) throws NotFound {
 		String datePath = getDatePath(codeListValue);		
 		
 		Date date = null; 
@@ -79,7 +80,7 @@ public class MetadataDocument {
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 	}
 	
-	private String getDatePath(String codeListValue) {
+	protected String getDatePath(String codeListValue) {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -95,16 +96,10 @@ public class MetadataDocument {
 				"/gmd:date";
 	}
 	
-	
-	public String getString(String path) throws NotFound{
-		return xmlDocument.getString(namespaces, path);
-	}
-	
-	/*
+	/**
 	 * Dataset metadata: Service Linkage
-	 */
-	
-	private String getDigitalTransferOptionsPath(){
+	 */	
+	protected String getDigitalTransferOptionsPath(){
 		return
 				"/gmd:MD_Metadata" + 
 				"/gmd:distributionInfo" + 
@@ -113,20 +108,8 @@ public class MetadataDocument {
 				"/gmd:MD_DigitalTransferOptions" ;
 	}
 	
-	public String getDigitalTransferOptions() throws NotFound{
-		return xmlDocument.getString(namespaces, getDigitalTransferOptionsPath());
-	}
-	
-	private String getServiceLinkagePath(){
+	protected String getServiceLinkagePath() {
 		return getDigitalTransferOptionsPath() + "/gmd:onLine";
-	}
-	
-	public String getServiceLinkage() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceLinkagePath());
-		} catch (NotFound e) {
-		}
-		return null;
 	}
 	
 	/**
@@ -146,38 +129,16 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceLinkage(String linkage, String protocol, String name) throws NotFound{
-		Node dtopNode = xmlDocument.getNode(namespaces, getDigitalTransferOptionsPath());
-		if (dtopNode==null){
-			throw new NotFound(namespaces, getDigitalTransferOptionsPath());
-		}else{
-			String gmd = namespaces.get("gmd");
-			String gco = namespaces.get("gco");
-
-			Node onlineNode = xmlDocument.addNode(dtopNode, gmd, "gmd:onLine", null);
-	        Node onlineResourceNode = xmlDocument.addNode(onlineNode, gmd, "gmd:CI_OnlineResource", null);
-			
-	        Node linkageNode = xmlDocument.addNode(onlineResourceNode, gmd, "gmd:linkage", null);			
-	        xmlDocument.addNode(linkageNode, gmd, "gmd:URL", linkage);
-	        
-	        Node protocolNode = xmlDocument.addNode(onlineResourceNode, gmd, "gmd:protocol", null);			
-	        xmlDocument.addNode(protocolNode, gco, "gco:CharacterString", protocol);
-	        
-	        Node nameNode = xmlDocument.addNode(onlineResourceNode, gmd, "gmd:name", null);			
-	        xmlDocument.addNode(nameNode, gco, "gco:CharacterString", name);
-		}
-//		try {
-//			xmlDocument.prettyPrint(dtopNode.getParentNode());
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-	}
+		String parentPath = xmlDocument.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
+		xmlDocument.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
+		xmlDocument.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
+		xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+	}	
 	
-	
-	/*
+	/**
 	 * Dataset metadata: Dataset Identifier
-	 */
-	
-	private String getDatasetIdentifierCodePath() {
+	 */	
+	protected String getDatasetIdentifierCodePath() {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -190,7 +151,7 @@ public class MetadataDocument {
 				;
 	}
 	
-	private String getDatasetIdentifierPath() {
+	protected String getDatasetIdentifierPath() {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -204,61 +165,22 @@ public class MetadataDocument {
 				;
 	}
 	
-	public String getDatasetIdentifierCode() {
-		try {
-			return xmlDocument.getString(namespaces, getDatasetIdentifierCodePath());
-		} catch (NotFound e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	public int removeDatasetIdentifier(){
-		return xmlDocument.removeNodes(namespaces, getDatasetIdentifierPath());		
+	public void setDatasetIdentifier(String datasetIdentifier) throws QueryFailure {
+		xmlDocument.updateString(namespaces, getDatasetIdentifierPath(), datasetIdentifier);
 	}
 	
-	public void setDatasetIdentifier(String datasetIdentifier) throws NotFound{
-		removeDatasetIdentifier();
-		Node codeNode = xmlDocument.getNode(namespaces, getDatasetIdentifierCodePath());
-		if (codeNode==null){
-			throw new NotFound(namespaces, getDatasetIdentifierCodePath());
-		}else{
-			String gco = namespaces.get("gco");
-
-	        Node diNode = xmlDocument.addNode(codeNode, gco, "gco:CharacterString", datasetIdentifier);
-		}
-	}
-	
-	
-	/*
+	/**
 	 * Service metadata: serviceType
-	 */
-	
-	private String getServiceIdentificationPath(){
+	 */	
+	protected String getServiceIdentificationPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
 	}
 	
-	public String getServiceIdentification() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceIdentificationPath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-	private String getServiceTypePath(){
+	protected String getServiceTypePath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:serviceType";
-	}
+	}	
 	
-	public String getServiceType() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceTypePath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-	public int removeServiceType(){
+	public int removeServiceType() throws NotFound {
 		return xmlDocument.removeNodes(namespaces, getServiceTypePath());		
 	}
 	
@@ -267,40 +189,22 @@ public class MetadataDocument {
 	 * @param serviceLocalName content of the /srv:serviceType/gco:LocalName node
 	 * @throws NotFound 
 	 */
-	public void addServiceType(String serviceLocalName) throws NotFound{
-		Node siNode = xmlDocument.getNode(namespaces, getServiceIdentificationPath());
-		if (siNode==null){
-			throw new NotFound(namespaces, getServiceIdentificationPath());
-		}else{
-			String srv = namespaces.get("srv");
-			String gco = namespaces.get("gco");
-
-			Node serviceTypeNode = xmlDocument.addNode(siNode, srv, "srv:serviceType", null);
-	        xmlDocument.addNode(serviceTypeNode, gco, "gco:LocalName", serviceLocalName);
-		}
+	public void addServiceType(String serviceLocalName) throws NotFound{		
+		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:serviceType/gco:LocalName", serviceLocalName);
 	}
 	
-	/*
+	/**
 	 * Service metadata: BrowseGraphic
-	 */
-	
-	private String getGraphicOverviewPath(){
+	 */	
+	protected String getGraphicOverviewPath() {
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview";
 	}
 	
-	private String getBrowseGraphicPath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview/gmd:MD_BrowseGraphic";
+	protected String getBrowseGraphicPath() {
+		return getGraphicOverviewPath() + "/gmd:MD_BrowseGraphic";
 	}
 	
-	public String getBrowseGraphic() {
-		try {
-			return xmlDocument.getString(namespaces, getBrowseGraphicPath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-	public int removeBrowseGraphic(){
+	public int removeBrowseGraphic() throws NotFound {
 		return xmlDocument.removeNodes(namespaces, getBrowseGraphicPath());		
 	}
 	
@@ -309,42 +213,23 @@ public class MetadataDocument {
 	 * @param fileName content of the /gmd:MD_BrowseGraphic/gco:CharacterString node
 	 * @throws NotFound 
 	 */
-	public void addBrowseGraphic(String fileName) throws NotFound{
-		Node goNode = xmlDocument.getNode(namespaces, getGraphicOverviewPath());
-		if (goNode==null){
-			throw new NotFound(namespaces, getGraphicOverviewPath());
-		}else{
-			String gmd = namespaces.get("gmd");
-			String gco = namespaces.get("gco");
-
-			Node browseGraphicNode = xmlDocument.addNode(goNode, gmd, "gmd:MD_BrowseGraphic", null);
-	        xmlDocument.addNode(browseGraphicNode, gco, "gco:CharacterString", fileName);
-		}
+	public void addBrowseGraphic(String fileName) throws NotFound {		
+		xmlDocument.addNode(namespaces, getGraphicOverviewPath(), "gmd:MD_BrowseGraphic/gco:CharacterString", fileName);		
 	}
 	
-	/*
+	/**
 	 * Service metadata: Service Endpoint
-	 */
-	
-	private String getOperationsPath(){
+	 */	
+	protected String getOperationsPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:containsOperations";
 	}
 	
-	private String getOperationMetadataPath(){
+	protected String getOperationMetadataPath(){
 		return getOperationsPath() + "/srv:SV_OperationMetadata";
 	}
 	
 	
-	public String getServiceEndpoint() {
-		try {
-			return xmlDocument.getString(namespaces, getOperationMetadataPath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-
-	public int removeServiceEndpoint() {
+	public int removeServiceEndpoint() throws NotFound {
 		return xmlDocument.removeNodes(namespaces, getOperationMetadataPath());
 	}
 
@@ -357,56 +242,30 @@ public class MetadataDocument {
 	 * @throws NotFound
 	 */
 	public void addServiceEndpoint(String operationName, String codeList, String codeListValue, String linkage) throws NotFound {
-		Node opNode = xmlDocument.getNode(namespaces, getOperationsPath());
-		if (opNode==null){
-			throw new NotFound(namespaces, getOperationsPath());
-		}else{
-			String gmd = namespaces.get("gmd");
-			String gco = namespaces.get("gco");
-			String srv = namespaces.get("srv");
-
-			Node operationMetadataNode = xmlDocument.addNode(opNode, srv, "srv:SV_OperationMetadata", null);
-
-			Node operationNameNode = xmlDocument.addNode(operationMetadataNode, srv, "srv:operationName", null);
-	        xmlDocument.addNode(operationNameNode, gco, "gco:CharacterString", operationName);
-
-	        Node dcpNode = xmlDocument.addNode(operationMetadataNode, srv, "srv:DCP", null);
-	        xmlDocument.addNodeWithAttributes(dcpNode, srv, "srv:DCPList", new String[] {"codeList", codeList, "codeListValue", codeListValue});
-	        
-			Node connectPointNode = xmlDocument.addNode(operationMetadataNode, srv, "srv:connectPoint", null);
-			Node onlineResourceNode = xmlDocument.addNode(connectPointNode, gmd, "gmd:CI_OnlineResource", null);
-			Node linkageNode = xmlDocument.addNode(onlineResourceNode, gmd, "gmd:linkage", null);
-	        xmlDocument.addNode(linkageNode, gmd, "gmd:URL", linkage);
-	        
-		}
+		String parentPath = xmlDocument.addNode(namespaces, getOperationsPath(), "srv:SV_OperationMetadata");		
+		
+		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
+		
+		Map<String, String> attributes = new HashMap<String, String>();
+		attributes.put("codeList", codeList);
+		attributes.put("codeListValue", codeListValue);
+		xmlDocument.addNode(namespaces, parentPath, "srv:DCP/srv:DCPList", attributes);
+		
+		xmlDocument.addNode(namespaces, parentPath, "srv:connectPoint/gmd:CI_OnlineResource/gmd:linkage/gmd:URL", linkage);
 	}
 	
-	/*
-	 * Service metadata: transfer options: (same as Dataset metadata: Service Linkage)
-	 */
-	
-	/*
+	/**
 	 * Service metadata: CoupledResource (WMS layers c.q. WFS feature types) 
 	 */
-	private String getCoupledResourcePath(){
+	protected String getCoupledResourcePath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:coupledResource";
 	}
 	
-	private String getSVCoupledResourcePath(){
+	protected String getSVCoupledResourcePath(){
 		return getCoupledResourcePath() + "/srv:SV_CoupledResource";
 	}
 	
-	
-	public String getSVCoupledResource(){
-		try {
-			return xmlDocument.getString(namespaces, getSVCoupledResourcePath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-
-	public int removeSVCoupledResource() {
+	public int removeSVCoupledResource() throws NotFound {
 		return xmlDocument.removeNodes(namespaces, getSVCoupledResourcePath());
 	}
 
@@ -418,39 +277,20 @@ public class MetadataDocument {
 	 * @throws NotFound
 	 */
 	public void addSVCoupledResource(String operationName, String identifier, String scopedName) throws NotFound {
-		Node crNode = xmlDocument.getNode(namespaces, getCoupledResourcePath());
-		if (crNode==null){
-			throw new NotFound(namespaces, getCoupledResourcePath());
-		}else{
-			String srv = namespaces.get("srv");
-			String gco = namespaces.get("gco");
-
-			Node svcrNode = xmlDocument.addNode(crNode, srv, "srv:SV_CoupledResource", null);
-			
-	        Node linkageNode = xmlDocument.addNode(svcrNode, srv, "srv:operationName", null);			
-	        xmlDocument.addNode(linkageNode, gco, "gco:CharacterString", operationName);
-	        
-	        Node protocolNode = xmlDocument.addNode(svcrNode, srv, "srv:identifier", null);			
-	        xmlDocument.addNode(protocolNode, gco, "gco:CharacterString", identifier);
-	        
-	        Node nameNode = xmlDocument.addNode(svcrNode, gco, "gco:ScopedName", null);			
-	        xmlDocument.addNode(nameNode, gco, "gco:ScopedName", scopedName);
-		}
+		String parentPath = xmlDocument.addNode(namespaces, getCoupledResourcePath(), "srv:SV_CoupledResource");
+		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
+		xmlDocument.addNode(namespaces, parentPath, "srv:identifier/gco:CharacterString", identifier);
+		xmlDocument.addNode(namespaces, parentPath, "gco:ScopedName", scopedName);
 	}
 	
-	/*
+	/**
 	 * Service metadata: Link to dataset 
-	 */
-	
-	private String getOperatesOnPath(){
+	 */	
+	protected String getOperatesOnPath(){
 		return getServiceIdentificationPath() + "/srv:operatesOn";
 	}
 	
-	public Node getOperatesOn(){
-		return xmlDocument.getNode(namespaces, getOperatesOnPath());
-	}
-	
-	public int removeOperatesOn() {
+	public int removeOperatesOn() throws NotFound {
 		return xmlDocument.removeNodes(namespaces, getOperatesOnPath());
 	}
 
@@ -460,15 +300,12 @@ public class MetadataDocument {
 	 * @param href link to dataset metadata
 	 * @throws NotFound
 	 */
-	public void addOperatesOn(String uuidref, String href) throws NotFound {
-		Node siNode = xmlDocument.getNode(namespaces, getServiceIdentificationPath());
-		if (siNode==null){
-			throw new NotFound(namespaces, getServiceIdentificationPath());
-		}else{
-			String srv = namespaces.get("srv");
-
-	       xmlDocument.addNodeWithAttributes(siNode, srv, "srv:operatesOn", new String[] {"uuidref", uuidref, "href", href});
-		}
+	public void addOperatesOn(String uuidref, String href) throws NotFound {		
+		Map<String, String> attributes = new HashMap<String, String>();
+		attributes.put("uuidref", uuidref);
+		attributes.put("href", href);
+		
+		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
 }
