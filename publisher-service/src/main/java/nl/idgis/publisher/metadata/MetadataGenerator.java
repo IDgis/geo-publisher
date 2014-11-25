@@ -237,6 +237,7 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<String> operatesOn) {
 		try {
+			// -- operates on -- (link to dataset md)
 			metadataDocument.removeOperatesOn();
 			
 			String href = constants.getString("operatesOn.href");
@@ -249,6 +250,63 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addOperatesOn(uuid, uuidref);			
 			}
 			
+			/*
+			 *  additional stuff START
+			 */
+			String wmsLinkage = constants.getString("onlineResource.wms") ;
+			String serviceLinkage = null;
+			String protocol = null;
+			String operationName =  null;
+			
+			// -- servicetype --
+			metadataDocument.removeServiceType();
+			// TODO check content serviceName
+			if (serviceName.equalsIgnoreCase("WMS")){
+				serviceLinkage = constants.getString("onlineResource.wms") ;
+				protocol = "OGC:WMS";
+				operationName="GetMap";
+			} else if (serviceName.equalsIgnoreCase("WFS")){
+				serviceLinkage = constants.getString("onlineResource.wfs") ;
+				protocol = "OGC:WFS";
+				operationName="GetFeature";
+			} else {
+				// TODO exception?
+			}
+			metadataDocument.addServiceType(protocol);
+			
+			// -- service endpoint -- 
+			metadataDocument.removeServiceEndpoint();
+			// TODO more operations?
+			String getCapName = "GetCapabilitities";
+			// TODO put in config
+			String codeList = "http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList";
+			String codeListValue = "WebServices";
+			metadataDocument.addServiceEndpoint(getCapName, codeList, codeListValue, serviceLinkage);
+			
+			metadataDocument.removeBrowseGraphic();
+			metadataDocument.removeServiceLinkage();
+			metadataDocument.removeSVCoupledResource();
+			for (String uuid : operatesOn) {
+				// TODO  find layerName 
+				String layerName = "b1:grenzen";
+
+				// -- browse graphic --
+				String filename = wmsLinkage + "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
+						+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
+				metadataDocument.addBrowseGraphic(filename + "&Layers=" + layerName);
+
+				// -- transferOptions --
+				metadataDocument.addServiceLinkage(serviceLinkage, protocol, layerName);
+
+				// -- WMS layers, WFS features --
+				// TODO scopedName = layerName ??
+				String scopedName = layerName;
+				metadataDocument.addSVCoupledResource(operationName, uuid, scopedName);
+			}
+			/*
+			 *  additional stuff END
+			 */
+
 			log.debug("service processed: " + serviceName);
 			
 			return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());
