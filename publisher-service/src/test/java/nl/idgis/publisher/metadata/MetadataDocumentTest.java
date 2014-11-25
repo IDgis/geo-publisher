@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.InputStream;
 import java.util.Calendar;
@@ -181,7 +182,7 @@ public class MetadataDocumentTest {
 	/**
 	 * Service metadata: BrowseGraphic
 	 */
-	@Test(expected=NotFound.class)
+	@Test
 	public void testServiceBrowseGraphic() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -189,20 +190,25 @@ public class MetadataDocumentTest {
 		int i = document.removeBrowseGraphic();
 		
 		// add new childnode
-		document.addBrowseGraphic(
+		String fileName = 
 				"https://overijssel.geo-hosting.nl/geoserver/wms?request=GetMap&Service=WMS"+
 				"&SRS=EPSG:28992&CRS=EPSG:28992&Bbox=180000,459000,270000,540000&Width=600"+
-				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=");
-		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());		
+				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=";
+		document.addBrowseGraphic(fileName);
+		
+		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath() + "/gco:CharacterString");		
 		assertNotNull("No browse graphic found", result);
-		assertTrue("No protocol found", result.contains("b1:grenzen"));
+		assertEquals("No protocol found", fileName, result);
 		
 		// remove all child nodes		
 		i = document.removeBrowseGraphic();
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check no node anymore
-		document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());
+		try {
+			document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());
+			fail("Unexpected layer found");
+		} catch(Exception e) {}
 	}
 	
 	

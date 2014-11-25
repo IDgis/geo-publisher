@@ -1,9 +1,10 @@
 package nl.idgis.publisher.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,7 @@ import nl.idgis.publisher.xml.messages.NotParseable;
 import nl.idgis.publisher.xml.messages.ParseDocument;
 
 import org.junit.Test;
+import org.w3c.dom.Node;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -131,18 +133,82 @@ public class XMLDocumentTest {
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
 		
-		document.addNode(namespaces, "/a:a", new QName("aURI", "e"), "Hello world!");
+		String resultPath = document.addNode(namespaces, "/a:a", "a:e", "Hello world!");
+		assertEquals("/a:a/a:e[1]", resultPath);
 		
-		assertEquals("Hello world!", document.getString(namespaces, "/a:a/a:e/text()"));
+		resultPath = document.addNode(namespaces, "/a:a", "a:e", "Hello world(2)!");
+		assertEquals("/a:a/a:e[2]", resultPath);
 		
-		document.addNode(namespaces, "/a:a", Arrays.asList(new QName("aURI", "e")), new QName("aURI", "f"));
+		assertEquals("Hello world(2)!", document.getString(namespaces, resultPath));
 		
-		assertEquals("Hello world!", document.getString(namespaces, "/a:a/a:f/following-sibling::a:e/text()"));
+		resultPath = document.addNode(namespaces, "/a:a", "a:e/a:j");
+		assertEquals("/a:a/a:e[3]/a:j", resultPath);
 		
-		Map<QName, String> attributes = new HashMap<>();
-		attributes.put(new QName("aURI", "h"), "42");
-		document.addNode(namespaces, "/a:a", Arrays.asList(new QName("aURI", "e")), new QName("aURI", "g"), attributes);
+		document.addNode(namespaces, "/a:a", new String[]{"a:e"}, "a:f");
+		
+		assertEquals("Hello world!", document.getString(namespaces, "/a:a/a:f/following-sibling::a:e[1]/text()"));
+		
+		Map<String, String> attributes = new HashMap<>();
+		attributes.put("a:h", "42");
+		document.addNode(namespaces, "/a:a", new String[]{"a:e"}, "a:g", attributes);
 		
 		assertEquals("42", document.getString(namespaces, "/a:a/a:f/following-sibling::a:g/@a:h"));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testToQName() {
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		namespaces.put("b", "bURI");
+		
+		QName result = XMLDocument.toQName(namespaces, "noNamespaceURI");		
+		assertEquals(new QName("noNamespaceURI"), result);
+		
+		result = XMLDocument.toQName(namespaces, "a:withNamespaceURI");		
+		assertEquals(new QName("aURI", "withNamespaceURI"), result);
+		
+		XMLDocument.toQName(namespaces, "c:invalidPrefix");
+	}
+	
+	@Test
+	public void testToQNames() {
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		namespaces.put("b", "bURI");
+		
+		QName[] result = XMLDocument.toQNames(namespaces, "a:b", "b:a");
+		assertNotNull(result);
+		assertEquals(2, result.length);
+		assertEquals(new QName("aURI", "b"), result[0]);
+		assertEquals(new QName("bURI", "a"), result[1]);
+	}
+	
+	@Test
+	public void createElement() throws Exception {
+		ActorSystem system = ActorSystem.create();		
+		
+		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		
+		byte[] content = "<a xmlns='aURI'><b/><c/><d/></a>".getBytes("utf-8");
+		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
+		
+		Object result = Await.result(future, AWAIT_DURATION);
+		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
+		
+		XMLDocument document = (XMLDocument)result;
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		Node node = document.createElement(namespaces, "a:a/a:b/a:c", "text", Collections.<String, String>emptyMap());
+		assertEquals("a", node.getLocalName());
+		
+		node = node.getFirstChild();
+		assertEquals("b", node.getLocalName());
+		
+		node = node.getFirstChild();
+		assertEquals("c", node.getLocalName());
+		
+		assertEquals("text", node.getFirstChild().getTextContent());
 	}
 }
