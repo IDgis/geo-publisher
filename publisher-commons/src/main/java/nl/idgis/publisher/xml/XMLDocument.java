@@ -39,7 +39,7 @@ import com.google.common.collect.HashBiMap;
 
 public class XMLDocument {
 	
-	private final Document document;
+	protected final Document document;
 	
 	private XPathFactory xf;
 	
@@ -219,18 +219,18 @@ public class XMLDocument {
 		return retval.toArray(new QName[retval.size()]);
 	}
 	
-	protected Element createElement(BiMap<String, String> namespaces, String name, String content, Map<String, String> attributes) {
+	protected Element createElement(Node context, BiMap<String, String> namespaces, String name, String content, Map<String, String> attributes) {
 		if(name.contains("/")) {
 			int separatorIndex = name.indexOf("/");
 			
-			Element newElement = createElement(namespaces, name.substring(0, separatorIndex), null, null);
-			newElement.appendChild(createElement(namespaces, name.substring(separatorIndex + 1), content, attributes));
+			Element newElement = createElement(context, namespaces, name.substring(0, separatorIndex), null, null);
+			newElement.appendChild(createElement(context, namespaces, name.substring(separatorIndex + 1), content, attributes));
 			
 			return newElement;
 		} else {
 			QName qName = toQName(namespaces, name);
 			
-			Element newElement = document.createElementNS(qName.getNamespaceURI(), qName.getLocalPart());
+			Element newElement = document.createElementNS(qName.getNamespaceURI(), getQualifiedName(context, qName));
 			
 			if(content != null) {
 				newElement.appendChild(document.createTextNode(content));
@@ -240,11 +240,21 @@ public class XMLDocument {
 				for(Map.Entry<String, String> attribute : attributes.entrySet()) {
 					QName attributeName = toQName(namespaces, attribute.getKey());
 					
-					newElement.setAttributeNS(attributeName.getNamespaceURI(), attributeName.getLocalPart(), attribute.getValue());
+					newElement.setAttributeNS(attributeName.getNamespaceURI(), getQualifiedName(context, attributeName), attribute.getValue());
 				}
 			}
 			
 			return newElement;
+		}
+	}
+
+	private static String getQualifiedName(Node context, QName qName) {
+		String prefix = context.lookupPrefix(qName.getNamespaceURI());
+		
+		if(prefix == null) {
+			return qName.getLocalPart();
+		} else {
+			return prefix + ":" + qName.getLocalPart();
 		}
 	}
 	
@@ -254,7 +264,7 @@ public class XMLDocument {
 		try {
 			Node parentNode = (Node)xpath.evaluate(parentPath, document, XPathConstants.NODE);
 			
-			Element newElement = createElement(namespaces, name, content, attributes);
+			Element newElement = createElement(parentNode, namespaces, name, content, attributes);
 			QName newElementName = new QName(newElement.getNamespaceURI(), newElement.getLocalName());
 			
 			int sameElementCount = 1;

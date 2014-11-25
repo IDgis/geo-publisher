@@ -122,7 +122,7 @@ public class XMLDocumentTest {
 		
 		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
 		
-		byte[] content = "<a xmlns='aURI'><b/><c/><d/></a>".getBytes("utf-8");
+		byte[] content = "<a:a xmlns:a='aURI'><a:b/><a:c/><a:d/></a:a>".getBytes("utf-8");
 		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
 		
 		Object result = Await.result(future, AWAIT_DURATION);
@@ -138,6 +138,9 @@ public class XMLDocumentTest {
 		
 		resultPath = document.addNode(namespaces, "/a:a", "a:e", "Hello world(2)!");
 		assertEquals("/a:a/a:e[2]", resultPath);
+		
+		document.addNode(namespaces, "/a:a/a:e[1]", "a:k", "SomeText");
+		assertEquals("SomeText", document.getString(namespaces, "/a:a/a:e/a:k"));
 		
 		assertEquals("Hello world(2)!", document.getString(namespaces, resultPath));
 		
@@ -200,7 +203,7 @@ public class XMLDocumentTest {
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
 		
-		Node node = document.createElement(namespaces, "a:a/a:b/a:c", "text", Collections.<String, String>emptyMap());
+		Node node = document.createElement(document.document, namespaces, "a:a/a:b/a:c", "text", Collections.<String, String>emptyMap());
 		assertEquals("a", node.getLocalName());
 		
 		node = node.getFirstChild();
