@@ -123,7 +123,7 @@ public class MetadataDocumentTest {
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath() + "/gmd:offLine/preceding-sibling::gmd:onLine");		
 		assertNotNull("No service linkage found", result);
 		assertTrue("No protocol found", result.contains("protocol"));
 		

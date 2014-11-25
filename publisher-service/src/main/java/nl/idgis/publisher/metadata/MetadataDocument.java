@@ -129,7 +129,7 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceLinkage(String linkage, String protocol, String name) throws NotFound{
-		String parentPath = xmlDocument.addNode(namespaces, getDigitalTransferOptionsPath(), "gmd:onLine/gmd:CI_OnlineResource");
+		String parentPath = xmlDocument.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
 		xmlDocument.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		xmlDocument.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
 		xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
