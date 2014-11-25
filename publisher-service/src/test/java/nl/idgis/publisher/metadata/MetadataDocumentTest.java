@@ -3,6 +3,7 @@ package nl.idgis.publisher.metadata;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.InputStream;
 import java.util.Calendar;
@@ -17,7 +18,6 @@ import nl.idgis.publisher.xml.messages.NotParseable;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
-import org.w3c.dom.Element;
 
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -106,10 +106,9 @@ public class MetadataDocumentTest {
 		
 	}
 	
-	/*
+	/**
 	 * Dataset metadata: Service Linkage
-	 */
-	
+	 */	
 	@Test
 	public void testDatasetServiceLinkage() throws Exception{
 		MetadataDocument document = getDocument("dataset_metadata.xml");
@@ -118,51 +117,48 @@ public class MetadataDocumentTest {
 		int i = document.removeServiceLinkage();
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		String result = document.getDigitalTransferOptions();		
-		assertTrue("Still WMS link found", result==null?true:result.indexOf("OGC:WMS") == -1);
+		String result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		assertFalse("Still WMS link found", result.contains("OGC:WMS"));
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.getDigitalTransferOptions();		
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
 		assertNotNull("No service linkage found", result);
-		assertTrue("No protocol found", result.indexOf("protocol") > -1);
+		assertTrue("No protocol found", result.contains("protocol"));
 		
 		// remove all gmd:online child nodes		
 		i = document.removeServiceLinkage();
-		assertTrue("There should be one removed linkage", i==1);
+		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.getDigitalTransferOptions();		
-		assertTrue("Unexpected protocol found", result==null?true:result.indexOf("protocol") == -1);
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		assertFalse("Unexpected protocol found", result.contains("protocol"));
 	}
 	
-	/*
+	/**
 	 * Dataset metadata: Service Linkage
-	 */
-	
+	 */	
 	@Test
-	public void testDatasetIdentifier() throws Exception{
+	public void testDatasetIdentifier() throws Exception {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current id
-		String result = document.getDatasetIdentifierCode();	
-		assertTrue("No dataset id found", result.indexOf("bc509f92-5d8c-4169-818b-49ff6a7576c3") > -1);
+		String result = document.xmlDocument.getString(document.namespaces, document.getDatasetIdentifierCodePath());	
+		assertEquals("Wrong dataset id found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result.trim());
 
 		document.setDatasetIdentifier("aaaa-bbbb-cccc-dddd-eeee");
 		
 		// check the new dataset id is correct 
-		result = document.getDatasetIdentifierCode();		
-		assertTrue("No dataset id found", result.indexOf("aaaa-bbbb-cccc-dddd-eeee") > -1);
-		
+		result = document.xmlDocument.getString(document.namespaces, document.getDatasetIdentifierCodePath());		
+		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());		
 	}
 	
 	
-	/*
+	/**
 	 * Service metadata: serviceType
-	 */
-	
+	 */	
 	@Test(expected=NotFound.class)
-	public void testServiceServiceType() throws Exception{
+	public void testServiceServiceType() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// remove all srv:serviceType child nodes
@@ -172,21 +168,21 @@ public class MetadataDocumentTest {
 		document.addServiceType("OGC:WMS");
 		String result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
 		assertNotNull("No service type found", result);
-		assertTrue("No service type found", result.indexOf("OGC:WMS") > -1);
+		assertEquals("No service type found", "OGC:WMS", result);
 		
 		// remove all srv:serviceType child nodes		
 		i = document.removeServiceType();
-		assertTrue("There should be one removed linkage", i==1);
+		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check srv:SV_ServiceIdentification has no srv:serviceType child node anymore
-		result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());		
+		document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());		
 	}
 	
-	/*
+	/**
 	 * Service metadata: BrowseGraphic
 	 */
-	@Test
-	public void testServiceBrowseGraphic() throws Exception{
+	@Test(expected=NotFound.class)
+	public void testServiceBrowseGraphic() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// remove all child nodes
@@ -197,24 +193,23 @@ public class MetadataDocumentTest {
 				"https://overijssel.geo-hosting.nl/geoserver/wms?request=GetMap&Service=WMS"+
 				"&SRS=EPSG:28992&CRS=EPSG:28992&Bbox=180000,459000,270000,540000&Width=600"+
 				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=");
-		String result = document.getBrowseGraphic();		
+		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());		
 		assertNotNull("No browse graphic found", result);
-		assertTrue("No protocol found", result.indexOf("b1:grenzen") > -1);
+		assertTrue("No protocol found", result.contains("b1:grenzen"));
 		
 		// remove all child nodes		
 		i = document.removeBrowseGraphic();
-		assertTrue("There should be one removed linkage", i==1);
+		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check no node anymore
-		result = document.getBrowseGraphic();		
-		assertTrue("Unexpected layer found", result==null?true:result.indexOf("b1:grenzen") == -1);
+		document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());
 	}
 	
 	
-	/*
+	/**
 	 * Service metadata: Service Endpoint
 	 */
-	@Test
+	@Test(expected=NotFound.class)
 	public void testServiceEndpoint() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -226,59 +221,58 @@ public class MetadataDocumentTest {
 				"http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList",
 				"WebServices", 
 				"https://overijssel.geo-hosting.nl/geoserver/wms");
-		String result = document.getServiceEndpoint();
+		
+		String result = document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
 		assertNotNull("No endpoint found", result);
-		assertTrue("No operationName found", result.indexOf("GetCapabilities") > -1);
+		assertTrue("No operationName found", result.contains("GetCapabilities"));
 		
 		// remove all child nodes		
 		i = document.removeServiceEndpoint();
-		assertTrue("There should be one removed linkage", i==1);
+		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check no node anymore
-		result = document.getServiceEndpoint();		
-		assertTrue("Unexpected operationName found", result==null?true:result.indexOf("GetCapabilities") == -1);
+		document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
 	}
 	
-	/*
+	/**
 	 * Service metadata: transfer options: (same as Dataset metadata: Service Linkage)
-	 */
-	@Test
+	 */	
 	public void testServiceServiceTransferOptions() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// get gmd:MD_DigitalTransferOptions content
-		String result = document.getDigitalTransferOptions();		
-		assertTrue("No WMS link found", result.indexOf("OGC:WMS") > -1);
+		String result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		assertTrue("No WMS link found", result.contains("OGC:WMS"));
 
 		// remove all gmd:online child nodes
 		int i = document.removeServiceLinkage();
-		assertTrue("There should be two removed linkages", i==2);
+		assertEquals("There should be two removed linkages", 2, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.getDigitalTransferOptions();		
-		assertTrue("Still WMS link found", result==null?true:result.indexOf("OGC:WMS") == -1);
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		assertFalse("Still WMS link found", result.contains("OGC:WMS"));
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.getDigitalTransferOptions();		
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
 		assertNotNull("No transfer options found", result);
-		assertTrue("No protocol found", result.indexOf("protocol") > -1);
+		assertTrue("No protocol found", result.contains("protocol"));
 		
 		// remove all gmd:online child nodes		
 		i = document.removeServiceLinkage();
-		assertTrue("There should be one removed linkage", i==1);
+		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.getDigitalTransferOptions();		
-		assertTrue("Unexpected protocol found", result==null?true:result.indexOf("protocol") == -1);
+		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());
+		assertFalse("Unexpected protocol found", result.contains("protocol"));
 	}
 	
 	
-	/*
+	/**
 	 * Service metadata: Coupled Resource
 	 */
-	@Test
-	public void testServiceCoupledResource() throws Exception{
+	@Test(expected=NotFound.class)
+	public void testServiceCoupledResource() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// remove all child nodes
@@ -286,28 +280,24 @@ public class MetadataDocumentTest {
 		
 		// add new childnode
 		document.addSVCoupledResource("GetMap", "bc509f92-5d8c-4169-818b-49ff6a7576c3", "PS.ProtectedSiteStilteGebieden");
-		String result = document.getSVCoupledResource();		
+		String result = document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());		
 		assertNotNull("No coupled resource found", result);
-		assertTrue("No operationName found", result.indexOf("GetMap") > -1);
+		assertTrue("No operationName found", result.contains("GetMap"));
 		
 		// remove all child nodes		
 		i = document.removeSVCoupledResource();
-		assertTrue("There should be one removed coupled resource", i==1);
+		assertEquals("There should be one removed coupled resource", 1, i);
 		
 		// check no node anymore
-		result = document.getSVCoupledResource();		
-		assertTrue("Unexpected operationName found", result==null?true:result.indexOf("GetMap") == -1);
+		document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());
 	}
 	
-	/*
+	/**
 	 * Service metadata: Link to dataset 
 	 */
-	@Test
+	@Test(expected=NotFound.class)
 	public void testServiceLinkToDataset() throws Exception{
-		MetadataDocument document = getDocument("service_metadata.xml");
-
-		Element result = (Element) document.getOperatesOn();		
-		
+		MetadataDocument document = getDocument("service_metadata.xml");		
 
 		// remove all child nodes
 		int i = document.removeOperatesOn();
@@ -316,18 +306,18 @@ public class MetadataDocumentTest {
 		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3",
 				"http://gisopenbaar.overijssel.nl/geoportal_extern/csw?Service=CSW&Request=GetRecordById&Version=2.0.2"+
 				"&id=46647460-d8cf-4955-bcac-f1c192d57cc4&outputSchema=http://www.isotc211.org/2005/gmd&elementSetName=full");
-		result = (Element) document.getOperatesOn();		
+		
+		String uuidrefPath = document.getOperatesOnPath() + "/@uuidref";
+		
+		String result = document.xmlDocument.getString(document.namespaces, uuidrefPath);		
 		assertNotNull("No link to dataset found", result);
-		assertTrue("No uuid ref found", result.getAttribute("uuidref").indexOf("bc509f92-5d8c-4169-818b-49ff6a7576c3") > -1);
+		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
 		
 		// remove all child nodes		
 		i = document.removeOperatesOn();
-		assertTrue("There should be one removed dataset link", i==1);
+		assertEquals("There should be one removed dataset link", 1, i);
 		
 		// check no node anymore
-		result = (Element) document.getOperatesOn();		
-		assertTrue("Unexpected uuid ref found", result==null?true:result.getAttribute("uuidref").indexOf("bc509f92-5d8c-4169-818b-49ff6a7576c3") == -1);
+		document.xmlDocument.getString(document.namespaces, uuidrefPath);
 	}
-	
-
 }

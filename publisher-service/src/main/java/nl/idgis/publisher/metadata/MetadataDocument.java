@@ -52,7 +52,7 @@ public class MetadataDocument {
 		return getDate("creation");
 	}
 
-	private Date getDate(String codeListValue) throws NotFound {
+	protected Date getDate(String codeListValue) throws NotFound {
 		String datePath = getDatePath(codeListValue);		
 		
 		Date date = null; 
@@ -79,7 +79,7 @@ public class MetadataDocument {
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 	}
 	
-	private String getDatePath(String codeListValue) {
+	protected String getDatePath(String codeListValue) {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -95,16 +95,10 @@ public class MetadataDocument {
 				"/gmd:date";
 	}
 	
-	
-	public String getString(String path) throws NotFound{
-		return xmlDocument.getString(namespaces, path);
-	}
-	
-	/*
+	/**
 	 * Dataset metadata: Service Linkage
-	 */
-	
-	private String getDigitalTransferOptionsPath(){
+	 */	
+	protected String getDigitalTransferOptionsPath(){
 		return
 				"/gmd:MD_Metadata" + 
 				"/gmd:distributionInfo" + 
@@ -113,20 +107,8 @@ public class MetadataDocument {
 				"/gmd:MD_DigitalTransferOptions" ;
 	}
 	
-	public String getDigitalTransferOptions() throws NotFound{
-		return xmlDocument.getString(namespaces, getDigitalTransferOptionsPath());
-	}
-	
-	private String getServiceLinkagePath(){
+	protected String getServiceLinkagePath() {
 		return getDigitalTransferOptionsPath() + "/gmd:onLine";
-	}
-	
-	public String getServiceLinkage() {
-		try {
-			return xmlDocument.getString(namespaces, getServiceLinkagePath());
-		} catch (NotFound e) {
-		}
-		return null;
 	}
 	
 	/**
@@ -168,11 +150,10 @@ public class MetadataDocument {
 	}
 	
 	
-	/*
+	/**
 	 * Dataset metadata: Dataset Identifier
-	 */
-	
-	private String getDatasetIdentifierCodePath() {
+	 */	
+	protected String getDatasetIdentifierCodePath() {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -185,7 +166,7 @@ public class MetadataDocument {
 				;
 	}
 	
-	private String getDatasetIdentifierPath() {
+	protected String getDatasetIdentifierPath() {
 		return 
 				"/gmd:MD_Metadata" +
 				"/gmd:identificationInfo" +
@@ -199,15 +180,6 @@ public class MetadataDocument {
 				;
 	}
 	
-	public String getDatasetIdentifierCode() {
-		try {
-			return xmlDocument.getString(namespaces, getDatasetIdentifierCodePath());
-		} catch (NotFound e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 	public int removeDatasetIdentifier(){
 		return xmlDocument.removeNodes(namespaces, getDatasetIdentifierPath());		
 	}
@@ -224,12 +196,10 @@ public class MetadataDocument {
 		}
 	}
 	
-	
-	/*
+	/**
 	 * Service metadata: serviceType
-	 */
-	
-	private String getServiceIdentificationPath(){
+	 */	
+	protected String getServiceIdentificationPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
 	}
 	
@@ -259,24 +229,15 @@ public class MetadataDocument {
 		}
 	}
 	
-	/*
+	/**
 	 * Service metadata: BrowseGraphic
-	 */
-	
-	private String getGraphicOverviewPath(){
+	 */	
+	protected String getGraphicOverviewPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview";
 	}
 	
-	private String getBrowseGraphicPath(){
+	protected String getBrowseGraphicPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview/gmd:MD_BrowseGraphic";
-	}
-	
-	public String getBrowseGraphic() {
-		try {
-			return xmlDocument.getString(namespaces, getBrowseGraphicPath());
-		} catch (NotFound e) {
-		}
-		return null;
 	}
 	
 	public int removeBrowseGraphic(){
@@ -301,28 +262,18 @@ public class MetadataDocument {
 		}
 	}
 	
-	/*
+	/**
 	 * Service metadata: Service Endpoint
-	 */
-	
-	private String getOperationsPath(){
+	 */	
+	protected String getOperationsPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:containsOperations";
 	}
 	
-	private String getOperationMetadataPath(){
+	protected String getOperationMetadataPath(){
 		return getOperationsPath() + "/srv:SV_OperationMetadata";
 	}
 	
 	
-	public String getServiceEndpoint() {
-		try {
-			return xmlDocument.getString(namespaces, getOperationMetadataPath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-
 	public int removeServiceEndpoint() {
 		return xmlDocument.removeNodes(namespaces, getOperationMetadataPath());
 	}
@@ -360,31 +311,17 @@ public class MetadataDocument {
 		}
 	}
 	
-	/*
-	 * Service metadata: transfer options: (same as Dataset metadata: Service Linkage)
-	 */
-	
-	/*
+	/**
 	 * Service metadata: CoupledResource (WMS layers c.q. WFS feature types) 
 	 */
-	private String getCoupledResourcePath(){
+	protected String getCoupledResourcePath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:coupledResource";
 	}
 	
-	private String getSVCoupledResourcePath(){
+	protected String getSVCoupledResourcePath(){
 		return getCoupledResourcePath() + "/srv:SV_CoupledResource";
 	}
 	
-	
-	public String getSVCoupledResource(){
-		try {
-			return xmlDocument.getString(namespaces, getSVCoupledResourcePath());
-		} catch (NotFound e) {
-		}
-		return null;
-	}
-	
-
 	public int removeSVCoupledResource() {
 		return xmlDocument.removeNodes(namespaces, getSVCoupledResourcePath());
 	}
@@ -417,16 +354,11 @@ public class MetadataDocument {
 		}
 	}
 	
-	/*
+	/**
 	 * Service metadata: Link to dataset 
-	 */
-	
-	private String getOperatesOnPath(){
+	 */	
+	protected String getOperatesOnPath(){
 		return getServiceIdentificationPath() + "/srv:operatesOn";
-	}
-	
-	public Node getOperatesOn(){
-		return xmlDocument.getNode(namespaces, getOperatesOnPath());
 	}
 	
 	public int removeOperatesOn() {
