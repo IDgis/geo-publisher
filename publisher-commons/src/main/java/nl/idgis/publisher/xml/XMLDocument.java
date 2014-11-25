@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
@@ -29,7 +28,6 @@ import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotTextOnly;
 import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -188,8 +186,7 @@ public class XMLDocument {
 		int nrOfNodes = nodeList.getLength();
 		for (int i = 0; i < nrOfNodes; i++) {
 			Node node = nodeList.item(i);
-			Node removedNode = node.getParentNode().removeChild(node);
-//			System.out.println("#"+(i+1)+" node removed: "+removedNode.getNodeName());
+			node.getParentNode().removeChild(node);
 		} 
 		return nrOfNodes;
 	}
@@ -241,12 +238,10 @@ public class XMLDocument {
 				Node childNode = children.item(i);
 				QName childName = new QName(childNode.getNamespaceURI(), childNode.getLocalName());
 				
-				for(QName followingSibling : followingSiblings) {
-					if(followingSibling.equals(childName)) {
-						parentNode.insertBefore(newElement, childNode);
-						
-						return;
-					}
+				if(followingSiblings.contains(childName)) {
+					parentNode.insertBefore(newElement, childNode);
+					
+					return;
 				}
 			}
 		}
