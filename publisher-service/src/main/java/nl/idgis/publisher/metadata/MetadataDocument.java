@@ -278,8 +278,8 @@ public class MetadataDocument {
 	 */
 	public void addSVCoupledResource(String operationName, String identifier, String scopedName) throws NotFound {
 		String parentPath = xmlDocument.addNode(namespaces, getCoupledResourcePath(), "srv:SV_CoupledResource");
-		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/co:CharacterString", operationName);
-		xmlDocument.addNode(namespaces, parentPath, "srv:identifier/co:CharacterString", identifier);
+		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
+		xmlDocument.addNode(namespaces, parentPath, "srv:identifier/gco:CharacterString", identifier);
 		xmlDocument.addNode(namespaces, parentPath, "gco:ScopedName", scopedName);
 	}
 	

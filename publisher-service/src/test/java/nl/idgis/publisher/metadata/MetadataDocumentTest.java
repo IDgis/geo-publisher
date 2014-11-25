@@ -158,7 +158,7 @@ public class MetadataDocumentTest {
 	/**
 	 * Service metadata: serviceType
 	 */	
-	@Test(expected=NotFound.class)
+	@Test
 	public void testServiceServiceType() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -176,7 +176,10 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check srv:SV_ServiceIdentification has no srv:serviceType child node anymore
-		document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());		
+		try {
+			document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
+			fail("Unexpected service type found");
+		} catch(Exception e) {}
 	}
 	
 	/**
@@ -215,7 +218,7 @@ public class MetadataDocumentTest {
 	/**
 	 * Service metadata: Service Endpoint
 	 */
-	@Test(expected=NotFound.class)
+	@Test
 	public void testServiceEndpoint() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -237,7 +240,10 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check no node anymore
-		document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
+		try {
+			document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
+			fail("Unexpected operationName found");
+		} catch(Exception e) {}
 	}
 	
 	/**
@@ -277,7 +283,7 @@ public class MetadataDocumentTest {
 	/**
 	 * Service metadata: Coupled Resource
 	 */
-	@Test(expected=NotFound.class)
+	@Test
 	public void testServiceCoupledResource() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 
@@ -295,13 +301,16 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed coupled resource", 1, i);
 		
 		// check no node anymore
-		document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());
+		try {
+			document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());
+			fail("Unexpected operationName found");
+		} catch(Exception e) {}
 	}
 	
 	/**
 	 * Service metadata: Link to dataset 
 	 */
-	@Test(expected=NotFound.class)
+	@Test
 	public void testServiceLinkToDataset() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");		
 
@@ -324,6 +333,9 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed dataset link", 1, i);
 		
 		// check no node anymore
-		document.xmlDocument.getString(document.namespaces, uuidrefPath);
+		try {
+			document.xmlDocument.getString(document.namespaces, uuidrefPath);
+			fail("Unexpected uuid ref found");
+		} catch(Exception e) {}
 	}
 }
