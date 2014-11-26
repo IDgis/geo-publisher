@@ -308,4 +308,9 @@ public class MetadataDocument {
 		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
+	@Override
+	public MetadataDocument clone() {
+		return new MetadataDocument(xmlDocument.clone());
+	}
+	
 }

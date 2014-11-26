@@ -1,5 +1,6 @@
 package nl.idgis.publisher.xml;
 
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -213,5 +214,34 @@ public class XMLDocumentTest {
 		assertEquals("c", node.getLocalName());
 		
 		assertEquals("text", node.getFirstChild().getTextContent());
+	}
+	
+	@Test
+	public void testClone() throws Exception {
+		ActorSystem system = ActorSystem.create();		
+		
+		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		
+		byte[] content = "<a xmlns='aURI'/>".getBytes("utf-8");
+		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
+		
+		Object result = Await.result(future, AWAIT_DURATION);
+		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
+		
+		XMLDocument document = (XMLDocument)result;
+		
+		XMLDocument clonedDocument = document.clone();
+		assertNotNull(clonedDocument);
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		clonedDocument.addNode(namespaces, "/a:a", "a:b", "Hello world!");
+		assertEquals("Hello world!", clonedDocument.getString(namespaces, "/a:a/a:b"));
+		
+		try {
+			document.getString(namespaces, "/a:a/a:b");
+			fail();
+		} catch(Exception e) {}
 	}
 }
