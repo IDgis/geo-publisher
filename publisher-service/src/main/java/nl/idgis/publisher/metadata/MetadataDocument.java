@@ -78,6 +78,7 @@ public class MetadataDocument {
 		namespaces.put("gmd", "http://www.isotc211.org/2005/gmd");
 		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
+		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
 	}
 	
 	protected String getDatePath(String codeListValue) {
@@ -328,7 +329,7 @@ public class MetadataDocument {
 	public void addOperatesOn(String uuidref, String href) throws NotFound {		
 		Map<String, String> attributes = new HashMap<String, String>();
 		attributes.put("uuidref", uuidref);
-		attributes.put("href", href);
+		attributes.put("xlink:href", href);
 		
 		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
