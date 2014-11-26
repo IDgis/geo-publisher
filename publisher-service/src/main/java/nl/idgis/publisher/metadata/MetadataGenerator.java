@@ -1,6 +1,7 @@
 package nl.idgis.publisher.metadata;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,10 +24,13 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.util.Timeout;
+
 import scala.concurrent.Future;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
+
 import nl.idgis.publisher.database.DatabaseRef;
+
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.messages.GetContent;
@@ -35,12 +39,14 @@ import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+
 import nl.idgis.publisher.database.QServiceJob;
 import nl.idgis.publisher.database.QJobState;
+
 import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
-
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QJobState.jobState;
@@ -51,6 +57,12 @@ import static nl.idgis.publisher.database.QCategory.category;
 
 public class MetadataGenerator extends UntypedActor {
 	
+	private static final String ENDPOINT_CODE_LIST_VALUE = "WebServices";
+
+	private static final String ENDPOINT_CODE_LIST = "http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList";
+
+	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
+
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef service, harvester;
@@ -235,9 +247,55 @@ public class MetadataGenerator extends UntypedActor {
 		}, getContext().dispatcher());
 	}
 	
-	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private Future<Void> processWFS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
-			// -- operates on -- (link to dataset md)
+			final String linkage = constants.getString("onlineResource.wfs") ;
+			
+			metadataDocument.addServiceType("OGC:WFS");
+			
+			for(Dataset dataset : operatesOn) {
+				final String uuid = dataset.getUuid();
+				final String layerName = dataset.getLayerName();
+				final String scopedName = layerName;
+			
+				metadataDocument.addServiceLinkage(linkage, "OGC:WFS", layerName);
+				metadataDocument.addSVCoupledResource("GetFeature", uuid, scopedName);
+			}
+		
+			return serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher());
+		} catch(Exception e) {
+			return Futures.failed(e);
+		}
+	}
+	
+	private Future<Void> processWMS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+		try {
+			final String linkage = constants.getString("onlineResource.wms") ;			
+			final String browseGraphicBaseUrl = linkage 
+					+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
+					+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
+			
+			metadataDocument.addServiceType("OGC:WMS");
+			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
+			
+			for(final Dataset dataset : operatesOn) {
+				final String uuid = dataset.getUuid();
+				final String layerName = dataset.getLayerName();
+				final String scopedName = layerName;
+				
+				metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
+				metadataDocument.addServiceLinkage(linkage, "OGC:WMS", layerName);
+				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
+			}
+		
+			return serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher());
+		} catch(Exception e) {
+			return Futures.failed(e);
+		}
+	}
+	
+	private Future<Void> processService(final String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+		try {
 			metadataDocument.removeOperatesOn();
 			
 			String href = constants.getString("operatesOn.href");
@@ -250,67 +308,29 @@ public class MetadataGenerator extends UntypedActor {
 				
 				metadataDocument.addOperatesOn(uuid, uuidref);			
 			}
-			
-			/*
-			 *  additional stuff START
-			 */
-			String wmsLinkage = constants.getString("onlineResource.wms") ;
-			String serviceLinkage = null;
-			String protocol = null;
-			String operationName =  null;
-			
-			// -- servicetype --
+
 			metadataDocument.removeServiceType();
-			// TODO check content serviceName
-			if (serviceName.equalsIgnoreCase("WMS")){
-				serviceLinkage = constants.getString("onlineResource.wms") ;
-				protocol = "OGC:WMS";
-				operationName="GetMap";
-			} else if (serviceName.equalsIgnoreCase("WFS")){
-				serviceLinkage = constants.getString("onlineResource.wfs") ;
-				protocol = "OGC:WFS";
-				operationName="GetFeature";
-			} else {
-				// TODO exception?
-			}
-			metadataDocument.addServiceType(protocol);
-			
-			// -- service endpoint -- 
-			metadataDocument.removeServiceEndpoint();
-			// TODO more operations?
-			String getCapName = "GetCapabilitities";
-			// TODO put in config
-			String codeList = "http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList";
-			String codeListValue = "WebServices";
-			metadataDocument.addServiceEndpoint(getCapName, codeList, codeListValue, serviceLinkage);
-			
+			metadataDocument.removeServiceEndpoint();			
 			metadataDocument.removeBrowseGraphic();
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
-			for (Dataset dataset : operatesOn) {
-				String uuid = dataset.getUuid();
-				String layerName = dataset.getLayerName();
-
-				// -- browse graphic --
-				String filename = wmsLinkage + "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
-						+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
-				metadataDocument.addBrowseGraphic(filename + "&Layers=" + layerName);
-
-				// -- transferOptions --
-				metadataDocument.addServiceLinkage(serviceLinkage, protocol, layerName);
-
-				// -- WMS layers, WFS features --
-				// TODO scopedName = layerName ??
-				String scopedName = layerName;
-				metadataDocument.addSVCoupledResource(operationName, uuid, scopedName);
-			}
-			/*
-			 *  additional stuff END
-			 */
-
-			log.debug("service processed: " + serviceName);
 			
-			return serviceMetadataTarget.put(serviceName, metadataDocument, getContext().dispatcher());
+			return Futures.sequence(Arrays.asList(
+					processWFS(serviceName, metadataDocument.clone(), operatesOn),
+					processWMS(serviceName, metadataDocument.clone(), operatesOn)),
+					
+					getContext().dispatcher())
+					
+					.map(new Mapper<Iterable<Void>, Void>() {
+
+						@Override
+						public Void apply(Iterable<Void> i) {
+							log.debug("service processed: " + serviceName);
+							
+							return null;
+						}
+						
+					}, getContext().dispatcher());
 		} catch(Exception e) {
 			return Futures.failed(e);
 		}
