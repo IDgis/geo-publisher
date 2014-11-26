@@ -305,8 +305,10 @@ public class MetadataGenerator extends UntypedActor {
 			log.debug("service href: " + href);
 		
 			for (Dataset dataset : operatesOn) {
-				String uuid = dataset.getUuid();
-				String uuidref = href + uuid;
+				final String uuid = dataset.getUuid();
+				final String fileUuid = dataset.getFileUuid();
+				final String uuidref = href + fileUuid + ".xml";
+				
 				log.debug("service operatesOn uuidref: " + uuidref);
 				
 				metadataDocument.addOperatesOn(uuid, uuidref);			
@@ -364,7 +366,7 @@ public class MetadataGenerator extends UntypedActor {
 						}
 						
 						String layerName = layer.getName();
-						serviceOperatesOn.add(new Dataset(datasetUuid, layerName));
+						serviceOperatesOn.add(new Dataset(datasetUuid, fileUuid, layerName));
 						
 						// WMS
 						String linkage = constants.getString("onlineResource.wms") ;
