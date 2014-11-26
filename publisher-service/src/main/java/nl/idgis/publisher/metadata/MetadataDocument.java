@@ -165,8 +165,20 @@ public class MetadataDocument {
 				;
 	}
 	
+	protected String getFileIdentifierPath() {
+		return 
+				"/gmd:MD_Metadata" +
+				"/gmd:fileIdentifier" +				
+				"/gco:CharacterString"
+				;
+	}
+	
 	public void setDatasetIdentifier(String datasetIdentifier) throws QueryFailure {
 		xmlDocument.updateString(namespaces, getDatasetIdentifierPath(), datasetIdentifier);
+	}
+	
+	public void setFileIdentifier(String fileIdentifier) throws QueryFailure {
+		xmlDocument.updateString(namespaces, getFileIdentifierPath(), fileIdentifier);
 	}
 	
 	/**
@@ -306,6 +318,11 @@ public class MetadataDocument {
 		attributes.put("href", href);
 		
 		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
+	}
+	
+	@Override
+	public MetadataDocument clone() {
+		return new MetadataDocument(xmlDocument.clone());
 	}
 	
 }

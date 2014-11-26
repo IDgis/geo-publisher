@@ -18,6 +18,7 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
@@ -328,4 +329,20 @@ public class XMLDocument {
 			throw new RuntimeException(e);
 		}
 	}	
+	
+	@Override
+	public XMLDocument clone() {
+		try {
+			TransformerFactory tfactory = TransformerFactory.newInstance();
+			Transformer tx   = tfactory.newTransformer();
+			
+			DOMSource source = new DOMSource(document);
+			DOMResult result = new DOMResult();
+			
+			tx.transform(source,result);
+			return new XMLDocument((Document)result.getNode());
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
