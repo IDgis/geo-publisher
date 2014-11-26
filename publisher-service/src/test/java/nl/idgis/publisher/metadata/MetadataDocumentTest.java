@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
-import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.messages.NotParseable;
 
 import org.apache.commons.io.IOUtils;
@@ -337,5 +336,14 @@ public class MetadataDocumentTest {
 			document.xmlDocument.getString(document.namespaces, uuidrefPath);
 			fail("Unexpected uuid ref found");
 		} catch(Exception e) {}
+	}
+	
+	@Test
+	public void testFileIdentifier() throws Exception {
+		MetadataDocument document = getDocument("service_metadata.xml");
+		
+		assertEquals("5a69e9d5-611c-4818-a181-685ef4c81085", document.xmlDocument.getString(document.namespaces, document.getFileIdentifierPath())); 
+		document.setFileIdentifier("bc509f92-5d8c-4169-818b-49ff6a7576c3");
+		assertEquals("bc509f92-5d8c-4169-818b-49ff6a7576c3", document.xmlDocument.getString(document.namespaces, document.getFileIdentifierPath()));
 	}
 }
