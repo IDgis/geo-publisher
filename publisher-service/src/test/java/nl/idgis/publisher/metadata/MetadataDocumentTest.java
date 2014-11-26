@@ -166,8 +166,8 @@ public class MetadataDocumentTest {
 		
 		// add new srv:serviceType childnode
 		document.addServiceType("OGC:WMS");
-		String result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
-		assertNotNull("No service type found", result);
+		String result = document.xmlDocument.getString(document.namespaces, document.getServiceIdentificationPath() 
+				+ "/srv:serviceTypeVersion/preceding-sibling::srv:serviceType/gco:LocalName");		
 		assertEquals("No service type found", "OGC:WMS", result);
 		
 		// remove all srv:serviceType child nodes		
@@ -316,16 +316,20 @@ public class MetadataDocumentTest {
 		// remove all child nodes
 		int i = document.removeOperatesOn();
 		
-		// add new childnode
-		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3",
+		final String href = 
 				"http://gisopenbaar.overijssel.nl/geoportal_extern/csw?Service=CSW&Request=GetRecordById&Version=2.0.2"+
-				"&id=46647460-d8cf-4955-bcac-f1c192d57cc4&outputSchema=http://www.isotc211.org/2005/gmd&elementSetName=full");
+				"&id=46647460-d8cf-4955-bcac-f1c192d57cc4&outputSchema=http://www.isotc211.org/2005/gmd&elementSetName=full";
 		
-		String uuidrefPath = document.getOperatesOnPath() + "/@uuidref";
+		// add new childnode
+		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3", href);
 		
-		String result = document.xmlDocument.getString(document.namespaces, uuidrefPath);		
-		assertNotNull("No link to dataset found", result);
+		String uuidrefPath = document.getOperatesOnPath() + "/@uuidref";		
+		String result = document.xmlDocument.getString(document.namespaces, uuidrefPath);
 		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
+		
+		String hrefPath = document.getOperatesOnPath() + "/@xlink:href";		
+		result = document.xmlDocument.getString(document.namespaces, hrefPath);
+		assertEquals("No href found", href, result);
 		
 		// remove all child nodes		
 		i = document.removeOperatesOn();
