@@ -240,7 +240,7 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addBrowseGraphic(String fileName) throws NotFound {		
-		xmlDocument.addNode(namespaces, getGraphicOverviewPath(), "gmd:MD_BrowseGraphic/gco:CharacterString", fileName);		
+		xmlDocument.addNode(namespaces, getGraphicOverviewPath(), "gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString", fileName);		
 	}
 	
 	/**

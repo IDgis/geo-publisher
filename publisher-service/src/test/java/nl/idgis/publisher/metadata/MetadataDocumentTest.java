@@ -198,7 +198,7 @@ public class MetadataDocumentTest {
 				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=";
 		document.addBrowseGraphic(fileName);
 		
-		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath() + "/gco:CharacterString");		
+		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath() + "/gmd:fileName/gco:CharacterString");		
 		assertNotNull("No browse graphic found", result);
 		assertEquals("No protocol found", fileName, result);
 		
