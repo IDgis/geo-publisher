@@ -252,6 +252,7 @@ public class MetadataGenerator extends UntypedActor {
 			final String linkage = constants.getString("onlineResource.wfs") ;
 			
 			metadataDocument.addServiceType("OGC:WFS");
+			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 			
 			for(Dataset dataset : operatesOn) {
 				final String uuid = dataset.getUuid();
