@@ -157,7 +157,7 @@ public class MetadataGenerator extends UntypedActor {
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
 								log.debug("metadata documents collected");
 								
-								Map<String, Set<String>> operatesOn = new HashMap<String, Set<String>>();
+								Map<String, Set<Dataset>> operatesOn = new HashMap<>();
 								
 								List<Future<Void>> pendingWork = new ArrayList<Future<Void>>();
 								for(Tuple item : queryResult) {
@@ -170,9 +170,9 @@ public class MetadataGenerator extends UntypedActor {
 									pendingWork.add(processDataset(operatesOn, metadataDocument, datasetId, datasetUuid, item.get(category.identification), datasetId, serviceContent));
 								}
 								
-								for(Entry<String, Set<String>> operatesOnEntry : operatesOn.entrySet()) {
+								for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
 									String serviceName = operatesOnEntry.getKey();
-									Set<String> serviceOperatesOn = operatesOnEntry.getValue();
+									Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
 									
 									Future<MetadataDocument> metadataDocument = serviceMetadataSource.get(serviceName, getContext().dispatcher());
 									pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
@@ -224,7 +224,7 @@ public class MetadataGenerator extends UntypedActor {
 		return f.map(dataSources);	
 	}
 	
-	private Future<Void> processService(final String serviceName, Future<MetadataDocument> metadataDocument, final Set<String> operatesOn) {
+	private Future<Void> processService(final String serviceName, Future<MetadataDocument> metadataDocument, final Set<Dataset> operatesOn) {
 		return metadataDocument.flatMap(new Mapper<MetadataDocument, Future<Void>>() {
 			
 			@Override
@@ -235,7 +235,7 @@ public class MetadataGenerator extends UntypedActor {
 		}, getContext().dispatcher());
 	}
 	
-	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<String> operatesOn) {
+	private Future<Void> processService(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			// -- operates on -- (link to dataset md)
 			metadataDocument.removeOperatesOn();
@@ -243,7 +243,8 @@ public class MetadataGenerator extends UntypedActor {
 			String href = constants.getString("operatesOn.href");
 			log.debug("service href: " + href);
 		
-			for (String uuid : operatesOn) {
+			for (Dataset dataset : operatesOn) {
+				String uuid = dataset.getUuid();
 				String uuidref = href + uuid;
 				log.debug("service operatesOn uuidref: " + uuidref);
 				
@@ -286,9 +287,9 @@ public class MetadataGenerator extends UntypedActor {
 			metadataDocument.removeBrowseGraphic();
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
-			for (String uuid : operatesOn) {
-				// TODO  find layerName 
-				String layerName = "b1:grenzen";
+			for (Dataset dataset : operatesOn) {
+				String uuid = dataset.getUuid();
+				String layerName = dataset.getLayerName();
 
 				// -- browse graphic --
 				String filename = wmsLinkage + "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
@@ -315,7 +316,7 @@ public class MetadataGenerator extends UntypedActor {
 		}
 	}
 	
-	private Future<Void> processDataset(Map<String, Set<String>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private Future<Void> processDataset(Map<String, Set<Dataset>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
 			metadataDocument.removeServiceLinkage();		
 			
@@ -328,29 +329,28 @@ public class MetadataGenerator extends UntypedActor {
 						
 						log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + serviceName + ")");
 						
-						final Set<String> serviceOperatesOn;
+						final Set<Dataset> serviceOperatesOn;
 						if(operatesOn.containsKey(serviceName)) {
 							serviceOperatesOn = operatesOn.get(serviceName);						
 						} else {
-							serviceOperatesOn = new HashSet<String>();
+							serviceOperatesOn = new HashSet<>();
 							operatesOn.put(serviceName, serviceOperatesOn);
 						}
 						
-						serviceOperatesOn.add(datasetUuid);
+						String layerName = layer.getName();
+						serviceOperatesOn.add(new Dataset(datasetUuid, layerName));
 						
 						// WMS
 						String linkage = constants.getString("onlineResource.wms") ;
 						String protocol = "OGC:WMS";
-						String name = layer.getName();
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, name);					
+						metadataDocument.addServiceLinkage(linkage, protocol, layerName);					
 						
 						// WFS
 						linkage = constants.getString("onlineResource.wfs") ;
-						protocol = "OGC:WFS";
-						name = layer.getName();
+						protocol = "OGC:WFS";						
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, name);
+						metadataDocument.addServiceLinkage(linkage, protocol, layerName);
 					}
 				}
 			}
