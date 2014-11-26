@@ -166,8 +166,8 @@ public class MetadataDocumentTest {
 		
 		// add new srv:serviceType childnode
 		document.addServiceType("OGC:WMS");
-		String result = document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
-		assertNotNull("No service type found", result);
+		String result = document.xmlDocument.getString(document.namespaces, document.getServiceIdentificationPath() 
+				+ "/srv:serviceTypeVersion/preceding-sibling::srv:serviceType/gco:LocalName");		
 		assertEquals("No service type found", "OGC:WMS", result);
 		
 		// remove all srv:serviceType child nodes		

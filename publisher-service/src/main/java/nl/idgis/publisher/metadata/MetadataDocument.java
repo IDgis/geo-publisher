@@ -189,7 +189,7 @@ public class MetadataDocument {
 	}
 	
 	protected String getServiceTypePath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:serviceType";
+		return getServiceIdentificationPath() + "/srv:serviceType";
 	}	
 	
 	public int removeServiceType() throws NotFound {
@@ -202,7 +202,20 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceType(String serviceLocalName) throws NotFound{		
-		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:serviceType/gco:LocalName", serviceLocalName);
+		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), 
+			new String[]{
+				"srv:serviceTypeVersion",
+				"srv:accessProperties",
+				"srv:restrictions",
+				"srv:keywords",
+				"srv:extent",
+				"srv:coupledResource",
+				"srv:couplingType",
+				"srv:containsOperations",
+				"srv:operatesOn"
+			}, 
+			
+			"srv:serviceType/gco:LocalName", serviceLocalName);
 	}
 	
 	/**
