@@ -118,6 +118,7 @@ public class JobTest extends AbstractServiceTest {
 				.set(dataset.identification, "testDataset")
 				.set(dataset.sourceDatasetId, sourceDatasetId)
 				.set(dataset.uuid, UUID.randomUUID().toString())
+				.set(dataset.fileUuid, UUID.randomUUID().toString())
 				.executeWithKey(dataset.id);
 		
 		for(int i = 0; i < 10; i++) {

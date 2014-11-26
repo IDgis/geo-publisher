@@ -800,6 +800,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				insert(dataset)
 					.set(dataset.identification, datasetIdent)
 					.set(dataset.uuid, UUID.randomUUID().toString())
+					.set(dataset.fileUuid, UUID.randomUUID().toString())
 					.set(dataset.name, datasetName)
 					.set(dataset.sourceDatasetId, sourceDatasetId)
 					.set(dataset.filterConditions, filterConditions)
