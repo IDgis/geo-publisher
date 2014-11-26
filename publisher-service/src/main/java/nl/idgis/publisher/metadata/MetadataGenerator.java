@@ -150,7 +150,8 @@ public class MetadataGenerator extends UntypedActor {
 						sourceDataset.identification,
 						category.identification, 
 						dataset.identification,
-						dataset.uuid))
+						dataset.uuid,
+						dataset.fileUuid))
 			.collect(
 				f.ask(service, new GetContent(), ServiceContent.class))		
 			.result(new AbstractFunction2<TypedList<Tuple>, ServiceContent, Void>() {
@@ -176,10 +177,11 @@ public class MetadataGenerator extends UntypedActor {
 									String sourceDatasetId = item.get(sourceDataset.identification);
 									String datasetId = item.get(dataset.identification);
 									String datasetUuid = item.get(dataset.uuid);
+									String fileUuid = item.get(dataset.fileUuid);
 									
 									MetadataDocument metadataDocument = metadataDocuments.get(sourceDatasetId);
 									
-									pendingWork.add(processDataset(operatesOn, metadataDocument, datasetId, datasetUuid, item.get(category.identification), datasetId, serviceContent));
+									pendingWork.add(processDataset(operatesOn, metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
 								}
 								
 								for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
@@ -337,8 +339,11 @@ public class MetadataGenerator extends UntypedActor {
 		}
 	}
 	
-	private Future<Void> processDataset(Map<String, Set<Dataset>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private Future<Void> processDataset(Map<String, Set<Dataset>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
+			metadataDocument.setDatasetIdentifier(datasetUuid);
+			metadataDocument.setFileIdentifier(fileUuid);
+			
 			metadataDocument.removeServiceLinkage();		
 			
 			for(VirtualService service : serviceContent.getServices()) {
@@ -378,7 +383,7 @@ public class MetadataGenerator extends UntypedActor {
 			
 			log.debug("dataset processed: " + datasetId);
 			
-			return datasetMetadataTarget.put(datasetUuid, metadataDocument, getContext().dispatcher());
+			return datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher());
 		} catch(Exception e) {
 			return Futures.failed(e);
 		}
