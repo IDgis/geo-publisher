@@ -405,8 +405,8 @@ public class MetadataGenerator extends UntypedActor {
 				String serviceName = service.getName();
 				
 				for(Layer layer : service.getLayers()) {
-					if(schemaName.equals(layer.getSchemaName()) && 
-						tableName.equals(layer.getTableName())) {
+					if(schemaName.equalsIgnoreCase(layer.getSchemaName()) && 
+						tableName.equalsIgnoreCase(layer.getTableName())) {
 						
 						if(debugFoundLayers) {
 							layersFound.add(layer);
