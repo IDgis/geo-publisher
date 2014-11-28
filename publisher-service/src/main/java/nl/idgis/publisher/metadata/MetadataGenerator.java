@@ -170,29 +170,35 @@ public class MetadataGenerator extends UntypedActor {
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
 								log.debug("metadata documents collected");
 								
-								Map<String, Set<Dataset>> operatesOn = new HashMap<>();
-								
-								List<Future<Void>> pendingWork = new ArrayList<Future<Void>>();
+								List<Future<Map<String, Set<Dataset>>>> operatesOn = new ArrayList<>();
 								for(Tuple item : queryResult) {
 									String sourceDatasetId = item.get(sourceDataset.identification);
 									String datasetId = item.get(dataset.identification);
 									String datasetUuid = item.get(dataset.uuid);
 									String fileUuid = item.get(dataset.fileUuid);
 									
-									MetadataDocument metadataDocument = metadataDocuments.get(sourceDatasetId);
-									
-									pendingWork.add(processDataset(operatesOn, metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
-								}
+									MetadataDocument metadataDocument = metadataDocuments.get(sourceDatasetId);									
+									operatesOn.add(processDataset(metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
+								} 
 								
-								for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
-									String serviceName = operatesOnEntry.getKey();
-									Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
+								mergeOperatesOn(operatesOn).flatMap(new Mapper<Map<String, Set<Dataset>>, Future<Iterable<Void>>>() {
 									
-									Future<MetadataDocument> metadataDocument = serviceMetadataSource.get(serviceName, getContext().dispatcher());
-									pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
-								}
-								
-								Futures.sequence(pendingWork, getContext().dispatcher())
+									@Override
+									public Future<Iterable<Void>> apply(Map<String, Set<Dataset>> operatesOn) {
+										log.debug("operatesOn merged, processing service metdata");
+										
+										List<Future<Void>> pendingWork = new ArrayList<>();										
+										for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
+											String serviceName = operatesOnEntry.getKey();
+											Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
+											
+											Future<MetadataDocument> metadataDocument = serviceMetadataSource.get(serviceName, getContext().dispatcher());
+											pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
+										}
+										
+										return Futures.sequence(pendingWork, getContext().dispatcher());
+									}
+								}, getContext().dispatcher())								
 									.onComplete(new OnComplete<Iterable<Void>>() {
 
 										@Override
@@ -211,7 +217,7 @@ public class MetadataGenerator extends UntypedActor {
 									}, getContext().dispatcher());
 								
 								return null;
-							}
+							}							
 							
 						});
 					
@@ -236,6 +242,35 @@ public class MetadataGenerator extends UntypedActor {
 		}
 		
 		return f.map(dataSources);	
+	}
+	
+	private Future<Map<String, Set<Dataset>>> mergeOperatesOn(List<Future<Map<String, Set<Dataset>>>> operatesOn) {
+		return Futures.sequence(operatesOn, getContext().dispatcher())
+			.map(new Mapper<Iterable<Map<String, Set<Dataset>>>, Map<String, Set<Dataset>>>() {
+				
+				@Override
+				public Map<String, Set<Dataset>> apply(Iterable<Map<String, Set<Dataset>>> operatesOn) {
+					log.debug("all datasets processed, merging operatesOn results");
+					
+					Map<String, Set<Dataset>> mergedOperatesOn = new HashMap<>();
+					
+					for(Map<String, Set<Dataset>> currentOperatesOn : operatesOn) {
+						for(Map.Entry<String, Set<Dataset>> operatesOnEntry : currentOperatesOn.entrySet()) {
+							String serviceName = operatesOnEntry.getKey();
+							Set<Dataset> datasets = operatesOnEntry.getValue();
+									
+							if(mergedOperatesOn.containsKey(serviceName)) {
+								mergedOperatesOn.get(serviceName).addAll(datasets);
+							} else {
+								mergedOperatesOn.put(serviceName, datasets);
+							}
+						}
+					}
+					
+					return mergedOperatesOn;
+				}
+				
+			}, getContext().dispatcher());
 	}
 	
 	private Future<Void> processService(final String serviceName, Future<MetadataDocument> metadataDocument, final Set<Dataset> operatesOn) {
@@ -267,7 +302,9 @@ public class MetadataGenerator extends UntypedActor {
 		
 			return serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher());
 		} catch(Exception e) {
-			return Futures.failed(e);
+			log.error("wfs processing failed: {} error: {}", serviceName, e);
+			
+			return Futures.successful(null);
 		}
 	}
 	
@@ -293,7 +330,9 @@ public class MetadataGenerator extends UntypedActor {
 		
 			return serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher());
 		} catch(Exception e) {
-			return Futures.failed(e);
+			log.error("wms processing failed: {} error: {}", serviceName, e);
+			
+			return Futures.successful(null);
 		}
 	}
 	
@@ -337,23 +376,39 @@ public class MetadataGenerator extends UntypedActor {
 						
 					}, getContext().dispatcher());
 		} catch(Exception e) {
-			return Futures.failed(e);
+			log.error("service processing failed: {} error: {}", serviceName, e);
+			
+			return Futures.successful(null);
 		}
 	}
 	
-	private Future<Void> processDataset(Map<String, Set<Dataset>> operatesOn, MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private Future<Map<String, Set<Dataset>>> processDataset(MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
 			metadataDocument.setDatasetIdentifier(datasetUuid);
 			metadataDocument.setFileIdentifier(fileUuid);
 			
-			metadataDocument.removeServiceLinkage();		
+			metadataDocument.removeServiceLinkage();
 			
+			final Set<Layer> layersFound;
+			final boolean debugFoundLayers = log.isDebugEnabled();
+			
+			if(debugFoundLayers) {
+				layersFound = new HashSet<>();
+			} else {
+				layersFound = null;
+			}
+			
+			final Map<String, Set<Dataset>> operatesOn = new HashMap<>();
 			for(VirtualService service : serviceContent.getServices()) {
 				String serviceName = service.getName();
 				
 				for(Layer layer : service.getLayers()) {
 					if(schemaName.equals(layer.getSchemaName()) && 
 						tableName.equals(layer.getTableName())) {
+						
+						if(debugFoundLayers) {
+							layersFound.add(layer);
+						}
 						
 						log.debug("layer for dataset " + datasetUuid + " found (table: " + schemaName + "." + tableName + ": " + layer.getName() + " , service: " + serviceName + ")");
 						
@@ -383,11 +438,21 @@ public class MetadataGenerator extends UntypedActor {
 				}
 			}
 			
-			log.debug("dataset processed: " + datasetId);
+			log.debug("dataset processed: " + datasetId + " layers: " + layersFound);
 			
-			return datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher());
+			return datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher())
+				.map(new Mapper<Void, Map<String, Set<Dataset>>>() {
+					
+					@Override
+					public Map<String, Set<Dataset>> apply(Void v) {
+						return operatesOn;
+					}
+										
+				}, getContext().dispatcher());
 		} catch(Exception e) {
-			return Futures.failed(e);
+			log.error("dataset processing failed: {} error: {}", datasetId, e);
+			
+			return Futures.successful(null);
 		}
 	}
 	
