@@ -255,14 +255,16 @@ public class MetadataGenerator extends UntypedActor {
 					Map<String, Set<Dataset>> mergedOperatesOn = new HashMap<>();
 					
 					for(Map<String, Set<Dataset>> currentOperatesOn : operatesOn) {
-						for(Map.Entry<String, Set<Dataset>> operatesOnEntry : currentOperatesOn.entrySet()) {
-							String serviceName = operatesOnEntry.getKey();
-							Set<Dataset> datasets = operatesOnEntry.getValue();
-									
-							if(mergedOperatesOn.containsKey(serviceName)) {
-								mergedOperatesOn.get(serviceName).addAll(datasets);
-							} else {
-								mergedOperatesOn.put(serviceName, datasets);
+						if(currentOperatesOn != null) {						
+							for(Map.Entry<String, Set<Dataset>> operatesOnEntry : currentOperatesOn.entrySet()) {
+								String serviceName = operatesOnEntry.getKey();
+								Set<Dataset> datasets = operatesOnEntry.getValue();
+										
+								if(mergedOperatesOn.containsKey(serviceName)) {
+									mergedOperatesOn.get(serviceName).addAll(datasets);
+								} else {
+									mergedOperatesOn.put(serviceName, datasets);
+								}
 							}
 						}
 					}
