@@ -66,7 +66,7 @@ public class MessagePackager extends UntypedActor {
 			if(sourcePath.startsWith(pathPrefix)) {
 				sourceName = sourcePath.substring(pathPrefix.length() + 1);
 			} else {
-				log.debug("sourcePath: " + sourcePath + " pathPrefix: " + pathPrefix);
+				log.debug("sourcePath: " + sourcePath + " pathPrefix: " + pathPrefix + " msg: " + msg.toString());
 				throw new IllegalStateException("sender is not a child of container actor");
 			}
 		}
