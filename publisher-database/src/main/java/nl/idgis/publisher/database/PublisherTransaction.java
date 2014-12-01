@@ -38,7 +38,6 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
-import nl.idgis.publisher.database.messages.GetCategoryInfo;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
@@ -48,8 +47,6 @@ import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetColumns;
-import nl.idgis.publisher.database.messages.GetSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -202,20 +199,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeRegisterSourceDataset((RegisterSourceDataset)query);
 		} else if(query instanceof GetCategoryListInfo) {
 			executeGetCategoryListInfo();
-		} else if(query instanceof GetCategoryInfo) {
-			executeGetCategoryInfo((GetCategoryInfo)query);			
 		} else if(query instanceof GetDatasetListInfo) {
 			executeGetDatasetListInfo((GetDatasetListInfo)query);			
 		} else if(query instanceof GetDataSourceInfo) {
 			executeGetDataSourceInfo();
-		} else if(query instanceof GetSourceDatasetInfo) {			
-			executeGetSourceDatasetInfo((GetSourceDatasetInfo)query);			
 		} else if(query instanceof GetSourceDatasetListInfo) {			
 			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof StoreLog) {
 			executeStoreLog((StoreLog)query);		
-		} else if(query instanceof GetSourceDatasetColumns) {
-			executeGetSourceDatasetColumns((GetSourceDatasetColumns)query);
 		} else if(query instanceof CreateDataset) {
 			executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
@@ -815,23 +806,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			}
 	}	
 
-	private void executeGetSourceDatasetColumns(GetSourceDatasetColumns sdc) {
-		log.debug("get columns for sourcedataset: " + sdc.getSourceDatasetId());
-
-		answer(
-			query().from(sourceDatasetVersionColumn)
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
-					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-								.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-							.notExists()))
-			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.where(sourceDataset.identification.eq(sdc.getSourceDatasetId())
-				.and(dataSource.identification.eq(sdc.getDataSourceId())))
-			.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)));
-	}
-	
 	private void executeStoreLog(StoreLog query) throws Exception {
 		log.debug("storing log line: " + query);
 		
@@ -920,39 +894,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 							dataset.count())),
 							
 				baseQuery.count()
-			)
-		);
-	}
-
-	private void executeGetSourceDatasetInfo(GetSourceDatasetInfo sdi) {
-		log.debug(sdi.toString());
-		String sourceDatasetId = sdi.getId();
-		
-		SQLQuery baseQuery = query().from(sourceDataset)
-				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-									.notExists()))
-				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
-		
-		if(sourceDatasetId != null) {				
-			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
-		}
-			
-		SQLQuery listQuery = baseQuery.clone()					
-				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
-		
-		answer(
-			listQuery					
-				.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
-				.groupBy(dataSource.identification).groupBy(dataSource.name)
-				.groupBy(category.identification).groupBy(category.name)						
-				.singleResult(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
-						dataSource.identification, dataSource.name,
-						category.identification,category.name,
-						dataset.count())
 			)
 		);
 	}
@@ -1078,13 +1019,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 
 		answer (datasetInfos);
-	}
-
-	private void executeGetCategoryInfo(GetCategoryInfo query) {
-		answer(
-				query().from(category)
-				.where(category.identification.eq(query.getId()))
-				.singleResult(new QCategoryInfo(category.identification,category.name)));
 	}
 
 	private void executeGetCategoryListInfo() {
