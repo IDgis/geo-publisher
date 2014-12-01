@@ -13,7 +13,7 @@ import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
@@ -27,15 +27,21 @@ public class ProviderDataSource extends UntypedActor {
 	
 	private final int FETCH_TABLE_MESSAGE_SIZE = 10;
 		
-	private final ActorRef harvester, provider;
+	private final ActorRef provider;
 	
-	public ProviderDataSource(ActorRef harvester, ActorRef provider) {
-		this.harvester = harvester;
+	private MetadataDocumentFactory metadataDocumentFactory;
+	
+	public ProviderDataSource(ActorRef provider) {		
 		this.provider = provider;		
 	}
 	
-	public static Props props(ActorRef harvester, ActorRef provider) {
-		return Props.create(ProviderDataSource.class, harvester, provider);
+	public static Props props(ActorRef provider) {
+		return Props.create(ProviderDataSource.class, provider);
+	}
+	
+	@Override
+	public void preStart() throws Exception {
+		metadataDocumentFactory = new MetadataDocumentFactory();
 	}
 
 	@Override
@@ -54,7 +60,7 @@ public class ProviderDataSource extends UntypedActor {
 	private void handleListDatasets() {
 		log.debug("retrieving datasets from provider");
 		
-		ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), harvester, provider));
+		ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), provider));
 		provider.tell(new GetAllMetadata(), providerDataset);
 	}
 	
@@ -126,18 +132,11 @@ public class ProviderDataSource extends UntypedActor {
 				public void onSuccess(Object msg) throws Throwable { 
 					MetadataItem metadataItem = (MetadataItem)msg;
 					
-					log.debug("metadata retrieved");								
-					Patterns.ask(harvester, new ParseMetadataDocument(metadataItem.getContent()), 15000)
-						.onSuccess(new OnSuccess<Object>() {
-
-							@Override
-							public void onSuccess(Object o) throws Throwable {
-								MetadataDocument metadataDocument = (MetadataDocument)o;
-								log.debug("metadata parsed");
-								
-								sender.tell(metadataDocument, getSelf());
-							}
-						}, getContext().dispatcher());
+					log.debug("metadata retrieved");
+					
+					MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(metadataItem.getContent());
+					
+					sender.tell(metadataDocument, getSelf());
 				}
 			}, getContext().dispatcher());	
 	}

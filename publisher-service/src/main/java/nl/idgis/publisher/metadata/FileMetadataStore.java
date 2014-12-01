@@ -6,25 +6,21 @@ import java.io.FileOutputStream;
 
 import org.apache.commons.io.IOUtils;
 
-import akka.actor.ActorRef;
 import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.pattern.Patterns;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-
-import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 
 public class FileMetadataStore implements MetadataStore {
 	
 	private final File directory;
 	
-	private final ActorRef documentFactory;
+	private final MetadataDocumentFactory documentFactory;
 	
-	public FileMetadataStore(File directory, ActorRef documentFactory) {
+	public FileMetadataStore(File directory) throws Exception {
 		this.directory = directory;
-		this.documentFactory = documentFactory;
+		
+		documentFactory = new MetadataDocumentFactory();		
 	}
 	
 	private void deleteAll(File directory) {
@@ -72,17 +68,7 @@ public class FileMetadataStore implements MetadataStore {
 			
 			fis.close();
 			
-			return Patterns.ask(documentFactory, new ParseMetadataDocument(content), 15000)
-					.map(new Mapper<Object, MetadataDocument>() {
-						
-						public MetadataDocument apply(Object msg) {
-							if(msg instanceof MetadataDocument) {
-								return (MetadataDocument)msg;
-							} else {
-								throw new IllegalArgumentException("MetadataDocument expected");
-							}
-						}
-					}, executionContext);
+			return Futures.successful(documentFactory.parseDocument(content));
 		} catch(Exception e) {
 			return Futures.failed(e);
 		}

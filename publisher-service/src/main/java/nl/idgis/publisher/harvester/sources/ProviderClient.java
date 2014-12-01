@@ -47,7 +47,7 @@ public class ProviderClient extends UntypedActor {
 		
 		getSender().tell(new Hello(harvesterName), getSelf());
 		
-		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(harvester, getSender()));		
+		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(getSender()));		
 		harvester.tell(new DataSourceConnected(msg.getName()), dataSource);
 	}
 }
