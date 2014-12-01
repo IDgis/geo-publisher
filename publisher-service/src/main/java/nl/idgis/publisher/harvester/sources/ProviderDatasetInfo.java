@@ -24,8 +24,8 @@ import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
-import nl.idgis.publisher.provider.protocol.database.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
 import nl.idgis.publisher.stream.messages.End;
@@ -236,7 +236,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 								log.debug("table description received");
 								
 								List<Column> columns = new ArrayList<Column>();
-								for(nl.idgis.publisher.provider.protocol.database.Column column : tableDescription.getColumns()) {
+								for(nl.idgis.publisher.provider.protocol.Column column : tableDescription.getColumns()) {
 									columns.add(new Column(column.getName(), column.getType()));
 								}
 								

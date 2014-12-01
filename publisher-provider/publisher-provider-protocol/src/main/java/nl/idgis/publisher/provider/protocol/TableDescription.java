@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.protocol.database;
+package nl.idgis.publisher.provider.protocol;
 
 import java.io.Serializable;
 import java.util.Arrays;

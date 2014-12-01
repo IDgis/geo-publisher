@@ -1,12 +1,10 @@
 package nl.idgis.publisher.provider.protocol.metadata;
 
-import java.io.Serializable;
-
 import nl.idgis.publisher.stream.messages.Start;
 
-public class GetAllMetadata extends Start implements Serializable {
+public class GetAllMetadata implements Start {
 	
-	private static final long serialVersionUID = -8610001910316843276L;
+	private static final long serialVersionUID = 9007700928104153079L;
 
 	@Override
 	public String toString() {
