@@ -37,6 +37,6 @@ public abstract class StreamConverter extends UntypedActor {
 		}
 	}
 	
-	protected abstract Future<Item> convert(Item msg);
+	protected abstract Future<Item> convert(Item msg) throws Exception;
 	
 }
