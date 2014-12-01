@@ -79,7 +79,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 							null, 
 							null, 
 							null, 
-							notParsable.getReason()
+							notParsable.getCause().getMessage()
 						);											
 					JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 					
