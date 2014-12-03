@@ -1,12 +1,12 @@
 package nl.idgis.publisher.domain.job.harvest;
 
-import nl.idgis.publisher.domain.MessageProperties;
+import nl.idgis.publisher.domain.job.JobMessageProperties;
 import nl.idgis.publisher.domain.web.EntityType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class HarvestLog extends MessageProperties {
+public class HarvestLog extends JobMessageProperties {
 
 	private static final long serialVersionUID = -4669631261794550765L;
 	

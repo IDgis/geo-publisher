@@ -3,11 +3,11 @@ package nl.idgis.publisher.domain.job.load;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
+import nl.idgis.publisher.domain.job.JobMessageProperties;
 import nl.idgis.publisher.domain.web.EntityType;
 
-public final class ImportNotificationProperties extends MessageProperties {
+public final class ImportNotificationProperties extends JobMessageProperties {
 
 	private static final long serialVersionUID = 4482059888625110486L;
 
