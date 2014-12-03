@@ -6,13 +6,13 @@ public class UnavailableDatasetInfo extends DatasetInfo {
 	
 	private static final long serialVersionUID = 6422314524938004792L;
 
-	public UnavailableDatasetInfo(String id, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
-		super(id, title, attachments, messages);
+	public UnavailableDatasetInfo(String identification, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
+		super(identification, title, attachments, messages);
 	}
 
 	@Override
 	public String toString() {
-		return "UnavailableDatasetInfo [id=" + id + ", title=" + title
+		return "UnavailableDatasetInfo [identification=" + identification + ", title=" + title
 				+ ", attachments=" + attachments + "]";
 	}
 

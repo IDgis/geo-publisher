@@ -9,7 +9,7 @@ import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.pattern.Patterns;
 
-public abstract class StreamConverter extends UntypedActor {
+public abstract class StreamConverter<T extends Item> extends UntypedActor {
 	
 	private final ActorRef target;
 	
@@ -37,6 +37,6 @@ public abstract class StreamConverter extends UntypedActor {
 		}
 	}
 	
-	protected abstract Future<Item> convert(Item msg) throws Exception;
+	protected abstract Future<? extends T> convert(Item msg) throws Exception;
 	
 }

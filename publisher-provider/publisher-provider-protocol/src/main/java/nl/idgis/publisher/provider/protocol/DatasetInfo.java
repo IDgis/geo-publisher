@@ -8,7 +8,7 @@ public abstract class DatasetInfo extends Item {
 
 	private static final long serialVersionUID = -7460162022665523517L;
 
-	protected final String id;
+	protected final String identification;
 	
 	protected final String title;
 	
@@ -16,15 +16,15 @@ public abstract class DatasetInfo extends Item {
 	
 	protected final Set<Message<?>> messages;
 			
-	DatasetInfo(String id, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
-		this.id = id;
+	DatasetInfo(String identification, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
+		this.identification = identification;
 		this.title = title;		
 		this.attachments = attachments;
 		this.messages = messages;
 	}
 	
 	public String getId() {
-		return id;
+		return identification;
 	}
 	
 	public String getTitle() {
