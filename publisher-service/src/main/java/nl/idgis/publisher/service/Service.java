@@ -20,7 +20,7 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 
-import nl.idgis.publisher.domain.job.JobLog;
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.service.ServiceLogType;
@@ -263,7 +263,7 @@ public class Service extends AbstractStateMachine<String> {
 						if(hasTable(workspace, dataStore, tableName)) {
 							log.debug("feature type for table already exists");
 							
-							database.tell(new StoreLog(job, JobLog.create(LogLevel.INFO, ServiceLogType.VERIFIED)), getSelf());
+							database.tell(new StoreLog(job, Log.create(LogLevel.INFO, ServiceLogType.VERIFIED)), getSelf());
 							become("storing verified job log", waitingJobLogStored(job, initiator));
 						} else {
 							log.debug("creating new feature type");
@@ -272,7 +272,7 @@ public class Service extends AbstractStateMachine<String> {
 								tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
 								become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 							} else {
-								database.tell(new StoreLog(job, JobLog.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
+								database.tell(new StoreLog(job, Log.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
 								become("storing add job log", waitingJobLogStored(job, initiator));
 							}
 						}

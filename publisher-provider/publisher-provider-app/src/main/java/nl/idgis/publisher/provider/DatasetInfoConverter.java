@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
 import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 import nl.idgis.publisher.metadata.MetadataDocument;
@@ -14,7 +15,6 @@ import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
-import nl.idgis.publisher.provider.protocol.Message;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
@@ -72,7 +72,7 @@ public class DatasetInfoConverter extends StreamConverter<DatasetInfo> {
 	private class DatasetInfoBuilder {
 		private final Set<Attachment> attachments;
 		
-		private final Set<Message<?>> messages;
+		private final Set<Log> logs;
 		
 		private final String identification;
 		
@@ -96,7 +96,7 @@ public class DatasetInfoConverter extends StreamConverter<DatasetInfo> {
 				attachments.add(new Attachment(identification, AttachmentType.METADATA, content));
 			}
 			
-			messages = new HashSet<>();
+			logs = new HashSet<>();
 		}
 		
 		private class PerformCountMapper extends Mapper<Object, DatasetInfo> {
@@ -105,7 +105,7 @@ public class DatasetInfoConverter extends StreamConverter<DatasetInfo> {
 			public DatasetInfo checkedApply(Object msg) throws IllegalArgumentException {
 				if(msg instanceof Long) {
 					long numberOfRecords = (Long)msg;
-					return new VectorDatasetInfo(identification, title, attachments, messages, tableDescription, numberOfRecords);
+					return new VectorDatasetInfo(identification, title, attachments, logs, tableDescription, numberOfRecords);
 				} else {
 					throw new IllegalArgumentException("Long expected");
 				}
@@ -144,7 +144,7 @@ public class DatasetInfoConverter extends StreamConverter<DatasetInfo> {
 		}
 		
 		private Future<DatasetInfo> getUnavailable() {
-			return Futures.<DatasetInfo>successful(new UnavailableDatasetInfo(identification, reportedTitle, attachments, messages));
+			return Futures.<DatasetInfo>successful(new UnavailableDatasetInfo(identification, reportedTitle, attachments, logs));
 		}
 
 		private void processMetadata(MetadataDocument metadataDocument) {

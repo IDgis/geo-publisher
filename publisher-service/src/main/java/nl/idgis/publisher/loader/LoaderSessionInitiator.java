@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import nl.idgis.publisher.AbstractStateMachine;
+
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
@@ -17,8 +18,9 @@ import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
-import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.Notification;
@@ -30,12 +32,14 @@ import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
+
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -417,7 +421,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 						database.tell(
 								new StoreLog(
 										importJob, 
-										JobLog.create(
+										Log.create(
 												LogLevel.WARNING, 
 												ImportLogType.MISSING_COLUMNS, 
 												
@@ -434,7 +438,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 						database.tell(
 								new StoreLog(
 										importJob, 
-										JobLog.create(
+										Log.create(
 												LogLevel.ERROR, 
 												ImportLogType.MISSING_FILTER_COLUMNS, 
 												

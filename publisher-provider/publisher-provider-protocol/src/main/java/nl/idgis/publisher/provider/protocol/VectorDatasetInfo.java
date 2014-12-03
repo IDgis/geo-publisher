@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider.protocol;
 
 import java.util.Set;
 
+import nl.idgis.publisher.domain.Log;
+
 public class VectorDatasetInfo extends DatasetInfo {
 
 	private static final long serialVersionUID = 8651322510331387757L;
@@ -11,8 +13,8 @@ public class VectorDatasetInfo extends DatasetInfo {
 	private final long numberOfRecords;
 
 	public VectorDatasetInfo(String identification, String title, Set<Attachment> attachments, 
-		Set<Message<?>> messages, TableDescription tableDescription, long numberOfRecords) {		
-		super(identification, title, attachments, messages);
+		Set<Log> logs, TableDescription tableDescription, long numberOfRecords) {		
+		super(identification, title, attachments, logs);
 		
 		this.tableDescription = tableDescription;
 		this.numberOfRecords = numberOfRecords;

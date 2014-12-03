@@ -1,11 +1,10 @@
-package nl.idgis.publisher.domain.job;
+package nl.idgis.publisher.domain;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.domain.MessageProperties;
-import nl.idgis.publisher.domain.MessageType;
+import nl.idgis.publisher.domain.job.LogLevel;
 
-public class JobLog implements Serializable {
+public class Log implements Serializable {
 	
 	private static final long serialVersionUID = 7393703558996721495L;
 	
@@ -13,22 +12,22 @@ public class JobLog implements Serializable {
 	protected final MessageType<?> type;
 	protected final MessageProperties content;
 	
-	protected JobLog(LogLevel level, MessageType<?> type) {
+	protected Log(LogLevel level, MessageType<?> type) {
 		this(level, type, null);
 	}
 	
-	protected JobLog(LogLevel level, MessageType<?> type, MessageProperties content) {	
+	protected Log(LogLevel level, MessageType<?> type, MessageProperties content) {	
 		this.level = level;
 		this.type = type;
 		this.content = content;
 	}
 	
-	public static <T extends MessageProperties> JobLog create (final LogLevel level, final MessageType<T> type) {
-		return new JobLog (level, type);
+	public static <T extends MessageProperties> Log create (final LogLevel level, final MessageType<T> type) {
+		return new Log (level, type);
 	}
 	
-	public static <T extends MessageProperties> JobLog create (final LogLevel level, final MessageType<T> type, final T content) {
-		return new JobLog (level, type, content);
+	public static <T extends MessageProperties> Log create (final LogLevel level, final MessageType<T> type, final T content) {
+		return new Log (level, type, content);
 	}
 	
 	public LogLevel getLevel() {

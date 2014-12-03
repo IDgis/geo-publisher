@@ -1,15 +1,15 @@
 package nl.idgis.publisher.database.messages;
 
-import nl.idgis.publisher.domain.job.JobLog;
+import nl.idgis.publisher.domain.Log;
 
 public class StoreLog extends Query {
 	
 	private static final long serialVersionUID = -1228166659611717157L;
 	
 	private final JobInfo job;
-	private final JobLog jobLog;
+	private final Log jobLog;
 	
-	public StoreLog(JobInfo job, JobLog jobLog) {
+	public StoreLog(JobInfo job, Log jobLog) {
 		this.job = job;
 		this.jobLog = jobLog;
 	}
@@ -18,7 +18,7 @@ public class StoreLog extends Query {
 		return job;
 	}
 	
-	public JobLog getJobLog() {
+	public Log getJobLog() {
 		return jobLog;
 	}
 

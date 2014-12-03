@@ -7,7 +7,7 @@ import java.util.List;
 
 import scala.concurrent.Future;
 
-import nl.idgis.publisher.domain.job.JobLog;
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.DatabaseLog;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
@@ -123,7 +123,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 				Object value = valuesItr.next();
 				
 				MetadataLog content = new MetadataLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle, field, error, value);
-				JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+				Log jobLog = Log.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 				
 				futures.add(Patterns.ask(harvesterSession, jobLog, 15000));
 			}
@@ -152,7 +152,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 		if(tableName == null) {
 			log.warning("couldn't determine table name: " + alternateTitle);
 			
-			JobLog jobLog = JobLog.create (
+			Log jobLog = Log.create (
 					LogLevel.ERROR, 
 					HarvestLogType.UNKNOWN_TABLE, 
 					new HarvestLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle));
@@ -185,7 +185,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 							if(msg instanceof TableNotFound) {
 								log.error("table doesn't exist: " + tableName);
 								
-								JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.TABLE_NOT_FOUND,
+								Log jobLog = Log.create(LogLevel.ERROR, HarvestLogType.TABLE_NOT_FOUND,
 									new DatabaseLog(EntityType.SOURCE_DATASET, identification, title, alternateTitle, tableName));
 								
 								Patterns.ask(harvesterSession, jobLog, 15000)
@@ -273,7 +273,7 @@ public class ProviderDatasetInfo extends UntypedActor {
 					null, 
 					notParsable.getCause().getMessage()
 				);											
-			JobLog jobLog = JobLog.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
+			Log jobLog = Log.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, content);
 			
 			Patterns.ask(harvesterSession, jobLog, 15000)
 				.onSuccess(new OnSuccess<Object>() {

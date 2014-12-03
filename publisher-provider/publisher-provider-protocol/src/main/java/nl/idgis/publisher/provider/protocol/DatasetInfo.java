@@ -2,11 +2,12 @@ package nl.idgis.publisher.provider.protocol;
 
 import java.util.Set;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.stream.messages.Item;
 
 public abstract class DatasetInfo extends Item {
 
-	private static final long serialVersionUID = -7460162022665523517L;
+	private static final long serialVersionUID = -4716423485137309380L;
 
 	protected final String identification;
 	
@@ -14,13 +15,13 @@ public abstract class DatasetInfo extends Item {
 	
 	protected final Set<Attachment> attachments;
 	
-	protected final Set<Message<?>> messages;
+	protected final Set<Log> logs;
 			
-	DatasetInfo(String identification, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
+	DatasetInfo(String identification, String title, Set<Attachment> attachments, Set<Log> logs) {
 		this.identification = identification;
 		this.title = title;		
 		this.attachments = attachments;
-		this.messages = messages;
+		this.logs = logs;
 	}
 	
 	public String getId() {
@@ -35,8 +36,8 @@ public abstract class DatasetInfo extends Item {
 		return attachments;
 	}
 	
-	public Set<Message<?>> getMessages() {
-		return messages;
+	public Set<Log> getLogs() {
+		return logs;
 	}
 	
 }
