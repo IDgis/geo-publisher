@@ -13,11 +13,14 @@ public abstract class DatasetInfo extends Item {
 	protected final String title;
 	
 	protected final Set<Attachment> attachments;
+	
+	protected final Set<Message<?>> messages;
 			
-	DatasetInfo(String id, String title, Set<Attachment> attachments) {
+	DatasetInfo(String id, String title, Set<Attachment> attachments, Set<Message<?>> messages) {
 		this.id = id;
 		this.title = title;		
 		this.attachments = attachments;
+		this.messages = messages;
 	}
 	
 	public String getId() {
@@ -30,6 +33,10 @@ public abstract class DatasetInfo extends Item {
 	
 	public Set<Attachment> getAttachments() {
 		return attachments;
+	}
+	
+	public Set<Message<?>> getMessages() {
+		return messages;
 	}
 	
 }
