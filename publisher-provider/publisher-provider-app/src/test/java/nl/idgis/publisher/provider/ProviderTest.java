@@ -1,16 +1,22 @@
 package nl.idgis.publisher.provider;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import nl.idgis.publisher.provider.messages.GetRecording;
+import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
+import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.stream.messages.End;
 
 import scala.concurrent.Await;
@@ -28,11 +34,14 @@ public class ProviderTest {
 	
 	private static final Timeout timeout = new Timeout(duration);
 	
-	private ActorRef provider;
+	private ActorRef recorder, provider;
 	
 	@Before
 	public void actors() {		
-		provider = ActorSystem.create().actorOf(Provider.props(DatabaseMock.props(), MetadataMock.props()));
+		ActorSystem actorSystem = ActorSystem.create("test");
+		
+		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
+		provider = actorSystem.actorOf(Provider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
 	}
 	
 	private <T> T ask(Object msg, Class<T> expected) throws Exception {
@@ -46,6 +55,12 @@ public class ProviderTest {
 			return null;
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	private Iterator<Record> playRecording() throws Exception {
+		Future<Object> future = Patterns.ask(recorder, new GetRecording(), timeout);
+		return ((Iterable<Record>)Await.result(future, duration)).iterator();
+	}
 
 	@Test
 	public void testListDatasetInfo() throws Exception {
@@ -53,5 +68,13 @@ public class ProviderTest {
 		attachmentTypes.add(AttachmentType.METADATA);
 		
 		ask(new ListDatasetInfo(attachmentTypes), End.class);
+		
+		Iterator<Record> recording = playRecording();
+		assertTrue(recording.hasNext());
+		
+		Record record = recording.next();
+		assertTrue(record.getMessage() instanceof GetAllMetadata);
+		
+		assertFalse(recording.hasNext());
 	}
 }

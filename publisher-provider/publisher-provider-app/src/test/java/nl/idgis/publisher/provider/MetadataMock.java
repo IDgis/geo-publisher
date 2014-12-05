@@ -3,6 +3,7 @@ package nl.idgis.publisher.provider;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
@@ -15,14 +16,18 @@ public class MetadataMock extends UntypedActor {
 	
 	private final Map<String, byte[]> metadataDocuments;
 	
+	private final ActorRef recorder;
+	
 	private ActorRef metadataListProvider;
 	
-	public MetadataMock() {
+	public MetadataMock(ActorRef recorder) {
 		metadataDocuments = new HashMap<>();
+		
+		this.recorder = recorder;
 	}
 	
-	public static Props props() {
-		return Props.create(MetadataMock.class);
+	public static Props props(ActorRef recorder) {
+		return Props.create(MetadataMock.class, recorder);
 	}
 	
 	@Override
@@ -32,6 +37,8 @@ public class MetadataMock extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
+		recorder.tell(new Record(getSelf(), getSender(), msg), getSelf());
+		
 		if(msg instanceof GetAllMetadata) {
 			metadataListProvider.forward(msg, getContext());
 		} else if(msg instanceof GetMetadata) {
