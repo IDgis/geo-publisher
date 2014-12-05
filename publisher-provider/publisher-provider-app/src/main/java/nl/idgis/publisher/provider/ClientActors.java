@@ -1,8 +1,12 @@
 package nl.idgis.publisher.provider;
 
+import java.io.File;
+
 import nl.idgis.publisher.protocol.MessageProtocolActors;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.provider.database.Database;
+import nl.idgis.publisher.provider.metadata.Metadata;
 
 import scala.concurrent.Future;
 
@@ -31,8 +35,6 @@ public class ClientActors extends MessageProtocolActors {
 	
 	protected void createActors(ActorRef messagePackagerProvider) {
 		log.debug("creating client actors");
-		
-		
 								
 		Future<Object> harvesterPackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("harvester"), 1000);
 		harvesterPackager.onSuccess(new OnSuccess<Object>() {
@@ -42,10 +44,12 @@ public class ClientActors extends MessageProtocolActors {
 				final ActorRef harvester = (ActorRef)msg;
 				
 				for(Config instance : config.getConfigList("instances")) {
-					final String instanceName = instance.getString("name");
+					final String instanceName = instance.getString("name");					
 					
-					final ActorRef provider = getContext().actorOf(Provider.props(instance, instanceName), "provider-" + instanceName);
+					final Props database = Database.props(instance.getConfig("database"), instanceName);
+					final Props metadata = Metadata.props(new File(instance.getString("metadata.folder")));					
 					
+					final ActorRef provider = getContext().actorOf(Provider.props(database, metadata), instanceName);					
 					harvester.tell(new Hello(instanceName), provider);
 				}
 			}
