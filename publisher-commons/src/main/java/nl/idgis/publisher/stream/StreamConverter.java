@@ -1,17 +1,19 @@
 package nl.idgis.publisher.stream;
 
-import scala.concurrent.Future;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Stop;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
-import akka.pattern.Patterns;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public abstract class StreamConverter<T extends Item> extends UntypedActor {
 	
-	private final ActorRef target;
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	protected final ActorRef target;
 	
 	private ActorRef producer;
 	
@@ -22,21 +24,27 @@ public abstract class StreamConverter<T extends Item> extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof End) {
+			log.debug("end");
+			
 			target.tell(msg, getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Item) {
-			producer = getSelf();
+			log.debug("item");
 			
-			Patterns.pipe(convert((Item)msg), getContext().dispatcher())
-				.pipeTo(target, getSelf());
+			producer = getSender();
+			convert((Item)msg);
 		} else if(msg instanceof NextItem) {
+			log.debug("next item");
+			
 			producer.tell(msg, getSelf());
-		} else if(msg instanceof Stop) {			
+		} else if(msg instanceof Stop) {
+			log.debug("stop");
+			
 			producer.tell(msg, getSelf());
 			getContext().stop(getSelf());
 		}
 	}
 	
-	protected abstract Future<? extends T> convert(Item msg) throws Exception;
+	protected abstract void convert(Item msg) throws Exception;
 	
 }

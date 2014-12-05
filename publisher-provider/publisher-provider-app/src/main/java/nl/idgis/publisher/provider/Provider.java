@@ -70,6 +70,8 @@ public class Provider extends UntypedActor {
 	}
 
 	private void handleListDatasetInfo(ListDatasetInfo msg) {
+		log.debug("list dataset info");
+		
 		ActorRef converter = getContext().actorOf(DatasetInfoConverter.props(msg.getAttachmentTypes(), getSender(), database));		
 		metadata.tell(new GetAllMetadata(), converter);
 	}
