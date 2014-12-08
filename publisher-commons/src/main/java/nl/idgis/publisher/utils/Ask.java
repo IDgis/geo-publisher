@@ -1,15 +1,15 @@
 package nl.idgis.publisher.utils;
 
-import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
-import akka.actor.Cancellable;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
@@ -22,10 +22,9 @@ public final class Ask extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Promise<Response> promise;
+	
 	private final Timeout timeout;
-	
-	private Cancellable timeoutCancellable;
-	
+		
 	public static class Response {
 		
 		private final ActorRef sender;
@@ -44,11 +43,6 @@ public final class Ask extends UntypedActor {
 		public Object getMessage() {
 			return message;
 		}
-	}
-	
-	private static class Stop implements Serializable {
-		
-		private static final long serialVersionUID = -1585596166238409731L;		
 	}
 	
 	public Ask(Promise<Response> promise, Timeout timeout) {
@@ -80,22 +74,18 @@ public final class Ask extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		log.debug("waiting for answer");
-		
-		timeoutCancellable = getContext().system().scheduler().scheduleOnce(timeout.duration(), 
-			getSelf(), new Stop(), getContext().dispatcher(), getSelf());
+		getContext().setReceiveTimeout(timeout.duration());
 	}
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Stop) {
+		if(msg instanceof ReceiveTimeout) {
 			log.debug("timeout");
 			
-			promise.failure(new TimeoutException());
+			promise.failure(new TimeoutException("ask timeout: " + timeout.toString()));
 		} else {
 			log.debug("answer received");
 			
-			timeoutCancellable.cancel();
 			promise.success(new Response(getSender(), msg));
 		}
 		
