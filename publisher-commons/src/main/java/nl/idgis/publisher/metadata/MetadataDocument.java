@@ -34,14 +34,17 @@ public class MetadataDocument {
 	}
 	
 	public String getAlternateTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, 
-				"/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +
-				"/gmd:MD_DataIdentification" +
-				"/gmd:citation" +
-				"/gmd:CI_Citation" +
-				"/gmd:alternateTitle" +
-				"/gco:CharacterString");
+		return xmlDocument.getString(namespaces, getAlternateTitlePath());
+	}
+
+	private String getAlternateTitlePath() {
+		return "/gmd:MD_Metadata" +
+		"/gmd:identificationInfo" +
+		"/gmd:MD_DataIdentification" +
+		"/gmd:citation" +
+		"/gmd:CI_Citation" +
+		"/gmd:alternateTitle" +
+		"/gco:CharacterString";
 	}
 	
 	public Date getRevisionDate() throws NotFound {
@@ -337,6 +340,10 @@ public class MetadataDocument {
 	@Override
 	public MetadataDocument clone() {
 		return new MetadataDocument(xmlDocument.clone());
+	}
+
+	public void setAlternateTitle(String newTitle) throws QueryFailure {
+		xmlDocument.updateString(namespaces, getAlternateTitlePath(), newTitle);
 	}
 	
 }
