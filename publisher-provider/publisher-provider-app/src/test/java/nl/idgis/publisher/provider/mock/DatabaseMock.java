@@ -3,6 +3,8 @@ package nl.idgis.publisher.provider.mock;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.mock.messages.PutTableInfo;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
@@ -64,10 +66,15 @@ public class DatabaseMock extends UntypedActor {
 			String tableName = ((PerformCount)msg).getTableName();
 			
 			if(tableInfo.containsKey(tableName)) {
-				getSender().tell(tableInfo.get(tableName), getSelf());
+				getSender().tell(tableInfo.get(tableName).getNumberOfRecords(), getSelf());
 			} else {
 				getSender().tell(new TableNotFound(), getSelf());
 			}
+		} else if(msg instanceof PutTableInfo) {
+			PutTableInfo putTableInfo = (PutTableInfo)msg;
+			
+			tableInfo.put(putTableInfo.getTableName(), new TableInfo(putTableInfo.getTableDescription(), putTableInfo.getNumberOfRecords()));
+			getSender().tell(new Ack(), getSelf());
 		} else {
 			unhandled(msg);
 		}
