@@ -18,7 +18,7 @@ public class MetadataDocument {
 	protected final XMLDocument xmlDocument;
 	protected final BiMap<String, String> namespaces;
 	
-	byte[] getContent() throws IOException {
+	public byte[] getContent() throws IOException {
 		return xmlDocument.getContent();
 	}
 	

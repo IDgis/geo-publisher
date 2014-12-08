@@ -3,10 +3,12 @@ package nl.idgis.publisher.provider;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.protocol.metadata.PutMetadata;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -39,7 +41,11 @@ public class MetadataMock extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		recorder.tell(new Record(getSelf(), getSender(), msg), getSelf());
 		
-		if(msg instanceof GetAllMetadata) {
+		if(msg instanceof PutMetadata) {
+			PutMetadata putMetadata = (PutMetadata)msg;
+			metadataDocuments.put(putMetadata.getIdentification(), putMetadata.getContent());
+			getSender().tell(new Ack(), getSelf());
+		} else if(msg instanceof GetAllMetadata) {
 			metadataListProvider.forward(msg, getContext());
 		} else if(msg instanceof GetMetadata) {
 			String identification = ((GetMetadata)msg).getIdentification();
