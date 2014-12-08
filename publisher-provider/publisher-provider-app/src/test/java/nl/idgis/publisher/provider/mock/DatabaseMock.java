@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider;
+package nl.idgis.publisher.provider.mock;
 
 import java.util.HashMap;
 import java.util.Map;

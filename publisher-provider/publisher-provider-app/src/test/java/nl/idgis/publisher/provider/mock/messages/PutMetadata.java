@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.protocol.metadata;
+package nl.idgis.publisher.provider.mock.messages;
 
 import java.io.Serializable;
 

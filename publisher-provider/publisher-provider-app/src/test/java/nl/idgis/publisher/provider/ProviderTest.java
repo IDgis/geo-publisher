@@ -22,13 +22,15 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.messages.Clear;
 import nl.idgis.publisher.provider.messages.GetRecording;
 import nl.idgis.publisher.provider.messages.Record;
+import nl.idgis.publisher.provider.mock.DatabaseMock;
+import nl.idgis.publisher.provider.mock.MetadataMock;
+import nl.idgis.publisher.provider.mock.messages.PutMetadata;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.PutMetadata;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
@@ -162,7 +164,11 @@ public class ProviderTest {
 		assertTrue(recording.hasNext());
 		
 		record = recording.next();
-		assertTrue(record.getMessage() instanceof PerformCount);
+		message = record.getMessage();
+		assertTrue(message instanceof PerformCount);
+		
+		PerformCount performCount = (PerformCount)message;
+		assertEquals(tableName, performCount.getTableName());
 		
 		assertFalse(recording.hasNext());
 	}
