@@ -16,15 +16,21 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
 import nl.idgis.publisher.provider.mock.MetadataMock;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
+import nl.idgis.publisher.provider.mock.messages.PutTableInfo;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
+import nl.idgis.publisher.provider.protocol.Column;
+import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
+import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
+import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
@@ -47,7 +53,7 @@ import akka.util.Timeout;
 
 public class ProviderTest {
 	
-	private static final FiniteDuration duration = FiniteDuration.create(10, TimeUnit.SECONDS);
+	private static final FiniteDuration duration = FiniteDuration.create(1, TimeUnit.SECONDS);
 	
 	private static final Timeout timeout = new Timeout(duration);
 	
@@ -129,47 +135,77 @@ public class ProviderTest {
 		
 		ask(new ListDatasetInfo(attachmentTypes), End.class);
 		
-		Iterator<Record> recording = playRecording();
-		assertTrue(recording.hasNext());
+		assertDatabaseInteractions();
 		
-		Record record = recording.next();
-		assertTrue(record.getMessage() instanceof GetAllMetadata);
-		
-		assertFalse(recording.hasNext());
-		
-		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		final String firstTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
 		
 		clearRecording();
 		
 		UnavailableDatasetInfo unavailableDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), UnavailableDatasetInfo.class);
-		assertEquals("test", unavailableDatasetInfo.getId());
+		assertEquals("first", unavailableDatasetInfo.getId());
+		
+		ask(sender, new NextItem(), End.class);
+		 
+		assertDatabaseInteractions(firstTableName);
+		
+		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
+		TableDescription tableDescription = new TableDescription(columns);
+		
+		ask(database, new PutTableInfo(firstTableName, tableDescription, 42), Ack.class);
+		
+		clearRecording();
+		
+		VectorDatasetInfo vectorDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		assertEquals("first", vectorDatasetInfo.getId());
+		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
+		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
 		ask(sender, new NextItem(), End.class);
 		
-		recording = playRecording();
+		assertDatabaseInteractions(firstTableName);
+		
+		metadataDocument.setAlternateTitle("Test_schema.Test_table");
+		final String secondTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		
+		assertEquals("test_schema.test_table", secondTableName);
+		
+		ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class);
+		
+		ask(new ListDatasetInfo(attachmentTypes), DatasetInfo.class);
+		ask(sender, new NextItem(), DatasetInfo.class);
+		ask(sender, new NextItem(), End.class);
+	}
+
+	private void assertDatabaseInteractions(final String... tableNames) throws Exception {
+		Iterator<Record> recording = playRecording();
+		
+		Record record;
 		assertTrue(recording.hasNext());
 		
 		record = recording.next();
 		assertTrue(record.getMessage() instanceof GetAllMetadata);
 		
-		assertTrue(recording.hasNext());
+		for(String tableName : tableNames) {
 		
-		record = recording.next();
-		Object message = record.getMessage(); 
-		assertTrue(message instanceof DescribeTable);
-		
-		DescribeTable describeTable = (DescribeTable)message;
-		assertEquals(tableName, describeTable.getTableName());
-		
-		assertTrue(recording.hasNext());
-		
-		record = recording.next();
-		message = record.getMessage();
-		assertTrue(message instanceof PerformCount);
-		
-		PerformCount performCount = (PerformCount)message;
-		assertEquals(tableName, performCount.getTableName());
+			assertTrue(recording.hasNext());
+			
+			record = recording.next();
+			Object message = record.getMessage(); 
+			assertTrue(message instanceof DescribeTable);
+			
+			DescribeTable describeTable = (DescribeTable)message;
+			assertEquals(tableName, describeTable.getTableName());
+			
+			assertTrue(recording.hasNext());
+			
+			record = recording.next();
+			message = record.getMessage();
+			assertTrue(message instanceof PerformCount);
+			
+			PerformCount performCount = (PerformCount)message;
+			assertEquals(tableName, performCount.getTableName());
+		}
 		
 		assertFalse(recording.hasNext());
 	}
