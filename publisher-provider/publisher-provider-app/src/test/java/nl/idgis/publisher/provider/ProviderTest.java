@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.messages.Clear;
 import nl.idgis.publisher.provider.messages.GetRecording;
 import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
@@ -45,7 +47,11 @@ public class ProviderTest {
 	}
 	
 	private <T> T ask(Object msg, Class<T> expected) throws Exception {
-		Future<Object> future = Patterns.ask(provider, msg, timeout);
+		return ask(provider, msg, expected);
+	}
+	
+	private <T> T ask(ActorRef actorRef, Object msg, Class<T> expected) throws Exception {
+		Future<Object> future = Patterns.ask(actorRef, msg, timeout);
 		
 		Object result = Await.result(future, duration);
 		if(expected.isInstance(result)) {
@@ -58,8 +64,11 @@ public class ProviderTest {
 	
 	@SuppressWarnings("unchecked")
 	private Iterator<Record> playRecording() throws Exception {
-		Future<Object> future = Patterns.ask(recorder, new GetRecording(), timeout);
-		return ((Iterable<Record>)Await.result(future, duration)).iterator();
+		return ask(recorder, new GetRecording(), Iterable.class).iterator();
+	}
+	
+	private void clearRecording() throws Exception {
+		ask(recorder, new Clear(), Ack.class);
 	}
 
 	@Test
@@ -76,5 +85,7 @@ public class ProviderTest {
 		assertTrue(record.getMessage() instanceof GetAllMetadata);
 		
 		assertFalse(recording.hasNext());
+		
+		clearRecording();
 	}
 }

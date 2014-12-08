@@ -3,6 +3,8 @@ package nl.idgis.publisher.provider;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.messages.Clear;
 import nl.idgis.publisher.provider.messages.GetRecording;
 import nl.idgis.publisher.provider.messages.Record;
 
@@ -21,6 +23,9 @@ public class Recorder extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Record) {
 			recording.add((Record)msg);
+		} else if(msg instanceof Clear) {
+			recording.clear();
+			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetRecording) {
 			getSender().tell(new ArrayList<>(recording), getSelf());
 		} else {
