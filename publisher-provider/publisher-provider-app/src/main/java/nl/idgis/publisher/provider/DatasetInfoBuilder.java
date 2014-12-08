@@ -172,22 +172,10 @@ public class DatasetInfoBuilder extends UntypedActor {
 				MetadataField field = fieldsItr.next();
 				Object value = valuesItr.next();
 			}
-					
-			if(alternateTitle.contains(" ")) {
-				tableName = alternateTitle.substring(0, alternateTitle.indexOf(" ")).trim();
-			} else {
-				tableName = alternateTitle.trim();
-			}
 			
-			tableName = tableName.replace(":", ".").toLowerCase();		
+			tableName = ProviderUtils.getTableName(alternateTitle);
 			
-			int separator = tableName.indexOf(".");
-			if(separator != -1) {
-				String schemaName = tableName.substring(0, separator);
-				categoryId = schemaName.toLowerCase();
-			} else {
-				
-			}
+			categoryId = ProviderUtils.getCategoryId(tableName);
 			
 			if(title == null) {
 				reportedTitle = alternateTitle;
