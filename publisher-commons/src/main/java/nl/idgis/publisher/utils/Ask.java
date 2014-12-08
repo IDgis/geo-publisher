@@ -8,6 +8,7 @@ import scala.concurrent.Promise;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
@@ -50,26 +51,46 @@ public final class Ask extends UntypedActor {
 		this.timeout = timeout;
 	}
 	
-	public static Future<Object> ask(ActorRefFactory refFactory, ActorRef actor, Object message, long timeoutMillis)  {
-		return ask(refFactory, actor, message, new Timeout(timeoutMillis, TimeUnit.MILLISECONDS));
+	public static Future<Object> ask(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, long timeoutMillis)  {
+		return ask(refFactory, actorSelection, message, new Timeout(timeoutMillis, TimeUnit.MILLISECONDS));
 	}
 	
-	public static Future<Response> askResponse(ActorRefFactory refFactory, ActorRef actor, Object message, Timeout timeout) {
+	public static Future<Object> ask(ActorRefFactory refFactory, ActorRef actorRef, Object message, long timeoutMillis)  {
+		return ask(refFactory, actorRef, message, new Timeout(timeoutMillis, TimeUnit.MILLISECONDS));
+	}
+	
+	public static Future<Response> askResponse(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, Timeout timeout) {
 		Promise<Response> promise = Futures.promise();
 		
-		actor.tell(message, refFactory.actorOf(Props.create(Ask.class, promise, timeout)));
+		actorSelection.tell(message, refFactory.actorOf(Props.create(Ask.class, promise, timeout)));
 		
 		return promise.future();
 	}
 	
-	public static Future<Object> ask(ActorRefFactory refFactory, ActorRef actor, Object message, Timeout timeout)  {
-		return askResponse(refFactory, actor, message, timeout).map(new Mapper<Response, Object>() {
+	public static Future<Response> askResponse(ActorRefFactory refFactory, ActorRef actorRef, Object message, Timeout timeout) {
+		Promise<Response> promise = Futures.promise();
+		
+		actorRef.tell(message, refFactory.actorOf(Props.create(Ask.class, promise, timeout)));
+		
+		return promise.future();
+	}
+	
+	private static Future<Object> getMessage(ActorRefFactory refFactory, Future<Response> response) {
+		return response.map(new Mapper<Response, Object>() {
 			
 			@Override
 			public Object apply(Response response) {
 				return response.getMessage();
 			}
 		}, refFactory.dispatcher());
+	}
+	
+	public static Future<Object> ask(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, Timeout timeout)  {
+		return getMessage(refFactory, askResponse(refFactory, actorSelection, message, timeout));
+	}
+	
+	public static Future<Object> ask(ActorRefFactory refFactory, ActorRef actorRef, Object message, Timeout timeout)  {
+		return getMessage(refFactory, askResponse(refFactory, actorRef, message, timeout));
 	}
 	
 	@Override
