@@ -108,6 +108,12 @@
 			</dependency>
 			<dependency>
 				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-test</artifactId>
+				<version>${project.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
 				<artifactId>publisher-commons</artifactId>
 				<classifier>tests</classifier>
 				<version>${project.version}</version>
@@ -393,6 +399,7 @@
 		<module>publisher-database</module>
 		<module>publisher-service</module>
 		<module>publisher-domain</module>
+		<module>publisher-test</module>
 	</modules>
 
 	<reporting>
