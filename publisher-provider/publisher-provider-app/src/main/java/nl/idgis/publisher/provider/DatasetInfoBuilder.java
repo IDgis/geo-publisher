@@ -37,7 +37,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef sender, cursor, database;
+	private final ActorRef sender, converter, database;
 	
 	private final Set<AttachmentType> requestedAttachmentTypes;
 	
@@ -63,9 +63,9 @@ public class DatasetInfoBuilder extends UntypedActor {
 	
 	private Long numberOfRecords;
 
-	public DatasetInfoBuilder(ActorRef sender, ActorRef cursor, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
+	public DatasetInfoBuilder(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
 		this.sender = sender;		
-		this.cursor = cursor;
+		this.converter = converter;
 		this.database = database;
 		this.requestedAttachmentTypes = requestedAttachmentTypes;
 		
@@ -73,8 +73,8 @@ public class DatasetInfoBuilder extends UntypedActor {
 		logs = new HashSet<>();
 	}
 	
-	public static Props props(ActorRef sender, ActorRef cursor, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {
-		return Props.create(DatasetInfoBuilder.class, sender, cursor, database, requestedAttachmentTypes);
+	public static Props props(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {
+		return Props.create(DatasetInfoBuilder.class, sender, converter, database, requestedAttachmentTypes);
 	}
 	
 	@Override
@@ -114,7 +114,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 	}
 	
 	private void tellTarget(Object msg) {
-		sender.tell(msg, cursor);
+		sender.tell(msg, converter);
 		getContext().stop(getSelf());
 	}
 	
