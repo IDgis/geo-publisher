@@ -1,7 +1,7 @@
 package nl.idgis.publisher.provider.mock;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
@@ -23,7 +23,7 @@ public class MetadataMock extends UntypedActor {
 	private ActorRef metadataListProvider;
 	
 	public MetadataMock(ActorRef recorder) {
-		metadataDocuments = new HashMap<>();
+		metadataDocuments = new TreeMap<>();
 		
 		this.recorder = recorder;
 	}

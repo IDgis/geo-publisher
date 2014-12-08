@@ -172,9 +172,17 @@ public class ProviderTest {
 		
 		ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class);
 		
-		ask(new ListDatasetInfo(attachmentTypes), DatasetInfo.class);
-		ask(sender, new NextItem(), DatasetInfo.class);
+		clearRecording();
+		
+		DatasetInfo datasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		assertEquals("first", datasetInfo.getId());
+		
+		datasetInfo = ask(sender, new NextItem(), UnavailableDatasetInfo.class);
+		assertEquals("second", datasetInfo.getId());
+		
 		ask(sender, new NextItem(), End.class);
+		
+		assertDatabaseInteractions(firstTableName, secondTableName);
 	}
 
 	private void assertDatabaseInteractions(final String... tableNames) throws Exception {
