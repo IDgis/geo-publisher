@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.recorder.messages.Record;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

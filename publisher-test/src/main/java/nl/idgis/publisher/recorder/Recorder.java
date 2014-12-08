@@ -1,15 +1,15 @@
-package nl.idgis.publisher.provider;
+package nl.idgis.publisher.recorder;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.messages.Clear;
-import nl.idgis.publisher.provider.messages.GetRecording;
-import nl.idgis.publisher.provider.messages.Record;
-
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.GetRecording;
+import nl.idgis.publisher.recorder.messages.Record;
 
 public class Recorder extends UntypedActor {
 	

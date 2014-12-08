@@ -3,11 +3,11 @@ package nl.idgis.publisher.provider.mock;
 import java.util.HashMap;
 import java.util.Map;
 
-import nl.idgis.publisher.provider.messages.Record;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
+import nl.idgis.publisher.recorder.messages.Record;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

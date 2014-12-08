@@ -10,5 +10,16 @@
 		<artifactId>publisher</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
+	
+	<dependencies>
+		<dependency>
+		  <groupId>com.typesafe.akka</groupId>
+		  <artifactId>akka-slf4j_${scala.abi.version}</artifactId>  
+		</dependency>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-commons</artifactId>
+		</dependency>
+	</dependencies>
 
 </project>
