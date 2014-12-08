@@ -143,7 +143,7 @@ public class ProviderTest {
 		clearRecording();
 		
 		UnavailableDatasetInfo unavailableDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), UnavailableDatasetInfo.class);
-		assertEquals("first", unavailableDatasetInfo.getId());
+		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
 		ask(sender, new NextItem(), End.class);
 		 
@@ -157,7 +157,7 @@ public class ProviderTest {
 		clearRecording();
 		
 		VectorDatasetInfo vectorDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
-		assertEquals("first", vectorDatasetInfo.getId());
+		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
@@ -175,10 +175,10 @@ public class ProviderTest {
 		clearRecording();
 		
 		DatasetInfo datasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
-		assertEquals("first", datasetInfo.getId());
+		assertEquals("first", datasetInfo.getIdentification());
 		
 		datasetInfo = ask(sender, new NextItem(), UnavailableDatasetInfo.class);
-		assertEquals("second", datasetInfo.getId());
+		assertEquals("second", datasetInfo.getIdentification());
 		
 		ask(sender, new NextItem(), End.class);
 		

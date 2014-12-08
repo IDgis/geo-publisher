@@ -7,7 +7,7 @@ import nl.idgis.publisher.stream.messages.Item;
 
 public abstract class DatasetInfo extends Item {
 
-	private static final long serialVersionUID = -4716423485137309380L;
+	private static final long serialVersionUID = -1258083358767006453L;
 
 	protected final String identification;
 	
@@ -24,7 +24,7 @@ public abstract class DatasetInfo extends Item {
 		this.logs = logs;
 	}
 	
-	public String getId() {
+	public String getIdentification() {
 		return identification;
 	}
 	
