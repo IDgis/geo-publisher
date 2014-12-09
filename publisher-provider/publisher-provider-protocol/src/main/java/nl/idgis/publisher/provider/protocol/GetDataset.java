@@ -2,22 +2,17 @@ package nl.idgis.publisher.provider.protocol;
 
 import java.io.Serializable;
 
-public class GetDataset implements Serializable {
+public abstract class GetDataset implements Serializable {
 
 	private static final long serialVersionUID = -8635139807073207401L;
 	
-	private final String id;
+	private final String identification;
 	
-	public GetDataset(String id) {
-		this.id = id;
+	public GetDataset(String identification) {
+		this.identification = identification;
 	}
 	
-	public String getId() {
-		return this.id;
-	}
-
-	@Override
-	public String toString() {
-		return "GetDataset [id=" + id + "]";
+	public String getIdentification() {
+		return this.identification;
 	}
 }

@@ -6,8 +6,12 @@ import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.stream.StreamProvider;
 
 import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public class MetadataListProviderMock extends StreamProvider<GetAllMetadata> {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Map<String, byte[]> metadataDocuments;
 	
@@ -21,6 +25,8 @@ public class MetadataListProviderMock extends StreamProvider<GetAllMetadata> {
 
 	@Override
 	protected Props start(GetAllMetadata msg) throws Exception {
+		log.debug("start");
+		
 		return MetadataCursorMock.props(metadataDocuments);
 	}
 	

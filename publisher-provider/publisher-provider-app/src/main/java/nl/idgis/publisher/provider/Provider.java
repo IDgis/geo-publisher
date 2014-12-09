@@ -2,6 +2,7 @@ package nl.idgis.publisher.provider;
 
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
+import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
@@ -46,6 +47,8 @@ public class Provider extends UntypedActor {
 			handleListDatasetInfo((ListDatasetInfo)msg);
 		} else if(msg instanceof GetDatasetInfo) {
 			handleGetDatasetInfo((GetDatasetInfo)msg);
+		} else if(msg instanceof GetVectorDataset) {
+			handleGetVectorDataset((GetVectorDataset)msg);
 		} else if(msg instanceof GetAllMetadata) {
 			metadata.forward(msg, getContext());
 		} else if(msg instanceof GetMetadata) {
@@ -59,6 +62,13 @@ public class Provider extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleGetVectorDataset(GetVectorDataset msg) {
+		log.debug("get vector dataset");		
+		
+		ActorRef fetcher = getContext().actorOf(VectorDatasetFetcher.props(getSender(), database, msg));
+		metadata.tell(new GetMetadata(msg.getIdentification()), fetcher);
 	}
 
 	private void handleGetDatasetInfo(GetDatasetInfo msg) {

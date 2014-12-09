@@ -9,11 +9,11 @@ import akka.actor.UntypedActor;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.GetRecording;
-import nl.idgis.publisher.recorder.messages.Record;
+import nl.idgis.publisher.recorder.messages.RecordedMessage;
 
 public class Recorder extends UntypedActor {
 	
-	private final List<Record> recording = new ArrayList<Record>();
+	private final List<RecordedMessage> recording = new ArrayList<RecordedMessage>();
 	
 	public static Props props() {
 		return Props.create(Recorder.class);
@@ -21,8 +21,8 @@ public class Recorder extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Record) {
-			recording.add((Record)msg);
+		if(msg instanceof RecordedMessage) {
+			recording.add((RecordedMessage)msg);
 		} else if(msg instanceof Clear) {
 			recording.clear();
 			getSender().tell(new Ack(), getSelf());

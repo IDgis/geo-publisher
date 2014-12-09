@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import akka.actor.ActorRef;
 
-public class Record implements Serializable {	
+public class RecordedMessage implements Serializable {	
 
 	private static final long serialVersionUID = -6634355211883677212L;
 
@@ -12,7 +12,7 @@ public class Record implements Serializable {
 
 	private final Object message;
 	
-	public Record(ActorRef self, ActorRef sender, Object message) {
+	public RecordedMessage(ActorRef self, ActorRef sender, Object message) {
 		this.self = self;
 		this.sender = sender;
 		this.message = message;

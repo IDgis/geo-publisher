@@ -7,8 +7,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -23,23 +26,27 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
 import nl.idgis.publisher.provider.mock.MetadataMock;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
-import nl.idgis.publisher.provider.mock.messages.PutTableInfo;
+import nl.idgis.publisher.provider.mock.messages.PutTable;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.Column;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
-import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
-import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
+import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
+import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
+import nl.idgis.publisher.provider.protocol.GetVectorDataset;
+import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
+import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.GetRecording;
-import nl.idgis.publisher.recorder.messages.Record;
+import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.Ask;
@@ -68,7 +75,7 @@ public class ProviderTest {
 	private MetadataDocument metadataDocument;
 	
 	@Before
-	public void actors() {		
+	public void actors() {
 		actorSystem = ActorSystem.create("test");
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
@@ -122,7 +129,7 @@ public class ProviderTest {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Iterator<Record> playRecording() throws Exception {
+	private Iterator<RecordedMessage> playRecording() throws Exception {
 		return ask(recorder, new GetRecording(), Iterable.class).iterator();
 	}
 	
@@ -151,10 +158,14 @@ public class ProviderTest {
 		 
 		assertDatabaseInteractions(firstTableName);
 		
-		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
-		TableDescription tableDescription = new TableDescription(columns);
-		
-		ask(database, new PutTableInfo(firstTableName, tableDescription, 42), Ack.class);
+		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
+		TableDescription tableDescription = new TableDescription(columns);		
+				
+		List<Record> records = new ArrayList<>();
+		for(int i = 0; i < 42; i++) {
+			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
+		}
+		ask(database, new PutTable(firstTableName, tableDescription, records), Ack.class);
 		
 		clearRecording();
 		
@@ -204,18 +215,53 @@ public class ProviderTest {
 		TableDescription tableDescription = new TableDescription(columns);
 		
 		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-		ask(database, new PutTableInfo(tableName, tableDescription, 42), Ack.class);
+		List<Record> records = new ArrayList<>();
+		for(int i = 0; i < 42; i++) {
+			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
+		}
+		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
 		
 		VectorDatasetInfo vectorDatasetInfo = ask(new GetDatasetInfo(attachmentTypes, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 	}
+	
+	@Test
+	public void testGetVectorDataset() throws Exception {
+		GetVectorDataset getVectorDataset = new GetVectorDataset("test", Arrays.asList("id", "title"), 10);
+		DatasetNotFound notFound = ask(getVectorDataset, DatasetNotFound.class);
+		assertEquals("test", notFound.getIdentification());
+		
+		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		
+		DatasetNotAvailable notAvailable = ask(getVectorDataset, DatasetNotAvailable.class);
+		assertEquals("test", notAvailable.getIdentification());
+		
+		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
+		TableDescription tableDescription = new TableDescription(columns);
+		
+		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		List<Record> records = new ArrayList<>();
+		for(int i = 0; i < 42; i++) {
+			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
+		}
+		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
+		
+		Records resultRecords = ask(getVectorDataset, Records.class);
+		for(int i = 0; i < 4; i++) {			
+			assertEquals(10, resultRecords.getRecords().size());
+			resultRecords = ask(sender, new NextItem(), Records.class);
+		}
+		
+		assertEquals(2, resultRecords.getRecords().size());
+		ask(sender, new NextItem(), End.class);
+	}
 
 	private void assertDatabaseInteractions(final String... tableNames) throws Exception {
-		Iterator<Record> recording = playRecording();
+		Iterator<RecordedMessage> recording = playRecording();
 		
-		Record record;
+		RecordedMessage record;
 		assertTrue(recording.hasNext());
 		
 		record = recording.next();
