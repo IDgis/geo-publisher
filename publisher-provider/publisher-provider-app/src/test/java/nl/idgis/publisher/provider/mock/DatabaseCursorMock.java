@@ -2,7 +2,7 @@ package nl.idgis.publisher.provider.mock;
 
 import java.util.Iterator;
 
-import nl.idgis.publisher.provider.protocol.database.Records;
+import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.StreamCursor;
 
 import scala.concurrent.Future;

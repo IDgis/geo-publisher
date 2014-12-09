@@ -3,8 +3,8 @@ package nl.idgis.publisher.provider.mock.messages;
 import java.io.Serializable;
 import java.util.List;
 
+import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.TableDescription;
-import nl.idgis.publisher.provider.protocol.database.Record;
 
 public class PutTable implements Serializable {
 

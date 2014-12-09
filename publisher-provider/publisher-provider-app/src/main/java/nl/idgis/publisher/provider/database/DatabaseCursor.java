@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.Futures;
@@ -15,11 +16,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function2;
 import akka.pattern.Patterns;
+
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.database.messages.ConvertValue;
 import nl.idgis.publisher.provider.database.messages.ConvertedValue;
-import nl.idgis.publisher.provider.protocol.database.Record;
-import nl.idgis.publisher.provider.protocol.database.Records;
+import nl.idgis.publisher.provider.protocol.Record;
+import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.StreamCursor;
 
 public class DatabaseCursor extends StreamCursor<ResultSet, Records> {

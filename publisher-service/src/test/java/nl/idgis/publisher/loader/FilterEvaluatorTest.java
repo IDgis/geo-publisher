@@ -22,10 +22,11 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
 import nl.idgis.publisher.domain.web.Filter.ValueExpression;
 import nl.idgis.publisher.domain.web.Filter.ColumnReferenceExpression;
+
 import nl.idgis.publisher.loader.FilterEvaluator.BooleanValue;
 import nl.idgis.publisher.loader.FilterEvaluator.DateValue;
 import nl.idgis.publisher.loader.FilterEvaluator.Value;
-import nl.idgis.publisher.provider.protocol.database.Record;
+import nl.idgis.publisher.provider.protocol.Record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

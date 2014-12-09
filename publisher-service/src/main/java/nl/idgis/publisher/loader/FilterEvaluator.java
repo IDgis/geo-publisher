@@ -20,7 +20,8 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.Filter.ValueExpression;
-import nl.idgis.publisher.provider.protocol.database.Record;
+
+import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 

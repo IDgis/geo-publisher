@@ -7,12 +7,12 @@ import java.util.Map;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.mock.messages.PutTable;
+import nl.idgis.publisher.provider.protocol.Record;
+import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.FetchTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
-import nl.idgis.publisher.provider.protocol.database.Record;
-import nl.idgis.publisher.provider.protocol.database.Records;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.messages.NextItem;
