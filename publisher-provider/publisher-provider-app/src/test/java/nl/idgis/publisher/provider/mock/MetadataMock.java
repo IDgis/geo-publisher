@@ -8,6 +8,7 @@ import nl.idgis.publisher.provider.mock.messages.PutMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
 import nl.idgis.publisher.recorder.messages.Record;
 
 import akka.actor.ActorRef;
@@ -52,6 +53,8 @@ public class MetadataMock extends UntypedActor {
 			
 			if(metadataDocuments.containsKey(identification)) {
 				getSender().tell(new MetadataItem(identification, metadataDocuments.get(identification)), getSelf());
+			} else {
+				getSender().tell(new MetadataNotFound(identification), getSelf());
 			}
 		} else {
 			unhandled(msg);

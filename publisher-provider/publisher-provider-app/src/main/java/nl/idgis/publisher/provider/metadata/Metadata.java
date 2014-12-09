@@ -6,6 +6,7 @@ import java.io.IOException;
 import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -50,15 +51,19 @@ public class Metadata extends UntypedActor {
 	}	
 
 	private void handleGetMetadata(GetMetadata msg) throws IOException {
-		String id = msg.getIdentification();
+		String identification = msg.getIdentification();
 		
-		log.debug("fetching single metadata document: " + id);
-		File document = getFile(id);
-
-		MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
-		getSender().tell(metadataItem, getSelf());
+		log.debug("fetching single metadata document: " + identification);
+		File document = getFile(identification);
 		
-		log.debug("fetched");
+		try {
+			MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
+			getSender().tell(metadataItem, getSelf());
+			
+			log.debug("fetched");
+		} catch(Exception e) {
+			getSender().tell(new MetadataNotFound(identification), getSelf());
+		}
 	}
 
 	private File getFile(String id) {

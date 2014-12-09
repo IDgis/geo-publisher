@@ -15,6 +15,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
+import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
@@ -22,6 +23,7 @@ import nl.idgis.publisher.provider.protocol.database.DescribeTable;
 import nl.idgis.publisher.provider.protocol.database.PerformCount;
 import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
 import scala.concurrent.duration.Duration;
@@ -90,6 +92,10 @@ public class DatasetInfoBuilder extends UntypedActor {
 			log.error("timeout");
 			
 			getContext().stop(getSelf());
+		} else if(msg instanceof MetadataNotFound) {
+			log.debug("metadata not found");
+			
+			tellTarget(new DatasetNotFound(((MetadataNotFound) msg).getIdentification()));
 		} else if(msg instanceof MetadataItem) {
 			log.debug("metadata item");
 			

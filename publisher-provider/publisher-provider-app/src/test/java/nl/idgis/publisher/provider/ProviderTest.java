@@ -27,7 +27,9 @@ import nl.idgis.publisher.provider.mock.messages.PutTableInfo;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.Column;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
+import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
+import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
@@ -183,6 +185,31 @@ public class ProviderTest {
 		ask(sender, new NextItem(), End.class);
 		
 		assertDatabaseInteractions(firstTableName, secondTableName);
+	}
+	
+	@Test
+	public void testGetDatasetInfo() throws Exception {
+		Set<AttachmentType> attachmentTypes = new HashSet<>();
+		attachmentTypes.add(AttachmentType.METADATA);
+		
+		DatasetNotFound notFound = ask(new GetDatasetInfo(attachmentTypes, "test"), DatasetNotFound.class);
+		assertEquals("test", notFound.getIdentification());
+		
+		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		
+		UnavailableDatasetInfo unavailableDatasetInfo = ask(new GetDatasetInfo(attachmentTypes, "test"), UnavailableDatasetInfo.class);
+		assertEquals("test", unavailableDatasetInfo.getIdentification());
+		
+		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
+		TableDescription tableDescription = new TableDescription(columns);
+		
+		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		ask(database, new PutTableInfo(tableName, tableDescription, 42), Ack.class);
+		
+		VectorDatasetInfo vectorDatasetInfo = ask(new GetDatasetInfo(attachmentTypes, "test"), VectorDatasetInfo.class);
+		assertEquals("test", vectorDatasetInfo.getIdentification());
+		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
+		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 	}
 
 	private void assertDatabaseInteractions(final String... tableNames) throws Exception {
