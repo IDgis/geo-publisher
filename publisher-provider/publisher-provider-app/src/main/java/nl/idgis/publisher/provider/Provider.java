@@ -1,14 +1,10 @@
 package nl.idgis.publisher.provider;
 
 import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
-import nl.idgis.publisher.provider.protocol.database.DescribeTable;
-import nl.idgis.publisher.provider.protocol.database.FetchTable;
-import nl.idgis.publisher.provider.protocol.database.PerformCount;
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -49,16 +45,6 @@ public class Provider extends UntypedActor {
 			handleGetDatasetInfo((GetDatasetInfo)msg);
 		} else if(msg instanceof GetVectorDataset) {
 			handleGetVectorDataset((GetVectorDataset)msg);
-		} else if(msg instanceof GetAllMetadata) {
-			metadata.forward(msg, getContext());
-		} else if(msg instanceof GetMetadata) {
-			metadata.forward(msg, getContext());
-		} else if(msg instanceof DescribeTable) {
-			database.forward(msg, getContext());
-		} else if(msg instanceof FetchTable) {
-			database.forward(msg, getContext());
-		} else if(msg instanceof PerformCount) {
-			database.forward(msg, getContext());
 		} else {
 			unhandled(msg);
 		}

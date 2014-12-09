@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.protocol.database;
+package nl.idgis.publisher.provider.database.messages;
 
 import nl.idgis.publisher.database.messages.Query;
 

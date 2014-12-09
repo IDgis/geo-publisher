@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.protocol.database;
+package nl.idgis.publisher.provider.database.messages;
 
 import java.util.Collections;
 import java.util.List;

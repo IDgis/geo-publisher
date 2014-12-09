@@ -3,10 +3,10 @@ package nl.idgis.publisher.provider.metadata;
 import java.io.File;
 import java.io.IOException;
 
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
+import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

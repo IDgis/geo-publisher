@@ -9,16 +9,17 @@ import java.util.ArrayList;
 import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DescribeTable;
+import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.database.messages.PerformCount;
+import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.protocol.Column;
 import nl.idgis.publisher.provider.protocol.TableDescription;
-import nl.idgis.publisher.provider.protocol.database.DescribeTable;
-import nl.idgis.publisher.provider.protocol.database.FetchTable;
-import nl.idgis.publisher.provider.protocol.database.PerformCount;
-import nl.idgis.publisher.provider.protocol.database.TableNotFound;
 
 public class DatabaseTransaction extends JdbcTransaction {
 	

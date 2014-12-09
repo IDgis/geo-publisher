@@ -13,7 +13,7 @@ import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.database.WKBGeometry;
+import nl.idgis.publisher.provider.protocol.WKBGeometry;
 
 public class GeometryTransaction extends JdbcTransaction {
 	

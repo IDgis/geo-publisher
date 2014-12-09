@@ -3,7 +3,8 @@ package nl.idgis.publisher.provider.database;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.database.messages.ConvertValue;
 import nl.idgis.publisher.provider.database.messages.ConvertedValue;
-import nl.idgis.publisher.provider.protocol.database.UnsupportedType;
+import nl.idgis.publisher.provider.protocol.UnsupportedType;
+
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;

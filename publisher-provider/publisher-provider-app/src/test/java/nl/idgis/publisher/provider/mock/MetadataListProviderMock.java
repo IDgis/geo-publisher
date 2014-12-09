@@ -2,7 +2,7 @@ package nl.idgis.publisher.provider.mock;
 
 import java.util.Map;
 
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.stream.StreamProvider;
 
 import akka.actor.Props;

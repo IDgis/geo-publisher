@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.protocol.metadata;
+package nl.idgis.publisher.provider.metadata.messages;
 
 import nl.idgis.publisher.stream.messages.Start;
 

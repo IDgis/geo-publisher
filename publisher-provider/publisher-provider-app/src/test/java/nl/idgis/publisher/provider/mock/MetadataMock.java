@@ -4,11 +4,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 
 import akka.actor.ActorRef;

@@ -4,14 +4,14 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.database.FetchTable;
-import nl.idgis.publisher.provider.protocol.database.TableNotFound;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataNotFound;
 
 import scala.concurrent.duration.Duration;
 
