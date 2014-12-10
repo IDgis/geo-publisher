@@ -26,6 +26,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
 import nl.idgis.publisher.provider.mock.MetadataMock;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
@@ -58,6 +59,7 @@ import scala.concurrent.duration.FiniteDuration;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import akka.japi.Procedure;
 import akka.util.Timeout;
 
 public class ProviderTest {
@@ -124,9 +126,48 @@ public class ProviderTest {
 		}
 	}
 	
+	private static class Recording {
+		
+		private final Iterator<RecordedMessage> iterator;
+		
+		Recording(Iterator<RecordedMessage> iterator) {
+			this.iterator = iterator;
+		}
+		
+		Recording assertHasNext() {
+			assertTrue(iterator.hasNext());
+			
+			return this;
+		}
+		
+		Recording assertNotHasNext() {
+			assertFalse(iterator.hasNext());
+			
+			return this;
+		}
+		
+		
+		<T> Recording assertNext(Class<T> clazz) throws Exception {
+			return assertNext(clazz, null);
+		}
+		
+		<T> Recording assertNext(Class<T> clazz, Procedure<T> procedure) throws Exception {
+			Object val = iterator.next().getMessage();
+			
+			assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
+					+ val.getClass().getCanonicalName(), clazz.isInstance(val));
+			
+			if(procedure != null) {
+				procedure.apply(clazz.cast(val));
+			}
+			
+			return this;
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
-	private Iterator<RecordedMessage> playRecording() throws Exception {
-		return ask(recorder, new GetRecording(), Iterable.class).iterator();
+	private Recording playRecording() throws Exception {
+		return new Recording(ask(recorder, new GetRecording(), Iterable.class).iterator());
 	}
 	
 	private void clearRecording() throws Exception {
@@ -140,7 +181,11 @@ public class ProviderTest {
 		
 		ask(provider, new ListDatasetInfo(attachmentTypes), End.class);
 		
-		assertDatabaseInteractions();
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetAllMetadata.class))
+			.assertNotHasNext();
 		
 		final String firstTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
 		ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
@@ -152,7 +197,13 @@ public class ProviderTest {
 		
 		ask(sender, new NextItem(), End.class);
 		 
-		assertDatabaseInteractions(firstTableName);
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetAllMetadata.class),
+				
+				firstTableName)
+			.assertNotHasNext();
 		
 		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
 		TableDescription tableDescription = new TableDescription(columns);		
@@ -172,7 +223,13 @@ public class ProviderTest {
 		
 		ask(sender, new NextItem(), End.class);
 		
-		assertDatabaseInteractions(firstTableName);
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetAllMetadata.class),
+				
+				firstTableName)
+			.assertNotHasNext();
 		
 		metadataDocument.setAlternateTitle("Test_schema.Test_table");
 		final String secondTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
@@ -191,7 +248,14 @@ public class ProviderTest {
 		
 		ask(sender, new NextItem(), End.class);
 		
-		assertDatabaseInteractions(firstTableName, secondTableName);
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetAllMetadata.class),
+				
+				firstTableName, 
+				secondTableName)
+			.assertNotHasNext();
 	}
 	
 	@Test
@@ -202,10 +266,40 @@ public class ProviderTest {
 		DatasetNotFound notFound = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());
 		
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
+
+					@Override
+					public void apply(GetMetadata msg) throws Exception {
+						assertEquals("test", msg.getIdentification());
+					}
+					
+				}))
+			.assertNotHasNext();
+		
 		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		
+		clearRecording();
 		
 		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), UnavailableDatasetInfo.class);
 		assertEquals("test", unavailableDatasetInfo.getIdentification());
+		
+		assertDatabaseInteractions(
+			playRecording()
+				.assertHasNext()
+				.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
+
+					@Override
+					public void apply(GetMetadata msg) throws Exception {
+						assertEquals("test", msg.getIdentification());
+					}
+					
+				}),
+				
+				ProviderUtils.getTableName(metadataDocument.getAlternateTitle()))
+			.assertNotHasNext();
 		
 		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
 		TableDescription tableDescription = new TableDescription(columns);
@@ -254,36 +348,29 @@ public class ProviderTest {
 		ask(sender, new NextItem(), End.class);
 	}
 
-	private void assertDatabaseInteractions(final String... tableNames) throws Exception {
-		Iterator<RecordedMessage> recording = playRecording();
+	private Recording assertDatabaseInteractions(Recording recording, final String... tableNames) throws Exception {
+		for(final String tableName : tableNames) {
 		
-		RecordedMessage record;
-		assertTrue(recording.hasNext());
-		
-		record = recording.next();
-		assertTrue(record.getMessage() instanceof GetAllMetadata);
-		
-		for(String tableName : tableNames) {
-		
-			assertTrue(recording.hasNext());
-			
-			record = recording.next();
-			Object message = record.getMessage(); 
-			assertTrue(message instanceof DescribeTable);
-			
-			DescribeTable describeTable = (DescribeTable)message;
-			assertEquals(tableName, describeTable.getTableName());
-			
-			assertTrue(recording.hasNext());
-			
-			record = recording.next();
-			message = record.getMessage();
-			assertTrue(message instanceof PerformCount);
-			
-			PerformCount performCount = (PerformCount)message;
-			assertEquals(tableName, performCount.getTableName());
+			recording
+				.assertHasNext()
+				.assertNext(DescribeTable.class, new Procedure<DescribeTable>() {
+
+					@Override
+					public void apply(DescribeTable describeTable) throws Exception {						
+						assertEquals(tableName, describeTable.getTableName());
+					}
+				})
+				.assertHasNext()
+				.assertNext(PerformCount.class, new Procedure<PerformCount>() {
+
+					@Override
+					public void apply(PerformCount performCount) throws Exception {
+						assertEquals(tableName, performCount.getTableName());						
+					}
+					
+				});
 		}
 		
-		assertFalse(recording.hasNext());
+		return recording;
 	}
 }
