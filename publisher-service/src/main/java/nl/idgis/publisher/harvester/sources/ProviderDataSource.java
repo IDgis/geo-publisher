@@ -49,7 +49,7 @@ public class ProviderDataSource extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ListDatasets) {
-			handleListDatasets();
+			handleListDatasets((ListDatasets)msg);
 		} else if(msg instanceof GetDatasetMetadata) {
 			handleGetDatasetMetadata((GetDatasetMetadata)msg);
 		} else if(msg instanceof GetDataset) {
@@ -59,11 +59,11 @@ public class ProviderDataSource extends UntypedActor {
 		}
 	}
 	
-	private void handleListDatasets() {
+	private void handleListDatasets(ListDatasets listDatasets) {
 		log.debug("retrieving datasets from provider");
 		
-		ActorRef providerDataset = getContext().actorOf(ProviderDatasetInfo.props(getSender(), provider));		
-		provider.tell(new ListDatasetInfo(Collections.<AttachmentType>emptySet()), providerDataset);
+		ActorRef converter = getContext().actorOf(ProviderDatasetConverter.props(provider));
+		converter.forward(listDatasets, getContext());
 	}
 	
 	private void handleGetDataset(final GetDataset gd) {
