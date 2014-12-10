@@ -18,9 +18,10 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.web.EntityType;
 
-import nl.idgis.publisher.harvester.sources.messages.Finished;
 import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.NextItem;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -52,8 +53,8 @@ public class HarvestSession extends AbstractSession {
 			handleTimeout();
 		} else if(msg instanceof Dataset) {
 			handleDataset((Dataset)msg);			
-		} else if(msg instanceof Finished) {
-			handleFinished();
+		} else if(msg instanceof End) {
+			handleEnd();
 		} else if(msg instanceof Log) {
 			handleJobLog((Log)msg);
 		} else {
@@ -73,7 +74,7 @@ public class HarvestSession extends AbstractSession {
 		database.tell(new StoreLog(harvestJob, msg), getSender());
 	}
 
-	private void handleFinished() {
+	private void handleEnd() {
 		log.debug("harvesting finished");
 		
 		final ActorRef self = getSelf();			
@@ -101,7 +102,7 @@ public class HarvestSession extends AbstractSession {
 					if(msg instanceof AlreadyRegistered) {
 						log.debug("already registered");
 						
-						sender.tell(new Ack(), getSelf());
+						sender.tell(new NextItem(), getSelf());
 					} else {						
 						log.debug("dataset registered");
 						
