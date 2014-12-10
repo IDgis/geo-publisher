@@ -11,7 +11,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public abstract class StreamConverter<T extends Item> extends UntypedActor {
+public abstract class StreamConverter extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	

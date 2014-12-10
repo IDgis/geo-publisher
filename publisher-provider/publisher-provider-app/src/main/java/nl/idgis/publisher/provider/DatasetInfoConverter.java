@@ -5,7 +5,6 @@ import java.util.Set;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
 import nl.idgis.publisher.stream.messages.Item;
@@ -14,7 +13,7 @@ import nl.idgis.publisher.stream.messages.Start;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class DatasetInfoConverter extends StreamConverter<DatasetInfo> {
+public class DatasetInfoConverter extends StreamConverter {
 	
 	private final Set<AttachmentType> requestedAttachmentTypes;
 	
