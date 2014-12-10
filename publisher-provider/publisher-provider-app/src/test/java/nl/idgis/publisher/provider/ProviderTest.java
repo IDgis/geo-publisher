@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -51,35 +49,26 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.utils.Ask;
-import nl.idgis.publisher.utils.Ask.Response;
-
-import scala.concurrent.Await;
-import scala.concurrent.duration.FiniteDuration;
+import nl.idgis.publisher.utils.SyncAskHelper;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.japi.Procedure;
-import akka.util.Timeout;
 
 public class ProviderTest {
-	
-	private static final FiniteDuration duration = FiniteDuration.create(1, TimeUnit.SECONDS);
-	
-	private static final Timeout timeout = new Timeout(duration);
 	
 	private static TableDescription tableDescription;
 	
 	private static List<Record> tableContent;
 	
 	private static Set<AttachmentType> metadataType;
-	
-	private ActorSystem actorSystem;
-	
-	private ActorRef sender, recorder, provider;
+		
+	private ActorRef recorder, provider;
 	
 	private ActorSelection metadata, database;
+	
+	private SyncAskHelper sync;
 	
 	private MetadataDocument metadataDocument;
 	
@@ -98,14 +87,16 @@ public class ProviderTest {
 	}
 	
 	@Before
-	public void actors() {
-		actorSystem = ActorSystem.create("test");
+	public void actorSystem() {
+		ActorSystem actorSystem = ActorSystem.create("test");
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
 		provider = actorSystem.actorOf(Provider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
 		
 		metadata = ActorSelection.apply(provider, "metadata");
 		database = ActorSelection.apply(provider, "database");
+		
+		sync = new SyncAskHelper(actorSystem);
 	}
 	
 	@Before
@@ -116,35 +107,6 @@ public class ProviderTest {
 		byte[] content = IOUtils.toByteArray(inputStream);
 		MetadataDocumentFactory metadataDocumentFactory = new MetadataDocumentFactory();
 		metadataDocument = metadataDocumentFactory.parseDocument(content);
-	}
-	
-	private Response askResponse(ActorRef actorRef, Object msg) throws Exception {
-		Response response = Await.result(Ask.askResponse(actorSystem, actorRef, msg, timeout), duration);
-		sender = response.getSender();
-		return response;
-	}
-	
-	private Response askResponse(ActorSelection actorSelection, Object msg) throws Exception {
-		Response response = Await.result(Ask.askResponse(actorSystem, actorSelection, msg, timeout), duration);
-		sender = response.getSender();
-		return response;
-	}
-	
-	private <T> T ask(ActorRef actorRef, Object msg, Class<T> expected) throws Exception {
-		return result(expected, askResponse(actorRef, msg).getMessage());
-	}
-	
-	private <T> T ask(ActorSelection actorSelection, Object msg, Class<T> expected) throws Exception {
-		return result(expected, askResponse(actorSelection, msg).getMessage());
-	}
-
-	private <T> T result(Class<T> expected, Object result) throws Exception {
-		if(expected.isInstance(result)) {
-			return expected.cast(result);
-		} else {
-			fail("expected: " + expected.getCanonicalName() + " received: " + result.getClass().getCanonicalName());
-			return null;
-		}
 	}
 	
 	private static class Recording {
@@ -212,11 +174,11 @@ public class ProviderTest {
 	
 	@SuppressWarnings("unchecked")
 	private Recording replayRecording() throws Exception {
-		return new Recording(ask(recorder, new GetRecording(), Iterable.class).iterator());
+		return new Recording(sync.ask(recorder, new GetRecording(), Iterable.class).iterator());
 	}
 	
 	private void clearRecording() throws Exception {
-		ask(recorder, new Clear(), Ack.class);
+		sync.ask(recorder, new Clear(), Ack.class);
 	}
 	
 	private String getTable() throws Exception {
@@ -225,7 +187,7 @@ public class ProviderTest {
 
 	@Test
 	public void testListDatasetInfo() throws Exception {
-		ask(provider, new ListDatasetInfo(metadataType), End.class);
+		sync.ask(provider, new ListDatasetInfo(metadataType), End.class);
 		
 		replayRecording()
 			.assertHasNext()
@@ -234,14 +196,14 @@ public class ProviderTest {
 			.assertNotHasNext();
 		
 		final String firstTableName = getTable();
-		ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
+		sync.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class);
 		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
-		ask(sender, new NextItem(), End.class);
+		sync.askSender(new NextItem(), End.class);
 		
 		replayRecording()
 			.assertHasNext()
@@ -249,16 +211,16 @@ public class ProviderTest {
 			.assertDatabaseInteraction(firstTableName)
 			.assertNotHasNext();
 		
-		ask(database, new PutTable(firstTableName, tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(firstTableName, tableDescription, tableContent), Ack.class);
 		
 		clearRecording();
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
 		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
-		ask(sender, new NextItem(), End.class);		
+		sync.askSender(new NextItem(), End.class);		
 		
 		replayRecording()
 			.assertHasNext()
@@ -271,17 +233,17 @@ public class ProviderTest {
 		
 		assertEquals("test_schema.test_table", secondTableName);
 		
-		ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class);
+		sync.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class);
 		
 		clearRecording();
 		
-		DatasetInfo datasetInfo = ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
+		DatasetInfo datasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
 		assertEquals("first", datasetInfo.getIdentification());
 		
-		datasetInfo = ask(sender, new NextItem(), UnavailableDatasetInfo.class);
+		datasetInfo = sync.askSender(new NextItem(), UnavailableDatasetInfo.class);
 		assertEquals("second", datasetInfo.getIdentification());
 		
-		ask(sender, new NextItem(), End.class);
+		sync.askSender(new NextItem(), End.class);
 		
 		replayRecording()
 			.assertHasNext()
@@ -292,7 +254,7 @@ public class ProviderTest {
 	
 	@Test
 	public void testGetDatasetInfo() throws Exception {
-		DatasetNotFound notFound = ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class);
+		DatasetNotFound notFound = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());		
 		
 		replayRecording()
@@ -308,11 +270,11 @@ public class ProviderTest {
 			.assertDatabaseInteraction()
 			.assertNotHasNext();
 		
-		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		sync.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class);
 		assertEquals("test", unavailableDatasetInfo.getIdentification());		
 		
 		replayRecording()
@@ -328,9 +290,9 @@ public class ProviderTest {
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
 		
-		ask(database, new PutTable(getTable(), tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(getTable(), tableDescription, tableContent), Ack.class);
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
@@ -339,25 +301,25 @@ public class ProviderTest {
 	@Test
 	public void testGetVectorDataset() throws Exception {
 		GetVectorDataset getVectorDataset = new GetVectorDataset("test", Arrays.asList("id", "title"), 10);
-		DatasetNotFound notFound = ask(provider, getVectorDataset, DatasetNotFound.class);
+		DatasetNotFound notFound = sync.ask(provider, getVectorDataset, DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());
 		
-		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		sync.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
 		
-		DatasetNotAvailable notAvailable = ask(provider, getVectorDataset, DatasetNotAvailable.class);
+		DatasetNotAvailable notAvailable = sync.ask(provider, getVectorDataset, DatasetNotAvailable.class);
 		assertEquals("test", notAvailable.getIdentification());
 		
 		final String tableName = getTable();		
-		ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
 		
-		Records resultRecords = ask(provider, getVectorDataset, Records.class);
+		Records resultRecords = sync.ask(provider, getVectorDataset, Records.class);
 		for(int i = 0; i < 4; i++) {			
 			assertEquals(10, resultRecords.getRecords().size());
-			resultRecords = ask(sender, new NextItem(), Records.class);
+			resultRecords = sync.askSender(new NextItem(), Records.class);
 		}
 		
 		assertEquals(2, resultRecords.getRecords().size());
-		ask(sender, new NextItem(), End.class);
+		sync.askSender(new NextItem(), End.class);
 	}
 	
 }
