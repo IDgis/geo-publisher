@@ -218,6 +218,10 @@ public class ProviderTest {
 	private void clearRecording() throws Exception {
 		ask(recorder, new Clear(), Ack.class);
 	}
+	
+	private String getTable() throws Exception {
+		return ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+	}
 
 	@Test
 	public void testListDatasetInfo() throws Exception {
@@ -229,7 +233,7 @@ public class ProviderTest {
 			.assertDatabaseInteraction()
 			.assertNotHasNext();
 		
-		final String firstTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		final String firstTableName = getTable();
 		ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
 		
 		clearRecording();
@@ -263,7 +267,7 @@ public class ProviderTest {
 			.assertNotHasNext();
 		
 		metadataDocument.setAlternateTitle("Test_schema.Test_table");
-		final String secondTableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		final String secondTableName = getTable();
 		
 		assertEquals("test_schema.test_table", secondTableName);
 		
@@ -284,7 +288,7 @@ public class ProviderTest {
 			.assertNext(GetAllMetadata.class)
 			.assertDatabaseInteraction(firstTableName, secondTableName)
 			.assertNotHasNext();
-	}
+	}	
 	
 	@Test
 	public void testGetDatasetInfo() throws Exception {
@@ -321,11 +325,10 @@ public class ProviderTest {
 				}
 				
 			})				
-			.assertDatabaseInteraction(ProviderUtils.getTableName(metadataDocument.getAlternateTitle()))
+			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
 		
-		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-		ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
+		ask(database, new PutTable(getTable(), tableDescription, tableContent), Ack.class);
 		
 		VectorDatasetInfo vectorDatasetInfo = ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
@@ -344,7 +347,7 @@ public class ProviderTest {
 		DatasetNotAvailable notAvailable = ask(provider, getVectorDataset, DatasetNotAvailable.class);
 		assertEquals("test", notAvailable.getIdentification());
 		
-		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());		
+		final String tableName = getTable();		
 		ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
 		
 		Records resultRecords = ask(provider, getVectorDataset, Records.class);
