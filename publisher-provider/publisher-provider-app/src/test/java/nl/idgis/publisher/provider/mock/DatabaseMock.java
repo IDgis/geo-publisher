@@ -15,6 +15,7 @@ import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.TableDescription;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
+import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 import akka.actor.ActorRef;
@@ -115,7 +116,7 @@ public class DatabaseMock extends UntypedActor {
 					records.add(new Records(currentRecords));
 				}
 				
-				ActorRef cursor = getContext().actorOf(DatabaseCursorMock.props(records.iterator()));
+				ActorRef cursor = getContext().actorOf(ListCursor.props(records.iterator()));
 				cursor.tell(new NextItem(), getSender()); 
 			} else {
 				getSender().tell(new TableNotFound(), getSelf());

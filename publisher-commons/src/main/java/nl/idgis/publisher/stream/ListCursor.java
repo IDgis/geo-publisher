@@ -1,9 +1,8 @@
-package nl.idgis.publisher.provider.mock;
+package nl.idgis.publisher.stream;
 
 import java.util.Iterator;
 
-import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.stream.StreamCursor;
+import nl.idgis.publisher.stream.messages.Item;
 
 import scala.concurrent.Future;
 
@@ -12,16 +11,16 @@ import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class DatabaseCursorMock extends StreamCursor<Iterator<Records>, Records>{
+public class ListCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	public DatabaseCursorMock(Iterator<Records> t) {
+	public ListCursor(Iterator<T> t) {
 		super(t);
 	}
 	
-	public static Props props(Iterator<Records> t) {
-		return Props.create(DatabaseCursorMock.class, t);
+	public static Props props(Iterator<?> t) {
+		return Props.create(ListCursor.class, t);
 	}
 
 	@Override
@@ -32,7 +31,7 @@ public class DatabaseCursorMock extends StreamCursor<Iterator<Records>, Records>
 	}
 
 	@Override
-	protected Future<Records> next() {
+	protected Future<T> next() {
 		log.debug("next");
 		
 		return Futures.successful(t.next());
