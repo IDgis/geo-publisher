@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import nl.idgis.publisher.domain.service.Type;
@@ -68,6 +69,12 @@ public class ProviderTest {
 	
 	private static final Timeout timeout = new Timeout(duration);
 	
+	private static TableDescription tableDescription;
+	
+	private static List<Record> tableContent;
+	
+	private static Set<AttachmentType> metadataType;
+	
 	private ActorSystem actorSystem;
 	
 	private ActorRef sender, recorder, provider;
@@ -75,6 +82,20 @@ public class ProviderTest {
 	private ActorSelection metadata, database;
 	
 	private MetadataDocument metadataDocument;
+	
+	@BeforeClass
+	public static void initStatics() {
+		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
+		tableDescription = new TableDescription(columns);
+		
+		tableContent = new ArrayList<>();
+		for(int i = 0; i < 42; i++) {
+			tableContent.add(new Record(Arrays.<Object>asList(i, "title" + i)));
+		}
+		
+		metadataType = new HashSet<>();
+		metadataType.add(AttachmentType.METADATA);
+	}
 	
 	@Before
 	public void actors() {
@@ -144,8 +165,7 @@ public class ProviderTest {
 			assertFalse(iterator.hasNext());
 			
 			return this;
-		}
-		
+		}		
 		
 		<T> Recording assertNext(Class<T> clazz) throws Exception {
 			return assertNext(clazz, null);
@@ -201,11 +221,7 @@ public class ProviderTest {
 
 	@Test
 	public void testListDatasetInfo() throws Exception {
-		Set<AttachmentType> attachmentTypes = new HashSet<>();
-		attachmentTypes.add(AttachmentType.METADATA);
-		
-		ask(provider, new ListDatasetInfo(attachmentTypes), End.class);
-		
+		ask(provider, new ListDatasetInfo(metadataType), End.class);
 		
 		replayRecording()
 			.assertHasNext()
@@ -218,7 +234,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class);
 		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
 		ask(sender, new NextItem(), End.class);
@@ -229,18 +245,11 @@ public class ProviderTest {
 			.assertDatabaseInteraction(firstTableName)
 			.assertNotHasNext();
 		
-		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
-		TableDescription tableDescription = new TableDescription(columns);		
-				
-		List<Record> records = new ArrayList<>();
-		for(int i = 0; i < 42; i++) {
-			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
-		}
-		ask(database, new PutTable(firstTableName, tableDescription, records), Ack.class);
+		ask(database, new PutTable(firstTableName, tableDescription, tableContent), Ack.class);
 		
 		clearRecording();
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
 		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
@@ -262,7 +271,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		DatasetInfo datasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		DatasetInfo datasetInfo = ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
 		assertEquals("first", datasetInfo.getIdentification());
 		
 		datasetInfo = ask(sender, new NextItem(), UnavailableDatasetInfo.class);
@@ -279,10 +288,7 @@ public class ProviderTest {
 	
 	@Test
 	public void testGetDatasetInfo() throws Exception {
-		Set<AttachmentType> attachmentTypes = new HashSet<>();
-		attachmentTypes.add(AttachmentType.METADATA);
-		
-		DatasetNotFound notFound = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), DatasetNotFound.class);
+		DatasetNotFound notFound = ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());		
 		
 		replayRecording()
@@ -302,7 +308,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class);
 		assertEquals("test", unavailableDatasetInfo.getIdentification());		
 		
 		replayRecording()
@@ -318,17 +324,10 @@ public class ProviderTest {
 			.assertDatabaseInteraction(ProviderUtils.getTableName(metadataDocument.getAlternateTitle()))
 			.assertNotHasNext();
 		
-		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
-		TableDescription tableDescription = new TableDescription(columns);
-		
 		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-		List<Record> records = new ArrayList<>();
-		for(int i = 0; i < 42; i++) {
-			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
-		}
-		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
+		ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
@@ -345,15 +344,8 @@ public class ProviderTest {
 		DatasetNotAvailable notAvailable = ask(provider, getVectorDataset, DatasetNotAvailable.class);
 		assertEquals("test", notAvailable.getIdentification());
 		
-		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
-		TableDescription tableDescription = new TableDescription(columns);
-		
-		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-		List<Record> records = new ArrayList<>();
-		for(int i = 0; i < 42; i++) {
-			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
-		}
-		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
+		final String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());		
+		ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
 		
 		Records resultRecords = ask(provider, getVectorDataset, Records.class);
 		for(int i = 0; i < 4; i++) {			
