@@ -95,10 +95,6 @@ public class ProviderTest {
 		metadataDocument = metadataDocumentFactory.parseDocument(content);
 	}
 	
-	private <T> T ask(Object msg, Class<T> expected) throws Exception {
-		return ask(provider, msg, expected);
-	}
-	
 	private Response askResponse(ActorRef actorRef, Object msg) throws Exception {
 		Response response = Await.result(Ask.askResponse(actorSystem, actorRef, msg, timeout), duration);
 		sender = response.getSender();
@@ -142,7 +138,7 @@ public class ProviderTest {
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
 		
-		ask(new ListDatasetInfo(attachmentTypes), End.class);
+		ask(provider, new ListDatasetInfo(attachmentTypes), End.class);
 		
 		assertDatabaseInteractions();
 		
@@ -151,7 +147,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), UnavailableDatasetInfo.class);
 		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
 		ask(sender, new NextItem(), End.class);
@@ -169,7 +165,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
 		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
@@ -187,7 +183,7 @@ public class ProviderTest {
 		
 		clearRecording();
 		
-		DatasetInfo datasetInfo = ask(new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
+		DatasetInfo datasetInfo = ask(provider, new ListDatasetInfo(attachmentTypes), VectorDatasetInfo.class);
 		assertEquals("first", datasetInfo.getIdentification());
 		
 		datasetInfo = ask(sender, new NextItem(), UnavailableDatasetInfo.class);
@@ -203,12 +199,12 @@ public class ProviderTest {
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
 		
-		DatasetNotFound notFound = ask(new GetDatasetInfo(attachmentTypes, "test"), DatasetNotFound.class);
+		DatasetNotFound notFound = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());
 		
 		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = ask(new GetDatasetInfo(attachmentTypes, "test"), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), UnavailableDatasetInfo.class);
 		assertEquals("test", unavailableDatasetInfo.getIdentification());
 		
 		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("geometry", Type.GEOMETRY)};
@@ -221,7 +217,7 @@ public class ProviderTest {
 		}
 		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
 		
-		VectorDatasetInfo vectorDatasetInfo = ask(new GetDatasetInfo(attachmentTypes, "test"), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = ask(provider, new GetDatasetInfo(attachmentTypes, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
@@ -230,12 +226,12 @@ public class ProviderTest {
 	@Test
 	public void testGetVectorDataset() throws Exception {
 		GetVectorDataset getVectorDataset = new GetVectorDataset("test", Arrays.asList("id", "title"), 10);
-		DatasetNotFound notFound = ask(getVectorDataset, DatasetNotFound.class);
+		DatasetNotFound notFound = ask(provider, getVectorDataset, DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());
 		
 		ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
 		
-		DatasetNotAvailable notAvailable = ask(getVectorDataset, DatasetNotAvailable.class);
+		DatasetNotAvailable notAvailable = ask(provider, getVectorDataset, DatasetNotAvailable.class);
 		assertEquals("test", notAvailable.getIdentification());
 		
 		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
@@ -248,7 +244,7 @@ public class ProviderTest {
 		}
 		ask(database, new PutTable(tableName, tableDescription, records), Ack.class);
 		
-		Records resultRecords = ask(getVectorDataset, Records.class);
+		Records resultRecords = ask(provider, getVectorDataset, Records.class);
 		for(int i = 0; i < 4; i++) {			
 			assertEquals(10, resultRecords.getRecords().size());
 			resultRecords = ask(sender, new NextItem(), Records.class);
