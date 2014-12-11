@@ -101,8 +101,8 @@ public class ProviderTest {
 	
 	@Before
 	public void metadataDocument() throws Exception {
-		InputStream inputStream = ProviderTest.class.getResourceAsStream("metadata.xml");
-		assertNotNull(inputStream);
+		InputStream inputStream = ProviderTest.class.getResourceAsStream("/nl/idgis/publisher/metadata/dataset.xml");
+		assertNotNull("metadata document missing", inputStream);
 		
 		byte[] content = IOUtils.toByteArray(inputStream);
 		MetadataDocumentFactory metadataDocumentFactory = new MetadataDocumentFactory();
