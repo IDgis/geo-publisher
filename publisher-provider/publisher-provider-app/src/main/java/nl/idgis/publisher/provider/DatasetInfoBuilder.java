@@ -91,7 +91,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 		if(msg instanceof ReceiveTimeout) {
 			log.error("timeout");
 			
-			getContext().stop(getSelf());
+			sendUnavailable();
 		} else if(msg instanceof MetadataNotFound) {
 			log.debug("metadata not found");
 			
@@ -189,8 +189,12 @@ public class DatasetInfoBuilder extends UntypedActor {
 				reportedTitle = title;
 			}
 			
-			database.tell(new DescribeTable(tableName), getSelf());
-			database.tell(new PerformCount(tableName), getSelf());
+			if(tableName != null && !tableName.trim().isEmpty()) {
+				database.tell(new DescribeTable(tableName), getSelf());
+				database.tell(new PerformCount(tableName), getSelf());
+			} else {
+				sendUnavailable();
+			}
 		} catch(Exception e) {
 			sendUnavailable();
 		}
