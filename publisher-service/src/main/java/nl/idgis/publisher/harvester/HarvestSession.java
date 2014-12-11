@@ -19,7 +19,6 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.web.EntityType;
 
 import nl.idgis.publisher.messages.Timeout;
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
@@ -130,13 +129,13 @@ public class HarvestSession extends AbstractSession {
 									public void onSuccess(Object msg) throws Throwable {
 										log.debug("dataset registration logged");
 										
-										sender.tell(new Ack(), getSelf());
+										sender.tell(new NextItem(), getSelf());
 									}
 								}, getContext().dispatcher());
 						} else {
 							log.error("unknown dataset registration result: "+ msg);
 							
-							sender.tell(new Ack(), getSelf());
+							sender.tell(new NextItem(), getSelf());
 						}
 					}
 				}
