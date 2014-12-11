@@ -19,7 +19,7 @@ public class ListCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
 		super(t);
 	}
 	
-	public static Props props(Iterator<?> t) {
+	public static <T extends Item> Props props(Iterator<T> t) {
 		return Props.create(ListCursor.class, t);
 	}
 

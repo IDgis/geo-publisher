@@ -7,43 +7,32 @@ import java.util.Set;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
-import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
-import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
-import nl.idgis.publisher.utils.Ask;
 
 public class ProviderDataSource extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final int GET_VECTOR_DATASET_MESSAGE_SIZE = 10;
+	private final Set<AttachmentType> metadataType;
 		
 	private final ActorRef provider;
 	
-	private MetadataDocumentFactory metadataDocumentFactory;
-	
 	public ProviderDataSource(ActorRef provider) {		
-		this.provider = provider;		
+		this.provider = provider;
+		
+		metadataType = new HashSet<>();
+		metadataType.add(AttachmentType.METADATA);
 	}
 	
 	public static Props props(ActorRef provider) {
 		return Props.create(ProviderDataSource.class, provider);
-	}
-	
-	@Override
-	public void preStart() throws Exception {
-		metadataDocumentFactory = new MetadataDocumentFactory();
 	}
 
 	@Override
@@ -59,54 +48,26 @@ public class ProviderDataSource extends UntypedActor {
 		}
 	}
 	
-	private void handleListDatasets(ListDatasets listDatasets) {
+	private void handleListDatasets(ListDatasets msg) {
 		log.debug("retrieving datasets from provider");
 		
 		ActorRef converter = getContext().actorOf(ProviderDatasetConverter.props(provider));
-		converter.forward(listDatasets, getContext());
+		converter.forward(msg, getContext());
 	}
 	
-	private void handleGetDataset(final GetDataset gd) {
+	private void handleGetDataset(final GetDataset msg) {
 		log.debug("retrieving data from provider");
-	}
-	
-	private static <T> T getAttachment(Set<Attachment> attachments, AttachmentType attachmentType, Class<T> clazz) {
-		for(Attachment attachment : attachments) {
-			Object content = attachment.getContent();
-			if(attachment.getAttachmentType().equals(attachmentType) && clazz.isInstance(content)) {
-				return clazz.cast(content);
-			}
-		}
 		
-		return null;
+		ActorRef receiver = getContext().actorOf(msg.getReceiverProps());
+		ActorRef initiator = getContext().actorOf(ProviderGetDatasetInitiater.props(getSender(), msg, receiver, provider));
+		provider.tell(new GetDatasetInfo(Collections.<AttachmentType>emptySet(), msg.getId()), initiator);
 	}
 	
-	private void handleGetDatasetMetadata(GetDatasetMetadata gdm) {				
+	private void handleGetDatasetMetadata(GetDatasetMetadata msg) {				
 		log.debug("retrieving dataset metadata from provider");
 		
-		final ActorRef sender = getSender();
-						
-		Set<AttachmentType> attachmentTypes = new HashSet<>();
-		attachmentTypes.add(AttachmentType.METADATA);
-		Ask.ask(getContext(), provider, new GetDatasetInfo(attachmentTypes, gdm.getDatasetId()), 15000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {					
-					DatasetInfo datasetInfo = (DatasetInfo)msg;
-					
-					byte[] content = getAttachment(datasetInfo.getAttachments(), AttachmentType.METADATA, byte[].class);
-					if(content == null) {
-						log.error("no metadata");
-					} else {
-						log.debug("metadata retrieved");
-						MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
-						log.debug("metadata parsed");					
-						
-						sender.tell(metadataDocument, getSelf());
-					}
-				}
-			}, getContext().dispatcher());	
+		ActorRef builder = getContext().actorOf(ProviderMetadataDocumentBuilder.props(getSender()));
+		provider.tell(new GetDatasetInfo(metadataType, msg.getDatasetId()), builder);
 	}
 
 }
