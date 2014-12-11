@@ -130,7 +130,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 	
 	private void sendResponse() {
 		if(tableDescription != null && numberOfRecords != null) {
-			tellTarget(new VectorDatasetInfo(identification, reportedTitle, attachments, logs, tableDescription, numberOfRecords));
+			tellTarget(new VectorDatasetInfo(identification, reportedTitle, attachments, logs, tableName, tableDescription, numberOfRecords));
 		}
 	}
 	

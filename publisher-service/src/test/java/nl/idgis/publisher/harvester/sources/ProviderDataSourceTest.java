@@ -79,7 +79,7 @@ public class ProviderDataSourceTest {
 		Column[] columns = {new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
 		TableDescription tableDescription = new TableDescription(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", attachments, logs, tableDescription, 42);				
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", attachments, logs, "tableName", tableDescription, 42);				
 	}
 	
 	@Before
