@@ -75,7 +75,7 @@ import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DatasetServiceStatusType;
-import nl.idgis.publisher.domain.web.DefaultJobMessageProperties;
+import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Filter;
@@ -466,7 +466,7 @@ public class Admin extends UntypedActor {
 									new ActiveTask(
 											"" + harvestJob.getId(), 
 											dataSourceNames.get(harvestJob.getDataSourceId()), 
-											new Message(JobType.HARVEST, new DefaultJobMessageProperties (
+											new Message(JobType.HARVEST, new DefaultMessageProperties (
 													EntityType.DATA_SOURCE, harvestJob.getDataSourceId (), dataSourceNames.get(harvestJob.getDataSourceId()))), 
 											null));
 						}
@@ -517,7 +517,7 @@ public class Admin extends UntypedActor {
 										return new ActiveTask(
 											"" + job.getId(),
 											datasetInfo.getName(),
-											new Message(JobType.IMPORT, new DefaultJobMessageProperties (
+											new Message(JobType.IMPORT, new DefaultMessageProperties (
 													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
 											(int)(progress.getCount() * 100 / progress.getTotalCount()));
 									}
@@ -537,7 +537,7 @@ public class Admin extends UntypedActor {
 										return new ActiveTask(
 											"" + job.getId(),
 											datasetInfo.getName(),
-											new Message(JobType.SERVICE, new DefaultJobMessageProperties (
+											new Message(JobType.SERVICE, new DefaultMessageProperties (
 													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
 											(int)(progress.getCount() * 100 / progress.getTotalCount()));
 									}
