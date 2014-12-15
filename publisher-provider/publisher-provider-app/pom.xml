@@ -67,6 +67,46 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.codehaus.gmaven</groupId>
+				<artifactId>groovy-maven-plugin</artifactId>
+				<version>2.0</version>
+				<executions>
+					<execution>
+						<phase>site</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<properties>
+								<srcDir>${basedir}/src/sd</srcDir>
+								<targetDir>${basedir}/target/sd</targetDir>
+							</properties>
+							<source>
+								new File(properties['targetDir']).mkdirs()
+							
+								new File(properties['srcDir']).eachFileMatch(~/.*.sd/) { file ->
+									net.sf.sdedit.Main.main([
+										"-o", 
+										properties['targetDir'] + "/" + file.getName() + ".png", 
+										"-t", 
+										"png", 
+										file.getPath()]
+											
+											as String[]);
+								}
+							</source>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>net.sf.sdedit</groupId>
+						<artifactId>sdedit-light</artifactId>
+						<version>3.1</version>
+					</dependency>
+				</dependencies>
+			</plugin>				
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<executions>
