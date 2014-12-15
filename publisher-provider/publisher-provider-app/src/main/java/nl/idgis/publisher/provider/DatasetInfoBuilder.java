@@ -125,12 +125,12 @@ public class DatasetInfoBuilder extends UntypedActor {
 	}
 	
 	private void sendUnavailable() {
-		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, attachments, logs));		
+		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs));		
 	}
 	
 	private void sendResponse() {
 		if(tableDescription != null && numberOfRecords != null) {
-			tellTarget(new VectorDatasetInfo(identification, reportedTitle, attachments, logs, tableName, tableDescription, numberOfRecords));
+			tellTarget(new VectorDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs, tableName, tableDescription, numberOfRecords));
 		}
 	}
 	
@@ -169,30 +169,34 @@ public class DatasetInfoBuilder extends UntypedActor {
 				values.add(null);
 			}
 			
-			Iterator<MetadataLogType> errorsItr = errors.iterator();
-			Iterator<MetadataField> fieldsItr = fields.iterator();
-			Iterator<Object> valuesItr = values.iterator();
-			
-			for(;errorsItr.hasNext();) {
-				MetadataLogType error = errorsItr.next();
-				MetadataField field = fieldsItr.next();
-				Object value = valuesItr.next();
-			}
-			
-			tableName = ProviderUtils.getTableName(alternateTitle);
-			
-			categoryId = ProviderUtils.getCategoryId(tableName);
-			
-			if(title == null) {
-				reportedTitle = alternateTitle;
-			} else {
-				reportedTitle = title;
-			}
-			
-			if(tableName != null && !tableName.trim().isEmpty()) {
-				database.tell(new DescribeTable(tableName), getSelf());
-				database.tell(new PerformCount(tableName), getSelf());
-			} else {
+			if(errors.isEmpty()) {
+				tableName = ProviderUtils.getTableName(alternateTitle);
+				
+				categoryId = ProviderUtils.getCategoryId(tableName);
+				
+				if(title == null) {
+					reportedTitle = alternateTitle;
+				} else {
+					reportedTitle = title;
+				}
+				
+				if(tableName != null && !tableName.trim().isEmpty()) {
+					database.tell(new DescribeTable(tableName), getSelf());
+					database.tell(new PerformCount(tableName), getSelf());
+				} else {
+					sendUnavailable();
+				}
+			} else {			
+				Iterator<MetadataLogType> errorsItr = errors.iterator();
+				Iterator<MetadataField> fieldsItr = fields.iterator();
+				Iterator<Object> valuesItr = values.iterator();
+				
+				for(;errorsItr.hasNext();) {
+					MetadataLogType error = errorsItr.next();
+					MetadataField field = fieldsItr.next();
+					Object value = valuesItr.next();
+				}
+				
 				sendUnavailable();
 			}
 		} catch(Exception e) {

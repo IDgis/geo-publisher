@@ -1,5 +1,6 @@
 package nl.idgis.publisher.provider.protocol;
 
+import java.util.Date;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -12,7 +13,7 @@ import nl.idgis.publisher.domain.Log;
  */
 public class VectorDatasetInfo extends DatasetInfo {
 	
-	private static final long serialVersionUID = -6300359524968586944L;
+	private static final long serialVersionUID = 1764174549959240190L;
 
 	private final String tableName;
 
@@ -24,15 +25,17 @@ public class VectorDatasetInfo extends DatasetInfo {
 	 * 
 	 * @param identification the identifier of the dataset.
 	 * @param title the title of the dataset.
+	 * @param categoryId the identifier of the category for this dataset
+	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
 	 * @parem tableName name of the table.
 	 * @param tableDescription table description of the dataset.
 	 * @param numberOfRecords the number of records.
 	 */
-	public VectorDatasetInfo(String identification, String title, Set<Attachment> attachments, 
+	public VectorDatasetInfo(String identification, String title, String categoryId, Date revisionDate, Set<Attachment> attachments, 
 		Set<Log> logs, String tableName, TableDescription tableDescription, long numberOfRecords) {		
-		super(identification, title, attachments, logs);
+		super(identification, title, categoryId, revisionDate, attachments, logs);
 		
 		this.tableName = tableName;
 		this.tableDescription = tableDescription;
@@ -68,7 +71,8 @@ public class VectorDatasetInfo extends DatasetInfo {
 		return "VectorDatasetInfo [tableName=" + tableName
 				+ ", tableDescription=" + tableDescription
 				+ ", numberOfRecords=" + numberOfRecords + ", identification="
-				+ identification + ", title=" + title + "]";
+				+ identification + ", title=" + title + ", categoryId="
+				+ categoryId + "]";
 	}
 
 }

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -79,7 +80,7 @@ public class ProviderDataSourceTest {
 		Column[] columns = {new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
 		TableDescription tableDescription = new TableDescription(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", attachments, logs, "tableName", tableDescription, 42);				
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "categoryId", new Date(), attachments, logs, "tableName", tableDescription, 42);				
 	}
 	
 	@Before
