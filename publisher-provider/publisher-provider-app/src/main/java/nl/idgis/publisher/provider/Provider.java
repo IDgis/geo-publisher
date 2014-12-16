@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider;
 
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
+import nl.idgis.publisher.provider.protocol.EchoRequest;
+import nl.idgis.publisher.provider.protocol.EchoResponse;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
@@ -42,6 +44,8 @@ public class Provider extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Hello) {
 			log.info("registered with: " + ((Hello)msg).getName());
+		} else if(msg instanceof EchoRequest) {
+			getSender().tell(new EchoResponse(((EchoRequest) msg).getPayload()), getSelf());
 		} else if(msg instanceof ListDatasetInfo) {
 			handleListDatasetInfo((ListDatasetInfo)msg);
 		} else if(msg instanceof GetDatasetInfo) {
