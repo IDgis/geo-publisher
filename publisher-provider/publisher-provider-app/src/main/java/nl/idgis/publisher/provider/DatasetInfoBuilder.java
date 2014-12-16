@@ -1,16 +1,17 @@
 package nl.idgis.publisher.provider;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
+import nl.idgis.publisher.domain.job.harvest.MetadataLog;
 import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
+import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
@@ -56,12 +57,6 @@ public class DatasetInfoBuilder extends UntypedActor {
 	private Date revisionDate;
 	
 	private TableDescription tableDescription;
-	
-	private List<MetadataLogType> errors = new ArrayList<>();
-	
-	private List<MetadataField> fields = new ArrayList<>();					
-	
-	private List<Object> values = new ArrayList<>();
 	
 	private Long numberOfRecords;
 
@@ -148,28 +143,22 @@ public class DatasetInfoBuilder extends UntypedActor {
 			try {
 				title = metadataDocument.getTitle();				
 			} catch(NotFound nf) {
-				errors.add(MetadataLogType.NOT_FOUND);
-				fields.add(MetadataField.TITLE);						
-				values.add(null);
+				addLogItem(MetadataField.TITLE, MetadataLogType.NOT_FOUND, null);
 			}
 			
 			try {
 				alternateTitle = metadataDocument.getAlternateTitle();				
 			} catch(NotFound nf) {
-				errors.add(MetadataLogType.NOT_FOUND);
-				fields.add(MetadataField.ALTERNATE_TITLE);						
-				values.add(null);
+				addLogItem(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
 			try {
 				revisionDate = metadataDocument.getRevisionDate();				
 			} catch(NotFound nf) {
-				errors.add(MetadataLogType.NOT_FOUND);
-				fields.add(MetadataField.REVISION_DATE);						
-				values.add(null);
+				addLogItem(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
-			if(errors.isEmpty()) {
+			if(logs.isEmpty()) {
 				tableName = ProviderUtils.getTableName(alternateTitle);
 				
 				categoryId = ProviderUtils.getCategoryId(tableName);
@@ -186,21 +175,17 @@ public class DatasetInfoBuilder extends UntypedActor {
 				} else {
 					sendUnavailable();
 				}
-			} else {			
-				Iterator<MetadataLogType> errorsItr = errors.iterator();
-				Iterator<MetadataField> fieldsItr = fields.iterator();
-				Iterator<Object> valuesItr = values.iterator();
-				
-				for(;errorsItr.hasNext();) {
-					MetadataLogType error = errorsItr.next();
-					MetadataField field = fieldsItr.next();
-					Object value = valuesItr.next();
-				}
-				
+			} else {
 				sendUnavailable();
 			}
 		} catch(Exception e) {
 			sendUnavailable();
 		}
+	}
+
+	private void addLogItem(MetadataField field, MetadataLogType error,
+			Object value) {
+		MetadataLog metadataLog = new MetadataLog(EntityType.SOURCE_DATASET, identification, null, null, field, error, value);				
+		logs.add(Log.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, metadataLog));
 	}
 }
