@@ -35,6 +35,8 @@ import nl.idgis.publisher.provider.protocol.Column;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
+import nl.idgis.publisher.provider.protocol.EchoRequest;
+import nl.idgis.publisher.provider.protocol.EchoResponse;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
@@ -320,6 +322,11 @@ public class ProviderTest {
 		
 		assertEquals(2, resultRecords.getRecords().size());
 		sync.askSender(new NextItem(), End.class);
+	}
+	
+	@Test
+	public void testEchoRequest() throws Exception {
+		assertEquals("Hello, world!", sync.ask(provider, new EchoRequest("Hello, world!"), EchoResponse.class).getPayload());
 	}
 	
 }
