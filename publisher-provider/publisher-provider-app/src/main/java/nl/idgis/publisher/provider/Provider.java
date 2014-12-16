@@ -41,7 +41,7 @@ public class Provider extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Hello) {
-			log.debug(msg.toString());
+			log.info("registered with: " + ((Hello)msg).getName());
 		} else if(msg instanceof ListDatasetInfo) {
 			handleListDatasetInfo((ListDatasetInfo)msg);
 		} else if(msg instanceof GetDatasetInfo) {
