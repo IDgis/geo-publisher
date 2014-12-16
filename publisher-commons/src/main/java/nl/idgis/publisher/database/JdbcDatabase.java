@@ -33,9 +33,30 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private final NameGenerator nameGenerator = new NameGenerator();
 	
 	private final String poolName;
+
 	protected final Config config;
 	
 	private BoneCP connectionPool;
+	
+	private static class CreateTransaction {
+		
+		private final ActorRef sender;
+		
+		private final Connection connection;
+		
+		public CreateTransaction(ActorRef sender, Connection connection) {
+			this.sender = sender;
+			this.connection = connection;
+		}
+		
+		public ActorRef getSender() {
+			return sender;
+		}
+		
+		public Connection getConnection() {
+			return connection;
+		}
+	}
 	
 	public JdbcDatabase(Config config, String poolName) {
 		this.config = config;
@@ -75,9 +96,21 @@ public abstract class JdbcDatabase extends UntypedActor {
 			handleQuery((Query)msg);
 		} else if(msg instanceof StreamingQuery) {
 			handleStreamingQuery((StreamingQuery)msg);
+		} else if(msg instanceof CreateTransaction) { // internal message sent by connection pool listener
+			handleCreateTransaction((CreateTransaction)msg);
 		} else {
 			onReceiveNonQuery(msg);
 		}
+	}
+
+	private void handleCreateTransaction(CreateTransaction msg) {
+		log.debug("creating transaction");
+		
+		ActorRef transaction = getContext().actorOf(
+				createTransaction(msg.getConnection()), 
+				nameGenerator.getName("transaction"));
+		
+		msg.getSender().tell(new TransactionCreated(transaction), getSelf());
 	}
 
 	private void handleStreamingQuery(final StreamingQuery query) {
@@ -101,7 +134,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 	}
 
 	private void handleStartTransaction(StartTransaction msg) {
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		final ListenableFuture<Connection> connectionFuture = connectionPool.getAsyncConnection();
 		connectionFuture.addListener(new Runnable() {
 
@@ -113,11 +146,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 					log.debug("connection obtained from pool");
 					
 					connection.setAutoCommit(false);
-					final ActorRef transaction = getContext().actorOf(
-							createTransaction(connection), 
-							nameGenerator.getName("transaction"));
-					
-					sender.tell(new TransactionCreated(transaction), self);
+					getSelf().tell(new CreateTransaction(sender, connection), getSelf());
 				} catch (Exception e) {
 					log.error(e, "couldn't obtain connection from pool");
 					return;
