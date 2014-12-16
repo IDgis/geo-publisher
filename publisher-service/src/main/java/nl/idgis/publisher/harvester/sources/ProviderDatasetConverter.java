@@ -59,7 +59,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 					columns.add(new nl.idgis.publisher.domain.service.Column(column.getName(), column.getType()));
 				}
 				
-				sender.tell(new Dataset(vectorDatasetInfo.getIdentification(), vectorDatasetInfo.getCategoryId(), new Table(vectorDatasetInfo.getTableName(), columns), vectorDatasetInfo.getRevisionDate()), getSelf());
+				sender.tell(new Dataset(vectorDatasetInfo.getIdentification(), vectorDatasetInfo.getCategoryId(), new Table(vectorDatasetInfo.getTitle(), columns), vectorDatasetInfo.getRevisionDate()), getSelf());
 			} else { // Unhandled DatasetInfo type, ask for the next one
 				getSender().tell(new NextItem(), getSelf());
 			}
