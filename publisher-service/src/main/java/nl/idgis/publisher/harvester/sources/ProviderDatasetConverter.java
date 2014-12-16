@@ -7,7 +7,10 @@ import java.util.Set;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 
@@ -24,6 +27,8 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Start;
 
 public class ProviderDatasetConverter extends StreamConverter {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Set<AttachmentType> attachmentTypes;
 	private final ActorRef provider; 
@@ -61,6 +66,10 @@ public class ProviderDatasetConverter extends StreamConverter {
 				
 				sender.tell(new Dataset(vectorDatasetInfo.getIdentification(), vectorDatasetInfo.getCategoryId(), new Table(vectorDatasetInfo.getTitle(), columns), vectorDatasetInfo.getRevisionDate()), getSelf());
 			} else { // Unhandled DatasetInfo type, ask for the next one
+				for(Log logItem : ((DatasetInfo) msg).getLogs()) {
+					log.debug(logItem.toString());
+				}
+				
 				getSender().tell(new NextItem(), getSelf());
 			}
 		} else {
