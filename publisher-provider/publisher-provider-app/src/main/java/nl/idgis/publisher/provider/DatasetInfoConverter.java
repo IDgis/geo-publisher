@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider;
 
 import java.util.Set;
 
+import oracle.net.aso.n;
+
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
@@ -9,11 +11,14 @@ import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.Start;
+import nl.idgis.publisher.utils.NameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public class DatasetInfoConverter extends StreamConverter {
+	
+	private final NameGenerator nameGenerator = new NameGenerator();
 	
 	private final Set<AttachmentType> requestedAttachmentTypes;
 	
@@ -33,7 +38,7 @@ public class DatasetInfoConverter extends StreamConverter {
 	protected void convert(Item item, ActorRef sender) {
 		if(item instanceof MetadataItem) {
 			Props datasetInfoBuilderProps = DatasetInfoBuilder.props(sender, getSelf(), database, requestedAttachmentTypes);
-			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps);
+			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName("dataset-info-builder"));
 			datasetInfoBuilder.forward(item, getContext());
 		} else {
 			unhandled(item);

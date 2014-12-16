@@ -3,11 +3,14 @@ package nl.idgis.publisher.database;
 import java.sql.Connection;
 
 import scala.concurrent.duration.Duration;
+
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.utils.NameGenerator;
+
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -26,6 +29,8 @@ import com.typesafe.config.Config;
 public abstract class JdbcDatabase extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final NameGenerator nameGenerator = new NameGenerator();
 	
 	private final String poolName;
 	protected final Config config;
@@ -78,14 +83,20 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private void handleStreamingQuery(final StreamingQuery query) {
 		log.debug("executing query in autocommit mode");
 		
-		ActorRef streamingAutoCommit = getContext().actorOf(StreamingAutoCommit.props(query, getSender()));
+		ActorRef streamingAutoCommit = getContext().actorOf(
+				StreamingAutoCommit.props(query, getSender()),
+				nameGenerator.getName("streaming-auto-commit"));
+		
 		getSelf().tell(new StartTransaction(), streamingAutoCommit);
 	}
 
 	private void handleQuery(final Query query) {
 		log.debug("executing query in autocommit mode");
 		
-		ActorRef autoCommit = getContext().actorOf(AutoCommit.props(query, getSender()));
+		ActorRef autoCommit = getContext().actorOf(
+				AutoCommit.props(query, getSender()), 
+				nameGenerator.getName("auto-commit"));
+		
 		getSelf().tell(new StartTransaction(), autoCommit);
 	}
 
@@ -102,7 +113,10 @@ public abstract class JdbcDatabase extends UntypedActor {
 					log.debug("connection obtained from pool");
 					
 					connection.setAutoCommit(false);
-					final ActorRef transaction = getContext().actorOf(createTransaction(connection));
+					final ActorRef transaction = getContext().actorOf(
+							createTransaction(connection), 
+							nameGenerator.getName("transaction"));
+					
 					sender.tell(new TransactionCreated(transaction), self);
 				} catch (Exception e) {
 					log.error(e, "couldn't obtain connection from pool");
