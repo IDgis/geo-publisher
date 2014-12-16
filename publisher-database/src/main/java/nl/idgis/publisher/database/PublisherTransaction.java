@@ -77,11 +77,11 @@ import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.MessageTypeUtils;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
-import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -819,7 +819,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			throw new IllegalStateException("job not found");
 		}
 		
-		JobLog jl = query.getJobLog();
+		Log jl = query.getJobLog();
 		
 		SQLInsertClause logInsert = insert(jobLog)
 			.set(jobLog.jobStateId, jobStateId)

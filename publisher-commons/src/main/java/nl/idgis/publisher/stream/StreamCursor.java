@@ -59,9 +59,9 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 		if (msg instanceof NextItem) {
 			log.debug("next");
 			if(hasNext()) {
-				next().onComplete(new OnComplete<V>() {
-					
-					private final ActorRef sender = getSender();
+				final ActorRef sender = getSender();
+				
+				next().onComplete(new OnComplete<V>() { 
 
 					@Override
 					public void onComplete(Throwable t, V v) throws Throwable {

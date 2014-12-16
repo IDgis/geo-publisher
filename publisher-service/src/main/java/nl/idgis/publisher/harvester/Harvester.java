@@ -14,7 +14,6 @@ import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.messages.ParseMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
 
@@ -34,21 +33,20 @@ import com.typesafe.config.Config;
 public class Harvester extends UntypedActor {
 	
 	private final Config config;
-	private final ActorRef database, metadataDocumentFactory;
+	private final ActorRef database;
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
 	
 	private BiMap<String, ActorRef> dataSources;
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
 
-	public Harvester(ActorRef database, ActorRef metadataDocumentFactory, Config config) {
-		this.database = database;
-		this.metadataDocumentFactory = metadataDocumentFactory;
+	public Harvester(ActorRef database, Config config) {
+		this.database = database;		
 		this.config = config;
 	}
 	
-	public static Props props(ActorRef database, ActorRef metadataDocumentFactory, Config config) {
-		return Props.create(Harvester.class, database, metadataDocumentFactory, config);
+	public static Props props(ActorRef database, Config config) {
+		return Props.create(Harvester.class, database, config);
 	}
 
 	@Override
@@ -69,9 +67,7 @@ public class Harvester extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		log.debug("message: " + msg);
 		
-		if(msg instanceof ParseMetadataDocument) {
-			handleParseMetadataDocument((ParseMetadataDocument)msg);
-		} else if(msg instanceof DataSourceConnected) {
+		if(msg instanceof DataSourceConnected) {
 			handleDataSourceConnected((DataSourceConnected)msg);
 		} else if (msg instanceof Terminated) {
 			handleTerminated((Terminated)msg);
@@ -163,13 +159,7 @@ public class Harvester extends UntypedActor {
 		
 		getContext().watch(getSender());
 		dataSources.put(dataSourceId, getSender());
-	}
-
-	private void handleParseMetadataDocument(ParseMetadataDocument msg) {
-		log.debug("dispatching metadata parsing request");
-		
-		metadataDocumentFactory.tell(msg, getSender());
-	}
+	}	
 
 	private void startHarvesting(final HarvestJobInfo harvestJob) {
 		

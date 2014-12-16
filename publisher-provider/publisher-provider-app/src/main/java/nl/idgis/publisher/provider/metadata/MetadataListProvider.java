@@ -3,7 +3,7 @@ package nl.idgis.publisher.provider.metadata;
 import java.io.File;
 import java.util.Arrays;
 
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.stream.StreamProvider;
 
 import akka.actor.Props;

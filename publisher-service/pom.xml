@@ -30,9 +30,8 @@
 			<scope>test</scope>				
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-test</artifactId>			
 		</dependency>
 		<dependency>
 			<groupId>com.typesafe.akka</groupId>

@@ -10,12 +10,12 @@ import com.typesafe.config.Config;
 
 public class Database extends JdbcDatabase {
 	
-	public Database(Config config) {
-		super(config, "database");
+	public Database(Config config, String name) {
+		super(config, name + "-database");
 	}
 	
-	public static Props props(Config config) {
-		return Props.create(Database.class, config);
+	public static Props props(Config config, String name) {
+		return Props.create(Database.class, config, name);
 	}
 	
 	@Override

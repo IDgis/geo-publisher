@@ -8,7 +8,7 @@ import akka.dispatch.Futures;
 
 import scala.concurrent.Future;
 
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
 
 public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{

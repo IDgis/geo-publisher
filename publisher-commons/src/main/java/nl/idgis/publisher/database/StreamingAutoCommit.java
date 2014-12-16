@@ -21,6 +21,7 @@ public class StreamingAutoCommit extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef target;
+	
 	private final StreamingQuery query;
 	
 	public StreamingAutoCommit(StreamingQuery query, ActorRef target) {
@@ -32,14 +33,12 @@ public class StreamingAutoCommit extends UntypedActor {
 		return Props.create(StreamingAutoCommit.class, query, target);
 	}
 	
-	private Procedure<Object> waitingForAck(final Object answer) {
+	private Procedure<Object> waitingForAck() {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				log.debug("transaction completed");
-				
-				target.tell(answer, getSelf());
 				
 				getContext().stop(getSelf());
 			}
@@ -47,75 +46,70 @@ public class StreamingAutoCommit extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> waitingForEnd(final ActorRef transaction, final ActorRef cursor) {
+	public Procedure<Object> waitingForStreamEnd(final ActorRef transaction) {
 		return new Procedure<Object>() {
+			
+			ActorRef producer = transaction, consumer = target;
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				log.debug("query executing");
-				
-				if(msg instanceof End) {				
-					handleEnd(transaction, msg);
-				} else if(msg instanceof Item) {
-					handleItem(msg);
-				} else if(msg instanceof NextItem) {
-					handleNextItem(cursor, msg);
-				} else if(msg instanceof Stop) {
-					handleStop(transaction, cursor, msg);
-				} else {
-					unhandled(msg);
-				}
-			}			
-		};			
-	}
-	
-	private Procedure<Object> waitingForFirstMessage(final ActorRef transaction) {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof End) {				
-					handleEnd(transaction, msg);
-				} else if(msg instanceof Item) {
-					handleItem(msg);
+				if(msg instanceof Item) {
+					log.debug("item");
 					
-					getContext().become(waitingForEnd(transaction, getSender()));
-				} else {
-					unhandled(msg);
+					consume(msg);
+				} else if(msg instanceof End) {
+					log.debug("end");
+					
+					consume(msg);
+					
+					commit();
+				} else if(msg instanceof NextItem) {
+					log.debug("next item");
+					
+					produce(msg);
+				} else if(msg instanceof Stop) {
+					log.debug("stop");
+					
+					produce(msg);
+					
+					rollback();
 				}
-			}			
+				
+			}
+
+			private void produce(Object msg) {
+				log.debug("produce");
+				
+				consumer = getSender();
+				
+				producer.tell(msg, getSelf());
+			}
+
+			private void consume(Object msg) {
+				log.debug("consume");
+				
+				producer = getSender();
+				
+				consumer.tell(msg, getSelf());
+			}
+			
+			private void commit() {
+				log.debug("requesting commit");
+				
+				transaction.tell(new Commit(), getSelf());
+				
+				getContext().become(waitingForAck());
+			}
+			
+			private void rollback() {
+				log.debug("requesting rollback");
+				
+				transaction.tell(new Rollback(), getSelf());
+				
+				getContext().become(waitingForAck());
+			}
 			
 		};
-	}
-	
-	private void handleStop(ActorRef transaction, ActorRef cursor, Object msg) {
-		log.debug("stop");
-		
-		cursor.tell(msg, getSelf());
-		
-		transaction.tell(new Rollback(), getSelf());
-
-		getContext().become(waitingForAck(msg));
-	}
-	
-	private void handleItem(Object msg) {
-		log.debug("item");
-		
-		target.tell(msg, getSelf());
-	}
-
-	private void handleEnd(ActorRef transaction, Object msg) {
-		log.debug("end");
-		
-		transaction.tell(new Commit(), getSelf());
-
-		getContext().become(waitingForAck(msg));
-	}
-	
-	private void handleNextItem(ActorRef cursor, Object msg) {
-		log.debug("next item");
-		
-		cursor.tell(msg, getSelf());
 	}
 
 	@Override
@@ -126,7 +120,7 @@ public class StreamingAutoCommit extends UntypedActor {
 			ActorRef transaction = ((TransactionCreated) msg).getActor();
 			transaction.tell(query, getSelf());
 			
-			getContext().become(waitingForFirstMessage(transaction));
+			getContext().become(waitingForStreamEnd(transaction));
 		} else {
 			unhandled(msg);
 		}

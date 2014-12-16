@@ -1,16 +1,13 @@
 package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.apache.commons.io.IOUtils;
+import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
+import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.protocol.metadata.GetAllMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.GetMetadata;
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
-import nl.idgis.publisher.provider.protocol.metadata.PutMetadata;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -48,38 +45,25 @@ public class Metadata extends UntypedActor {
 			handleGetAllMetadata((GetAllMetadata)msg);
 		} else if(msg instanceof GetMetadata) {
 			handleGetMetadata((GetMetadata)msg);
-		} else if(msg instanceof PutMetadata) {
-			handlePutMetadata((PutMetadata)msg);
 		} else {
 			unhandled(msg);
 		}
-	}
-
-	private void handlePutMetadata(PutMetadata msg) throws IOException {
-		String id = msg.getIdentification();
-		
-		log.debug("saving single metadata document: " + id);
-		File document = getFile(id);
-		
-		FileOutputStream fos = new FileOutputStream(document);
-		IOUtils.write(msg.getContent(), fos);
-		fos.close();
-		
-		log.debug("saved");
-		
-		getSender().tell(new Ack(), getSelf());
-	}
+	}	
 
 	private void handleGetMetadata(GetMetadata msg) throws IOException {
-		String id = msg.getIdentification();
+		String identification = msg.getIdentification();
 		
-		log.debug("fetching single metadata document: " + id);
-		File document = getFile(id);
-
-		MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
-		getSender().tell(metadataItem, getSelf());
+		log.debug("fetching single metadata document: " + identification);
+		File document = getFile(identification);
 		
-		log.debug("fetched");
+		try {
+			MetadataItem metadataItem = MetadataParser.createMetadataItem(document);
+			getSender().tell(metadataItem, getSelf());
+			
+			log.debug("fetched");
+		} catch(Exception e) {
+			getSender().tell(new MetadataNotFound(identification), getSelf());
+		}
 	}
 
 	private File getFile(String id) {

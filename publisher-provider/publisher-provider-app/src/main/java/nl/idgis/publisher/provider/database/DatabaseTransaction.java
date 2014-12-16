@@ -9,20 +9,24 @@ import java.util.ArrayList;
 import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.protocol.database.Column;
-import nl.idgis.publisher.provider.protocol.database.DescribeTable;
-import nl.idgis.publisher.provider.protocol.database.FetchTable;
-import nl.idgis.publisher.provider.protocol.database.PerformCount;
-import nl.idgis.publisher.provider.protocol.database.TableDescription;
-import nl.idgis.publisher.provider.protocol.database.TableNotFound;
+import nl.idgis.publisher.provider.database.messages.DescribeTable;
+import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.database.messages.PerformCount;
+import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.protocol.Column;
+import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.utils.NameGenerator;
 
 public class DatabaseTransaction extends JdbcTransaction {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final NameGenerator nameGenerator = new NameGenerator();
 	
 	private ActorRef converter;
 
@@ -147,7 +151,10 @@ public class DatabaseTransaction extends JdbcTransaction {
 			converter = getContext().actorOf(OracleConverter.props(), "converter");
 		}
 		
-		ActorRef cursor = getContext().actorOf(DatabaseCursor.props(rs, msg.getMessageSize(), converter));
+		ActorRef cursor = getContext().actorOf(
+				DatabaseCursor.props(rs, msg.getMessageSize(), converter), 
+				nameGenerator.getName("database-cursor"));
+		
 		answerStreaming(cursor);
 	}
 }

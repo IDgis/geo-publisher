@@ -1,19 +1,16 @@
 package nl.idgis.publisher.xml;
 
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.xml.namespace.QName;
 
-import nl.idgis.publisher.xml.messages.NotParseable;
-import nl.idgis.publisher.xml.messages.ParseDocument;
+import nl.idgis.publisher.xml.exceptions.NotParseable;
 
 import org.junit.Test;
 import org.w3c.dom.Node;
@@ -21,77 +18,43 @@ import org.w3c.dom.Node;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.pattern.Patterns;
-
 public class XMLDocumentTest {
-
-	private static final FiniteDuration AWAIT_DURATION = Duration.create(15, TimeUnit.SECONDS);
 
 	@Test
 	public void testParsing() throws Exception {
-		ActorSystem system = ActorSystem.create();		
-		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
 		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
-		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
-		
-		XMLDocument document = (XMLDocument)result;
+		XMLDocument document = factory.parseDocument(content);
 		
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
 		namespaces.put("b", "bURI");
 		
-		result = document.getString(namespaces, "/a:a/b:b");
+		String result = document.getString(namespaces, "/a:a/b:b");
 		assertEquals("Hello", result);
 	}
 	
-	@Test
+	@Test(expected=NotParseable.class)
 	public void testUnparseable() throws Exception {
-		ActorSystem system = ActorSystem.create();		
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
-		
-		Future<Object> future = Patterns.ask(factory, new ParseDocument("This is not XML!".getBytes("utf-8")), 15000);
-		
-		Object response = Await.result(future, AWAIT_DURATION);
-		assertTrue(response instanceof NotParseable);
-		
-		// test if the factory is still operational
-		future = Patterns.ask(factory, new ParseDocument("<tag/>".getBytes("utf-8")), 15000);
-		
-		response = Await.result(future, AWAIT_DURATION);
-		assertTrue(response instanceof XMLDocument);
+		factory.parseDocument("This is not XML!".getBytes("utf-8"));
 	}
 	
 	@Test
 	public void testUpdateString() throws Exception{
-		ActorSystem system = ActorSystem.create();		
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");		
 		
-		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
-		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
-		
-		XMLDocument document = (XMLDocument)result;
+		XMLDocument document = factory.parseDocument(content);
 		
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
 		namespaces.put("b", "bURI");
 		
-		result = document.getString(namespaces, "/a:a/b:b");		
+		String result = document.getString(namespaces, "/a:a/b:b");		
 		assertEquals("Hello", result);
 		
 		document.updateString(namespaces, "/a:a/b:b", "New Value");
@@ -102,34 +65,22 @@ public class XMLDocumentTest {
 	
 	@Test
 	public void testGetContent() throws Exception {
-		ActorSystem system = ActorSystem.create();		
-		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
 		byte[] content = "<a xmlns='aURI'><b xmlns='bURI'>Hello</b><c><d>World!</d></c></a>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
 		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
+		XMLDocument document = factory.parseDocument(content);
 		
-		XMLDocument document = (XMLDocument)result;
-		result = document.getContent();
-		assertTrue(result instanceof byte[]);
+		document.getContent();		
 	}
 	
 	@Test
 	public void testAddNode() throws Exception {
-		ActorSystem system = ActorSystem.create();		
-		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
 		byte[] content = "<a:a xmlns:a='aURI'><a:b/><a:c/><a:d/></a:a>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
 		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
-		
-		XMLDocument document = (XMLDocument)result;
+		XMLDocument document = factory.parseDocument(content);
 		
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
@@ -189,17 +140,11 @@ public class XMLDocumentTest {
 	
 	@Test
 	public void createElement() throws Exception {
-		ActorSystem system = ActorSystem.create();		
-		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
 		byte[] content = "<a xmlns='aURI'><b/><c/><d/></a>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
 		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
-		
-		XMLDocument document = (XMLDocument)result;
+		XMLDocument document = factory.parseDocument(content);
 		
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("a", "aURI");
@@ -218,17 +163,11 @@ public class XMLDocumentTest {
 	
 	@Test
 	public void testClone() throws Exception {
-		ActorSystem system = ActorSystem.create();		
+		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
-		ActorRef factory = system.actorOf(XMLDocumentFactory.props());
+		byte[] content = "<a xmlns='aURI'/>".getBytes("utf-8");	
 		
-		byte[] content = "<a xmlns='aURI'/>".getBytes("utf-8");
-		Future<Object> future = Patterns.ask(factory, new ParseDocument(content), 15000);
-		
-		Object result = Await.result(future, AWAIT_DURATION);
-		assertTrue("didn't receive an XMLDocument", result instanceof XMLDocument);
-		
-		XMLDocument document = (XMLDocument)result;
+		XMLDocument document = factory.parseDocument(content);
 		
 		XMLDocument clonedDocument = document.clone();
 		assertNotNull(clonedDocument);

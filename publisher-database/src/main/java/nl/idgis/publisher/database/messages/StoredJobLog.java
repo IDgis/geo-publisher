@@ -2,12 +2,12 @@ package nl.idgis.publisher.database.messages;
 
 import java.sql.Timestamp;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
-import nl.idgis.publisher.domain.job.JobLog;
 import nl.idgis.publisher.domain.job.LogLevel;
 
-public class StoredJobLog extends JobLog {
+public class StoredJobLog extends Log {
 	
 	private static final long serialVersionUID = -4960636730010087539L;
 	

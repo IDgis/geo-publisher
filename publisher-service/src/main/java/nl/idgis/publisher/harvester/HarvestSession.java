@@ -1,6 +1,7 @@
 package nl.idgis.publisher.harvester;
 
 import nl.idgis.publisher.AbstractSession;
+
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -8,16 +9,19 @@ import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
-import nl.idgis.publisher.domain.job.JobLog;
+
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.web.EntityType;
-import nl.idgis.publisher.harvester.sources.messages.Finished;
+
 import nl.idgis.publisher.messages.Timeout;
-import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.NextItem;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.OnSuccess;
@@ -48,10 +52,10 @@ public class HarvestSession extends AbstractSession {
 			handleTimeout();
 		} else if(msg instanceof Dataset) {
 			handleDataset((Dataset)msg);			
-		} else if(msg instanceof Finished) {
-			handleFinished();
-		} else if(msg instanceof JobLog) {
-			handleJobLog((JobLog)msg);
+		} else if(msg instanceof End) {
+			handleEnd();
+		} else if(msg instanceof Log) {
+			handleJobLog((Log)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -63,13 +67,13 @@ public class HarvestSession extends AbstractSession {
 		getContext().stop(getSelf());
 	}
 
-	private void handleJobLog(JobLog msg) { 
+	private void handleJobLog(Log msg) { 
 		log.debug("saving job log");
 		
 		database.tell(new StoreLog(harvestJob, msg), getSender());
 	}
 
-	private void handleFinished() {
+	private void handleEnd() {
 		log.debug("harvesting finished");
 		
 		final ActorRef self = getSelf();			
@@ -97,7 +101,7 @@ public class HarvestSession extends AbstractSession {
 					if(msg instanceof AlreadyRegistered) {
 						log.debug("already registered");
 						
-						sender.tell(new Ack(), getSelf());
+						sender.tell(new NextItem(), getSelf());
 					} else {						
 						log.debug("dataset registered");
 						
@@ -109,7 +113,7 @@ public class HarvestSession extends AbstractSession {
 						}
 						
 						if(type != null) {
-							JobLog jobLog = JobLog.create (
+							Log jobLog = Log.create (
 									LogLevel.INFO, 
 									type, 
 									new HarvestLog (
@@ -125,13 +129,13 @@ public class HarvestSession extends AbstractSession {
 									public void onSuccess(Object msg) throws Throwable {
 										log.debug("dataset registration logged");
 										
-										sender.tell(new Ack(), getSelf());
+										sender.tell(new NextItem(), getSelf());
 									}
 								}, getContext().dispatcher());
 						} else {
 							log.error("unknown dataset registration result: "+ msg);
 							
-							sender.tell(new Ack(), getSelf());
+							sender.tell(new NextItem(), getSelf());
 						}
 					}
 				}

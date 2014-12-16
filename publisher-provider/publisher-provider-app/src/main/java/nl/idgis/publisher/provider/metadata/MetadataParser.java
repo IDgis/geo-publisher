@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
 
-import nl.idgis.publisher.provider.protocol.metadata.MetadataItem;
+import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 
 public class MetadataParser {
 	

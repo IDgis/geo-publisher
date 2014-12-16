@@ -7,7 +7,9 @@ import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.database.Database;
 import nl.idgis.publisher.provider.metadata.Metadata;
+
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.dispatch.OnSuccess;
@@ -33,23 +35,23 @@ public class ClientActors extends MessageProtocolActors {
 	
 	protected void createActors(ActorRef messagePackagerProvider) {
 		log.debug("creating client actors");
-		
-		Config databaseConfig = config.getConfig("database");		
-		
-		getContext().actorOf(Database.props(databaseConfig), "database");
-
-		getContext().actorOf(Metadata.props(
-				new File(config.getString("metadata.folder"))), "metadata");
-		
-		final ActorRef provider = getContext().actorOf(Provider.props(), "provider");
 								
 		Future<Object> harvesterPackager = Patterns.ask(messagePackagerProvider, new GetMessagePackager("harvester"), 1000);
 		harvesterPackager.onSuccess(new OnSuccess<Object>() {
 
 			@Override
 			public void onSuccess(Object msg) {
-				ActorRef harvester = (ActorRef)msg;
-				harvester.tell(new Hello(config.getString("name")), provider);
+				final ActorRef harvester = (ActorRef)msg;
+				
+				for(Config instance : config.getConfigList("instances")) {
+					final String instanceName = instance.getString("name");					
+					
+					final Props database = Database.props(instance.getConfig("database"), instanceName);
+					final Props metadata = Metadata.props(new File(instance.getString("metadata.folder")));					
+					
+					final ActorRef provider = getContext().actorOf(Provider.props(database, metadata), instanceName);					
+					harvester.tell(new Hello(instanceName), provider);
+				}
 			}
 		}, getContext().system().dispatcher());
 	}

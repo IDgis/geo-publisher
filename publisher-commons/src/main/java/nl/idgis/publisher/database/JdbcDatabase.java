@@ -3,11 +3,14 @@ package nl.idgis.publisher.database;
 import java.sql.Connection;
 
 import scala.concurrent.duration.Duration;
+
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.utils.NameGenerator;
+
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -27,10 +30,33 @@ public abstract class JdbcDatabase extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final NameGenerator nameGenerator = new NameGenerator();
+	
 	private final String poolName;
+
 	protected final Config config;
 	
 	private BoneCP connectionPool;
+	
+	private static class CreateTransaction {
+		
+		private final ActorRef sender;
+		
+		private final Connection connection;
+		
+		public CreateTransaction(ActorRef sender, Connection connection) {
+			this.sender = sender;
+			this.connection = connection;
+		}
+		
+		public ActorRef getSender() {
+			return sender;
+		}
+		
+		public Connection getConnection() {
+			return connection;
+		}
+	}
 	
 	public JdbcDatabase(Config config, String poolName) {
 		this.config = config;
@@ -70,27 +96,45 @@ public abstract class JdbcDatabase extends UntypedActor {
 			handleQuery((Query)msg);
 		} else if(msg instanceof StreamingQuery) {
 			handleStreamingQuery((StreamingQuery)msg);
+		} else if(msg instanceof CreateTransaction) { // internal message sent by connection pool listener
+			handleCreateTransaction((CreateTransaction)msg);
 		} else {
 			onReceiveNonQuery(msg);
 		}
 	}
 
+	private void handleCreateTransaction(CreateTransaction msg) {
+		log.debug("creating transaction");
+		
+		ActorRef transaction = getContext().actorOf(
+				createTransaction(msg.getConnection()), 
+				nameGenerator.getName("transaction"));
+		
+		msg.getSender().tell(new TransactionCreated(transaction), getSelf());
+	}
+
 	private void handleStreamingQuery(final StreamingQuery query) {
 		log.debug("executing query in autocommit mode");
 		
-		ActorRef streamingAutoCommit = getContext().actorOf(StreamingAutoCommit.props(query, getSender()));
+		ActorRef streamingAutoCommit = getContext().actorOf(
+				StreamingAutoCommit.props(query, getSender()),
+				nameGenerator.getName("streaming-auto-commit"));
+		
 		getSelf().tell(new StartTransaction(), streamingAutoCommit);
 	}
 
 	private void handleQuery(final Query query) {
 		log.debug("executing query in autocommit mode");
 		
-		ActorRef autoCommit = getContext().actorOf(AutoCommit.props(query, getSender()));
+		ActorRef autoCommit = getContext().actorOf(
+				AutoCommit.props(query, getSender()), 
+				nameGenerator.getName("auto-commit"));
+		
 		getSelf().tell(new StartTransaction(), autoCommit);
 	}
 
 	private void handleStartTransaction(StartTransaction msg) {
-		final ActorRef sender = getSender(), self = getSelf();
+		final ActorRef sender = getSender();
 		final ListenableFuture<Connection> connectionFuture = connectionPool.getAsyncConnection();
 		connectionFuture.addListener(new Runnable() {
 
@@ -102,8 +146,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 					log.debug("connection obtained from pool");
 					
 					connection.setAutoCommit(false);
-					final ActorRef transaction = getContext().actorOf(createTransaction(connection));
-					sender.tell(new TransactionCreated(transaction), self);
+					getSelf().tell(new CreateTransaction(sender, connection), getSelf());
 				} catch (Exception e) {
 					log.error(e, "couldn't obtain connection from pool");
 					return;

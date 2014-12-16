@@ -6,13 +6,16 @@ import java.util.Iterator;
 import java.util.List;
 
 import nl.idgis.publisher.AbstractSession;
+
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
+
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.GetProgress;
@@ -20,8 +23,8 @@ import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.protocol.database.Record;
-import nl.idgis.publisher.provider.protocol.database.Records;
+import nl.idgis.publisher.provider.protocol.Record;
+import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
