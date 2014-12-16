@@ -15,10 +15,13 @@ import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class ProviderDataSource extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final Set<AttachmentType> metadataType;
 		
@@ -51,22 +54,35 @@ public class ProviderDataSource extends UntypedActor {
 	private void handleListDatasets(ListDatasets msg) {
 		log.debug("retrieving datasets from provider");
 		
-		ActorRef converter = getContext().actorOf(ProviderDatasetConverter.props(provider));
+		ActorRef converter = getContext().actorOf(
+				ProviderDatasetConverter.props(provider),
+				nameGenerator.getName(ProviderDatasetConverter.class));
+		
 		converter.forward(msg, getContext());
 	}
 	
 	private void handleGetDataset(final GetDataset msg) {
 		log.debug("retrieving data from provider");
 		
-		ActorRef receiver = getContext().actorOf(msg.getReceiverProps());
-		ActorRef initiator = getContext().actorOf(ProviderGetDatasetInitiater.props(getSender(), msg, receiver, provider));
+		Props receiverProps = msg.getReceiverProps();
+		ActorRef receiver = getContext().actorOf(
+				receiverProps, 
+				nameGenerator.getName(receiverProps.clazz()));
+		
+		ActorRef initiator = getContext().actorOf(
+				ProviderGetDatasetInitiater.props(getSender(), msg, receiver, provider),
+				nameGenerator.getName(ProviderGetDatasetInitiater.class));
+		
 		provider.tell(new GetDatasetInfo(Collections.<AttachmentType>emptySet(), msg.getId()), initiator);
 	}
 	
 	private void handleGetDatasetMetadata(GetDatasetMetadata msg) {				
 		log.debug("retrieving dataset metadata from provider");
 		
-		ActorRef builder = getContext().actorOf(ProviderMetadataDocumentBuilder.props(getSender()));
+		ActorRef builder = getContext().actorOf(
+				ProviderMetadataDocumentBuilder.props(getSender()),
+				nameGenerator.getName(ProviderMetadataDocumentBuilder.class));
+		
 		provider.tell(new GetDatasetInfo(metadataType, msg.getDatasetId()), builder);
 	}
 

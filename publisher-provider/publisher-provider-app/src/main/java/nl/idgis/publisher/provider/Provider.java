@@ -7,7 +7,7 @@ import nl.idgis.publisher.provider.protocol.EchoResponse;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
-import nl.idgis.publisher.utils.NameGenerator;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -19,7 +19,7 @@ public class Provider extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final NameGenerator nameGenerator = new NameGenerator();
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final Props databaseProps, metadataProps;
 	
@@ -62,7 +62,7 @@ public class Provider extends UntypedActor {
 		
 		ActorRef fetcher = getContext().actorOf(
 				VectorDatasetFetcher.props(getSender(), database, msg), 
-				nameGenerator.getName("vector-dataset-fetcher"));
+				nameGenerator.getName(VectorDatasetFetcher.class));
 		
 		metadata.tell(new GetMetadata(msg.getIdentification()), fetcher);
 	}
@@ -72,7 +72,7 @@ public class Provider extends UntypedActor {
 		
 		ActorRef builder = getContext().actorOf(
 				DatasetInfoBuilder.props(getSender(), getSelf(), database, msg.getAttachmentTypes()),
-				nameGenerator.getName("database-info-builder"));
+				nameGenerator.getName(DatasetInfoBuilder.class));
 		
 		metadata.tell(new GetMetadata(msg.getIdentification()), builder);
 	}
@@ -82,7 +82,7 @@ public class Provider extends UntypedActor {
 		
 		ActorRef converter = getContext().actorOf(
 				DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, database),
-				nameGenerator.getName("dataset-info-converter"));
+				nameGenerator.getName(DatasetInfoConverter.class));
 		
 		converter.forward(msg, getContext());
 	}

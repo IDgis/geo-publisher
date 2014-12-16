@@ -4,7 +4,9 @@ import java.util.ArrayList;
 
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
+
 import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -16,6 +18,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -33,8 +36,12 @@ import com.typesafe.config.Config;
 public class Harvester extends UntypedActor {
 	
 	private final Config config;
+	
 	private final ActorRef database;
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);	
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private BiMap<String, ActorRef> dataSources;
 	
@@ -173,7 +180,9 @@ public class Harvester extends UntypedActor {
 					
 					sender.tell(new Ack(), getSelf());
 					
-					ActorRef session = getContext().actorOf(HarvestSession.props(database, harvestJob));
+					ActorRef session = getContext().actorOf(
+							HarvestSession.props(database, harvestJob), 
+							nameGenerator.getName(HarvestSession.class));
 					
 					getContext().watch(session);
 					sessions.put(harvestJob, session);

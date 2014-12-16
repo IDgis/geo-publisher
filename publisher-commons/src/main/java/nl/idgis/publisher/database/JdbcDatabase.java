@@ -9,7 +9,7 @@ import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.utils.ConfigUtils;
-import nl.idgis.publisher.utils.NameGenerator;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
@@ -30,7 +30,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final NameGenerator nameGenerator = new NameGenerator();
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final String poolName;
 
@@ -106,9 +106,10 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private void handleCreateTransaction(CreateTransaction msg) {
 		log.debug("creating transaction");
 		
+		Props transactionProps = createTransaction(msg.getConnection());
 		ActorRef transaction = getContext().actorOf(
-				createTransaction(msg.getConnection()), 
-				nameGenerator.getName("transaction"));
+				transactionProps, 
+				nameGenerator.getName(transactionProps.clazz()));
 		
 		msg.getSender().tell(new TransactionCreated(transaction), getSelf());
 	}
@@ -118,7 +119,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		ActorRef streamingAutoCommit = getContext().actorOf(
 				StreamingAutoCommit.props(query, getSender()),
-				nameGenerator.getName("streaming-auto-commit"));
+				nameGenerator.getName(StreamingAutoCommit.class, query.getClass()));
 		
 		getSelf().tell(new StartTransaction(), streamingAutoCommit);
 	}
@@ -128,7 +129,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		ActorRef autoCommit = getContext().actorOf(
 				AutoCommit.props(query, getSender()), 
-				nameGenerator.getName("auto-commit"));
+				nameGenerator.getName(AutoCommit.class, query.getClass()));
 		
 		getSelf().tell(new StartTransaction(), autoCommit);
 	}
