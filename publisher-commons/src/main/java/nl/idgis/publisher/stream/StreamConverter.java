@@ -1,5 +1,9 @@
 package nl.idgis.publisher.stream;
 
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
+
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -7,6 +11,7 @@ import nl.idgis.publisher.stream.messages.Start;
 import nl.idgis.publisher.stream.messages.Stop;
 
 import akka.actor.ActorRef;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -15,10 +20,15 @@ public abstract class StreamConverter extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private ActorRef sender, producer;	
+	private ActorRef sender, producer;
+	
+	@Override
+	public final void preStart() throws Exception {
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
+	}
 
 	@Override
-	public void onReceive(Object msg) throws Exception {
+	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof Start) {
 			log.debug("start");
 			
@@ -43,6 +53,10 @@ public abstract class StreamConverter extends UntypedActor {
 			log.debug("stop");
 			
 			producer.tell(msg, getSelf());
+			getContext().stop(getSelf());
+		} else if(msg instanceof ReceiveTimeout){
+			log.error("timeout");
+			
 			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
