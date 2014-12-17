@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -147,9 +148,11 @@ public class Loader extends UntypedActor {
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
-		getContext().actorOf(
+		ActorRef initiator = getContext().actorOf(
 				LoaderSessionInitiator.props(importJob, getSender(), database, geometryDatabase),
 				nameGenerator.getName(LoaderSessionInitiator.class));
+		
+		database.tell(new GetDatasetStatus(importJob.getDatasetId()), initiator);
 	}
 	
 }

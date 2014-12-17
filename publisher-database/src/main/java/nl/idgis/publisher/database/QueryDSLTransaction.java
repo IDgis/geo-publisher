@@ -25,9 +25,7 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 	}
 	
 	@Override
-	public void preStart() throws Exception {
-		super.preStart();
-		
+	public void transactionPreStart() throws Exception {		
 		templates = Class.forName(config.getString("templates"))
 				.asSubclass(SQLTemplates.class)
 				.newInstance();

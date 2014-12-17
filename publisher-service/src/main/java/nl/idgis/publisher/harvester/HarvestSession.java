@@ -1,6 +1,6 @@
 package nl.idgis.publisher.harvester;
 
-import nl.idgis.publisher.AbstractSession;
+import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -18,18 +18,21 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.web.EntityType;
 
-import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.actor.UntypedActor;
 import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
-public class HarvestSession extends AbstractSession {
+import scala.concurrent.duration.Duration;
+
+public class HarvestSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -44,11 +47,15 @@ public class HarvestSession extends AbstractSession {
 	public static Props props(ActorRef database, HarvestJobInfo harvestJob) {
 		return Props.create(HarvestSession.class, database, harvestJob);
 	}
+	
+	@Override
+	public final void preStart() throws Exception {
+		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		scheduleTimeout();
-		if(msg instanceof Timeout) {
+		if(msg instanceof ReceiveTimeout) {
 			handleTimeout();
 		} else if(msg instanceof Dataset) {
 			handleDataset((Dataset)msg);			

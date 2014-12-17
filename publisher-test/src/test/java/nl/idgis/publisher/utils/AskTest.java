@@ -27,9 +27,9 @@ import akka.util.Timeout;
 
 public class AskTest {
 	
-	final Timeout timeout = new Timeout(10, TimeUnit.MILLISECONDS);
+	final Timeout timeout = Timeout.apply(1, TimeUnit.SECONDS);
 	
-	final Duration duration = new Timeout(20, TimeUnit.MILLISECONDS).duration();
+	final Duration duration = Duration.apply(2, TimeUnit.SECONDS);
 	
 	public static class Incrementer extends UntypedActor {
 
