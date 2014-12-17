@@ -3,7 +3,7 @@ package nl.idgis.publisher.database;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.StreamingQuery;
-import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -11,42 +11,19 @@ import nl.idgis.publisher.stream.messages.Stop;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-public class StreamingAutoCommit extends UntypedActor {
-	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
-	private final ActorRef target;
-	
-	private final StreamingQuery query;
+public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
 	
 	public StreamingAutoCommit(StreamingQuery query, ActorRef target) {
-		this.query = query;
-		this.target = target;
+		super(query, target);
 	}
 	
 	public static Props props(StreamingQuery query, ActorRef target) {
 		return Props.create(StreamingAutoCommit.class, query, target);
 	}
 	
-	private Procedure<Object> waitingForAck() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				log.debug("transaction completed");
-				
-				getContext().stop(getSelf());
-			}
-			
-		};
-	}
-	
-	public Procedure<Object> waitingForStreamEnd(final ActorRef transaction) {
+	private Procedure<Object> waitingForStreamEnd() {
 		return new Procedure<Object>() {
 			
 			ActorRef producer = transaction, consumer = target;
@@ -73,8 +50,11 @@ public class StreamingAutoCommit extends UntypedActor {
 					produce(msg);
 					
 					rollback();
-				}
-				
+				} else if(msg instanceof Failure) {
+					failure((Failure)msg);
+				} else {
+					unhandled(msg);
+				}				
 			}
 
 			private void produce(Object msg) {
@@ -113,17 +93,8 @@ public class StreamingAutoCommit extends UntypedActor {
 	}
 
 	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof TransactionCreated) {
-			log.debug("transaction created");
-			
-			ActorRef transaction = ((TransactionCreated) msg).getActor();
-			transaction.tell(query, getSelf());
-			
-			getContext().become(waitingForStreamEnd(transaction));
-		} else {
-			unhandled(msg);
-		}
+	protected void started() {
+		getContext().become(waitingForStreamEnd());
 	}
 	
 }
