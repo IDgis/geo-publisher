@@ -11,7 +11,6 @@ import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.AbstractServiceTest;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
@@ -32,12 +31,12 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		
 		insertDataset(datasetId);
 		
-		askAssert(jobManager, new CreateImportJob(datasetId), Ack.class);
+		sync.ask(jobManager, new CreateImportJob(datasetId), Ack.class);
 		executeJobs(new GetImportJobs());
 		
-		askAssert(jobManager, new CreateServiceJob(datasetId), Ack.class);
+		sync.ask(jobManager, new CreateServiceJob(datasetId), Ack.class);
 		executeJobs(new GetServiceJobs());
 		
-		askAssert(metadataGenerator, new GenerateMetadata(), Ack.class);
+		sync.ask(metadataGenerator, new GenerateMetadata(), Ack.class);
 	}
 }

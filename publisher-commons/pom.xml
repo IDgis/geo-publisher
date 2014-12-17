@@ -47,6 +47,10 @@
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>nl.idgis.publisher</groupId>
+			<artifactId>publisher-test</artifactId>
+		</dependency>
     </dependencies>
     
 </project>

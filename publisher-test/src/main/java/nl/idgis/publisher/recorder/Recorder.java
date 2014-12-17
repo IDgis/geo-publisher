@@ -6,8 +6,8 @@ import java.util.List;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 
@@ -25,7 +25,7 @@ public class Recorder extends UntypedActor {
 			recording.add((RecordedMessage)msg);
 		} else if(msg instanceof Clear) {
 			recording.clear();
-			getSender().tell(new Ack(), getSelf());
+			getSender().tell(new Cleared(), getSelf());
 		} else if(msg instanceof GetRecording) {
 			getSender().tell(new ArrayList<>(recording), getSelf());
 		} else {

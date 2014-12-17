@@ -15,6 +15,7 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.util.Timeout;
 
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 
@@ -23,10 +24,8 @@ import nl.idgis.publisher.service.messages.GetContent;
 import nl.idgis.publisher.service.messages.Layer;
 import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
+import nl.idgis.publisher.utils.SyncAskHelper;
 import nl.idgis.publisher.AbstractServiceTest;
-
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -78,16 +77,17 @@ public class ServiceTest extends AbstractServiceTest {
 	
 	@Test
 	public void testGetContent() throws Exception {
-		ServiceContent serviceContent = askAssert(service, new GetContent(), ServiceContent.class);
+		ServiceContent serviceContent = sync.ask(service, new GetContent(), ServiceContent.class);
 		
 		List<VirtualService> services = serviceContent.getServices();
 		assertNotNull(services);
-		assertTrue(services.isEmpty());
+		assertTrue(services.isEmpty());		
 		
-		askAssert(service, new ServiceJobInfo(0, "public", "test_table"), 20000, Ack.class);
-		askAssert(service, new ServiceJobInfo(0, "b0", "another_test_table"), 20000, Ack.class);
+		SyncAskHelper syncWaitLonger = new SyncAskHelper(system, Timeout.apply(20000));
+		syncWaitLonger.ask(service, new ServiceJobInfo(0, "public", "test_table"), Ack.class);
+		syncWaitLonger.ask(service, new ServiceJobInfo(0, "b0", "another_test_table"), Ack.class);
 		
-		serviceContent = askAssert(service, new GetContent(), ServiceContent.class);
+		serviceContent = sync.ask(service, new GetContent(), ServiceContent.class);
 		
 		services = serviceContent.getServices();
 		assertNotNull(services);

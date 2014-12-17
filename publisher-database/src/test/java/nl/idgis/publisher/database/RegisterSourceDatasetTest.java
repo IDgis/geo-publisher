@@ -21,8 +21,6 @@ import nl.idgis.publisher.domain.service.Dataset;
 
 import org.junit.Test;
 
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-
 public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 
 	@Test
@@ -32,8 +30,7 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		 
-		Object result = ask(database, new RegisterSourceDataset("testDataSource", createTestDataset()));
-		assertEquals(Registered.class, result.getClass());
+		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset()), Registered.class);		
 		
 		assertTrue(
 			query().from(category)
@@ -61,22 +58,18 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 		
 		// fill database with other source datasets
 		for(int i = 0; i < 100; i++) {
-			Object result = ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)));
-			assertEquals(Registered.class, result.getClass());
+			sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)), Registered.class);
 		}
 		
 		Dataset dataset = createTestDataset();		
-		Object result = ask(database, new RegisterSourceDataset("testDataSource", dataset));
-		assertEquals(Registered.class, result.getClass());
+		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
 		
-		result = ask(database, new RegisterSourceDataset("testDataSource", dataset));
-		assertEquals(AlreadyRegistered.class, result.getClass());
+		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		Dataset updatedDataset = createTestDataset();
-		result = ask(database, new RegisterSourceDataset("testDataSource", updatedDataset));
-		assertEquals(Updated.class, result.getClass());
+		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
 		
 		assertEquals(2,
 				query().from(sourceDatasetVersion)

@@ -1,7 +1,5 @@
 package nl.idgis.publisher;
 
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
@@ -28,10 +26,10 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	}
 	
 	protected void executeJobs(JobManagerRequest request) throws Exception {
-		TypedIterable<?> iterable = askAssert(jobManager, request, TypedIterable.class);
+		TypedIterable<?> iterable = sync.ask(jobManager, request, TypedIterable.class);
 		assertTrue(iterable.contains(JobInfo.class));
 		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
+			sync.ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
 		}
 	}
 }

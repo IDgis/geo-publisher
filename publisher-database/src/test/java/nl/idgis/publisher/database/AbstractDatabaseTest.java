@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import scala.concurrent.ExecutionContext;
+
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
@@ -23,6 +24,8 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.utils.JdbcUtils;
+import nl.idgis.publisher.utils.SyncAskHelper;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -39,17 +42,19 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.utils.TestPatterns.ask;
 
 public abstract class AbstractDatabaseTest {
 	
 	private static final File BASE_DIR = new File("target/test-database");
-	
-	private ActorSystem system;	
+		
 	private ExtendedPostgresTemplates templates;	
 	private Connection connection;	
 	
+	protected ActorSystem system;
+	
 	protected ActorRef database;
+	
+	protected SyncAskHelper sync;
 	
 	@Before
 	public void database() throws Exception {
@@ -97,6 +102,8 @@ public abstract class AbstractDatabaseTest {
 		
 		system = ActorSystem.create("test", akkaConfig);
 		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
+		
+		sync = new SyncAskHelper(system);
 	}
 	
 	protected ActorRef actorOf(Props props, String name) {
@@ -153,10 +160,10 @@ public abstract class AbstractDatabaseTest {
 		insertDataSource();
 		
 		Dataset testDataset = createTestDataset();
-		ask(database, new RegisterSourceDataset("testDataSource", testDataset));
+		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		Table testTable = testDataset.getTable();
-		ask(database, new CreateDataset(
+		sync.ask(database, new CreateDataset(
 				datasetId, 
 				"My Test Dataset", 
 				testDataset.getId(), 

@@ -15,9 +15,6 @@ import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.JobManagerRequest;
 
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
-
 public class CreatorTest extends AbstractServiceTest {
 	
 	static class GetLastReceivedRequest {
@@ -75,7 +72,7 @@ public class CreatorTest extends AbstractServiceTest {
 	
 	
 	private void harvest() throws Exception {
-		ask(jobManager, new CreateHarvestJob("testDataSource"));		
+		sync.ask(jobManager, new CreateHarvestJob("testDataSource"));		
 		executeJobs(new GetHarvestJobs());
 	}
 
@@ -83,7 +80,7 @@ public class CreatorTest extends AbstractServiceTest {
 	public void testHarvestJob() throws Exception {
 		insertDataSource();
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateHarvestJob.class);
+		sync.ask(managerAdapter, new GetLastReceivedRequest(), CreateHarvestJob.class);
 	}
 	
 	@Test
@@ -91,16 +88,16 @@ public class CreatorTest extends AbstractServiceTest {
 		insertDataset();
 		harvest();
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateImportJob.class);
+		sync.ask(managerAdapter, new GetLastReceivedRequest(), CreateImportJob.class);
 	}	
 	
 	@Test
 	public void testServiceJob() throws Exception {
 		insertDataset();
 		harvest();
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		initCreator();
-		askAssert(managerAdapter, new GetLastReceivedRequest(), CreateServiceJob.class);
+		sync.ask(managerAdapter, new GetLastReceivedRequest(), CreateServiceJob.class);
 	}
 }

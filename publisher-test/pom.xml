@@ -17,10 +17,6 @@
 		  <artifactId>akka-slf4j_${scala.abi.version}</artifactId>  
 		</dependency>
 		<dependency>
-			<groupId>nl.idgis.publisher</groupId>
-			<artifactId>publisher-commons</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>compile</scope>

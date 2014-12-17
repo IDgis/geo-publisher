@@ -75,8 +75,6 @@ import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class LoaderTest extends AbstractServiceTest {
 	
@@ -357,19 +355,19 @@ public class LoaderTest extends AbstractServiceTest {
 	@Test
 	public void testExecuteImportJob() throws Exception {
 		insertDataset();
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
-		TypedIterable<?> iterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo job : iterable.cast(ImportJobInfo.class)) {
-			askAssert(loader, job, Ack.class);
+			sync.ask(loader, job, Ack.class);
 		}
 		
 		assertEquals(
 				JobState.SUCCEEDED, 				
-				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		List<?> columns = askAssert(dataSourceMock, new GetColumns(), List.class);
+		List<?> columns = sync.ask(dataSourceMock, new GetColumns(), List.class);
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
@@ -377,7 +375,7 @@ public class LoaderTest extends AbstractServiceTest {
 		assertEquals("col1", columnItr.next());
 		assertFalse(columnItr.hasNext());
 		
-		int insertCount = askAssert(
+		int insertCount = sync.ask(
 				geometryDatabaseMock, 
 				new GetInsertCount(), 
 				Integer.class);
@@ -393,16 +391,16 @@ public class LoaderTest extends AbstractServiceTest {
 		Table testTable = testDataset.getTable();
 		List<Column> testColumns = testTable.getColumns();
 		
-		askAssert(database, new RegisterSourceDataset("testDataSource", testDataset), Registered.class);
+		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset), Registered.class);
 		
-		ask(database, new CreateDataset(
+		sync.ask(database, new CreateDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				testDataset.getId(), 
 				testColumns, 
 				"{ \"expression\": null }"));
 				
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		Table updatedTable = new Table(
@@ -414,17 +412,17 @@ public class LoaderTest extends AbstractServiceTest {
 				updatedTable,
 				testDataset.getRevisionDate());
 		
-		askAssert(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
-		TypedIterable<?> iterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
 			assertFalse(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED));
-			askAssert(loader, jobInfo, Ack.class);
+			sync.ask(loader, jobInfo, Ack.class);
 		}
 		
-		iterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		
 		Set<Integer> pendingJobs = new HashSet<>();
@@ -442,14 +440,14 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
 			if(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
-				ask(database, new AddNotificationResult(
+				sync.ask(database, new AddNotificationResult(
 						jobInfo, 
 						ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
 						ConfirmNotificationResult.OK));
 			}
 		}
 				
-		iterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo jobInfo : iterable.cast(ImportJobInfo.class)) {
 			assertTrue(jobInfo.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED));
@@ -460,16 +458,16 @@ public class LoaderTest extends AbstractServiceTest {
 				}
 			}
 			
-			askAssert(loader, jobInfo, Ack.class);
+			sync.ask(loader, jobInfo, Ack.class);
 		}
 		
 		// the loader is still able to import, but informs us 
 		// about a missing column
 		assertEquals(
 				JobState.SUCCEEDED,
-				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
 		
 		StoredJobLog jobLog = (StoredJobLog)infoList.getList().get(0);
@@ -490,40 +488,40 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(missingColumns.contains(testColumns.get(1)));
 		
 		// loader shouldn't request those missing columns
-		List<?> columns = askAssert(dataSourceMock, new GetColumns(), List.class);
+		List<?> columns = sync.ask(dataSourceMock, new GetColumns(), List.class);
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
 		assertFalse(columnItr.hasNext());
 		
 		// update dataset to be in line with the latest source dataset
-		ask(database, new UpdateDataset(
+		sync.ask(database, new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				"testSourceDataset", 
 				Arrays.asList(testColumns.get(0)),
 				"{ \"expression\": null }"));
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
-		iterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> itr = iterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(itr.hasNext());		
-		askAssert(loader, itr.next(), Ack.class);
+		sync.ask(loader, itr.next(), Ack.class);
 		assertFalse(itr.hasNext());
 		
 		assertEquals(
 				JobState.SUCCEEDED,
-				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));		
+				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));		
 		
-		int count = askAssert(geometryDatabaseMock, new GetInsertCount(), Integer.class);
+		int count = sync.ask(geometryDatabaseMock, new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
 		
 		// verify that the loader doens't inform us about missing 
 		// columns anymore (because we updated the dataset)
-		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
 	}
 	
@@ -562,44 +560,44 @@ public class LoaderTest extends AbstractServiceTest {
 			.set(dataset.filterConditions, mapper.writeValueAsString(filter)) 
 			.execute();
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
-		TypedIterable<?> importJobIterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> importJobIterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobIterable.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		askAssert(loader, importJobItr.next(), Ack.class);
+		sync.ask(loader, importJobItr.next(), Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
 		assertEquals(
 				JobState.FAILED,
 				
-				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		InfoList<?> infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(2, infoList.getCount().intValue());
 		
 		update(dataset)
 			.set(dataset.filterConditions, mapper.writeValueAsString(new Filter(null))) 
 			.execute();
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
-		importJobIterable = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		importJobIterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobIterable.contains(ImportJobInfo.class));
 		
 		importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		askAssert(loader, importJobItr.next(), Ack.class);
+		sync.ask(loader, importJobItr.next(), Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
 		assertEquals(
 				JobState.SUCCEEDED,
 				
-				askAssert(databaseAdapter, new GetFinishedState(), JobState.class));
+				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
-		infoList = askAssert(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
+		infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(3, infoList.getCount().intValue());
 	}
 }
