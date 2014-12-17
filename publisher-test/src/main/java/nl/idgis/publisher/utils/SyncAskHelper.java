@@ -13,6 +13,8 @@ import nl.idgis.publisher.utils.Ask.Response;
 
 public class SyncAskHelper {
 	
+	private static Timeout DEFAULT_TIMEOUT = Timeout.apply(5, TimeUnit.SECONDS);
+	
 	private final ActorRefFactory refFactory;
 	
 	private final Timeout askTimeout;
@@ -22,7 +24,7 @@ public class SyncAskHelper {
 	private ActorRef sender;
 	
 	public SyncAskHelper(ActorRefFactory refFactory) {
-		this(refFactory, Timeout.apply(1, TimeUnit.SECONDS));
+		this(refFactory, DEFAULT_TIMEOUT);
 	}
 	
 	public SyncAskHelper(ActorRefFactory refFactory, Timeout askTimeout) {
