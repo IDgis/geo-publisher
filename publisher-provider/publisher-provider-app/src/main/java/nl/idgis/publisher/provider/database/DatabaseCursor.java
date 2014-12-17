@@ -5,87 +5,66 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import scala.concurrent.Future;
+import oracle.sql.STRUCT;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnFailure;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.japi.Function2;
-import akka.pattern.Patterns;
+import org.deegree.geometry.io.WKBWriter;
+import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
-import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.database.messages.ConvertValue;
-import nl.idgis.publisher.provider.database.messages.ConvertedValue;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
+import nl.idgis.publisher.provider.protocol.UnsupportedType;
+import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.stream.StreamCursor;
 
+import scala.concurrent.Future;
+
+import akka.actor.Props;
+import akka.dispatch.Futures;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
+@SuppressWarnings("deprecation")
 public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef converter;
+	private final SDOGeometryConverter converter = new SDOGeometryConverter();
+	
 	private final int messageSize;
 
-	public DatabaseCursor(ResultSet t, int messageSize, ActorRef converter) {
+	public DatabaseCursor(ResultSet t, int messageSize) {
 		super(t);
 		
-		this.converter = converter;
 		this.messageSize = messageSize;
 	}
 	
-	public static Props props(ResultSet t, int messageSize, ActorRef converter) {
-		return Props.create(DatabaseCursor.class, t, messageSize, converter);
+	public static Props props(ResultSet t, int messageSize) {
+		return Props.create(DatabaseCursor.class, t, messageSize);
 	}
 	
-	private Future<Record> toRecord() throws SQLException {
-		int columnCount = t.getMetaData().getColumnCount();
-		List<Future<Object>> valueFutures = new ArrayList<>();
-		
-		for(int j = 0; j < columnCount; j++) {
-			Object o = t.getObject(j + 1);
+	private Object convert(Object value) throws Exception {
+		if(value == null 
+				|| value instanceof String
+				|| value instanceof Number) {
 			
-			if(o == null) {
-				valueFutures.add(Futures.<Object>successful(new ConvertedValue(null)));
-			} else {
-				Future<Object> future = Patterns.ask(converter, new ConvertValue(o), 15000);
-				future.onFailure(new OnFailure() {
-
-					@Override
-					public void onFailure(Throwable t) throws Throwable {
-						log.error(t, "conversion failure");
-					}					
-				}, getContext().dispatcher());
-				valueFutures.add(future);
-			}
+			return value;
+		} else if(value instanceof STRUCT) {
+			return new WKBGeometry(WKBWriter.write(converter.toGeometry((STRUCT) value, null)));
 		}
 		
-		return Futures.fold(new ArrayList<Object>(), valueFutures, new Function2<List<Object>, Object, List<Object>>() {
-
-				@Override
-				public List<Object> apply(List<Object> values, Object value) throws Exception {
-					if(value instanceof ConvertedValue) {
-						values.add(((ConvertedValue) value).getValue());
-					} else if(value instanceof Failure) {
-						Throwable cause = ((Failure) value).getCause();
-						
-						log.error(cause, "failed to convert value");								
-						throw new Exception(cause);
-					}
-					
-					return values;
-				}				
-			}, getContext().dispatcher()).map(new Mapper<List<Object>, Record>() {
-				
-				@Override
-				public Record apply(List<Object> values) {
-					return new Record(values);
-				}
-			}, getContext().dispatcher());
+		return new UnsupportedType(value.getClass().getCanonicalName());
+	}
+	
+	private Record toRecord() throws Exception {
+		int columnCount = t.getMetaData().getColumnCount();
+		
+		List<Object> values = new ArrayList<>();
+		for(int j = 0; j < columnCount; j++) {
+			Object o = t.getObject(j + 1);
+			values.add(convert(o));
+		}
+		
+		return new Record(values);
 	}
 
 	@Override
@@ -93,35 +72,18 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		log.debug("fetching next records");
 		
 		try {
-			List<Future<Record>> recordFutures = new ArrayList<>();
-			recordFutures.add(toRecord());
+			List<Record> records = new ArrayList<>();
+			records.add(toRecord());
 			
 			for(int i = 1; i < messageSize; i++) {
 				if(!t.next()) {
 					break;
 				}
 				
-				recordFutures.add(toRecord());
+				records.add(toRecord());
 			}
 			
-			Future<Records> records = Futures.fold(new ArrayList<Record>(), recordFutures, new Function2<List<Record>, Record, List<Record>>() {
-
-				@Override
-				public List<Record> apply(List<Record> records, Record record) throws Exception {
-					records.add(record);					
-					
-					return records;
-				}				
-			}, getContext().dispatcher()).map(new Mapper<List<Record>, Records>() {
-				
-				@Override
-				public Records apply(List<Record> records) {
-					return new Records(records);
-				}				
-			}, getContext().dispatcher());
-			
-			log.debug("records future created");
-			return records;
+			return Futures.successful(new Records(records));
 		} catch(Throwable t) {
 			log.error(t, "failed to fetch records");			
 			return Futures.failed(t);
