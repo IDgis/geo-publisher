@@ -11,7 +11,6 @@ import nl.idgis.publisher.AbstractStateMachine;
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
-import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StartTransaction;
@@ -78,11 +77,6 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase) {
 		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase);
-	}
-	
-	@Override
-	public void preStart() {
-		database.tell(new GetDatasetStatus(importJob.getDatasetId()), getSelf());
 	}
 
 	@Override
