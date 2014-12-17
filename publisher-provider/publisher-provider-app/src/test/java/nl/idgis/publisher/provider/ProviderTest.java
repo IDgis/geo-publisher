@@ -47,6 +47,7 @@ import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.messages.End;
@@ -180,7 +181,7 @@ public class ProviderTest {
 	}
 	
 	private void clearRecording() throws Exception {
-		sync.ask(recorder, new Clear(), Ack.class);
+		sync.ask(recorder, new Clear(), Cleared.class);
 	}
 	
 	private String getTable() throws Exception {
