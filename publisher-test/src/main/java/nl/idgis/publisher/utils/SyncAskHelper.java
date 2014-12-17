@@ -47,8 +47,16 @@ public class SyncAskHelper {
 		return response;
 	}
 	
+	public Object ask(ActorRef actorRef, Object msg) throws Exception {
+		return ask(actorRef, msg, Object.class);
+	}
+	
 	public <T> T ask(ActorRef actorRef, Object msg, Class<T> expected) throws Exception {
 		return SyncAsk.result(expected, askResponse(actorRef, msg).getMessage());
+	}
+	
+	public Object ask(ActorSelection actorSelection, Object msg) throws Exception {
+		return ask(actorSelection, msg, Object.class);
 	}
 	
 	public <T> T ask(ActorSelection actorSelection, Object msg, Class<T> expected) throws Exception {

@@ -37,8 +37,6 @@ import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class InitiatorTest extends AbstractDatabaseTest {
 	
@@ -179,7 +177,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testHarvestJob() throws Exception {
-		ask(manager, new CreateHarvestJob("testDataSource"));
+		sync.ask(manager, new CreateHarvestJob("testDataSource"));
 		
 		ActorRef harvester = actorOf(JobReceiver.props(database), "harvesterMock");
 		actorOf(
@@ -188,14 +186,14 @@ public class InitiatorTest extends AbstractDatabaseTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = askAssert(harvester, new GetReceivedJobs(1), List.class);
+		List<?> list = sync.ask(harvester, new GetReceivedJobs(1), List.class);
 		assertEquals(HarvestJobInfo.class, list.get(0).getClass());
 	}
 	
 	@Test
 	public void testImportJob() throws Exception {
-		ask(manager, new CreateImportJob("testDataset0"));
-		ask(manager, new CreateImportJob("testDataset1"));
+		sync.ask(manager, new CreateImportJob("testDataset0"));
+		sync.ask(manager, new CreateImportJob("testDataset1"));
 		
 		ActorRef loader = actorOf(JobReceiver.props(database), "loaderMock");
 		actorOf(
@@ -204,7 +202,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = askAssert(loader, new GetReceivedJobs(2), List.class);
+		List<?> list = sync.ask(loader, new GetReceivedJobs(2), List.class);
 		
 		Object job0 = list.get(0);
 		Object job1 = list.get(1);
@@ -222,7 +220,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testServiceJob() throws Exception {
-		ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testDataset0"));
 
 		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
 		actorOf(
@@ -231,7 +229,7 @@ public class InitiatorTest extends AbstractDatabaseTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = askAssert(service, new GetReceivedJobs(1), List.class);
+		List<?> list = sync.ask(service, new GetReceivedJobs(1), List.class);
 		assertEquals(ServiceJobInfo.class, list.get(0).getClass());
 	}
 	
@@ -246,23 +244,23 @@ public class InitiatorTest extends AbstractDatabaseTest {
 		
 		Thread.sleep(100);
 		
-		ask(manager, new CreateServiceJob("testDataset0"));
-		askAssert(service, new GetReceivedJobs(1), List.class);
+		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		ask(manager, new CreateServiceJob("testDataset0"));
-		askAssert(service, new GetReceivedJobs(1), List.class);
+		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		ask(manager, new CreateServiceJob("testDataset0"));
-		askAssert(service, new GetReceivedJobs(1), List.class);
+		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(service, new GetReceivedJobs(1), List.class);
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testDataset0"));
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(database), "serviceMock");
 		actorOf(
@@ -274,6 +272,6 @@ public class InitiatorTest extends AbstractDatabaseTest {
 						Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");
 		
-		askAssert(service, new GetReceivedJobs(1), List.class);
+		sync.ask(service, new GetReceivedJobs(1), List.class);
 	}
 }

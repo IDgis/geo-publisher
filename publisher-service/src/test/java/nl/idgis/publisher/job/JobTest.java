@@ -46,9 +46,6 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
-
 public class JobTest extends AbstractServiceTest {	
 
 	@Test
@@ -56,14 +53,14 @@ public class JobTest extends AbstractServiceTest {
 		
 		insertDataSource();	
 		
-		Object result = ask(jobManager, new CreateHarvestJob("testDataSource"));
+		Object result = sync.ask(jobManager, new CreateHarvestJob("testDataSource"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		TypedIterable<?> jobs = askAssert(jobManager, new GetHarvestJobs(), TypedIterable.class);		
+		TypedIterable<?> jobs = sync.ask(jobManager, new GetHarvestJobs(), TypedIterable.class);		
 		assertTrue(jobs.contains(HarvestJobInfo.class));
 		
 		Iterator<HarvestJobInfo> jobsItr = jobs.cast(HarvestJobInfo.class).iterator();
@@ -130,7 +127,7 @@ public class JobTest extends AbstractServiceTest {
 				.execute();
 		}
 		
-		Object result = ask(database, new GetDatasetStatus());
+		Object result = sync.ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -148,7 +145,7 @@ public class JobTest extends AbstractServiceTest {
 		
 		assertFalse(i.hasNext());
 		
-		result = ask(jobManager, new CreateImportJob("testDataset"));
+		result = sync.ask(jobManager, new CreateImportJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -166,7 +163,7 @@ public class JobTest extends AbstractServiceTest {
 		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
-		TypedIterable<?> importJobsInfos = askAssert(jobManager, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> importJobsInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
 		assertTrue(importJobsInfos.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> importJobsItr = importJobsInfos.cast(ImportJobInfo.class).iterator();
@@ -181,7 +178,7 @@ public class JobTest extends AbstractServiceTest {
 		
 		assertColumns(importJobInfo.getColumns());
 		
-		result = ask(database, new GetDatasetStatus());
+		result = sync.ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -196,10 +193,10 @@ public class JobTest extends AbstractServiceTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(database, new GetDatasetStatus());
+		result = sync.ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
@@ -212,19 +209,19 @@ public class JobTest extends AbstractServiceTest {
 		datasetStatus = i.next();
 		assertFalse(datasetStatus.isServiceCreated());
 		
-		result = ask(jobManager, new CreateServiceJob("testDataset"));
+		result = sync.ask(jobManager, new CreateServiceJob("testDataset"));
 		assertTrue(result instanceof Ack);
 		
-		TypedIterable<?> serviceJobsInfos = askAssert(jobManager, new GetServiceJobs(), TypedIterable.class);
+		TypedIterable<?> serviceJobsInfos = sync.ask(jobManager, new GetServiceJobs(), TypedIterable.class);
 		assertTrue(serviceJobsInfos.contains(ServiceJobInfo.class));
 		
 		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
 		
 		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
-		result = ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
-		result = ask(database, new GetDatasetStatus());
+		result = sync.ask(database, new GetDatasetStatus());
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;

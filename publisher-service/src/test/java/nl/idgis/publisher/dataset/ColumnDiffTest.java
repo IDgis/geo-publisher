@@ -30,8 +30,6 @@ import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDataset
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
 
 public class ColumnDiffTest extends AbstractServiceTest {
 	
@@ -49,9 +47,9 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		testSourceDataset = createTestDataset();
 		testTable = testSourceDataset.getTable();
 		testColumns = testTable.getColumns();
-		ask(database, new RegisterSourceDataset("testDataSource", testSourceDataset));
+		sync.ask(database, new RegisterSourceDataset("testDataSource", testSourceDataset));
 		
-		ask(database, new CreateDataset(
+		sync.ask(database, new CreateDataset(
 			"testDataset", 
 			"My Test Dataset", 
 			testSourceDataset.getId(),			
@@ -65,13 +63,13 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// columns and last imported columns 
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// no changes yet
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		ask(database,
+		sync.ask(database,
 			new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
@@ -95,14 +93,14 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// dataset updated
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
 		Column newColumn = new Column("my_new_column", Type.GEOMETRY);		
-		ask(database, 
+		sync.ask(database, 
 				new UpdateDataset(
 					"testDataset", 
 					"My Test Dataset", 
@@ -134,7 +132,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// version and last imported source dataset version
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// no changes yet
@@ -151,7 +149,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		askAssert(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		List<Tuple> tuples = query().from(sourceDatasetColumnDiff)
 			.list(sourceDatasetColumnDiff.all());
@@ -167,7 +165,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		// dataset updated
@@ -185,7 +183,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			newTable,
 			testSourceDataset.getRevisionDate());
 		
-		askAssert(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		tuples = query().from(sourceDatasetColumnDiff)
 				.list(sourceDatasetColumnDiff.all());
@@ -200,7 +198,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());

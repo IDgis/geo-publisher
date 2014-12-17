@@ -71,6 +71,10 @@
 		  <artifactId>akka-slf4j_${scala.abi.version}</artifactId>
 		  <scope>test</scope>  
 		</dependency>
+		<dependency>
+		  <groupId>nl.idgis.publisher</groupId>
+		  <artifactId>publisher-test</artifactId>		    
+		</dependency>
 	</dependencies>
 
 	<build>

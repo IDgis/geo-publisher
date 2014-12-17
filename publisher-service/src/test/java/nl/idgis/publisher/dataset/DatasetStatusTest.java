@@ -25,9 +25,6 @@ import nl.idgis.publisher.job.messages.GetServiceJobs;
 import org.junit.Before;
 import org.junit.Test;
 
-import static nl.idgis.publisher.utils.TestPatterns.ask;
-import static nl.idgis.publisher.utils.TestPatterns.askAssert;
-
 public class DatasetStatusTest extends AbstractServiceTest {
 	
 	Dataset testDataset;
@@ -38,27 +35,27 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		insertDataSource();
 	
 		testDataset = createTestDataset();
-		ask(database, new RegisterSourceDataset("testDataSource", testDataset));
+		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		testTable = testDataset.getTable();
-		ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
+		sync.ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
 	}	
 
 	@Test
 	public void testImported() throws Exception {
 		// initially a dataset is not imported		
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
 			.isImported());		
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// import job created, still not imported
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -68,17 +65,17 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// import job executed -> imported
 		assertTrue(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
 			.isImported());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// a new import job created, but dataset is still imported
 		assertTrue(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
@@ -87,7 +84,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		executeJobs(new GetImportJobs());
 		
 		assertTrue(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"),
 				DatasetStatusInfo.class)
 				
@@ -98,29 +95,29 @@ public class DatasetStatusTest extends AbstractServiceTest {
 	public void testServiceCreated() throws Exception {
 		// initially a service is not yet created for a dataset
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
 			.isServiceCreated());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
 		executeJobs(new GetImportJobs());
 		
 		// importing a dataset doesn't create a service
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
 			.isServiceCreated());
 		
-		ask(jobManager, new CreateServiceJob("testDataset"));
+		sync.ask(jobManager, new CreateServiceJob("testDataset"));
 		
 		// service job created, service still not created
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -130,17 +127,17 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// service job executed -> service created
 		assertTrue(
-				askAssert(database, 
+				sync.ask(database, 
 					new GetDatasetStatus("testDataset"), 
 					DatasetStatusInfo.class)
 				
 				.isServiceCreated());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));
+		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
 		// import job created, existing service still created
 		assertTrue(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -150,17 +147,17 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// import job could(!) have introduced a new table -> service maybe(!) not created 
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
 			.isServiceCreated());
 		
-		ask(jobManager, new CreateServiceJob("testDataset"));
+		sync.ask(jobManager, new CreateServiceJob("testDataset"));
 		
 		// service job created, service still not created
 		assertFalse(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -170,7 +167,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// service job executed -> service created
 		assertTrue(
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class)
 			
@@ -182,7 +179,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		// not yet imported, changes are calculated between currently configured 
 		// dataset and last imported configuration		
 		DatasetStatusInfo status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -190,11 +187,11 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isSourceDatasetChanged());
 		assertFalse(status.isFilterConditionChanged());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));		
+		sync.ask(jobManager, new CreateImportJob("testDataset"));		
 		
 		// import job created, still not imported
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -206,7 +203,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// import job executed -> imported, but still not changes
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -216,14 +213,14 @@ public class DatasetStatusTest extends AbstractServiceTest {
 			
 		// remove second column
 		List<Column> newColumns = Arrays.asList(testTable.getColumns().get(0));
-		ask(database, new UpdateDataset(
+		sync.ask(database, new UpdateDataset(
 			"testDataset",
 			"My Test Dataset",
 			"testSourceDataset",
 			newColumns, ""));
 		
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -232,15 +229,15 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 
 		// change source dataset 
-		ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
-		ask(database, new UpdateDataset(
+		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
 				newColumns, ""));
 		
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -249,15 +246,15 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 		
 		// change filter condition 
-		ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
-		ask(database, new UpdateDataset(
+		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
 				newColumns, "fakeFilterCondition"));
 		
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -265,11 +262,11 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertTrue(status.isSourceDatasetChanged());
 		assertTrue(status.isFilterConditionChanged());
 		
-		ask(jobManager, new CreateImportJob("testDataset"));		
+		sync.ask(jobManager, new CreateImportJob("testDataset"));		
 		
 		// import job created, no changes yet
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
@@ -281,7 +278,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// dataset updated
 		status = 
-			askAssert(database, 
+			sync.ask(database, 
 				new GetDatasetStatus("testDataset"), 
 				DatasetStatusInfo.class);
 		
