@@ -120,22 +120,25 @@ public class ProviderDataSourceTest {
 		
 		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-		private final ActorRef collector;
+		private final ActorRef recordsCollector, startImportCollector;
 		
 		private final List<Record> records = new ArrayList<>();
 		
-		public DatasetReceiver(ActorRef collector) {
-			this.collector = collector;
+		public DatasetReceiver(ActorRef recordsCollector, ActorRef startImportCollector) {
+			this.recordsCollector = recordsCollector;
+			this.startImportCollector = startImportCollector;
 		}
 		
-		static Props props(ActorRef collector) {
-			return Props.create(DatasetReceiver.class, collector);
+		static Props props(ActorRef recordsCollector, ActorRef startImportCollector) {
+			return Props.create(DatasetReceiver.class, recordsCollector, startImportCollector);
 		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof StartImport) {
 				log.debug("start import received");
+				
+				startImportCollector.forward(msg, getContext());
 				
 				getSender().tell(new Ack(), getSelf());
 			} else if(msg instanceof Records) {
@@ -146,7 +149,7 @@ public class ProviderDataSourceTest {
 			} else if(msg instanceof End) {
 				log.debug("end received");
 				
-				collector.tell(records, getSelf());
+				recordsCollector.tell(records, getSelf());
 				
 				getContext().stop(getSelf());
 			} else {
@@ -165,10 +168,16 @@ public class ProviderDataSourceTest {
 		
 		sync.ask(provider, new PutDataset(vectorDatasetInfo, records), Ack.class);
 		
-		ActorRef collector = actorSystem.actorOf(Collector.props(), "collector");
-		sync.ask(providerDataSource, new GetDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(collector)), Ack.class);
+		ActorRef sessionInitiator = actorSystem.actorOf(Collector.props(), "session-initiator");		
 		
-		List<?> returnedRecords = sync.ask(collector, new GetMessage(), List.class);
+		ActorRef startImportCollector = actorSystem.actorOf(Collector.props(), "start-import-collector");		
+		ActorRef recordsCollector = actorSystem.actorOf(Collector.props(), "records-collector");		
+		providerDataSource.tell(new GetDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(recordsCollector, startImportCollector)), sessionInitiator);
+		
+		StartImport startImport = sync.ask(startImportCollector, new GetMessage(), StartImport.class);
+		assertEquals(startImport.getInitiator(), sessionInitiator);
+		
+		List<?> returnedRecords = sync.ask(recordsCollector, new GetMessage(), List.class);
 		assertEquals(42, returnedRecords.size());
 	}
 }
