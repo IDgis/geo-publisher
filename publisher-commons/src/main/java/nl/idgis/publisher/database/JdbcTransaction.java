@@ -65,19 +65,21 @@ public abstract class JdbcTransaction extends UntypedActor {
 			getSender().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof Query) {
-			try {				 
+			try {
+				log.debug("executing query");
 				executeQuery((Query)msg);				
 				
 				finish();
-			} catch(SQLException e) {
+			} catch(Exception e) {
 				failure(e);
 			}
 		} else if(msg instanceof StreamingQuery) {
-			try {				 
+			try {	
+				log.debug("executing streaming query");
 				executeQuery((StreamingQuery)msg);				
 				
 				finish();
-			} catch(SQLException e) {
+			} catch(Exception e) {
 				failure(e);
 			}
 		} else {
@@ -85,16 +87,14 @@ public abstract class JdbcTransaction extends UntypedActor {
 		}
 	}
 
-	private void failure(SQLException e) throws SQLException {
+	private void failure(Exception e) throws SQLException {
 		log.error(e, "query failure");
 		
 		getSender().tell(new Failure(e), getSelf());
-		
-		connection.close();
 		getContext().stop(getSelf());
 	}
 	
-public static class Prepared {
+	public static class Prepared {
 		
 		PreparedStatement stmt;
 		
@@ -195,6 +195,8 @@ public static class Prepared {
 		if(!answered) {
 			throw new IllegalStateException("query not answered");
 		}
+		
+		log.debug("query answered");
 		
 		answered = false;
 	}
