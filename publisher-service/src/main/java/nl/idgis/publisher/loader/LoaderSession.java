@@ -4,8 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import nl.idgis.publisher.AbstractSession;
+import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
@@ -20,7 +19,6 @@ import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
-import nl.idgis.publisher.messages.Timeout;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
@@ -29,9 +27,12 @@ import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.dispatch.OnComplete;
 import akka.dispatch.OnSuccess;
@@ -40,7 +41,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.pattern.Patterns;
 
-public class LoaderSession extends AbstractSession {
+public class LoaderSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -63,13 +64,18 @@ public class LoaderSession extends AbstractSession {
 	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
 		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
 	}
+	
+	@Override
+	public final void preStart() throws Exception {
+		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		scheduleTimeout();
-		
 		if(msg instanceof StartImport) {
 			handleStartImport((StartImport)msg);
+		} else if(msg instanceof ReceiveTimeout) {
+			handleTimeout();
 		} else {
 			unhandled(msg);
 		}
@@ -80,8 +86,6 @@ public class LoaderSession extends AbstractSession {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				scheduleTimeout();
-				
 				if(msg instanceof Records) {			 			
 					handleRecords((Records)msg);		
 				} else if(msg instanceof Failure) {
@@ -90,8 +94,8 @@ public class LoaderSession extends AbstractSession {
 					handleEnd((End)msg);
 				} else if(msg instanceof GetProgress) {
 					handleGetProgress((GetProgress)msg);
-				} else if(msg instanceof Timeout) {
-					handleTimeout((Timeout)msg);
+				} else if(msg instanceof ReceiveTimeout) {
+					handleTimeout();
 				} else {
 					unhandled(msg);
 				}
@@ -114,7 +118,7 @@ public class LoaderSession extends AbstractSession {
 		getContext().become(importing());
 	}
 
-	private void handleTimeout(Timeout msg) {
+	private void handleTimeout() {
 		log.debug("timeout while executing job: " + importJob);
 		
 		finalizeSession(JobState.ABORTED);
