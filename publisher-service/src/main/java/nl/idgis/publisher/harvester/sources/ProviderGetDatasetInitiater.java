@@ -59,7 +59,6 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 		} else if(msg instanceof Ack) {
 			log.debug("receiver is ready");
 			
-			sender.tell(new Ack(), getSelf());
 			provider.tell(new GetVectorDataset(request.getId(), request.getColumns(), GET_VECTOR_DATASET_MESSAGE_SIZE), receiver);
 			
 			getContext().stop(getSelf());
