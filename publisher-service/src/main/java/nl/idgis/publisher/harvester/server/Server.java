@@ -14,13 +14,20 @@ import akka.io.Tcp.CommandFailed;
 import akka.io.Tcp.Connected;
 import akka.io.TcpMessage;
 
+import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 public class Server extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
+	
 	private final String harvesterName;
+	
 	private final ActorRef harvester;
+	
 	private final int port;
+	
 	private final Config sslConfig;
 	
 	public Server(String harvesterName, ActorRef harvester, int port, Config sslConfig) {
@@ -47,7 +54,9 @@ public class Server extends UntypedActor {
 			
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
-			ActorRef listener = getContext().actorOf(ServerListener.props(harvesterName, harvester, sslConfig));
+			ActorRef listener = getContext().actorOf(
+					ServerListener.props(harvesterName, harvester, sslConfig),
+					nameGenerator.getName(ServerListener.class));			
 			listener.tell(msg, getSender());
 		} else {
 			unhandled(msg);

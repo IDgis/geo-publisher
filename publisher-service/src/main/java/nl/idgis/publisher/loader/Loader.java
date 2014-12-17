@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.ImportJobInfo;
+
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionFinished;
@@ -17,7 +18,10 @@ import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -32,9 +36,12 @@ public class Loader extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
+	
 	private final ActorRef geometryDatabase, database, harvester;
 	
 	private final Map<ImportJobInfo, ActorRef> sessions;
+	
 	private final Set<String> busyDataSources;
 
 	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
@@ -140,7 +147,9 @@ public class Loader extends UntypedActor {
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
-		getContext().actorOf(LoaderSessionInitiator.props(importJob, getSender(), database, geometryDatabase));
+		getContext().actorOf(
+				LoaderSessionInitiator.props(importJob, getSender(), database, geometryDatabase),
+				nameGenerator.getName(LoaderSessionInitiator.class));
 	}
 	
 }

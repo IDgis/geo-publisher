@@ -15,6 +15,7 @@ public class ProviderClient extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final String harvesterName;
+	
 	private final ActorRef harvester;
 		
 	public ProviderClient(String harvesterName, ActorRef harvester) {
@@ -47,7 +48,7 @@ public class ProviderClient extends UntypedActor {
 		
 		getSender().tell(new Hello(harvesterName), getSelf());
 		
-		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(getSender()));		
+		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(getSender()), msg.getName());		
 		harvester.tell(new DataSourceConnected(msg.getName()), dataSource);
 	}
 }

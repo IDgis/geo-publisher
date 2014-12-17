@@ -7,7 +7,7 @@ import com.typesafe.config.Config;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.Connect;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
-import nl.idgis.publisher.utils.NameGenerator;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -24,7 +24,7 @@ public class Client extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final NameGenerator nameGenerator = new NameGenerator();
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 
 	private final Config config;
 	private final ActorRef app;	
@@ -53,7 +53,7 @@ public class Client extends UntypedActor {
 		} else if (msg instanceof Connected) {
 			log.info("connected");
 			
-			ActorRef listener = getContext().actorOf(ClientListener.props(config), nameGenerator.getName("client-listener"));
+			ActorRef listener = getContext().actorOf(ClientListener.props(config), nameGenerator.getName(ClientListener.class));
 			listener.tell(msg, getSender());
 			
 			getContext().watch(listener);

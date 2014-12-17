@@ -20,13 +20,13 @@ import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.protocol.Column;
 import nl.idgis.publisher.provider.protocol.TableDescription;
-import nl.idgis.publisher.utils.NameGenerator;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class DatabaseTransaction extends JdbcTransaction {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final NameGenerator nameGenerator = new NameGenerator();
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private ActorRef converter;
 
@@ -153,7 +153,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		
 		ActorRef cursor = getContext().actorOf(
 				DatabaseCursor.props(rs, msg.getMessageSize(), converter), 
-				nameGenerator.getName("database-cursor"));
+				nameGenerator.getName(DatabaseCursor.class));
 		
 		answerStreaming(cursor);
 	}
