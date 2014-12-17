@@ -1,6 +1,11 @@
 package nl.idgis.publisher.database;
 
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
+
 import akka.actor.ActorRef;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -32,6 +37,11 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 	protected abstract void started();
 	
 	@Override
+	public final void preStart() throws Exception {
+		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+	}
+	
+	@Override
 	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof TransactionCreated) {
 			log.debug("transaction created");
@@ -42,6 +52,8 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 			started();			
 		} else if(msg instanceof Failure) {
 			failure((Failure)msg);
+		} else if(msg instanceof ReceiveTimeout) {
+			timeout();
 		} else {
 			unhandled(msg);
 		}
@@ -60,6 +72,8 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 					completed();		
 				
 					getContext().stop(getSelf());
+				} else if(msg instanceof ReceiveTimeout) {
+					timeout();
 				} else {
 					unhandled(msg);
 				}
@@ -75,4 +89,10 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 		
 		getContext().stop(getSelf());
 	}	
+	
+	protected void timeout() {
+		log.error("timeout");
+
+		getContext().stop(getSelf());
+	}
 }

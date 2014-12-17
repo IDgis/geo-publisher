@@ -6,6 +6,7 @@ import nl.idgis.publisher.protocol.messages.Failure;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.japi.Procedure;
 
 public class AutoCommit extends AbstractAutoCommit<Query> {
@@ -27,6 +28,8 @@ public class AutoCommit extends AbstractAutoCommit<Query> {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Failure) {
 					failure((Failure)msg);
+				} else if(msg instanceof ReceiveTimeout) {
+					timeout();
 				} else {
 					log.debug("query executed");
 					transaction.tell(new Commit(), getSelf());

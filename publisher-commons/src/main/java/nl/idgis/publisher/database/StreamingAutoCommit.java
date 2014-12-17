@@ -11,6 +11,7 @@ import nl.idgis.publisher.stream.messages.Stop;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.japi.Procedure;
 
 public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
@@ -52,6 +53,8 @@ public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
 					rollback();
 				} else if(msg instanceof Failure) {
 					failure((Failure)msg);
+				} else if(msg instanceof ReceiveTimeout) {
+					timeout();
 				} else {
 					unhandled(msg);
 				}				
