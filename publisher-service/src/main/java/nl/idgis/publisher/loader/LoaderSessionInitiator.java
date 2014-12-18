@@ -246,9 +246,9 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	private void requestDataSource() {
 		final String dataSourceId = importJob.getDataSourceId();		
 		
-		log.debug("fetching dataSource from harvester: " + dataSourceId);			
+		log.debug("fetching dataSource from loader: " + dataSourceId);			
 		getContext().parent().tell(new GetDataSource(dataSourceId), getSelf());
-		become("fetching dataSource from harvester", waitingForDataSource());		
+		become("fetching dataSource from loader", waitingForDataSource());		
 	}
 	
 	private Procedure<Object> waitingForDataSource() {
