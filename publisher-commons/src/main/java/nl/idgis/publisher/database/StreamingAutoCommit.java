@@ -12,6 +12,7 @@ import nl.idgis.publisher.stream.messages.Stop;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.actor.Terminated;
 import akka.japi.Procedure;
 
 public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
@@ -52,9 +53,11 @@ public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
 					
 					rollback();
 				} else if(msg instanceof Failure) {
-					failure((Failure)msg);
+					handleFailure((Failure)msg);
 				} else if(msg instanceof ReceiveTimeout) {
-					timeout();
+					handleTimeout();
+				} else if(msg instanceof Terminated) {
+					handleTerminated((Terminated)msg);
 				} else {
 					unhandled(msg);
 				}				
@@ -96,7 +99,7 @@ public class StreamingAutoCommit extends AbstractAutoCommit<StreamingQuery> {
 	}
 
 	@Override
-	protected void started() {
+	protected void onStarted() {
 		getContext().become(waitingForStreamEnd());
 	}
 	
