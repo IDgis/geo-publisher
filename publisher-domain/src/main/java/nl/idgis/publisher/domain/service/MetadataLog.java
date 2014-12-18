@@ -1,11 +1,12 @@
-package nl.idgis.publisher.domain.job.harvest;
+package nl.idgis.publisher.domain.service;
 
-import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.job.harvest.MetadataField;
+import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class MetadataLog extends HarvestLog {	
+public class MetadataLog extends DatasetLog {	
 
 	private static final long serialVersionUID = -3158211911240379838L;
 	
@@ -14,16 +15,10 @@ public class MetadataLog extends HarvestLog {
 	private final Object value;
 	
 	@JsonCreator
-	public MetadataLog(
-			@JsonProperty("entityType") EntityType entityType,
-			@JsonProperty("identification") String identification,
-			@JsonProperty("title") String title,
-			@JsonProperty("alternateTitle") String alternateTitle,
+	public MetadataLog(			
 			@JsonProperty("field") MetadataField field, 
 			@JsonProperty("error") MetadataLogType error, 
 			@JsonProperty("value") Object value) {
-		
-		super(entityType, identification, title, alternateTitle);
 		
 		this.field = field;
 		this.error = error;

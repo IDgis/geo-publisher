@@ -1,11 +1,9 @@
-package nl.idgis.publisher.domain.job.harvest;
-
-import nl.idgis.publisher.domain.web.EntityType;
+package nl.idgis.publisher.domain.service;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class DatabaseLog extends HarvestLog {
+public class DatabaseLog extends DatasetLog {
 
 	private static final long serialVersionUID = -8247769014457037946L;
 	
@@ -13,13 +11,7 @@ public class DatabaseLog extends HarvestLog {
 
 	@JsonCreator
 	public DatabaseLog(
-			@JsonProperty("entityType") EntityType entityType,
-			@JsonProperty("identification") String identification,
-			@JsonProperty("title") String title,
-			@JsonProperty("alternateTitle") String alternateTitle,
 			@JsonProperty("tableName") String tableName) {
-		
-		super(entityType, identification, title, alternateTitle);
 		
 		this.tableName = tableName;
 	}

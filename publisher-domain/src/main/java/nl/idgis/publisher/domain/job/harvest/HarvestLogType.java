@@ -4,11 +4,6 @@ import nl.idgis.publisher.domain.MessageType;
 
 public enum HarvestLogType implements MessageType<HarvestLog> {
 	
-	METADATA_PARSING_ERROR(MetadataLog.class),
-
-	UNKNOWN_TABLE,
-	TABLE_NOT_FOUND(DatabaseLog.class),
-	
 	REGISTERED,
 	UPDATED;
 	

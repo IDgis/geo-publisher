@@ -7,11 +7,11 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
-import nl.idgis.publisher.domain.job.harvest.MetadataLog;
 import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
-import nl.idgis.publisher.domain.web.EntityType;
+import nl.idgis.publisher.domain.service.DatabaseLog;
+import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.MetadataLog;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
@@ -98,6 +98,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 		} if(msg instanceof TableNotFound) {
 			log.debug("table not found");
 			
+			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog(tableName)));
 			sendUnavailable();
 		} else if(msg instanceof TableDescription) {
 			log.debug("table description");
@@ -143,19 +144,19 @@ public class DatasetInfoBuilder extends UntypedActor {
 			try {
 				title = metadataDocument.getTitle();				
 			} catch(NotFound nf) {
-				addLogItem(MetadataField.TITLE, MetadataLogType.NOT_FOUND, null);
+				addMetadataParsingError(MetadataField.TITLE, MetadataLogType.NOT_FOUND, null);
 			}
 			
 			try {
 				alternateTitle = metadataDocument.getAlternateTitle();				
 			} catch(NotFound nf) {
-				addLogItem(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
+				addMetadataParsingError(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
 			try {
 				revisionDate = metadataDocument.getRevisionDate();				
 			} catch(NotFound nf) {
-				addLogItem(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
+				addMetadataParsingError(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
 			if(logs.isEmpty()) {
@@ -173,6 +174,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 					database.tell(new DescribeTable(tableName), getSelf());
 					database.tell(new PerformCount(tableName), getSelf());
 				} else {
+					logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));					
 					sendUnavailable();
 				}
 			} else {
@@ -183,9 +185,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 		}
 	}
 
-	private void addLogItem(MetadataField field, MetadataLogType error,
-			Object value) {
-		MetadataLog metadataLog = new MetadataLog(EntityType.SOURCE_DATASET, identification, null, null, field, error, value);				
-		logs.add(Log.create(LogLevel.ERROR, HarvestLogType.METADATA_PARSING_ERROR, metadataLog));
+	private void addMetadataParsingError(MetadataField field, MetadataLogType error, Object value) {		
+		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.METADATA_PARSING_ERROR, new MetadataLog(field, error, value)));
 	}
 }
