@@ -2,10 +2,8 @@ package nl.idgis.publisher.loader;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -30,6 +28,8 @@ import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class Loader extends UntypedActor {
 	
+	private static final int MAXIMUM_SESSIONS_PER_DATASOURCE = 1;
+
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
@@ -40,7 +40,7 @@ public class Loader extends UntypedActor {
 	
 	private Map<ActorRef, Progress> progress;
 	
-	private Set<String> busyDataSources;
+	private Map<String, Integer> busyDataSources;
 
 	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
 		this.geometryDatabase = geometryDatabase;
@@ -55,7 +55,7 @@ public class Loader extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		sessions = new HashMap<>();
-		busyDataSources = new HashSet<>();
+		busyDataSources = new HashMap<>();
 		progress = new HashMap<>();
 	}
 
@@ -83,10 +83,27 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleGetDataSource(GetDataSource msg) {
-		if(busyDataSources.contains(msg.getDataSourceId())) {
+		log.debug("get data source");
+		
+		if(isBusy(msg.getDataSourceId())) {
 			getSender().tell(new Busy(), getSelf());
 		} else {
 			harvester.forward(msg, getContext());
+		}
+	}
+
+	private boolean isBusy(String dataSourceId) {
+		if(busyDataSources.containsKey(dataSourceId)) {			
+			if(busyDataSources.get(dataSourceId) < MAXIMUM_SESSIONS_PER_DATASOURCE) {
+				log.debug("more sessions are allowed for data source");
+				return false;
+			} else {
+				log.debug("data source is busy");				
+				return true;
+			}
+		} else {
+			log.debug("data source is not busy");
+			return false;
 		}
 	}
 
@@ -109,7 +126,20 @@ public class Loader extends UntypedActor {
 			log.debug("import job finished: " + importJob);
 			
 			progress.remove(sessions.remove(importJob));
-			busyDataSources.remove(importJob.getDataSourceId());
+			
+			String dataSourceId = importJob.getDataSourceId();
+			if(busyDataSources.containsKey(dataSourceId)) {
+				int currentSessionCount = busyDataSources.get(dataSourceId);
+				if(currentSessionCount == 1) {
+					log.debug("last session for data source finished");					
+					busyDataSources.remove(dataSourceId);
+				} else {
+					log.debug("session for data source finished");
+					busyDataSources.put(dataSourceId, currentSessionCount - 1);
+				}				
+			} else {
+				log.error("data source missing from busy data sources");
+			}
 			
 			getSender().tell(new Ack(), getSelf());
 		} else {
@@ -122,7 +152,17 @@ public class Loader extends UntypedActor {
 		
 		
 		ImportJobInfo job = msg.getImportJob();
-		busyDataSources.add(job.getDataSourceId());
+
+		String dataSourceId = job.getDataSourceId();
+		if(busyDataSources.containsKey(dataSourceId)) {
+			log.debug("additional session for data source started");
+			int currentSessionCount = busyDataSources.get(dataSourceId);
+			busyDataSources.put(dataSourceId, currentSessionCount + 1);
+		} else {
+			log.debug("first session for data source started");
+			busyDataSources.put(dataSourceId, 1);
+		}
+		
 		sessions.put(job, msg.getSession());
 		
 		getSender().tell(new Ack(), getSelf());
