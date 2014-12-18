@@ -7,11 +7,12 @@ import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Stop;
+
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
+
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
@@ -24,14 +25,9 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final T t;
-	private final FiniteDuration timeoutDuration;
 		
-	private Cancellable timeoutCancellable = null;
-	
 	public StreamCursor(T t) {
 		this.t = t;
-		
-		timeoutDuration = Duration.create(30, TimeUnit.SECONDS);
 	}
 	
 	protected abstract boolean hasNext() throws Exception;
@@ -40,22 +36,11 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		scheduleTimeout();
-	}
-	
-	private void scheduleTimeout() {
-		if(timeoutCancellable != null) {
-			timeoutCancellable.cancel();
-		}
-		
-		timeoutCancellable = getContext().system().scheduler().scheduleOnce(timeoutDuration, 
-			getSelf(), new Stop(), getContext().dispatcher(), getSelf());
+		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
-		scheduleTimeout();
-		
 		if (msg instanceof NextItem) {
 			log.debug("next");
 			if(hasNext()) {
@@ -76,19 +61,17 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			} else {
 				log.debug("end");
 				getSender().tell(new End(), getSelf());
-				stop();
+				getContext().stop(getSelf());
 			}
 		} else if (msg instanceof Stop) {
 			log.debug("stopped");
-			stop();
-		} else {
+			getContext().stop(getSelf());
+		} else if (msg instanceof ReceiveTimeout){
+			log.error("timeout");
+			getContext().stop(getSelf());
+		} else {			
 			unhandled(msg);
 		}
-	}
-	
-	private void stop() {
-		timeoutCancellable.cancel();
-		getContext().stop(getSelf());
 	}
 	
 	@SuppressWarnings("unchecked")
