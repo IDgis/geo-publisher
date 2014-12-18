@@ -28,8 +28,6 @@ public class DatabaseTransaction extends JdbcTransaction {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private ActorRef converter;
-
 	public DatabaseTransaction(Connection connection) {
 		super(connection);
 	}
@@ -147,12 +145,8 @@ public class DatabaseTransaction extends JdbcTransaction {
 		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(sb.toString());
 		
-		if(converter == null) {
-			converter = getContext().actorOf(OracleConverter.props(), "converter");
-		}
-		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseCursor.props(rs, msg.getMessageSize(), converter), 
+				DatabaseCursor.props(rs, msg.getMessageSize()), 
 				nameGenerator.getName(DatabaseCursor.class));
 		
 		answerStreaming(cursor);
