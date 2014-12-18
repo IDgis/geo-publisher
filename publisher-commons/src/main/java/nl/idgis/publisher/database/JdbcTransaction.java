@@ -5,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
@@ -23,6 +25,7 @@ import nl.idgis.publisher.utils.TypedList;
 
 import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -32,11 +35,15 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final Duration receiveTimeout = Duration.apply(5, TimeUnit.MINUTES);
+	
 	protected final Connection connection;
 	
 	private boolean answered = false;
 	
-	public JdbcTransaction(Connection connection) {
+	private Set<ActorRef> cursors;
+	
+	protected JdbcTransaction(Connection connection) {
 		this.connection = connection;
 	}
 	
@@ -59,7 +66,9 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+		getContext().setReceiveTimeout(receiveTimeout);
+		
+		cursors = new HashSet<>();
 		
 		transactionPreStart();
 	}
@@ -67,45 +76,81 @@ public abstract class JdbcTransaction extends UntypedActor {
 	@Override
 	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof Commit) {
-			log.debug("committing transaction");
-			
-			connection.commit();
-			
-			getSender().tell(new Ack(), getSelf());
-			getContext().stop(getSelf());
+			handleCommit();
 		} else if(msg instanceof Rollback) {
-			log.debug("rolling back transaction");
-			
-			connection.rollback();
-			
-			getSender().tell(new Ack(), getSelf());
-			getContext().stop(getSelf());
+			handleRollback();
 		} else if(msg instanceof Query) {
-			try {
-				log.debug("executing query");
-				executeQuery((Query)msg);				
-				
-				finish();
-			} catch(Exception e) {
-				failure(e);
-			}
+			handleQuery((Query)msg);
 		} else if(msg instanceof StreamingQuery) {
-			try {	
-				log.debug("executing streaming query");
-				executeQuery((StreamingQuery)msg);				
-				
-				finish();
-			} catch(Exception e) {
-				failure(e);
-			}
+			handleStreamingQuery((StreamingQuery)msg);
 		} else if(msg instanceof ReceiveTimeout) {
-			timeout();
+			handleTimeout();
+		} else if(msg instanceof Terminated) {
+			handleTerminated((Terminated)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
+
+	private void handleTerminated(Terminated msg) {
+		ActorRef actor = msg.getActor();
+		
+		if(cursors.remove(actor)) {
+			log.debug("cursor terminated");
+			
+			if(cursors.isEmpty()) {
+				log.debug("no cursors left");
+				
+				getContext().setReceiveTimeout(receiveTimeout);
+			} else {
+				log.debug("pending cursors");
+			}
+		} else {
+			log.error("unknown actor terminated: " + actor);
+		}
+	}
+
+	private void handleStreamingQuery(StreamingQuery msg) throws SQLException {
+		try {	
+			log.debug("executing streaming query");
+			executeQuery(msg);				
+			
+			finish();
+		} catch(Exception e) {
+			failure(e);
+		}
+	}
+
+	private void handleQuery(Query msg) throws SQLException {
+		try {
+			log.debug("executing query");
+			executeQuery(msg);
+			
+			finish();
+		} catch(Exception e) {
+			failure(e);
+		}
+	}
+
+	private void handleRollback() throws SQLException {
+		log.debug("rolling back transaction");
+		
+		connection.rollback();
+		
+		getSender().tell(new Ack(), getSelf());
+		getContext().stop(getSelf());
+	}
+
+	private void handleCommit() throws SQLException {
+		log.debug("committing transaction");
+		
+		connection.commit();
+		
+		getSender().tell(new Ack(), getSelf());
+		getContext().stop(getSelf());
+	}
 	
-	private void timeout() {
+	private void handleTimeout() {
 		log.error("timeout");
 		
 		getContext().stop(getSelf());
@@ -118,7 +163,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 		getContext().stop(getSelf());
 	}
 	
-	public static class Prepared {
+	protected static class Prepared {
 		
 		PreparedStatement stmt;
 		
@@ -152,19 +197,19 @@ public abstract class JdbcTransaction extends UntypedActor {
 		}
 	}
 	
-	public <T> void answer(Class<T> type, Iterable<T> msg) {
+	protected <T> void answer(Class<T> type, Iterable<T> msg) {
 		answer(new TypedIterable<>(type, msg));
 	}
 	
-	public void answer(TypedIterable<?> msg) {
+	protected void answer(TypedIterable<?> msg) {
 		answer((Object)msg);
 	}
 	
-	public <T> void answer(Class<T> type, List<T> msg) {
+	protected <T> void answer(Class<T> type, List<T> msg) {
 		answer(new TypedList<>(type, msg));
 	}
 	
-	public void answer(TypedList<?> msg) {
+	protected void answer(TypedList<?> msg) {
 		answer((Object)msg);
 	}
 	
@@ -175,7 +220,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 	 * @deprecated use {@link #answer(Class, Iterable)} instead.
 	 */
 	@Deprecated
-	public void answer(Iterable<?> msg) {
+	protected void answer(Iterable<?> msg) {
 		answer((Object)msg);
 	}
 	
@@ -187,13 +232,20 @@ public abstract class JdbcTransaction extends UntypedActor {
 		answered = true;
 	}
 	
-	public void answerStreaming(ActorRef cursor) {
+	protected void answerStreaming(ActorRef cursor) {
+		log.debug("answer streaming");
+		
 		answer();
+		
+		getContext().watch(cursor);
+		cursors.add(cursor);
+		
+		getContext().setReceiveTimeout(Duration.Inf());
 		
 		cursor.tell(new NextItem(), getSender());
 	}
 	
-	public void answer(Object msg) {
+	protected void answer(Object msg) {
 		answer();
 		
 		Object response = msg == null ? new NotFound() : msg;
@@ -201,21 +253,21 @@ public abstract class JdbcTransaction extends UntypedActor {
 		getSender().tell(response, getSelf());		
 	}
 	
-	public void execute(String sql) throws SQLException {
+	protected void execute(String sql) throws SQLException {
 		Statement stmt = connection.createStatement();
 		stmt.execute(sql);
 		stmt.close();
 	}
 	
-	public Prepared prepare(String sql) throws SQLException {
+	protected Prepared prepare(String sql) throws SQLException {
 		return new Prepared(connection.prepareStatement(sql));
 	}
 	
-	public void ack() {
+	protected void ack() {
 		answer(new Ack());
 	}
 	
-	void finish() {
+	private void finish() {
 		if(!answered) {
 			throw new IllegalStateException("query not answered");
 		}
