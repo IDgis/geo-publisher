@@ -17,7 +17,6 @@ import nl.idgis.publisher.domain.service.Column;
 
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.loader.messages.SessionFinished;
-import nl.idgis.publisher.messages.GetProgress;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -46,6 +45,7 @@ public class LoaderSession extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
+	
 	private final ActorRef loader, geometryDatabase, database;
 	
 	private final FilterEvaluator filterEvaluator;
@@ -92,8 +92,6 @@ public class LoaderSession extends UntypedActor {
 					handleFailure((Failure)msg);
 				} else if(msg instanceof End) {						
 					handleEnd((End)msg);
-				} else if(msg instanceof GetProgress) {
-					handleGetProgress((GetProgress)msg);
 				} else if(msg instanceof ReceiveTimeout) {
 					handleTimeout();
 				} else {
@@ -106,7 +104,9 @@ public class LoaderSession extends UntypedActor {
 	private void handleStartImport(StartImport msg) {
 		log.info("starting import");
 		
-		totalCount = msg.getCount();		
+		totalCount = msg.getCount();
+		
+		loader.tell(new Progress(0, totalCount), getSelf());
 		
 		// data source
 		getSender().tell(new Ack(), getSelf());
@@ -123,13 +123,7 @@ public class LoaderSession extends UntypedActor {
 		
 		finalizeSession(JobState.ABORTED);
 	}
-
-	private void handleGetProgress(GetProgress msg) {
-		log.debug("progress requested");
-		
-		getSender().tell(new Progress(insertCount + filteredCount, totalCount), getSelf());		
-	}
-
+	
 	private void handleEnd(final End msg) {
 		log.info("import completed");
 		
@@ -211,6 +205,7 @@ public class LoaderSession extends UntypedActor {
 				public void onSuccess(Iterable<Object> msgs) throws Throwable {
 					log.debug("records processed");
 					
+					loader.tell(new Progress(insertCount + filteredCount, totalCount), getSelf());					
 					sender.tell(new NextItem(), getSelf());
 				}
 				
