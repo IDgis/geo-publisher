@@ -6,6 +6,7 @@ import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -30,11 +31,11 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 		this.target = target;
 	}
 	
-	protected void completed() {
+	protected void onCompleted() {
 		
 	}
 	
-	protected abstract void started();
+	protected abstract void onStarted();
 	
 	@Override
 	public final void preStart() throws Exception {
@@ -49,31 +50,48 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 			transaction = ((TransactionCreated) msg).getActor();
 			transaction.tell(query, getSelf());
 			
-			started();			
+			getContext().watch(transaction);
+			
+			onStarted();			
 		} else if(msg instanceof Failure) {
-			failure((Failure)msg);
+			handleFailure((Failure)msg);
 		} else if(msg instanceof ReceiveTimeout) {
-			timeout();
+			handleTimeout();
+		} else if(msg instanceof Terminated) {
+			handleTerminated((Terminated)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	protected void handleTerminated(Terminated msg) {
+		ActorRef actor = msg.getActor();
+		if(actor.equals(transaction)) {
+			log.warning("transaction terminated");
+			
+			getContext().stop(getSelf());
+		} else {
+			log.error("unknown actor terminated");
+		}
+	}
+
 	protected Procedure<Object> waitingForAck() {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Failure) {
-					failure((Failure)msg);
+					handleFailure((Failure)msg);
 				} else if(msg instanceof Ack) {
 					log.debug("transaction completed");
 					
-					completed();		
+					onCompleted();		
 				
 					getContext().stop(getSelf());
 				} else if(msg instanceof ReceiveTimeout) {
-					timeout();
+					handleTimeout();
+				} else if(msg instanceof Terminated) {
+					handleTerminated((Terminated)msg);
 				} else {
 					unhandled(msg);
 				}
@@ -82,7 +100,7 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 		};
 	}
 
-	protected void failure(Failure msg) {
+	protected void handleFailure(Failure msg) {
 		log.debug("failure");
 		
 		target.tell(msg, getContext().parent());
@@ -90,7 +108,7 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 		getContext().stop(getSelf());
 	}	
 	
-	protected void timeout() {
+	protected void handleTimeout() {
 		log.error("timeout");
 
 		getContext().stop(getSelf());
