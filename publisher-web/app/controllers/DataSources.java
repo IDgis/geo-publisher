@@ -2,7 +2,9 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import models.Domain.Function;
@@ -109,6 +111,33 @@ public class DataSources extends Controller {
 								}
 								
 							});
+				}
+			});
+	}
+	
+	public static Promise<Result> download(final String search, final long page) {
+		System.out.println("Csv Download");
+//		response().setContentType("application/x-download");  
+//		response().setHeader("Content-disposition","attachment; filename=datasource.csv"); 
+//		return ok("col1,col2,col3\nrowa1,rowa2,rowa3");
+
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		String currentDataSource = null; 
+		String currentCategory = null;
+		return from (database)
+			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, null))
+			.execute (new Function<Page<SourceDatasetStats>, Result> () {
+				@Override
+				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {
+					StringBuilder sb = new StringBuilder();
+					sb.append("id, name, category, datasource\n");
+					for (SourceDatasetStats sourceDatasetStat : sourceDatasetStats.values()) {
+						sb.append(sourceDatasetStat.sourceDataset().id() + ","+sourceDatasetStat.sourceDataset().name() + ","+sourceDatasetStat.sourceDataset().category() + ","+sourceDatasetStat.datasetCount() +" \n");
+					}
+					response().setContentType("application/x-download");  
+					response().setHeader("Content-disposition","attachment; filename=datasource.csv"); 
+					return ok(sb.toString());
 				}
 			});
 	}
