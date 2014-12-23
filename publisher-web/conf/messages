@@ -233,6 +233,7 @@ web.application.page.sourcedatasets.list.alert.nosourcedatasets=Er zijn geen bro
 web.application.page.sourcedatasets.list.alert.adapt=Pas de criteria aan of toon 
 web.application.page.sourcedatasets.list.alert.show=alle brongegevens
 web.application.page.sourcedatasets.list.button.newdataset=Nieuwe dataset toevoegen voor deze bron
+web.application.page.sourcedatasets.list.button.download=Download lijst van brongegevens als csv bestand
 web.application.page.sourcedatasets.list.nodatasetcoupled=Er zijn geen gekoppelde datasets.
 web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
 web.application.page.sourcedatasets.list.datasetcoupledparam=Er is {0} dataset gekoppeld.

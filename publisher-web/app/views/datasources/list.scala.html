@@ -144,16 +144,16 @@
 						@Domain.message("web.application.page.sourcedatasets.list.alert.adapt") <a href="@routes.DataSources.list()">@Domain.message("web.application.page.sourcedatasets.list.alert.show")</a>.
 					</div>
 				} else {
-
-			<div class="row">
-				<div class="col-md-10">@helper.pagination(sourceDatasets, pageRef)</div>
-				<div class="col-md-2 text-right">
-					<a class="btn btn-info"
-						href="@routes.DataSources.download(search)"
-						title="@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")">
-						Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span> </a>
-				</div>
-			</div>
+					@* Download button and pagination in same row *@
+					<div class="row">
+						<div class="col-md-10">@helper.pagination(sourceDatasets, pageRef)</div>
+						<div class="col-md-2 text-right">
+							<a class="btn btn-info"
+								href="@routes.DataSources.download(search)"
+								title="@Domain.message("web.application.page.sourcedatasets.list.button.download")">
+								Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span> </a>
+						</div>
+					</div>
 
 					<div class="list-group">
 						@for(dataset <- sourceDatasets.values) {
@@ -180,7 +180,7 @@
 										</p>
 									</div>
 									<div class="col-md-2 text-right">
-										<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title=@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")><span class="glyphicon glyphicon-plus"></span></a>
+										<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")"><span class="glyphicon glyphicon-plus"></span></a>
 									</div>
 								</div>
 							</div>
