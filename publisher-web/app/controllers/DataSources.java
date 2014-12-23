@@ -115,11 +115,15 @@ public class DataSources extends Controller {
 			});
 	}
 	
-	public static Promise<Result> download(final String search, final long page) {
-		System.out.println("Csv Download");
-//		response().setContentType("application/x-download");  
-//		response().setHeader("Content-disposition","attachment; filename=datasource.csv"); 
-//		return ok("col1,col2,col3\nrowa1,rowa2,rowa3");
+	/**
+	 * Make a csv file for download. contains information about source datasets. <br>
+	 * Comma separated, double quotes around values, encoded to iso-8859-1. 
+	 * @param search select source datasets that match search string in their name.
+	 * If empty select all sourcedatasets.
+	 * @return
+	 */
+	public static Promise<Result> download(final String search) {
+		final String encoding = "iso-8859-1";
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -131,13 +135,13 @@ public class DataSources extends Controller {
 				@Override
 				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {
 					StringBuilder sb = new StringBuilder();
-					sb.append("id, name, category, datasource\n");
+					sb.append("\"id\", \"name\", \"category\", \"datasets\"\n");
 					for (SourceDatasetStats sourceDatasetStat : sourceDatasetStats.values()) {
-						sb.append(sourceDatasetStat.sourceDataset().id() + ","+sourceDatasetStat.sourceDataset().name() + ","+sourceDatasetStat.sourceDataset().category() + ","+sourceDatasetStat.datasetCount() +" \n");
+						sb.append("\"" + sourceDatasetStat.sourceDataset().id() + "\",\""+sourceDatasetStat.sourceDataset().name() + "\",\""+sourceDatasetStat.sourceDataset().category().name() + "\",\""+sourceDatasetStat.datasetCount() +"\" \n");
 					}
-					response().setContentType("application/x-download");  
+					response().setContentType("application/x-download; charset=" + encoding);  
 					response().setHeader("Content-disposition","attachment; filename=datasource.csv"); 
-					return ok(sb.toString());
+					return ok(sb.toString(), encoding);
 				}
 			});
 	}

@@ -24,7 +24,7 @@ POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datas
 POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setNotificationResult(datasetId: String, notificationId: String)
 
 # Datasources
-GET		/datasources/download							controllers.DataSources.download(searchString: String ?="", page: Long ?= 1)
+GET		/datasources/download							controllers.DataSources.download(searchString: String ?="")
 # http://localhost:9000/datasources/searching?searchString=gevonden
 GET		/datasources/searching							controllers.DataSources.search(searchString: String ?="", page: Long ?= 1)
 GET		/datasources									controllers.DataSources.list(searchString: String ?="", page: Long ?= 1)
