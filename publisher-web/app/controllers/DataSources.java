@@ -124,6 +124,7 @@ public class DataSources extends Controller {
 	 */
 	public static Promise<Result> download(final String search) {
 		final String encoding = "iso-8859-1";
+		final String filename = "sourcedatasets.csv";
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -140,7 +141,7 @@ public class DataSources extends Controller {
 						sb.append("\"" + sourceDatasetStat.sourceDataset().id() + "\",\""+sourceDatasetStat.sourceDataset().name() + "\",\""+sourceDatasetStat.sourceDataset().category().name() + "\",\""+sourceDatasetStat.datasetCount() +"\" \n");
 					}
 					response().setContentType("application/x-download; charset=" + encoding);  
-					response().setHeader("Content-disposition","attachment; filename=datasource.csv"); 
+					response().setHeader("Content-disposition","attachment; filename=" + filename); 
 					return ok(sb.toString(), encoding);
 				}
 			});
