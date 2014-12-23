@@ -17,7 +17,7 @@ import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-public class DatabaseRef {
+public class AsyncDatabaseHelper {
 	
 	private final LoggingAdapter log;
 
@@ -27,7 +27,7 @@ public class DatabaseRef {
 	
 	private final ExecutionContext executionContext;
 	
-	public DatabaseRef(ActorRef actor, Timeout timeout, ExecutionContext executionContext, LoggingAdapter log) {
+	public AsyncDatabaseHelper(ActorRef actor, Timeout timeout, ExecutionContext executionContext, LoggingAdapter log) {
 		this.actor = actor;
 		this.timeout = timeout;
 		this.executionContext = executionContext;

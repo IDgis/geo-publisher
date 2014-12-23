@@ -25,7 +25,7 @@ import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
 import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
@@ -73,12 +73,14 @@ public class JobManager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final DatabaseRef database;
+	private final ActorRef database;
 	
 	private final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 	
+	private AsyncDatabaseHelper async;
+	
 	public JobManager(ActorRef database) {
-		this.database = new DatabaseRef(database, timeout, getContext().dispatcher(), log);	
+		this.database = database;
 	}
 	
 	public static Props props(ActorRef database) {
@@ -92,7 +94,7 @@ public class JobManager extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		
+		async = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
 	}
 
 	@Override
@@ -125,7 +127,7 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
 
 			@Override
 			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
@@ -254,7 +256,7 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
 
 			@Override
 			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
@@ -298,7 +300,7 @@ public class JobManager extends UntypedActor {
 	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
 
 			@Override
 			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {				
@@ -368,7 +370,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching service jobs");
 		
 		return
-			database.query().from(serviceJob)
+			async.query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
 				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
@@ -385,7 +387,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching import jobs");
 		
 		return
-			database.transactional(new Function<TransactionHandler, Future<TypedList<ImportJobInfo>>>() {
+			async.transactional(new Function<TransactionHandler, Future<TypedList<ImportJobInfo>>>() {
 	
 				@Override
 				public Future<TypedList<ImportJobInfo>> apply(TransactionHandler transaction) throws Exception {
@@ -517,7 +519,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching harvest jobs");
 
 		return
-			database.query().from(job)
+			async.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.orderBy(job.createTime.asc())

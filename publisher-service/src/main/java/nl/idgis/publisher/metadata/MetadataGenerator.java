@@ -29,7 +29,7 @@ import scala.concurrent.Future;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
-import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -67,7 +67,7 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private final ActorRef service, harvester;
 	
-	private final DatabaseRef database;
+	private final AsyncDatabaseHelper database;
 	
 	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
@@ -76,7 +76,7 @@ public class MetadataGenerator extends UntypedActor {
 	private FutureUtils f;
 	
 	public MetadataGenerator(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		this.database = new DatabaseRef(database, Timeout.apply(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
+		this.database = new AsyncDatabaseHelper(database, Timeout.apply(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
 		this.service = service;
 		this.harvester = harvester;
 		this.serviceMetadataSource = serviceMetadataSource;
