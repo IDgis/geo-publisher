@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
-import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
@@ -127,10 +127,10 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
+			public Future<Ack> apply(final AsyncHelper transaction) throws Exception {
 				return transaction.query().from(job)
 					.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
@@ -166,7 +166,7 @@ public class JobManager extends UntypedActor {
 		});
 	}
 	
-	private Future<Long> createServiceJob(final TransactionHandler transaction, final String datasetId) {
+	private Future<Long> createServiceJob(final AsyncHelper transaction, final String datasetId) {
 		return createJobForDataset(transaction, datasetId)		
 			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
@@ -188,7 +188,7 @@ public class JobManager extends UntypedActor {
 			.returnValue();
 	}
 	
-	private Future<Long> createImportJob(final TransactionHandler transaction, final String datasetId) {
+	private Future<Long> createImportJob(final AsyncHelper transaction, final String datasetId) {
 		return createJobForDataset(transaction, datasetId)		
 			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 	
@@ -237,7 +237,7 @@ public class JobManager extends UntypedActor {
 			.returnValue();
 	}
 
-	private Collector2<Integer, Integer> createJobForDataset(final TransactionHandler transaction, final String datasetId) {
+	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper transaction, final String datasetId) {
 		return 
 			transaction.collect(
 				transaction.insert(job)
@@ -256,10 +256,10 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
+			public Future<Ack> apply(final AsyncHelper transaction) throws Exception {
 				return transaction.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -300,10 +300,10 @@ public class JobManager extends UntypedActor {
 	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return async.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return async.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {				
+			public Future<Ack> apply(final AsyncHelper transaction) throws Exception {				
 				return transaction.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
@@ -387,10 +387,10 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching import jobs");
 		
 		return
-			async.transactional(new Function<TransactionHandler, Future<TypedList<ImportJobInfo>>>() {
+			async.transactional(new Function<AsyncHelper, Future<TypedList<ImportJobInfo>>>() {
 	
 				@Override
-				public Future<TypedList<ImportJobInfo>> apply(TransactionHandler transaction) throws Exception {
+				public Future<TypedList<ImportJobInfo>> apply(AsyncHelper transaction) throws Exception {
 					AsyncSQLQuery query = transaction.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))

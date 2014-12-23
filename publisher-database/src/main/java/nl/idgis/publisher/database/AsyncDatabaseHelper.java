@@ -1,8 +1,5 @@
 package nl.idgis.publisher.database;
 
-import com.mysema.query.sql.RelationalPath;
-
-import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -17,68 +14,60 @@ import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-public class AsyncDatabaseHelper {
+public class AsyncDatabaseHelper extends AbstractAsyncHelper {
 	
-	private final LoggingAdapter log;
-
-	private final ActorRef actor;
-	
-	private final Timeout timeout;
-	
-	private final ExecutionContext executionContext;
-	
-	public AsyncDatabaseHelper(ActorRef actor, Timeout timeout, ExecutionContext executionContext, LoggingAdapter log) {
-		this.actor = actor;
-		this.timeout = timeout;
-		this.executionContext = executionContext;
-		this.log = log;
+	public AsyncDatabaseHelper(ActorRef database, Timeout timeout, ExecutionContext executionContext, LoggingAdapter log) {
+		super(database, timeout, executionContext, log);
 	}
 	
-	public <T> Future<T> transactional(final Function<TransactionHandler, Future<T>> handler) {
+	public <T> Future<T> transactional(final Function<AsyncHelper, Future<T>> handler) {
+		return transaction().flatMap(new Mapper<AsyncTransactionHelper, Future<T>>() {
+			
+			public Future<T> checkedApply(final AsyncTransactionHelper tx) throws Exception {
+				try {
+					return handler.apply(tx).flatMap(new Mapper<T, Future<T>>() {
+						
+						public Future<T> checkedApply(final T t) throws Exception {
+							return tx.commit().map(new Mapper<Ack, T>() {
+								
+								@Override
+								public T apply(Ack msg) {
+									return t;
+								}
+								
+							}, executionContext);
+						}
+						
+					}, executionContext);
+				} catch(final Exception e) {
+					return tx.rollback().map(new Mapper<Ack, T>() {
+						
+						@Override
+						public T checkedApply(Ack msg) throws Exception {
+							throw e;
+						}
+						
+					}, executionContext);
+				}
+			}
+			
+		}, executionContext);
+	}
+	
+	public Future<AsyncTransactionHelper> transaction() {
 		return Patterns.ask(actor, new StartTransaction(), timeout)
-			.flatMap(new Mapper<Object, Future<T>>() {
-
+			.map(new Mapper<Object, AsyncTransactionHelper>() {
+				
 				@Override
-				public Future<T> checkedApply(Object msg) throws Exception {
+				public AsyncTransactionHelper checkedApply(Object msg) throws Exception {
 					if(msg instanceof TransactionCreated) {
 						log.debug("transaction created");
-						
-						final ActorRef transaction = ((TransactionCreated)msg).getActor();
-						return handler.apply(new TransactionHandler(transaction, timeout, executionContext)).flatMap(new Mapper<T, Future<T>>() {
-							
-							public Future<T> checkedApply(final T result) {
-								log.debug("query result obtained");
-								
-								return Patterns.ask(transaction, new Commit(), timeout)
-									.map(new Mapper<Object, T>() {
-										
-										public T checkedApply(Object msg) throws Exception {
-											if(msg instanceof Ack) {
-												log.debug("committed");
-												
-												return result;
-											} else {
-												log.debug("commit failed");
-												
-												throw new IllegalStateException("commit failed");
-											}
-										}
-										
-									}, executionContext);
-							}
-						}, executionContext);
+					
+						return new AsyncTransactionHelper(((TransactionCreated)msg).getActor(), timeout, executionContext, log);
 					} else {
 						throw new IllegalArgumentException("TransactionCreated expected");
 					}
-				}				
-			}, executionContext);			
+				}
+			}, executionContext);
 	}
-	
-	public AsyncSQLQuery query() {
-		return new AsyncSQLQuery(actor, timeout, executionContext);
-	}
-	
-	public AsyncSQLInsertClause insert(RelationalPath<?> entity) {
-		return new AsyncSQLInsertClause(actor, timeout, executionContext, entity);
-	}	
 }
