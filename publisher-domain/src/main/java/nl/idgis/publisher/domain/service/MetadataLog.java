@@ -6,12 +6,14 @@ import nl.idgis.publisher.domain.job.harvest.MetadataLogType;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class MetadataLog extends DatasetLog {	
-
-	private static final long serialVersionUID = -3158211911240379838L;
+public class MetadataLog extends DatasetLog {
+	
+	private static final long serialVersionUID = -6645875994758972485L;
 	
 	private final MetadataField field;
+	
 	private final MetadataLogType error;
+	
 	private final Object value;
 	
 	@JsonCreator
@@ -39,11 +41,8 @@ public class MetadataLog extends DatasetLog {
 
 	@Override
 	public String toString() {
-		return "MetadataParsingError [identification=" + getIdentification ()
-				+ ", field=" + field + ", error=" + error + ", value=" + value
-				+ "]";
-	}
-
-	
+		return "MetadataLog [field=" + field + ", error=" + error + ", value="
+				+ value + "]";
+	}	
 	
 }

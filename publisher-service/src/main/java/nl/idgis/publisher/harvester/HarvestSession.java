@@ -10,13 +10,13 @@ import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 
+import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
-import nl.idgis.publisher.domain.web.EntityType;
 
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;

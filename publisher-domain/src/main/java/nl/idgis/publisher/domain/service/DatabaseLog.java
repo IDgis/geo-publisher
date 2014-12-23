@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class DatabaseLog extends DatasetLog {
 
-	private static final long serialVersionUID = -8247769014457037946L;
+	private static final long serialVersionUID = 8126046350738527476L;
 	
 	private final String tableName;
 
@@ -22,8 +22,7 @@ public class DatabaseLog extends DatasetLog {
 
 	@Override
 	public String toString() {
-		return "DatabaseTableName [tableName=" + tableName
-				+ ", identification=" + getIdentification () + "]";
-	}
+		return "DatabaseLog [tableName=" + tableName + "]";
+	}	
 
 }

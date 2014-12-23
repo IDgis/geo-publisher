@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import nl.idgis.publisher.domain.EntityType;
+
 public final class EntityRef extends Entity {
 
 	private static final long serialVersionUID = -7795092129566328698L;

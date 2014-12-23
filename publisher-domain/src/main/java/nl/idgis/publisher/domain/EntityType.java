@@ -1,4 +1,4 @@
-package nl.idgis.publisher.domain.web;
+package nl.idgis.publisher.domain;
 
 public enum EntityType {
 	SOURCE_DATASET,

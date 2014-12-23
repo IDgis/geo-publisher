@@ -6,8 +6,8 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.web.EntityType;
 
 public final class MissingColumnsLog extends ImportLog {
 

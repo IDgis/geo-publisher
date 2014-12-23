@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 
 import nl.idgis.publisher.domain.StatusType;
+import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -11,7 +12,6 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.EntityRef;
-import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;

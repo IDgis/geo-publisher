@@ -1,14 +1,11 @@
-package nl.idgis.publisher.domain.web;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+package nl.idgis.publisher.domain.job;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
 
-public final class DefaultMessageProperties implements MessageProperties {
-	
-	private static final long serialVersionUID = 240068555815262512L;
+public abstract class JobMessageProperties implements MessageProperties {
+
+	private static final long serialVersionUID = -6116580247012880108L;
 
 	private final EntityType entityType;
 	
@@ -16,9 +13,7 @@ public final class DefaultMessageProperties implements MessageProperties {
 	
 	private final String title;
 	
-	@JsonCreator
-	public DefaultMessageProperties(@JsonProperty("entityType") EntityType entityType,
-			@JsonProperty("identification") String identification, @JsonProperty("title") String title) {
+	public JobMessageProperties(EntityType entityType, String identification, String title) {
 	
 		this.entityType = entityType;
 		this.identification = identification;
@@ -39,5 +34,4 @@ public final class DefaultMessageProperties implements MessageProperties {
 	public String getTitle () {
 		return title;
 	}
-
 }
