@@ -3,9 +3,12 @@ package nl.idgis.publisher.database;
 import java.util.Iterator;
 
 import nl.idgis.publisher.database.messages.PerformQuery;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.TypedList;
+
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
 import akka.pattern.Patterns;
@@ -20,9 +23,11 @@ import com.mysema.query.types.Expression;
 import com.mysema.query.types.template.NumberTemplate;
 
 public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implements Async {
+		
+	private final ActorRef database;
 	
-	private final ActorRef database;	
 	private final Timeout timeout;
+	
 	private final ExecutionContext executionContext; 
 	
 	public AsyncSQLQuery(ActorRef database, Timeout timeout, ExecutionContext executionContext) {
@@ -51,7 +56,11 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 				
 				@Override
 				@SuppressWarnings("unchecked")
-				public TypedList<Tuple> apply(Object parameter) {
+				public TypedList<Tuple> checkedApply(Object parameter) throws Throwable {
+					if(parameter instanceof Failure) {
+						throw ((Failure) parameter).getCause();
+					}
+					
 					return (TypedList<Tuple>)parameter;
 				}
 				
@@ -67,7 +76,11 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 				
 				@Override
 				@SuppressWarnings("unchecked")
-				public TypedList<RT> apply(Object parameter) {
+				public TypedList<RT> checkedApply(Object parameter) throws Throwable {
+					if(parameter instanceof Failure) {
+						throw ((Failure) parameter).getCause();
+					}
+					
 					return (TypedList<RT>)parameter;
 				}
 				
