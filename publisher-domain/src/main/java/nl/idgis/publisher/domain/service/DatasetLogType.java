@@ -11,10 +11,10 @@ public enum DatasetLogType implements MessageType<DatasetLog<?>> {
 	
 	@SuppressWarnings("unchecked")
 	private DatasetLogType() {
-		this((Class<? extends DatasetLog<?>>)DatasetLog.class);
-	}
+		this(DatasetLog.class);
+	}	
 	
-	private DatasetLogType(Class<? extends DatasetLog<?>> contentClass) {
+	private <T extends DatasetLog<T>> DatasetLogType(Class<T> contentClass) {
 		this.contentClass = contentClass;
 	}
 	
