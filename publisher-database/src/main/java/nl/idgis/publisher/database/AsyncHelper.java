@@ -11,6 +11,8 @@ public interface AsyncHelper {
 	AsyncSQLQuery query();
 	
 	AsyncSQLInsertClause insert(RelationalPath<?> entity);
+	
+	AsyncSQLUpdateClause update(RelationalPath<?> entity);
 
 	<T> Collector1<T> collect(Future<T> future);
 }

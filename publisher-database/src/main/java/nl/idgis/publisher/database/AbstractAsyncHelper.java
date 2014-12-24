@@ -40,6 +40,11 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	}
 	
 	@Override
+	public final AsyncSQLUpdateClause update(RelationalPath<?> entity) {
+		return new AsyncSQLUpdateClause(actor, timeout, executionContext, entity);
+	}
+	
+	@Override
 	public <T> Collector1<T> collect(Future<T> future) {
 		return new FutureUtils(executionContext).collect(future);
 	}
