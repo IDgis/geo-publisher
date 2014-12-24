@@ -2,42 +2,39 @@ package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Set;
 
-public class Dataset implements Serializable {
+import nl.idgis.publisher.domain.Log;
 
-	private static final long serialVersionUID = -6901956185305992907L;
+public abstract class Dataset implements Serializable {
+
+	private static final long serialVersionUID = 8936394880173140827L;
+
+	protected final String id;
 	
-	private final String id, categoryId;	
-	private final Table table;
-	private final Date revisionDate;
+	protected final String categoryId;
 	
-	public Dataset(String id, String categoryId, Table table, Date revisionDate) {
+	protected final Date revisionDate;
+	
+	protected final Set<Log> logs;
+	
+	Dataset(String id, String categoryId, Date revisionDate, Set<Log> logs) {
 		this.id = id;
 		this.categoryId = categoryId;
-		this.table = table;
 		this.revisionDate = revisionDate;
+		this.logs = logs;
 	}
 
 	public String getId() {
 		return id;
 	}
-	
+
 	public String getCategoryId() {
 		return categoryId;
 	}
 
-	public Table getTable() {
-		return table;
-	}
-	
 	public Date getRevisionDate() {
 		return revisionDate;
-	}
-
-	@Override
-	public String toString() {
-		return "Dataset [id=" + id + ", categoryId=" + categoryId + ", table="
-				+ table + ", revisionDate=" + revisionDate + "]";
 	}
 
 	@Override
@@ -47,9 +44,9 @@ public class Dataset implements Serializable {
 		result = prime * result
 				+ ((categoryId == null) ? 0 : categoryId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((logs == null) ? 0 : logs.hashCode());
 		result = prime * result
 				+ ((revisionDate == null) ? 0 : revisionDate.hashCode());
-		result = prime * result + ((table == null) ? 0 : table.hashCode());
 		return result;
 	}
 
@@ -72,16 +69,17 @@ public class Dataset implements Serializable {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (logs == null) {
+			if (other.logs != null)
+				return false;
+		} else if (!logs.equals(other.logs))
+			return false;
 		if (revisionDate == null) {
 			if (other.revisionDate != null)
 				return false;
 		} else if (!revisionDate.equals(other.revisionDate))
 			return false;
-		if (table == null) {
-			if (other.table != null)
-				return false;
-		} else if (!table.equals(other.table))
-			return false;
 		return true;
-	}
+	}	
+
 }

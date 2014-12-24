@@ -1,6 +1,7 @@
 package nl.idgis.publisher.harvester.sources;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,19 +12,21 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.UnavailableDataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.Column;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
 import nl.idgis.publisher.stream.messages.Item;
-import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Start;
 
 public class ProviderDatasetConverter extends StreamConverter {
@@ -55,23 +58,36 @@ public class ProviderDatasetConverter extends StreamConverter {
 	@Override
 	protected void convert(Item msg, ActorRef sender) throws Exception {
 		if(msg instanceof DatasetInfo) {
-			if(msg instanceof VectorDatasetInfo) {
-				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)msg;
+			DatasetInfo datasetInfo = (DatasetInfo)msg;
+			
+			String identification = datasetInfo.getIdentification();
+			String title = datasetInfo.getTitle();
+			String categoryId = datasetInfo.getCategoryId();			
+			Date revisionDate = datasetInfo.getRevisionDate();
+			Set<Log> logs = datasetInfo.getLogs();
+			
+			final Dataset dataset;
+			if(datasetInfo instanceof VectorDatasetInfo) {
+				log.debug("vector dataset info");
 				
-				List<nl.idgis.publisher.domain.service.Column> columns = new ArrayList<>();
-				TableDescription tableDescription = vectorDatasetInfo.getTableDescription();
-				for(Column column : tableDescription.getColumns()) {
-					columns.add(new nl.idgis.publisher.domain.service.Column(column.getName(), column.getType()));
+				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;
+				
+				List<Column> columns = new ArrayList<>();
+				TableInfo tableInfo = vectorDatasetInfo.getTableInfo();
+				for(ColumnInfo column : tableInfo.getColumns()) {
+					columns.add(new Column(column.getName(), column.getType()));
 				}
 				
-				sender.tell(new Dataset(vectorDatasetInfo.getIdentification(), vectorDatasetInfo.getCategoryId(), new Table(vectorDatasetInfo.getTitle(), columns), vectorDatasetInfo.getRevisionDate()), getSelf());
-			} else { // Unhandled DatasetInfo type, ask for the next one
-				for(Log logItem : ((DatasetInfo) msg).getLogs()) {
-					log.debug(logItem.toString());
-				}
+				Table table = new Table(title, columns);
 				
-				getSender().tell(new NextItem(), getSelf());
+				dataset = new VectorDataset(identification, categoryId, revisionDate, logs, table);
+			} else { 
+				log.debug("unhandled dataset info type");
+				
+				dataset = new UnavailableDataset(identification, categoryId, revisionDate, logs);
 			}
+			
+			sender.tell(dataset, getSelf());			
 		} else {
 			unhandled(msg);
 		}

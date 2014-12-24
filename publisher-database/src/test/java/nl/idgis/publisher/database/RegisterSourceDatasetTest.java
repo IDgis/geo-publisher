@@ -4,7 +4,6 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -17,7 +16,7 @@ import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.Updated;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 
 import org.junit.Test;
 
@@ -61,14 +60,14 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 			sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)), Registered.class);
 		}
 		
-		Dataset dataset = createTestDataset();		
+		VectorDataset dataset = createTestDataset();		
 		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
 		
 		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
-		Dataset updatedDataset = createTestDataset();
+		VectorDataset updatedDataset = createTestDataset();
 		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
 		
 		assertEquals(2,

@@ -17,7 +17,7 @@ public class VectorDatasetInfo extends DatasetInfo {
 
 	private final String tableName;
 
-	private final TableDescription tableDescription;
+	private final TableInfo tableInfo;
 	
 	private final long numberOfRecords;
 
@@ -29,16 +29,16 @@ public class VectorDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
-	 * @parem tableName name of the table.
-	 * @param tableDescription table description of the dataset.
+	 * @param tableName name of the table.
+	 * @param tableInfo table description of the dataset.
 	 * @param numberOfRecords the number of records.
 	 */
 	public VectorDatasetInfo(String identification, String title, String categoryId, Date revisionDate, Set<Attachment> attachments, 
-		Set<Log> logs, String tableName, TableDescription tableDescription, long numberOfRecords) {		
+		Set<Log> logs, String tableName, TableInfo tableInfo, long numberOfRecords) {		
 		super(identification, title, categoryId, revisionDate, attachments, logs);
 		
 		this.tableName = tableName;
-		this.tableDescription = tableDescription;
+		this.tableInfo = tableInfo;
 		this.numberOfRecords = numberOfRecords;
 	}
 	
@@ -54,8 +54,8 @@ public class VectorDatasetInfo extends DatasetInfo {
 	 * 
 	 * @return table description
 	 */
-	public TableDescription getTableDescription() {
-		return tableDescription;
+	public TableInfo getTableInfo() {
+		return tableInfo;
 	}	
 	
 	/**
@@ -69,7 +69,7 @@ public class VectorDatasetInfo extends DatasetInfo {
 	@Override
 	public String toString() {
 		return "VectorDatasetInfo [tableName=" + tableName
-				+ ", tableDescription=" + tableDescription
+				+ ", tableInfo=" + tableInfo
 				+ ", numberOfRecords=" + numberOfRecords + ", identification="
 				+ identification + ", title=" + title + ", categoryId="
 				+ categoryId + "]";

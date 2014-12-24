@@ -4,20 +4,20 @@ import java.io.Serializable;
 import java.util.List;
 
 import nl.idgis.publisher.provider.protocol.Record;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 
 public class PutTable implements Serializable {
 
-	private static final long serialVersionUID = -7637942156916989354L;
+	private static final long serialVersionUID = -1961423539738228564L;
 
 	private final String tableName;
 	
-	private final TableDescription tableDescription;
+	private final TableInfo tableInfo;
 	private final List<Record> records;
 	
-	public PutTable(String tableName, TableDescription tableDescription, List<Record> records) {
+	public PutTable(String tableName, TableInfo tableInfo, List<Record> records) {
 		this.tableName = tableName;
-		this.tableDescription = tableDescription;		
+		this.tableInfo = tableInfo;		
 		this.records = records;
 	}
 
@@ -25,8 +25,8 @@ public class PutTable implements Serializable {
 		return tableName;
 	}
 
-	public TableDescription getTableDescription() {
-		return tableDescription;
+	public TableInfo getTableInfo() {
+		return tableInfo;
 	}
 	
 	public List<Record> getRecords() {
@@ -35,7 +35,7 @@ public class PutTable implements Serializable {
 
 	@Override
 	public String toString() {
-		return "PutTable [tableName=" + tableName + ", tableDescription="
-				+ tableDescription + ", records=" + records + "]";
+		return "PutTable [tableName=" + tableName + ", tableInfo="
+				+ tableInfo + ", records=" + records + "]";
 	}	
 }

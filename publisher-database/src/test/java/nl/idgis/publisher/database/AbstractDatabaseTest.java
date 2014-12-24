@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -19,10 +20,11 @@ import scala.concurrent.ExecutionContext;
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
@@ -159,7 +161,7 @@ public abstract class AbstractDatabaseTest {
 	protected void insertDataset(String datasetId) throws Exception {
 		insertDataSource();
 		
-		Dataset testDataset = createTestDataset();
+		VectorDataset testDataset = createTestDataset();
 		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		Table testTable = testDataset.getTable();
@@ -175,11 +177,11 @@ public abstract class AbstractDatabaseTest {
 		return insertDataSource("testDataSource");
 	}
 	
-	protected Dataset createTestDataset() {
+	protected VectorDataset createTestDataset() {
 		return createTestDataset("testSourceDataset");
 	}
 
-	protected Dataset createTestDataset(String id) {
+	protected VectorDataset createTestDataset(String id) {
 		List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
@@ -187,7 +189,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new Dataset(id, "testCategory", table, revision);		
+		return new VectorDataset(id, "testCategory", revision, Collections.<Log>emptySet(), table);		
 	}
 	
 	protected ExecutionContext dispatcher() {

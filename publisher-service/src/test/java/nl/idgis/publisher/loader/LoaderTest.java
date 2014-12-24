@@ -10,6 +10,7 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +46,7 @@ import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -55,7 +57,7 @@ import nl.idgis.publisher.domain.job.load.ImportLogType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.web.Filter;
@@ -387,7 +389,7 @@ public class LoaderTest extends AbstractServiceTest {
 	public void testAddColumnsChangedNotification() throws Exception {
 		insertDataSource();		
 		
-		Dataset testDataset = createTestDataset();
+		VectorDataset testDataset = createTestDataset();
 		Table testTable = testDataset.getTable();
 		List<Column> testColumns = testTable.getColumns();
 		
@@ -406,11 +408,12 @@ public class LoaderTest extends AbstractServiceTest {
 		Table updatedTable = new Table(
 				testTable.getName(), 
 				Arrays.asList(testColumns.get(0)));		
-		Dataset updatedDataset = new Dataset(
+		VectorDataset updatedDataset = new VectorDataset(
 				testDataset.getId(),
-				testDataset.getCategoryId(),
-				updatedTable,
-				testDataset.getRevisionDate());
+				testDataset.getCategoryId(),				
+				testDataset.getRevisionDate(),
+				Collections.<Log>emptySet(),
+				updatedTable);
 		
 		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
 		sync.ask(jobManager, new CreateImportJob("testDataset"));

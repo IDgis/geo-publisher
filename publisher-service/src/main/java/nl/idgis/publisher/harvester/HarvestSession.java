@@ -16,7 +16,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -57,8 +57,8 @@ public class HarvestSession extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
 			handleTimeout();
-		} else if(msg instanceof Dataset) {
-			handleDataset((Dataset)msg);			
+		} else if(msg instanceof VectorDataset) {
+			handleVectorDataset((VectorDataset)msg);			
 		} else if(msg instanceof End) {
 			handleEnd();
 		} else if(msg instanceof Log) {
@@ -95,7 +95,7 @@ public class HarvestSession extends UntypedActor {
 			}, getContext().dispatcher());
 	}
 
-	private void handleDataset(final Dataset dataset) {
+	private void handleVectorDataset(final VectorDataset dataset) {
 		log.debug("dataset received");
 		
 		String dataSourceId = harvestJob.getDataSourceId();

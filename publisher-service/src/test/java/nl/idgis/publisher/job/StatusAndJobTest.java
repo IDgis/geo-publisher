@@ -16,7 +16,7 @@ import nl.idgis.publisher.database.messages.Registered;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.job.messages.CreateHarvestJob;
@@ -91,7 +91,7 @@ public class StatusAndJobTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		Dataset dataset = createTestDataset();
+		VectorDataset dataset = createTestDataset();
 		Object result = sync.ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		assertEquals(Registered.class, result.getClass());
 		

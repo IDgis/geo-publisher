@@ -97,6 +97,8 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.VectorDataset;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -1031,7 +1033,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private void executeRegisterSourceDataset(RegisterSourceDataset rsd) {
 		log.debug("registering source dataset: " + rsd);
 		
-		Dataset dataset = rsd.getDataset();
+		VectorDataset dataset = rsd.getDataset();
 		Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		Table table = dataset.getTable();
 		
