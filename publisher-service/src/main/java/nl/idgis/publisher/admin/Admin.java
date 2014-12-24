@@ -642,8 +642,8 @@ public class Admin extends UntypedActor {
 				.singleResult(new QCategory(category.identification, category.name));
 
 		categoryList.onSuccess(new OnSuccess<Category>() {
-			public void onSuccess(Category msg) throws Throwable {
-				if (msg != null) {
+			public void onSuccess(Category category) throws Throwable {
+				if (category != null) {
 					log.debug("category received");
 					log.debug("sending category: " + category);
 					sender.tell(category, getSelf());
