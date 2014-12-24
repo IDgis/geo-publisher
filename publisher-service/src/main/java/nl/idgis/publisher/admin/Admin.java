@@ -44,6 +44,8 @@ import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
+
+import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -79,7 +81,6 @@ import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DatasetServiceStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
-import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
@@ -90,6 +91,7 @@ import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
+
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.messages.CreateImportJob;
 import nl.idgis.publisher.messages.ActiveJob;
@@ -97,7 +99,9 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.utils.TypedList;
+
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

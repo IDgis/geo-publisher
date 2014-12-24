@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
@@ -25,7 +26,6 @@ import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
-import nl.idgis.publisher.domain.web.EntityType;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.MessageContext;
