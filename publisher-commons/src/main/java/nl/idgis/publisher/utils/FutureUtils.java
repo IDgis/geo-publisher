@@ -14,6 +14,11 @@ import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
+import nl.idgis.publisher.database.function.Function1;
+import nl.idgis.publisher.database.function.Function2;
+import nl.idgis.publisher.database.function.Function3;
+import nl.idgis.publisher.database.function.Function4;
+
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 
@@ -22,30 +27,6 @@ public class FutureUtils {
 	private final ExecutionContext executionContext;
 	
 	private final Timeout timeout;
-	
-	@FunctionalInterface
-	public interface Function1<T, R> {
-		
-		R apply(T t);
-	}
-	
-	@FunctionalInterface
-	public interface Function2<T, U, R> {
-		
-		R apply(T t, U u);
-	}
-	
-	@FunctionalInterface
-	public interface Function3<T, U, V, R> {
-		
-		R apply(T t, U u, V v);
-	}
-	
-	@FunctionalInterface
-	public interface Function4<T, U, V, W, R> {
-		
-		R apply(T t, U u, V v, W w);
-	}
 	
 	public FutureUtils(ExecutionContext executionContext) {
 		this(executionContext, 15000);

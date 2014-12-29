@@ -36,12 +36,12 @@ import nl.idgis.publisher.service.messages.Layer;
 import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Function1;
-import nl.idgis.publisher.utils.FutureUtils.Function2;
 import nl.idgis.publisher.utils.TypedList;
 
 import nl.idgis.publisher.database.QServiceJob;
 import nl.idgis.publisher.database.QJobState;
+import nl.idgis.publisher.database.function.Function1;
+import nl.idgis.publisher.database.function.Function2;
 
 import nl.idgis.publisher.domain.job.JobState;
 

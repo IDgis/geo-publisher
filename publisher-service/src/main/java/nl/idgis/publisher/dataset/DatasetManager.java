@@ -26,6 +26,7 @@ import scala.concurrent.Future;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.function.Function1;
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
@@ -37,7 +38,6 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Function1;
 import nl.idgis.publisher.utils.TypedList;
 
 public class DatasetManager extends UntypedActor {
