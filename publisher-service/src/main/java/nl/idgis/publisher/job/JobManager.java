@@ -47,6 +47,7 @@ import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.FutureUtils.Collector2;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -79,6 +80,8 @@ public class JobManager extends UntypedActor {
 	
 	private AsyncDatabaseHelper db;
 	
+	private FutureUtils f;
+	
 	public JobManager(ActorRef database) {
 		this.database = database;
 	}
@@ -95,6 +98,7 @@ public class JobManager extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		db = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
+		f = new FutureUtils(getContext().dispatcher(), timeout);
 	}
 
 	@Override
@@ -235,7 +239,7 @@ public class JobManager extends UntypedActor {
 
 	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper tx, final String datasetId) {
 		return 
-			tx.collect(
+			f.collect(
 				tx.insert(job)
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id))
@@ -315,7 +319,7 @@ public class JobManager extends UntypedActor {
 					@Override
 					public Future<Ack> apply(Boolean notExists) {
 						if(notExists) {
-							return tx.collect(
+							return f.collect(
 								tx.query().from(dataSource)
 									.where(dataSource.identification.eq(msg.getDataSourceId()))
 									.singleResult(dataSource.id))
@@ -399,7 +403,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return tx.collect(
+					return f.collect(
 						query.clone()			
 							.list(
 								job.id,

@@ -38,6 +38,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
 public class DatasetManager extends UntypedActor {
@@ -47,6 +48,8 @@ public class DatasetManager extends UntypedActor {
 	private final ActorRef database;
 	
 	private AsyncDatabaseHelper db;
+	
+	private FutureUtils f;
 	
 	public DatasetManager(ActorRef database) {
 		this.database = database;
@@ -58,7 +61,10 @@ public class DatasetManager extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		db = new AsyncDatabaseHelper(database, Timeout.apply(15000), getContext().dispatcher(), log);
+		Timeout timeout = Timeout.apply(15000);
+		
+		db = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
+		f = new FutureUtils(getContext().dispatcher(), timeout);
 	}
 	
 	private <T> void returnToSender(Future<T> future) {
@@ -76,7 +82,7 @@ public class DatasetManager extends UntypedActor {
 	}
 	
 	private Future<Integer> getCategoryId(final String identification) {
-		return db.collect(						
+		return f.collect(						
 			db.query().from(category)
 				.where(category.identification.eq(identification))
 				.singleResult(category.id))
@@ -107,7 +113,7 @@ public class DatasetManager extends UntypedActor {
 
 			@Override
 			public Future<Object> apply(final AsyncHelper tx) throws Exception {
-				return tx.collect(				
+				return f.collect(				
 					tx.query().from(sourceDatasetVersion)
 						.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
@@ -118,7 +124,7 @@ public class DatasetManager extends UntypedActor {
 					.flatMap(new AbstractFunction1<Integer, Future<Object>>() {					
 						
 						private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
-							return tx
+							return f
 								.collect(sourceDatasetId)
 								.collect(getCategoryId(dataset.getCategoryId()))
 								
@@ -126,7 +132,7 @@ public class DatasetManager extends UntypedActor {
 
 								@Override
 								public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
-									return tx.collect(								
+									return f.collect(								
 										tx.insert(sourceDatasetVersion)
 											.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 											.set(sourceDatasetVersion.name, table.getName())
@@ -150,7 +156,7 @@ public class DatasetManager extends UntypedActor {
 														.execute());
 											}
 											
-											return tx.collect(
+											return f.collect(
 													Futures.sequence(columns, getContext().dispatcher()))
 													
 											.flatMap(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
@@ -183,7 +189,7 @@ public class DatasetManager extends UntypedActor {
 													dataset.getId()))
 									.executeWithKey(sourceDataset.id), new Registered());
 							} else { // existing dataset
-								return tx.collect(
+								return f.collect(
 									tx.query().from(sourceDataset)
 										.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 										.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
@@ -208,7 +214,7 @@ public class DatasetManager extends UntypedActor {
 										final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
 										final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 										
-										return tx.collect(
+										return f.collect(
 											tx.query().from(sourceDatasetVersionColumn)
 												.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
 												.orderBy(sourceDatasetVersionColumn.index.asc())
@@ -227,7 +233,7 @@ public class DatasetManager extends UntypedActor {
 													return Futures.<Object>successful(new AlreadyRegistered());													
 												} else {
 													if(existingDeleteTime != null) { // reviving dataset
-														return tx.collect(
+														return f.collect(
 															tx.update(sourceDataset)															
 																.setNull(sourceDataset.deleteTime)						
 																.execute())

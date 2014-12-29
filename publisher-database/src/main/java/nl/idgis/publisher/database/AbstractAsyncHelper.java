@@ -3,14 +3,10 @@ package nl.idgis.publisher.database;
 import com.mysema.query.sql.RelationalPath;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
-
-import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Collector1;
 
 public abstract class AbstractAsyncHelper implements AsyncHelper {
 
@@ -42,10 +38,5 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	@Override
 	public final AsyncSQLUpdateClause update(RelationalPath<?> entity) {
 		return new AsyncSQLUpdateClause(actor, timeout, executionContext, entity);
-	}
-	
-	@Override
-	public <T> Collector1<T> collect(Future<T> future) {
-		return new FutureUtils(executionContext).collect(future);
 	}
 }
