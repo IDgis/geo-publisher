@@ -19,7 +19,6 @@ import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
-import akka.japi.Pair;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -81,14 +80,8 @@ public class DatasetManager extends UntypedActor {
 			unhandled(msg);
 		}
 	}
-	
-	private static enum IdType {
-		
-		EXISTING,		
-		NEW;
-	}
 
-	private Future<Pair<Integer, IdType>> getCategoryId(final AsyncHelper tx, final String identification) {
+	private Future<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
 		return f.flatMap(
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
@@ -96,16 +89,11 @@ public class DatasetManager extends UntypedActor {
 
 			(Integer id) -> 
 				id == null
-					? f.map(
-						tx.insert(category)
-							.set(category.identification, identification)
-							.set(category.name, identification)
-							.executeWithKey(category.id),
-							
-						(Integer newId) -> 								
-							new Pair<>(newId, IdType.NEW))
-				
-					: Futures.successful(new Pair<>(id, IdType.EXISTING)));
+					? tx.insert(category)
+						.set(category.identification, identification)
+						.set(category.name, identification)
+						.executeWithKey(category.id)
+					: Futures.successful(id));
 	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
@@ -133,12 +121,12 @@ public class DatasetManager extends UntypedActor {
 								return f
 									.collect(sourceDatasetIdFuture)
 									.collect(getCategoryId(tx, dataset.getCategoryId()))
-									.flatMap((Integer sourceDatasetId, Pair<Integer, IdType> categoryId) -> {
+									.flatMap((Integer sourceDatasetId, Integer categoryId) -> {
 										return (Future<Void>)f.flatMap(
 											tx.insert(sourceDatasetVersion)
 												.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 												.set(sourceDatasetVersion.name, table.getName())
-												.set(sourceDatasetVersion.categoryId, categoryId.first())
+												.set(sourceDatasetVersion.categoryId, categoryId)
 												.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 												.executeWithKey(sourceDatasetVersion.id),
 
