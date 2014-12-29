@@ -82,26 +82,26 @@ public class DatasetManager extends UntypedActor {
 	}
 	
 	private Future<Integer> getCategoryId(final String identification) {
-		return f.collect(						
-			db.query().from(category)
-				.where(category.identification.eq(identification))
-				.singleResult(category.id))
+		return f
+				.flatMap(						
+					db.query().from(category)
+						.where(category.identification.eq(identification))
+						.singleResult(category.id),
 				
-		.flatMap(new AbstractFunction1<Integer, Future<Integer>>() {
-
-			@Override
-			public Future<Integer> apply(Integer id) {
-				if(id == null) {
-					return db.insert(category)
-						.set(category.identification, identification)
-						.set(category.name, identification)
-						.executeWithKey(category.id);
-				} else {
-					return Futures.successful(id);
-				}
-			}
-			
-		});
+					new AbstractFunction1<Integer, Future<Integer>>() {
+		
+						@Override
+						public Future<Integer> apply(Integer id) {
+							if(id == null) {
+								return db.insert(category)
+									.set(category.identification, identification)
+									.set(category.name, identification)
+									.executeWithKey(category.id);
+							} else {
+								return Futures.successful(id);
+							}
+						}			
+				});
 	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
@@ -113,152 +113,156 @@ public class DatasetManager extends UntypedActor {
 
 			@Override
 			public Future<Object> apply(final AsyncHelper tx) throws Exception {
-				return f.collect(				
-					tx.query().from(sourceDatasetVersion)
-						.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-						.where(dataSource.identification.eq(rsd.getDataSource())
-							.and(sourceDataset.identification.eq(dataset.getId())))
-						.singleResult(sourceDatasetVersion.id.max()))
-						
-					.flatMap(new AbstractFunction1<Integer, Future<Object>>() {					
-						
-						private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
-							return f
-								.collect(sourceDatasetId)
-								.collect(getCategoryId(dataset.getCategoryId()))
+				return f
+						.flatMap(				
+							tx.query().from(sourceDatasetVersion)
+								.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+								.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+								.where(dataSource.identification.eq(rsd.getDataSource())
+									.and(sourceDataset.identification.eq(dataset.getId())))
+								.singleResult(sourceDatasetVersion.id.max()),
+							
+							new AbstractFunction1<Integer, Future<Object>>() {					
 								
-							.flatMap(new AbstractFunction2<Integer, Integer, Future<Object>>() {
-
-								@Override
-								public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
-									return f.collect(								
-										tx.insert(sourceDatasetVersion)
-											.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
-											.set(sourceDatasetVersion.name, table.getName())
-											.set(sourceDatasetVersion.categoryId, categoryId)
-											.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-											.executeWithKey(sourceDatasetVersion.id))
-									.flatMap(new AbstractFunction1<Integer, Future<Object>>() {
-
+								private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
+									return f
+										.collect(sourceDatasetId)
+										.collect(getCategoryId(dataset.getCategoryId()))
+										
+									.flatMap(new AbstractFunction2<Integer, Integer, Future<Object>>() {
+		
 										@Override
-										public Future<Object> apply(Integer versionId) {
-											int i = 0;
-											
-											ArrayList<Future<Long>> columns = new ArrayList<>();
-											for(Column column : table.getColumns()) {
-												columns.add(
-													tx.insert(sourceDatasetVersionColumn)
-														.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
-														.set(sourceDatasetVersionColumn.index, i++)
-														.set(sourceDatasetVersionColumn.name, column.getName())
-														.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-														.execute());
-											}
-											
-											return f.collect(
-													Futures.sequence(columns, getContext().dispatcher()))
-													
-											.flatMap(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
+										public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
+											return f.flatMap(								
+												tx.insert(sourceDatasetVersion)
+													.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+													.set(sourceDatasetVersion.name, table.getName())
+													.set(sourceDatasetVersion.categoryId, categoryId)
+													.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+													.executeWithKey(sourceDatasetVersion.id),
 
+												new AbstractFunction1<Integer, Future<Object>>() {
+		
 												@Override
-												public Future<Object> apply(Iterable<Long> i) {
-													return Futures.successful(result);
+												public Future<Object> apply(Integer versionId) {
+													int i = 0;
+													
+													ArrayList<Future<Long>> columns = new ArrayList<>();
+													for(Column column : table.getColumns()) {
+														columns.add(
+															tx.insert(sourceDatasetVersionColumn)
+																.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+																.set(sourceDatasetVersionColumn.index, i++)
+																.set(sourceDatasetVersionColumn.name, column.getName())
+																.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+																.execute());
+													}
+													
+													return f
+															.flatMap(
+																	f.sequence(columns),
+															
+																	new AbstractFunction1<Iterable<Long>, Future<Object>>() {
+		
+																		@Override
+																		public Future<Object> apply(Iterable<Long> i) {
+																			return Futures.successful(result);
+																		}
+																	});
 												}
+												
 											});
 										}
 										
-									});
+									});						
 								}
-								
-							});						
-						}
-
-						@Override
-						public Future<Object> apply(final Integer versionId) {
-							if(versionId == null) { // new dataset
-								return insertSourceDatasetVersion(
-									tx.insert(sourceDataset)
-										.columns(
-											sourceDataset.dataSourceId,
-											sourceDataset.identification)
-										.select(
-											new SQLSubQuery().from(dataSource)
-												.list(
-													dataSource.id,
-													dataset.getId()))
-									.executeWithKey(sourceDataset.id), new Registered());
-							} else { // existing dataset
-								return f.collect(
-									tx.query().from(sourceDataset)
-										.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-										.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
-										.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-										.where(dataSource.identification.eq(rsd.getDataSource())
-											.and(sourceDataset.identification.eq(dataset.getId())))
-										.singleResult(
-											sourceDataset.id,
-											sourceDatasetVersion.name,
-											category.identification,
-											sourceDatasetVersion.revision,
-											sourceDataset.deleteTime))
-											
-								.flatMap(new AbstractFunction1<Tuple, Future<Object>>() {
-
-									@Override
-									public Future<Object> apply(Tuple existing) {
-										final Integer sourceDatasetId = existing.get(sourceDataset.id);
-										
-										final String existingName = existing.get(sourceDatasetVersion.name);
-										final String existingCategoryIdentification = existing.get(category.identification);
-										final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
-										final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
-										
-										return f.collect(
-											tx.query().from(sourceDatasetVersionColumn)
-												.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
-												.orderBy(sourceDatasetVersionColumn.index.asc())
-												.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)))
-										
-										.flatMap(new AbstractFunction1<TypedList<Column>, Future<Object>>() {
-
-											@Override
-											public Future<Object> apply(final TypedList<Column> existingColumns) {
-												if(existingName.equals(table.getName()) // still identical
-														&& existingCategoryIdentification.equals(dataset.getCategoryId())
-														&& existingRevision.equals(revision)
-														&& existingDeleteTime == null
-														&& existingColumns.equals(new TypedList<Column>(Column.class, table.getColumns()))) {
+	
+								@Override
+								public Future<Object> apply(final Integer versionId) {
+									if(versionId == null) { // new dataset
+										return insertSourceDatasetVersion(
+											tx.insert(sourceDataset)
+												.columns(
+													sourceDataset.dataSourceId,
+													sourceDataset.identification)
+												.select(
+													new SQLSubQuery().from(dataSource)
+														.list(
+															dataSource.id,
+															dataset.getId()))
+											.executeWithKey(sourceDataset.id), new Registered());
+									} else { // existing dataset
+										return f.flatMap(
+											tx.query().from(sourceDataset)
+												.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+												.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
+												.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+												.where(dataSource.identification.eq(rsd.getDataSource())
+													.and(sourceDataset.identification.eq(dataset.getId())))
+												.singleResult(
+													sourceDataset.id,
+													sourceDatasetVersion.name,
+													category.identification,
+													sourceDatasetVersion.revision,
+													sourceDataset.deleteTime),
 													
-													return Futures.<Object>successful(new AlreadyRegistered());													
-												} else {
-													if(existingDeleteTime != null) { // reviving dataset
-														return f.collect(
-															tx.update(sourceDataset)															
-																.setNull(sourceDataset.deleteTime)						
-																.execute())
-																
-														.map(new AbstractFunction1<Long, Object>() {
-
-															@Override
-															public Object apply(Long l) {
+										new AbstractFunction1<Tuple, Future<Object>>() {
+		
+											@Override
+											public Future<Object> apply(Tuple existing) {
+												final Integer sourceDatasetId = existing.get(sourceDataset.id);
+												
+												final String existingName = existing.get(sourceDatasetVersion.name);
+												final String existingCategoryIdentification = existing.get(category.identification);
+												final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
+												final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
+												
+												return f.flatMap(
+													tx.query().from(sourceDatasetVersionColumn)
+														.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
+														.orderBy(sourceDatasetVersionColumn.index.asc())
+														.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)),
+												
+												new AbstractFunction1<TypedList<Column>, Future<Object>>() {
+		
+													@Override
+													public Future<Object> apply(final TypedList<Column> existingColumns) {
+														if(existingName.equals(table.getName()) // still identical
+																&& existingCategoryIdentification.equals(dataset.getCategoryId())
+																&& existingRevision.equals(revision)
+																&& existingDeleteTime == null
+																&& existingColumns.equals(new TypedList<Column>(Column.class, table.getColumns()))) {
+															
+															return Futures.<Object>successful(new AlreadyRegistered());													
+														} else {
+															if(existingDeleteTime != null) { // reviving dataset
+																return f
+																		.flatMap(
+																			tx.update(sourceDataset)															
+																				.setNull(sourceDataset.deleteTime)						
+																				.execute(),
+																		
+																		new AbstractFunction1<Long, Future<Object>>() {
+		
+																			@Override
+																			public Future<Object> apply(Long l) {
+																				return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
+																			}															
+																		});
+															} else {
 																return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
-															}															
-														});
-													} else {
-														return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
+															}
+														}
 													}
-												}
+													
+												});
 											}
 											
 										});
 									}
-									
-								});
-							}
-						}
-						
-					});
+								}
+								
+							});
 			}
 			
 		});
