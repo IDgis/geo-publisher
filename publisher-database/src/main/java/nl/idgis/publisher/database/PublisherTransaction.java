@@ -493,7 +493,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					datasetActiveNotification.datasetName
 				)) {
 			notifications.add (new StoredNotification (
-					t.get (datasetActiveNotification.notificationId), 
+					(long)t.get (datasetActiveNotification.notificationId), 
 					ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)),
 					ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)),
 					new JobInfo (
@@ -924,7 +924,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private StoredNotification createStoredNotification (final Tuple t) {
 		return new StoredNotification (
-				t.get (datasetActiveNotification.notificationId), 
+				(long)t.get (datasetActiveNotification.notificationId), 
 				ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)), 
 				ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)), 
 				new JobInfo (
