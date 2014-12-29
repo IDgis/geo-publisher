@@ -26,8 +26,6 @@ import akka.japi.Procedure;
 import akka.util.Timeout;
 
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
@@ -38,6 +36,8 @@ import nl.idgis.publisher.service.messages.Layer;
 import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.FutureUtils.Function1;
+import nl.idgis.publisher.utils.FutureUtils.Function2;
 import nl.idgis.publisher.utils.TypedList;
 
 import nl.idgis.publisher.database.QServiceJob;
@@ -154,7 +154,7 @@ public class MetadataGenerator extends UntypedActor {
 						dataset.fileUuid))
 			.collect(
 				f.ask(service, new GetContent(), ServiceContent.class))		
-			.map(new AbstractFunction2<TypedList<Tuple>, ServiceContent, Void>() {
+			.map(new Function2<TypedList<Tuple>, ServiceContent, Void>() {
 
 				@Override
 				public Void apply(final TypedList<Tuple> queryResult, final ServiceContent serviceContent) {
@@ -164,7 +164,7 @@ public class MetadataGenerator extends UntypedActor {
 					
 					f					
 						.collect(getMetadataDocuments(dataSources, queryResult))
-						.map(new AbstractFunction1<Map<String, MetadataDocument>, Void>() {
+						.map(new Function1<Map<String, MetadataDocument>, Void>() {
 
 							@Override
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
@@ -458,14 +458,11 @@ public class MetadataGenerator extends UntypedActor {
 		}
 	}
 	
-	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSources, final TypedList<Tuple> queryResult) {
-		return f.flatMap(dataSources, new Mapper<Map<String, ActorRef>, Future<Map<String, MetadataDocument>>>() {
+	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSourceFutures, final TypedList<Tuple> queryResult) {
+		return f.flatMap(dataSourceFutures, (Map<String, ActorRef> dataSources) -> {
+			log.debug("dataSources collected");
 			
-			public Future<Map<String, MetadataDocument>> apply(Map<String, ActorRef> dataSources) {
-				log.debug("dataSources collected");
-				
-				return getMetadataDocuments(dataSources, queryResult);
-			}
+			return getMetadataDocuments(dataSources, queryResult);			
 		});
 	}
 	

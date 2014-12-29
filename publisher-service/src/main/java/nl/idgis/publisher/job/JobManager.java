@@ -52,8 +52,6 @@ import nl.idgis.publisher.utils.FutureUtils.Collector2;
 import nl.idgis.publisher.utils.TypedList;
 
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction2;
-import scala.runtime.AbstractFunction4;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -172,68 +170,59 @@ public class JobManager extends UntypedActor {
 	
 	private Future<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
-			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-
-				@Override
-				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
-					return tx.insert(serviceJob)
-						.columns(
-							serviceJob.jobId,
-							serviceJob.datasetId,
-							serviceJob.sourceDatasetVersionId)
-						.select(new SQLSubQuery().from(dataset)
-							.where(dataset.identification.eq(datasetId))
-							.list(jobId, dataset.id, datasetVersionId))						
-						.execute();
-				}
-				
+			.flatMap((Integer jobId, Integer datasetVersionId) -> {
+				return tx.insert(serviceJob)
+					.columns(
+						serviceJob.jobId,
+						serviceJob.datasetId,
+						serviceJob.sourceDatasetVersionId)
+					.select(new SQLSubQuery().from(dataset)
+						.where(dataset.identification.eq(datasetId))
+						.list(jobId, dataset.id, datasetVersionId))						
+					.execute();
 			});
 	}
 	
 	private Future<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
-			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-	
-				@Override
-				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
-					return 
-						tx.insert(importJob)
-							.columns(
-								importJob.jobId,
-								importJob.datasetId,
-								importJob.sourceDatasetVersionId,
-								importJob.filterConditions)
-							.select(new SQLSubQuery().from(dataset)
+			.flatMap((Integer jobId, Integer datasetVersionId) -> {
+				return 
+					tx.insert(importJob)
+						.columns(
+							importJob.jobId,
+							importJob.datasetId,
+							importJob.sourceDatasetVersionId,
+							importJob.filterConditions)
+						.select(new SQLSubQuery().from(dataset)
+								.where(dataset.identification.eq(datasetId))
+								.list(
+									jobId,
+									dataset.id,
+									datasetVersionId,
+									dataset.filterConditions))
+						.executeWithKey(importJob.id)
+					
+					.flatMap(new Mapper<Integer, Future<Long>>() {
+						
+						@Override
+						public Future<Long> apply(Integer importJobId) {
+							return tx.insert(importJobColumn)
+								.columns(
+									importJobColumn.importJobId,
+									importJobColumn.index,
+									importJobColumn.name,
+									importJobColumn.dataType)
+								.select(new SQLSubQuery().from(datasetColumn)
+									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 									.where(dataset.identification.eq(datasetId))
 									.list(
-										jobId,
-										dataset.id,
-										datasetVersionId,
-										dataset.filterConditions))
-							.executeWithKey(importJob.id)
-						
-						.flatMap(new Mapper<Integer, Future<Long>>() {
-							
-							@Override
-							public Future<Long> apply(Integer importJobId) {
-								return tx.insert(importJobColumn)
-									.columns(
-										importJobColumn.importJobId,
-										importJobColumn.index,
-										importJobColumn.name,
-										importJobColumn.dataType)
-									.select(new SQLSubQuery().from(datasetColumn)
-										.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-										.where(dataset.identification.eq(datasetId))
-										.list(
-											importJobId,
-											datasetColumn.index,
-											datasetColumn.name,
-											datasetColumn.dataType))
-											.execute();
-							}
-						}, getContext().dispatcher());										
-					}
+										importJobId,
+										datasetColumn.index,
+										datasetColumn.name,
+										datasetColumn.dataType))
+										.execute();
+						}
+					}, getContext().dispatcher());
 			});
 	}
 
@@ -328,19 +317,14 @@ public class JobManager extends UntypedActor {
 									.set(job.type, "HARVEST")
 									.executeWithKey(job.id))
 									
-							.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-
-								@Override
-								public Future<Long> apply(Integer dataSourceId, Integer jobId) {
-									log.debug("job created and dataSourceId determined");
-									
-									return 
-										tx.insert(harvestJob)
-											.set(harvestJob.jobId, jobId)				
-											.set(harvestJob.dataSourceId, dataSourceId)
-											.execute();
-								}
+							.flatMap((Integer dataSourceId, Integer jobId) -> {
+								log.debug("job created and dataSourceId determined");
 								
+								return 
+									tx.insert(harvestJob)
+										.set(harvestJob.jobId, jobId)				
+										.set(harvestJob.dataSourceId, dataSourceId)
+										.execute();
 							})
 							
 							.map(new Mapper<Long, Ack>() {
@@ -434,79 +418,74 @@ public class JobManager extends UntypedActor {
 							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 							.list(job.id, notification.type, notificationResult.result))
 						
-					.map(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
-	
-						@Override
-						public TypedList<ImportJobInfo> apply(							
-							TypedList<Tuple> baseList,						
-							TypedList<Tuple> importJobColumnsList, 
-							TypedList<Tuple> sourceDatasetColumnsList, 
-							TypedList<Tuple> jobNotificationsList) {
+					.map((							
+						TypedList<Tuple> baseList,						
+						TypedList<Tuple> importJobColumnsList, 
+						TypedList<Tuple> sourceDatasetColumnsList, 
+						TypedList<Tuple> jobNotificationsList) -> {
+						
+						ArrayList<ImportJobInfo> jobs = new ArrayList<>();
+						
+						ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
+						ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
+						ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
+						
+						for(Tuple t : baseList) {
+							int jobId = t.get(job.id);
 							
-							ArrayList<ImportJobInfo> jobs = new ArrayList<>();
-							
-							ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
-							ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
-							ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
-							
-							for(Tuple t : baseList) {
-								int jobId = t.get(job.id);
+							List<Notification> notifications = new ArrayList<>();
+							for(; jobNotifications.hasNext();) {
+								Tuple tn = jobNotifications.next();
 								
-								List<Notification> notifications = new ArrayList<>();
-								for(; jobNotifications.hasNext();) {
-									Tuple tn = jobNotifications.next();
-									
-									int notificationJobId = tn.get(job.id);				
-									if(notificationJobId != jobId) {
-										jobNotifications.previous();
-										break;
-									}
-									
-									ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
-									
-									NotificationResult result;
-									String resultName = tn.get(notificationResult.result);
-									if(resultName == null) {
-										result = null;
-									} else {
-										result = notificationType.getResult(resultName);
-									}
-									
-									notifications.add(new Notification(notificationType, result));
+								int notificationJobId = tn.get(job.id);				
+								if(notificationJobId != jobId) {
+									jobNotifications.previous();
+									break;
 								}
 								
-								jobs.add(new ImportJobInfo(
-										t.get(job.id),
-										t.get(category.identification),
-										t.get(dataSource.identification), 
-										t.get(sourceDataset.identification),
-										t.get(dataset.identification),
-										t.get(dataset.name),
-										t.get(importJob.filterConditions),
-										consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-											
-											@Override
-											public Column apply(Tuple t) {
-												return new Column(
-													t.get(importJobColumn.name), 
-													t.get(importJobColumn.dataType));
-											}
-										}),
-										consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-											
-											@Override
-											public Column apply(Tuple t) {
-												return new Column(
-													t.get(sourceDatasetVersionColumn.name),
-													t.get(sourceDatasetVersionColumn.dataType));
-											} 
-										}),
-										notifications));
-							}						
-	
-							return new TypedList<>(ImportJobInfo.class, jobs);
-						}
-						
+								ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
+								
+								NotificationResult result;
+								String resultName = tn.get(notificationResult.result);
+								if(resultName == null) {
+									result = null;
+								} else {
+									result = notificationType.getResult(resultName);
+								}
+								
+								notifications.add(new Notification(notificationType, result));
+							}
+							
+							jobs.add(new ImportJobInfo(
+									t.get(job.id),
+									t.get(category.identification),
+									t.get(dataSource.identification), 
+									t.get(sourceDataset.identification),
+									t.get(dataset.identification),
+									t.get(dataset.name),
+									t.get(importJob.filterConditions),
+									consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+										
+										@Override
+										public Column apply(Tuple t) {
+											return new Column(
+												t.get(importJobColumn.name), 
+												t.get(importJobColumn.dataType));
+										}
+									}),
+									consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+										
+										@Override
+										public Column apply(Tuple t) {
+											return new Column(
+												t.get(sourceDatasetVersionColumn.name),
+												t.get(sourceDatasetVersionColumn.dataType));
+										} 
+									}),
+									notifications));
+						}						
+
+						return new TypedList<>(ImportJobInfo.class, jobs);
 					});				
 				}
 				

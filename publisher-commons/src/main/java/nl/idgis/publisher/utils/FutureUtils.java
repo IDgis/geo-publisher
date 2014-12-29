@@ -14,20 +14,38 @@ import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-import scala.Function1;
-import scala.Function2;
-import scala.Function3;
-import scala.Function4;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
-import scala.runtime.AbstractFunction3;
 
 public class FutureUtils {
 	
 	private final ExecutionContext executionContext;
+	
 	private final Timeout timeout;
+	
+	@FunctionalInterface
+	public interface Function1<T, R> {
+		
+		R apply(T t);
+	}
+	
+	@FunctionalInterface
+	public interface Function2<T, U, R> {
+		
+		R apply(T t, U u);
+	}
+	
+	@FunctionalInterface
+	public interface Function3<T, U, V, R> {
+		
+		R apply(T t, U u, V v);
+	}
+	
+	@FunctionalInterface
+	public interface Function4<T, U, V, W, R> {
+		
+		R apply(T t, U u, V v, W w);
+	}
 	
 	public FutureUtils(ExecutionContext executionContext) {
 		this(executionContext, 15000);
@@ -56,7 +74,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
-					return parent.flatMap(new AbstractFunction3<T, U, V, Future<R>>() {
+					return parent.flatMap(new Function3<T, U, V, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t, U u, V v) {
@@ -73,7 +91,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
-					return parent.map(new AbstractFunction3<T, U, V, R>() {
+					return parent.map(new Function3<T, U, V, R>() {
 
 						@Override
 						public R apply(T t, U u, V v) {
@@ -101,7 +119,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
-					return parent.flatMap(new AbstractFunction2<T, U, Future<R>>() {
+					return parent.flatMap(new Function2<T, U, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t, U u) {
@@ -118,7 +136,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
-					return parent.map(new AbstractFunction2<T, U, R>() {
+					return parent.map(new Function2<T, U, R>() {
 
 						@Override
 						public R apply(T t, U u) {
@@ -150,7 +168,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
-					return parent.flatMap(new AbstractFunction1<T, Future<R>>() {
+					return parent.flatMap(new Function1<T, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t) {
@@ -167,7 +185,7 @@ public class FutureUtils {
 			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
-					return parent.map(new AbstractFunction1<T, R>() {
+					return parent.map(new Function1<T, R>() {
 
 						@Override
 						public R apply(T t) {
@@ -303,11 +321,25 @@ public class FutureUtils {
 	}
 	
 	public <T, S> Future<S> map(Future<T> future, Function1<T, S> f) {
-		return future.map(f, executionContext);
+		return future.map(new Mapper<T, S>() {
+		
+			@Override
+			public S apply(T t) {
+				return f.apply(t);
+			}
+			
+		}, executionContext);
 	}
 	
 	public <T, S> Future<S> flatMap(Future<T> future, Function1<T, Future<S>> f) {
-		return future.flatMap(f, executionContext);
+		return future.flatMap(new Mapper<T, Future<S>>() {
+			
+			@Override
+			public Future<S> apply(T t) {
+				return f.apply(t);
+			}
+			
+		}, executionContext);
 	}
 	
 	public <T> void failure(Future<T> future, OnFailure onFailure) {
@@ -319,13 +351,6 @@ public class FutureUtils {
 	}
 	
 	public <T, U> Future<U> mapValue(Future<T> future, final U u) {
-		return flatMap(future, new AbstractFunction1<T, Future<U>>() {
-
-			@Override
-			public Future<U> apply(T t) {
-				return Futures.successful(u);
-			}
-			
-		});
+		return flatMap(future, (T t) -> Futures.successful(u));
 	}
 }

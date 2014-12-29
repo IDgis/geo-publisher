@@ -13,8 +13,6 @@ import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
 
 import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
@@ -54,21 +52,16 @@ public class FutureUtilsTest {
 		f
 			.collect(Futures.successful("Hello world!"))			
 			.collect(Futures.successful(42))
-			.map(new AbstractFunction2<String, Integer, Void>() {
-
-				@Override
-				public Void apply(String s, Integer i) {
-					try {
-						assertEquals("Hello world!", s);
-						assertEquals(new Integer(42), i);
-						testPromise.success(true);
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
-										
-					return null;
+			.map((String s, Integer i) -> {
+				try {
+					assertEquals("Hello world!", s);
+					assertEquals(new Integer(42), i);
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
 				}
 				
+				return null;
 			});
 	}
 	
@@ -80,20 +73,15 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))			
 					.collect(Futures.failed(new Exception("Failure")))
-					.map(new AbstractFunction2<String, Object, Void>() {
-		
-						@Override
-						public Void apply(String s, Object o) {
-							try {
-								fail("result received");						
-							} catch(Throwable t) {
-								testPromise.failure(t);
-							}
-							
-							return null;
+					.map((String s, Object o) -> {
+						try {
+							fail("result received");						
+						} catch(Throwable t) {
+							testPromise.failure(t);
 						}
 						
-					}),
+						return null;
+					}),					
 					
 			new OnFailure() {
 
@@ -111,28 +99,18 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.map(new AbstractFunction2<String, Integer, Integer>() {
-		
-						@Override
-						public Integer apply(String s, Integer i) {
-							return 47;
-						}
-						
+					.map((String s, Integer i) -> {						
+						return 47;
 					}))
-			.map(new AbstractFunction1<Integer, Void>() {
-
-				@Override
-				public Void apply(Integer i) {
-					try {
-						assertEquals(new Integer(47), i);
-						testPromise.success(true);
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
-					
-					return null;
+			.map((Integer i) -> {
+				try {
+					assertEquals(new Integer(47), i);
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
 				}
 				
+				return null;
 			});
 	}
 	
@@ -143,28 +121,18 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.flatMap(new AbstractFunction2<String, Integer, Future<Integer>>() {
-		
-						@Override
-						public Future<Integer> apply(String s, Integer i) {
-							return Futures.successful(47);
-						}
-						
+					.flatMap((String s, Integer i) -> {
+						return Futures.successful(47);						
 					}))
-			.map(new AbstractFunction1<Integer, Void>() {
-
-				@Override
-				public Void apply(Integer i) {
-					try {
-						assertEquals(new Integer(47), i);
-						testPromise.success(true);
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
-					
-					return null;
+			.map((Integer i) -> {
+				try {
+					assertEquals(new Integer(47), i);
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
 				}
 				
+				return null;
 			});
 	}
 	
@@ -175,15 +143,10 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(f.cast(objectFuture, String.class))
-			.map(new AbstractFunction1<String, Void>() {
-
-				@Override
-				public Void apply(String s) {
-					testPromise.success(true);
-					
-					return null;
-				}
+			.map((String s) -> {
+				testPromise.success(true);
 				
+				return null;
 			});
 	}
 	
@@ -198,20 +161,15 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(outputFuture)
-			.map(new AbstractFunction1<Map<String, String>, Void>() {
-
-				@Override
-				public Void apply(Map<String, String> output) {
-					try {
-						assertEquals("bar", output.get("foo"));
-						testPromise.success(true);
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
-					
-					return null;
+			.map((Map<String, String> output) -> {
+				try {
+					assertEquals("bar", output.get("foo"));
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
 				}
 				
+				return null;
 			});
 	}
 }
