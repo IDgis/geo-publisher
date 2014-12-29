@@ -117,8 +117,8 @@ public class DatasetManager extends UntypedActor {
 						return f
 							.collect(sourceDatasetIdFuture)
 							.collect(getCategoryId(tx, dataset.getCategoryId()))
-							.flatMap((Integer sourceDatasetId, Integer categoryId) -> {
-								return (Future<Void>)f.flatMap(
+							.flatMap((Integer sourceDatasetId, Integer categoryId) -> 
+								f.flatMap(
 									tx.insert(sourceDatasetVersion)
 										.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 										.set(sourceDatasetVersion.name, table.getName())
@@ -141,9 +141,9 @@ public class DatasetManager extends UntypedActor {
 														.execute());
 											}
 
-											return (Future<Void>)f.mapValue(f.sequence(columns), (Void)null);
-										});	
-							});
+											return f.mapValue(f.sequence(columns), (Void)null);
+										})	
+							);
 					}
 
 					@Override
@@ -211,13 +211,11 @@ public class DatasetManager extends UntypedActor {
 																			.setNull(sourceDataset.deleteTime)
 																			.execute(),
 
-																		(Long l) -> {
-																			return f.<Void, Object> mapValue(
+																		(Long l) -> 
+																			f.<Void, Object> mapValue(
 																					insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
 
-																					new Updated());
-																		
-																		});
+																					new Updated()));
 															} else {
 																return f.<Void, Object> mapValue(																					
 																		insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
