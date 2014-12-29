@@ -82,9 +82,9 @@ public class DatasetManager extends UntypedActor {
 		}
 	}
 
-	private Future<Integer> getCategoryId(final String identification) {
+	private Future<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
 		return f.flatMap(
-				db.query().from(category)
+				tx.query().from(category)
 						.where(category.identification.eq(identification))
 						.singleResult(category.id),
 
@@ -93,7 +93,7 @@ public class DatasetManager extends UntypedActor {
 					@Override
 					public Future<Integer> apply(Integer id) {
 						if (id == null) {
-							return db
+							return tx
 									.insert(category)
 									.set(category.identification, identification)
 									.set(category.name, identification)
@@ -132,7 +132,7 @@ public class DatasetManager extends UntypedActor {
 							private Future<Void> insertSourceDatasetVersion(Future<Integer> sourceDatasetId) {
 								return f
 										.collect(sourceDatasetId)
-										.collect(getCategoryId(dataset.getCategoryId()))
+										.collect(getCategoryId(tx, dataset.getCategoryId()))
 										.flatMap(
 												new AbstractFunction2<Integer, Integer, Future<Void>>() {
 
