@@ -97,18 +97,15 @@ public class DatasetManager extends UntypedActor {
 			(Integer id) -> 
 				id == null
 					? f.map(
-							tx.insert(category)
-								.set(category.identification, identification)
-								.set(category.name, identification)
-								.executeWithKey(category.id),
-								
-							(Integer newId) -> {
-								
-								return new Pair<>(newId, IdType.NEW);
-							})
+						tx.insert(category)
+							.set(category.identification, identification)
+							.set(category.name, identification)
+							.executeWithKey(category.id),
+							
+						(Integer newId) -> 								
+							new Pair<>(newId, IdType.NEW))
 				
-					: Futures.successful(new Pair<>(id, IdType.EXISTING))				
-			);
+					: Futures.successful(new Pair<>(id, IdType.EXISTING)));
 	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
