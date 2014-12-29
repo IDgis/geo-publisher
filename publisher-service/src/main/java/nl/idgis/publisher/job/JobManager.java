@@ -183,9 +183,7 @@ public class JobManager extends UntypedActor {
 						.execute();
 				}
 				
-			})
-				
-			.returnValue();
+			});
 	}
 	
 	private Future<Long> createImportJob(final AsyncHelper transaction, final String datasetId) {
@@ -232,9 +230,7 @@ public class JobManager extends UntypedActor {
 							}
 						}, getContext().dispatcher());										
 					}
-			})
-			
-			.returnValue();
+			});
 	}
 
 	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper transaction, final String datasetId) {
@@ -343,7 +339,7 @@ public class JobManager extends UntypedActor {
 								
 							})
 							
-							.returnValue().map(new Mapper<Long, Ack>() {
+							.map(new Mapper<Long, Ack>() {
 								
 								@Override
 								public Ack apply(Long l) {
@@ -507,9 +503,7 @@ public class JobManager extends UntypedActor {
 							return new TypedList<>(ImportJobInfo.class, jobs);
 						}
 						
-					})
-					
-					.returnValue();				
+					});				
 				}
 				
 			});

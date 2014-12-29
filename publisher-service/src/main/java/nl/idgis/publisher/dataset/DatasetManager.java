@@ -95,9 +95,7 @@ public class DatasetManager extends UntypedActor {
 				}
 			}
 			
-		})
-		
-		.returnValue();
+		});
 	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
@@ -161,19 +159,13 @@ public class DatasetManager extends UntypedActor {
 												public Future<Object> apply(Iterable<Long> i) {
 													return Futures.successful(result);
 												}
-											})
-											
-											.returnValue();
+											});
 										}
 										
-									})
-									
-									.returnValue();
+									});
 								}
 								
-							})
-							
-							.returnValue();						
+							});						
 						}
 
 						@Override
@@ -246,29 +238,21 @@ public class DatasetManager extends UntypedActor {
 															public Object apply(Long l) {
 																return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
 															}															
-														})
-														
-														.returnValue();
+														});
 													} else {
 														return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
 													}
 												}
 											}
 											
-										})
-										
-										.returnValue();
+										});
 									}
 									
-								})
-								
-								.returnValue();
+								});
 							}
 						}
 						
-					})
-					
-					.returnValue();
+					});
 			}
 			
 		});

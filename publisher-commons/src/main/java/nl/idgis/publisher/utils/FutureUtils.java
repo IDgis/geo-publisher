@@ -13,6 +13,7 @@ import akka.dispatch.Mapper;
 import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
+
 import scala.Function1;
 import scala.Function2;
 import scala.Function3;
@@ -51,8 +52,8 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> Result<R> flatResult(final Function4<T, U, V, W, Future<R>> f) {
-			return new Result<R>(future.flatMap(new Mapper<W, Future<R>>() {
+		public <R> Future<R> flatResult(final Function4<T, U, V, W, Future<R>> f) {
+			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
 					return parent.flatResult(new AbstractFunction3<T, U, V, Future<R>>() {
@@ -62,14 +63,14 @@ public class FutureUtils {
 							return f.apply(t, u, v, w);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
-		public <R> Result<R> result(final Function4<T, U, V, W, R> f) {
-			return new Result<R>(future.flatMap(new Mapper<W, Future<R>>() {
+		public <R> Future<R> result(final Function4<T, U, V, W, R> f) {
+			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
 					return parent.result(new AbstractFunction3<T, U, V, R>() {
@@ -79,10 +80,10 @@ public class FutureUtils {
 							return f.apply(t, u, v, w);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 	}
 	
@@ -96,8 +97,8 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> Result<R> flatResult(final Function3<T, U, V, Future<R>> f) {
-			return new Result<R>(future.flatMap(new Mapper<V, Future<R>>() {
+		public <R> Future<R> flatResult(final Function3<T, U, V, Future<R>> f) {
+			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
 					return parent.flatResult(new AbstractFunction2<T, U, Future<R>>() {
@@ -107,14 +108,14 @@ public class FutureUtils {
 							return f.apply(t, u, v);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
-		public <R> Result<R> result(final Function3<T, U, V, R> f) {
-			return new Result<R>(future.flatMap(new Mapper<V, Future<R>>() {
+		public <R> Future<R> result(final Function3<T, U, V, R> f) {
+			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
 					return parent.result(new AbstractFunction2<T, U, R>() {
@@ -124,10 +125,10 @@ public class FutureUtils {
 							return f.apply(t, u, v);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
 		public <W> Collector4<T, U, V, W> collect(Future<W> future) {
@@ -145,8 +146,8 @@ public class FutureUtils {
 			this.parent = parent;			
 		}
 		
-		public <R> Result<R> flatResult(final Function2<T, U, Future<R>> f) {			
-			return new Result<R>(future.flatMap(new Mapper<U, Future<R>>() {
+		public <R> Future<R> flatResult(final Function2<T, U, Future<R>> f) {			
+			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
 					return parent.flatResult(new AbstractFunction1<T, Future<R>>() {
@@ -156,14 +157,14 @@ public class FutureUtils {
 							return f.apply(t, u);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
-		public <R> Result<R> result(final Function2<T, U, R> f) {			
-			return new Result<R>(future.flatMap(new Mapper<U, Future<R>>() {
+		public <R> Future<R> result(final Function2<T, U, R> f) {			
+			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
 					return parent.result(new AbstractFunction1<T, R>() {
@@ -173,10 +174,10 @@ public class FutureUtils {
 							return f.apply(t, u);
 						}
 						
-					}).returnValue();
+					});
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
 		public <V> Collector3<T, U, V> collect(Future<V> future) {
@@ -190,47 +191,30 @@ public class FutureUtils {
 			super(future);
 		}
 		
-		public <R> Result<R> flatResult(final Function1<T, Future<R>> f) {
-			return new Result<R>(future.flatMap(new Mapper<T, Future<R>>() {
+		public <R> Future<R> flatResult(final Function1<T, Future<R>> f) {
+			return future.flatMap(new Mapper<T, Future<R>>() {
 
 				@Override
 				public Future<R> apply(T t) {
 					return f.apply(t);
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
-		public <R> Result<R> result(final Function1<T, R> f) {
-			return new Result<R>(future.map(new Mapper<T, R>() {
+		public <R> Future<R> result(final Function1<T, R> f) {
+			return future.map(new Mapper<T, R>() {
 
 				@Override
 				public R apply(T t) {
 					return f.apply(t);
 				}
 				
-			}, executionContext));
+			}, executionContext);
 		}
 		
 		public <U> Collector2<T, U> collect(Future<U> future) {
 			return new Collector2<>(this, future);
-		}
-	}
-	
-	public class Result<T> {
-		
-		private final Future<T> future;
-		
-		private Result(Future<T> future) {
-			this.future = future;
-		}
-		
-		public Future<T> returnValue() {
-			return future;
-		}
-		
-		public void failure(OnFailure onFailure) {
-			future.onFailure(onFailure, executionContext);
 		}
 	}
 	
@@ -324,5 +308,9 @@ public class FutureUtils {
 	
 	public <T, S> Future<S> flatMap(Future<T> future, Function1<T, Future<S>> f) {
 		return future.flatMap(f, executionContext);
+	}
+	
+	public <T> void failure(Future<T> future, OnFailure onFailure) {
+		future.onFailure(onFailure, executionContext);
 	}
 }
