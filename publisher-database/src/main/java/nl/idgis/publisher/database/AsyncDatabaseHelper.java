@@ -1,5 +1,6 @@
 package nl.idgis.publisher.database;
 
+import nl.idgis.publisher.database.function.Function1;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -10,7 +11,6 @@ import scala.concurrent.Future;
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
 import akka.event.LoggingAdapter;
-import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -20,7 +20,7 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper {
 		super(database, timeout, executionContext, log);
 	}
 	
-	public <T> Future<T> transactional(final Function<AsyncHelper, Future<T>> handler) {
+	public <T> Future<T> transactional(final Function1<AsyncHelper, Future<T>> handler) {
 		return transaction().flatMap(new Mapper<AsyncTransactionHelper, Future<T>>() {
 			
 			public Future<T> checkedApply(final AsyncTransactionHelper tx) throws Exception {

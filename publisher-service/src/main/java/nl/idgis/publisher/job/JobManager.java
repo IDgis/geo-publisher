@@ -60,7 +60,6 @@ import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -129,43 +128,37 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
-				return tx.query().from(job)
-					.join(serviceJob).on(serviceJob.jobId.eq(job.id))
-					.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
-					.where(dataset.identification.eq(datasetId))
-					.where(new SQLSubQuery().from(jobState)
-							.where(jobState.jobId.eq(job.id))
-							.where(isFinished(jobState))
-							.notExists())
-					.notExists()
-				
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return createServiceJob(tx, datasetId)
-								.map(new Mapper<Long, Ack>() {
-									
-									@Override
-									public Ack apply(Long l) {
-										log.debug("service job created");
-										
-										return new Ack();
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.debug("already exist a service job for this dataset");
-							return Futures.successful(new Ack());
-						}
-					}
-				}, getContext().dispatcher());
-			}
+		return db.transactional((final AsyncHelper tx) ->
+			tx.query().from(job)
+				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.where(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(job.id))
+						.where(isFinished(jobState))
+						.notExists())
+				.notExists()
 			
-		});
+			.flatMap(new Mapper<Boolean, Future<Ack>>() {
+				
+				public Future<Ack> apply(Boolean notExists) {
+					if(notExists) {
+						return createServiceJob(tx, datasetId)
+							.map(new Mapper<Long, Ack>() {
+								
+								@Override
+								public Ack apply(Long l) {
+									log.debug("service job created");
+									
+									return new Ack();
+								}
+							}, getContext().dispatcher());
+					} else {
+						log.debug("already exist a service job for this dataset");
+						return Futures.successful(new Ack());
+					}
+				}
+			}, getContext().dispatcher()));		
 	}
 	
 	private Future<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
@@ -245,11 +238,8 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
-				return tx.query().from(job)
+		return db.transactional((final AsyncHelper tx) ->
+				tx.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
 					.where(dataset.identification.eq(datasetId))
@@ -280,20 +270,14 @@ public class JobManager extends UntypedActor {
 						}
 					}					
 					
-				}, getContext().dispatcher());
-			}
-			
-		});
+				}, getContext().dispatcher()));
 	}
 	
 	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {				
-				return tx.query().from(job)
+		return db.transactional((final AsyncHelper tx) ->				
+				tx.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 					.where(dataSource.identification.eq(msg.getDataSourceId()))
@@ -345,9 +329,7 @@ public class JobManager extends UntypedActor {
 						}
 					}
 					
-				}, getContext().dispatcher());
-			}			
-		});
+				}, getContext().dispatcher()));
 	}
 	
 	private Future<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
@@ -371,10 +353,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching import jobs");
 		
 		return
-			db.transactional(new Function<AsyncHelper, Future<TypedList<ImportJobInfo>>>() {
-	
-				@Override
-				public Future<TypedList<ImportJobInfo>> apply(AsyncHelper tx) throws Exception {
+			db.transactional((AsyncHelper tx) -> {
 					AsyncSQLQuery query = tx.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -387,7 +366,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return f.collect(
+					return (Future<TypedList<ImportJobInfo>>)f.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -486,9 +465,7 @@ public class JobManager extends UntypedActor {
 						}						
 
 						return new TypedList<>(ImportJobInfo.class, jobs);
-					});				
-				}
-				
+					});
 			});
 	}
 	

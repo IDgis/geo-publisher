@@ -18,7 +18,6 @@ import akka.actor.UntypedActor;
 import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Function;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -102,145 +101,140 @@ public class DatasetManager extends UntypedActor {
 		final Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		final Table table = dataset.getTable();
 
-		return db.transactional(new Function<AsyncHelper, Future<Object>>() {
+		return db.transactional((final AsyncHelper tx) ->
+			f.flatMap(
+				tx.query()
+						.from(sourceDatasetVersion)
+						.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+						.where(dataSource.identification.eq(rsd.getDataSource())
+								.and(sourceDataset.identification.eq(dataset.getId())))
+						.singleResult(sourceDatasetVersion.id.max()),
 
-			@Override
-			public Future<Object> apply(final AsyncHelper tx) throws Exception {
-				return f.flatMap(
-						tx.query()
-								.from(sourceDatasetVersion)
-								.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-								.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-								.where(dataSource.identification.eq(rsd.getDataSource())
-										.and(sourceDataset.identification.eq(dataset.getId())))
-								.singleResult(sourceDatasetVersion.id.max()),
+				new Function1<Integer, Future<Object>>() {
 
-						new Function1<Integer, Future<Object>>() {
+					private Future<Void> insertSourceDatasetVersion(Future<Integer> sourceDatasetIdFuture) {
+						return f
+							.collect(sourceDatasetIdFuture)
+							.collect(getCategoryId(tx, dataset.getCategoryId()))
+							.flatMap((Integer sourceDatasetId, Integer categoryId) -> {
+								return (Future<Void>)f.flatMap(
+									tx.insert(sourceDatasetVersion)
+										.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+										.set(sourceDatasetVersion.name, table.getName())
+										.set(sourceDatasetVersion.categoryId, categoryId)
+										.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+										.executeWithKey(sourceDatasetVersion.id),
 
-							private Future<Void> insertSourceDatasetVersion(Future<Integer> sourceDatasetIdFuture) {
-								return f
-									.collect(sourceDatasetIdFuture)
-									.collect(getCategoryId(tx, dataset.getCategoryId()))
-									.flatMap((Integer sourceDatasetId, Integer categoryId) -> {
-										return (Future<Void>)f.flatMap(
-											tx.insert(sourceDatasetVersion)
-												.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
-												.set(sourceDatasetVersion.name, table.getName())
-												.set(sourceDatasetVersion.categoryId, categoryId)
-												.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-												.executeWithKey(sourceDatasetVersion.id),
+										(Integer versionId) -> {
+											int i = 0;
 
-												(Integer versionId) -> {
-													int i = 0;
+											ArrayList<Future<Long>> columns = new ArrayList<>();
+											for (Column column : table.getColumns()) {
+												columns.add(
+													tx
+														.insert(sourceDatasetVersionColumn)
+														.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+														.set(sourceDatasetVersionColumn.index, i++)
+														.set(sourceDatasetVersionColumn.name, column.getName())
+														.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+														.execute());
+											}
 
-													ArrayList<Future<Long>> columns = new ArrayList<>();
-													for (Column column : table.getColumns()) {
-														columns.add(
-															tx
-																.insert(sourceDatasetVersionColumn)
-																.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
-																.set(sourceDatasetVersionColumn.index, i++)
-																.set(sourceDatasetVersionColumn.name, column.getName())
-																.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-																.execute());
+											return (Future<Void>)f.mapValue(f.sequence(columns), (Void)null);
+										});	
+							});
+					}
+
+					@Override
+					public Future<Object> apply(final Integer maxVersionId) {
+						if (maxVersionId == null) { // new dataset
+							return f.<Void, Object> mapValue(
+									insertSourceDatasetVersion(
+										tx
+											.insert(sourceDataset)
+											.columns(sourceDataset.dataSourceId, sourceDataset.identification)
+											.select(new SQLSubQuery()
+													.from(dataSource)
+													.list(dataSource.id, dataset.getId()))
+											.executeWithKey(sourceDataset.id)),
+
+									new Registered());
+						} else { // existing dataset
+							return f.flatMap(
+								tx.query()
+									.from(sourceDataset)
+									.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+									.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(maxVersionId))
+									.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+									.where(dataSource.identification.eq(rsd.getDataSource())
+											.and(sourceDataset.identification.eq(dataset.getId())))
+									.singleResult(
+											sourceDataset.id,
+											sourceDatasetVersion.name,
+											category.identification,
+											sourceDatasetVersion.revision,
+											sourceDataset.deleteTime),
+
+								(Tuple existing) -> {
+										final Integer sourceDatasetId = existing.get(sourceDataset.id);
+
+										final String existingName = existing.get(sourceDatasetVersion.name);
+										final String existingCategoryIdentification = existing.get(category.identification);
+										final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
+										final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
+
+										return f.flatMap(
+												tx.query()
+														.from(sourceDatasetVersionColumn)
+														.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(maxVersionId))
+														.orderBy(sourceDatasetVersionColumn.index.asc())
+														.list(new QColumn(
+																sourceDatasetVersionColumn.name,
+																sourceDatasetVersionColumn.dataType)),
+
+												new Function1<TypedList<Column>, Future<Object>>() {
+
+													@Override
+													public Future<Object> apply(final TypedList<Column> existingColumns) {
+														if (existingName.equals(table.getName()) // still identical
+																&& existingCategoryIdentification.equals(dataset.getCategoryId())
+																&& existingRevision.equals(revision)
+																&& existingDeleteTime == null
+																&& existingColumns.equals(new TypedList<Column>(Column.class, table.getColumns()))) {
+
+															return Futures.<Object>successful(new AlreadyRegistered());
+														} else {
+															if (existingDeleteTime != null) { // reviving dataset
+																return f.flatMap(
+																		tx.update(sourceDataset)
+																			.setNull(sourceDataset.deleteTime)
+																			.execute(),
+
+																		(Long l) -> {
+																			return f.<Void, Object> mapValue(
+																					insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
+
+																					new Updated());
+																		
+																		});
+															} else {
+																return f.<Void, Object> mapValue(																					
+																		insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
+
+																		new Updated());
+															}
+														}
 													}
 
-													return (Future<Void>)f.mapValue(f.sequence(columns), (Void)null);
-												});	
+												});
+
 									});
-							}
+						}
+					}
 
-							@Override
-							public Future<Object> apply(final Integer maxVersionId) {
-								if (maxVersionId == null) { // new dataset
-									return f.<Void, Object> mapValue(
-											insertSourceDatasetVersion(
-												tx
-													.insert(sourceDataset)
-													.columns(sourceDataset.dataSourceId, sourceDataset.identification)
-													.select(new SQLSubQuery()
-															.from(dataSource)
-															.list(dataSource.id, dataset.getId()))
-													.executeWithKey(sourceDataset.id)),
-
-											new Registered());
-								} else { // existing dataset
-									return f.flatMap(
-										tx.query()
-											.from(sourceDataset)
-											.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-											.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(maxVersionId))
-											.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-											.where(dataSource.identification.eq(rsd.getDataSource())
-													.and(sourceDataset.identification.eq(dataset.getId())))
-											.singleResult(
-													sourceDataset.id,
-													sourceDatasetVersion.name,
-													category.identification,
-													sourceDatasetVersion.revision,
-													sourceDataset.deleteTime),
-
-										(Tuple existing) -> {
-												final Integer sourceDatasetId = existing.get(sourceDataset.id);
-
-												final String existingName = existing.get(sourceDatasetVersion.name);
-												final String existingCategoryIdentification = existing.get(category.identification);
-												final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
-												final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
-
-												return f.flatMap(
-														tx.query()
-																.from(sourceDatasetVersionColumn)
-																.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(maxVersionId))
-																.orderBy(sourceDatasetVersionColumn.index.asc())
-																.list(new QColumn(
-																		sourceDatasetVersionColumn.name,
-																		sourceDatasetVersionColumn.dataType)),
-
-														new Function1<TypedList<Column>, Future<Object>>() {
-
-															@Override
-															public Future<Object> apply(final TypedList<Column> existingColumns) {
-																if (existingName.equals(table.getName()) // still identical
-																		&& existingCategoryIdentification.equals(dataset.getCategoryId())
-																		&& existingRevision.equals(revision)
-																		&& existingDeleteTime == null
-																		&& existingColumns.equals(new TypedList<Column>(Column.class, table.getColumns()))) {
-
-																	return Futures.<Object>successful(new AlreadyRegistered());
-																} else {
-																	if (existingDeleteTime != null) { // reviving dataset
-																		return f.flatMap(
-																				tx.update(sourceDataset)
-																					.setNull(sourceDataset.deleteTime)
-																					.execute(),
-
-																				(Long l) -> {
-																					return f.<Void, Object> mapValue(
-																							insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
-
-																							new Updated());
-																				
-																				});
-																	} else {
-																		return f.<Void, Object> mapValue(																					
-																				insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
-
-																				new Updated());
-																	}
-																}
-															}
-
-														});
-
-											});
-								}
-							}
-
-						});
-			}
-
-		});
+				})
+		);
 	}
 
 }
