@@ -105,11 +105,10 @@ public class DatasetManager extends UntypedActor {
 				});
 	}
 
-	private Future<Object> handleRegisterSourceDataset(
-			final RegisterSourceDataset rsd) {
+	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
+		
 		final VectorDataset dataset = rsd.getDataset();
-		final Timestamp revision = new Timestamp(dataset.getRevisionDate()
-				.getTime());
+		final Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		final Table table = dataset.getTable();
 
 		return db.transactional(new Function<AsyncHelper, Future<Object>>() {
@@ -119,10 +118,8 @@ public class DatasetManager extends UntypedActor {
 				return f.flatMap(
 						tx.query()
 								.from(sourceDatasetVersion)
-								.join(sourceDataset)
-								.on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-								.join(dataSource)
-								.on(dataSource.id.eq(sourceDataset.dataSourceId))
+								.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+								.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 								.where(dataSource.identification.eq(rsd.getDataSource())
 										.and(sourceDataset.identification.eq(dataset.getId())))
 								.singleResult(sourceDatasetVersion.id.max()),
@@ -176,8 +173,8 @@ public class DatasetManager extends UntypedActor {
 							}
 
 							@Override
-							public Future<Object> apply(final Integer versionId) {
-								if (versionId == null) { // new dataset
+							public Future<Object> apply(final Integer maxVersionId) {
+								if (maxVersionId == null) { // new dataset
 									return f.<Void, Object> mapValue(
 											insertSourceDatasetVersion(
 												tx
@@ -194,7 +191,7 @@ public class DatasetManager extends UntypedActor {
 											tx.query()
 													.from(sourceDataset)
 													.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-													.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
+													.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(maxVersionId))
 													.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 													.where(dataSource.identification.eq(rsd.getDataSource())
 															.and(sourceDataset.identification.eq(dataset.getId())))
@@ -219,7 +216,7 @@ public class DatasetManager extends UntypedActor {
 													return f.flatMap(
 															tx.query()
 																	.from(sourceDatasetVersionColumn)
-																	.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
+																	.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(maxVersionId))
 																	.orderBy(sourceDatasetVersionColumn.index.asc())
 																	.list(new QColumn(
 																			sourceDatasetVersionColumn.name,
