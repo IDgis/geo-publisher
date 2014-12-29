@@ -313,4 +313,8 @@ public class FutureUtils {
 	public <T> void failure(Future<T> future, OnFailure onFailure) {
 		future.onFailure(onFailure, executionContext);
 	}
+	
+	public <T> Future<Iterable<T>> sequence(Iterable<Future<T>> futures) {
+		return Futures.sequence(futures, executionContext);
+	}
 }
