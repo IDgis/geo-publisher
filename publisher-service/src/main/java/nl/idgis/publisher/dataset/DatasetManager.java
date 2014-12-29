@@ -81,7 +81,7 @@ public class DatasetManager extends UntypedActor {
 				.where(category.identification.eq(identification))
 				.singleResult(category.id))
 				
-		.flatResult(new AbstractFunction1<Integer, Future<Integer>>() {
+		.flatMap(new AbstractFunction1<Integer, Future<Integer>>() {
 
 			@Override
 			public Future<Integer> apply(Integer id) {
@@ -115,14 +115,14 @@ public class DatasetManager extends UntypedActor {
 							.and(sourceDataset.identification.eq(dataset.getId())))
 						.singleResult(sourceDatasetVersion.id.max()))
 						
-					.flatResult(new AbstractFunction1<Integer, Future<Object>>() {					
+					.flatMap(new AbstractFunction1<Integer, Future<Object>>() {					
 						
 						private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
 							return async
 								.collect(sourceDatasetId)
 								.collect(getCategoryId(dataset.getCategoryId()))
 								
-							.flatResult(new AbstractFunction2<Integer, Integer, Future<Object>>() {
+							.flatMap(new AbstractFunction2<Integer, Integer, Future<Object>>() {
 
 								@Override
 								public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
@@ -133,7 +133,7 @@ public class DatasetManager extends UntypedActor {
 											.set(sourceDatasetVersion.categoryId, categoryId)
 											.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 											.executeWithKey(sourceDatasetVersion.id))
-									.flatResult(new AbstractFunction1<Integer, Future<Object>>() {
+									.flatMap(new AbstractFunction1<Integer, Future<Object>>() {
 
 										@Override
 										public Future<Object> apply(Integer versionId) {
@@ -153,7 +153,7 @@ public class DatasetManager extends UntypedActor {
 											return async.collect(
 													Futures.sequence(columns, getContext().dispatcher()))
 													
-											.flatResult(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
+											.flatMap(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
 
 												@Override
 												public Future<Object> apply(Iterable<Long> i) {
@@ -197,7 +197,7 @@ public class DatasetManager extends UntypedActor {
 											sourceDatasetVersion.revision,
 											sourceDataset.deleteTime))
 											
-								.flatResult(new AbstractFunction1<Tuple, Future<Object>>() {
+								.flatMap(new AbstractFunction1<Tuple, Future<Object>>() {
 
 									@Override
 									public Future<Object> apply(Tuple existing) {
@@ -214,7 +214,7 @@ public class DatasetManager extends UntypedActor {
 												.orderBy(sourceDatasetVersionColumn.index.asc())
 												.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)))
 										
-										.flatResult(new AbstractFunction1<TypedList<Column>, Future<Object>>() {
+										.flatMap(new AbstractFunction1<TypedList<Column>, Future<Object>>() {
 
 											@Override
 											public Future<Object> apply(final TypedList<Column> existingColumns) {
@@ -232,7 +232,7 @@ public class DatasetManager extends UntypedActor {
 																.setNull(sourceDataset.deleteTime)						
 																.execute())
 																
-														.result(new AbstractFunction1<Long, Object>() {
+														.map(new AbstractFunction1<Long, Object>() {
 
 															@Override
 															public Object apply(Long l) {

@@ -168,7 +168,7 @@ public class JobManager extends UntypedActor {
 	
 	private Future<Long> createServiceJob(final AsyncHelper transaction, final String datasetId) {
 		return createJobForDataset(transaction, datasetId)		
-			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
 				@Override
 				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
@@ -188,7 +188,7 @@ public class JobManager extends UntypedActor {
 	
 	private Future<Long> createImportJob(final AsyncHelper transaction, final String datasetId) {
 		return createJobForDataset(transaction, datasetId)		
-			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 	
 				@Override
 				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
@@ -324,7 +324,7 @@ public class JobManager extends UntypedActor {
 									.set(job.type, "HARVEST")
 									.executeWithKey(job.id))
 									
-							.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+							.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
 								@Override
 								public Future<Long> apply(Integer dataSourceId, Integer jobId) {
@@ -430,7 +430,7 @@ public class JobManager extends UntypedActor {
 							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 							.list(job.id, notification.type, notificationResult.result))
 						
-					.result(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
+					.map(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
 	
 						@Override
 						public TypedList<ImportJobInfo> apply(							

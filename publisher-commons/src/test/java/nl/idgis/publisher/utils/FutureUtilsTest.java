@@ -54,7 +54,7 @@ public class FutureUtilsTest {
 		f
 			.collect(Futures.successful("Hello world!"))			
 			.collect(Futures.successful(42))
-			.result(new AbstractFunction2<String, Integer, Void>() {
+			.map(new AbstractFunction2<String, Integer, Void>() {
 
 				@Override
 				public Void apply(String s, Integer i) {
@@ -80,7 +80,7 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))			
 					.collect(Futures.failed(new Exception("Failure")))
-					.result(new AbstractFunction2<String, Object, Void>() {
+					.map(new AbstractFunction2<String, Object, Void>() {
 		
 						@Override
 						public Void apply(String s, Object o) {
@@ -111,7 +111,7 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.result(new AbstractFunction2<String, Integer, Integer>() {
+					.map(new AbstractFunction2<String, Integer, Integer>() {
 		
 						@Override
 						public Integer apply(String s, Integer i) {
@@ -119,7 +119,7 @@ public class FutureUtilsTest {
 						}
 						
 					}))
-			.result(new AbstractFunction1<Integer, Void>() {
+			.map(new AbstractFunction1<Integer, Void>() {
 
 				@Override
 				public Void apply(Integer i) {
@@ -143,7 +143,7 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.flatResult(new AbstractFunction2<String, Integer, Future<Integer>>() {
+					.flatMap(new AbstractFunction2<String, Integer, Future<Integer>>() {
 		
 						@Override
 						public Future<Integer> apply(String s, Integer i) {
@@ -151,7 +151,7 @@ public class FutureUtilsTest {
 						}
 						
 					}))
-			.result(new AbstractFunction1<Integer, Void>() {
+			.map(new AbstractFunction1<Integer, Void>() {
 
 				@Override
 				public Void apply(Integer i) {
@@ -175,7 +175,7 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(f.cast(objectFuture, String.class))
-			.result(new AbstractFunction1<String, Void>() {
+			.map(new AbstractFunction1<String, Void>() {
 
 				@Override
 				public Void apply(String s) {
@@ -198,7 +198,7 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(outputFuture)
-			.result(new AbstractFunction1<Map<String, String>, Void>() {
+			.map(new AbstractFunction1<Map<String, String>, Void>() {
 
 				@Override
 				public Void apply(Map<String, String> output) {

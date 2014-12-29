@@ -52,11 +52,11 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatResult(final Function4<T, U, V, W, Future<R>> f) {
+		public <R> Future<R> flatMap(final Function4<T, U, V, W, Future<R>> f) {
 			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
-					return parent.flatResult(new AbstractFunction3<T, U, V, Future<R>>() {
+					return parent.flatMap(new AbstractFunction3<T, U, V, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t, U u, V v) {
@@ -69,11 +69,11 @@ public class FutureUtils {
 			}, executionContext);
 		}
 		
-		public <R> Future<R> result(final Function4<T, U, V, W, R> f) {
+		public <R> Future<R> map(final Function4<T, U, V, W, R> f) {
 			return future.flatMap(new Mapper<W, Future<R>>() {
 				
 				public Future<R> apply(final W w) {
-					return parent.result(new AbstractFunction3<T, U, V, R>() {
+					return parent.map(new AbstractFunction3<T, U, V, R>() {
 
 						@Override
 						public R apply(T t, U u, V v) {
@@ -97,11 +97,11 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatResult(final Function3<T, U, V, Future<R>> f) {
+		public <R> Future<R> flatMap(final Function3<T, U, V, Future<R>> f) {
 			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
-					return parent.flatResult(new AbstractFunction2<T, U, Future<R>>() {
+					return parent.flatMap(new AbstractFunction2<T, U, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t, U u) {
@@ -114,11 +114,11 @@ public class FutureUtils {
 			}, executionContext);
 		}
 		
-		public <R> Future<R> result(final Function3<T, U, V, R> f) {
+		public <R> Future<R> map(final Function3<T, U, V, R> f) {
 			return future.flatMap(new Mapper<V, Future<R>>() {
 				
 				public Future<R> apply(final V v) {
-					return parent.result(new AbstractFunction2<T, U, R>() {
+					return parent.map(new AbstractFunction2<T, U, R>() {
 
 						@Override
 						public R apply(T t, U u) {
@@ -146,11 +146,11 @@ public class FutureUtils {
 			this.parent = parent;			
 		}
 		
-		public <R> Future<R> flatResult(final Function2<T, U, Future<R>> f) {			
+		public <R> Future<R> flatMap(final Function2<T, U, Future<R>> f) {			
 			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
-					return parent.flatResult(new AbstractFunction1<T, Future<R>>() {
+					return parent.flatMap(new AbstractFunction1<T, Future<R>>() {
 
 						@Override
 						public Future<R> apply(T t) {
@@ -163,11 +163,11 @@ public class FutureUtils {
 			}, executionContext);
 		}
 		
-		public <R> Future<R> result(final Function2<T, U, R> f) {			
+		public <R> Future<R> map(final Function2<T, U, R> f) {			
 			return future.flatMap(new Mapper<U, Future<R>>() {
 				
 				public Future<R> apply(final U u) {
-					return parent.result(new AbstractFunction1<T, R>() {
+					return parent.map(new AbstractFunction1<T, R>() {
 
 						@Override
 						public R apply(T t) {
@@ -191,7 +191,7 @@ public class FutureUtils {
 			super(future);
 		}
 		
-		public <R> Future<R> flatResult(final Function1<T, Future<R>> f) {
+		public <R> Future<R> flatMap(final Function1<T, Future<R>> f) {
 			return future.flatMap(new Mapper<T, Future<R>>() {
 
 				@Override
@@ -202,7 +202,7 @@ public class FutureUtils {
 			}, executionContext);
 		}
 		
-		public <R> Future<R> result(final Function1<T, R> f) {
+		public <R> Future<R> map(final Function1<T, R> f) {
 			return future.map(new Mapper<T, R>() {
 
 				@Override
