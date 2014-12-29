@@ -124,15 +124,15 @@ public class DatasetManager extends UntypedActor {
 							
 							new AbstractFunction1<Integer, Future<Object>>() {					
 								
-								private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
+								private Future<Void> insertSourceDatasetVersion(Future<Integer> sourceDatasetId) {
 									return f
 										.collect(sourceDatasetId)
 										.collect(getCategoryId(dataset.getCategoryId()))
 										
-									.flatMap(new AbstractFunction2<Integer, Integer, Future<Object>>() {
+									.flatMap(new AbstractFunction2<Integer, Integer, Future<Void>>() {
 		
 										@Override
-										public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
+										public Future<Void> apply(Integer sourceDatasetId, Integer categoryId) {
 											return f.flatMap(								
 												tx.insert(sourceDatasetVersion)
 													.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -141,10 +141,10 @@ public class DatasetManager extends UntypedActor {
 													.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 													.executeWithKey(sourceDatasetVersion.id),
 
-												new AbstractFunction1<Integer, Future<Object>>() {
+												new AbstractFunction1<Integer, Future<Void>>() {
 		
 												@Override
-												public Future<Object> apply(Integer versionId) {
+												public Future<Void> apply(Integer versionId) {
 													int i = 0;
 													
 													ArrayList<Future<Long>> columns = new ArrayList<>();
@@ -158,17 +158,7 @@ public class DatasetManager extends UntypedActor {
 																.execute());
 													}
 													
-													return f
-															.flatMap(
-																	f.sequence(columns),
-															
-																	new AbstractFunction1<Iterable<Long>, Future<Object>>() {
-		
-																		@Override
-																		public Future<Object> apply(Iterable<Long> i) {
-																			return Futures.successful(result);
-																		}
-																	});
+													return f.mapValue(f.sequence(columns), null);
 												}
 												
 											});
@@ -180,17 +170,20 @@ public class DatasetManager extends UntypedActor {
 								@Override
 								public Future<Object> apply(final Integer versionId) {
 									if(versionId == null) { // new dataset
-										return insertSourceDatasetVersion(
-											tx.insert(sourceDataset)
-												.columns(
-													sourceDataset.dataSourceId,
-													sourceDataset.identification)
-												.select(
-													new SQLSubQuery().from(dataSource)
-														.list(
-															dataSource.id,
-															dataset.getId()))
-											.executeWithKey(sourceDataset.id), new Registered());
+										return f.<Void, Object>mapValue(												
+											insertSourceDatasetVersion(
+												tx.insert(sourceDataset)
+													.columns(
+														sourceDataset.dataSourceId,
+														sourceDataset.identification)
+													.select(
+														new SQLSubQuery().from(dataSource)
+															.list(
+																dataSource.id,
+																dataset.getId()))
+												.executeWithKey(sourceDataset.id)), 
+												
+												new Registered());
 									} else { // existing dataset
 										return f.flatMap(
 											tx.query().from(sourceDataset)
@@ -246,11 +239,17 @@ public class DatasetManager extends UntypedActor {
 		
 																			@Override
 																			public Future<Object> apply(Long l) {
-																				return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
+																				return f.<Void, Object>mapValue(
+																					insertSourceDatasetVersion(Futures.successful(sourceDatasetId)), 
+																					
+																					new Updated());
 																			}															
 																		});
 															} else {
-																return insertSourceDatasetVersion(Futures.successful(sourceDatasetId), new Updated());
+																return f.<Void, Object>mapValue(
+																	insertSourceDatasetVersion(Futures.successful(sourceDatasetId)),
+																	
+																	new Updated());
 															}
 														}
 													}

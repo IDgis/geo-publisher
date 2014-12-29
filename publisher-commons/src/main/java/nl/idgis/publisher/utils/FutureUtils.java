@@ -317,4 +317,15 @@ public class FutureUtils {
 	public <T> Future<Iterable<T>> sequence(Iterable<Future<T>> futures) {
 		return Futures.sequence(futures, executionContext);
 	}
+	
+	public <T, U> Future<U> mapValue(Future<T> future, final U u) {
+		return flatMap(future, new AbstractFunction1<T, Future<U>>() {
+
+			@Override
+			public Future<U> apply(T t) {
+				return Futures.successful(u);
+			}
+			
+		});
+	}
 }
