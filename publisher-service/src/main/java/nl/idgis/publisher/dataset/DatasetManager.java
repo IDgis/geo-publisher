@@ -7,6 +7,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -73,6 +74,31 @@ public class DatasetManager extends UntypedActor {
 			unhandled(msg);
 		}
 	}
+	
+	private Future<Integer> getCategoryId(final String identification) {
+		return async.collect(						
+			async.query().from(category)
+				.where(category.identification.eq(identification))
+				.singleResult(category.id))
+				
+		.flatResult(new AbstractFunction1<Integer, Future<Integer>>() {
+
+			@Override
+			public Future<Integer> apply(Integer id) {
+				if(id == null) {
+					return async.insert(category)
+						.set(category.identification, identification)
+						.set(category.name, identification)
+						.executeWithKey(category.id);
+				} else {
+					return Futures.successful(id);
+				}
+			}
+			
+		})
+		
+		.returnValue();
+	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
 		final VectorDataset dataset = rsd.getDataset();
@@ -91,32 +117,7 @@ public class DatasetManager extends UntypedActor {
 							.and(sourceDataset.identification.eq(dataset.getId())))
 						.singleResult(sourceDatasetVersion.id.max()))
 						
-					.flatResult(new AbstractFunction1<Integer, Future<Object>>() {
-						
-						private Future<Integer> getCategoryId(final String identification) {
-							return async.collect(						
-								async.query().from(category)
-									.where(category.identification.eq(identification))
-									.singleResult(category.id))
-									
-							.flatResult(new AbstractFunction1<Integer, Future<Integer>>() {
-
-								@Override
-								public Future<Integer> apply(Integer id) {
-									if(id == null) {
-										return async.insert(category)
-											.set(category.identification, identification)
-											.set(category.name, identification)
-											.executeWithKey(category.id);
-									} else {
-										return Futures.successful(id);
-									}
-								}
-								
-							})
-							
-							.returnValue();
-						}					
+					.flatResult(new AbstractFunction1<Integer, Future<Object>>() {					
 						
 						private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
 							return async
@@ -137,8 +138,32 @@ public class DatasetManager extends UntypedActor {
 									.flatResult(new AbstractFunction1<Integer, Future<Object>>() {
 
 										@Override
-										public Future<Object> apply(Integer i) {
-											return Futures.successful(result);
+										public Future<Object> apply(Integer versionId) {
+											int i = 0;
+											
+											ArrayList<Future<Long>> columns = new ArrayList<>();
+											for(Column column : table.getColumns()) {
+												columns.add(
+													async.insert(sourceDatasetVersionColumn)
+														.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
+														.set(sourceDatasetVersionColumn.index, i++)
+														.set(sourceDatasetVersionColumn.name, column.getName())
+														.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+														.execute());
+											}
+											
+											return async.collect(
+													Futures.sequence(columns, getContext().dispatcher()))
+													
+											.flatResult(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
+
+												@Override
+												public Future<Object> apply(Iterable<Long> i) {
+													return Futures.successful(result);
+												}
+											})
+											
+											.returnValue();
 										}
 										
 									})
@@ -148,7 +173,8 @@ public class DatasetManager extends UntypedActor {
 								
 							})
 							
-							.returnValue();						}
+							.returnValue();						
+						}
 
 						@Override
 						public Future<Object> apply(final Integer versionId) {
@@ -179,7 +205,7 @@ public class DatasetManager extends UntypedActor {
 											sourceDatasetVersion.revision,
 											sourceDataset.deleteTime))
 											
-								.result(new AbstractFunction1<Tuple, Object>() {
+								.flatResult(new AbstractFunction1<Tuple, Future<Object>>() {
 
 									@Override
 									public Future<Object> apply(Tuple existing) {

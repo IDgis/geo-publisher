@@ -64,14 +64,14 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		}
 		
 		VectorDataset dataset = createTestDataset();		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		VectorDataset updatedDataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
 		
 		assertEquals(2,
 				query().from(sourceDatasetVersion)
