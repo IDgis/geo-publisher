@@ -46,7 +46,7 @@ public class DatasetManager extends UntypedActor {
 		
 	private final ActorRef database;
 	
-	private AsyncDatabaseHelper async;
+	private AsyncDatabaseHelper db;
 	
 	public DatasetManager(ActorRef database) {
 		this.database = database;
@@ -58,7 +58,7 @@ public class DatasetManager extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		async = new AsyncDatabaseHelper(database, Timeout.apply(15000), getContext().dispatcher(), log);
+		db = new AsyncDatabaseHelper(database, Timeout.apply(15000), getContext().dispatcher(), log);
 	}
 	
 	private <T> void returnToSender(Future<T> future) {
@@ -76,8 +76,8 @@ public class DatasetManager extends UntypedActor {
 	}
 	
 	private Future<Integer> getCategoryId(final String identification) {
-		return async.collect(						
-			async.query().from(category)
+		return db.collect(						
+			db.query().from(category)
 				.where(category.identification.eq(identification))
 				.singleResult(category.id))
 				
@@ -86,7 +86,7 @@ public class DatasetManager extends UntypedActor {
 			@Override
 			public Future<Integer> apply(Integer id) {
 				if(id == null) {
-					return async.insert(category)
+					return db.insert(category)
 						.set(category.identification, identification)
 						.set(category.name, identification)
 						.executeWithKey(category.id);
@@ -103,12 +103,12 @@ public class DatasetManager extends UntypedActor {
 		final Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		final Table table = dataset.getTable();
 		
-		return async.transactional(new Function<AsyncHelper, Future<Object>>() {
+		return db.transactional(new Function<AsyncHelper, Future<Object>>() {
 
 			@Override
-			public Future<Object> apply(final AsyncHelper async) throws Exception {
-				return async.collect(				
-					async.query().from(sourceDatasetVersion)
+			public Future<Object> apply(final AsyncHelper tx) throws Exception {
+				return tx.collect(				
+					tx.query().from(sourceDatasetVersion)
 						.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 						.where(dataSource.identification.eq(rsd.getDataSource())
@@ -118,7 +118,7 @@ public class DatasetManager extends UntypedActor {
 					.flatMap(new AbstractFunction1<Integer, Future<Object>>() {					
 						
 						private Future<Object> insertSourceDatasetVersion(Future<Integer> sourceDatasetId, final Object result) {
-							return async
+							return tx
 								.collect(sourceDatasetId)
 								.collect(getCategoryId(dataset.getCategoryId()))
 								
@@ -126,8 +126,8 @@ public class DatasetManager extends UntypedActor {
 
 								@Override
 								public Future<Object> apply(Integer sourceDatasetId, Integer categoryId) {
-									return async.collect(								
-										async.insert(sourceDatasetVersion)
+									return tx.collect(								
+										tx.insert(sourceDatasetVersion)
 											.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 											.set(sourceDatasetVersion.name, table.getName())
 											.set(sourceDatasetVersion.categoryId, categoryId)
@@ -142,7 +142,7 @@ public class DatasetManager extends UntypedActor {
 											ArrayList<Future<Long>> columns = new ArrayList<>();
 											for(Column column : table.getColumns()) {
 												columns.add(
-													async.insert(sourceDatasetVersionColumn)
+													tx.insert(sourceDatasetVersionColumn)
 														.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
 														.set(sourceDatasetVersionColumn.index, i++)
 														.set(sourceDatasetVersionColumn.name, column.getName())
@@ -150,7 +150,7 @@ public class DatasetManager extends UntypedActor {
 														.execute());
 											}
 											
-											return async.collect(
+											return tx.collect(
 													Futures.sequence(columns, getContext().dispatcher()))
 													
 											.flatMap(new AbstractFunction1<Iterable<Long>, Future<Object>>() {
@@ -172,7 +172,7 @@ public class DatasetManager extends UntypedActor {
 						public Future<Object> apply(final Integer versionId) {
 							if(versionId == null) { // new dataset
 								return insertSourceDatasetVersion(
-									async.insert(sourceDataset)
+									tx.insert(sourceDataset)
 										.columns(
 											sourceDataset.dataSourceId,
 											sourceDataset.identification)
@@ -183,8 +183,8 @@ public class DatasetManager extends UntypedActor {
 													dataset.getId()))
 									.executeWithKey(sourceDataset.id), new Registered());
 							} else { // existing dataset
-								return async.collect(
-									async.query().from(sourceDataset)
+								return tx.collect(
+									tx.query().from(sourceDataset)
 										.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 										.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
 										.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
@@ -208,8 +208,8 @@ public class DatasetManager extends UntypedActor {
 										final Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
 										final Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
 										
-										return async.collect(
-											async.query().from(sourceDatasetVersionColumn)
+										return tx.collect(
+											tx.query().from(sourceDatasetVersionColumn)
 												.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
 												.orderBy(sourceDatasetVersionColumn.index.asc())
 												.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType)))
@@ -227,8 +227,8 @@ public class DatasetManager extends UntypedActor {
 													return Futures.<Object>successful(new AlreadyRegistered());													
 												} else {
 													if(existingDeleteTime != null) { // reviving dataset
-														return async.collect(
-															async.update(sourceDataset)															
+														return tx.collect(
+															tx.update(sourceDataset)															
 																.setNull(sourceDataset.deleteTime)						
 																.execute())
 																
