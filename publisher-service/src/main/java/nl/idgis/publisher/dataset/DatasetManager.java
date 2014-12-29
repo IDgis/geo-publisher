@@ -94,8 +94,8 @@ public class DatasetManager extends UntypedActor {
 				.where(category.identification.eq(identification))
 				.singleResult(category.id),
 
-			(Integer id) -> {
-				return id == null
+			(Integer id) -> 
+				id == null
 					? f.map(
 							tx.insert(category)
 								.set(category.identification, identification)
@@ -107,8 +107,8 @@ public class DatasetManager extends UntypedActor {
 								return new Pair<>(newId, IdType.NEW);
 							})
 				
-					: Futures.successful(new Pair<>(id, IdType.EXISTING));				
-			});
+					: Futures.successful(new Pair<>(id, IdType.EXISTING))				
+			);
 	}
 
 	private Future<Object> handleRegisterSourceDataset(final RegisterSourceDataset rsd) {
