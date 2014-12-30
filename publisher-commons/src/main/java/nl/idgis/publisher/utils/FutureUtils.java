@@ -14,10 +14,10 @@ import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-import nl.idgis.publisher.database.function.Function1;
-import nl.idgis.publisher.database.function.Function2;
-import nl.idgis.publisher.database.function.Function3;
-import nl.idgis.publisher.database.function.Function4;
+import nl.idgis.publisher.function.Function1;
+import nl.idgis.publisher.function.Function2;
+import nl.idgis.publisher.function.Function3;
+import nl.idgis.publisher.function.Function4;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;

@@ -40,11 +40,11 @@ import nl.idgis.publisher.utils.TypedList;
 
 import nl.idgis.publisher.database.QServiceJob;
 import nl.idgis.publisher.database.QJobState;
-import nl.idgis.publisher.database.function.Function1;
-import nl.idgis.publisher.database.function.Function2;
 
 import nl.idgis.publisher.domain.job.JobState;
 
+import nl.idgis.publisher.function.Function1;
+import nl.idgis.publisher.function.Function2;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import static nl.idgis.publisher.database.QDataset.dataset;

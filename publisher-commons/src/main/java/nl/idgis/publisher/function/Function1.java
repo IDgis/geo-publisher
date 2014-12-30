@@ -1,4 +1,4 @@
-package nl.idgis.publisher.database.function;
+package nl.idgis.publisher.function;
 
 @FunctionalInterface
 public interface Function1<T, R> {
