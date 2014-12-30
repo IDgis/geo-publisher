@@ -7,9 +7,9 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -187,21 +187,20 @@ public class DatasetManager extends UntypedActor {
 						.executeWithKey(sourceDatasetVersion.id)),
 			
 			(Integer sourceDatasetVersionId) -> {
-				int i = 0;
-
-				ArrayList<Future<Long>> columns = new ArrayList<>();
-				for (Column column : table.getColumns()) {
-					columns.add(
+				AtomicInteger index = new AtomicInteger();
+				return f.mapValue(
+					table.getColumns().stream().map((Column column) ->
 						tx
 							.insert(sourceDatasetVersionColumn)
 							.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
-							.set(sourceDatasetVersionColumn.index, i++)
+							.set(sourceDatasetVersionColumn.index, index.getAndIncrement())
 							.set(sourceDatasetVersionColumn.name, column.getName())
 							.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-							.execute());
-				}
-				
-				return (Future<Void>)f.mapValue(f.sequence(columns), (Void)null);
+							.execute()).reduce(Futures.successful(0l), (Future<Long> a, Future<Long> b) -> 
+								f.flatMap(a, (Long l) -> 
+									b)),
+								
+					(Void)null);
 			});
 	}
 	
