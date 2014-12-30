@@ -57,7 +57,11 @@ public class SmartFuture<T> {
 	}
 	
 	public <U> SmartFuture<U> mapValue(U u) {
-		return map((T t) -> u);
+		return map(t -> u);
+	}
+	
+	public SmartFuture<Void> mapNull() {
+		return mapValue(null);
 	}
 	
 	public T get(Duration atMost) throws Exception {
