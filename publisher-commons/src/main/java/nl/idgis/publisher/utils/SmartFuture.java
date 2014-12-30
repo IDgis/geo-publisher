@@ -100,4 +100,18 @@ public class SmartFuture<T> {
 	public void pipeTo(ActorRef recipient, ActorRef sender) {
 		Patterns.pipe(future, executionContext).pipeTo(recipient, sender);
 	}
+	
+	public <U> SmartFuture<U> cast(Class<U> targetClass) {
+		return cast(targetClass, null);
+	}
+	
+	public <U> SmartFuture<U> cast(Class<U> targetClass, Object context) {
+		return map(u -> {
+			if(targetClass.isInstance(u)) {
+				return targetClass.cast(u);
+			} else {
+				throw new WrongResultException(u, targetClass, context);
+			}
+		});
+	}
 }

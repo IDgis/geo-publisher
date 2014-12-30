@@ -139,19 +139,7 @@ public class FutureUtils {
 		return new Collector1<>(future);
 	}
 	
-	public <T, U> SmartFuture<T> cast(SmartFuture<U> future, Class<T> targetClass) {
-		return cast(future, targetClass, null);
-	}
 	
-	public <T, U> SmartFuture<T> cast(SmartFuture<U> future, final Class<T> targetClass, final Object context) {
-		return future.map(u -> {
-			if(targetClass.isInstance(u)) {
-				return targetClass.cast(u);
-			} else {
-				throw new WrongResultException(u, targetClass, context);
-			}
-		});
-	}
 	
 	public SmartFuture<Object> ask(ActorRef actor, Object message) {
 		return ask(actor, message, timeout);
@@ -170,27 +158,27 @@ public class FutureUtils {
 	}
 	
 	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(ask(actor, message, timeout), targetClass, message);
+		return ask(actor, message, timeout).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(ask(actor, message, Timeout.apply(timeout)), targetClass, message);
+		return ask(actor, message, Timeout.apply(timeout)).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass) {		 
-		return cast(ask(actor, message, timeout), targetClass, message);
+		return ask(actor, message, timeout).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(ask(selection, message, timeout), targetClass, message);
+		return ask(selection, message, timeout).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(ask(selection, message, Timeout.apply(timeout)), targetClass, message);
+		return ask(selection, message, Timeout.apply(timeout)).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {		 
-		return cast(ask(selection, message, timeout), targetClass, message);
+		return ask(selection, message, timeout).cast(targetClass, message);
 	}
 	
 	public <T> SmartFuture<Iterable<T>> sequence(Iterable<SmartFuture<T>> sequence) {

@@ -60,13 +60,28 @@ public class SmartFutureTest {
 	
 	@Test
 	public void testFailure() throws Exception {
-		Promise<Boolean> promise = Futures.promise();
+		Promise<Boolean> testPromise = Futures.promise();
 		
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.failed(new IllegalStateException()), executionContext);
 		future.failure((Throwable t) -> {
-			promise.success(true);
+			testPromise.success(true);
 		});
 		
-		assertTrue(Await.result(promise.future(), AT_MOST));
+		assertTrue(Await.result(testPromise.future(), AT_MOST));
+	}
+	
+	@Test
+	public void testCast() throws Exception {
+		Promise<Boolean> testPromise = Futures.promise();
+		
+		SmartFuture<Object> objectFuture = new SmartFuture<>(Futures.<Object>successful("Hello world!"), executionContext);
+		
+		objectFuture.cast(String.class).map((String s) -> {
+			testPromise.success(true);
+			
+			return null;
+		});
+		
+		assertTrue(Await.result(testPromise.future(), AT_MOST));
 	}
 }

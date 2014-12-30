@@ -124,20 +124,6 @@ public class FutureUtilsTest {
 	}
 	
 	@Test
-	public void testCast() {
-		
-		SmartFuture<Object> objectFuture = f.successful("Hello world!");
-		
-		f
-			.collect(f.cast(objectFuture, String.class))
-			.map((String s) -> {
-				testPromise.success(true);
-				
-				return null;
-			});
-	}
-	
-	@Test
 	public void testMap() throws Exception {
 		Map<String, SmartFuture<String>> input = new HashMap<>();
 		
