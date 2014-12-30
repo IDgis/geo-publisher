@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
@@ -38,7 +37,6 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.SmartFuture;
-import nl.idgis.publisher.utils.TypedList;
 
 public class DatasetManager extends UntypedActor {
 
@@ -116,7 +114,7 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersionColumn.name,
 						sourceDatasetVersionColumn.dataType)))
 			
-			.map((Tuple baseInfo, TypedList<Column> columnInfo) -> 
+			.map((baseInfo, columnInfo) -> 
 				new VectorDataset(
 					baseInfo.get(sourceDataset.identification), 
 					baseInfo.get(category.identification), 
@@ -136,7 +134,7 @@ public class DatasetManager extends UntypedActor {
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
 						.and(sourceDataset.identification.eq(identification)))
-				.singleResult(sourceDatasetVersion.id.max()).flatMap((Integer maxVersionId) -> 
+				.singleResult(sourceDatasetVersion.id.max()).flatMap(maxVersionId -> 
 					maxVersionId == null
 						? f.successful(Optional.empty())
 						: getSourceDatasetVersion(tx, maxVersionId).map(dataset -> Optional.of(dataset)));
@@ -146,13 +144,12 @@ public class DatasetManager extends UntypedActor {
 		log.debug("inserting source dataset (by dataSource identification)");
 		
 		return 
-			
-				tx.query().from(sourceDataset)
-					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-					.where(dataSource.identification.eq(dataSourceIdentification)
-						.and(sourceDataset.identification.eq(dataset.getId())))
-					.singleResult(sourceDataset.id).flatMap(sourceDatasetId -> 
-						insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).mapValue(new Updated());
+			tx.query().from(sourceDataset)
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.where(dataSource.identification.eq(dataSourceIdentification)
+					.and(sourceDataset.identification.eq(dataset.getId())))
+				.singleResult(sourceDataset.id).flatMap(sourceDatasetId -> 
+					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).mapValue(new Updated());
 	}
 	
 	private SmartFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, VectorDataset dataset) {
@@ -161,24 +158,24 @@ public class DatasetManager extends UntypedActor {
 		Table table = dataset.getTable();
 		
 		return 
-				getCategoryId(tx, dataset.getCategoryId()).flatMap(categoryId -> 					
-					tx.insert(sourceDatasetVersion)
-						.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
-						.set(sourceDatasetVersion.name, table.getName())
-						.set(sourceDatasetVersion.categoryId, categoryId)
-						.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-						.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId -> {
-							AtomicInteger index = new AtomicInteger();
-							return 
-								table.getColumns().stream().map((Column column) ->
-									tx
-										.insert(sourceDatasetVersionColumn)
-										.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
-										.set(sourceDatasetVersionColumn.index, index.getAndIncrement())
-										.set(sourceDatasetVersionColumn.name, column.getName())
-										.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-										.execute()).reduce(f.successful(0l), (a, b) -> a.flatMap(l -> b)).mapValue(null);
-			});
+			getCategoryId(tx, dataset.getCategoryId()).flatMap(categoryId -> 					
+				tx.insert(sourceDatasetVersion)
+					.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+					.set(sourceDatasetVersion.name, table.getName())
+					.set(sourceDatasetVersion.categoryId, categoryId)
+					.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+					.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId -> {
+						AtomicInteger index = new AtomicInteger();
+						return 
+							table.getColumns().stream().map((Column column) ->
+								tx
+									.insert(sourceDatasetVersionColumn)
+									.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
+									.set(sourceDatasetVersionColumn.index, index.getAndIncrement())
+									.set(sourceDatasetVersionColumn.name, column.getName())
+									.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+									.execute()).reduce(f.successful(0l), (a, b) -> a.flatMap(l -> b)).mapValue(null);
+		});
 	}
 	
 	private SmartFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
