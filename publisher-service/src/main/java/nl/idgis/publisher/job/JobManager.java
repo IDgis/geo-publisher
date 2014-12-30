@@ -49,9 +49,8 @@ import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.FutureUtils.Collector2;
+import nl.idgis.publisher.utils.SmartFuture;
 import nl.idgis.publisher.utils.TypedList;
-
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -87,9 +86,8 @@ public class JobManager extends UntypedActor {
 		return Props.create(JobManager.class, database);
 	}
 	
-	private <T> void returnToSender(Future<T> future) {
-		Patterns.pipe(future, getContext().dispatcher())
-			.pipeTo(getSender(), getSelf());
+	private <T> void returnToSender(SmartFuture<T> future) {
+		future.pipeTo(getSender(), getSelf());
 	}
 	
 	@Override
@@ -123,12 +121,12 @@ public class JobManager extends UntypedActor {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 	
-	private Future<Ack> handleCreateServiceJob(CreateServiceJob msg) {
+	private SmartFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return db.transactional((final AsyncHelper tx) ->
+		return db.transactional(tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
@@ -139,29 +137,22 @@ public class JobManager extends UntypedActor {
 						.notExists())
 				.notExists()
 			
-			.flatMap(new Mapper<Boolean, Future<Ack>>() {
-				
-				public Future<Ack> apply(Boolean notExists) {
-					if(notExists) {
-						return createServiceJob(tx, datasetId)
-							.map(new Mapper<Long, Ack>() {
-								
-								@Override
-								public Ack apply(Long l) {
-									log.debug("service job created");
-									
-									return new Ack();
-								}
-							}, getContext().dispatcher());
-					} else {
-						log.debug("already exist a service job for this dataset");
-						return Futures.successful(new Ack());
-					}
+			.flatMap(notExists -> {
+				if(notExists) {
+					return createServiceJob(tx, datasetId)
+						.map(l -> {
+							log.debug("service job created");
+							
+							return new Ack();
+						});
+				} else {
+					log.debug("already exist a service job for this dataset");
+					return f.successful(new Ack());
 				}
-			}, getContext().dispatcher()));		
+			}));
 	}
 	
-	private Future<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
+	private SmartFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
 			.flatMap((Integer jobId, Integer datasetVersionId) -> {
 				return tx.insert(serviceJob)
@@ -176,7 +167,7 @@ public class JobManager extends UntypedActor {
 			});
 	}
 	
-	private Future<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
+	private SmartFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
 			.flatMap((Integer jobId, Integer datasetVersionId) -> {
 				return 
@@ -195,27 +186,23 @@ public class JobManager extends UntypedActor {
 									dataset.filterConditions))
 						.executeWithKey(importJob.id)
 					
-					.flatMap(new Mapper<Integer, Future<Long>>() {
-						
-						@Override
-						public Future<Long> apply(Integer importJobId) {
-							return tx.insert(importJobColumn)
-								.columns(
-									importJobColumn.importJobId,
-									importJobColumn.index,
-									importJobColumn.name,
-									importJobColumn.dataType)
-								.select(new SQLSubQuery().from(datasetColumn)
-									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-									.where(dataset.identification.eq(datasetId))
-									.list(
-										importJobId,
-										datasetColumn.index,
-										datasetColumn.name,
-										datasetColumn.dataType))
-										.execute();
-						}
-					}, getContext().dispatcher());
+					.flatMap(importJobId -> {
+						return tx.insert(importJobColumn)
+							.columns(
+								importJobColumn.importJobId,
+								importJobColumn.index,
+								importJobColumn.name,
+								importJobColumn.dataType)
+							.select(new SQLSubQuery().from(datasetColumn)
+								.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+								.where(dataset.identification.eq(datasetId))
+								.list(
+									importJobId,
+									datasetColumn.index,
+									datasetColumn.name,
+									datasetColumn.dataType))
+									.execute();
+					});					
 			});
 	}
 
@@ -233,12 +220,12 @@ public class JobManager extends UntypedActor {
 					.singleResult(sourceDatasetVersion.id.max()));
 	}
 	
-	private Future<Ack> handleCreateImportJob(CreateImportJob msg) {
+	private SmartFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return db.transactional((final AsyncHelper tx) ->
+		return db.transactional(tx ->
 				tx.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -249,34 +236,25 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 					
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					@Override
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return createImportJob(tx, datasetId)									
-								.map(new Mapper<Long, Ack>() {
-									
-									@Override
-									public Ack apply(Long l) {
-										log.debug("import job created");
-										
-										return new Ack();
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.debug("already exist an import job for this dataset");
-							return Futures.successful(new Ack());
-						}
-					}					
-					
-				}, getContext().dispatcher()));
+				.flatMap(notExists -> {
+					if(notExists) {
+						return createImportJob(tx, datasetId)									
+							.map(l -> {
+								log.debug("import job created");
+								
+								return new Ack();
+							});							
+					} else {
+						log.debug("already exist an import job for this dataset");
+						return f.successful(new Ack());
+					}
+				}));
 	}
 	
-	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
+	private SmartFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return db.transactional((final AsyncHelper tx) ->				
+		return db.transactional(tx ->				
 				tx.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
@@ -287,52 +265,41 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 				
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					@Override
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return f.collect(
-								tx.query().from(dataSource)
-									.where(dataSource.identification.eq(msg.getDataSourceId()))
-									.singleResult(dataSource.id))
-							.collect(
-								tx.insert(job)
-									.set(job.type, "HARVEST")
-									.executeWithKey(job.id))
-									
-							.flatMap((Integer dataSourceId, Integer jobId) -> {
-								log.debug("job created and dataSourceId determined");
+				.flatMap(notExists -> {
+					if(notExists) {
+						return f.collect(
+							tx.query().from(dataSource)
+								.where(dataSource.identification.eq(msg.getDataSourceId()))
+								.singleResult(dataSource.id))
+						.collect(
+							tx.insert(job)
+								.set(job.type, "HARVEST")
+								.executeWithKey(job.id))
 								
-								return 
-									tx.insert(harvestJob)
-										.set(harvestJob.jobId, jobId)				
-										.set(harvestJob.dataSourceId, dataSourceId)
-										.execute();
-							})
+						.flatMap((dataSourceId, jobId) -> {
+							log.debug("job created and dataSourceId determined");
 							
-							.map(new Mapper<Long, Ack>() {
-								
-								@Override
-								public Ack apply(Long l) {
-									log.debug("harvest job created");
-									
-									return new Ack();
-								}
-								
-							}, getContext().dispatcher());
+							return 
+								tx.insert(harvestJob)
+									.set(harvestJob.jobId, jobId)				
+									.set(harvestJob.dataSourceId, dataSourceId)
+									.execute();
+						})
+						
+						.map(l -> {
+							log.debug("harvest job created");
 							
-						} else {
-							log.debug("already exist a harvest job for this dataSource");
-							
-							return Futures.successful(new Ack());
-						}
+							return new Ack();
+						});
+					} else {
+						log.debug("already exist a harvest job for this dataSource");
+						
+						return f.successful(new Ack());
 					}
-					
-				}, getContext().dispatcher()));
+				}));
 	}
 	
-	private Future<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
+	private SmartFuture<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
 		log.debug("fetching service jobs");
 		
 		return
@@ -349,11 +316,11 @@ public class JobManager extends UntypedActor {
 						dataset.identification));
 	}
 
-	private Future<TypedList<ImportJobInfo>> handleGetImportJobs() {
+	private SmartFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {
 		log.debug("fetching import jobs");
 		
 		return
-			db.transactional((AsyncHelper tx) -> {
+			db.transactional(tx -> {
 					AsyncSQLQuery query = tx.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -366,7 +333,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return (Future<TypedList<ImportJobInfo>>)f.collect(
+					return (SmartFuture<TypedList<ImportJobInfo>>)f.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -469,7 +436,7 @@ public class JobManager extends UntypedActor {
 			});
 	}
 	
-	private Future<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
+	private SmartFuture<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
 		log.debug("fetching harvest jobs");
 
 		return

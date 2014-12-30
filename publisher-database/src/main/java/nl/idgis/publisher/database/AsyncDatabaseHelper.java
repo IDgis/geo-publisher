@@ -3,10 +3,9 @@ package nl.idgis.publisher.database;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.function.Function1;
-import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.SmartFuture;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
@@ -20,42 +19,22 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper {
 		super(database, timeout, executionContext, log);
 	}
 	
-	public <T> Future<T> transactional(final Function1<AsyncHelper, Future<T>> handler) {
-		return transaction().flatMap(new Mapper<AsyncTransactionHelper, Future<T>>() {
-			
-			public Future<T> checkedApply(final AsyncTransactionHelper tx) throws Exception {
+	public <T> SmartFuture<T> transactional(final Function1<AsyncHelper, SmartFuture<T>> handler) {
+		return transaction().flatMap(tx -> {
 				try {
-					return handler.apply(tx).flatMap(new Mapper<T, Future<T>>() {
-						
-						public Future<T> checkedApply(final T t) throws Exception {
-							return tx.commit().map(new Mapper<Ack, T>() {
-								
-								@Override
-								public T apply(Ack msg) {
-									return t;
-								}
-								
-							}, executionContext);
-						}
-						
-					}, executionContext);
+					return handler.apply(tx).flatMap(t -> {
+						return tx.commit().map(msg -> t);
+					});
 				} catch(final Exception e) {
-					return tx.rollback().map(new Mapper<Ack, T>() {
-						
-						@Override
-						public T checkedApply(Ack msg) throws Exception {
-							throw e;
-						}
-						
-					}, executionContext);
+					return tx.rollback().map(msg -> {
+						throw e;
+					});
 				}
-			}
-			
-		}, executionContext);
+			});
 	}
 	
-	public Future<AsyncTransactionHelper> transaction() {
-		return Patterns.ask(actor, new StartTransaction(), timeout)
+	public SmartFuture<AsyncTransactionHelper> transaction() {
+		return new SmartFuture<>(Patterns.ask(actor, new StartTransaction(), timeout)
 			.map(new Mapper<Object, AsyncTransactionHelper>() {
 				
 				@Override
@@ -68,6 +47,6 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper {
 						throw new IllegalArgumentException("TransactionCreated expected");
 					}
 				}
-			}, executionContext);
+			}, executionContext), executionContext);
 	}
 }

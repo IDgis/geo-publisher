@@ -1,7 +1,6 @@
 package nl.idgis.publisher.database;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
@@ -12,6 +11,7 @@ import akka.util.Timeout;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.SmartFuture;
 
 public final class AsyncTransactionHelper extends AbstractAsyncHelper {  
 	
@@ -19,8 +19,8 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 		super(transaction, timeout, executionContext, log);
 	}
 	
-	public Future<Ack> commit() {
-		return Patterns.ask(actor, new Commit(), timeout).map(new Mapper<Object, Ack>() {
+	public SmartFuture<Ack> commit() {
+		return new SmartFuture<>(Patterns.ask(actor, new Commit(), timeout).map(new Mapper<Object, Ack>() {
 			
 			@Override
 			public Ack checkedApply(Object msg) throws Exception {
@@ -35,11 +35,11 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 				}
 			}
 			
-		}, executionContext);
+		}, executionContext), executionContext);
 	}
 	
-	public Future<Ack> rollback() {
-		return Patterns.ask(actor, new Rollback(), timeout).map(new Mapper<Object, Ack>() {
+	public SmartFuture<Ack> rollback() {
+		return new SmartFuture<>(Patterns.ask(actor, new Rollback(), timeout).map(new Mapper<Object, Ack>() {
 			
 			@Override
 			public Ack checkedApply(Object msg) throws Exception {
@@ -54,6 +54,6 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 				}
 			}
 			
-		}, executionContext);
+		}, executionContext), executionContext);
 	}
 }

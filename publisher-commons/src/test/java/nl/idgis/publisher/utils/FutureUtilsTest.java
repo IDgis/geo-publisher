@@ -10,13 +10,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
-import akka.dispatch.OnFailure;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -50,8 +48,8 @@ public class FutureUtilsTest {
 	public void testCollector() throws Throwable {
 		
 		f
-			.collect(Futures.successful("Hello world!"))			
-			.collect(Futures.successful(42))
+			.collect(f.successful("Hello world!"))			
+			.collect(f.successful(42))
 			.map((String s, Integer i) -> {
 				try {
 					assertEquals("Hello world!", s);
@@ -67,29 +65,18 @@ public class FutureUtilsTest {
 	
 	@Test
 	public void testCollectFailure() throws Throwable {
-		
 		f
-			.failure(
-				f
-					.collect(Futures.successful("Hello world!"))			
-					.collect(Futures.failed(new Exception("Failure")))
-					.map((String s, Object o) -> {
-						try {
-							fail("result received");						
-						} catch(Throwable t) {
-							testPromise.failure(t);
-						}
-						
-						return null;
-					}),					
-					
-			new OnFailure() {
-
-				@Override
-				public void onFailure(Throwable t) throws Throwable {
-					testPromise.success(true);
-				}					
-		});
+			.collect(f.successful("Hello world!"))			
+			.collect(f.failed(new Exception("Failure")))
+			.map((String s, Object o) -> {
+				try {
+					fail("result received");						
+				} catch(Throwable t) {
+					testPromise.failure(t);
+				}
+				
+				return null;
+			}).failure(t -> testPromise.success(true));		
 	}
 	
 	@Test
@@ -97,8 +84,8 @@ public class FutureUtilsTest {
 		f
 			.collect(		
 				f
-					.collect(Futures.successful("Hello world!"))
-					.collect(Futures.successful(42))
+					.collect(f.successful("Hello world!"))
+					.collect(f.successful(42))
 					.map((String s, Integer i) -> {						
 						return 47;
 					}))
@@ -119,10 +106,10 @@ public class FutureUtilsTest {
 		f
 			.collect(		
 				f
-					.collect(Futures.successful("Hello world!"))
-					.collect(Futures.successful(42))
+					.collect(f.successful("Hello world!"))
+					.collect(f.successful(42))
 					.flatMap((String s, Integer i) -> {
-						return Futures.successful(47);						
+						return f.successful(47);						
 					}))
 			.map((Integer i) -> {
 				try {
@@ -139,7 +126,7 @@ public class FutureUtilsTest {
 	@Test
 	public void testCast() {
 		
-		Future<Object> objectFuture = Futures.<Object>successful("Hello world!");
+		SmartFuture<Object> objectFuture = f.successful("Hello world!");
 		
 		f
 			.collect(f.cast(objectFuture, String.class))
@@ -152,24 +139,22 @@ public class FutureUtilsTest {
 	
 	@Test
 	public void testMap() throws Exception {
-		Map<String, Future<String>> input = new HashMap<String, Future<String>>();
+		Map<String, SmartFuture<String>> input = new HashMap<>();
 		
-		input.put("foo", Futures.successful("bar"));
+		input.put("foo", f.successful("bar"));
 		
-		Future<Map<String, String>> outputFuture = f.map(input);
+		SmartFuture<Map<String, String>> outputFuture = f.map(input);
 		assertNotNull(outputFuture);
 		
-		f
-			.collect(outputFuture)
-			.map((Map<String, String> output) -> {
-				try {
-					assertEquals("bar", output.get("foo"));
-					testPromise.success(true);
-				} catch(Throwable t) {
-					testPromise.failure(t);
-				}
-				
-				return null;
-			});
+		outputFuture.map((Map<String, String> output) -> {
+			try {
+				assertEquals("bar", output.get("foo"));
+				testPromise.success(true);
+			} catch(Throwable t) {
+				testPromise.failure(t);
+			}
+			
+			return null;
+		});
 	}
 }

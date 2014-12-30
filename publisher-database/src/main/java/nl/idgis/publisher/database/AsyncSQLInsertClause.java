@@ -1,6 +1,5 @@
 package nl.idgis.publisher.database;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -8,6 +7,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import nl.idgis.publisher.database.messages.PerformInsert;
+import nl.idgis.publisher.utils.SmartFuture;
+
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
 import akka.pattern.Patterns;
@@ -21,7 +22,6 @@ import com.mysema.query.types.Path;
 import com.mysema.query.types.SubQueryExpression;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertClause> implements AsyncInsertClause<AsyncSQLInsertClause> {
 	
@@ -41,19 +41,19 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 	}
 
 	@Override
-	public Future<Long> execute() {
+	public SmartFuture<Long> execute() {
 		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
 		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
 		
-		return Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray), timeout)
-			.map(TO_LONG, executionContext);
+		return new SmartFuture<>(Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray), timeout)
+			.map(TO_LONG, executionContext), executionContext);
 	}
 	
-	public <T> Future<T> executeWithKey(Path<T> path) {
+	public <T> SmartFuture<T> executeWithKey(Path<T> path) {
 		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
 		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
 		
-		return Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path), timeout)
+		return new SmartFuture<>(Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path), timeout)
 			.map(new Mapper<Object, T>() {
 				
 				@Override
@@ -62,7 +62,7 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 					return (T)o;
 				}
 				
-			}, executionContext);
+			}, executionContext), executionContext);
 	}
 
 	@Override

@@ -17,15 +17,10 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.util.Timeout;
-
-import scala.concurrent.Future;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
@@ -36,6 +31,7 @@ import nl.idgis.publisher.service.messages.Layer;
 import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.SmartFuture;
 import nl.idgis.publisher.utils.TypedList;
 
 import nl.idgis.publisher.database.QServiceJob;
@@ -160,7 +156,7 @@ public class MetadataGenerator extends UntypedActor {
 				public Void apply(final TypedList<Tuple> queryResult, final ServiceContent serviceContent) {
 					log.debug("queryResult and serviceContent collected");
 					
-					Future<Map<String, ActorRef>> dataSources = getDataSources(queryResult);
+					SmartFuture<Map<String, ActorRef>> dataSources = getDataSources(queryResult);
 					
 					f					
 						.collect(getMetadataDocuments(dataSources, queryResult))
@@ -170,7 +166,7 @@ public class MetadataGenerator extends UntypedActor {
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
 								log.debug("metadata documents collected");
 								
-								List<Future<Map<String, Set<Dataset>>>> operatesOn = new ArrayList<>();
+								List<SmartFuture<Map<String, Set<Dataset>>>> operatesOnList = new ArrayList<>();
 								for(Tuple item : queryResult) {
 									String sourceDatasetId = item.get(sourceDataset.identification);
 									String datasetId = item.get(dataset.identification);
@@ -178,43 +174,34 @@ public class MetadataGenerator extends UntypedActor {
 									String fileUuid = item.get(dataset.fileUuid);
 									
 									MetadataDocument metadataDocument = metadataDocuments.get(sourceDatasetId);									
-									operatesOn.add(processDataset(metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
+									operatesOnList.add(processDataset(metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
 								} 
 								
-								mergeOperatesOn(operatesOn).flatMap(new Mapper<Map<String, Set<Dataset>>, Future<Iterable<Void>>>() {
-									
-									@Override
-									public Future<Iterable<Void>> apply(Map<String, Set<Dataset>> operatesOn) {
+								mergeOperatesOn(operatesOnList).flatMap(operatesOn -> {
 										log.debug("operatesOn merged, processing service metdata");
 										
-										List<Future<Void>> pendingWork = new ArrayList<>();										
+										List<SmartFuture<Void>> pendingWork = new ArrayList<>();										
 										for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
 											String serviceName = operatesOnEntry.getKey();
 											Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
 											
-											Future<MetadataDocument> metadataDocument = serviceMetadataSource.get(serviceName, getContext().dispatcher());
+											SmartFuture<MetadataDocument> metadataDocument = f.smart(serviceMetadataSource.get(serviceName, getContext().dispatcher()));
 											pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
 										}
 										
-										return Futures.sequence(pendingWork, getContext().dispatcher());
-									}
-								}, getContext().dispatcher())								
-									.onComplete(new OnComplete<Iterable<Void>>() {
-
-										@Override
-										public void onComplete(Throwable t, Iterable<Void> i) throws Throwable {
-											getContext().unbecome();
-											
-											sender.tell(new Ack(), getSelf());
-											
-											if(t != null) {
-												log.error("metadata generation failed: {}", t);
-											} else {											
-												log.debug("metadata generated");	
-											}
-										}
+										return f.sequence(pendingWork);
+									})								
+									.complete((t, i) -> {
+										getContext().unbecome();
 										
-									}, getContext().dispatcher());
+										sender.tell(new Ack(), getSelf());
+										
+										if(t != null) {
+											log.error("metadata generation failed: {}", t);
+										} else {											
+											log.debug("metadata generated");	
+										}
+									});
 								
 								return null;
 							}							
@@ -227,8 +214,8 @@ public class MetadataGenerator extends UntypedActor {
 			});
 	}
 
-	private Future<Map<String, ActorRef>> getDataSources(TypedList<Tuple> queryResult) {
-		Map<String, Future<ActorRef>> dataSources = new HashMap<String, Future<ActorRef>>();
+	private SmartFuture<Map<String, ActorRef>> getDataSources(TypedList<Tuple> queryResult) {
+		Map<String, SmartFuture<ActorRef>> dataSources = new HashMap<String, SmartFuture<ActorRef>>();
 		
 		for(Tuple item : queryResult) {
 			log.debug(item.toString());
@@ -244,12 +231,9 @@ public class MetadataGenerator extends UntypedActor {
 		return f.map(dataSources);	
 	}
 	
-	private Future<Map<String, Set<Dataset>>> mergeOperatesOn(List<Future<Map<String, Set<Dataset>>>> operatesOn) {
-		return Futures.sequence(operatesOn, getContext().dispatcher())
-			.map(new Mapper<Iterable<Map<String, Set<Dataset>>>, Map<String, Set<Dataset>>>() {
-				
-				@Override
-				public Map<String, Set<Dataset>> apply(Iterable<Map<String, Set<Dataset>>> operatesOn) {
+	private SmartFuture<Map<String, Set<Dataset>>> mergeOperatesOn(List<SmartFuture<Map<String, Set<Dataset>>>> operatesOnSet) {
+		return f.sequence(operatesOnSet)
+			.map(operatesOn -> {
 					log.debug("all datasets processed, merging operatesOn results");
 					
 					Map<String, Set<Dataset>> mergedOperatesOn = new HashMap<>();
@@ -270,23 +254,14 @@ public class MetadataGenerator extends UntypedActor {
 					}
 					
 					return mergedOperatesOn;
-				}
-				
-			}, getContext().dispatcher());
+			});
 	}
 	
-	private Future<Void> processService(final String serviceName, Future<MetadataDocument> metadataDocument, final Set<Dataset> operatesOn) {
-		return metadataDocument.flatMap(new Mapper<MetadataDocument, Future<Void>>() {
-			
-			@Override
-			public Future<Void> apply(MetadataDocument metadataDocument) {
-				return processService(serviceName, metadataDocument, operatesOn);
-			}
-			
-		}, getContext().dispatcher());
+	private SmartFuture<Void> processService(final String serviceName, SmartFuture<MetadataDocument> metadataDocumentFuture, final Set<Dataset> operatesOn) {
+		return metadataDocumentFuture.flatMap(metadataDocument -> processService(serviceName, metadataDocument, operatesOn));
 	}
 	
-	private Future<Void> processWFS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private SmartFuture<Void> processWFS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			final String linkage = constants.getString("onlineResource.wfs") ;
 			
@@ -302,15 +277,15 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetFeature", uuid, scopedName);
 			}
 		
-			return serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher());
+			return f.smart(serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wfs processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Void> processWMS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private SmartFuture<Void> processWMS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			final String linkage = constants.getString("onlineResource.wms") ;			
 			final String browseGraphicBaseUrl = linkage 
@@ -330,15 +305,15 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
 			}
 		
-			return serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher());
+			return f.smart(serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wms processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Void> processService(final String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private SmartFuture<Void> processService(final String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			metadataDocument.removeOperatesOn();
 			
@@ -361,30 +336,23 @@ public class MetadataGenerator extends UntypedActor {
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
 			
-			return Futures.sequence(Arrays.asList(
+			return f.sequence(Arrays.asList(
 					processWFS(serviceName, metadataDocument.clone(), operatesOn),
-					processWMS(serviceName, metadataDocument.clone(), operatesOn)),
+					processWMS(serviceName, metadataDocument.clone(), operatesOn)))
 					
-					getContext().dispatcher())
-					
-					.map(new Mapper<Iterable<Void>, Void>() {
-
-						@Override
-						public Void apply(Iterable<Void> i) {
-							log.debug("service processed: " + serviceName);
-							
-							return null;
-						}
+					.map(i -> {
+						log.debug("service processed: " + serviceName);
 						
-					}, getContext().dispatcher());
+						return null;
+					});
 		} catch(Exception e) {
 			log.error("service processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Map<String, Set<Dataset>>> processDataset(MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private SmartFuture<Map<String, Set<Dataset>>> processDataset(MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
 			metadataDocument.setDatasetIdentifier(datasetUuid);
 			metadataDocument.setFileIdentifier(fileUuid);
@@ -442,32 +410,25 @@ public class MetadataGenerator extends UntypedActor {
 			
 			log.debug("dataset processed: " + datasetId + " layers: " + layersFound);
 			
-			return datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher())
-				.map(new Mapper<Void, Map<String, Set<Dataset>>>() {
-					
-					@Override
-					public Map<String, Set<Dataset>> apply(Void v) {
-						return operatesOn;
-					}
-										
-				}, getContext().dispatcher());
+			return f.smart(datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher()))
+				.map(v -> operatesOn);
 		} catch(Exception e) {
 			log.error("dataset processing failed: {} error: {}", datasetId, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSourceFutures, final TypedList<Tuple> queryResult) {
-		return f.flatMap(dataSourceFutures, (Map<String, ActorRef> dataSources) -> {
+	private SmartFuture<Map<String, MetadataDocument>> getMetadataDocuments(SmartFuture<Map<String, ActorRef>> dataSourceFutures, final TypedList<Tuple> queryResult) {
+		return dataSourceFutures.flatMap(dataSources -> {
 			log.debug("dataSources collected");
 			
 			return getMetadataDocuments(dataSources, queryResult);			
 		});
 	}
 	
-	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Map<String, ActorRef> dataSources, TypedList<Tuple> queryResult) {
-		Map<String, Future<MetadataDocument>> metadataDocuments = new HashMap<String, Future<MetadataDocument>>();
+	private SmartFuture<Map<String, MetadataDocument>> getMetadataDocuments(Map<String, ActorRef> dataSources, TypedList<Tuple> queryResult) {
+		Map<String, SmartFuture<MetadataDocument>> metadataDocuments = new HashMap<String, SmartFuture<MetadataDocument>>();
 		
 		for(Tuple item : queryResult) {
 			String sourceDatasetId = item.get(sourceDataset.identification);

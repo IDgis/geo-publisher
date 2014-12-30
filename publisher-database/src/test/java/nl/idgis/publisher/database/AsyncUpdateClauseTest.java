@@ -8,11 +8,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import akka.util.Timeout;
+
+import nl.idgis.publisher.utils.SmartFuture;
 
 public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 
@@ -25,10 +25,10 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 		
 		AsyncSQLUpdateClause update = new AsyncSQLUpdateClause(database, new Timeout(1, TimeUnit.SECONDS), dispatcher(), dataSource);
 		
-		Future<Long> future = update.set(dataSource.name, "newName")			
+		SmartFuture<Long> future = update.set(dataSource.name, "newName")			
 			.execute();
 		
-		Long affectedRows = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		Long affectedRows = future.get(Duration.create(2, TimeUnit.SECONDS));
 		assertNotNull(affectedRows);
 		assertEquals(new Long(1), affectedRows);
 		
@@ -49,11 +49,11 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 	
 		AsyncSQLUpdateClause update = new AsyncSQLUpdateClause(database, new Timeout(1, TimeUnit.SECONDS), dispatcher(), dataSource);
 		
-		Future<Long> future = update.set(dataSource.name, "newName")
+		SmartFuture<Long> future = update.set(dataSource.name, "newName")
 			.where(dataSource.identification.eq("anotherId"))
 			.execute();
 		
-		Long affectedRows = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		Long affectedRows = future.get(Duration.create(2, TimeUnit.SECONDS));
 		assertNotNull(affectedRows);
 		assertEquals(new Long(0), affectedRows);
 		
@@ -69,7 +69,7 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 			.where(dataSource.identification.eq("id"))
 			.execute();
 			
-		affectedRows = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		affectedRows = future.get(Duration.create(2, TimeUnit.SECONDS));
 		assertNotNull(affectedRows);
 		assertEquals(new Long(1), affectedRows);
 		
