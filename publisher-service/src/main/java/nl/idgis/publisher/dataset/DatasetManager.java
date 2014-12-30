@@ -7,9 +7,9 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mysema.query.sql.SQLSubQuery;
 
@@ -165,17 +165,21 @@ public class DatasetManager extends UntypedActor {
 					.set(sourceDatasetVersion.categoryId, categoryId)
 					.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 					.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId -> {
-						AtomicInteger index = new AtomicInteger();
-						return 
-							table.getColumns().stream().map((Column column) ->
-								tx
-									.insert(sourceDatasetVersionColumn)
+						
+						int i = 0;
+						ArrayList<SmartFuture<Long>> futures = new ArrayList<>();
+						for(Column column : table.getColumns()) {
+							futures.add(
+								tx.insert(sourceDatasetVersionColumn)
 									.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
-									.set(sourceDatasetVersionColumn.index, index.getAndIncrement())
+									.set(sourceDatasetVersionColumn.index, i++)
 									.set(sourceDatasetVersionColumn.name, column.getName())
 									.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-									.execute()).reduce(f.successful(0l), (a, b) -> a.flatMap(l -> b)).mapValue(null);
-		});
+									.execute());
+						}
+						
+						return f.sequence(futures).mapNull();
+					});
 	}
 	
 	private SmartFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
