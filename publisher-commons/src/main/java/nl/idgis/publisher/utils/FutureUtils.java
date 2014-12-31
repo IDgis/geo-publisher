@@ -53,11 +53,11 @@ public class FutureUtils {
 		}
 		
 		public <R> SmartFuture<R> flatMap(final Function4<T, U, V, W, SmartFuture<R>> f) {
-			return future.flatMap(w -> parent.flatMap((T t, U u, V v) -> f.apply(t, u, v, w)));
+			return future.flatMap(w -> parent.flatMap((t, u, v) -> f.apply(t, u, v, w)));
 		}
 		
 		public <R> SmartFuture<R> map(final Function4<T, U, V, W, R> f) {
-			return future.flatMap(w -> parent.map((T t, U u, V v) -> f.apply(t, u, v, w)));
+			return future.flatMap(w -> parent.map((t, u, v) -> f.apply(t, u, v, w)));
 		}
 	}
 	
@@ -72,11 +72,11 @@ public class FutureUtils {
 		}
 		
 		public <R> SmartFuture<R> flatMap(final Function3<T, U, V, SmartFuture<R>> f) {
-			return future.flatMap(v -> parent.flatMap((T t, U u) -> f.apply(t, u, v)));
+			return future.flatMap(v -> parent.flatMap((t, u) -> f.apply(t, u, v)));
 		}
 		
 		public <R> SmartFuture<R> map(final Function3<T, U, V, R> f) {
-			return future.flatMap(v -> parent.map((T t, U u) -> f.apply(t, u, v)));
+			return future.flatMap(v -> parent.map((t, u) -> f.apply(t, u, v)));
 		}
 		
 		public <W> Collector4<T, U, V, W> collect(SmartFuture<W> future) {
@@ -150,11 +150,11 @@ public class FutureUtils {
 	}
 	
 	public SmartFuture<Object> ask(ActorRef actor, Object message, Timeout timeout) {
-		return new SmartFuture<>(Patterns.ask(actor, message, timeout), executionContext);
+		return smart(Patterns.ask(actor, message, timeout));
 	}
 	
 	public SmartFuture<Object> ask(ActorSelection selection, Object message, Timeout timeout) {
-		return new SmartFuture<>(Patterns.ask(selection, message, timeout), executionContext);
+		return smart(Patterns.ask(selection, message, timeout));
 	}
 	
 	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
@@ -204,9 +204,9 @@ public class FutureUtils {
 				
 			});
 			
-			return new SmartFuture<>(promise.future(), executionContext);
+			return smart(promise.future());
 		} else {
-			return new SmartFuture<>(Futures.successful(Collections.emptyList()), executionContext);
+			return successful(Collections.emptyList());
 		}
 	}
 	
@@ -234,11 +234,11 @@ public class FutureUtils {
 	}
 	
 	public <T> SmartFuture<T> successful(T t) {
-		return new SmartFuture<>(Futures.successful(t), executionContext);
+		return smart(Futures.successful(t));
 	}
 	
 	public <T> SmartFuture<T> failed(Throwable t) {
-		return new SmartFuture<>(Futures.failed(t), executionContext);
+		return smart(Futures.failed(t));
 	}
 	
 	public <T> SmartFuture<T> smart(Future<T> future) {
