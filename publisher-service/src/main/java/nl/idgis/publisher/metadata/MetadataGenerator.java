@@ -191,7 +191,7 @@ public class MetadataGenerator extends UntypedActor {
 										
 										return f.sequence(pendingWork);
 									})								
-									.complete((t, i) -> {
+									.onComplete((t, i) -> {
 										getContext().unbecome();
 										
 										sender.tell(new Ack(), getSelf());

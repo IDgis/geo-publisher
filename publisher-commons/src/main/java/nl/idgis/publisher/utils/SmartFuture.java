@@ -68,7 +68,7 @@ public class SmartFuture<T> {
 		return Await.result(future, atMost);
 	}
 
-	public void failure(Consumer<Throwable> failureHandler) {
+	public void onFailure(Consumer<Throwable> failureHandler) {
 		future.onFailure(new OnFailure() {
 
 			@Override
@@ -79,7 +79,7 @@ public class SmartFuture<T> {
 		}, executionContext);
 	}
 	
-	public void success(Consumer<T> successHandler) {
+	public void onSuccess(Consumer<T> successHandler) {
 		future.onSuccess(new OnSuccess<T>() {
 
 			@Override
@@ -90,7 +90,7 @@ public class SmartFuture<T> {
 		}, executionContext);
 	}
 	
-	public void complete(BiConsumer<Throwable, T> completeHandler) {
+	public void onComplete(BiConsumer<Throwable, T> completeHandler) {
 		future.onComplete(new OnComplete<T>() {
 
 			@Override

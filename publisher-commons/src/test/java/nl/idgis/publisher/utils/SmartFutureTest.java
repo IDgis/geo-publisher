@@ -63,7 +63,7 @@ public class SmartFutureTest {
 		Promise<Boolean> testPromise = Futures.promise();
 		
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.failed(new IllegalStateException()), executionContext);
-		future.failure((Throwable t) -> {
+		future.onFailure((Throwable t) -> {
 			testPromise.success(true);
 		});
 		

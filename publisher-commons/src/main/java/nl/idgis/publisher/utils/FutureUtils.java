@@ -187,7 +187,7 @@ public class FutureUtils {
 		if(i.hasNext()) {
 			Promise<Iterable<T>> promise = Futures.promise();
 			
-			i.next().success(new Consumer<T>() {
+			i.next().onSuccess(new Consumer<T>() {
 				
 				ArrayList<T> result = new ArrayList<>();
 
@@ -196,7 +196,7 @@ public class FutureUtils {
 					result.add(t);
 					
 					if(i.hasNext()) {
-						i.next().success(this);
+						i.next().onSuccess(this);
 					} else {
 						promise.success(result);
 					}

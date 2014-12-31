@@ -76,7 +76,7 @@ public class FutureUtilsTest {
 				}
 				
 				return null;
-			}).failure(t -> testPromise.success(true));		
+			}).onFailure(t -> testPromise.success(true));		
 	}
 	
 	@Test

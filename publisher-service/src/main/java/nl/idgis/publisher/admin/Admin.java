@@ -337,7 +337,7 @@ public class Admin extends UntypedActor {
 						dataSource.identification.eq(listColumns.getDataSourceId())))
 				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
 
-		columnList.success(msg -> {
+		columnList.onSuccess(msg -> {
 			log.debug("sourcedataset column list received");
 			log.debug("sending sourcedataset column list");
 			sender.tell(msg.asCollection(), self);
@@ -353,7 +353,7 @@ public class Admin extends UntypedActor {
 				.where(dataset.identification.eq(listColumns.getDatasetId()))
 				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
 
-		columnList.success(msg -> {
+		columnList.onSuccess(msg -> {
 			log.debug("dataset column list received");
 			log.debug("sending dataset column list");
 			sender.tell(msg.asCollection(), self);
@@ -390,11 +390,11 @@ public class Admin extends UntypedActor {
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 		
-		activeDataSourcesFuture.success(msg0 -> {
+		activeDataSourcesFuture.onSuccess(msg0 -> {
 			final Set<String> activeDataSources = (Set<String>)msg0;
 			log.debug("active data sources received");
 			
-			dataSourceInfoFuture.success(msg1 -> {
+			dataSourceInfoFuture.onSuccess(msg1 -> {
 					List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg1.asCollection();
 					log.debug("data sources info received");
 					
@@ -427,7 +427,7 @@ public class Admin extends UntypedActor {
 				.orderBy(category.identification.asc())
 				.list(new QCategory(category.identification, category.name));
 		
-		categoryList.success(msg -> {
+		categoryList.onSuccess(msg -> {
 				log.debug("category info received");
 				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> ();
 				pageBuilder.addAll(msg.asCollection());				
@@ -630,7 +630,7 @@ public class Admin extends UntypedActor {
 				.where(category.identification.eq(getEntity.id()))
 				.singleResult(new QCategory(category.identification, category.name));
 
-		categoryList.success(category -> {
+		categoryList.onSuccess(category -> {
 			if (category != null) {
 				log.debug("category received");
 				log.debug("sending category: " + category);
@@ -700,7 +700,7 @@ public class Admin extends UntypedActor {
 								dataSource.identification, dataSource.name, category.identification, category.name,
 								dataset.count()));
 
-		sourceDatasetInfo.success(msg -> {
+		sourceDatasetInfo.onSuccess(msg -> {
 			if (msg != null) {
 				log.debug("sourcedataset info received");
 				final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
