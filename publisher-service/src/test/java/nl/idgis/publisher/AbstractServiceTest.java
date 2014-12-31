@@ -10,6 +10,8 @@ import nl.idgis.publisher.database.AbstractDatabaseTest;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 
+import nl.idgis.publisher.dataset.DatasetManager;
+
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.JobManager;
@@ -20,9 +22,16 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	
 	protected ActorRef jobManager;
 	
+	protected ActorRef datasetManager;
+	
 	@Before
 	public void jobManager() {
 		jobManager = actorOf(JobManager.props(database), "jobManager");
+	}
+	
+	@Before
+	public void datasetManager() {
+		datasetManager = actorOf(DatasetManager.props(database), "datasetManager");
 	}
 	
 	protected void executeJobs(JobManagerRequest request) throws Exception {

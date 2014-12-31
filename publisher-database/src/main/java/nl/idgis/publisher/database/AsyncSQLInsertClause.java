@@ -46,14 +46,7 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
 		
 		return Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray), timeout)
-			.map(new Mapper<Object, Long>() {
-				
-				@Override
-				public Long apply(Object o) {
-					return (Long)o;
-				}
-				
-			}, executionContext);
+			.map(TO_LONG, executionContext);
 	}
 	
 	public <T> Future<T> executeWithKey(Path<T> path) {

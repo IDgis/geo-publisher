@@ -22,7 +22,7 @@ import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.xml.exceptions.NotFound;
@@ -56,7 +56,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 	
 	private Date revisionDate;
 	
-	private TableDescription tableDescription;
+	private TableInfo tableInfo;
 	
 	private Long numberOfRecords;
 
@@ -100,10 +100,10 @@ public class DatasetInfoBuilder extends UntypedActor {
 			
 			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog(tableName)));
 			sendUnavailable();
-		} else if(msg instanceof TableDescription) {
-			log.debug("table description");
+		} else if(msg instanceof TableInfo) {
+			log.debug("table info");
 			
-			tableDescription = (TableDescription)msg;
+			tableInfo = (TableInfo)msg;
 			sendResponse();
 		} else if(msg instanceof Long) {
 			log.debug("number of records");
@@ -125,8 +125,8 @@ public class DatasetInfoBuilder extends UntypedActor {
 	}
 	
 	private void sendResponse() {
-		if(tableDescription != null && numberOfRecords != null) {
-			tellTarget(new VectorDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs, tableName, tableDescription, numberOfRecords));
+		if(tableInfo != null && numberOfRecords != null) {
+			tellTarget(new VectorDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs, tableName, tableInfo, numberOfRecords));
 		}
 	}
 	

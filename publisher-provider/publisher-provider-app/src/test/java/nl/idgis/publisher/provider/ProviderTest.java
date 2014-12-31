@@ -31,7 +31,7 @@ import nl.idgis.publisher.provider.mock.MetadataMock;
 import nl.idgis.publisher.provider.mock.messages.PutMetadata;
 import nl.idgis.publisher.provider.mock.messages.PutTable;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.Column;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
@@ -42,7 +42,7 @@ import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
@@ -61,7 +61,7 @@ import akka.japi.Procedure;
 
 public class ProviderTest {
 	
-	private static TableDescription tableDescription;
+	private static TableInfo tableInfo;
 	
 	private static List<Record> tableContent;
 	
@@ -77,8 +77,8 @@ public class ProviderTest {
 	
 	@BeforeClass
 	public static void initStatics() {
-		Column[] columns = new Column[]{new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
-		tableDescription = new TableDescription(columns);
+		ColumnInfo[] columns = new ColumnInfo[]{new ColumnInfo("id", Type.NUMERIC), new ColumnInfo("title", Type.TEXT)};
+		tableInfo = new TableInfo(columns);
 		
 		tableContent = new ArrayList<>();
 		for(int i = 0; i < 42; i++) {
@@ -214,13 +214,13 @@ public class ProviderTest {
 			.assertDatabaseInteraction(firstTableName)
 			.assertNotHasNext();
 		
-		sync.ask(database, new PutTable(firstTableName, tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(firstTableName, tableInfo, tableContent), Ack.class);
 		
 		clearRecording();
 		
 		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
 		assertEquals("first", vectorDatasetInfo.getIdentification());
-		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
+		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
 		sync.askSender(new NextItem(), End.class);		
@@ -293,12 +293,12 @@ public class ProviderTest {
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
 		
-		sync.ask(database, new PutTable(getTable(), tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(getTable(), tableInfo, tableContent), Ack.class);
 		
 		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
-		assertEquals(tableDescription, vectorDatasetInfo.getTableDescription());
+		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
 	}
 	
 	@Test
@@ -313,7 +313,7 @@ public class ProviderTest {
 		assertEquals("test", notAvailable.getIdentification());
 		
 		final String tableName = getTable();		
-		sync.ask(database, new PutTable(tableName, tableDescription, tableContent), Ack.class);
+		sync.ask(database, new PutTable(tableName, tableInfo, tableContent), Ack.class);
 		
 		Records resultRecords = sync.ask(provider, getVectorDataset, Records.class);
 		for(int i = 0; i < 4; i++) {			

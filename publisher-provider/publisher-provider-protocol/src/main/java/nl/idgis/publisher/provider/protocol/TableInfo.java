@@ -9,17 +9,17 @@ import java.util.Arrays;
  * @author copierrj
  *
  */
-public class TableDescription implements Serializable {
+public class TableInfo implements Serializable {
 	
-	private static final long serialVersionUID = 4857122532444764437L;
+	private static final long serialVersionUID = -8130055458220826262L;
 	
-	private final Column[] columns;
+	private final ColumnInfo[] columns;
 	
 	/**
 	 * 
 	 * @param columns all columns.
 	 */
-	public TableDescription(Column[] columns) {
+	public TableInfo(ColumnInfo[] columns) {
 		this.columns = columns;
 	}
 
@@ -27,12 +27,12 @@ public class TableDescription implements Serializable {
 	 * 
 	 * @return columns
 	 */
-	public Column[] getColumns() {
+	public ColumnInfo[] getColumns() {
 		return Arrays.copyOf(columns, columns.length);
 	}
 
 	@Override
 	public String toString() {
-		return "TableDescription [columns=" + Arrays.toString(columns) + "]";
+		return "TableInfo [columns=" + Arrays.toString(columns) + "]";
 	}
 }

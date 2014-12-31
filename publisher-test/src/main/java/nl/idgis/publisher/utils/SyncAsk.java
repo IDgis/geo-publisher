@@ -34,7 +34,7 @@ public class SyncAsk {
 		if(expected.isInstance(result)) {
 			return expected.cast(result);
 		} else {
-			fail("expected: " + expected.getCanonicalName() + " received: " + result.getClass().getCanonicalName());
+			fail("expected: " + expected.getCanonicalName() + " received: " + result.getClass().getCanonicalName() + " " + result.toString());
 			return null;
 		}
 	}

@@ -1,6 +1,7 @@
 package nl.idgis.publisher.dataset;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -11,8 +12,9 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.Updated;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 
@@ -33,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ColumnDiffTest extends AbstractServiceTest {
 	
-	Dataset testSourceDataset;
+	VectorDataset testSourceDataset;
 	Table testTable;
 	List<Column> testColumns;
 
@@ -143,11 +145,12 @@ public class ColumnDiffTest extends AbstractServiceTest {
 					testTable.getName(),
 					Arrays.asList(testColumns.get(0)) // removes second column 
 				);
-		Dataset newSourceDataset = new Dataset(
+		VectorDataset newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
-			testSourceDataset.getCategoryId(),
-			newTable,
-			testSourceDataset.getRevisionDate());
+			testSourceDataset.getCategoryId(),			
+			testSourceDataset.getRevisionDate(),
+			Collections.<Log>emptySet(),
+			newTable);
 		
 		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
@@ -177,11 +180,12 @@ public class ColumnDiffTest extends AbstractServiceTest {
 					testTable.getName(),
 					Arrays.asList(testColumns.get(0), newColumn)
 				);
-		newSourceDataset = new Dataset(
+		newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
-			testSourceDataset.getCategoryId(),
-			newTable,
-			testSourceDataset.getRevisionDate());
+			testSourceDataset.getCategoryId(),			
+			testSourceDataset.getRevisionDate(),
+			Collections.<Log>emptySet(),
+			newTable);
 		
 		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		

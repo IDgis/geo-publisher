@@ -15,17 +15,19 @@ import scala.concurrent.Promise;
 import scala.concurrent.duration.Duration;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
+
 import akka.actor.ActorSystem;
 import akka.dispatch.Futures;
 import akka.dispatch.OnFailure;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class FutureUtilsTest {
 	
 	private FutureUtils f;
+	
 	private Promise<Object> testPromise;
 	
 	@Before
@@ -52,7 +54,7 @@ public class FutureUtilsTest {
 		f
 			.collect(Futures.successful("Hello world!"))			
 			.collect(Futures.successful(42))
-			.result(new AbstractFunction2<String, Integer, Void>() {
+			.map(new AbstractFunction2<String, Integer, Void>() {
 
 				@Override
 				public Void apply(String s, Integer i) {
@@ -72,32 +74,34 @@ public class FutureUtilsTest {
 	
 	@Test
 	public void testCollectFailure() throws Throwable {
-				
+		
 		f
-			.collect(Futures.successful("Hello world!"))			
-			.collect(Futures.failed(new Exception("Failure")))
-			.result(new AbstractFunction2<String, Object, Void>() {
-
-				@Override
-				public Void apply(String s, Object o) {
-					try {
-						fail("result received");						
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
+			.failure(
+				f
+					.collect(Futures.successful("Hello world!"))			
+					.collect(Futures.failed(new Exception("Failure")))
+					.map(new AbstractFunction2<String, Object, Void>() {
+		
+						@Override
+						public Void apply(String s, Object o) {
+							try {
+								fail("result received");						
+							} catch(Throwable t) {
+								testPromise.failure(t);
+							}
+							
+							return null;
+						}
+						
+					}),
 					
-					return null;
-				}
-				
-			})			
-			.failure(new OnFailure() {
+			new OnFailure() {
 
 				@Override
 				public void onFailure(Throwable t) throws Throwable {
 					testPromise.success(true);
-				}
-				
-			});
+				}					
+		});
 	}
 	
 	@Test
@@ -107,16 +111,15 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.result(new AbstractFunction2<String, Integer, Integer>() {
+					.map(new AbstractFunction2<String, Integer, Integer>() {
 		
 						@Override
 						public Integer apply(String s, Integer i) {
 							return 47;
 						}
 						
-					})
-					.returnValue())
-			.result(new AbstractFunction1<Integer, Void>() {
+					}))
+			.map(new AbstractFunction1<Integer, Void>() {
 
 				@Override
 				public Void apply(Integer i) {
@@ -140,16 +143,15 @@ public class FutureUtilsTest {
 				f
 					.collect(Futures.successful("Hello world!"))
 					.collect(Futures.successful(42))
-					.flatResult(new AbstractFunction2<String, Integer, Future<Integer>>() {
+					.flatMap(new AbstractFunction2<String, Integer, Future<Integer>>() {
 		
 						@Override
 						public Future<Integer> apply(String s, Integer i) {
 							return Futures.successful(47);
 						}
 						
-					})
-					.returnValue())
-			.result(new AbstractFunction1<Integer, Void>() {
+					}))
+			.map(new AbstractFunction1<Integer, Void>() {
 
 				@Override
 				public Void apply(Integer i) {
@@ -173,63 +175,13 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(f.cast(objectFuture, String.class))
-			.result(new AbstractFunction1<String, Void>() {
+			.map(new AbstractFunction1<String, Void>() {
 
 				@Override
 				public Void apply(String s) {
 					testPromise.success(true);
 					
 					return null;
-				}
-				
-			})
-			.failure(new OnFailure() {
-
-				@Override
-				public void onFailure(Throwable t) throws Throwable {
-					testPromise.failure(t);					
-				}
-				
-			});
-	}
-	
-	@Test
-	public void testCastFailure() {
-		
-		Future<Object> objectFuture = Futures.<Object>successful("Hello world!");
-		
-		f
-			.collect(f.cast(objectFuture, Integer.class, "MyContext"))
-			.result(new AbstractFunction1<Integer, Void>() {
-
-				@Override
-				public Void apply(Integer i) {
-					try {
-						fail("result received");						
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
-					
-					return null;
-				}
-				
-			})
-			.failure(new OnFailure() {
-
-				@Override
-				public void onFailure(Throwable tt) throws Throwable {
-					try {
-						assertTrue("wrong exception", tt instanceof WrongResultException);
-						
-						WrongResultException wre = (WrongResultException)tt;
-						assertEquals("wrong expected class", Integer.class, wre.getExpected());
-						assertEquals("wrong actual result", "Hello world!", wre.getResult());
-						assertEquals("wrong context object", "MyContext", wre.getContext());
-					
-						testPromise.success(true);
-					} catch(Throwable t) {
-						testPromise.failure(t);
-					}
 				}
 				
 			});
@@ -246,7 +198,7 @@ public class FutureUtilsTest {
 		
 		f
 			.collect(outputFuture)
-			.result(new AbstractFunction1<Map<String, String>, Void>() {
+			.map(new AbstractFunction1<Map<String, String>, Void>() {
 
 				@Override
 				public Void apply(Map<String, String> output) {

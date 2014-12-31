@@ -56,6 +56,7 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.PerformInsert;
 import nl.idgis.publisher.database.messages.PerformQuery;
+import nl.idgis.publisher.database.messages.PerformUpdate;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
@@ -94,9 +95,10 @@ import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.ColumnDiffOperation;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.VectorDataset;
+
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -108,6 +110,7 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLInsertClause;
+import com.mysema.query.sql.dml.SQLUpdateClause;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.Path;
@@ -241,6 +244,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executePerformQuery((PerformQuery)query);
 		} else if (query instanceof PerformInsert) {
 			executePerformInsert((PerformInsert)query);
+		} else if (query instanceof PerformUpdate) {
+			executePerformUpdate((PerformUpdate)query);
 		} else {
 			unhandled(query);
 		}
@@ -259,9 +264,21 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}
 	
+	private void executePerformUpdate(PerformUpdate query) {
+		SQLUpdateClause update = update(query.getEntity());
+		
+		update.set(query.getColumns(), query.getValues());
+		
+		QueryMetadata metadata = query.getMetadata();
+		if(metadata != null) {
+			update.where(metadata.getWhere());
+		}
+		
+		answer(update.execute());		
+	}
+	
 	private void executePerformInsert(PerformInsert query) {
 		SQLInsertClause insert = insert(query.getEntity());
-		
 		
 		Path<?>[] columns = query.getColumns();
 		
@@ -1031,7 +1048,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private void executeRegisterSourceDataset(RegisterSourceDataset rsd) {
 		log.debug("registering source dataset: " + rsd);
 		
-		Dataset dataset = rsd.getDataset();
+		VectorDataset dataset = rsd.getDataset();
 		Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
 		Table table = dataset.getTable();
 		
@@ -1093,7 +1110,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				return;
 			} else {
 				if(existingDeleteTime != null) { // reviving dataset
-					update(sourceDataset)
+					update(sourceDataset)						
 						.setNull(sourceDataset.deleteTime)						
 						.execute();
 				}

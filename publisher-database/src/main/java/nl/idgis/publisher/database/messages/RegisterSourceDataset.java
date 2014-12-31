@@ -1,15 +1,15 @@
 package nl.idgis.publisher.database.messages;
 
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 
 public class RegisterSourceDataset extends Query {
 	
 	private static final long serialVersionUID = 1L;
 	
 	private final String dataSource;
-	private final Dataset dataset;
+	private final VectorDataset dataset;
 	
-	public RegisterSourceDataset(String dataSource, Dataset dataset) {
+	public RegisterSourceDataset(String dataSource, VectorDataset dataset) {
 		this.dataSource = dataSource;
 		this.dataset = dataset;
 	}
@@ -18,7 +18,7 @@ public class RegisterSourceDataset extends Query {
 		return dataSource;
 	}
 
-	public Dataset getDataset() {
+	public VectorDataset getDataset() {
 		return dataset;
 	}
 

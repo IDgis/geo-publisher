@@ -13,7 +13,7 @@ import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.mock.messages.PutTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -30,17 +30,17 @@ public class DatabaseMock extends UntypedActor {
 	
 	private static class Table {
 		
-		private final TableDescription tableDescription;
+		private final TableInfo tableInfo;
 		
 		private final List<Record> records;
 		
-		public Table(TableDescription tableDescription, List<Record> records) {
-			this.tableDescription = tableDescription;
+		public Table(TableInfo tableInfo, List<Record> records) {
+			this.tableInfo = tableInfo;
 			this.records = records;
 		}
 
-		public TableDescription getTableDescription() {
-			return tableDescription;
+		public TableInfo getTableInfo() {
+			return tableInfo;
 		}
 
 		public List<Record> getRecords() {
@@ -72,7 +72,7 @@ public class DatabaseMock extends UntypedActor {
 			String tableName = ((DescribeTable)msg).getTableName();
 			
 			if(tables.containsKey(tableName)) {
-				getSender().tell(tables.get(tableName).getTableDescription(), getSelf());
+				getSender().tell(tables.get(tableName).getTableInfo(), getSelf());
 			} else {
 				getSender().tell(new TableNotFound(), getSelf());
 			}
@@ -91,7 +91,7 @@ public class DatabaseMock extends UntypedActor {
 			
 			PutTable putTable = (PutTable)msg;
 			
-			tables.put(putTable.getTableName(), new Table(putTable.getTableDescription(), putTable.getRecords()));
+			tables.put(putTable.getTableName(), new Table(putTable.getTableInfo(), putTable.getRecords()));
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof FetchTable) {
 			log.debug("fetch table");

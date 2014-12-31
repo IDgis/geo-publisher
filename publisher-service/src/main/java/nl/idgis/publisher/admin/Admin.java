@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
@@ -132,11 +132,11 @@ public class Admin extends UntypedActor {
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	private final DatabaseRef databaseRef;
+	private final AsyncDatabaseHelper databaseRef;
 	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
-		this.databaseRef = new DatabaseRef(database, new Timeout(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
+		this.databaseRef = new AsyncDatabaseHelper(database, new Timeout(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;

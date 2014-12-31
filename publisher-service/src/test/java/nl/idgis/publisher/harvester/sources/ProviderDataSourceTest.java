@@ -45,10 +45,10 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.Column;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.stream.messages.End;
@@ -77,10 +77,10 @@ public class ProviderDataSourceTest {
 		
 		Set<Log> logs = new HashSet<>();
 		
-		Column[] columns = {new Column("id", Type.NUMERIC), new Column("title", Type.TEXT)};
-		TableDescription tableDescription = new TableDescription(columns);
+		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC), new ColumnInfo("title", Type.TEXT)};
+		TableInfo tableInfo = new TableInfo(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "categoryId", new Date(), attachments, logs, "tableName", tableDescription, 42);				
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "categoryId", new Date(), attachments, logs, "tableName", tableInfo, 42);				
 	}
 	
 	@Before

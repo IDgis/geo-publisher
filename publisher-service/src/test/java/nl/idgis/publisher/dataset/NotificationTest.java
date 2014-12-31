@@ -24,7 +24,7 @@ import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.job.messages.CreateImportJob;
@@ -44,7 +44,7 @@ public class NotificationTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		Dataset dataset = createTestDataset();
+		VectorDataset dataset = createTestDataset();
 		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset));
 		
 		Table table = dataset.getTable();

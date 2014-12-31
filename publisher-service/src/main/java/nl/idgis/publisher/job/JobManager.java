@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.database.DatabaseRef;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
-import nl.idgis.publisher.database.TransactionHandler;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
@@ -47,6 +47,7 @@ import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.FutureUtils.Collector2;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -73,12 +74,16 @@ public class JobManager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final DatabaseRef database;
+	private final ActorRef database;
 	
 	private final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 	
+	private AsyncDatabaseHelper db;
+	
+	private FutureUtils f;
+	
 	public JobManager(ActorRef database) {
-		this.database = new DatabaseRef(database, timeout, getContext().dispatcher(), log);	
+		this.database = database;
 	}
 	
 	public static Props props(ActorRef database) {
@@ -92,7 +97,8 @@ public class JobManager extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		
+		db = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
+		f = new FutureUtils(getContext().dispatcher(), timeout);
 	}
 
 	@Override
@@ -125,11 +131,11 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
-				return transaction.query().from(job)
+			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
+				return tx.query().from(job)
 					.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 					.where(dataset.identification.eq(datasetId))
@@ -143,7 +149,7 @@ public class JobManager extends UntypedActor {
 					
 					public Future<Ack> apply(Boolean notExists) {
 						if(notExists) {
-							return createServiceJob(transaction, datasetId)
+							return createServiceJob(tx, datasetId)
 								.map(new Mapper<Long, Ack>() {
 									
 									@Override
@@ -164,13 +170,13 @@ public class JobManager extends UntypedActor {
 		});
 	}
 	
-	private Future<Long> createServiceJob(final TransactionHandler transaction, final String datasetId) {
-		return createJobForDataset(transaction, datasetId)		
-			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+	private Future<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
+		return createJobForDataset(tx, datasetId)		
+			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
 				@Override
 				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
-					return transaction.insert(serviceJob)
+					return tx.insert(serviceJob)
 						.columns(
 							serviceJob.jobId,
 							serviceJob.datasetId,
@@ -181,19 +187,17 @@ public class JobManager extends UntypedActor {
 						.execute();
 				}
 				
-			})
-				
-			.returnValue();
+			});
 	}
 	
-	private Future<Long> createImportJob(final TransactionHandler transaction, final String datasetId) {
-		return createJobForDataset(transaction, datasetId)		
-			.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+	private Future<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
+		return createJobForDataset(tx, datasetId)		
+			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 	
 				@Override
 				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
 					return 
-						transaction.insert(importJob)
+						tx.insert(importJob)
 							.columns(
 								importJob.jobId,
 								importJob.datasetId,
@@ -212,7 +216,7 @@ public class JobManager extends UntypedActor {
 							
 							@Override
 							public Future<Long> apply(Integer importJobId) {
-								return transaction.insert(importJobColumn)
+								return tx.insert(importJobColumn)
 									.columns(
 										importJobColumn.importJobId,
 										importJobColumn.index,
@@ -230,19 +234,17 @@ public class JobManager extends UntypedActor {
 							}
 						}, getContext().dispatcher());										
 					}
-			})
-			
-			.returnValue();
+			});
 	}
 
-	private Collector2<Integer, Integer> createJobForDataset(final TransactionHandler transaction, final String datasetId) {
+	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper tx, final String datasetId) {
 		return 
-			transaction.collect(
-				transaction.insert(job)
+			f.collect(
+				tx.insert(job)
 					.set(job.type, "IMPORT")
 					.executeWithKey(job.id))
 			.collect(							
-				transaction.query().from(sourceDatasetVersion)
+				tx.query().from(sourceDatasetVersion)
 					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 					.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 					.where(dataset.identification.eq(datasetId))
@@ -254,11 +256,11 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {
-				return transaction.query().from(job)
+			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
+				return tx.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
 					.where(dataset.identification.eq(datasetId))
@@ -273,7 +275,7 @@ public class JobManager extends UntypedActor {
 					@Override
 					public Future<Ack> apply(Boolean notExists) {
 						if(notExists) {
-							return createImportJob(transaction, datasetId)									
+							return createImportJob(tx, datasetId)									
 								.map(new Mapper<Long, Ack>() {
 									
 									@Override
@@ -298,11 +300,11 @@ public class JobManager extends UntypedActor {
 	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return database.transactional(new Function<TransactionHandler, Future<Ack>>() {
+		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
 
 			@Override
-			public Future<Ack> apply(final TransactionHandler transaction) throws Exception {				
-				return transaction.query().from(job)
+			public Future<Ack> apply(final AsyncHelper tx) throws Exception {				
+				return tx.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 					.where(dataSource.identification.eq(msg.getDataSourceId()))
@@ -317,23 +319,23 @@ public class JobManager extends UntypedActor {
 					@Override
 					public Future<Ack> apply(Boolean notExists) {
 						if(notExists) {
-							return transaction.collect(
-								transaction.query().from(dataSource)
+							return f.collect(
+								tx.query().from(dataSource)
 									.where(dataSource.identification.eq(msg.getDataSourceId()))
 									.singleResult(dataSource.id))
 							.collect(
-								transaction.insert(job)
+								tx.insert(job)
 									.set(job.type, "HARVEST")
 									.executeWithKey(job.id))
 									
-							.flatResult(new AbstractFunction2<Integer, Integer, Future<Long>>() {
+							.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
 
 								@Override
 								public Future<Long> apply(Integer dataSourceId, Integer jobId) {
 									log.debug("job created and dataSourceId determined");
 									
 									return 
-										transaction.insert(harvestJob)
+										tx.insert(harvestJob)
 											.set(harvestJob.jobId, jobId)				
 											.set(harvestJob.dataSourceId, dataSourceId)
 											.execute();
@@ -341,7 +343,7 @@ public class JobManager extends UntypedActor {
 								
 							})
 							
-							.returnValue().map(new Mapper<Long, Ack>() {
+							.map(new Mapper<Long, Ack>() {
 								
 								@Override
 								public Ack apply(Long l) {
@@ -368,7 +370,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching service jobs");
 		
 		return
-			database.query().from(serviceJob)
+			db.query().from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
 				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
@@ -385,11 +387,11 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching import jobs");
 		
 		return
-			database.transactional(new Function<TransactionHandler, Future<TypedList<ImportJobInfo>>>() {
+			db.transactional(new Function<AsyncHelper, Future<TypedList<ImportJobInfo>>>() {
 	
 				@Override
-				public Future<TypedList<ImportJobInfo>> apply(TransactionHandler transaction) throws Exception {
-					AsyncSQLQuery query = transaction.query().from(job)
+				public Future<TypedList<ImportJobInfo>> apply(AsyncHelper tx) throws Exception {
+					AsyncSQLQuery query = tx.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))
 						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
@@ -401,7 +403,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return transaction.collect(
+					return f.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -432,7 +434,7 @@ public class JobManager extends UntypedActor {
 							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 							.list(job.id, notification.type, notificationResult.result))
 						
-					.result(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
+					.map(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
 	
 						@Override
 						public TypedList<ImportJobInfo> apply(							
@@ -505,9 +507,7 @@ public class JobManager extends UntypedActor {
 							return new TypedList<>(ImportJobInfo.class, jobs);
 						}
 						
-					})
-					
-					.returnValue();				
+					});				
 				}
 				
 			});
@@ -517,7 +517,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching harvest jobs");
 
 		return
-			database.query().from(job)
+			db.query().from(job)
 				.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 				.orderBy(job.createTime.asc())

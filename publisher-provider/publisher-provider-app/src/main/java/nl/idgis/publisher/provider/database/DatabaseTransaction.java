@@ -18,8 +18,8 @@ import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.provider.protocol.Column;
-import nl.idgis.publisher.provider.protocol.TableDescription;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class DatabaseTransaction extends JdbcTransaction {
@@ -72,7 +72,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		
 		Statement stmt = connection.createStatement();
 		
-		ArrayList<Column> columns = new ArrayList<>();
+		ArrayList<ColumnInfo> columns = new ArrayList<>();
 		
 		ResultSet rs = stmt.executeQuery(sql);
 		while(rs.next()) {
@@ -99,7 +99,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 					continue;
 			}
 			
-			columns.add(new Column(name, type));
+			columns.add(new ColumnInfo(name, type));
 		}
 		
 		rs.close();		
@@ -108,7 +108,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		if(columns.isEmpty()) {
 			answer(new TableNotFound());
 		} else {
-			answer(new TableDescription(columns.toArray(new Column[columns.size()])));
+			answer(new TableInfo(columns.toArray(new ColumnInfo[columns.size()])));
 		}
 	}
 	

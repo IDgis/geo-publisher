@@ -14,7 +14,7 @@ import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.job.messages.CreateImportJob;
@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class DatasetStatusTest extends AbstractServiceTest {
 	
-	Dataset testDataset;
+	VectorDataset testDataset;
 	Table testTable;
 
 	@Before

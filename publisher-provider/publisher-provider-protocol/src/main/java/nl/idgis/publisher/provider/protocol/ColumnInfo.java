@@ -5,16 +5,17 @@ import java.io.Serializable;
 import nl.idgis.publisher.domain.service.Type;
 
 /**
- * A column of a {@link VectorDatasetInfo}.
+ * A column belonging to a {@link TableInfo} of a {@link VectorDatasetInfo}.
  * 
  * @author copierrj
  *
  */
-public class Column implements Serializable {
+public class ColumnInfo implements Serializable {
 	
-	private static final long serialVersionUID = -5278210987617964061L;
+	private static final long serialVersionUID = 4496684640742666661L;
 	
 	private final String name;
+	
 	private final Type type;
 	
 	/**
@@ -22,7 +23,7 @@ public class Column implements Serializable {
 	 * @param name the column name.
 	 * @param type the data type.
 	 */
-	public Column(String name, Type type) {
+	public ColumnInfo(String name, Type type) {
 		this.name = name;
 		this.type = type;
 	}
@@ -45,6 +46,6 @@ public class Column implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Column [name=" + name + ", type=" + type + "]";
+		return "ColumnInfo [name=" + name + ", type=" + type + "]";
 	}
 }
