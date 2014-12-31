@@ -11,10 +11,11 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+
 import akka.util.Timeout;
+
+import nl.idgis.publisher.utils.SmartFuture;
 
 public class AsyncInsertClauseTest extends AbstractDatabaseTest {
 
@@ -24,12 +25,12 @@ public class AsyncInsertClauseTest extends AbstractDatabaseTest {
 		
 		AsyncSQLInsertClause insert = new AsyncSQLInsertClause(database, new Timeout(1, TimeUnit.SECONDS), dispatcher(), dataSource);
 		
-		Future<Long> future = insert
+		SmartFuture<Long> future = insert
 			.set(dataSource.identification, "id")
 			.set(dataSource.name, "name")		
 			.execute();
 		
-		Long affectedRows = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		Long affectedRows = future.get(Duration.create(2, TimeUnit.SECONDS));
 		assertNotNull(affectedRows);
 		assertEquals(new Long(1), affectedRows);
 		
@@ -50,12 +51,12 @@ public class AsyncInsertClauseTest extends AbstractDatabaseTest {
 		
 		AsyncSQLInsertClause insert = new AsyncSQLInsertClause(database, new Timeout(1, TimeUnit.SECONDS), dispatcher(), dataSource);
 		
-		Future<Integer> future = insert
+		SmartFuture<Integer> future = insert
 			.set(dataSource.identification, "id")
 			.set(dataSource.name, "name")		
 			.executeWithKey(dataSource.id);
 		
-		Integer generatedKey = Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+		Integer generatedKey = future.get(Duration.create(2, TimeUnit.SECONDS));
 		assertNotNull(generatedKey);
 		
 		Integer queryResult = query()

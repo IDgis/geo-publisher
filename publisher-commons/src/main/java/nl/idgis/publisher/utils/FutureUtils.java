@@ -1,6 +1,7 @@
 package nl.idgis.publisher.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -9,24 +10,23 @@ import java.util.Map;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnFailure;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-import scala.Function1;
-import scala.Function2;
-import scala.Function3;
-import scala.Function4;
+import nl.idgis.publisher.function.Function1;
+import nl.idgis.publisher.function.Function2;
+import nl.idgis.publisher.function.Function3;
+import nl.idgis.publisher.function.Function4;
+import nl.idgis.publisher.function.Procedure2;
+
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
-import scala.runtime.AbstractFunction3;
+import scala.concurrent.Promise;
 
 public class FutureUtils {
 	
 	private final ExecutionContext executionContext;
+	
 	private final Timeout timeout;
 	
 	public FutureUtils(ExecutionContext executionContext) {
@@ -46,44 +46,18 @@ public class FutureUtils {
 		
 		private final Collector3<T, U, V> parent;
 		
-		private Collector4(Collector3<T, U, V> parent, Future<W> future) {
+		private Collector4(Collector3<T, U, V> parent, SmartFuture<W> future) {
 			super(future);
 			
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatMap(final Function4<T, U, V, W, Future<R>> f) {
-			return future.flatMap(new Mapper<W, Future<R>>() {
-				
-				public Future<R> apply(final W w) {
-					return parent.flatMap(new AbstractFunction3<T, U, V, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t, U u, V v) {
-							return f.apply(t, u, v, w);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> flatMap(final Function4<T, U, V, W, SmartFuture<R>> f) {
+			return future.flatMap(w -> parent.flatMap((t, u, v) -> f.apply(t, u, v, w)));
 		}
 		
-		public <R> Future<R> map(final Function4<T, U, V, W, R> f) {
-			return future.flatMap(new Mapper<W, Future<R>>() {
-				
-				public Future<R> apply(final W w) {
-					return parent.map(new AbstractFunction3<T, U, V, R>() {
-
-						@Override
-						public R apply(T t, U u, V v) {
-							return f.apply(t, u, v, w);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> map(final Function4<T, U, V, W, R> f) {
+			return future.flatMap(w -> parent.map((t, u, v) -> f.apply(t, u, v, w)));
 		}
 	}
 	
@@ -91,47 +65,21 @@ public class FutureUtils {
 		
 		private final Collector2<T, U> parent;
 		
-		private Collector3(Collector2<T, U> parent, Future<V> future) {
+		private Collector3(Collector2<T, U> parent, SmartFuture<V> future) {
 			super(future);
 			
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatMap(final Function3<T, U, V, Future<R>> f) {
-			return future.flatMap(new Mapper<V, Future<R>>() {
-				
-				public Future<R> apply(final V v) {
-					return parent.flatMap(new AbstractFunction2<T, U, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t, U u) {
-							return f.apply(t, u, v);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> flatMap(final Function3<T, U, V, SmartFuture<R>> f) {
+			return future.flatMap(v -> parent.flatMap((t, u) -> f.apply(t, u, v)));
 		}
 		
-		public <R> Future<R> map(final Function3<T, U, V, R> f) {
-			return future.flatMap(new Mapper<V, Future<R>>() {
-				
-				public Future<R> apply(final V v) {
-					return parent.map(new AbstractFunction2<T, U, R>() {
-
-						@Override
-						public R apply(T t, U u) {
-							return f.apply(t, u, v);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> map(final Function3<T, U, V, R> f) {
+			return future.flatMap(v -> parent.map((t, u) -> f.apply(t, u, v)));
 		}
 		
-		public <W> Collector4<T, U, V, W> collect(Future<W> future) {
+		public <W> Collector4<T, U, V, W> collect(SmartFuture<W> future) {
 			return new Collector4<>(this, future);
 		}
 	}
@@ -140,192 +88,163 @@ public class FutureUtils {
 		
 		private final Collector1<T> parent;		
 		
-		private Collector2(Collector1<T> parent, Future<U> future) {
+		private Collector2(Collector1<T> parent, SmartFuture<U> future) {
 			super(future);
 			
 			this.parent = parent;			
 		}
 		
-		public <R> Future<R> flatMap(final Function2<T, U, Future<R>> f) {			
-			return future.flatMap(new Mapper<U, Future<R>>() {
-				
-				public Future<R> apply(final U u) {
-					return parent.flatMap(new AbstractFunction1<T, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t) {
-							return f.apply(t, u);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> flatMap(final Function2<T, U, SmartFuture<R>> f) {			
+			return future.flatMap(u -> parent.flatMap(t -> f.apply(t, u)));					
 		}
 		
-		public <R> Future<R> map(final Function2<T, U, R> f) {			
-			return future.flatMap(new Mapper<U, Future<R>>() {
-				
-				public Future<R> apply(final U u) {
-					return parent.map(new AbstractFunction1<T, R>() {
-
-						@Override
-						public R apply(T t) {
-							return f.apply(t, u);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> map(final Function2<T, U, R> f) {			
+			return future.flatMap(u -> parent.map(t -> f.apply(t, u)));
 		}
 		
-		public <V> Collector3<T, U, V> collect(Future<V> future) {
+		public <V> Collector3<T, U, V> collect(SmartFuture<V> future) {
 			return new Collector3<>(this, future);
 		}
 	}
 	
 	public class Collector1<T> extends Collector<T> {
 		
-		private Collector1(Future<T> future) {
+		private Collector1(SmartFuture<T> future) {
 			super(future);
 		}
 		
-		public <R> Future<R> flatMap(final Function1<T, Future<R>> f) {
-			return future.flatMap(new Mapper<T, Future<R>>() {
-
-				@Override
-				public Future<R> apply(T t) {
-					return f.apply(t);
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> flatMap(final Function1<T, SmartFuture<R>> f) {
+			return future.flatMap(f);
 		}
 		
-		public <R> Future<R> map(final Function1<T, R> f) {
-			return future.map(new Mapper<T, R>() {
-
-				@Override
-				public R apply(T t) {
-					return f.apply(t);
-				}
-				
-			}, executionContext);
+		public <R> SmartFuture<R> map(final Function1<T, R> f) {
+			return future.map(f);
 		}
 		
-		public <U> Collector2<T, U> collect(Future<U> future) {
+		public <U> Collector2<T, U> collect(SmartFuture<U> future) {
 			return new Collector2<>(this, future);
 		}
 	}
 	
 	private abstract static class Collector<T> {
 		
-		protected final Future<T> future;
+		protected final SmartFuture<T> future;
 		
-		private Collector(Future<T> future) {
+		private Collector(SmartFuture<T> future) {
 			this.future = future;
 		} 
 	}
 	
-	public <T> Collector1<T> collect(Future<T> future) {
+	public <T> Collector1<T> collect(SmartFuture<T> future) {
 		return new Collector1<>(future);
 	}
 	
-	public <T, U> Future<T> cast(Future<U> future, Class<T> targetClass) {
-		return cast(future, targetClass, null);
+	
+	
+	public SmartFuture<Object> ask(ActorRef actor, Object message) {
+		return ask(actor, message, timeout);
 	}
 	
-	public <T, U> Future<T> cast(Future<U> future, final Class<T> targetClass, final Object context) {
-		return future.map(new Mapper<U, T>() {
-			
-			@Override			
-			public T checkedApply(U u) throws Throwable {
-				if(targetClass.isInstance(u)) {
-					return targetClass.cast(u);
-				} else {
-					throw new WrongResultException(u, targetClass, context);
-				}
-			}
-			
-		}, executionContext);
+	public SmartFuture<Object> ask(ActorRef actor, Object message, long timeout) {
+		return ask(actor, message, Timeout.apply(timeout));
 	}
 	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
+	public SmartFuture<Object> ask(ActorRef actor, Object message, Timeout timeout) {
+		return smart(Patterns.ask(actor, message, timeout));
 	}
 	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
+	public SmartFuture<Object> ask(ActorSelection selection, Object message, Timeout timeout) {
+		return smart(Patterns.ask(selection, message, timeout));
 	}
 	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
+	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
+		return ask(actor, message, timeout).cast(targetClass, message);
 	}
 	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
+	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, long timeout) {		 
+		return ask(actor, message, Timeout.apply(timeout)).cast(targetClass, message);
 	}
 	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
+	public <T> SmartFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass) {		 
+		return ask(actor, message, timeout).cast(targetClass, message);
 	}
 	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
+	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, Timeout timeout) {		 
+		return ask(selection, message, timeout).cast(targetClass, message);
 	}
 	
-	public <K, V> Future<Map<K, V>> map(Map<K, Future<V>> input) {
-		final List<K> keys = new ArrayList<K>();
-		List<Future<V>> values = new ArrayList<Future<V>>();
+	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, long timeout) {		 
+		return ask(selection, message, Timeout.apply(timeout)).cast(targetClass, message);
+	}
+	
+	public <T> SmartFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {		 
+		return ask(selection, message, timeout).cast(targetClass, message);
+	}
+	
+	public <T> SmartFuture<Iterable<T>> sequence(Iterable<SmartFuture<T>> sequence) {
+		Iterator<SmartFuture<T>> i = sequence.iterator();
 		
-		for(Map.Entry<K, Future<V>> entry : input.entrySet()) {
+		if(i.hasNext()) {
+			Promise<Iterable<T>> promise = Futures.promise();
+			
+			i.next().onComplete(new Procedure2<Throwable, T>() {
+				
+				ArrayList<T> result = new ArrayList<>();
+
+				@Override
+				public void apply(Throwable throwable, T t) {
+					if(throwable == null) {
+						result.add(t);
+						
+						if(i.hasNext()) {
+							i.next().onComplete(this);
+						} else {
+							promise.success(result);
+						}
+					} else {
+						promise.failure(throwable);
+					}
+				}
+			});
+			
+			return smart(promise.future());
+		} else {
+			return successful(Collections.emptyList());
+		}
+	}
+	
+	public <K, V> SmartFuture<Map<K, V>> map(Map<K, SmartFuture<V>> map) {
+		List<K> keys = new ArrayList<K>();
+		List<SmartFuture<V>> futures = new ArrayList<SmartFuture<V>>();
+		
+		for(Map.Entry<K, SmartFuture<V>> entry : map.entrySet()) {
 			keys.add(entry.getKey());
-			values.add(entry.getValue());
+			futures.add(entry.getValue());
 		}
 		
-		return Futures.sequence(values, executionContext)
-			.map(new Mapper<Iterable<V>, Map<K, V>>() {
-				
-				public Map<K, V> apply(Iterable<V> i) {
-					Map<K, V> retval = new HashMap<K, V>();
-					
-					Iterator<K> keyItr = keys.iterator();
-					Iterator<V> valueItr = i.iterator();
-					
-					while(keyItr.hasNext()) {
-						retval.put(keyItr.next(), valueItr.next());
-					}
-					
-					return retval;
-				}
-				
-			}, executionContext);
-	}
-	
-	public <T, S> Future<S> map(Future<T> future, Function1<T, S> f) {
-		return future.map(f, executionContext);
-	}
-	
-	public <T, S> Future<S> flatMap(Future<T> future, Function1<T, Future<S>> f) {
-		return future.flatMap(f, executionContext);
-	}
-	
-	public <T> void failure(Future<T> future, OnFailure onFailure) {
-		future.onFailure(onFailure, executionContext);
-	}
-	
-	public <T> Future<Iterable<T>> sequence(Iterable<Future<T>> futures) {
-		return Futures.sequence(futures, executionContext);
-	}
-	
-	public <T, U> Future<U> mapValue(Future<T> future, final U u) {
-		return flatMap(future, new AbstractFunction1<T, Future<U>>() {
-
-			@Override
-			public Future<U> apply(T t) {
-				return Futures.successful(u);
+		return sequence(futures).map(values -> {
+			Map<K, V> retval = new HashMap<K, V>();
+			
+			Iterator<K> keyItr = keys.iterator();
+			Iterator<V> valueItr = values.iterator();
+			
+			while(keyItr.hasNext()) {
+				retval.put(keyItr.next(), valueItr.next());
 			}
 			
+			return retval;
 		});
+	}
+	
+	public <T> SmartFuture<T> successful(T t) {
+		return smart(Futures.successful(t));
+	}
+	
+	public <T> SmartFuture<T> failed(Throwable t) {
+		return smart(Futures.failed(t));
+	}
+	
+	public <T> SmartFuture<T> smart(Future<T> future) {
+		return new SmartFuture<>(future, executionContext);
 	}
 }

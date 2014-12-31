@@ -10,15 +10,15 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.utils.SmartFuture;
 import nl.idgis.publisher.utils.TypedList;
 
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+
 import akka.util.Timeout;
 
 public class AsyncSQLQueryTest extends AbstractDatabaseTest {
@@ -27,15 +27,15 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 		return new AsyncSQLQuery(database, new Timeout(1, TimeUnit.SECONDS), dispatcher());
 	}
 	
-	private <T> T result(Future<T> future) throws Exception {
-		return Await.result(future, Duration.create(2, TimeUnit.SECONDS));
+	private <T> T result(SmartFuture<T> future) throws Exception {
+		return future.get(Duration.create(2, TimeUnit.SECONDS));
 	}
 	
 	@Test
 	public void testTuple() throws Exception {
 		insertDataset();
 		
-		Future<TypedList<Tuple>> future = asyncQuery()
+		SmartFuture<TypedList<Tuple>> future = asyncQuery()
 			.from(category)
 			.list(category.id, category.name);
 		
@@ -50,7 +50,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	public void testProjection() throws Exception {
 		insertDataset();
 		
-		Future<TypedList<String>> future = asyncQuery()
+		SmartFuture<TypedList<String>> future = asyncQuery()
 			.from(category)
 			.list(category.name);
 		

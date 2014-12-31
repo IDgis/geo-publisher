@@ -1,10 +1,11 @@
 package nl.idgis.publisher.harvester.sources;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -20,7 +21,6 @@ import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
-import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
@@ -70,13 +70,12 @@ public class ProviderDatasetConverter extends StreamConverter {
 			if(datasetInfo instanceof VectorDatasetInfo) {
 				log.debug("vector dataset info");
 				
-				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;
-				
-				List<Column> columns = new ArrayList<>();
+				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;				
 				TableInfo tableInfo = vectorDatasetInfo.getTableInfo();
-				for(ColumnInfo column : tableInfo.getColumns()) {
-					columns.add(new Column(column.getName(), column.getType()));
-				}
+				
+				List<Column> columns = Arrays.stream(tableInfo.getColumns())
+					.map(column -> new Column(column.getName(), column.getType()))
+					.collect(Collectors.toList());
 				
 				Table table = new Table(title, columns);
 				

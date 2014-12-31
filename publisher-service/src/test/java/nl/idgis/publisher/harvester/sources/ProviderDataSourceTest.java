@@ -1,13 +1,16 @@
 package nl.idgis.publisher.harvester.sources;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -32,8 +35,10 @@ import nl.idgis.publisher.collector.Collector;
 import nl.idgis.publisher.collector.messages.GetMessage;
 
 import nl.idgis.publisher.domain.Log;
-import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
@@ -106,7 +111,28 @@ public class ProviderDataSourceTest {
 		sync.ask(providerDataSource, new ListDatasets(), End.class);		
 		
 		sync.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class);
-		sync.ask(providerDataSource, new ListDatasets(), Dataset.class);
+		
+		VectorDataset dataset = sync.ask(providerDataSource, new ListDatasets(), VectorDataset.class);
+		
+		Table table = dataset.getTable();
+		assertNotNull(table);
+		
+		List<Column> columns = table.getColumns();
+		assertNotNull(columns);
+		
+		Iterator<Column> columnsItr = columns.iterator();
+		assertTrue(columnsItr.hasNext());
+		
+		Column column = columnsItr.next();
+		assertNotNull(column);
+		assertEquals("id", column.getName());		
+		assertEquals(Type.NUMERIC, column.getDataType());
+		
+		assertTrue(columnsItr.hasNext());
+		assertNotNull(columnsItr.next());
+		
+		assertFalse(columnsItr.hasNext());
+		
 		sync.askSender(new NextItem(), End.class);
 	}
 	

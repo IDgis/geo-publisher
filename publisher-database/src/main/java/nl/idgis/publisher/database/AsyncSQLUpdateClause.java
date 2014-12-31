@@ -19,13 +19,13 @@ import com.mysema.query.types.Path;
 import com.mysema.query.types.Predicate;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
 import nl.idgis.publisher.database.messages.PerformUpdate;
+import nl.idgis.publisher.utils.SmartFuture;
 
 public class AsyncSQLUpdateClause extends AbstractAsyncSQLClause<AsyncSQLUpdateClause> implements AsyncUpdateClause<AsyncSQLUpdateClause> {
 	
@@ -141,8 +141,8 @@ public class AsyncSQLUpdateClause extends AbstractAsyncSQLClause<AsyncSQLUpdateC
     }
 
 	@Override
-	public Future<Long> execute() {
-		return Patterns.ask(database, new PerformUpdate(entity, columns, values, metadata), timeout)
-			.map(TO_LONG, executionContext);
+	public SmartFuture<Long> execute() {
+		return new SmartFuture<>(Patterns.ask(database, new PerformUpdate(entity, columns, values, metadata), timeout)
+			.map(TO_LONG, executionContext), executionContext);
 	}
 }

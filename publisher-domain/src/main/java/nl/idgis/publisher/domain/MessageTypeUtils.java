@@ -4,12 +4,12 @@ public final class MessageTypeUtils {
 
 	private MessageTypeUtils() {
 		
-	}	
+	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static <T extends MessageType<?>> T valueOf(Class<T> clazz, String name) {
 		if(Enum.class.isAssignableFrom(clazz)) {
-			return (T)Enum.valueOf(clazz.asSubclass(Enum.class), name);
+			return (T)Enum.valueOf((Class<Enum>)clazz.asSubclass(Enum.class), name);
 		}
 		
 		try {

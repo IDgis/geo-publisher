@@ -4,10 +4,10 @@ import java.util.Iterator;
 
 import nl.idgis.publisher.database.messages.PerformQuery;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.utils.SmartFuture;
 import nl.idgis.publisher.utils.TypedList;
 
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
@@ -48,10 +48,10 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 	}
 
 	@Override
-	public Future<TypedList<Tuple>> list(Expression<?>... args) {
+	public SmartFuture<TypedList<Tuple>> list(Expression<?>... args) {
 		queryMixin.addProjection(args);
 		
-		return Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
+		return new SmartFuture<>(Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
 			.map(new Mapper<Object, TypedList<Tuple>>() {
 				
 				@Override
@@ -64,14 +64,14 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 					return (TypedList<Tuple>)parameter;
 				}
 				
-			}, executionContext);
+			}, executionContext), executionContext);
 	}
 
 	@Override
-	public <RT> Future<TypedList<RT>> list(Expression<RT> projection) {
+	public <RT> SmartFuture<TypedList<RT>> list(Expression<RT> projection) {
 		queryMixin.addProjection(projection);
 		
-		return Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
+		return new SmartFuture<>(Patterns.ask(database, new PerformQuery(getMetadata()), timeout)
 			.map(new Mapper<Object, TypedList<RT>>() {
 				
 				@Override
@@ -84,11 +84,11 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 					return (TypedList<RT>)parameter;
 				}
 				
-			}, executionContext);
+			}, executionContext), executionContext);
 	}
 
 	@Override
-	public Future<TypedList<Tuple>> list(Object... args) {
+	public SmartFuture<TypedList<Tuple>> list(Object... args) {
 		return list(asExpressions(args));
 	}
 
@@ -106,63 +106,45 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 		return exprArgs;
 	}
 	
-	private <T> Future<T> singleResult(Future<TypedList<T>> listResult) {
-		return listResult.map(new Mapper<TypedList<T>, T>() {
+	private <T> SmartFuture<T> singleResult(SmartFuture<TypedList<T>> listResult) {
+		return listResult.map(list -> {
+			Iterator<T> itr = list.iterator();
 			
-			@Override
-			public T checkedApply(TypedList<T> list) {
-				Iterator<T> itr = list.iterator();
-				
-				if(itr.hasNext()) {					
-					T retval = itr.next();
-					if(itr.hasNext()) {
-						throw new NonUniqueResultException();
-					} else {
-						return retval;
-					}
+			if(itr.hasNext()) {					
+				T retval = itr.next();
+				if(itr.hasNext()) {
+					throw new NonUniqueResultException();
 				} else {
-					return null;
+					return retval;
 				}
+			} else {
+				return null;
 			}
-		}, executionContext);
+		});
 	}
 
 	@Override
-	public Future<Tuple> singleResult(Expression<?>... args) {
+	public SmartFuture<Tuple> singleResult(Expression<?>... args) {
 		return singleResult(list(args));
 	}
 
 	@Override
-	public <RT> Future<RT> singleResult(Expression<RT> projection) {
+	public <RT> SmartFuture<RT> singleResult(Expression<RT> projection) {
 		return singleResult(list(projection));
 	}
 
 	@Override
-	public Future<Tuple> singleResult(Object... args) {
+	public SmartFuture<Tuple> singleResult(Object... args) {
 		return singleResult(asExpressions(args));
 	}
 
 	@Override
-	public Future<Boolean> exists() {
-		return limit(1).singleResult(NumberTemplate.ONE).map(new Mapper<Integer, Boolean>() {
-			
-			@Override
-			public Boolean apply(Integer i) {
-				return i != null;
-			}
-			
-		}, executionContext);
+	public SmartFuture<Boolean> exists() {
+		return limit(1).singleResult(NumberTemplate.ONE).map(i -> i != null);
 	}
 
 	@Override
-	public Future<Boolean> notExists() { 
-		return exists().map(new Mapper<Boolean, Boolean>() {
-			
-			@Override
-			public Boolean apply(Boolean b) {
-				return !b;
-			}
-			
-		}, executionContext);
+	public SmartFuture<Boolean> notExists() { 
+		return exists().map(b -> !b);
 	}
 }
