@@ -12,10 +12,9 @@ import akka.dispatch.OnFailure;
 import akka.dispatch.OnSuccess;
 import akka.pattern.Patterns;
 
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
 import nl.idgis.publisher.function.Function1;
+import nl.idgis.publisher.function.Procedure1;
+import nl.idgis.publisher.function.Procedure2;
 
 public class SmartFuture<T> {
 	
@@ -68,34 +67,34 @@ public class SmartFuture<T> {
 		return Await.result(future, atMost);
 	}
 
-	public void onFailure(Consumer<Throwable> failureHandler) {
+	public void onFailure(Procedure1<Throwable> failureHandler) {
 		future.onFailure(new OnFailure() {
 
 			@Override
 			public void onFailure(Throwable t) throws Throwable {
-				failureHandler.accept(t);
+				failureHandler.apply(t);
 			}
 			
 		}, executionContext);
 	}
 	
-	public void onSuccess(Consumer<T> successHandler) {
+	public void onSuccess(Procedure1<T> successHandler) {
 		future.onSuccess(new OnSuccess<T>() {
 
 			@Override
 			public void onSuccess(T t) throws Throwable {
-				successHandler.accept(t);
+				successHandler.apply(t);
 			}
 			
 		}, executionContext);
 	}
 	
-	public void onComplete(BiConsumer<Throwable, T> completeHandler) {
+	public void onComplete(Procedure2<Throwable, T> completeHandler) {
 		future.onComplete(new OnComplete<T>() {
 
 			@Override
 			public void onComplete(Throwable throwable, T t) throws Throwable {
-				completeHandler.accept(throwable, t);
+				completeHandler.apply(throwable, t);
 			}
 			
 		}, executionContext);

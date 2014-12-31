@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -18,6 +17,7 @@ import nl.idgis.publisher.function.Function1;
 import nl.idgis.publisher.function.Function2;
 import nl.idgis.publisher.function.Function3;
 import nl.idgis.publisher.function.Function4;
+import nl.idgis.publisher.function.Procedure1;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -187,12 +187,12 @@ public class FutureUtils {
 		if(i.hasNext()) {
 			Promise<Iterable<T>> promise = Futures.promise();
 			
-			i.next().onSuccess(new Consumer<T>() {
+			i.next().onSuccess(new Procedure1<T>() {
 				
 				ArrayList<T> result = new ArrayList<>();
 
 				@Override
-				public void accept(T t) {
+				public void apply(T t) {
 					result.add(t);
 					
 					if(i.hasNext()) {
