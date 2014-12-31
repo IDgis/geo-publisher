@@ -18,7 +18,7 @@ import akka.dispatch.Futures;
 
 public class SmartFutureTest {
 	
-	static final Duration AT_MOST = Duration.create(1, TimeUnit.SECONDS);
+	static final Duration WAIT_AT_MOST = Duration.create(1, TimeUnit.SECONDS);
 	
 	ExecutionContext executionContext;
 	
@@ -31,7 +31,7 @@ public class SmartFutureTest {
 	public void testMap() throws Exception {		
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.successful(42), executionContext);		
 		
-		assertEquals("42", future.map((Integer i) -> i.toString()).get(AT_MOST));
+		assertEquals("42", future.map((Integer i) -> i.toString()).get(WAIT_AT_MOST));
 	}
 	
 	@Test
@@ -39,7 +39,7 @@ public class SmartFutureTest {
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.successful(42), executionContext);		
 		
 		assertEquals("42", future.flatMap((Integer i) -> 
-			new SmartFuture<>(Futures.successful(i.toString()), executionContext)).get(AT_MOST));
+			new SmartFuture<>(Futures.successful(i.toString()), executionContext)).get(WAIT_AT_MOST));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -49,13 +49,13 @@ public class SmartFutureTest {
 		ExecutionContext differentExecutionContext = ActorSystem.create().dispatcher();
 		
 		assertEquals("42", future.flatMap((Integer i) -> 
-			new SmartFuture<>(Futures.successful(i.toString()), differentExecutionContext)).get(AT_MOST));
+			new SmartFuture<>(Futures.successful(i.toString()), differentExecutionContext)).get(WAIT_AT_MOST));
 	}
 	
 	@Test
 	public void testMapValue() throws Exception {
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.successful(42), executionContext);
-		assertEquals(Integer.valueOf(47), future.mapValue(47).get(AT_MOST));
+		assertEquals(Integer.valueOf(47), future.mapValue(47).get(WAIT_AT_MOST));
 	}
 	
 	@Test
@@ -67,7 +67,7 @@ public class SmartFutureTest {
 			testPromise.success(true);
 		});
 		
-		assertTrue(Await.result(testPromise.future(), AT_MOST));
+		assertTrue(Await.result(testPromise.future(), WAIT_AT_MOST));
 	}
 	
 	@Test
@@ -82,6 +82,6 @@ public class SmartFutureTest {
 			return null;
 		});
 		
-		assertTrue(Await.result(testPromise.future(), AT_MOST));
+		assertTrue(Await.result(testPromise.future(), WAIT_AT_MOST));
 	}
 }
