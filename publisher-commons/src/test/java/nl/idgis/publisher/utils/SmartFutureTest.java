@@ -34,6 +34,15 @@ public class SmartFutureTest {
 		assertEquals("42", future.map((Integer i) -> i.toString()).get(WAIT_AT_MOST));
 	}
 	
+	@Test(expected=IllegalStateException.class)
+	public void testMapFailure() throws Exception {
+		SmartFuture<Integer> future = new SmartFuture<>(Futures.successful(42), executionContext);	
+		
+		future.map(i -> {
+			throw new IllegalStateException();	
+		}).get(WAIT_AT_MOST);
+	}
+	
 	@Test
 	public void testFlatMap() throws Exception {		
 		SmartFuture<Integer> future = new SmartFuture<>(Futures.successful(42), executionContext);		
