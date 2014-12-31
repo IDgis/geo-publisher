@@ -213,20 +213,20 @@ public class FutureUtils {
 		}
 	}
 	
-	public <K, V> SmartFuture<Map<K, V>> map(Map<K, SmartFuture<V>> input) {
-		final List<K> keys = new ArrayList<K>();
-		List<SmartFuture<V>> values = new ArrayList<SmartFuture<V>>();
+	public <K, V> SmartFuture<Map<K, V>> map(Map<K, SmartFuture<V>> map) {
+		List<K> keys = new ArrayList<K>();
+		List<SmartFuture<V>> futures = new ArrayList<SmartFuture<V>>();
 		
-		for(Map.Entry<K, SmartFuture<V>> entry : input.entrySet()) {
+		for(Map.Entry<K, SmartFuture<V>> entry : map.entrySet()) {
 			keys.add(entry.getKey());
-			values.add(entry.getValue());
+			futures.add(entry.getValue());
 		}
 		
-		return sequence(values).map(i -> {
+		return sequence(futures).map(values -> {
 			Map<K, V> retval = new HashMap<K, V>();
 			
 			Iterator<K> keyItr = keys.iterator();
-			Iterator<V> valueItr = i.iterator();
+			Iterator<V> valueItr = values.iterator();
 			
 			while(keyItr.hasNext()) {
 				retval.put(keyItr.next(), valueItr.next());
