@@ -17,7 +17,7 @@ import nl.idgis.publisher.function.Function1;
 import nl.idgis.publisher.function.Function2;
 import nl.idgis.publisher.function.Function3;
 import nl.idgis.publisher.function.Function4;
-import nl.idgis.publisher.function.Procedure1;
+import nl.idgis.publisher.function.Procedure2;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -187,21 +187,24 @@ public class FutureUtils {
 		if(i.hasNext()) {
 			Promise<Iterable<T>> promise = Futures.promise();
 			
-			i.next().onSuccess(new Procedure1<T>() {
+			i.next().onComplete(new Procedure2<Throwable, T>() {
 				
 				ArrayList<T> result = new ArrayList<>();
 
 				@Override
-				public void apply(T t) {
-					result.add(t);
-					
-					if(i.hasNext()) {
-						i.next().onSuccess(this);
+				public void apply(Throwable throwable, T t) {
+					if(throwable == null) {
+						result.add(t);
+						
+						if(i.hasNext()) {
+							i.next().onComplete(this);
+						} else {
+							promise.success(result);
+						}
 					} else {
-						promise.success(result);
+						promise.failure(throwable);
 					}
 				}
-				
 			});
 			
 			return smart(promise.future());

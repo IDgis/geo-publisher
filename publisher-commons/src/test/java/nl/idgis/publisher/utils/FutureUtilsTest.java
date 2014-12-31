@@ -1,5 +1,6 @@
 package nl.idgis.publisher.utils;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -18,6 +19,7 @@ import akka.dispatch.Futures;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class FutureUtilsTest {
@@ -142,5 +144,41 @@ public class FutureUtilsTest {
 			
 			return null;
 		});
+	}
+	
+	@Test
+	public void testSequence() {
+		f.sequence(
+			Arrays.asList(
+				f.successful("Hello"),
+				f.successful("world")))
+				
+				.onSuccess(list -> {
+					try {
+						assertEquals(list, Arrays.asList("Hello", "world"));
+						
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+				});
+	}
+	
+	@Test
+	public void testSequenceFailure() {
+		f.sequence(
+				Arrays.asList(
+					f.successful("Hello"),
+					f.failed(new IllegalStateException())))
+					
+				.onFailure(e -> {
+					try {
+						assertTrue(e instanceof IllegalStateException);
+						
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+				});
 	}
 }
