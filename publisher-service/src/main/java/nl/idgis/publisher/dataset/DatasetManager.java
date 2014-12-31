@@ -5,9 +5,9 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.utils.StreamUtils.index;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -158,28 +158,26 @@ public class DatasetManager extends UntypedActor {
 		Table table = dataset.getTable();
 		
 		return 
-			getCategoryId(tx, dataset.getCategoryId()).flatMap(categoryId -> 					
+			getCategoryId(tx, dataset.getCategoryId()).flatMap(categoryId ->
 				tx.insert(sourceDatasetVersion)
 					.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 					.set(sourceDatasetVersion.name, table.getName())
 					.set(sourceDatasetVersion.categoryId, categoryId)
 					.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-					.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId -> {
-						
-						int i = 0;
-						ArrayList<SmartFuture<Long>> futures = new ArrayList<>();
-						for(Column column : table.getColumns()) {
-							futures.add(
-								tx.insert(sourceDatasetVersionColumn)
+					.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId ->
+						index(table.getColumns().stream())
+							.map(indexedColumn -> {
+								Column column = indexedColumn.getValue();
+								
+								return tx.insert(sourceDatasetVersionColumn)
 									.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
-									.set(sourceDatasetVersionColumn.index, i++)
+									.set(sourceDatasetVersionColumn.index, indexedColumn.getIndex())
 									.set(sourceDatasetVersionColumn.name, column.getName())
 									.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-									.execute());
-						}
-						
-						return f.sequence(futures).mapNull();
-					});
+									.execute();
+							})
+							.reduce(f.successful(null), (a, b) -> a.flatMap(t -> b))
+							.mapNull());
 	}
 	
 	private SmartFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
