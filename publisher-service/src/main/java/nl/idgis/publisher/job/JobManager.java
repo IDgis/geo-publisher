@@ -55,11 +55,9 @@ import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 import akka.util.Timeout;
 
 import com.mysema.query.Tuple;
@@ -169,41 +167,39 @@ public class JobManager extends UntypedActor {
 	
 	private SmartFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
-			.flatMap((Integer jobId, Integer datasetVersionId) -> {
-				return 
-					tx.insert(importJob)
+			.flatMap((jobId, datasetVersionId) -> 				 
+				tx.insert(importJob)
+					.columns(
+						importJob.jobId,
+						importJob.datasetId,
+						importJob.sourceDatasetVersionId,
+						importJob.filterConditions)
+					.select(new SQLSubQuery().from(dataset)
+							.where(dataset.identification.eq(datasetId))
+							.list(
+								jobId,
+								dataset.id,
+								datasetVersionId,
+								dataset.filterConditions))
+					.executeWithKey(importJob.id)
+				
+				.flatMap(importJobId ->
+					tx.insert(importJobColumn)
 						.columns(
-							importJob.jobId,
-							importJob.datasetId,
-							importJob.sourceDatasetVersionId,
-							importJob.filterConditions)
-						.select(new SQLSubQuery().from(dataset)
-								.where(dataset.identification.eq(datasetId))
-								.list(
-									jobId,
-									dataset.id,
-									datasetVersionId,
-									dataset.filterConditions))
-						.executeWithKey(importJob.id)
-					
-					.flatMap(importJobId -> {
-						return tx.insert(importJobColumn)
-							.columns(
-								importJobColumn.importJobId,
-								importJobColumn.index,
-								importJobColumn.name,
-								importJobColumn.dataType)
-							.select(new SQLSubQuery().from(datasetColumn)
-								.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-								.where(dataset.identification.eq(datasetId))
-								.list(
-									importJobId,
-									datasetColumn.index,
-									datasetColumn.name,
-									datasetColumn.dataType))
-									.execute();
-					});					
-			});
+							importJobColumn.importJobId,
+							importJobColumn.index,
+							importJobColumn.name,
+							importJobColumn.dataType)
+						.select(new SQLSubQuery().from(datasetColumn)
+							.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+							.where(dataset.identification.eq(datasetId))
+							.list(
+								importJobId,
+								datasetColumn.index,
+								datasetColumn.name,
+								datasetColumn.dataType))
+								.execute()
+				));
 	}
 
 	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper tx, final String datasetId) {
