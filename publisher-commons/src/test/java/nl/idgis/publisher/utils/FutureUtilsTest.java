@@ -20,6 +20,7 @@ import akka.dispatch.Futures;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -183,5 +184,39 @@ public class FutureUtilsTest {
 					
 					return null;
 				});
+	}
+	
+	@Test
+	public void testCast() {
+		f.cast(f.successful(42), Number.class)
+			.handle((n, throwable) -> {				
+				try {
+					assertNull(throwable);
+					assertEquals(42, n);
+					
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
+				}
+				
+				return null;
+		});
+	}
+	
+	@Test
+	public void testCastFailure() {
+		f.cast(f.successful("Hello, world!"), Integer.class)
+			.exceptionally(e -> {
+				try {
+					assertTrue(e instanceof WrongResultException);
+					assertEquals("Hello, world!", ((WrongResultException)e).getResult());
+					
+					testPromise.success(true);
+				} catch(Throwable t) {
+					testPromise.failure(t);
+				}
+				
+				return null;
+			});
 	}
 }

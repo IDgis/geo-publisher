@@ -182,7 +182,10 @@ public class FutureUtils {
 	}
 	
 	public <U, T extends U> CompletableFuture<T> cast(CompletableFuture<U> future, Class<T> targetClass) {
-		return future.thenApply(u -> targetClass.cast(u));
+		return future.thenCompose(u -> 
+			targetClass.isInstance(u) 
+				? successful(targetClass.cast(u)) 
+				: failed(new WrongResultException(u, targetClass)));
 	}
 	
 	public <T> CompletableFuture<Iterable<T>> sequence(Iterable<CompletableFuture<T>> sequence) {
@@ -241,11 +244,14 @@ public class FutureUtils {
 	}
 	
 	public <T> CompletableFuture<T> successful(T t) {
-		return toCompletableFuture(Futures.successful(t));
+		return CompletableFuture.completedFuture(t);
 	}
 	
 	public <T> CompletableFuture<T> failed(Throwable t) {
-		return toCompletableFuture(Futures.failed(t));
+		CompletableFuture<T> completableFuture = new CompletableFuture<>();
+		completableFuture.completeExceptionally(t);
+		
+		return completableFuture;
 	}
 	
 	public <T> CompletableFuture<T> toCompletableFuture(Future<T> future) {
