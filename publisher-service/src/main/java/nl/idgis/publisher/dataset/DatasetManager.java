@@ -10,6 +10,7 @@ import static nl.idgis.publisher.utils.StreamUtils.index;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.sql.SQLSubQuery;
 
@@ -36,7 +37,6 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.SmartFuture;
 
 public class DatasetManager extends UntypedActor {
 
@@ -61,12 +61,13 @@ public class DatasetManager extends UntypedActor {
 		Timeout timeout = Timeout.apply(15000);
 		ExecutionContext executionContext = getContext().dispatcher();
 
-		db = new AsyncDatabaseHelper(database, timeout, executionContext, log);
 		f = new FutureUtils(executionContext, timeout);
+		db = new AsyncDatabaseHelper(database, f, log);		
 	}
 
-	private <T> void returnToSender(SmartFuture<T> future) {
-		future.pipeTo(getSender(), getSelf());
+	private <T> void returnToSender(CompletableFuture<T> future) {
+		ActorRef sender = getSender();
+		future.thenAccept(t -> sender.tell(t, getSelf()));
 	}
 
 	@Override
@@ -78,11 +79,11 @@ public class DatasetManager extends UntypedActor {
 		}
 	}
 
-	private SmartFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
+	private CompletableFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
 		return 
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
-				.singleResult(category.id).flatMap(id ->
+				.singleResult(category.id).thenCompose(id ->
 					id == null
 						? tx.insert(category)
 							.set(category.identification, identification)
@@ -91,7 +92,7 @@ public class DatasetManager extends UntypedActor {
 						: f.successful(id));
 	}
 	
-	private SmartFuture<VectorDataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
+	private CompletableFuture<VectorDataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
 		log.debug("retrieving source dataset version");
 		
 		return f
@@ -125,7 +126,7 @@ public class DatasetManager extends UntypedActor {
 						columnInfo.list())));
 	}
 	
-	private SmartFuture<Optional<VectorDataset>> getCurrentSourceDatasetVersion(final AsyncHelper tx, final String dataSourceIdentification, final String identification) {
+	private CompletableFuture<Optional<VectorDataset>> getCurrentSourceDatasetVersion(final AsyncHelper tx, final String dataSourceIdentification, final String identification) {
 		log.debug("get current source dataset version");
 		
 		return
@@ -134,13 +135,13 @@ public class DatasetManager extends UntypedActor {
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
 						.and(sourceDataset.identification.eq(identification)))
-				.singleResult(sourceDatasetVersion.id.max()).flatMap(maxVersionId -> 
+				.singleResult(sourceDatasetVersion.id.max()).thenCompose(maxVersionId -> 
 					maxVersionId == null
 						? f.successful(Optional.empty())
-						: getSourceDatasetVersion(tx, maxVersionId).map(dataset -> Optional.of(dataset)));
+						: getSourceDatasetVersion(tx, maxVersionId).thenApply(dataset -> Optional.of(dataset)));
 	}
 	
-	private SmartFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
+	private CompletableFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
 		log.debug("inserting source dataset (by dataSource identification)");
 		
 		return 
@@ -148,23 +149,23 @@ public class DatasetManager extends UntypedActor {
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
 					.and(sourceDataset.identification.eq(dataset.getId())))
-				.singleResult(sourceDataset.id).flatMap(sourceDatasetId -> 
-					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).mapValue(new Updated());
+				.singleResult(sourceDataset.id).thenCompose(sourceDatasetId -> 
+					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).thenApply(v -> new Updated());
 	}
 	
-	private SmartFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, VectorDataset dataset) {
+	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, VectorDataset dataset) {
 		log.debug("inserting source dataset (by id)");
 		
 		Table table = dataset.getTable();
 		
 		return 
-			getCategoryId(tx, dataset.getCategoryId()).flatMap(categoryId ->
+			getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId ->
 				tx.insert(sourceDatasetVersion)
 					.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 					.set(sourceDatasetVersion.name, table.getName())
 					.set(sourceDatasetVersion.categoryId, categoryId)
 					.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-					.executeWithKey(sourceDatasetVersion.id)).flatMap(sourceDatasetVersionId ->
+					.executeWithKey(sourceDatasetVersion.id)).thenCompose(sourceDatasetVersionId ->
 						index(table.getColumns().stream())
 							.map(indexedColumn -> {
 								Column column = indexedColumn.getValue();
@@ -176,11 +177,11 @@ public class DatasetManager extends UntypedActor {
 									.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
 									.execute();
 							})
-							.reduce(f.successful(null), (a, b) -> a.flatMap(t -> b))
-							.mapNull());
+							.reduce(f.successful(null), (a, b) -> a.thenCompose(t -> b))
+							.thenApply(l -> null));
 	}
 	
-	private SmartFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
+	private CompletableFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
 		log.debug("inserting source dataset");
 		
 		return
@@ -192,20 +193,20 @@ public class DatasetManager extends UntypedActor {
 						.from(dataSource)
 						.where(dataSource.identification.eq(dataSourceIdentification))
 						.list(dataSource.id, dataset.getId()))
-					.executeWithKey(sourceDataset.id).flatMap(sourceDatasetId -> 
-						insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).mapValue(new Registered());
+					.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
+						insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).thenApply(v -> new Registered());
 					
 				
 	}
 
-	private SmartFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
+	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
 		log.debug("registering source dataset");
 		
 		VectorDataset dataset = msg.getDataset();
 		String dataSource = msg.getDataSource();
 		
 		return db.transactional(tx ->			
-			getCurrentSourceDatasetVersion(tx, dataSource, dataset.getId()).flatMap(currentVersion -> 
+			getCurrentSourceDatasetVersion(tx, dataSource, dataset.getId()).thenCompose(currentVersion -> 
 				currentVersion.isPresent()
 					? currentVersion.get().equals(dataset)
 						? f.successful(new AlreadyRegistered())

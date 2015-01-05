@@ -22,6 +22,7 @@ import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.AsyncHelper;
@@ -49,7 +50,6 @@ import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.FutureUtils.Collector2;
-import nl.idgis.publisher.utils.SmartFuture;
 import nl.idgis.publisher.utils.TypedList;
 
 import akka.actor.ActorRef;
@@ -84,14 +84,15 @@ public class JobManager extends UntypedActor {
 		return Props.create(JobManager.class, database);
 	}
 	
-	private <T> void returnToSender(SmartFuture<T> future) {
-		future.pipeTo(getSender(), getSelf());
+	private <T> void returnToSender(CompletableFuture<T> future) {
+		ActorRef sender = getSender();
+		future.thenAccept(t -> sender.tell(t, getSelf()));
 	}
 	
 	@Override
 	public void preStart() throws Exception {
-		db = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
 		f = new FutureUtils(getContext().dispatcher(), timeout);
+		db = new AsyncDatabaseHelper(database, f, log);		
 	}
 
 	@Override
@@ -119,7 +120,7 @@ public class JobManager extends UntypedActor {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 	
-	private SmartFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
+	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating service job: " + datasetId);
@@ -135,10 +136,10 @@ public class JobManager extends UntypedActor {
 						.notExists())
 				.notExists()
 			
-			.flatMap(notExists -> {
+			.thenCompose(notExists -> {
 				if(notExists) {
 					return createServiceJob(tx, datasetId)
-						.map(l -> {
+						.thenApply(l -> {
 							log.debug("service job created");
 							
 							return new Ack();
@@ -150,7 +151,7 @@ public class JobManager extends UntypedActor {
 			}));
 	}
 	
-	private SmartFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
+	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
 			.flatMap((Integer jobId, Integer datasetVersionId) -> {
 				return tx.insert(serviceJob)
@@ -165,7 +166,7 @@ public class JobManager extends UntypedActor {
 			});
 	}
 	
-	private SmartFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
+	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
 		return createJobForDataset(tx, datasetId)		
 			.flatMap((jobId, datasetVersionId) -> 				 
 				tx.insert(importJob)
@@ -183,7 +184,7 @@ public class JobManager extends UntypedActor {
 								dataset.filterConditions))
 					.executeWithKey(importJob.id)
 				
-				.flatMap(importJobId ->
+				.thenCompose(importJobId ->
 					tx.insert(importJobColumn)
 						.columns(
 							importJobColumn.importJobId,
@@ -216,7 +217,7 @@ public class JobManager extends UntypedActor {
 					.singleResult(sourceDatasetVersion.id.max()));
 	}
 	
-	private SmartFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
+	private CompletableFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating import job: " + datasetId);
@@ -232,10 +233,10 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 					
-				.flatMap(notExists -> {
+				.thenCompose(notExists -> {
 					if(notExists) {
 						return createImportJob(tx, datasetId)									
-							.map(l -> {
+							.thenApply(l -> {
 								log.debug("import job created");
 								
 								return new Ack();
@@ -247,7 +248,7 @@ public class JobManager extends UntypedActor {
 				}));
 	}
 	
-	private SmartFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
+	private CompletableFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
 		return db.transactional(tx ->				
@@ -261,7 +262,7 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 				
-				.flatMap(notExists -> {
+				.thenCompose(notExists -> {
 					if(notExists) {
 						return f.collect(
 							tx.query().from(dataSource)
@@ -282,7 +283,7 @@ public class JobManager extends UntypedActor {
 									.execute();
 						})
 						
-						.map(l -> {
+						.thenApply(l -> {
 							log.debug("harvest job created");
 							
 							return new Ack();
@@ -295,7 +296,7 @@ public class JobManager extends UntypedActor {
 				}));
 	}
 	
-	private SmartFuture<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
+	private CompletableFuture<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
 		log.debug("fetching service jobs");
 		
 		return
@@ -312,7 +313,7 @@ public class JobManager extends UntypedActor {
 						dataset.identification));
 	}
 
-	private SmartFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {
+	private CompletableFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {
 		log.debug("fetching import jobs");
 		
 		return
@@ -329,7 +330,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return (SmartFuture<TypedList<ImportJobInfo>>)f.collect(
+					return (CompletableFuture<TypedList<ImportJobInfo>>)f.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -432,7 +433,7 @@ public class JobManager extends UntypedActor {
 			});
 	}
 	
-	private SmartFuture<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
+	private CompletableFuture<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
 		log.debug("fetching harvest jobs");
 
 		return

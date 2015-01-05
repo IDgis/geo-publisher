@@ -3,11 +3,12 @@ package nl.idgis.publisher.database;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
 import nl.idgis.publisher.database.messages.PerformInsert;
-import nl.idgis.publisher.utils.SmartFuture;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.dispatch.Mapper;
@@ -34,35 +35,26 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 
     private final List<Expression<?>> values = new ArrayList<Expression<?>>();
 	
-	public AsyncSQLInsertClause(ActorRef database, Timeout timeout, ExecutionContext executionContext, RelationalPath<?> entity) {
-		super(database, timeout, executionContext);
+	public AsyncSQLInsertClause(ActorRef database, FutureUtils f, RelationalPath<?> entity) {
+		super(database, f);
 		
 		this.entity = entity;
 	}
 
 	@Override
-	public SmartFuture<Long> execute() {
+	public CompletableFuture<Long> execute() {
 		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
 		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
 		
-		return new SmartFuture<>(Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray), timeout)
-			.map(TO_LONG, executionContext), executionContext);
+		return f.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray)).thenApply(TO_LONG);
 	}
 	
-	public <T> SmartFuture<T> executeWithKey(Path<T> path) {
+	@SuppressWarnings("unchecked")
+	public <T> CompletableFuture<T> executeWithKey(Path<T> path) {
 		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
 		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
 		
-		return new SmartFuture<>(Patterns.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path), timeout)
-			.map(new Mapper<Object, T>() {
-				
-				@Override
-				@SuppressWarnings("unchecked")
-				public T apply(Object o) {
-					return (T)o;
-				}
-				
-			}, executionContext), executionContext);
+		return f.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path)).thenApply(msg -> (T)msg);
 	}
 
 	@Override

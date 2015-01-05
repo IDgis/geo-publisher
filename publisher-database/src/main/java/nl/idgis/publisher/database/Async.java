@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
-import nl.idgis.publisher.utils.SmartFuture;
+import java.util.concurrent.CompletableFuture;
+
 import nl.idgis.publisher.utils.TypedList;
 
 import com.mysema.query.Tuple;
@@ -8,12 +9,12 @@ import com.mysema.query.types.Expression;
 
 public interface Async {
 
-	SmartFuture<TypedList<Tuple>> list(Expression<?>... args);
-	<RT> SmartFuture<TypedList<RT>> list(Expression<RT> projection);
-	SmartFuture<TypedList<Tuple>> list(Object... args);
-	SmartFuture<Tuple> singleResult(Expression<?>... args);
-	<RT> SmartFuture<RT> singleResult(Expression<RT> projection);
-	SmartFuture<Tuple> singleResult(Object... args);
-	SmartFuture<Boolean> exists();
-	SmartFuture<Boolean> notExists();
+	CompletableFuture<TypedList<Tuple>> list(Expression<?>... args);
+	<RT> CompletableFuture<TypedList<RT>> list(Expression<RT> projection);
+	CompletableFuture<TypedList<Tuple>> list(Object... args);
+	CompletableFuture<Tuple> singleResult(Expression<?>... args);
+	<RT> CompletableFuture<RT> singleResult(Expression<RT> projection);
+	CompletableFuture<Tuple> singleResult(Object... args);
+	CompletableFuture<Boolean> exists();
+	CompletableFuture<Boolean> notExists();
 }

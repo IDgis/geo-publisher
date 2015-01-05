@@ -3,6 +3,7 @@ package nl.idgis.publisher.utils;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -78,7 +79,7 @@ public class FutureUtilsTest {
 				}
 				
 				return null;
-			}).onFailure(t -> testPromise.success(true));		
+			}).exceptionally(t -> testPromise.success(true));		
 	}
 	
 	@Test
@@ -127,14 +128,14 @@ public class FutureUtilsTest {
 	
 	@Test
 	public void testMap() throws Exception {
-		Map<String, SmartFuture<String>> input = new HashMap<>();
+		Map<String, CompletableFuture<String>> input = new HashMap<>();
 		
 		input.put("foo", f.successful("bar"));
 		
-		SmartFuture<Map<String, String>> outputFuture = f.map(input);
+		CompletableFuture<Map<String, String>> outputFuture = f.map(input);
 		assertNotNull(outputFuture);
 		
-		outputFuture.map((Map<String, String> output) -> {
+		outputFuture.thenApply((Map<String, String> output) -> {
 			try {
 				assertEquals("bar", output.get("foo"));
 				testPromise.success(true);
@@ -153,7 +154,7 @@ public class FutureUtilsTest {
 				f.successful("Hello"),
 				f.successful("world")))
 				
-				.onSuccess(list -> {
+				.thenAccept(list -> {
 					try {
 						assertEquals(list, Arrays.asList("Hello", "world"));
 						
@@ -171,7 +172,7 @@ public class FutureUtilsTest {
 					f.successful("Hello"),
 					f.failed(new IllegalStateException())))
 					
-				.onFailure(e -> {
+				.exceptionally(e -> {
 					try {
 						assertTrue(e instanceof IllegalStateException);
 						
@@ -179,6 +180,8 @@ public class FutureUtilsTest {
 					} catch(Throwable t) {
 						testPromise.failure(t);
 					}
+					
+					return null;
 				});
 	}
 }

@@ -1,6 +1,6 @@
 package nl.idgis.publisher.database;
 
-import nl.idgis.publisher.utils.SmartFuture;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Parent interface for asynchronous DML clauses
@@ -14,5 +14,5 @@ public interface AsyncDMLClause<C extends AsyncDMLClause<C>> {
      *
      * @return
      */
-	SmartFuture<Long> execute();
+	CompletableFuture<Long> execute();
 }
