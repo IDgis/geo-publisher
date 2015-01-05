@@ -95,27 +95,27 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<VectorDataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
 		log.debug("retrieving source dataset version");
 		
-		return f
-			.collect(
-				tx.query().from(sourceDatasetVersion)
-					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
-					.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-					.where(sourceDatasetVersion.id.eq(versionId))
-					.singleResult(
-						sourceDataset.identification,
-						sourceDatasetVersion.name,
-						category.identification,
-						sourceDatasetVersion.revision))
-			.collect(					
-				tx.query().from(sourceDatasetVersionColumn)
-					.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
-					.orderBy(sourceDatasetVersionColumn.index.asc())
-					.list(new QColumn(
-						sourceDatasetVersionColumn.name,
-						sourceDatasetVersionColumn.dataType)))
+		return			
+			tx.query().from(sourceDatasetVersion)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
+				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+				.where(sourceDatasetVersion.id.eq(versionId))
+				.singleResult(
+					sourceDataset.identification,
+					sourceDatasetVersion.name,
+					category.identification,
+					sourceDatasetVersion.revision)
 			
-			.map((baseInfo, columnInfo) -> 
+			.thenCombine(
+				tx.query().from(sourceDatasetVersionColumn)
+				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
+				.orderBy(sourceDatasetVersionColumn.index.asc())
+				.list(new QColumn(
+					sourceDatasetVersionColumn.name,
+					sourceDatasetVersionColumn.dataType)),
+			
+			(baseInfo, columnInfo) -> 
 				new VectorDataset(
 					baseInfo.get(sourceDataset.identification), 
 					baseInfo.get(category.identification), 

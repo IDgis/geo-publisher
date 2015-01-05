@@ -36,6 +36,7 @@ import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
@@ -49,7 +50,6 @@ import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Collector2;
 import nl.idgis.publisher.utils.TypedList;
 
 import akka.actor.ActorRef;
@@ -152,69 +152,67 @@ public class JobManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
-		return createJobForDataset(tx, datasetId)		
-			.flatMap((Integer jobId, Integer datasetVersionId) -> {
-				return tx.insert(serviceJob)
-					.columns(
-						serviceJob.jobId,
-						serviceJob.datasetId,
-						serviceJob.sourceDatasetVersionId)
-					.select(new SQLSubQuery().from(dataset)
-						.where(dataset.identification.eq(datasetId))
-						.list(jobId, dataset.id, datasetVersionId))						
-					.execute();
-			});
+		return
+			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
+				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
+					tx.insert(serviceJob)
+						.columns(
+							serviceJob.jobId,
+							serviceJob.datasetId,
+							serviceJob.sourceDatasetVersionId)
+						.select(new SQLSubQuery().from(dataset)
+							.where(dataset.identification.eq(datasetId))
+							.list(jobId, dataset.id, datasetVersionId))						
+						.execute()));
 	}
 	
 	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
-		return createJobForDataset(tx, datasetId)		
-			.flatMap((jobId, datasetVersionId) -> 				 
-				tx.insert(importJob)
-					.columns(
-						importJob.jobId,
-						importJob.datasetId,
-						importJob.sourceDatasetVersionId,
-						importJob.filterConditions)
-					.select(new SQLSubQuery().from(dataset)
-							.where(dataset.identification.eq(datasetId))
-							.list(
-								jobId,
-								dataset.id,
-								datasetVersionId,
-								dataset.filterConditions))
-					.executeWithKey(importJob.id)
-				
-				.thenCompose(importJobId ->
-					tx.insert(importJobColumn)
+		return
+			createJob(tx, JobType.IMPORT).thenCompose(jobId -> 
+				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
+					tx.insert(importJob)
 						.columns(
-							importJobColumn.importJobId,
-							importJobColumn.index,
-							importJobColumn.name,
-							importJobColumn.dataType)
-						.select(new SQLSubQuery().from(datasetColumn)
-							.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-							.where(dataset.identification.eq(datasetId))
-							.list(
-								importJobId,
-								datasetColumn.index,
-								datasetColumn.name,
-								datasetColumn.dataType))
-								.execute()
-				));
+							importJob.jobId,
+							importJob.datasetId,
+							importJob.sourceDatasetVersionId,
+							importJob.filterConditions)
+						.select(new SQLSubQuery().from(dataset)
+								.where(dataset.identification.eq(datasetId))
+								.list(
+									jobId,
+									dataset.id,
+									datasetVersionId,
+									dataset.filterConditions))
+						.executeWithKey(importJob.id).thenCompose(importJobId ->
+							tx.insert(importJobColumn)
+								.columns(
+									importJobColumn.importJobId,
+									importJobColumn.index,
+									importJobColumn.name,
+									importJobColumn.dataType)
+								.select(new SQLSubQuery().from(datasetColumn)
+									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+									.where(dataset.identification.eq(datasetId))
+									.list(
+										importJobId,
+										datasetColumn.index,
+										datasetColumn.name,
+										datasetColumn.dataType))
+										.execute())));
+	}	
+
+	private CompletableFuture<Integer> getSourceDatasetVersion(AsyncHelper tx, String datasetId) {
+		return tx.query().from(sourceDatasetVersion)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.where(dataset.identification.eq(datasetId))
+			.singleResult(sourceDatasetVersion.id.max());
 	}
 
-	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper tx, final String datasetId) {
-		return 
-			f.collect(
-				tx.insert(job)
-					.set(job.type, "IMPORT")
-					.executeWithKey(job.id))
-			.collect(							
-				tx.query().from(sourceDatasetVersion)
-					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-					.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.where(dataset.identification.eq(datasetId))
-					.singleResult(sourceDatasetVersion.id.max()));
+	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
+		return tx.insert(job)
+			.set(job.type, jobType.name())
+			.executeWithKey(job.id);
 	}
 	
 	private CompletableFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
