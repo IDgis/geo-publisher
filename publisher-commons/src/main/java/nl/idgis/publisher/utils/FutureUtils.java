@@ -150,11 +150,11 @@ public class FutureUtils {
 	}
 	
 	public CompletableFuture<Object> ask(ActorRef actor, Object message, Timeout timeout) {
-		return smart(Patterns.ask(actor, message, timeout));
+		return toCompletableFuture(Patterns.ask(actor, message, timeout));
 	}
 	
 	public CompletableFuture<Object> ask(ActorSelection selection, Object message, Timeout timeout) {
-		return smart(Patterns.ask(selection, message, timeout));
+		return toCompletableFuture(Patterns.ask(selection, message, timeout));
 	}
 	
 	public <T> CompletableFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
@@ -211,7 +211,7 @@ public class FutureUtils {
 				}
 			});
 			
-			return smart(promise.future());
+			return toCompletableFuture(promise.future());
 		} else {
 			return successful(Collections.emptyList());
 		}
@@ -241,14 +241,14 @@ public class FutureUtils {
 	}
 	
 	public <T> CompletableFuture<T> successful(T t) {
-		return smart(Futures.successful(t));
+		return toCompletableFuture(Futures.successful(t));
 	}
 	
 	public <T> CompletableFuture<T> failed(Throwable t) {
-		return smart(Futures.failed(t));
+		return toCompletableFuture(Futures.failed(t));
 	}
 	
-	public <T> CompletableFuture<T> smart(Future<T> future) {
+	public <T> CompletableFuture<T> toCompletableFuture(Future<T> future) {
 		CompletableFuture<T> completableFuture = new CompletableFuture<>();
 		
 		future.onComplete(new OnComplete<T>() {

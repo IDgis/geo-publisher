@@ -183,7 +183,7 @@ public class MetadataGenerator extends UntypedActor {
 											String serviceName = operatesOnEntry.getKey();
 											Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
 											
-											CompletableFuture<MetadataDocument> metadataDocument = f.smart(serviceMetadataSource.get(serviceName, getContext().dispatcher()));
+											CompletableFuture<MetadataDocument> metadataDocument = f.toCompletableFuture(serviceMetadataSource.get(serviceName, getContext().dispatcher()));
 											pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
 										}
 										
@@ -277,7 +277,7 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetFeature", uuid, scopedName);
 			}
 		
-			return f.smart(serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher()));
+			return f.toCompletableFuture(serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wfs processing failed: {} error: {}", serviceName, e);
 			
@@ -305,7 +305,7 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
 			}
 		
-			return f.smart(serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher()));
+			return f.toCompletableFuture(serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wms processing failed: {} error: {}", serviceName, e);
 			
@@ -410,7 +410,7 @@ public class MetadataGenerator extends UntypedActor {
 			
 			log.debug("dataset processed: " + datasetId + " layers: " + layersFound);
 			
-			return f.smart(datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher()))
+			return f.toCompletableFuture(datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher()))
 				.thenApply(v -> operatesOn);
 		} catch(Exception e) {
 			log.error("dataset processing failed: {} error: {}", datasetId, e);
