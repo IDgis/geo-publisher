@@ -13,7 +13,6 @@ import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
-import akka.dispatch.Futures;
 import akka.dispatch.OnComplete;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
@@ -23,7 +22,6 @@ import nl.idgis.publisher.function.Function4;
 
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.concurrent.Promise;
 
 /**
  * This utility class can be used to ease the utilization of Scala futures from Java. It removes the 
@@ -421,7 +419,7 @@ public class FutureUtils {
 		Iterator<CompletableFuture<T>> i = sequence.iterator();
 		
 		if(i.hasNext()) {
-			Promise<Iterable<T>> promise = Futures.promise();
+			CompletableFuture<Iterable<T>> completableFuture = new CompletableFuture<>();
 			
 			i.next().whenComplete(new BiConsumer<T, Throwable>() {
 				
@@ -435,15 +433,15 @@ public class FutureUtils {
 						if(i.hasNext()) {
 							i.next().whenComplete(this);
 						} else {
-							promise.success(result);
+							completableFuture.complete(result);							
 						}
 					} else {
-						promise.failure(throwable);
+						completableFuture.completeExceptionally(throwable);						
 					}
 				}
 			});
 			
-			return toCompletableFuture(promise.future());
+			return completableFuture;
 		} else {
 			return successful(Collections.emptyList());
 		}
