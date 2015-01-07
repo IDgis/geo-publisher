@@ -91,7 +91,8 @@ public abstract class AbstractAsyncSQLQuery<Q extends AbstractAsyncSQLQuery<Q>> 
     @WithBridgeMethods(value=AbstractAsyncSQLQuery.class, castRequired=true)
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Q from(SubQueryExpression<?> subQuery, Path<?> alias) {
-        return queryMixin.from(ExpressionUtils.as((Expression)subQuery, alias));
+        queryMixin.from(ExpressionUtils.as((Expression)subQuery, alias));
+        return (Q)this;
     }
 
     @Override

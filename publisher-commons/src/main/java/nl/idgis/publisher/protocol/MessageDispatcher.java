@@ -115,7 +115,7 @@ public class MessageDispatcher extends UntypedActor {
 		} else if(msg instanceof Terminated) {
 			ActorPath path = ((Terminated) msg).getActor().path();
 			
-			Iterator<String> itr = path.elements().iterator();
+			Iterator<String> itr = path.elements().toIterator();
 			for(int i = 0; i < container.path().elements().size(); i++) {
 				itr.next();
 			}

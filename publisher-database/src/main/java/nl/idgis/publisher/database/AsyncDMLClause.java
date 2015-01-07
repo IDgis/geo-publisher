@@ -1,6 +1,6 @@
 package nl.idgis.publisher.database;
 
-import scala.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Parent interface for asynchronous DML clauses
@@ -14,5 +14,5 @@ public interface AsyncDMLClause<C extends AsyncDMLClause<C>> {
      *
      * @return
      */
-	Future<Long> execute();
+	CompletableFuture<Long> execute();
 }

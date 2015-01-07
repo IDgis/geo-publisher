@@ -2,6 +2,7 @@ package nl.idgis.publisher.database;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nonnegative;
 
@@ -18,14 +19,10 @@ import com.mysema.query.types.Expression;
 import com.mysema.query.types.Path;
 import com.mysema.query.types.Predicate;
 
-import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
-
 import akka.actor.ActorRef;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
 
 import nl.idgis.publisher.database.messages.PerformUpdate;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class AsyncSQLUpdateClause extends AbstractAsyncSQLClause<AsyncSQLUpdateClause> implements AsyncUpdateClause<AsyncSQLUpdateClause> {
 	
@@ -37,8 +34,8 @@ public class AsyncSQLUpdateClause extends AbstractAsyncSQLClause<AsyncSQLUpdateC
 
     private QueryMetadata metadata = new DefaultQueryMetadata();    
 
-    public AsyncSQLUpdateClause(ActorRef database, Timeout timeout, ExecutionContext executionContext, RelationalPath<?> entity) {
-		super(database, timeout, executionContext);
+    public AsyncSQLUpdateClause(ActorRef database, FutureUtils f, RelationalPath<?> entity) {
+		super(database, f);
 		
 		this.entity = entity;
 		metadata.addJoin(JoinType.DEFAULT, entity);
@@ -141,8 +138,7 @@ public class AsyncSQLUpdateClause extends AbstractAsyncSQLClause<AsyncSQLUpdateC
     }
 
 	@Override
-	public Future<Long> execute() {
-		return Patterns.ask(database, new PerformUpdate(entity, columns, values, metadata), timeout)
-			.map(TO_LONG, executionContext);
+	public CompletableFuture<Long> execute() {
+		return f.ask(database, new PerformUpdate(entity, columns, values, metadata)).thenApply(TO_LONG);
 	}
 }

@@ -1,5 +1,13 @@
 package nl.idgis.publisher.metadata;
 
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -17,20 +27,18 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
-import akka.util.Timeout;
-
-import scala.concurrent.Future;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.QJobState;
+import nl.idgis.publisher.database.QServiceJob;
 
+import nl.idgis.publisher.domain.job.JobState;
+
+import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.messages.GetContent;
@@ -39,21 +47,6 @@ import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
-import nl.idgis.publisher.database.QServiceJob;
-import nl.idgis.publisher.database.QJobState;
-
-import nl.idgis.publisher.domain.job.JobState;
-
-import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
-import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QCategory.category;
 
 public class MetadataGenerator extends UntypedActor {
 	
@@ -65,9 +58,9 @@ public class MetadataGenerator extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef service, harvester;
+	private final ActorRef database, service, harvester;
 	
-	private final AsyncDatabaseHelper database;
+	private AsyncDatabaseHelper db;
 	
 	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
@@ -76,7 +69,7 @@ public class MetadataGenerator extends UntypedActor {
 	private FutureUtils f;
 	
 	public MetadataGenerator(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		this.database = new AsyncDatabaseHelper(database, Timeout.apply(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
+		this.database = database;
 		this.service = service;
 		this.harvester = harvester;
 		this.serviceMetadataSource = serviceMetadataSource;
@@ -92,6 +85,7 @@ public class MetadataGenerator extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {		
 		f = new FutureUtils(getContext().dispatcher());
+		db = new AsyncDatabaseHelper(database, f, log);
 	}
 
 	@Override
@@ -123,7 +117,7 @@ public class MetadataGenerator extends UntypedActor {
 		QJobState otherJobState = new QJobState("otherJobState");
 		
 		f.collect(
-			database.query()
+			db.query()
 				.from(serviceJob)
 				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
 				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
@@ -154,23 +148,23 @@ public class MetadataGenerator extends UntypedActor {
 						dataset.fileUuid))
 			.collect(
 				f.ask(service, new GetContent(), ServiceContent.class))		
-			.map(new AbstractFunction2<TypedList<Tuple>, ServiceContent, Void>() {
+			.thenApply(new BiFunction<TypedList<Tuple>, ServiceContent, Void>() {
 
 				@Override
 				public Void apply(final TypedList<Tuple> queryResult, final ServiceContent serviceContent) {
 					log.debug("queryResult and serviceContent collected");
 					
-					Future<Map<String, ActorRef>> dataSources = getDataSources(queryResult);
+					CompletableFuture<Map<String, ActorRef>> dataSources = getDataSources(queryResult);
 					
 					f					
 						.collect(getMetadataDocuments(dataSources, queryResult))
-						.map(new AbstractFunction1<Map<String, MetadataDocument>, Void>() {
+						.thenApply(new Function<Map<String, MetadataDocument>, Void>() {
 
 							@Override
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {
 								log.debug("metadata documents collected");
 								
-								List<Future<Map<String, Set<Dataset>>>> operatesOn = new ArrayList<>();
+								List<CompletableFuture<Map<String, Set<Dataset>>>> operatesOnList = new ArrayList<>();
 								for(Tuple item : queryResult) {
 									String sourceDatasetId = item.get(sourceDataset.identification);
 									String datasetId = item.get(dataset.identification);
@@ -178,43 +172,36 @@ public class MetadataGenerator extends UntypedActor {
 									String fileUuid = item.get(dataset.fileUuid);
 									
 									MetadataDocument metadataDocument = metadataDocuments.get(sourceDatasetId);									
-									operatesOn.add(processDataset(metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
+									operatesOnList.add(processDataset(metadataDocument, datasetId, datasetUuid, fileUuid, item.get(category.identification), datasetId, serviceContent));
 								} 
 								
-								mergeOperatesOn(operatesOn).flatMap(new Mapper<Map<String, Set<Dataset>>, Future<Iterable<Void>>>() {
-									
-									@Override
-									public Future<Iterable<Void>> apply(Map<String, Set<Dataset>> operatesOn) {
+								mergeOperatesOn(operatesOnList).thenCompose(operatesOn -> {
 										log.debug("operatesOn merged, processing service metdata");
 										
-										List<Future<Void>> pendingWork = new ArrayList<>();										
+										List<CompletableFuture<Void>> pendingWork = new ArrayList<>();										
 										for(Entry<String, Set<Dataset>> operatesOnEntry : operatesOn.entrySet()) {
 											String serviceName = operatesOnEntry.getKey();
 											Set<Dataset> serviceOperatesOn = operatesOnEntry.getValue();
 											
-											Future<MetadataDocument> metadataDocument = serviceMetadataSource.get(serviceName, getContext().dispatcher());
+											CompletableFuture<MetadataDocument> metadataDocument = f.toCompletableFuture(serviceMetadataSource.get(serviceName, getContext().dispatcher()));
 											pendingWork.add(processService(serviceName, metadataDocument, serviceOperatesOn));
 										}
 										
-										return Futures.sequence(pendingWork, getContext().dispatcher());
-									}
-								}, getContext().dispatcher())								
-									.onComplete(new OnComplete<Iterable<Void>>() {
-
-										@Override
-										public void onComplete(Throwable t, Iterable<Void> i) throws Throwable {
-											getContext().unbecome();
-											
-											sender.tell(new Ack(), getSelf());
-											
-											if(t != null) {
-												log.error("metadata generation failed: {}", t);
-											} else {											
-												log.debug("metadata generated");	
-											}
+										return f.sequence(pendingWork);
+									})								
+									.handle((i, t) -> {
+										getContext().unbecome();
+										
+										sender.tell(new Ack(), getSelf());
+										
+										if(t != null) {
+											log.error("metadata generation failed: {}", t);
+										} else {											
+											log.debug("metadata generated");	
 										}
 										
-									}, getContext().dispatcher());
+										return null;
+									});
 								
 								return null;
 							}							
@@ -227,8 +214,8 @@ public class MetadataGenerator extends UntypedActor {
 			});
 	}
 
-	private Future<Map<String, ActorRef>> getDataSources(TypedList<Tuple> queryResult) {
-		Map<String, Future<ActorRef>> dataSources = new HashMap<String, Future<ActorRef>>();
+	private CompletableFuture<Map<String, ActorRef>> getDataSources(TypedList<Tuple> queryResult) {
+		Map<String, CompletableFuture<ActorRef>> dataSources = new HashMap<String, CompletableFuture<ActorRef>>();
 		
 		for(Tuple item : queryResult) {
 			log.debug(item.toString());
@@ -244,12 +231,9 @@ public class MetadataGenerator extends UntypedActor {
 		return f.map(dataSources);	
 	}
 	
-	private Future<Map<String, Set<Dataset>>> mergeOperatesOn(List<Future<Map<String, Set<Dataset>>>> operatesOn) {
-		return Futures.sequence(operatesOn, getContext().dispatcher())
-			.map(new Mapper<Iterable<Map<String, Set<Dataset>>>, Map<String, Set<Dataset>>>() {
-				
-				@Override
-				public Map<String, Set<Dataset>> apply(Iterable<Map<String, Set<Dataset>>> operatesOn) {
+	private CompletableFuture<Map<String, Set<Dataset>>> mergeOperatesOn(List<CompletableFuture<Map<String, Set<Dataset>>>> operatesOnSet) {
+		return f.sequence(operatesOnSet)
+			.thenApply(operatesOn -> {
 					log.debug("all datasets processed, merging operatesOn results");
 					
 					Map<String, Set<Dataset>> mergedOperatesOn = new HashMap<>();
@@ -270,23 +254,14 @@ public class MetadataGenerator extends UntypedActor {
 					}
 					
 					return mergedOperatesOn;
-				}
-				
-			}, getContext().dispatcher());
+			});
 	}
 	
-	private Future<Void> processService(final String serviceName, Future<MetadataDocument> metadataDocument, final Set<Dataset> operatesOn) {
-		return metadataDocument.flatMap(new Mapper<MetadataDocument, Future<Void>>() {
-			
-			@Override
-			public Future<Void> apply(MetadataDocument metadataDocument) {
-				return processService(serviceName, metadataDocument, operatesOn);
-			}
-			
-		}, getContext().dispatcher());
+	private CompletableFuture<Void> processService(final String serviceName, CompletableFuture<MetadataDocument> metadataDocumentFuture, final Set<Dataset> operatesOn) {
+		return metadataDocumentFuture.thenCompose(metadataDocument -> processService(serviceName, metadataDocument, operatesOn));
 	}
 	
-	private Future<Void> processWFS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private CompletableFuture<Void> processWFS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			final String linkage = constants.getString("onlineResource.wfs") ;
 			
@@ -302,15 +277,15 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetFeature", uuid, scopedName);
 			}
 		
-			return serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher());
+			return f.toCompletableFuture(serviceMetadataTarget.put(serviceName + "-wfs", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wfs processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Void> processWMS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private CompletableFuture<Void> processWMS(String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			final String linkage = constants.getString("onlineResource.wms") ;			
 			final String browseGraphicBaseUrl = linkage 
@@ -330,15 +305,15 @@ public class MetadataGenerator extends UntypedActor {
 				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
 			}
 		
-			return serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher());
+			return f.toCompletableFuture(serviceMetadataTarget.put(serviceName + "-wms", metadataDocument, getContext().dispatcher()));
 		} catch(Exception e) {
 			log.error("wms processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Void> processService(final String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
+	private CompletableFuture<Void> processService(final String serviceName, MetadataDocument metadataDocument, Set<Dataset> operatesOn) {
 		try {
 			metadataDocument.removeOperatesOn();
 			
@@ -361,30 +336,23 @@ public class MetadataGenerator extends UntypedActor {
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
 			
-			return Futures.sequence(Arrays.asList(
+			return f.sequence(Arrays.asList(
 					processWFS(serviceName, metadataDocument.clone(), operatesOn),
-					processWMS(serviceName, metadataDocument.clone(), operatesOn)),
+					processWMS(serviceName, metadataDocument.clone(), operatesOn)))
 					
-					getContext().dispatcher())
-					
-					.map(new Mapper<Iterable<Void>, Void>() {
-
-						@Override
-						public Void apply(Iterable<Void> i) {
-							log.debug("service processed: " + serviceName);
-							
-							return null;
-						}
+					.thenApply(i -> {
+						log.debug("service processed: " + serviceName);
 						
-					}, getContext().dispatcher());
+						return null;
+					});
 		} catch(Exception e) {
 			log.error("service processing failed: {} error: {}", serviceName, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Map<String, Set<Dataset>>> processDataset(MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
+	private CompletableFuture<Map<String, Set<Dataset>>> processDataset(MetadataDocument metadataDocument, String datasetId, String datasetUuid, String fileUuid, String schemaName, String tableName, ServiceContent serviceContent) {
 		try {
 			metadataDocument.setDatasetIdentifier(datasetUuid);
 			metadataDocument.setFileIdentifier(fileUuid);
@@ -442,35 +410,25 @@ public class MetadataGenerator extends UntypedActor {
 			
 			log.debug("dataset processed: " + datasetId + " layers: " + layersFound);
 			
-			return datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher())
-				.map(new Mapper<Void, Map<String, Set<Dataset>>>() {
-					
-					@Override
-					public Map<String, Set<Dataset>> apply(Void v) {
-						return operatesOn;
-					}
-										
-				}, getContext().dispatcher());
+			return f.toCompletableFuture(datasetMetadataTarget.put(fileUuid, metadataDocument, getContext().dispatcher()))
+				.thenApply(v -> operatesOn);
 		} catch(Exception e) {
 			log.error("dataset processing failed: {} error: {}", datasetId, e);
 			
-			return Futures.successful(null);
+			return f.successful(null);
 		}
 	}
 	
-	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Future<Map<String, ActorRef>> dataSources, final TypedList<Tuple> queryResult) {
-		return f.flatMap(dataSources, new Mapper<Map<String, ActorRef>, Future<Map<String, MetadataDocument>>>() {
+	private CompletableFuture<Map<String, MetadataDocument>> getMetadataDocuments(CompletableFuture<Map<String, ActorRef>> dataSourceFutures, final TypedList<Tuple> queryResult) {
+		return dataSourceFutures.thenCompose(dataSources -> {
+			log.debug("dataSources collected");
 			
-			public Future<Map<String, MetadataDocument>> apply(Map<String, ActorRef> dataSources) {
-				log.debug("dataSources collected");
-				
-				return getMetadataDocuments(dataSources, queryResult);
-			}
+			return getMetadataDocuments(dataSources, queryResult);			
 		});
 	}
 	
-	private Future<Map<String, MetadataDocument>> getMetadataDocuments(Map<String, ActorRef> dataSources, TypedList<Tuple> queryResult) {
-		Map<String, Future<MetadataDocument>> metadataDocuments = new HashMap<String, Future<MetadataDocument>>();
+	private CompletableFuture<Map<String, MetadataDocument>> getMetadataDocuments(Map<String, ActorRef> dataSources, TypedList<Tuple> queryResult) {
+		Map<String, CompletableFuture<MetadataDocument>> metadataDocuments = new HashMap<String, CompletableFuture<MetadataDocument>>();
 		
 		for(Tuple item : queryResult) {
 			String sourceDatasetId = item.get(sourceDataset.identification);

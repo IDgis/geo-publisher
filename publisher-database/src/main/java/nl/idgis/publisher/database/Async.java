@@ -1,20 +1,20 @@
 package nl.idgis.publisher.database;
 
-import nl.idgis.publisher.utils.TypedList;
+import java.util.concurrent.CompletableFuture;
 
-import scala.concurrent.Future;
+import nl.idgis.publisher.utils.TypedList;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
 
 public interface Async {
 
-	Future<TypedList<Tuple>> list(Expression<?>... args);
-	<RT> Future<TypedList<RT>> list(Expression<RT> projection);
-	Future<TypedList<Tuple>> list(Object... args);
-	Future<Tuple> singleResult(Expression<?>... args);
-	<RT> Future<RT> singleResult(Expression<RT> projection);
-	Future<Tuple> singleResult(Object... args);
-	Future<Boolean> exists();
-	Future<Boolean> notExists();
+	CompletableFuture<TypedList<Tuple>> list(Expression<?>... args);
+	<RT> CompletableFuture<TypedList<RT>> list(Expression<RT> projection);
+	CompletableFuture<TypedList<Tuple>> list(Object... args);
+	CompletableFuture<Tuple> singleResult(Expression<?>... args);
+	<RT> CompletableFuture<RT> singleResult(Expression<RT> projection);
+	CompletableFuture<Tuple> singleResult(Object... args);
+	CompletableFuture<Boolean> exists();
+	CompletableFuture<Boolean> notExists();
 }

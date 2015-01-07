@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
@@ -71,6 +71,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
@@ -87,7 +88,6 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
-import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -98,6 +98,7 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
 import scala.concurrent.Future;
@@ -132,11 +133,12 @@ public class Admin extends UntypedActor {
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	private final AsyncDatabaseHelper databaseRef;
+	private AsyncDatabaseHelper databaseRef;
+
+	private FutureUtils f;
 	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
-		this.databaseRef = new AsyncDatabaseHelper(database, new Timeout(15, TimeUnit.SECONDS), getContext().dispatcher(), log);
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;
@@ -145,11 +147,12 @@ public class Admin extends UntypedActor {
 	
 	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
-	}
-
-	private <T> void returnToSender(Future<T> future) {
-		Patterns.pipe(future, getContext().dispatcher())
-			.pipeTo(getSender(), getSelf());
+	}	
+	
+	@Override
+	public void preStart() throws Exception {
+		f = new FutureUtils(getContext().dispatcher(), Timeout.apply(15000));		
+		databaseRef = new AsyncDatabaseHelper(database, f, log);
 	}
 
 	@Override
@@ -316,7 +319,7 @@ public class Admin extends UntypedActor {
 		log.debug("handleListSourceDatasetColumns");
 		final ActorRef sender = getSender(), self = getSelf();
 
-		final Future<TypedList<Column>> columnList = databaseRef
+		final CompletableFuture<TypedList<Column>> columnList = databaseRef
 				.query()
 				.from(sourceDatasetVersionColumn)
 				.join(sourceDatasetVersion)
@@ -333,34 +336,27 @@ public class Admin extends UntypedActor {
 						dataSource.identification.eq(listColumns.getDataSourceId())))
 				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
 
-		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
-			@Override
-			public void onSuccess(TypedList<Column> msg) throws Throwable {
-				log.debug("sourcedataset column list received");
-				log.debug("sending sourcedataset column list");
-				sender.tell(msg.asCollection(), self);
-			}
-		}, getContext().dispatcher());
-
+		columnList.thenAccept(msg -> {
+			log.debug("sourcedataset column list received");
+			log.debug("sending sourcedataset column list");
+			sender.tell(msg.asCollection(), self);
+		});
 	}
 
 	private void handleListDatasetColumns(final ListDatasetColumns listColumns) {
 		log.debug("handleListDatasetColumns");
 		final ActorRef sender = getSender(), self = getSelf();
 
-		final Future<TypedList<Column>> columnList = databaseRef.query().from(datasetColumn).join(dataset)
+		final CompletableFuture<TypedList<Column>> columnList = databaseRef.query().from(datasetColumn).join(dataset)
 				.on(dataset.id.eq(datasetColumn.datasetId))
 				.where(dataset.identification.eq(listColumns.getDatasetId()))
 				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
 
-		columnList.onSuccess(new OnSuccess<TypedList<Column>>() {
-			@Override
-			public void onSuccess(TypedList<Column> msg) throws Throwable {
-				log.debug("dataset column list received");
-				log.debug("sending dataset column list");
-				sender.tell(msg.asCollection(), self);
-			}
-		}, getContext().dispatcher());
+		columnList.thenAccept(msg -> {
+			log.debug("dataset column list received");
+			log.debug("sending dataset column list");
+			sender.tell(msg.asCollection(), self);
+		});		
 
 	}
 	
@@ -386,69 +382,57 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> activeDataSources = Patterns.ask(harvester, new GetActiveDataSources(), 15000);
+		final CompletableFuture<Object> activeDataSourcesFuture = f.ask(harvester, new GetActiveDataSources(), 15000);
 		
-		final Future<TypedList<DataSourceInfo>> dataSourceInfo =
+		final CompletableFuture<TypedList<DataSourceInfo>> dataSourceInfoFuture =
 				databaseRef.query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 		
-		activeDataSources.onSuccess(new OnSuccess<Object>() {
+		activeDataSourcesFuture.thenAccept(msg0 -> {
+			final Set<String> activeDataSources = (Set<String>)msg0;
+			log.debug("active data sources received");
 			
-			@Override
-			@SuppressWarnings("unchecked")
-			public void onSuccess(Object msg) throws Throwable {
-				final Set<String> activeDataSources = (Set<String>)msg;
-				log.debug("active data sources received");
-				
-				dataSourceInfo.onSuccess(new OnSuccess<TypedList<DataSourceInfo>>() {
-
-					@Override
-					public void onSuccess(TypedList<DataSourceInfo> msg) throws Throwable {
-						List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg.asCollection();
-						log.debug("data sources info received");
+			dataSourceInfoFuture.thenAccept(msg1 -> {
+					List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg1.asCollection();
+					log.debug("data sources info received");
+					
+					final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
+					
+					for(DataSourceInfo dataSourceInfo : dataSourceList) {
+						final String id = dataSourceInfo.getId() ;
+						final DataSource dataSourceBuilt = new DataSource (
+								id, 
+								dataSourceInfo.getName(),
+								new Status (activeDataSources.contains(id) 
+										? DataSourceStatusType.OK
+										: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
 						
-						final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
-						
-						for(DataSourceInfo dataSourceInfo : dataSourceList) {
-							final String id = dataSourceInfo.getId() ;
-							final DataSource dataSourceBuilt = new DataSource (
-									id, 
-									dataSourceInfo.getName(),
-									new Status (activeDataSources.contains(id) 
-											? DataSourceStatusType.OK
-											: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
-							
-							pageBuilder.add (dataSourceBuilt);
-						}
-						
-						log.debug("sending data source page");
-						sender.tell (pageBuilder.build (), self);
+						pageBuilder.add (dataSourceBuilt);
 					}
-				}, getContext().dispatcher());
-			}			
-		}, getContext().dispatcher());
+					
+					log.debug("sending data source page");
+					sender.tell (pageBuilder.build (), self);
+				});
+		});
 	}
 	
 	private void handleListCategories(final ListEntity<?> listEntity) {
 		log.debug("handleCategoryList");
 		
 		final ActorRef sender = getSender(), self = getSelf();
-		final Future<TypedList<Category>> categoryList = 
+		final CompletableFuture<TypedList<Category>> categoryList = 
 				databaseRef.query().from(category)
 				.orderBy(category.identification.asc())
 				.list(new QCategory(category.identification, category.name));
 		
-		categoryList.onSuccess(new OnSuccess<TypedList<Category>>() {
-			@Override
-			public void onSuccess(TypedList<Category> msg) throws Throwable {
+		categoryList.thenAccept(msg -> {
 				log.debug("category info received");
 				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> ();
 				pageBuilder.addAll(msg.asCollection());				
 				log.debug("sending category list");
 				sender.tell(pageBuilder.build(), self);
-			}
-		}, getContext().dispatcher());
+			});
 	}
 	
 	private void handleListDashboardIssues(Object object) {
@@ -641,22 +625,19 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender();
 		
-		final Future<Category> categoryList = databaseRef.query().from(category)
+		final CompletableFuture<Category> categoryList = databaseRef.query().from(category)
 				.where(category.identification.eq(getEntity.id()))
 				.singleResult(new QCategory(category.identification, category.name));
 
-		categoryList.onSuccess(new OnSuccess<Category>() {
-			public void onSuccess(Category category) throws Throwable {
-				if (category != null) {
-					log.debug("category received");
-					log.debug("sending category: " + category);
-					sender.tell(category, getSelf());
-				} else {
-					sender.tell(new NotFound(), getSelf());
-				}
+		categoryList.thenAccept(category -> {
+			if (category != null) {
+				log.debug("category received");
+				log.debug("sending category: " + category);
+				sender.tell(category, getSelf());
+			} else {
+				sender.tell(new NotFound(), getSelf());
 			}
-		}, getContext().dispatcher());
-
+		});
 	}
 	
 	private void handleGetDataset (final GetEntity<?> getEntity) {
@@ -706,7 +687,7 @@ public class Admin extends UntypedActor {
 
 		AsyncSQLQuery listQuery = baseQuery.clone().leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 
-		final Future<SourceDatasetInfo> sourceDatasetInfo = listQuery
+		final CompletableFuture<SourceDatasetInfo> sourceDatasetInfo = listQuery
 				.groupBy(sourceDataset.identification)
 				.groupBy(sourceDatasetVersion.name)
 				.groupBy(dataSource.identification)
@@ -718,21 +699,18 @@ public class Admin extends UntypedActor {
 								dataSource.identification, dataSource.name, category.identification, category.name,
 								dataset.count()));
 
-		sourceDatasetInfo.onSuccess(new OnSuccess<SourceDatasetInfo>() {
-			@Override
-			public void onSuccess(SourceDatasetInfo msg) throws Throwable {
-				if (msg != null) {
-					log.debug("sourcedataset info received");
-					final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
-							EntityType.CATEGORY, msg.getCategoryId(), msg.getCategoryName()), new EntityRef(
-							EntityType.DATA_SOURCE, msg.getDataSourceId(), msg.getDataSourceName()));
-					log.debug("sending sourcedataset: " + sourceDataset);
-					sender.tell(sourceDataset, getSelf());
-				} else {
-					sender.tell(new NotFound(), getSelf());
-				}
+		sourceDatasetInfo.thenAccept(msg -> {
+			if (msg != null) {
+				log.debug("sourcedataset info received");
+				final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
+						EntityType.CATEGORY, msg.getCategoryId(), msg.getCategoryName()), new EntityRef(
+						EntityType.DATA_SOURCE, msg.getDataSourceId(), msg.getDataSourceName()));
+				log.debug("sending sourcedataset: " + sourceDataset);
+				sender.tell(sourceDataset, getSelf());
+			} else {
+				sender.tell(new NotFound(), getSelf());
 			}
-		}, getContext().dispatcher());
+		});
 	}
 
 	private void handleListSourceDatasets (final ListSourceDatasets message) {

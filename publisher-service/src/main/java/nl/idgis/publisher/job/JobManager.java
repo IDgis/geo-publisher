@@ -22,6 +22,7 @@ import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.AsyncHelper;
@@ -35,6 +36,7 @@ import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
@@ -48,22 +50,14 @@ import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.FutureUtils.Collector2;
 import nl.idgis.publisher.utils.TypedList;
-
-import scala.concurrent.Future;
-import scala.runtime.AbstractFunction2;
-import scala.runtime.AbstractFunction4;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
 import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Function;
-import akka.pattern.Patterns;
 import akka.util.Timeout;
 
 import com.mysema.query.Tuple;
@@ -90,15 +84,15 @@ public class JobManager extends UntypedActor {
 		return Props.create(JobManager.class, database);
 	}
 	
-	private <T> void returnToSender(Future<T> future) {
-		Patterns.pipe(future, getContext().dispatcher())
-			.pipeTo(getSender(), getSelf());
+	private <T> void returnToSender(CompletableFuture<T> future) {
+		ActorRef sender = getSender();
+		future.thenAccept(t -> sender.tell(t, getSelf()));
 	}
 	
 	@Override
 	public void preStart() throws Exception {
-		db = new AsyncDatabaseHelper(database, timeout, getContext().dispatcher(), log);
 		f = new FutureUtils(getContext().dispatcher(), timeout);
+		db = new AsyncDatabaseHelper(database, f, log);		
 	}
 
 	@Override
@@ -126,57 +120,42 @@ public class JobManager extends UntypedActor {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 	
-	private Future<Ack> handleCreateServiceJob(CreateServiceJob msg) {
+	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating service job: " + datasetId);
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
-				return tx.query().from(job)
-					.join(serviceJob).on(serviceJob.jobId.eq(job.id))
-					.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
-					.where(dataset.identification.eq(datasetId))
-					.where(new SQLSubQuery().from(jobState)
-							.where(jobState.jobId.eq(job.id))
-							.where(isFinished(jobState))
-							.notExists())
-					.notExists()
-				
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return createServiceJob(tx, datasetId)
-								.map(new Mapper<Long, Ack>() {
-									
-									@Override
-									public Ack apply(Long l) {
-										log.debug("service job created");
-										
-										return new Ack();
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.debug("already exist a service job for this dataset");
-							return Futures.successful(new Ack());
-						}
-					}
-				}, getContext().dispatcher());
-			}
+		return db.transactional(tx ->
+			tx.query().from(job)
+				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
+				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.where(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(job.id))
+						.where(isFinished(jobState))
+						.notExists())
+				.notExists()
 			
-		});
+			.thenCompose(notExists -> {
+				if(notExists) {
+					return createServiceJob(tx, datasetId)
+						.thenApply(l -> {
+							log.debug("service job created");
+							
+							return new Ack();
+						});
+				} else {
+					log.debug("already exist a service job for this dataset");
+					return f.successful(new Ack());
+				}
+			}));
 	}
 	
-	private Future<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
-		return createJobForDataset(tx, datasetId)		
-			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-
-				@Override
-				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
-					return tx.insert(serviceJob)
+	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
+		return
+			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
+				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
+					tx.insert(serviceJob)
 						.columns(
 							serviceJob.jobId,
 							serviceJob.datasetId,
@@ -184,83 +163,65 @@ public class JobManager extends UntypedActor {
 						.select(new SQLSubQuery().from(dataset)
 							.where(dataset.identification.eq(datasetId))
 							.list(jobId, dataset.id, datasetVersionId))						
-						.execute();
-				}
-				
-			});
+						.execute()));
 	}
 	
-	private Future<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
-		return createJobForDataset(tx, datasetId)		
-			.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-	
-				@Override
-				public Future<Long> apply(Integer jobId, Integer datasetVersionId) {
-					return 
-						tx.insert(importJob)
-							.columns(
-								importJob.jobId,
-								importJob.datasetId,
-								importJob.sourceDatasetVersionId,
-								importJob.filterConditions)
-							.select(new SQLSubQuery().from(dataset)
+	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
+		return
+			createJob(tx, JobType.IMPORT).thenCompose(jobId -> 
+				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
+					tx.insert(importJob)
+						.columns(
+							importJob.jobId,
+							importJob.datasetId,
+							importJob.sourceDatasetVersionId,
+							importJob.filterConditions)
+						.select(new SQLSubQuery().from(dataset)
+								.where(dataset.identification.eq(datasetId))
+								.list(
+									jobId,
+									dataset.id,
+									datasetVersionId,
+									dataset.filterConditions))
+						.executeWithKey(importJob.id).thenCompose(importJobId ->
+							tx.insert(importJobColumn)
+								.columns(
+									importJobColumn.importJobId,
+									importJobColumn.index,
+									importJobColumn.name,
+									importJobColumn.dataType)
+								.select(new SQLSubQuery().from(datasetColumn)
+									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 									.where(dataset.identification.eq(datasetId))
 									.list(
-										jobId,
-										dataset.id,
-										datasetVersionId,
-										dataset.filterConditions))
-							.executeWithKey(importJob.id)
-						
-						.flatMap(new Mapper<Integer, Future<Long>>() {
-							
-							@Override
-							public Future<Long> apply(Integer importJobId) {
-								return tx.insert(importJobColumn)
-									.columns(
-										importJobColumn.importJobId,
-										importJobColumn.index,
-										importJobColumn.name,
-										importJobColumn.dataType)
-									.select(new SQLSubQuery().from(datasetColumn)
-										.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-										.where(dataset.identification.eq(datasetId))
-										.list(
-											importJobId,
-											datasetColumn.index,
-											datasetColumn.name,
-											datasetColumn.dataType))
-											.execute();
-							}
-						}, getContext().dispatcher());										
-					}
-			});
+										importJobId,
+										datasetColumn.index,
+										datasetColumn.name,
+										datasetColumn.dataType))
+										.execute())));
+	}	
+
+	private CompletableFuture<Integer> getSourceDatasetVersion(AsyncHelper tx, String datasetId) {
+		return tx.query().from(sourceDatasetVersion)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.where(dataset.identification.eq(datasetId))
+			.singleResult(sourceDatasetVersion.id.max());
 	}
 
-	private Collector2<Integer, Integer> createJobForDataset(final AsyncHelper tx, final String datasetId) {
-		return 
-			f.collect(
-				tx.insert(job)
-					.set(job.type, "IMPORT")
-					.executeWithKey(job.id))
-			.collect(							
-				tx.query().from(sourceDatasetVersion)
-					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-					.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.where(dataset.identification.eq(datasetId))
-					.singleResult(sourceDatasetVersion.id.max()));
+	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
+		return tx.insert(job)
+			.set(job.type, jobType.name())
+			.executeWithKey(job.id);
 	}
 	
-	private Future<Ack> handleCreateImportJob(CreateImportJob msg) {
+	private CompletableFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
 		log.debug("creating import job: " + datasetId);
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {
-				return tx.query().from(job)
+		return db.transactional(tx ->
+				tx.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
 					.where(dataset.identification.eq(datasetId))
@@ -270,41 +231,26 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 					
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					@Override
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return createImportJob(tx, datasetId)									
-								.map(new Mapper<Long, Ack>() {
-									
-									@Override
-									public Ack apply(Long l) {
-										log.debug("import job created");
-										
-										return new Ack();
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.debug("already exist an import job for this dataset");
-							return Futures.successful(new Ack());
-						}
-					}					
-					
-				}, getContext().dispatcher());
-			}
-			
-		});
+				.thenCompose(notExists -> {
+					if(notExists) {
+						return createImportJob(tx, datasetId)									
+							.thenApply(l -> {
+								log.debug("import job created");
+								
+								return new Ack();
+							});							
+					} else {
+						log.debug("already exist an import job for this dataset");
+						return f.successful(new Ack());
+					}
+				}));
 	}
 	
-	private Future<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
+	private CompletableFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: " + msg.getDataSourceId());
 		
-		return db.transactional(new Function<AsyncHelper, Future<Ack>>() {
-
-			@Override
-			public Future<Ack> apply(final AsyncHelper tx) throws Exception {				
-				return tx.query().from(job)
+		return db.transactional(tx ->				
+				tx.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))
 					.where(dataSource.identification.eq(msg.getDataSourceId()))
@@ -314,59 +260,41 @@ public class JobManager extends UntypedActor {
 							.notExists())
 					.notExists()
 				
-				.flatMap(new Mapper<Boolean, Future<Ack>>() {
-					
-					@Override
-					public Future<Ack> apply(Boolean notExists) {
-						if(notExists) {
-							return f.collect(
-								tx.query().from(dataSource)
-									.where(dataSource.identification.eq(msg.getDataSourceId()))
-									.singleResult(dataSource.id))
-							.collect(
-								tx.insert(job)
-									.set(job.type, "HARVEST")
-									.executeWithKey(job.id))
-									
-							.flatMap(new AbstractFunction2<Integer, Integer, Future<Long>>() {
-
-								@Override
-								public Future<Long> apply(Integer dataSourceId, Integer jobId) {
-									log.debug("job created and dataSourceId determined");
-									
-									return 
-										tx.insert(harvestJob)
-											.set(harvestJob.jobId, jobId)				
-											.set(harvestJob.dataSourceId, dataSourceId)
-											.execute();
-								}
+				.thenCompose(notExists -> {
+					if(notExists) {
+						return f.collect(
+							tx.query().from(dataSource)
+								.where(dataSource.identification.eq(msg.getDataSourceId()))
+								.singleResult(dataSource.id))
+						.collect(
+							tx.insert(job)
+								.set(job.type, "HARVEST")
+								.executeWithKey(job.id))
 								
-							})
+						.thenCompose((dataSourceId, jobId) -> {
+							log.debug("job created and dataSourceId determined");
 							
-							.map(new Mapper<Long, Ack>() {
-								
-								@Override
-								public Ack apply(Long l) {
-									log.debug("harvest job created");
-									
-									return new Ack();
-								}
-								
-							}, getContext().dispatcher());
+							return 
+								tx.insert(harvestJob)
+									.set(harvestJob.jobId, jobId)				
+									.set(harvestJob.dataSourceId, dataSourceId)
+									.execute();
+						})
+						
+						.thenApply(l -> {
+							log.debug("harvest job created");
 							
-						} else {
-							log.debug("already exist a harvest job for this dataSource");
-							
-							return Futures.successful(new Ack());
-						}
+							return new Ack();
+						});
+					} else {
+						log.debug("already exist a harvest job for this dataSource");
+						
+						return f.successful(new Ack());
 					}
-					
-				}, getContext().dispatcher());
-			}			
-		});
+				}));
 	}
 	
-	private Future<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
+	private CompletableFuture<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
 		log.debug("fetching service jobs");
 		
 		return
@@ -383,14 +311,11 @@ public class JobManager extends UntypedActor {
 						dataset.identification));
 	}
 
-	private Future<TypedList<ImportJobInfo>> handleGetImportJobs() {
+	private CompletableFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {
 		log.debug("fetching import jobs");
 		
 		return
-			db.transactional(new Function<AsyncHelper, Future<TypedList<ImportJobInfo>>>() {
-	
-				@Override
-				public Future<TypedList<ImportJobInfo>> apply(AsyncHelper tx) throws Exception {
+			db.transactional(tx -> {
 					AsyncSQLQuery query = tx.query().from(job)
 						.join(importJob).on(importJob.jobId.eq(job.id))			
 						.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -403,7 +328,7 @@ public class JobManager extends UntypedActor {
 								.where(jobState.jobId.eq(job.id))
 								.notExists());
 					
-					return f.collect(
+					return (CompletableFuture<TypedList<ImportJobInfo>>)f.collect(
 						query.clone()			
 							.list(
 								job.id,
@@ -434,86 +359,79 @@ public class JobManager extends UntypedActor {
 							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 							.list(job.id, notification.type, notificationResult.result))
 						
-					.map(new AbstractFunction4<TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<Tuple>, TypedList<ImportJobInfo>>() {
-	
-						@Override
-						public TypedList<ImportJobInfo> apply(							
-							TypedList<Tuple> baseList,						
-							TypedList<Tuple> importJobColumnsList, 
-							TypedList<Tuple> sourceDatasetColumnsList, 
-							TypedList<Tuple> jobNotificationsList) {
+					.thenApply((							
+						TypedList<Tuple> baseList,						
+						TypedList<Tuple> importJobColumnsList, 
+						TypedList<Tuple> sourceDatasetColumnsList, 
+						TypedList<Tuple> jobNotificationsList) -> {
+						
+						ArrayList<ImportJobInfo> jobs = new ArrayList<>();
+						
+						ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
+						ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
+						ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
+						
+						for(Tuple t : baseList) {
+							int jobId = t.get(job.id);
 							
-							ArrayList<ImportJobInfo> jobs = new ArrayList<>();
-							
-							ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
-							ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
-							ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
-							
-							for(Tuple t : baseList) {
-								int jobId = t.get(job.id);
+							List<Notification> notifications = new ArrayList<>();
+							for(; jobNotifications.hasNext();) {
+								Tuple tn = jobNotifications.next();
 								
-								List<Notification> notifications = new ArrayList<>();
-								for(; jobNotifications.hasNext();) {
-									Tuple tn = jobNotifications.next();
-									
-									int notificationJobId = tn.get(job.id);				
-									if(notificationJobId != jobId) {
-										jobNotifications.previous();
-										break;
-									}
-									
-									ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
-									
-									NotificationResult result;
-									String resultName = tn.get(notificationResult.result);
-									if(resultName == null) {
-										result = null;
-									} else {
-										result = notificationType.getResult(resultName);
-									}
-									
-									notifications.add(new Notification(notificationType, result));
+								int notificationJobId = tn.get(job.id);				
+								if(notificationJobId != jobId) {
+									jobNotifications.previous();
+									break;
 								}
 								
-								jobs.add(new ImportJobInfo(
-										t.get(job.id),
-										t.get(category.identification),
-										t.get(dataSource.identification), 
-										t.get(sourceDataset.identification),
-										t.get(dataset.identification),
-										t.get(dataset.name),
-										t.get(importJob.filterConditions),
-										consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-											
-											@Override
-											public Column apply(Tuple t) {
-												return new Column(
-													t.get(importJobColumn.name), 
-													t.get(importJobColumn.dataType));
-											}
-										}),
-										consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-											
-											@Override
-											public Column apply(Tuple t) {
-												return new Column(
-													t.get(sourceDatasetVersionColumn.name),
-													t.get(sourceDatasetVersionColumn.dataType));
-											} 
-										}),
-										notifications));
-							}						
-	
-							return new TypedList<>(ImportJobInfo.class, jobs);
-						}
-						
-					});				
-				}
-				
+								ImportNotificationType notificationType = ImportNotificationType.valueOf(tn.get(notification.type));
+								
+								NotificationResult result;
+								String resultName = tn.get(notificationResult.result);
+								if(resultName == null) {
+									result = null;
+								} else {
+									result = notificationType.getResult(resultName);
+								}
+								
+								notifications.add(new Notification(notificationType, result));
+							}
+							
+							jobs.add(new ImportJobInfo(
+									t.get(job.id),
+									t.get(category.identification),
+									t.get(dataSource.identification), 
+									t.get(sourceDataset.identification),
+									t.get(dataset.identification),
+									t.get(dataset.name),
+									t.get(importJob.filterConditions),
+									consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+										
+										@Override
+										public Column apply(Tuple t) {
+											return new Column(
+												t.get(importJobColumn.name), 
+												t.get(importJobColumn.dataType));
+										}
+									}),
+									consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+										
+										@Override
+										public Column apply(Tuple t) {
+											return new Column(
+												t.get(sourceDatasetVersionColumn.name),
+												t.get(sourceDatasetVersionColumn.dataType));
+										} 
+									}),
+									notifications));
+						}						
+
+						return new TypedList<>(ImportJobInfo.class, jobs);
+					});
 			});
 	}
 	
-	private Future<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
+	private CompletableFuture<TypedList<HarvestJobInfo>> handleGetHarvestJobs() {
 		log.debug("fetching harvest jobs");
 
 		return
