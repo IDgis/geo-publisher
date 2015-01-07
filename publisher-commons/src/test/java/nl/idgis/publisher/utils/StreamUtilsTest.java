@@ -2,7 +2,6 @@ package nl.idgis.publisher.utils;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -21,13 +20,11 @@ public class StreamUtilsTest {
 
 	@Test
 	public void testZip() {
-		Iterator<ZippedEntry<Integer, String>> i = 
-		
+		Iterator<ZippedEntry<Integer, String>> i =
 			zip(
-					Arrays.asList(0, 1, 2, 3).stream(), 
-					Arrays.asList("Hello", "world").stream())
-		
-			.collect(Collectors.toList()).iterator();
+				Arrays.asList(0, 1, 2, 3).stream(), 
+				Arrays.asList("Hello", "world").stream())
+					.iterator();
 		
 		assertTrue(i.hasNext());
 		
@@ -51,7 +48,7 @@ public class StreamUtilsTest {
 	public void testIndex() {
 		Iterator<IndexedEntry<String>> i =		
 			index(Arrays.asList("Hello", "world").stream())
-				.collect(Collectors.toList()).iterator();
+				.iterator();
 		
 		assertTrue(i.hasNext());
 		
