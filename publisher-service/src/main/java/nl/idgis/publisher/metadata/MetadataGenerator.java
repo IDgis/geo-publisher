@@ -148,7 +148,7 @@ public class MetadataGenerator extends UntypedActor {
 						dataset.fileUuid))
 			.collect(
 				f.ask(service, new GetContent(), ServiceContent.class))		
-			.map(new BiFunction<TypedList<Tuple>, ServiceContent, Void>() {
+			.thenApply(new BiFunction<TypedList<Tuple>, ServiceContent, Void>() {
 
 				@Override
 				public Void apply(final TypedList<Tuple> queryResult, final ServiceContent serviceContent) {
@@ -158,7 +158,7 @@ public class MetadataGenerator extends UntypedActor {
 					
 					f					
 						.collect(getMetadataDocuments(dataSources, queryResult))
-						.map(new Function<Map<String, MetadataDocument>, Void>() {
+						.thenApply(new Function<Map<String, MetadataDocument>, Void>() {
 
 							@Override
 							public Void apply(Map<String, MetadataDocument> metadataDocuments) {

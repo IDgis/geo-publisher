@@ -54,7 +54,7 @@ public class FutureUtilsTest {
 		f
 			.collect(f.successful("Hello world!"))			
 			.collect(f.successful(42))
-			.map((String s, Integer i) -> {
+			.thenApply((String s, Integer i) -> {
 				try {
 					assertEquals("Hello world!", s);
 					assertEquals(new Integer(42), i);
@@ -72,7 +72,7 @@ public class FutureUtilsTest {
 		f
 			.collect(f.successful("Hello world!"))			
 			.collect(f.failed(new Exception("Failure")))
-			.map((String s, Object o) -> {
+			.thenApply((String s, Object o) -> {
 				try {
 					fail("result received");						
 				} catch(Throwable t) {
@@ -90,10 +90,10 @@ public class FutureUtilsTest {
 				f
 					.collect(f.successful("Hello world!"))
 					.collect(f.successful(42))
-					.map((String s, Integer i) -> {						
+					.thenApply((String s, Integer i) -> {						
 						return 47;
 					}))
-			.map((Integer i) -> {
+			.thenApply((Integer i) -> {
 				try {
 					assertEquals(new Integer(47), i);
 					testPromise.success(true);
@@ -112,10 +112,10 @@ public class FutureUtilsTest {
 				f
 					.collect(f.successful("Hello world!"))
 					.collect(f.successful(42))
-					.flatMap((String s, Integer i) -> {
+					.thenCompose((String s, Integer i) -> {
 						return f.successful(47);						
 					}))
-			.map((Integer i) -> {
+			.thenApply((Integer i) -> {
 				try {
 					assertEquals(new Integer(47), i);
 					testPromise.success(true);

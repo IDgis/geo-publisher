@@ -54,12 +54,12 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> CompletableFuture<R> flatMap(final Function4<T, U, V, W, CompletableFuture<R>> f) {
-			return future.thenCompose(w -> parent.flatMap((t, u, v) -> f.apply(t, u, v, w)));
+		public <R> CompletableFuture<R> thenCompose(final Function4<T, U, V, W, CompletableFuture<R>> f) {
+			return future.thenCompose(w -> parent.thenCompose((t, u, v) -> f.apply(t, u, v, w)));
 		}
 		
-		public <R> CompletableFuture<R> map(final Function4<T, U, V, W, R> f) {
-			return future.thenCompose(w -> parent.map((t, u, v) -> f.apply(t, u, v, w)));
+		public <R> CompletableFuture<R> thenApply(final Function4<T, U, V, W, R> f) {
+			return future.thenCompose(w -> parent.thenApply((t, u, v) -> f.apply(t, u, v, w)));
 		}
 	}
 	
@@ -73,12 +73,12 @@ public class FutureUtils {
 			this.parent = parent;
 		}
 		
-		public <R> CompletableFuture<R> flatMap(final Function3<T, U, V, CompletableFuture<R>> f) {
-			return future.thenCompose(v -> parent.flatMap((t, u) -> f.apply(t, u, v)));
+		public <R> CompletableFuture<R> thenCompose(final Function3<T, U, V, CompletableFuture<R>> f) {
+			return future.thenCompose(v -> parent.thenCompose((t, u) -> f.apply(t, u, v)));
 		}
 		
-		public <R> CompletableFuture<R> map(final Function3<T, U, V, R> f) {
-			return future.thenCompose(v -> parent.map((t, u) -> f.apply(t, u, v)));
+		public <R> CompletableFuture<R> thenApply(final Function3<T, U, V, R> f) {
+			return future.thenCompose(v -> parent.thenApply((t, u) -> f.apply(t, u, v)));
 		}
 		
 		public <W> Collector4<T, U, V, W> collect(CompletableFuture<W> future) {
@@ -96,12 +96,12 @@ public class FutureUtils {
 			this.parent = parent;			
 		}
 		
-		public <R> CompletableFuture<R> flatMap(final BiFunction<T, U, CompletableFuture<R>> f) {			
-			return future.thenCompose(u -> parent.flatMap(t -> f.apply(t, u)));					
+		public <R> CompletableFuture<R> thenCompose(final BiFunction<T, U, CompletableFuture<R>> f) {			
+			return future.thenCompose(u -> parent.thenCompose(t -> f.apply(t, u)));					
 		}
 		
-		public <R> CompletableFuture<R> map(final BiFunction<T, U, R> f) {			
-			return future.thenCompose(u -> parent.map(t -> f.apply(t, u)));
+		public <R> CompletableFuture<R> thenApply(final BiFunction<T, U, R> f) {			
+			return future.thenCompose(u -> parent.thenApply(t -> f.apply(t, u)));
 		}
 		
 		public <V> Collector3<T, U, V> collect(CompletableFuture<V> future) {
@@ -115,11 +115,11 @@ public class FutureUtils {
 			super(future);
 		}
 		
-		public <R> CompletableFuture<R> flatMap(final Function<T, CompletableFuture<R>> f) {
+		public <R> CompletableFuture<R> thenCompose(final Function<T, CompletableFuture<R>> f) {
 			return future.thenCompose(f);
 		}
 		
-		public <R> CompletableFuture<R> map(final Function<T, R> f) {
+		public <R> CompletableFuture<R> thenApply(final Function<T, R> f) {
 			return future.thenApply(f);
 		}
 		

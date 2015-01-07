@@ -271,7 +271,7 @@ public class JobManager extends UntypedActor {
 								.set(job.type, "HARVEST")
 								.executeWithKey(job.id))
 								
-						.flatMap((dataSourceId, jobId) -> {
+						.thenCompose((dataSourceId, jobId) -> {
 							log.debug("job created and dataSourceId determined");
 							
 							return 
@@ -359,7 +359,7 @@ public class JobManager extends UntypedActor {
 							.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 							.list(job.id, notification.type, notificationResult.result))
 						
-					.map((							
+					.thenApply((							
 						TypedList<Tuple> baseList,						
 						TypedList<Tuple> importJobColumnsList, 
 						TypedList<Tuple> sourceDatasetColumnsList, 
