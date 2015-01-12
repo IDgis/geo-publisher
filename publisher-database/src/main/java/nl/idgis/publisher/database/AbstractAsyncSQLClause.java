@@ -1,36 +1,28 @@
 package nl.idgis.publisher.database;
 
-import scala.concurrent.ExecutionContext;
+import java.util.function.Function;
 
 import akka.actor.ActorRef;
-import akka.dispatch.Mapper;
-import akka.util.Timeout;
 
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractAsyncSQLClause<C extends AbstractAsyncSQLClause<C>> implements AsyncDMLClause<C> {
 	
-	protected final static Mapper<Object, Long> TO_LONG = new Mapper<Object, Long>() {
+	protected final static Function<Object, Long> TO_LONG = msg -> {
+		if(msg instanceof Failure) {
+			throw new RuntimeException(((Failure)msg).getCause());
+		}
 		
-		@Override
-		public Long checkedApply(Object o) throws Throwable {
-			if(o instanceof Failure) {
-				throw ((Failure) o).getCause();
-			}
-			
-			return (Long)o;
-		}		
+		return (Long)msg;
 	};
 
 	protected final ActorRef database;
     
-	protected final Timeout timeout;
+	protected final FutureUtils f;
     
-	protected final ExecutionContext executionContext;
-    
-    protected AbstractAsyncSQLClause(ActorRef database, Timeout timeout, ExecutionContext executionContext) {
+    protected AbstractAsyncSQLClause(ActorRef database, FutureUtils f) {
 		this.database = database;
-		this.timeout = timeout;
-		this.executionContext = executionContext;
+		this.f = f;		
 	}
 }

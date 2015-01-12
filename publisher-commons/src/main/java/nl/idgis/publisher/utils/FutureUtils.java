@@ -1,42 +1,79 @@
 package nl.idgis.publisher.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnFailure;
+import akka.dispatch.OnComplete;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
-import scala.Function1;
-import scala.Function2;
-import scala.Function3;
-import scala.Function4;
+import nl.idgis.publisher.function.Function3;
+import nl.idgis.publisher.function.Function4;
+
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.runtime.AbstractFunction1;
-import scala.runtime.AbstractFunction2;
-import scala.runtime.AbstractFunction3;
 
+/**
+ * This utility class can be used to ease the utilization of Scala futures from Java. It removes the 
+ * need to provide a {@link Timeout} and an {@link ExecutionContext} to various methods and converts 
+ * Scala {@link Future} objects into {@link CompletableFuture} objects in order to be able to use lambda 
+ * functions while dealing with futures. This class provides a collector concept that can be used to wrap 
+ * multiple futures in order to easily transform the result of these futures into a single value, by providing
+ * a single lambda function with a parameter for every future result:
+ * 
+ * FutureUtils f = new FutureUtils(...);
+ * CompletableFuture<?> result = f
+ * 		.collect(retrieveFromDatabase(...))
+ * 		.collect(downloadFromNetwork(...))
+ * 		.collect(f.ask(calculator, new PerformComputation()))
+ * 		.thenApply((valueFromDatabase, downloadedItem, computationResult) -> {
+ * 			...
+ * 
+ * 			return ...;
+ * 		});
+ * 
+ */
 public class FutureUtils {
 	
 	private final ExecutionContext executionContext;
+	
 	private final Timeout timeout;
 	
+	/**
+	 * Construct a new FutureUtils object with a default ask timeout of 15 seconds.
+	 * 
+	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 */
 	public FutureUtils(ExecutionContext executionContext) {
 		this(executionContext, 15000);
 	}
 	
+	/**
+	 * Construct a new FutureUtils object.
+	 * 
+	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param timeout the ask timeout in milliseconds
+	 */
 	public FutureUtils(ExecutionContext executionContext, long timeout) {
 		this(executionContext, Timeout.longToTimeout(timeout));
 	}
 	
+	/**
+	 * Construct a new FutureUtils object.
+	 * 
+	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param timeout the ask timeout
+	 */
 	public FutureUtils(ExecutionContext executionContext, Timeout timeout) {
 		this.executionContext = executionContext;
 		this.timeout = timeout;
@@ -46,44 +83,32 @@ public class FutureUtils {
 		
 		private final Collector3<T, U, V> parent;
 		
-		private Collector4(Collector3<T, U, V> parent, Future<W> future) {
+		private Collector4(Collector3<T, U, V> parent, CompletableFuture<W> future) {
 			super(future);
 			
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatMap(final Function4<T, U, V, W, Future<R>> f) {
-			return future.flatMap(new Mapper<W, Future<R>>() {
-				
-				public Future<R> apply(final W w) {
-					return parent.flatMap(new AbstractFunction3<T, U, V, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t, U u, V v) {
-							return f.apply(t, u, v, w);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletionStage that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function returning a new CompletableFuture
+		 * @return
+		 */
+		public <R> CompletableFuture<R> thenCompose(final Function4<T, U, V, W, CompletableFuture<R>> f) {
+			return future.thenCompose(w -> parent.thenCompose((t, u, v) -> f.apply(t, u, v, w)));
 		}
 		
-		public <R> Future<R> map(final Function4<T, U, V, W, R> f) {
-			return future.flatMap(new Mapper<W, Future<R>>() {
-				
-				public Future<R> apply(final W w) {
-					return parent.map(new AbstractFunction3<T, U, V, R>() {
-
-						@Override
-						public R apply(T t, U u, V v) {
-							return f.apply(t, u, v, w);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletableFuture that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function to use to compute the value of the returned CompletableFuture
+		 * @return the new CompletableFuture
+		 */
+		public <R> CompletableFuture<R> thenApply(final Function4<T, U, V, W, R> f) {
+			return future.thenCompose(w -> parent.thenApply((t, u, v) -> f.apply(t, u, v, w)));
 		}
 	}
 	
@@ -91,47 +116,41 @@ public class FutureUtils {
 		
 		private final Collector2<T, U> parent;
 		
-		private Collector3(Collector2<T, U> parent, Future<V> future) {
+		private Collector3(Collector2<T, U> parent, CompletableFuture<V> future) {
 			super(future);
 			
 			this.parent = parent;
 		}
 		
-		public <R> Future<R> flatMap(final Function3<T, U, V, Future<R>> f) {
-			return future.flatMap(new Mapper<V, Future<R>>() {
-				
-				public Future<R> apply(final V v) {
-					return parent.flatMap(new AbstractFunction2<T, U, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t, U u) {
-							return f.apply(t, u, v);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletionStage that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function returning a new CompletableFuture
+		 * @return
+		 */
+		public <R> CompletableFuture<R> thenCompose(final Function3<T, U, V, CompletableFuture<R>> f) {
+			return future.thenCompose(v -> parent.thenCompose((t, u) -> f.apply(t, u, v)));
 		}
 		
-		public <R> Future<R> map(final Function3<T, U, V, R> f) {
-			return future.flatMap(new Mapper<V, Future<R>>() {
-				
-				public Future<R> apply(final V v) {
-					return parent.map(new AbstractFunction2<T, U, R>() {
-
-						@Override
-						public R apply(T t, U u) {
-							return f.apply(t, u, v);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletableFuture that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function to use to compute the value of the returned CompletableFuture
+		 * @return the new CompletableFuture
+		 */
+		public <R> CompletableFuture<R> thenApply(final Function3<T, U, V, R> f) {
+			return future.thenCompose(v -> parent.thenApply((t, u) -> f.apply(t, u, v)));
 		}
 		
-		public <W> Collector4<T, U, V, W> collect(Future<W> future) {
+		/**
+		 * Wraps an additional future.
+		 * 
+		 * @param future the future
+		 * @return the resulting collector
+		 */
+		public <W> Collector4<T, U, V, W> collect(CompletableFuture<W> future) {
 			return new Collector4<>(this, future);
 		}
 	}
@@ -140,192 +159,369 @@ public class FutureUtils {
 		
 		private final Collector1<T> parent;		
 		
-		private Collector2(Collector1<T> parent, Future<U> future) {
+		private Collector2(Collector1<T> parent, CompletableFuture<U> future) {
 			super(future);
 			
 			this.parent = parent;			
 		}
 		
-		public <R> Future<R> flatMap(final Function2<T, U, Future<R>> f) {			
-			return future.flatMap(new Mapper<U, Future<R>>() {
-				
-				public Future<R> apply(final U u) {
-					return parent.flatMap(new AbstractFunction1<T, Future<R>>() {
-
-						@Override
-						public Future<R> apply(T t) {
-							return f.apply(t, u);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletionStage that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function returning a new CompletableFuture
+		 * @return
+		 */
+		public <R> CompletableFuture<R> thenCompose(final BiFunction<T, U, CompletableFuture<R>> f) {			
+			return future.thenCompose(u -> parent.thenCompose(t -> f.apply(t, u)));					
 		}
 		
-		public <R> Future<R> map(final Function2<T, U, R> f) {			
-			return future.flatMap(new Mapper<U, Future<R>>() {
-				
-				public Future<R> apply(final U u) {
-					return parent.map(new AbstractFunction1<T, R>() {
-
-						@Override
-						public R apply(T t) {
-							return f.apply(t, u);
-						}
-						
-					});
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletableFuture that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function to use to compute the value of the returned CompletableFuture
+		 * @return the new CompletableFuture
+		 */
+		public <R> CompletableFuture<R> thenApply(final BiFunction<T, U, R> f) {			
+			return future.thenCompose(u -> parent.thenApply(t -> f.apply(t, u)));
 		}
 		
-		public <V> Collector3<T, U, V> collect(Future<V> future) {
+		/**
+		 * Wraps an additional future.
+		 * 
+		 * @param future the future
+		 * @return the resulting collector
+		 */
+		public <V> Collector3<T, U, V> collect(CompletableFuture<V> future) {
 			return new Collector3<>(this, future);
 		}
 	}
 	
 	public class Collector1<T> extends Collector<T> {
 		
-		private Collector1(Future<T> future) {
+		private Collector1(CompletableFuture<T> future) {
 			super(future);
 		}
 		
-		public <R> Future<R> flatMap(final Function1<T, Future<R>> f) {
-			return future.flatMap(new Mapper<T, Future<R>>() {
-
-				@Override
-				public Future<R> apply(T t) {
-					return f.apply(t);
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletionStage that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function returning a new CompletableFuture
+		 * @return
+		 */
+		public <R> CompletableFuture<R> thenCompose(final Function<T, CompletableFuture<R>> f) {
+			return future.thenCompose(f);
 		}
 		
-		public <R> Future<R> map(final Function1<T, R> f) {
-			return future.map(new Mapper<T, R>() {
-
-				@Override
-				public R apply(T t) {
-					return f.apply(t);
-				}
-				
-			}, executionContext);
+		/**
+		 * Returns a new CompletableFuture that, when the futures wrapped by this collector 
+		 * completes normally, is executed with the wrapped futures result as the argument to the supplied function.
+		 * 
+		 * @param f the function to use to compute the value of the returned CompletableFuture
+		 * @return the new CompletableFuture
+		 */
+		public <R> CompletableFuture<R> thenApply(final Function<T, R> f) {
+			return future.thenApply(f);
 		}
 		
-		public <U> Collector2<T, U> collect(Future<U> future) {
+		/**
+		 * Wraps an additional future.
+		 * 
+		 * @param future the future
+		 * @return the resulting collector
+		 */
+		public <U> Collector2<T, U> collect(CompletableFuture<U> future) {
 			return new Collector2<>(this, future);
 		}
 	}
 	
 	private abstract static class Collector<T> {
 		
-		protected final Future<T> future;
+		protected final CompletableFuture<T> future;
 		
-		private Collector(Future<T> future) {
+		private Collector(CompletableFuture<T> future) {
 			this.future = future;
 		} 
 	}
 	
-	public <T> Collector1<T> collect(Future<T> future) {
+	/**
+	 * Wraps a feature into a collector. This is the entry point to the future result collecting 
+	 * functionality of {@link FutureUtils}.
+	 * 
+	 * @param future the future
+	 * @return the collector
+	 */
+	public <T> Collector1<T> collect(CompletableFuture<T> future) {
 		return new Collector1<>(future);
 	}
 	
-	public <T, U> Future<T> cast(Future<U> future, Class<T> targetClass) {
-		return cast(future, targetClass, null);
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message. It uses the default timeout of 
+	 * this {@link FutureUtils} object.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @return the future
+	 */	
+	public CompletableFuture<Object> ask(ActorRef actor, Object message) {
+		return ask(actor, message, timeout);
 	}
 	
-	public <T, U> Future<T> cast(Future<U> future, final Class<T> targetClass, final Object context) {
-		return future.map(new Mapper<U, T>() {
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public CompletableFuture<Object> ask(ActorRef actor, Object message, long timeout) {
+		return ask(actor, message, Timeout.apply(timeout));
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public CompletableFuture<Object> ask(ActorRef actor, Object message, Timeout timeout) {
+		return toCompletableFuture(Patterns.ask(actor, message, timeout));
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param selection the actor(s) to send the message to
+	 * @param message the message
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public CompletableFuture<Object> ask(ActorSelection selection, Object message, Timeout timeout) {
+		return toCompletableFuture(Patterns.ask(selection, message, timeout));
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
+		return cast(ask(actor, message, timeout), targetClass);
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass, long timeout) {		 
+		return cast(ask(actor, message, Timeout.apply(timeout)), targetClass);
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message. It uses the default timeout of 
+	 * this {@link FutureUtils} object.
+	 * 
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorRef actor, Object message, Class<T> targetClass) {		 
+		return cast(ask(actor, message, timeout), targetClass);
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param selection the actor(s) to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, Timeout timeout) {		 
+		return cast(ask(selection, message, timeout), targetClass);
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 * 
+	 * @param selection the actor(s) to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass, long timeout) {		 
+		return cast(ask(selection, message, Timeout.apply(timeout)), targetClass);
+	}
+	
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message. It uses the default timeout of 
+	 * this {@link FutureUtils} object.
+	 * 
+	 * @param selection the actor(s) to send the message to
+	 * @param message the message
+	 * @param targetClass the expected target class
+	 * @return the future
+	 */
+	public <T> CompletableFuture<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {
+		return cast(ask(selection, message, timeout), targetClass);
+	}
+	
+	/**
+	 * Converts a {@link CompletableFuture} to another {@link CompletableFuture} by performing a type 
+	 * cast. In case the cast fails the resulting future completes with {@link WrongResultException}.
+	 * 
+	 * @param future the future to cast
+	 * @param targetClass the class to cast to
+	 * @return the {@link CompletableFuture} for the casted result  
+	 */
+	public <U, T extends U> CompletableFuture<T> cast(CompletableFuture<U> future, Class<T> targetClass) {
+		return future.thenCompose(u -> 
+			targetClass.isInstance(u) 
+				? successful(targetClass.cast(u)) 
+				: failed(new WrongResultException(u, targetClass)));
+	}
+	
+	/**
+	 * Transforms an {@link Iterable} with {@link CompletableFuture} objects into a single {@link CompletableFuture} 
+	 * providing an {@link Iterable} with resulting values.
+	 * 
+	 * @param sequence the futures
+	 * @return a single future with the results
+	 */
+	public <T> CompletableFuture<Iterable<T>> sequence(Iterable<CompletableFuture<T>> sequence) {
+		Iterator<CompletableFuture<T>> i = sequence.iterator();
+		
+		if(i.hasNext()) {
+			CompletableFuture<Iterable<T>> completableFuture = new CompletableFuture<>();
 			
-			@Override			
-			public T checkedApply(U u) throws Throwable {
-				if(targetClass.isInstance(u)) {
-					return targetClass.cast(u);
+			i.next().whenComplete(new BiConsumer<T, Throwable>() {
+				
+				ArrayList<T> result = new ArrayList<>();
+
+				@Override
+				public void accept(T t, Throwable throwable) {
+					if(throwable == null) {
+						result.add(t);
+						
+						if(i.hasNext()) {
+							i.next().whenComplete(this);
+						} else {
+							completableFuture.complete(result);							
+						}
+					} else {
+						completableFuture.completeExceptionally(throwable);						
+					}
+				}
+			});
+			
+			return completableFuture;
+		} else {
+			return successful(Collections.emptyList());
+		}
+	}
+	
+	/**
+	 * Transforms a {@link Map} with {@link CompletableFuture} objects as values into a {@link CompletableFuture} 
+	 * providing a {@link Map} with resulting values.
+	 * 
+	 * @param map the futures
+	 * @return a future with a results map
+	 */
+	public <K, V> CompletableFuture<Map<K, V>> map(Map<K, CompletableFuture<V>> map) {
+		List<K> keys = new ArrayList<>();
+		List<CompletableFuture<V>> futures = new ArrayList<>();
+		
+		for(Map.Entry<K, CompletableFuture<V>> entry : map.entrySet()) {
+			keys.add(entry.getKey());
+			futures.add(entry.getValue());
+		}
+		
+		return sequence(futures).thenApply(values -> {
+			Map<K, V> retval = new HashMap<K, V>();
+			
+			Iterator<K> keyItr = keys.iterator();
+			Iterator<V> valueItr = values.iterator();
+			
+			while(keyItr.hasNext()) {
+				retval.put(keyItr.next(), valueItr.next());
+			}
+			
+			return retval;
+		});
+	}
+	
+	/**
+	 * Creates an already completed {@link CompletableFuture} with the specified value.
+	 * 
+	 * @param t the value
+	 * @return the resulting {@link CompletableFuture}
+	 */
+	public <T> CompletableFuture<T> successful(T t) {
+		return CompletableFuture.completedFuture(t);
+	}
+	
+	/**
+	 * Creates an already completed {@link CompletableFuture} with the specified exception.
+	 * 
+	 * @param t the exception
+	 * @return the resulting {@link CompletableFuture}
+	 */
+	public <T> CompletableFuture<T> failed(Throwable t) {
+		CompletableFuture<T> completableFuture = new CompletableFuture<>();
+		completableFuture.completeExceptionally(t);
+		
+		return completableFuture;
+	}
+	
+	/**
+	 * Converts a Scala {@link Future} object into an equivalent {@link CompletableFuture}
+	 * 
+	 * @param future the Scala {@link Future} object to convert
+	 * @return the resulting {@link CompletableFuture}
+	 */
+	public <T> CompletableFuture<T> toCompletableFuture(Future<T> future) {
+		CompletableFuture<T> completableFuture = new CompletableFuture<>();
+		
+		future.onComplete(new OnComplete<T>() {
+
+			@Override
+			public void onComplete(Throwable throwable, T t) throws Throwable {
+				if(throwable == null) {
+					completableFuture.complete(t);
 				} else {
-					throw new WrongResultException(u, targetClass, context);
+					completableFuture.completeExceptionally(throwable);
 				}
 			}
 			
 		}, executionContext);
-	}
-	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
-	}
-	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
-	}
-	
-	public <T> Future<T> ask(ActorRef actor, Object message, Class<T> targetClass) {		 
-		return cast(Patterns.ask(actor, message, timeout), targetClass, message);
-	}
-	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass, Timeout timeout) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
-	}
-	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass, long timeout) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
-	}
-	
-	public <T> Future<T> ask(ActorSelection selection, Object message, Class<T> targetClass) {		 
-		return cast(Patterns.ask(selection, message, timeout), targetClass, message);
-	}
-	
-	public <K, V> Future<Map<K, V>> map(Map<K, Future<V>> input) {
-		final List<K> keys = new ArrayList<K>();
-		List<Future<V>> values = new ArrayList<Future<V>>();
 		
-		for(Map.Entry<K, Future<V>> entry : input.entrySet()) {
-			keys.add(entry.getKey());
-			values.add(entry.getValue());
-		}
-		
-		return Futures.sequence(values, executionContext)
-			.map(new Mapper<Iterable<V>, Map<K, V>>() {
-				
-				public Map<K, V> apply(Iterable<V> i) {
-					Map<K, V> retval = new HashMap<K, V>();
-					
-					Iterator<K> keyItr = keys.iterator();
-					Iterator<V> valueItr = i.iterator();
-					
-					while(keyItr.hasNext()) {
-						retval.put(keyItr.next(), valueItr.next());
-					}
-					
-					return retval;
-				}
-				
-			}, executionContext);
-	}
-	
-	public <T, S> Future<S> map(Future<T> future, Function1<T, S> f) {
-		return future.map(f, executionContext);
-	}
-	
-	public <T, S> Future<S> flatMap(Future<T> future, Function1<T, Future<S>> f) {
-		return future.flatMap(f, executionContext);
-	}
-	
-	public <T> void failure(Future<T> future, OnFailure onFailure) {
-		future.onFailure(onFailure, executionContext);
-	}
-	
-	public <T> Future<Iterable<T>> sequence(Iterable<Future<T>> futures) {
-		return Futures.sequence(futures, executionContext);
-	}
-	
-	public <T, U> Future<U> mapValue(Future<T> future, final U u) {
-		return flatMap(future, new AbstractFunction1<T, Future<U>>() {
-
-			@Override
-			public Future<U> apply(T t) {
-				return Futures.successful(u);
-			}
-			
-		});
+		return completableFuture;
 	}
 }
