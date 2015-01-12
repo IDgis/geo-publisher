@@ -3,8 +3,6 @@ install: "mvn install -DskipTests=true -B -V -s ./travis/settings.xml"
 script: "mvn test -s ./travis/settings.xml"
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk7
 env:
   global:
     - secure: "PJra2mzyZk5Nvo3AwWYckFtm5UiIpLj/qhTKsFgT45Z3Q+dDUTyLaS7WiKrRvDAwPXM3OZQ/wDpsyEQ18rTGxoW3j8eEb8zTsh3oRC1UtIA9ycVM+GdzDNLijULd9WRhkxwryGlPkox/zi4wD+oDxzHUJdX2HaIrQztIN+uPhtM="
