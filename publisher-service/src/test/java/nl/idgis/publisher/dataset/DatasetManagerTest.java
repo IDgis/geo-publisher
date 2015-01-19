@@ -15,9 +15,10 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.Updated;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.service.VectorDataset;
 

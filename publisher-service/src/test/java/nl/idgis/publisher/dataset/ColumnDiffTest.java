@@ -8,9 +8,10 @@ import java.util.List;
 import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.Updated;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
@@ -49,7 +50,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		testSourceDataset = createTestDataset();
 		testTable = testSourceDataset.getTable();
 		testColumns = testTable.getColumns();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", testSourceDataset));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testSourceDataset));
 		
 		sync.ask(database, new CreateDataset(
 			"testDataset", 
@@ -152,7 +153,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			Collections.<Log>emptySet(),
 			newTable);
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		List<Tuple> tuples = query().from(sourceDatasetColumnDiff)
 			.list(sourceDatasetColumnDiff.all());
@@ -187,7 +188,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			Collections.<Log>emptySet(),
 			newTable);
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class);
 		
 		tuples = query().from(sourceDatasetColumnDiff)
 				.list(sourceDatasetColumnDiff.all());

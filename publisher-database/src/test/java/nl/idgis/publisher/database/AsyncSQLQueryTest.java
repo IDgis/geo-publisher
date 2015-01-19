@@ -33,7 +33,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testTuple() throws Exception {
-		insertDataset();
+		insertCategory();
 		
 		CompletableFuture<TypedList<Tuple>> future = asyncQuery()
 			.from(category)
@@ -48,7 +48,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 
 	@Test
 	public void testProjection() throws Exception {
-		insertDataset();
+		insertCategory();
 		
 		CompletableFuture<TypedList<String>> future = asyncQuery()
 			.from(category)
@@ -69,13 +69,20 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 						.from(category)
 						.singleResult(category.id, category.name)));
 		
-		insertDataset();
+		insertCategory();
 		
 		assertNotNull(
 				result(
 						asyncQuery()
 							.from(category)
 							.singleResult(category.id, category.name)));
+	}
+
+	private void insertCategory() {
+		insert(category)
+			.columns(category.identification, category.name)
+			.values("categoryId", "testCategory")
+			.execute();
 	}
 	
 	@Test
@@ -86,7 +93,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 						.from(category)
 						.exists()));
 		
-		insertDataset();
+		insertCategory();
 		
 		assertTrue(
 				result(
@@ -103,7 +110,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 						.from(category)
 						.notExists()));
 		
-		insertDataset();
+		insertCategory();
 		
 		assertFalse(
 				result(

@@ -18,8 +18,6 @@ import org.junit.Before;
 import scala.concurrent.ExecutionContext;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
-import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
@@ -152,25 +150,6 @@ public abstract class AbstractDatabaseTest {
 			.set(dataSource.identification, dataSourceId)
 			.set(dataSource.name, "My Test DataSource")
 			.executeWithKey(dataSource.id);
-	}
-	
-	protected void insertDataset() throws Exception {
-		insertDataset("testDataset");
-	}
-		
-	protected void insertDataset(String datasetId) throws Exception {
-		insertDataSource();
-		
-		VectorDataset testDataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
-		
-		Table testTable = testDataset.getTable();
-		sync.ask(database, new CreateDataset(
-				datasetId, 
-				"My Test Dataset", 
-				testDataset.getId(), 
-				testTable.getColumns(), 
-				"{ \"expression\": null }"));
 	}
 	
 	protected int insertDataSource() {

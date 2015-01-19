@@ -1,12 +1,15 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.dataset.messages;
+
+import java.io.Serializable;
 
 import nl.idgis.publisher.domain.service.VectorDataset;
 
-public class RegisterSourceDataset extends Query {
-	
-	private static final long serialVersionUID = 1L;
+public class RegisterSourceDataset implements Serializable {
+
+	private static final long serialVersionUID = 5407332380484864459L;
 	
 	private final String dataSource;
+	
 	private final VectorDataset dataset;
 	
 	public RegisterSourceDataset(String dataSource, VectorDataset dataset) {

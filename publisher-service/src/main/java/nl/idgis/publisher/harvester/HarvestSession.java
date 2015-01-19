@@ -4,11 +4,12 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 import nl.idgis.publisher.database.messages.Updated;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;
@@ -36,16 +37,18 @@ public class HarvestSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
+	private final ActorRef database, datasetManager;
+	
 	private final HarvestJobInfo harvestJob;
 	
-	public HarvestSession(ActorRef database, HarvestJobInfo harvestJob) {
+	public HarvestSession(ActorRef database, ActorRef datasetManager, HarvestJobInfo harvestJob) {
 		this.database = database;
+		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
 	}
 	
-	public static Props props(ActorRef database, HarvestJobInfo harvestJob) {
-		return Props.create(HarvestSession.class, database, harvestJob);
+	public static Props props(ActorRef database, ActorRef datasetManager, HarvestJobInfo harvestJob) {
+		return Props.create(HarvestSession.class, database, datasetManager, harvestJob);
 	}
 	
 	@Override
@@ -100,7 +103,7 @@ public class HarvestSession extends UntypedActor {
 		
 		String dataSourceId = harvestJob.getDataSourceId();
 		final ActorRef sender = getSender();
-		Patterns.ask(database, new RegisterSourceDataset(dataSourceId, dataset), 15000)
+		Patterns.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset), 15000)
 			.onSuccess(new OnSuccess<Object>() {
 				
 				@Override

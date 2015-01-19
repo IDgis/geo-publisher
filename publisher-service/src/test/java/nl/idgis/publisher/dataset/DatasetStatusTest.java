@@ -10,8 +10,9 @@ import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.VectorDataset;
@@ -35,7 +36,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		insertDataSource();
 	
 		testDataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		testTable = testDataset.getTable();
 		sync.ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
@@ -229,7 +230,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 
 		// change source dataset 
-		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
 		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
@@ -246,7 +247,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 		
 		// change filter condition 
-		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
 		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",

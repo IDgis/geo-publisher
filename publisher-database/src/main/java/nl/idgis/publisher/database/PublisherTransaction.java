@@ -64,7 +64,6 @@ import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
@@ -198,8 +197,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	protected void executeQuery(Query query) throws Exception {
 		if(query instanceof GetVersion) {
 			executeGetVersion();
-		} else if(query instanceof RegisterSourceDataset) {
-			executeRegisterSourceDataset((RegisterSourceDataset)query);
 		} else if(query instanceof GetCategoryListInfo) {
 			executeGetCategoryListInfo();
 		} else if(query instanceof GetDatasetListInfo) {
@@ -1045,94 +1042,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.list(new QCategoryInfo(category.identification,category.name)));
 	}
 
-	private void executeRegisterSourceDataset(RegisterSourceDataset rsd) {
-		log.debug("registering source dataset: " + rsd);
-		
-		VectorDataset dataset = rsd.getDataset();
-		Timestamp revision = new Timestamp(dataset.getRevisionDate().getTime());
-		Table table = dataset.getTable();
-		
-		final Integer versionId =
-			query().from(sourceDatasetVersion)
-				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.where(dataSource.identification.eq(rsd.getDataSource())
-					.and(sourceDataset.identification.eq(dataset.getId())))
-				.singleResult(sourceDatasetVersion.id.max());
-		
-		Integer sourceDatasetId = null;
-		if(versionId == null) { // new dataset
-			sourceDatasetId = 
-				insert(sourceDataset)
-					.columns(
-						sourceDataset.dataSourceId,
-						sourceDataset.identification)
-					.select(
-						new SQLSubQuery().from(dataSource)
-							.list(
-								dataSource.id,
-								dataset.getId()))
-				.executeWithKey(sourceDataset.id);
-		} else { // existing dataset
-			Tuple existing = 
-					query().from(sourceDataset)
-						.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-						.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(versionId))
-						.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-						.where(dataSource.identification.eq(rsd.getDataSource())
-							.and(sourceDataset.identification.eq(dataset.getId())))
-						.singleResult(
-							sourceDataset.id,
-							sourceDatasetVersion.name,
-							category.identification,
-							sourceDatasetVersion.revision,
-							sourceDataset.deleteTime);
-			
-			sourceDatasetId = existing.get(sourceDataset.id);
-			
-			String existingName = existing.get(sourceDatasetVersion.name);
-			String existingCategoryIdentification = existing.get(category.identification);
-			Timestamp existingRevision = existing.get(sourceDatasetVersion.revision);
-			Timestamp existingDeleteTime = existing.get(sourceDataset.deleteTime);
-			
-			List<Column> existingColumns = query().from(sourceDatasetVersionColumn)
-					.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
-					.orderBy(sourceDatasetVersionColumn.index.asc())
-					.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
-			
-			if(existingName.equals(table.getName()) // still identical
-					&& existingCategoryIdentification.equals(dataset.getCategoryId())
-					&& existingRevision.equals(revision)
-					&& existingDeleteTime == null
-					&& existingColumns.equals(table.getColumns())) {
-				
-				answer(new AlreadyRegistered());
-				return;
-			} else {
-				if(existingDeleteTime != null) { // reviving dataset
-					update(sourceDataset)						
-						.setNull(sourceDataset.deleteTime)						
-						.execute();
-				}
-			}
-		}
-		
-		int newVersionId = 
-			insert(sourceDatasetVersion)
-				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
-				.set(sourceDatasetVersion.name, table.getName())
-				.set(sourceDatasetVersion.categoryId, getCategoryId(dataset.getCategoryId()))
-				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-				.executeWithKey(sourceDatasetVersion.id);
-		
-		insertSourceDatasetColumns(newVersionId, table.getColumns());
-		
-		if(versionId == null) {
-			answer(new Registered());
-		} else {
-			answer(new Updated());
-		}
-	}
+	
 
 	private void executeGetVersion() {
 		log.debug("database version requested");

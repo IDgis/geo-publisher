@@ -37,7 +37,7 @@ public class Harvester extends UntypedActor {
 	
 	private final Config config;
 	
-	private final ActorRef database;
+	private final ActorRef database, datasetManager;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -47,13 +47,14 @@ public class Harvester extends UntypedActor {
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
 
-	public Harvester(ActorRef database, Config config) {
-		this.database = database;		
+	public Harvester(ActorRef database, ActorRef datasetManager, Config config) {
+		this.database = database;	
+		this.datasetManager = datasetManager;
 		this.config = config;
 	}
 	
-	public static Props props(ActorRef database, Config config) {
-		return Props.create(Harvester.class, database, config);
+	public static Props props(ActorRef database, ActorRef datasetManager, Config config) {
+		return Props.create(Harvester.class, database, datasetManager, config);
 	}
 
 	@Override
@@ -181,7 +182,7 @@ public class Harvester extends UntypedActor {
 					sender.tell(new Ack(), getSelf());
 					
 					ActorRef session = getContext().actorOf(
-							HarvestSession.props(database, harvestJob), 
+							HarvestSession.props(database, datasetManager, harvestJob), 
 							nameGenerator.getName(HarvestSession.class));
 					
 					getContext().watch(session);

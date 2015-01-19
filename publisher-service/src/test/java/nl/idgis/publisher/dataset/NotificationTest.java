@@ -18,8 +18,9 @@ import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.RemoveNotification;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.Notification;
@@ -45,7 +46,7 @@ public class NotificationTest extends AbstractServiceTest {
 			.execute();
 		
 		VectorDataset dataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset));
 		
 		Table table = dataset.getTable();
 		sync.ask(database, new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), ""));

@@ -1,4 +1,4 @@
-package nl.idgis.publisher.database;
+package nl.idgis.publisher.dataset;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
@@ -12,15 +12,19 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Timestamp;
 import java.util.Iterator;
 
+import nl.idgis.publisher.AbstractServiceTest;
+
 import nl.idgis.publisher.database.messages.AlreadyRegistered;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.Updated;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+
 import nl.idgis.publisher.domain.service.VectorDataset;
 
 import org.junit.Test;
 
-public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
+public class RegisterSourceDatasetTest extends AbstractServiceTest {
 
 	@Test
 	public void testRegisterNew() throws Exception {		 		
@@ -29,7 +33,7 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		 
-		sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset()), Registered.class);		
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset()), Registered.class);		
 		
 		assertTrue(
 			query().from(category)
@@ -57,18 +61,18 @@ public class RegisterSourceDatasetTest extends AbstractDatabaseTest {
 		
 		// fill database with other source datasets
 		for(int i = 0; i < 100; i++) {
-			sync.ask(database, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)), Registered.class);
+			sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset("otherSourceDataset" + i)), Registered.class);
 		}
 		
 		VectorDataset dataset = createTestDataset();		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		VectorDataset updatedDataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
 		
 		assertEquals(2,
 				query().from(sourceDatasetVersion)
