@@ -47,7 +47,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test Dataset")
 			.execute();
 	
-		testSourceDataset = createTestDataset();
+		testSourceDataset = createVectorDataset();
 		testTable = testSourceDataset.getTable();
 		testColumns = testTable.getColumns();
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testSourceDataset));
@@ -76,7 +76,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
-				"testSourceDataset", 
+				"testVectorDataset", 
 				Arrays.asList(testColumns.get(0)), // removes second column 
 				""));
 		
@@ -107,7 +107,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 				new UpdateDataset(
 					"testDataset", 
 					"My Test Dataset", 
-					"testSourceDataset", 
+					"testVectorDataset", 
 					Arrays.asList(
 						testColumns.get(0),
 						newColumn), // add new column

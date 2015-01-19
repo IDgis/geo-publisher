@@ -22,6 +22,7 @@ import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -156,11 +157,11 @@ public abstract class AbstractDatabaseTest {
 		return insertDataSource("testDataSource");
 	}
 	
-	protected VectorDataset createTestDataset() {
-		return createTestDataset("testSourceDataset");
+	protected VectorDataset createVectorDataset() {
+		return createVectorDataset("testVectorDataset");
 	}
 
-	protected VectorDataset createTestDataset(String id) {
+	protected VectorDataset createVectorDataset(String id) {
 		List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
@@ -169,6 +170,16 @@ public abstract class AbstractDatabaseTest {
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
 		return new VectorDataset(id, "testCategory", revision, Collections.<Log>emptySet(), table);		
+	}
+	
+	protected UnavailableDataset createUnavailableDataset() {
+		return createUnavailableDataset("testUnavailableDataset");
+	}
+	
+	protected UnavailableDataset createUnavailableDataset(String id) {
+		Timestamp revision = new Timestamp(new Date().getTime());
+		
+		return new UnavailableDataset(id, "testCategory", revision, Collections.<Log>emptySet());		
 	}
 	
 	protected ExecutionContext dispatcher() {

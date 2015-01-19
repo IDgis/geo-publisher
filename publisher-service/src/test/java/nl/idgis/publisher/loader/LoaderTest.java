@@ -390,7 +390,7 @@ public class LoaderTest extends AbstractServiceTest {
 	public void testAddColumnsChangedNotification() throws Exception {
 		insertDataSource();		
 		
-		VectorDataset testDataset = createTestDataset();
+		VectorDataset testDataset = createVectorDataset();
 		Table testTable = testDataset.getTable();
 		List<Column> testColumns = testTable.getColumns();
 		

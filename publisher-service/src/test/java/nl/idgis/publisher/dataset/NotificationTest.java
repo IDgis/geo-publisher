@@ -45,7 +45,7 @@ public class NotificationTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		VectorDataset dataset = createTestDataset();
+		VectorDataset dataset = createVectorDataset();
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset));
 		
 		Table table = dataset.getTable();

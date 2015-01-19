@@ -55,7 +55,7 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	protected void insertDataset(String datasetId) throws Exception {
 		insertDataSource();
 		
-		VectorDataset testDataset = createTestDataset();
+		VectorDataset testDataset = createVectorDataset();
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		Table testTable = testDataset.getTable();

@@ -35,7 +35,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 	public void databaseContent() throws Exception {
 		insertDataSource();
 	
-		testDataset = createTestDataset();
+		testDataset = createVectorDataset();
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset));
 		
 		testTable = testDataset.getTable();
@@ -230,7 +230,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 
 		// change source dataset 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset")));
 		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
@@ -247,7 +247,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		assertFalse(status.isFilterConditionChanged());
 		
 		// change filter condition 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createTestDataset("newSourceDataset")));
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset")));
 		sync.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",

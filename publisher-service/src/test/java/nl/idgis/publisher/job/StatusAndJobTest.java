@@ -92,7 +92,7 @@ public class StatusAndJobTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		VectorDataset dataset = createTestDataset();
+		VectorDataset dataset = createVectorDataset();
 		Object result = sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset));
 		assertEquals(Registered.class, result.getClass());
 		
