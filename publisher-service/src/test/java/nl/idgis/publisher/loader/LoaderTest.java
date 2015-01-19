@@ -37,15 +37,15 @@ import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
-import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.database.messages.Updated;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.EntityType;

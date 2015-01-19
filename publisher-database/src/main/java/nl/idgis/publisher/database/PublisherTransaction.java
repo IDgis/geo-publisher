@@ -19,7 +19,6 @@ import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 
@@ -32,7 +31,6 @@ import java.util.UUID;
 
 import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
-import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
@@ -64,7 +62,6 @@ import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
-import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
@@ -75,8 +72,6 @@ import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.database.messages.Updated;
-import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
@@ -94,9 +89,7 @@ import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.ColumnDiffOperation;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.domain.service.VectorDataset;
 
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -128,18 +121,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		super(config, connection);
 	}
 	
-	private void insertSourceDatasetColumns(int versionId, List<Column> columns) {
-		int i = 0;
-		for(Column column : columns) {			
-			insert(sourceDatasetVersionColumn)
-				.set(sourceDatasetVersionColumn.sourceDatasetVersionId, versionId)
-				.set(sourceDatasetVersionColumn.index, i++)
-				.set(sourceDatasetVersionColumn.name, column.getName())
-				.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-				.execute();
-		}
-	}
-	
 	private void insertDatasetColumns(int datasetId, List<Column> columns) {
 		int i = 0;
 		for(Column column : columns) {			
@@ -149,23 +130,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.set(datasetColumn.name, column.getName())
 				.set(datasetColumn.dataType, column.getDataType().toString())
 				.execute();
-		}
-	}
-	
-	private int getCategoryId(String identification) {
-		Integer id = query().from(category)
-			.where(category.identification.eq(identification))
-			.singleResult(category.id);
-		
-		if(id == null) {
-			insert(category)
-				.set(category.identification, identification)
-				.set(category.name, identification)
-				.execute();
-			
-			return getCategoryId(identification);
-		} else {
-			return id;
 		}
 	}
 	

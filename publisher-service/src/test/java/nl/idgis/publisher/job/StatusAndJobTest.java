@@ -11,9 +11,9 @@ import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.Registered;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;

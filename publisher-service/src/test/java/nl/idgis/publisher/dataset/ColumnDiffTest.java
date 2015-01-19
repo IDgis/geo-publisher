@@ -9,9 +9,9 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.database.messages.Updated;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;

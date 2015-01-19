@@ -25,12 +25,12 @@ import scala.concurrent.ExecutionContext;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
-import nl.idgis.publisher.database.messages.AlreadyRegistered;
-import nl.idgis.publisher.database.messages.Registered;
-import nl.idgis.publisher.database.messages.Updated;
 import nl.idgis.publisher.database.projections.QColumn;
 
+import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;

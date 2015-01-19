@@ -2,14 +2,14 @@ package nl.idgis.publisher.harvester;
 
 import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.database.messages.AlreadyRegistered;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.database.messages.Updated;
 
+import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;

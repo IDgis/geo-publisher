@@ -13,12 +13,10 @@ import java.sql.Timestamp;
 import java.util.Iterator;
 
 import nl.idgis.publisher.AbstractServiceTest;
-
-import nl.idgis.publisher.database.messages.AlreadyRegistered;
-import nl.idgis.publisher.database.messages.Registered;
-import nl.idgis.publisher.database.messages.Updated;
-
+import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.service.VectorDataset;
 
