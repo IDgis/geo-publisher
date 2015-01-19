@@ -34,6 +34,7 @@ import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
@@ -142,7 +143,7 @@ public class DatasetManager extends UntypedActor {
 						: getSourceDatasetVersion(tx, maxVersionId).thenApply(dataset -> Optional.of(dataset)));
 	}
 	
-	private CompletableFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
+	private CompletableFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, Dataset dataset) {
 		log.debug("inserting source dataset (by dataSource identification)");
 		
 		return 
@@ -154,7 +155,15 @@ public class DatasetManager extends UntypedActor {
 					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).thenApply(v -> new Updated());
 	}
 	
-	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, VectorDataset dataset) {
+	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset) {
+		if(dataset instanceof VectorDataset) {
+			return insertSourceDatasetVersionTable(tx, sourceDatasetId, (VectorDataset)dataset);
+		} else {
+			return f.successful(null);
+		}
+	}
+	
+	private CompletableFuture<Void> insertSourceDatasetVersionTable(AsyncHelper tx, Integer sourceDatasetId, VectorDataset dataset) {
 		log.debug("inserting source dataset (by id)");
 		
 		Table table = dataset.getTable();
@@ -182,7 +191,7 @@ public class DatasetManager extends UntypedActor {
 							.thenApply(l -> null));
 	}
 	
-	private CompletableFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, VectorDataset dataset) {
+	private CompletableFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, Dataset dataset) {
 		log.debug("inserting source dataset");
 		
 		return
@@ -203,7 +212,7 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
 		log.debug("registering source dataset");
 		
-		VectorDataset dataset = msg.getDataset();
+		Dataset dataset = msg.getDataset();
 		String dataSource = msg.getDataSource();
 		
 		return db.transactional(tx ->			

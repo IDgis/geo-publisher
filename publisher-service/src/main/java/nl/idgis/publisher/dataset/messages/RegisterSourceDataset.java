@@ -2,17 +2,17 @@ package nl.idgis.publisher.dataset.messages;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.domain.service.Dataset;
 
 public class RegisterSourceDataset implements Serializable {
 
-	private static final long serialVersionUID = 5407332380484864459L;
-	
+	private static final long serialVersionUID = 948150634994468088L;
+
 	private final String dataSource;
 	
-	private final VectorDataset dataset;
+	private final Dataset dataset;
 	
-	public RegisterSourceDataset(String dataSource, VectorDataset dataset) {
+	public RegisterSourceDataset(String dataSource, Dataset dataset) {
 		this.dataSource = dataSource;
 		this.dataset = dataset;
 	}
@@ -21,7 +21,7 @@ public class RegisterSourceDataset implements Serializable {
 		return dataSource;
 	}
 
-	public VectorDataset getDataset() {
+	public Dataset getDataset() {
 		return dataset;
 	}
 
