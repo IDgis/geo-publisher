@@ -502,7 +502,7 @@ public class LoaderTest extends AbstractServiceTest {
 		sync.ask(database, new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
-				"testSourceDataset", 
+				"testVectorDataset", 
 				Arrays.asList(testColumns.get(0)),
 				"{ \"expression\": null }"));
 		
