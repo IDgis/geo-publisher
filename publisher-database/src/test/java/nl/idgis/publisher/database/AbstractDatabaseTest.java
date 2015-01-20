@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -35,7 +34,6 @@ import nl.idgis.publisher.utils.SyncAskHelper;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.util.Timeout;
 
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.sql.Configuration;
@@ -110,7 +108,7 @@ public abstract class AbstractDatabaseTest {
 		system = ActorSystem.create("test", akkaConfig);
 		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		sync = new SyncAskHelper(system, Timeout.apply(1, TimeUnit.HOURS));
+		sync = new SyncAskHelper(system);
 	}
 	
 	protected ActorRef actorOf(Props props, String name) {
