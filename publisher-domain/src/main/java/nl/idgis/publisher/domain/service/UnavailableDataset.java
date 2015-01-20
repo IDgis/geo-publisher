@@ -18,5 +18,4 @@ public final class UnavailableDataset extends Dataset {
 		return "UnavailableDataset [id=" + id + ", categoryId=" + categoryId
 				+ ", revisionDate=" + revisionDate + "]";
 	}
-
 }

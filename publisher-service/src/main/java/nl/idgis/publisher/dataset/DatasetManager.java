@@ -5,15 +5,18 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
 import static nl.idgis.publisher.utils.StreamUtils.index;
 
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
@@ -35,13 +38,18 @@ import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.MessageProperties;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.DatasetLog;
+import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.JsonUtils;
 
 public class DatasetManager extends UntypedActor {
 
@@ -100,48 +108,83 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Dataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
 		log.debug("retrieving source dataset version");
 		
-		return			
-			tx.query().from(sourceDatasetVersion)
-				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
-				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
-				.where(sourceDatasetVersion.id.eq(versionId))
-				.singleResult(
-					sourceDataset.identification,
-					sourceDatasetVersion.name,
-					category.identification,
-					sourceDatasetVersion.revision)
-			
-			.thenCombine(
+		return
+			f.collect(
+				tx.query().from(sourceDatasetVersion)
+					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
+					.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+					.where(sourceDatasetVersion.id.eq(versionId))
+					.singleResult(
+						sourceDataset.identification,
+						sourceDatasetVersion.name,
+						sourceDatasetVersion.type,
+						category.identification,
+						sourceDatasetVersion.revision))
+			.collect(
+				tx.query().from(sourceDatasetVersionLog)
+				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
+				.list(
+					sourceDatasetVersionLog.level,
+					sourceDatasetVersionLog.type,
+					sourceDatasetVersionLog.content))
+			.collect(			
 				tx.query().from(sourceDatasetVersionColumn)
 				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(versionId))
 				.orderBy(sourceDatasetVersionColumn.index.asc())
 				.list(new QColumn(
 					sourceDatasetVersionColumn.name,
-					sourceDatasetVersionColumn.dataType)),
-			
-			(baseInfo, columnInfo) -> {
-				String id = baseInfo.get(sourceDataset.identification);
-				String categoryId = baseInfo.get(category.identification);
-				Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
-				
-				List<Column> columnInfoList = columnInfo.list();
-				if(columnInfoList.isEmpty()) {
-					return new UnavailableDataset(	
-						id, 
-						categoryId, 
-						revisionDate, 
-						Collections.<Log>emptySet());
-				}
-				
-				return new VectorDataset(
-					id, 
-					categoryId, 
-					revisionDate, 
-					Collections.<Log>emptySet(), 
-					new Table(
-						baseInfo.get(sourceDatasetVersion.name), 
-						columnInfoList));
+					sourceDatasetVersionColumn.dataType))).thenApply((baseInfo, logInfo, columnInfo) -> {
+						
+						String id = baseInfo.get(sourceDataset.identification);
+						String type = baseInfo.get(sourceDatasetVersion.type);
+						String categoryId = baseInfo.get(category.identification);
+						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
+						
+						Set<Log> logs = new HashSet<>();
+						for(Tuple logTuple : logInfo) {
+							log.debug("retrieving log");
+							
+							try {
+								LogLevel logLevel = LogLevel.valueOf(logTuple.get(sourceDatasetVersionLog.level));
+								DatasetLogType logType = DatasetLogType.valueOf(logTuple.get(sourceDatasetVersionLog.type));
+								
+								final DatasetLog<?> logContent;
+								Class<? extends DatasetLog<?>> logContentClass = logType.getContentClass();
+								if(logContentClass != null) {
+									logContent = JsonUtils.fromJson(logContentClass, logTuple.get(sourceDatasetVersionLog.content));
+								} else {
+									logContent = null;
+								}
+								
+								Log logLine = Log.create(logLevel, logType, logContent);
+								log.debug("logLine: " + logLine);
+								
+								logs.add(logLine);
+							} catch(Exception e) {
+								log.error("processing log failed", e);
+							}
+						}
+						
+						log.debug("constructing dataset");
+						
+						switch(type) {
+							case "VECTOR":
+								return new VectorDataset(
+									id, 
+									categoryId, 
+									revisionDate, 
+									logs, 
+									new Table(
+										baseInfo.get(sourceDatasetVersion.name), 
+										columnInfo.list()));
+							default:
+								return new UnavailableDataset(	
+									id,
+									categoryId,
+									revisionDate,
+									logs);
+						}
 			});
 	}
 	
@@ -175,47 +218,91 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset) {
 		log.debug("inserting source dataset (by id)");
 		
-		final String name;
+		final String name, type;
 		if(dataset instanceof VectorDataset) {
 			name = ((VectorDataset)dataset).getTable().getName();
+			type = "VECTOR";
+		} else if(dataset instanceof UnavailableDataset) {
+			name = null;
+			type = "UNAVAILABLE";
 		} else {
 			name = null;
+			type = "UNKNOWN";
 		}
 		
-		CompletableFuture<Integer> sourceDatasetVersionIdFuture = 
-			getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId ->
-				tx.insert(sourceDatasetVersion)
-					.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
-					.set(sourceDatasetVersion.name, name)
-					.set(sourceDatasetVersion.categoryId, categoryId)
-					.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-					.executeWithKey(sourceDatasetVersion.id));
-		
-		if(dataset instanceof VectorDataset) {
-			Table table = ((VectorDataset)dataset).getTable();
-			
-			return sourceDatasetVersionIdFuture.thenCompose(sourceDatasetVersionId -> {
-				return index(table.getColumns().stream())
-					.map(indexedColumn -> {
-						Column column = indexedColumn.getValue();
-						
-						return tx.insert(sourceDatasetVersionColumn)
-							.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
-							.set(sourceDatasetVersionColumn.index, indexedColumn.getIndex())
-							.set(sourceDatasetVersionColumn.name, column.getName())
-							.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
-							.execute();
-					})					
-					.reduce(f.successful(0l), (a, b) -> a.thenCompose(c -> b.thenApply(d -> c + d)))
-					.thenApply(l -> {
-						log.debug("number of columns stored: " + l);
-						
-						return null;
+		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId ->
+			tx.insert(sourceDatasetVersion)
+				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+				.set(sourceDatasetVersion.type, type)
+				.set(sourceDatasetVersion.name, name)
+				.set(sourceDatasetVersion.categoryId, categoryId)
+				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+				.executeWithKey(sourceDatasetVersion.id)).thenCompose(sourceDatasetVersionId -> {
+					return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId, dataset).thenCompose(v -> {					
+						if(dataset instanceof VectorDataset) {
+							return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId, (VectorDataset)dataset);
+						} else {
+							return f.successful(null);
+						}
 					});
+				});
+	}
+	
+	private CompletionStage<Void> insertSourceDatasetVersionLogs(AsyncHelper tx, Integer sourceDatasetVersionId, Dataset dataset) {
+		return dataset.getLogs().stream()
+			.map(logLine -> {
+				log.debug("logLine: " + logLine);
+				
+				String contentValue = null;
+				
+				MessageProperties content = logLine.getContent();
+				if(content != null) {					
+					try {
+						contentValue = JsonUtils.toJson(content);
+					} catch(Exception e) {						
+						log.error("storing log content failed", e);
+					}
+				}
+				
+				return tx.insert(sourceDatasetVersionLog)
+					.set(sourceDatasetVersionLog.sourceDatasetVersionId, sourceDatasetVersionId)
+					.set(sourceDatasetVersionLog.level, logLine.getLevel().name())
+					.set(sourceDatasetVersionLog.type, logLine.getType().name())
+					.set(sourceDatasetVersionLog.content, contentValue)
+					.execute();
+			})
+			.reduce(f.successful(0l), DatasetManager::sum)
+			.thenApply(l -> {
+				log.debug("number of logs stored: " + l);
+				
+				return null;
 			});
-		} else {
-			return sourceDatasetVersionIdFuture.thenApply(sourceDatasetVersionId -> null);
-		}
+	}
+	
+	private static CompletableFuture<Long> sum(CompletableFuture<Long> a, CompletableFuture<Long> b) {
+		return a.thenCompose(c -> b.thenApply(d -> c + d));
+	}
+
+	private CompletionStage<Void> insertSourceDatasetVersionColumns(AsyncHelper tx, Integer sourceDatasetVersionId, VectorDataset vectorDataset) {
+		Table table = vectorDataset.getTable();
+		
+		return index(table.getColumns().stream())
+			.map(indexedColumn -> {
+				Column column = indexedColumn.getValue();
+				
+				return tx.insert(sourceDatasetVersionColumn)
+					.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
+					.set(sourceDatasetVersionColumn.index, indexedColumn.getIndex())
+					.set(sourceDatasetVersionColumn.name, column.getName())
+					.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+					.execute();
+			})			
+			.reduce(f.successful(0l), DatasetManager::sum)
+			.thenApply(l -> {
+				log.debug("number of columns stored: " + l);
+				
+				return null;
+			});
 	}
 	
 	private CompletableFuture<Object> insertSourceDataset(AsyncHelper tx, String dataSourceIdentification, Dataset dataset) {

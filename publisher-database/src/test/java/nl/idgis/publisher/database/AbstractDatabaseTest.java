@@ -9,8 +9,11 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,7 +22,9 @@ import scala.concurrent.ExecutionContext;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
@@ -30,6 +35,7 @@ import nl.idgis.publisher.utils.SyncAskHelper;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.util.Timeout;
 
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.sql.Configuration;
@@ -104,7 +110,7 @@ public abstract class AbstractDatabaseTest {
 		system = ActorSystem.create("test", akkaConfig);
 		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		sync = new SyncAskHelper(system);
+		sync = new SyncAskHelper(system, Timeout.apply(1, TimeUnit.HOURS));
 	}
 	
 	protected ActorRef actorOf(Props props, String name) {
@@ -177,9 +183,12 @@ public abstract class AbstractDatabaseTest {
 	}
 	
 	protected UnavailableDataset createUnavailableDataset(String id) {
+		Set<Log> logs = new HashSet<>();
+		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));
+		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new UnavailableDataset(id, "testCategory", revision, Collections.<Log>emptySet());		
+		return new UnavailableDataset(id, "testCategory", revision, logs);		
 	}
 	
 	protected ExecutionContext dispatcher() {
