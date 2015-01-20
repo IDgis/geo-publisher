@@ -71,6 +71,8 @@ public class DatasetManager extends UntypedActor {
 
 	@Override
 	public void preStart() throws Exception {
+		log.debug("start");
+		
 		Timeout timeout = Timeout.apply(15000);
 		ExecutionContext executionContext = getContext().dispatcher();
 
@@ -93,21 +95,21 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private CompletableFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
-		log.debug("get category id: " + identification);
+		log.debug("get category id: {}", identification);
 		
 		return 
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
 				.singleResult(category.id).thenCompose(id -> {
 					if(id == null) {
-						log.debug("new category: " + identification);
+						log.debug("new category: {}", identification);
 						
 						return tx.insert(category)
 							.set(category.identification, identification)
 							.set(category.name, identification)
 							.executeWithKey(category.id);
 					} else {
-						log.debug("existing category: " + identification);
+						log.debug("existing category: {}", identification);
 						
 						return f.successful(id);
 					}	
@@ -167,11 +169,11 @@ public class DatasetManager extends UntypedActor {
 								}
 								
 								Log logLine = Log.create(logLevel, logType, logContent);
-								log.debug("logLine: " + logLine);
+								log.debug("logLine: {}", logLine);
 								
 								logs.add(logLine);
 							} catch(Exception e) {
-								log.error("processing log failed", e);
+								log.error("processing log failed: {}", e);
 							}
 						}
 						
@@ -239,10 +241,10 @@ public class DatasetManager extends UntypedActor {
 			type = "UNKNOWN";
 		}
 		
-		log.debug("type: " + type + ", name: " + name);
+		log.debug("type: {}, name: {}", type, name);
 		
 		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId -> {
-			log.debug("categoryId: " + categoryId);
+			log.debug("categoryId: {}", categoryId);
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -252,7 +254,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
-				log.debug("sourceDatasetVersionId: " + sourceDatasetVersionId);
+				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
 				
 				return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId, dataset).thenCompose(v -> {					
 					if(dataset instanceof VectorDataset) {
@@ -269,7 +271,7 @@ public class DatasetManager extends UntypedActor {
 		
 		return dataset.getLogs().stream()
 			.map(logLine -> {
-				log.debug("logLine: " + logLine);
+				log.debug("logLine: {}", logLine);
 				
 				String contentValue = null;
 				
@@ -278,7 +280,7 @@ public class DatasetManager extends UntypedActor {
 					try {
 						contentValue = JsonUtils.toJson(content);
 					} catch(Exception e) {						
-						log.error("storing log content failed", e);
+						log.error("storing log content failed: {}", e);
 					}
 				}
 				
@@ -291,7 +293,7 @@ public class DatasetManager extends UntypedActor {
 			})
 			.reduce(f.successful(0l), DatasetManager::sum)
 			.thenApply(l -> {
-				log.debug("number of logs stored: " + l);
+				log.debug("number of logs stored: {}", l);
 				
 				return null;
 			});
@@ -319,7 +321,7 @@ public class DatasetManager extends UntypedActor {
 			})			
 			.reduce(f.successful(0l), DatasetManager::sum)
 			.thenApply(l -> {
-				log.debug("number of columns stored: " + l);
+				log.debug("number of columns stored: {}", l);
 				
 				return null;
 			});
