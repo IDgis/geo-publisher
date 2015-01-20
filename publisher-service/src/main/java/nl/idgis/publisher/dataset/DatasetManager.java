@@ -93,16 +93,25 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private CompletableFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
+		log.debug("get category id: " + identification);
+		
 		return 
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
-				.singleResult(category.id).thenCompose(id ->
-					id == null
-						? tx.insert(category)
+				.singleResult(category.id).thenCompose(id -> {
+					if(id == null) {
+						log.debug("new category: " + identification);
+						
+						return tx.insert(category)
 							.set(category.identification, identification)
 							.set(category.name, identification)
-							.executeWithKey(category.id)
-						: f.successful(id));
+							.executeWithKey(category.id);
+					} else {
+						log.debug("existing category: " + identification);
+						
+						return f.successful(id);
+					}	
+				});
 	}
 	
 	private CompletableFuture<Dataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
@@ -230,25 +239,34 @@ public class DatasetManager extends UntypedActor {
 			type = "UNKNOWN";
 		}
 		
-		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId ->
-			tx.insert(sourceDatasetVersion)
+		log.debug("type: " + type + ", name: " + name);
+		
+		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId -> {
+			log.debug("categoryId: " + categoryId);
+			
+			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.type, type)
 				.set(sourceDatasetVersion.name, name)
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
-				.executeWithKey(sourceDatasetVersion.id)).thenCompose(sourceDatasetVersionId -> {
-					return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId, dataset).thenCompose(v -> {					
-						if(dataset instanceof VectorDataset) {
-							return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId, (VectorDataset)dataset);
-						} else {
-							return f.successful(null);
-						}
-					});
+				.executeWithKey(sourceDatasetVersion.id);
+			}).thenCompose(sourceDatasetVersionId -> {
+				log.debug("sourceDatasetVersionId: " + sourceDatasetVersionId);
+				
+				return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId, dataset).thenCompose(v -> {					
+					if(dataset instanceof VectorDataset) {
+						return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId, (VectorDataset)dataset);
+					} else {
+						return f.successful(null);
+					}
 				});
+			});
 	}
 	
 	private CompletionStage<Void> insertSourceDatasetVersionLogs(AsyncHelper tx, Integer sourceDatasetVersionId, Dataset dataset) {
+		log.debug("inserting logs");
+		
 		return dataset.getLogs().stream()
 			.map(logLine -> {
 				log.debug("logLine: " + logLine);
@@ -284,6 +302,8 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private CompletionStage<Void> insertSourceDatasetVersionColumns(AsyncHelper tx, Integer sourceDatasetVersionId, VectorDataset vectorDataset) {
+		log.debug("inserting columns");
+		
 		Table table = vectorDataset.getTable();
 		
 		return index(table.getColumns().stream())
