@@ -129,4 +129,11 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 	}
+	
+	@Test
+	public void testRegisterUnavailableDatasetNoCategory() throws Exception {
+		UnavailableDataset dataset = createUnavailableDataset();
+		dataset = new UnavailableDataset(dataset.getId(), null, dataset.getRevisionDate(), dataset.getLogs());
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);
+	}
 }

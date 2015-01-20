@@ -97,6 +97,11 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
 		log.debug("get category id: {}", identification);
 		
+		// category can be null for unavailable datasets
+		if(identification == null) {
+			return f.successful(null);
+		}
+		
 		return 
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
@@ -249,7 +254,7 @@ public class DatasetManager extends UntypedActor {
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.type, type)
-				.set(sourceDatasetVersion.name, name)
+				.set(sourceDatasetVersion.name, name)				
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
 				.executeWithKey(sourceDatasetVersion.id);
