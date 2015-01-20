@@ -17,17 +17,35 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper {
 	}
 	
 	public <T> CompletableFuture<T> transactional(final Function<AsyncHelper, CompletableFuture<T>> handler) {
-		return transaction().thenCompose(tx -> {
-				try {
-					return handler.apply(tx).thenCompose(t -> {
-						return tx.commit().thenApply(msg -> t);
-					});
-				} catch(final Exception e) {
-					return tx.rollback().thenApply(msg -> {
-						throw e;
-					});
-				}
-			});
+		CompletableFuture<T> future = new CompletableFuture<T>();
+		
+		transaction().whenComplete((tx, e0) -> {
+			if(e0 == null) {			
+				handler.apply(tx).whenComplete((t, e1) -> {
+					log.debug("transaction handler completed");
+					
+					if(e1 != null) {
+						tx.rollback().whenComplete((a, e2) -> {
+							future.completeExceptionally(e1);
+						});
+					} else {
+						tx.commit().whenComplete((a, e2) -> {
+							if(e2 != null) {
+								future.completeExceptionally(e2);
+							} else {
+								future.complete(t);
+							}
+						});
+					}
+				});
+			} else {
+				tx.rollback().whenComplete((a, e2) -> {
+					future.completeExceptionally(e0);
+				});
+			}
+		});
+		
+		return future;
 	}
 	
 	public CompletableFuture<AsyncTransactionHelper> transaction() {
