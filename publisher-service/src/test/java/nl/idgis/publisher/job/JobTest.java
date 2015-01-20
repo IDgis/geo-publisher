@@ -95,6 +95,7 @@ public class JobTest extends AbstractServiceTest {
 		int versionId =
 			insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.name, "My Test SourceDataset")
+				.set(sourceDatasetVersion.type, "VECTOR")
 				.set(sourceDatasetVersion.revision, testRevision)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.categoryId, categoryId)
