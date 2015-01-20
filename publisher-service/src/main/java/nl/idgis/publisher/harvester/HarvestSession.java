@@ -21,15 +21,14 @@ import nl.idgis.publisher.domain.service.Dataset;
 
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 import scala.concurrent.duration.Duration;
 
@@ -40,6 +39,8 @@ public class HarvestSession extends UntypedActor {
 	private final ActorRef database, datasetManager;
 	
 	private final HarvestJobInfo harvestJob;
+	
+	private FutureUtils f;
 	
 	public HarvestSession(ActorRef database, ActorRef datasetManager, HarvestJobInfo harvestJob) {
 		this.database = database;
@@ -53,7 +54,9 @@ public class HarvestSession extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
+		
+		f = new FutureUtils(getContext().dispatcher());
 	}
 
 	@Override
@@ -61,7 +64,7 @@ public class HarvestSession extends UntypedActor {
 		if(msg instanceof ReceiveTimeout) {
 			handleTimeout();
 		} else if(msg instanceof Dataset) {
-			handleVectorDataset((Dataset)msg);			
+			handleDataset((Dataset)msg);			
 		} else if(msg instanceof End) {
 			handleEnd();
 		} else if(msg instanceof Log) {
@@ -74,7 +77,10 @@ public class HarvestSession extends UntypedActor {
 	private void handleTimeout() {
 		log.debug("timeout while executing job: " + harvestJob);
 		
-		getContext().stop(getSelf());
+		f.ask(database, new UpdateJobState(harvestJob, JobState.FAILED)).thenRun(() -> {
+			log.debug("harvesting of dataSource finished: " + harvestJob);
+			getContext().stop(getSelf());
+		});
 	}
 
 	private void handleJobLog(Log msg) { 
@@ -86,69 +92,53 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		final ActorRef self = getSelf();			
-		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.SUCCEEDED), 150000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("harvesting of dataSource finished: " + harvestJob);
-					getContext().stop(self);
-				}
-			}, getContext().dispatcher());
+		f.ask(database, new UpdateJobState(harvestJob, JobState.SUCCEEDED)).thenRun(() -> {
+			log.debug("harvesting of dataSource finished: " + harvestJob);
+			getContext().stop(getSelf());
+		});
 	}
 
-	private void handleVectorDataset(final Dataset dataset) {
+	private void handleDataset(final Dataset dataset) {
 		log.debug("dataset received");
 		
-		String dataSourceId = harvestJob.getDataSourceId();
-		final ActorRef sender = getSender();
-		Patterns.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset), 15000)
-			.onSuccess(new OnSuccess<Object>() {
+		ActorRef sender = getSender();
+		String dataSourceId = harvestJob.getDataSourceId();		
+		f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset)).thenAccept((msg) -> {			
+			if(msg instanceof AlreadyRegistered) {
+				log.debug("already registered");
 				
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					if(msg instanceof AlreadyRegistered) {
-						log.debug("already registered");
+				sender.tell(new NextItem(), getSelf());
+			} else {						
+				log.debug("dataset registered");
+				
+				HarvestLogType type = null;
+				if(msg instanceof Registered) {
+					type = HarvestLogType.REGISTERED;
+				} else if(msg instanceof Updated) {
+					type = HarvestLogType.UPDATED;
+				}
+				
+				if(type != null) {
+					Log jobLog = Log.create (
+							LogLevel.INFO, 
+							type, 
+							new HarvestLog (
+									EntityType.SOURCE_DATASET, 
+									dataset.getId (), 
+									null
+						));
+					
+					f.ask(database, new StoreLog(harvestJob, jobLog)).thenRun(() -> {
+						log.debug("dataset registration logged");
 						
 						sender.tell(new NextItem(), getSelf());
-					} else {						
-						log.debug("dataset registered");
-						
-						HarvestLogType type = null;
-						if(msg instanceof Registered) {
-							type = HarvestLogType.REGISTERED;
-						} else if(msg instanceof Updated) {
-							type = HarvestLogType.UPDATED;
-						}
-						
-						if(type != null) {
-							Log jobLog = Log.create (
-									LogLevel.INFO, 
-									type, 
-									new HarvestLog (
-											EntityType.SOURCE_DATASET, 
-											dataset.getId (), 
-											null
-								));
-							
-							Patterns.ask(database, new StoreLog(harvestJob, jobLog), 15000)
-								.onSuccess(new OnSuccess<Object>() {
-									
-									@Override
-									public void onSuccess(Object msg) throws Throwable {
-										log.debug("dataset registration logged");
-										
-										sender.tell(new NextItem(), getSelf());
-									}
-								}, getContext().dispatcher());
-						} else {
-							log.error("unknown dataset registration result: "+ msg);
-							
-							sender.tell(new NextItem(), getSelf());
-						}
-					}
+					});
+				} else {
+					log.error("unknown dataset registration result: "+ msg);
+					
+					sender.tell(new NextItem(), getSelf());
 				}
-			}, getContext().dispatcher());
+			}
+		});
 	}
 }
