@@ -19,6 +19,7 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -102,15 +103,15 @@ public class HarvestSession extends UntypedActor {
 		log.debug("dataset received");
 		
 		ActorRef sender = getSender();
-		String dataSourceId = harvestJob.getDataSourceId();		
-		f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset)).thenAccept((msg) -> {			
+		String dataSourceId = harvestJob.getDataSourceId();
+		
+		f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
+			.exceptionally(e -> new Failure(e)).thenAccept((msg) -> {			
 			if(msg instanceof AlreadyRegistered) {
 				log.debug("already registered");
 				
 				sender.tell(new NextItem(), getSelf());
-			} else {						
-				log.debug("dataset registered");
-				
+			} else {
 				HarvestLogType type = null;
 				if(msg instanceof Registered) {
 					type = HarvestLogType.REGISTERED;
@@ -119,6 +120,8 @@ public class HarvestSession extends UntypedActor {
 				}
 				
 				if(type != null) {
+					log.debug("dataset registered");
+					
 					Log jobLog = Log.create (
 							LogLevel.INFO, 
 							type, 
@@ -133,8 +136,12 @@ public class HarvestSession extends UntypedActor {
 						
 						sender.tell(new NextItem(), getSelf());
 					});
+				} else if(msg instanceof Failure) {
+					log.error("dataset registration failed: {}", ((Failure)msg).getCause());
+					
+					sender.tell(new NextItem(), getSelf());
 				} else {
-					log.error("unknown dataset registration result: "+ msg);
+					log.error("unknown dataset registration result: {}", msg);
 					
 					sender.tell(new NextItem(), getSelf());
 				}
