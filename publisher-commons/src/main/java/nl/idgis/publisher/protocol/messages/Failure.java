@@ -1,6 +1,8 @@
 package nl.idgis.publisher.protocol.messages;
 
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 
 public class Failure implements Serializable {
 	
@@ -18,6 +20,9 @@ public class Failure implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Failure [cause=" + cause + "]";
+		StringWriter sw = new StringWriter();
+		cause.printStackTrace(new PrintWriter(sw));
+		
+		return "Failure [cause=" + sw.toString() + "]";
 	}
 }

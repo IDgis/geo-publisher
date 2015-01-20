@@ -137,7 +137,7 @@ public class HarvestSession extends UntypedActor {
 						sender.tell(new NextItem(), getSelf());
 					});
 				} else if(msg instanceof Failure) {
-					log.error("dataset registration failed: {}", ((Failure)msg).getCause());
+					log.error("dataset registration failed: {}", msg);
 					
 					sender.tell(new NextItem(), getSelf());
 				} else {

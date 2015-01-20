@@ -37,6 +37,8 @@ import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
 
+import nl.idgis.publisher.protocol.messages.Failure;
+
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -82,7 +84,19 @@ public class DatasetManager extends UntypedActor {
 
 	private <T> void returnToSender(CompletableFuture<T> future) {
 		ActorRef sender = getSender();
-		future.thenAccept(t -> sender.tell(t, getSelf()));
+		future.whenComplete((t, e) -> {
+			if(e == null) {
+				log.debug("answering: {}", t);
+				
+				sender.tell(t, getSelf());
+			} else {
+				Failure failure = new Failure(e);
+				
+				log.debug("answering with failure: {}", failure);
+				
+				sender.tell(failure, getSelf());
+			}
+		});
 	}
 
 	@Override
@@ -251,12 +265,20 @@ public class DatasetManager extends UntypedActor {
 		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId -> {
 			log.debug("categoryId: {}", categoryId);
 			
+			final Timestamp revision;
+			Date revisionDate = dataset.getRevisionDate();
+			if(revisionDate != null) {
+				revision = new Timestamp(revisionDate.getTime());
+			} else {
+				revision = null;
+			}
+			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.type, type)
 				.set(sourceDatasetVersion.name, name)				
 				.set(sourceDatasetVersion.categoryId, categoryId)
-				.set(sourceDatasetVersion.revision, new Timestamp(dataset.getRevisionDate().getTime()))
+				.set(sourceDatasetVersion.revision, revision)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
