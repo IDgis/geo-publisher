@@ -6,7 +6,11 @@
       <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
     </layout>
   </appender>
-  
+
+  <!--   
+  	<logger name="nl.idgis.publisher.dataset" level="debug"/>
+   -->
+   
   <!--  
   	<logger name="nl.idgis.publisher.metadata.MetadataGenerator" level="debug"/>
   -->
