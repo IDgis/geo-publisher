@@ -21,8 +21,9 @@ import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDataset
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+import static nl.idgis.publisher.utils.JsonUtils.fromJson;
+import static nl.idgis.publisher.utils.JsonUtils.toJson;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -94,9 +95,6 @@ import nl.idgis.publisher.domain.service.Type;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
@@ -814,17 +812,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		logInsert.execute();
 		
 		ack();
-	}
-	
-	private <T> T fromJson(Class<T> clazz, String json) throws JsonProcessingException, IOException {
-		ObjectMapper om = new ObjectMapper();
-		return om.reader(clazz).readValue(json);
-	}
-
-	private String toJson(Object content) throws JsonProcessingException {
-		ObjectMapper om = new ObjectMapper();
-		om.setSerializationInclusion(Include.NON_NULL);
-		return om.writeValueAsString(content);
 	}
 
 	private void executeGetSourceDatasetListInfo(GetSourceDatasetListInfo sdi) {
