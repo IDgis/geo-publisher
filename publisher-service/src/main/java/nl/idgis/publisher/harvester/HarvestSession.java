@@ -75,7 +75,7 @@ public class HarvestSession extends UntypedActor {
 	}
 
 	private void handleTimeout() {
-		log.debug("timeout while executing job: " + harvestJob);
+		log.error("timeout while executing job: " + harvestJob);
 		
 		f.ask(database, new UpdateJobState(harvestJob, JobState.FAILED)).thenRun(() -> {
 			log.debug("harvesting of dataSource finished: " + harvestJob);
