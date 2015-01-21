@@ -6,7 +6,7 @@ import java.util.Set;
 import nl.idgis.publisher.domain.Log;
 
 public final class VectorDataset extends Dataset {
-		
+
 	private static final long serialVersionUID = -7143425494499774273L;
 	
 	private final Table table;
@@ -19,12 +19,6 @@ public final class VectorDataset extends Dataset {
 
 	public Table getTable() {
 		return table;
-	}
-	
-	@Override
-	public String toString() {
-		return "Dataset [id=" + id + ", name=" + name + ", categoryId=" + categoryId + ", table="
-				+ table + ", revisionDate=" + revisionDate + "]";
 	}
 
 	@Override
@@ -50,5 +44,12 @@ public final class VectorDataset extends Dataset {
 		} else if (!table.equals(other.table))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "VectorDataset [table=" + table + ", id=" + id + ", name="
+				+ name + ", categoryId=" + categoryId + ", revisionDate="
+				+ revisionDate + ", logs=" + logs + "]";
 	}
 }

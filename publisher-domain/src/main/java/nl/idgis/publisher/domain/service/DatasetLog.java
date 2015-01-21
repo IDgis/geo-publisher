@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
 
@@ -18,11 +20,13 @@ public abstract class DatasetLog<T extends DatasetLog<T>> implements MessageProp
 	}
 
 	@Override
+	@JsonIgnore
 	public EntityType getEntityType() {
 		return EntityType.DATASET;
 	}
 
 	@Override
+	@JsonIgnore
 	public String getIdentification() {
 		if(dataset == null) {
 			return null;
@@ -32,12 +36,13 @@ public abstract class DatasetLog<T extends DatasetLog<T>> implements MessageProp
 	}
 
 	@Override
+	@JsonIgnore
 	public String getTitle() {
 		if(dataset == null) {
 			return null;
 		}
 		
-		return dataset.getId();
+		return dataset.getName();
 	}
 	
 	public abstract T withDataset(Dataset dataset);
