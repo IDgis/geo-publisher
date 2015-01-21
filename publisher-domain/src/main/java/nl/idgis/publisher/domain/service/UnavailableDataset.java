@@ -15,7 +15,8 @@ public final class UnavailableDataset extends Dataset {
 
 	@Override
 	public String toString() {
-		return "UnavailableDataset [id=" + id + ", name=" + name + ", categoryId=" + categoryId
-				+ ", revisionDate=" + revisionDate + "]";
-	}
+		return "UnavailableDataset [id=" + id + ", name=" + name
+				+ ", categoryId=" + categoryId + ", revisionDate="
+				+ revisionDate + ", logs=" + logs + "]";
+	}	
 }
