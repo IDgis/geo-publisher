@@ -7,8 +7,9 @@
     </layout>
   </appender>
 
-     
+  <!-- 
   	<logger name="nl.idgis.publisher.dataset" level="debug"/>
+  -->
   
    
   <!--  
@@ -35,9 +36,9 @@
     <logger name="com.mysema.query.sql" level="debug"/>
    -->
   
-   
+  <!--
   	<logger name="nl.idgis.publisher.harvester" level="debug"/>
-  
+  -->
   
   <!-- 
   	<logger name="nl.idgis.publisher.loader" level="debug"/>
