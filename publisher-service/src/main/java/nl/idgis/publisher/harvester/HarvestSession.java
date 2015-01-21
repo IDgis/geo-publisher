@@ -114,21 +114,23 @@ public class HarvestSession extends UntypedActor {
 			} else {
 				HarvestLogType type = null;
 				if(msg instanceof Registered) {
+					log.debug("dataset registered");
+					
 					type = HarvestLogType.REGISTERED;
 				} else if(msg instanceof Updated) {
+					log.debug("dataset updated");
+					
 					type = HarvestLogType.UPDATED;
 				}
 				
 				if(type != null) {
-					log.debug("dataset registered");
-					
 					Log jobLog = Log.create (
 							LogLevel.INFO, 
 							type, 
 							new HarvestLog (
 									EntityType.SOURCE_DATASET, 
 									dataset.getId (), 
-									null
+									dataset.getName()
 						));
 					
 					f.ask(database, new StoreLog(harvestJob, jobLog)).thenRun(() -> {
