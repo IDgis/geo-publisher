@@ -55,13 +55,23 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		assertTrue(query().from(sourceDatasetVersion).exists());
 		
 		Set<Log> logs = new HashSet<>(dataset.getLogs());
-		dataset = new UnavailableDataset(dataset.getId(), dataset.getCategoryId(), dataset.getRevisionDate(), logs);
+		dataset = new UnavailableDataset(
+			dataset.getId(), 
+			dataset.getName(), 
+			dataset.getCategoryId(), 
+			dataset.getRevisionDate(), 
+			logs);
 		
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 		
 		logs = new HashSet<>();
 		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog("my_table")));
-		dataset = new UnavailableDataset(dataset.getId(), dataset.getCategoryId(), dataset.getRevisionDate(), logs);
+		dataset = new UnavailableDataset(
+			dataset.getId(),
+			dataset.getName(),
+			dataset.getCategoryId(), 
+			dataset.getRevisionDate(), 
+			logs);
 		
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class);
 	}
@@ -133,7 +143,13 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	@Test
 	public void testRegisterUnavailableDatasetNoCategory() throws Exception {
 		UnavailableDataset dataset = createUnavailableDataset();
-		dataset = new UnavailableDataset(dataset.getId(), null, dataset.getRevisionDate(), dataset.getLogs());
+		dataset = new UnavailableDataset(
+				dataset.getId(), 
+				dataset.getName(), 
+				null, //categoryId removed 
+				dataset.getRevisionDate(), 
+				dataset.getLogs());
+		
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);
 	}
 }

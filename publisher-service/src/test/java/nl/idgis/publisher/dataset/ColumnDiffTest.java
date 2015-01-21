@@ -141,13 +141,10 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// no changes yet
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());
 		
-		Table newTable = 
-			new Table(
-					testTable.getName(),
-					Arrays.asList(testColumns.get(0)) // removes second column 
-				);
+		Table newTable = new Table(Arrays.asList(testColumns.get(0))); // removes second column
 		VectorDataset newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
+			testSourceDataset.getName(),
 			testSourceDataset.getCategoryId(),			
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),
@@ -176,13 +173,10 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());
 		
 		Column newColumn = new Column("additional_column", Type.DATE);
-		newTable = 
-			new Table(
-					testTable.getName(),
-					Arrays.asList(testColumns.get(0), newColumn)
-				);
+		newTable = new Table(Arrays.asList(testColumns.get(0), newColumn));
 		newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
+			testSourceDataset.getName(),
 			testSourceDataset.getCategoryId(),			
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),

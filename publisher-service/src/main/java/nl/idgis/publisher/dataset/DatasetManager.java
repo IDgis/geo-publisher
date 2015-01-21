@@ -167,6 +167,7 @@ public class DatasetManager extends UntypedActor {
 					sourceDatasetVersionColumn.dataType))).thenApply((baseInfo, logInfo, columnInfo) -> {
 						
 						String id = baseInfo.get(sourceDataset.identification);
+						String name = baseInfo.get(sourceDatasetVersion.name);
 						String type = baseInfo.get(sourceDatasetVersion.type);
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
@@ -202,15 +203,15 @@ public class DatasetManager extends UntypedActor {
 							case "VECTOR":
 								return new VectorDataset(
 									id, 
+									name,
 									categoryId, 
 									revisionDate, 
 									logs, 
-									new Table(
-										baseInfo.get(sourceDatasetVersion.name), 
-										columnInfo.list()));
+									new Table(columnInfo.list()));
 							default:
 								return new UnavailableDataset(	
 									id,
+									name,
 									categoryId,
 									revisionDate,
 									logs);
@@ -248,19 +249,16 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset) {
 		log.debug("inserting source dataset (by id)");
 		
-		final String name, type;
-		if(dataset instanceof VectorDataset) {
-			name = ((VectorDataset)dataset).getTable().getName();
+		final String type;
+		if(dataset instanceof VectorDataset) {			
 			type = "VECTOR";
-		} else if(dataset instanceof UnavailableDataset) {
-			name = null;
+		} else if(dataset instanceof UnavailableDataset) {			
 			type = "UNAVAILABLE";
-		} else {
-			name = null;
+		} else {			
 			type = "UNKNOWN";
 		}
 		
-		log.debug("type: {}, name: {}", type, name);
+		log.debug("type: {}", type);
 		
 		return getCategoryId(tx, dataset.getCategoryId()).thenCompose(categoryId -> {
 			log.debug("categoryId: {}", categoryId);
@@ -272,6 +270,8 @@ public class DatasetManager extends UntypedActor {
 			} else {
 				revision = null;
 			}
+			
+			String name = dataset.getName();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)

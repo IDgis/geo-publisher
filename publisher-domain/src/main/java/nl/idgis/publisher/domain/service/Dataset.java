@@ -7,10 +7,10 @@ import java.util.Set;
 import nl.idgis.publisher.domain.Log;
 
 public abstract class Dataset implements Serializable {
+	
+	private static final long serialVersionUID = 8178725904348962956L;
 
-	private static final long serialVersionUID = -8740979676256691272L;
-
-	protected final String id;
+	protected final String id, name;
 	
 	protected final String categoryId;
 	
@@ -18,8 +18,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final Set<Log> logs;
 	
-	Dataset(String id, String categoryId, Date revisionDate, Set<Log> logs) {
+	Dataset(String id, String name, String categoryId, Date revisionDate, Set<Log> logs) {
 		this.id = id;
+		this.name = name;
 		this.categoryId = categoryId;
 		this.revisionDate = revisionDate;
 		this.logs = logs;
@@ -27,6 +28,10 @@ public abstract class Dataset implements Serializable {
 
 	public String getId() {
 		return id;
+	}
+	
+	public String getName() {
+		return name;
 	}
 
 	public String getCategoryId() {

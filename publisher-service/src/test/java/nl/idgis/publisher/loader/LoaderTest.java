@@ -406,11 +406,10 @@ public class LoaderTest extends AbstractServiceTest {
 		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		executeJobs(new GetImportJobs());
 		
-		Table updatedTable = new Table(
-				testTable.getName(), 
-				Arrays.asList(testColumns.get(0)));		
+		Table updatedTable = new Table(Arrays.asList(testColumns.get(0)));		
 		VectorDataset updatedDataset = new VectorDataset(
 				testDataset.getId(),
+				testDataset.getName(),
 				testDataset.getCategoryId(),				
 				testDataset.getRevisionDate(),
 				Collections.<Log>emptySet(),
