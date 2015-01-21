@@ -169,11 +169,11 @@ public abstract class AbstractDatabaseTest {
 		List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
-		Table table = new Table("My Test Table", columns);
+		Table table = new Table(columns);
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new VectorDataset(id, "testCategory", revision, Collections.<Log>emptySet(), table);		
+		return new VectorDataset(id, "My Test Table", "testCategory", revision, Collections.<Log>emptySet(), table);		
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -186,7 +186,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new UnavailableDataset(id, "testCategory", revision, logs);		
+		return new UnavailableDataset(id, "My Test Table", "testCategory", revision, logs);		
 	}
 	
 	protected ExecutionContext dispatcher() {

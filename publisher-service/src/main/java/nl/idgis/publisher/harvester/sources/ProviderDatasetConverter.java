@@ -77,13 +77,12 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.map(column -> new Column(column.getName(), column.getType()))
 					.collect(Collectors.toList());
 				
-				Table table = new Table(title, columns);
-				
-				dataset = new VectorDataset(identification, categoryId, revisionDate, logs, table);
+				Table table = new Table(columns);				
+				dataset = new VectorDataset(identification, title, categoryId, revisionDate, logs, table);
 			} else { 
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, categoryId, revisionDate, logs);
+				dataset = new UnavailableDataset(identification, title, categoryId, revisionDate, logs);
 			}
 			
 			sender.tell(dataset, getSelf());			
