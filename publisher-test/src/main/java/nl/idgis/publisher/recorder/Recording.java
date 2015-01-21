@@ -1,6 +1,6 @@
 package nl.idgis.publisher.recorder;
 
-import akka.japi.Procedure;
+import java.util.function.Consumer;
 
 public interface Recording {
 
@@ -10,6 +10,6 @@ public interface Recording {
 
 	public <T> Recording assertNext(Class<T> clazz) throws Exception;
 
-	public <T> Recording assertNext(Class<T> clazz, Procedure<T> procedure) throws Exception;
+	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception;
 
 }

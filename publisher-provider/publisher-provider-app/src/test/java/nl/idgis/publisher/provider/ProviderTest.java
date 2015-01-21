@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -54,7 +55,6 @@ import nl.idgis.publisher.utils.SyncAskHelper;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
-import akka.japi.Procedure;
 
 public class ProviderTest {
 	
@@ -118,25 +118,15 @@ public class ProviderTest {
 		}
 		
 		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
-			for(final String tableName : tableNames) {
-				
-					assertHasNext()
-					.assertNext(DescribeTable.class, new Procedure<DescribeTable>() {
-
-						@Override
-						public void apply(DescribeTable describeTable) throws Exception {						
-							assertEquals(tableName, describeTable.getTableName());
-						}
-					})
-					.assertHasNext()
-					.assertNext(PerformCount.class, new Procedure<PerformCount>() {
-
-						@Override
-						public void apply(PerformCount performCount) throws Exception {
-							assertEquals(tableName, performCount.getTableName());						
-						}
-						
-					});
+			for(final String tableName : tableNames) {				
+				assertHasNext()
+				.assertNext(DescribeTable.class, describeTable -> {
+					assertEquals(tableName, describeTable.getTableName());						
+				})
+				.assertHasNext()
+				.assertNext(PerformCount.class, performCount -> {
+					assertEquals(tableName, performCount.getTableName());
+				});
 			}
 			
 			return this;			
@@ -164,7 +154,7 @@ public class ProviderTest {
 		}
 
 		@Override
-		public <T> DatabaseRecording assertNext(Class<T> clazz, Procedure<T> procedure) throws Exception {
+		public <T> DatabaseRecording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
 			recording.assertNext(clazz, procedure);
 			
 			return this;
@@ -257,13 +247,8 @@ public class ProviderTest {
 		
 		replayRecording()
 			.assertHasNext()
-			.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
-
-				@Override
-				public void apply(GetMetadata msg) throws Exception {
-					assertEquals("test", msg.getIdentification());
-				}
-				
+			.assertNext(GetMetadata.class, msg -> {
+				assertEquals("test", msg.getIdentification());
 			})
 			.assertDatabaseInteraction()
 			.assertNotHasNext();
@@ -277,13 +262,8 @@ public class ProviderTest {
 		
 		replayRecording()
 			.assertHasNext()
-			.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
-
-				@Override
-				public void apply(GetMetadata msg) throws Exception {
-					assertEquals("test", msg.getIdentification());
-				}
-				
+			.assertNext(GetMetadata.class, msg -> {				
+				assertEquals("test", msg.getIdentification());				
 			})				
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();

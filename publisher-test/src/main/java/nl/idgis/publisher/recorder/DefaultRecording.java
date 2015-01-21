@@ -4,10 +4,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
+import java.util.function.Consumer;
 
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
-
-import akka.japi.Procedure;
 
 class DefaultRecording implements Recording {
 	
@@ -37,14 +36,14 @@ class DefaultRecording implements Recording {
 	}
 	
 	@Override	
-	public <T> Recording assertNext(Class<T> clazz, Procedure<T> procedure) throws Exception {
+	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
 		Object val = iterator.next().getMessage();
 		
 		assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
 				+ val.getClass().getCanonicalName(), clazz.isInstance(val));
 		
 		if(procedure != null) {
-			procedure.apply(clazz.cast(val));
+			procedure.accept(clazz.cast(val));
 		}
 		
 		return this;
