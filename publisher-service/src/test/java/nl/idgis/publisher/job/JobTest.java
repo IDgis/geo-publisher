@@ -2,6 +2,7 @@ package nl.idgis.publisher.job;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QRemoveJob.removeJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -35,6 +36,7 @@ import nl.idgis.publisher.domain.service.Type;
 
 import nl.idgis.publisher.job.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateRemoveJob;
 import nl.idgis.publisher.job.messages.CreateServiceJob;
 import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
@@ -46,7 +48,16 @@ import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-public class JobTest extends AbstractServiceTest {	
+public class JobTest extends AbstractServiceTest {
+	
+	@Test
+	public void testRemoveJob() throws Exception {
+		insertDataset();
+		
+		assertFalse(query().from(removeJob).exists());		
+		sync.ask(jobManager, new CreateRemoveJob("testDataset"), Ack.class);
+		assertTrue(query().from(removeJob).exists());
+	}
 
 	@Test
 	public void testHarvestJob() throws Exception {

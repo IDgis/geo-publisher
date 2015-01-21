@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QRemoveJob.removeJob;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
@@ -44,6 +45,7 @@ import nl.idgis.publisher.domain.service.Column;
 
 import nl.idgis.publisher.job.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.messages.CreateRemoveJob;
 import nl.idgis.publisher.job.messages.CreateServiceJob;
 import nl.idgis.publisher.job.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.messages.GetImportJobs;
@@ -111,6 +113,8 @@ public class JobManager extends UntypedActor {
 			returnToSender(handleCreateImportJob((CreateImportJob)msg));			
 		} else if(msg instanceof CreateServiceJob) {
 			returnToSender(handleCreateServiceJob((CreateServiceJob)msg));
+		} else if(msg instanceof CreateRemoveJob) {
+			returnToSender(handleCreateRemoveJob((CreateRemoveJob)msg));
 		} else {
 			unhandled(msg);
 		}
@@ -123,7 +127,7 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
-		log.debug("creating service job: " + datasetId);
+		log.debug("creating service job: {}", datasetId);
 		
 		return db.transactional(tx ->
 			tx.query().from(job)
@@ -218,7 +222,7 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
 		final String datasetId = msg.getDatasetId();
 		
-		log.debug("creating import job: " + datasetId);
+		log.debug("creating import job: {}", datasetId);
 		
 		return db.transactional(tx ->
 				tx.query().from(job)
@@ -246,8 +250,40 @@ public class JobManager extends UntypedActor {
 				}));
 	}
 	
+	private CompletableFuture<Ack> handleCreateRemoveJob(final CreateRemoveJob msg) {
+		String datasetIdentification = msg.getDatasetId();
+		
+		log.debug("creating remove job: {}", datasetIdentification);
+		
+		return db.transactional(tx ->
+			tx.query().from(removeJob)
+				.join(dataset).on(dataset.id.eq(removeJob.datasetId))
+				.where(dataset.identification.eq(datasetIdentification))
+				.exists().thenCompose(exists -> {
+					if(exists) {
+						return f.successful(new Ack());
+					} else {
+						return 
+							f.collect(
+								tx.insert(job)
+									.set(job.type, "REMOVE")
+									.executeWithKey(job.id))
+							.collect(
+								tx.query().from(dataset)
+									.where(dataset.identification.eq(datasetIdentification))
+									.singleResult(dataset.id))
+							.thenCompose((jobId, datasetId) -> 
+								tx.insert(removeJob)
+									.set(removeJob.jobId, jobId)
+									.set(removeJob.datasetId, datasetId)
+									.execute().thenApply(l -> new Ack()));
+					}
+				})
+		);
+	}
+	
 	private CompletableFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
-		log.debug("creating harvest job: " + msg.getDataSourceId());
+		log.debug("creating harvest job: {}", msg.getDataSourceId());
 		
 		return db.transactional(tx ->				
 				tx.query().from(job)
