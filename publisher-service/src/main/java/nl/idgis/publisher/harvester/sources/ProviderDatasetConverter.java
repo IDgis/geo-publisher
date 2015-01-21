@@ -85,6 +85,8 @@ public class ProviderDatasetConverter extends StreamConverter {
 				dataset = new UnavailableDataset(identification, title, categoryId, revisionDate, logs);
 			}
 			
+			log.debug("resulting dataset: {}", dataset);
+			
 			sender.tell(dataset, getSelf());			
 		} else {
 			unhandled(msg);

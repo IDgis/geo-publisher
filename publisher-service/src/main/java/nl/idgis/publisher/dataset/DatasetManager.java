@@ -172,6 +172,12 @@ public class DatasetManager extends UntypedActor {
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
 						
+						// convert from timestamp to date because harvester provides date objects,
+						// otherwise source dataset versions are never equal.
+						if(revisionDate != null) {							
+							revisionDate = new Date(revisionDate.getTime());
+						}
+						
 						Set<Log> logs = new HashSet<>();
 						for(Tuple logTuple : logInfo) {
 							log.debug("retrieving log");
@@ -199,23 +205,30 @@ public class DatasetManager extends UntypedActor {
 						
 						log.debug("constructing dataset");
 						
+						final Dataset dataset;
 						switch(type) {
 							case "VECTOR":
-								return new VectorDataset(
+								dataset = new VectorDataset(
 									id, 
 									name,
 									categoryId, 
 									revisionDate, 
 									logs, 
 									new Table(columnInfo.list()));
+								break;
 							default:
-								return new UnavailableDataset(	
+								dataset = new UnavailableDataset(	
 									id,
 									name,
 									categoryId,
 									revisionDate,
 									logs);
+								break;
 						}
+						
+						log.debug("current source dataset version: {}", dataset);
+						
+						return dataset;
 			});
 	}
 	
