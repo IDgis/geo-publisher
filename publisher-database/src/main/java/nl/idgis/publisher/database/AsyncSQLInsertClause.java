@@ -7,14 +7,6 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
-import nl.idgis.publisher.database.messages.PerformInsert;
-import nl.idgis.publisher.utils.FutureUtils;
-
-import akka.actor.ActorRef;
-import akka.dispatch.Mapper;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
-
 import com.mysema.query.sql.RelationalPath;
 import com.mysema.query.sql.types.Null;
 import com.mysema.query.types.ConstantImpl;
@@ -22,7 +14,10 @@ import com.mysema.query.types.Expression;
 import com.mysema.query.types.Path;
 import com.mysema.query.types.SubQueryExpression;
 
-import scala.concurrent.ExecutionContext;
+import akka.actor.ActorRef;
+
+import nl.idgis.publisher.database.messages.PerformInsert;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertClause> implements AsyncInsertClause<AsyncSQLInsertClause> {
 	

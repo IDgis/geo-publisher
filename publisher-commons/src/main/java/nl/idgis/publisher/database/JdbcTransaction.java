@@ -135,18 +135,26 @@ public abstract class JdbcTransaction extends UntypedActor {
 	private void handleRollback() throws SQLException {
 		log.debug("rolling back transaction");
 		
-		connection.rollback();
+		try {
+			connection.rollback();
+			getSender().tell(new Ack(), getSelf());
+		} catch(Exception e) {
+			getSender().tell(new Failure(e), getSelf());
+		}
 		
-		getSender().tell(new Ack(), getSelf());
 		getContext().stop(getSelf());
 	}
 
 	private void handleCommit() throws SQLException {
 		log.debug("committing transaction");
 		
-		connection.commit();
+		try {
+			connection.commit();
+			getSender().tell(new Ack(), getSelf());
+		} catch(Exception e) {
+			getSender().tell(new Failure(e), getSelf());
+		}
 		
-		getSender().tell(new Ack(), getSelf());
 		getContext().stop(getSelf());
 	}
 	
