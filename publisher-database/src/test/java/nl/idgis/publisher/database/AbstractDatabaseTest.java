@@ -9,8 +9,10 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,12 +20,13 @@ import org.junit.Before;
 import scala.concurrent.ExecutionContext;
 
 import nl.idgis.publisher.database.ExtendedPostgresTemplates;
-import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.utils.JdbcUtils;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -154,34 +157,15 @@ public abstract class AbstractDatabaseTest {
 			.executeWithKey(dataSource.id);
 	}
 	
-	protected void insertDataset() throws Exception {
-		insertDataset("testDataset");
-	}
-		
-	protected void insertDataset(String datasetId) throws Exception {
-		insertDataSource();
-		
-		VectorDataset testDataset = createTestDataset();
-		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset));
-		
-		Table testTable = testDataset.getTable();
-		sync.ask(database, new CreateDataset(
-				datasetId, 
-				"My Test Dataset", 
-				testDataset.getId(), 
-				testTable.getColumns(), 
-				"{ \"expression\": null }"));
-	}
-	
 	protected int insertDataSource() {
 		return insertDataSource("testDataSource");
 	}
 	
-	protected VectorDataset createTestDataset() {
-		return createTestDataset("testSourceDataset");
+	protected VectorDataset createVectorDataset() {
+		return createVectorDataset("testVectorDataset");
 	}
 
-	protected VectorDataset createTestDataset(String id) {
+	protected VectorDataset createVectorDataset(String id) {
 		List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
@@ -190,6 +174,19 @@ public abstract class AbstractDatabaseTest {
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
 		return new VectorDataset(id, "testCategory", revision, Collections.<Log>emptySet(), table);		
+	}
+	
+	protected UnavailableDataset createUnavailableDataset() {
+		return createUnavailableDataset("testUnavailableDataset");
+	}
+	
+	protected UnavailableDataset createUnavailableDataset(String id) {
+		Set<Log> logs = new HashSet<>();
+		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));
+		
+		Timestamp revision = new Timestamp(new Date().getTime());
+		
+		return new UnavailableDataset(id, "testCategory", revision, logs);		
 	}
 	
 	protected ExecutionContext dispatcher() {

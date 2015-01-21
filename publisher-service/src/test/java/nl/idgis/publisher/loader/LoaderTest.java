@@ -37,14 +37,15 @@ import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
-import nl.idgis.publisher.database.messages.RegisterSourceDataset;
-import nl.idgis.publisher.database.messages.Registered;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.messages.UpdateJobState;
-import nl.idgis.publisher.database.messages.Updated;
+
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.EntityType;
@@ -389,11 +390,11 @@ public class LoaderTest extends AbstractServiceTest {
 	public void testAddColumnsChangedNotification() throws Exception {
 		insertDataSource();		
 		
-		VectorDataset testDataset = createTestDataset();
+		VectorDataset testDataset = createVectorDataset();
 		Table testTable = testDataset.getTable();
 		List<Column> testColumns = testTable.getColumns();
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", testDataset), Registered.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Registered.class);
 		
 		sync.ask(database, new CreateDataset(
 				"testDataset", 
@@ -415,7 +416,7 @@ public class LoaderTest extends AbstractServiceTest {
 				Collections.<Log>emptySet(),
 				updatedTable);
 		
-		sync.ask(database, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);
 		sync.ask(jobManager, new CreateImportJob("testDataset"));
 		
 		TypedIterable<?> iterable = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
@@ -501,7 +502,7 @@ public class LoaderTest extends AbstractServiceTest {
 		sync.ask(database, new UpdateDataset(
 				"testDataset", 
 				"My Test Dataset", 
-				"testSourceDataset", 
+				"testVectorDataset", 
 				Arrays.asList(testColumns.get(0)),
 				"{ \"expression\": null }"));
 		

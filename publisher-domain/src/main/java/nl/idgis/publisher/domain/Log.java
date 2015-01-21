@@ -5,11 +5,13 @@ import java.io.Serializable;
 import nl.idgis.publisher.domain.job.LogLevel;
 
 public class Log implements Serializable {
-	
-	private static final long serialVersionUID = 7393703558996721495L;
-	
+
+	private static final long serialVersionUID = 6504302762477764168L;
+
 	protected final LogLevel level;
+	
 	protected final MessageType<?> type;
+	
 	protected final MessageProperties content;
 	
 	protected Log(LogLevel level, MessageType<?> type) {
@@ -40,6 +42,40 @@ public class Log implements Serializable {
 	
 	public MessageProperties getContent() {
 		return content;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((content == null) ? 0 : content.hashCode());
+		result = prime * result + ((level == null) ? 0 : level.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Log other = (Log) obj;
+		if (content == null) {
+			if (other.content != null)
+				return false;
+		} else if (!content.equals(other.content))
+			return false;
+		if (level != other.level)
+			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
+			return false;
+		return true;
 	}
 
 	@Override

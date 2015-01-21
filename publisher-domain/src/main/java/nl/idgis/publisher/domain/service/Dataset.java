@@ -8,7 +8,7 @@ import nl.idgis.publisher.domain.Log;
 
 public abstract class Dataset implements Serializable {
 
-	private static final long serialVersionUID = 8936394880173140827L;
+	private static final long serialVersionUID = -8740979676256691272L;
 
 	protected final String id;
 	
@@ -35,6 +35,10 @@ public abstract class Dataset implements Serializable {
 
 	public Date getRevisionDate() {
 		return revisionDate;
+	}
+	
+	public Set<Log> getLogs() {
+		return logs;
 	}
 
 	@Override

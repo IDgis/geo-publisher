@@ -21,7 +21,8 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-import nl.idgis.publisher.database.AbstractDatabaseTest;
+import nl.idgis.publisher.AbstractServiceTest;
+
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
@@ -38,7 +39,7 @@ import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.job.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 
-public class InitiatorTest extends AbstractDatabaseTest {
+public class InitiatorTest extends AbstractServiceTest {
 	
 	static class GetReceivedJobs {
 		

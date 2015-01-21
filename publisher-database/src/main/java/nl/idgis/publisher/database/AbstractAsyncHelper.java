@@ -2,11 +2,8 @@ package nl.idgis.publisher.database;
 
 import com.mysema.query.sql.RelationalPath;
 
-import scala.concurrent.ExecutionContext;
-
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
-import akka.util.Timeout;
 
 import nl.idgis.publisher.utils.FutureUtils;
 

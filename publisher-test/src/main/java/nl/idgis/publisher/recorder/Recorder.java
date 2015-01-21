@@ -27,7 +27,7 @@ public class Recorder extends UntypedActor {
 			recording.clear();
 			getSender().tell(new Cleared(), getSelf());
 		} else if(msg instanceof GetRecording) {
-			getSender().tell(new ArrayList<>(recording), getSelf());
+			getSender().tell(new DefaultRecording(new ArrayList<>(recording).iterator()), getSelf());
 		} else {
 			unhandled(msg);
 		}

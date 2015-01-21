@@ -9,9 +9,8 @@ public enum DatasetLogType implements MessageType<DatasetLog<?>> {
 	UNKNOWN_TABLE,
 	TABLE_NOT_FOUND(DatabaseLog.class);
 	
-	@SuppressWarnings("unchecked")
 	private DatasetLogType() {
-		this(DatasetLog.class);
+		this(null);
 	}	
 	
 	private <T extends DatasetLog<T>> DatasetLogType(Class<T> contentClass) {

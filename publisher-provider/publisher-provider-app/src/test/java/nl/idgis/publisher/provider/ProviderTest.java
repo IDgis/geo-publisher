@@ -1,17 +1,15 @@
 package nl.idgis.publisher.provider;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -46,10 +44,10 @@ import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
+import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
-import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -57,7 +55,6 @@ import nl.idgis.publisher.utils.SyncAskHelper;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
-import akka.japi.Procedure;
 
 public class ProviderTest {
 	
@@ -112,72 +109,60 @@ public class ProviderTest {
 		metadataDocument = metadataDocumentFactory.parseDocument(content);
 	}
 	
-	private static class Recording {
+	private static class DatabaseRecording implements Recording {
 		
-		private final Iterator<RecordedMessage> iterator;
-		
-		Recording(Iterator<RecordedMessage> iterator) {
-			this.iterator = iterator;
-		}
-		
-		Recording assertHasNext() {
-			assertTrue(iterator.hasNext());
-			
-			return this;
-		}
-		
-		Recording assertNotHasNext() {
-			assertFalse(iterator.hasNext());
-			
-			return this;
-		}		
-		
-		<T> Recording assertNext(Class<T> clazz) throws Exception {
-			return assertNext(clazz, null);
-		}
-		
-		<T> Recording assertNext(Class<T> clazz, Procedure<T> procedure) throws Exception {
-			Object val = iterator.next().getMessage();
-			
-			assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
-					+ val.getClass().getCanonicalName(), clazz.isInstance(val));
-			
-			if(procedure != null) {
-				procedure.apply(clazz.cast(val));
-			}
-			
-			return this;
-		}
-		
-		Recording assertDatabaseInteraction(String... tableNames) throws Exception {
-			for(final String tableName : tableNames) {
-				
-					assertHasNext()
-					.assertNext(DescribeTable.class, new Procedure<DescribeTable>() {
+		private final Recording recording;
 
-						@Override
-						public void apply(DescribeTable describeTable) throws Exception {						
-							assertEquals(tableName, describeTable.getTableName());
-						}
-					})
-					.assertHasNext()
-					.assertNext(PerformCount.class, new Procedure<PerformCount>() {
-
-						@Override
-						public void apply(PerformCount performCount) throws Exception {
-							assertEquals(tableName, performCount.getTableName());						
-						}
-						
-					});
+		public DatabaseRecording(Recording recording) {
+			this.recording = recording;
+		}
+		
+		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
+			for(final String tableName : tableNames) {				
+				assertHasNext()
+				.assertNext(DescribeTable.class, describeTable -> {
+					assertEquals(tableName, describeTable.getTableName());						
+				})
+				.assertHasNext()
+				.assertNext(PerformCount.class, performCount -> {
+					assertEquals(tableName, performCount.getTableName());
+				});
 			}
 			
 			return this;			
 		}
+
+		@Override
+		public DatabaseRecording assertHasNext() {
+			recording.assertHasNext();
+			
+			return this;
+		}
+
+		@Override
+		public DatabaseRecording assertNotHasNext() {
+			recording.assertNotHasNext();
+			
+			return this;
+		}
+
+		@Override
+		public <T> DatabaseRecording assertNext(Class<T> clazz) throws Exception {
+			recording.assertNext(clazz);
+
+			return this;
+		}
+
+		@Override
+		public <T> DatabaseRecording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
+			recording.assertNext(clazz, procedure);
+			
+			return this;
+		}		
 	}
 	
-	@SuppressWarnings("unchecked")
-	private Recording replayRecording() throws Exception {
-		return new Recording(sync.ask(recorder, new GetRecording(), Iterable.class).iterator());
+	private DatabaseRecording replayRecording() throws Exception {
+		return new DatabaseRecording(sync.ask(recorder, new GetRecording(), Recording.class));
 	}
 	
 	private void clearRecording() throws Exception {
@@ -262,13 +247,8 @@ public class ProviderTest {
 		
 		replayRecording()
 			.assertHasNext()
-			.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
-
-				@Override
-				public void apply(GetMetadata msg) throws Exception {
-					assertEquals("test", msg.getIdentification());
-				}
-				
+			.assertNext(GetMetadata.class, msg -> {
+				assertEquals("test", msg.getIdentification());
 			})
 			.assertDatabaseInteraction()
 			.assertNotHasNext();
@@ -282,13 +262,8 @@ public class ProviderTest {
 		
 		replayRecording()
 			.assertHasNext()
-			.assertNext(GetMetadata.class, new Procedure<GetMetadata>() {
-
-				@Override
-				public void apply(GetMetadata msg) throws Exception {
-					assertEquals("test", msg.getIdentification());
-				}
-				
+			.assertNext(GetMetadata.class, msg -> {				
+				assertEquals("test", msg.getIdentification());				
 			})				
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();

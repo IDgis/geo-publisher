@@ -68,7 +68,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 			
 			final Dataset dataset;
 			if(datasetInfo instanceof VectorDatasetInfo) {
-				log.debug("vector dataset info");
+				log.debug("vector dataset info: " + datasetInfo);
 				
 				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;				
 				TableInfo tableInfo = vectorDatasetInfo.getTableInfo();

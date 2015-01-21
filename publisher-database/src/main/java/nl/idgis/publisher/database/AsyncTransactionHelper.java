@@ -8,6 +8,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public final class AsyncTransactionHelper extends AbstractAsyncHelper {  
@@ -23,8 +24,12 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 					log.debug("committed");
 					
 					return (Ack)msg;
+				} else if(msg instanceof Failure) {
+					log.error("commit failed: {}", msg);
+					
+					throw new IllegalStateException("commit failed", ((Failure) msg).getCause());
 				} else {
-					log.debug("commit failed");
+					log.error("commit failed");
 					
 					throw new IllegalStateException("commit failed");
 				}
@@ -38,8 +43,12 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 					log.debug("rolled back");
 					
 					return (Ack)msg;
+				} else if(msg instanceof Failure) {
+					log.error("rollback failed: {}", msg);
+					
+					throw new IllegalStateException("rollback failed", ((Failure) msg).getCause());
 				} else {
-					log.debug("rollback failed");
+					log.error("rollback failed");
 					
 					throw new IllegalStateException("rollback failed");
 				}

@@ -13,6 +13,7 @@ import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.Version;
 
+import nl.idgis.publisher.dataset.DatasetManager;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
@@ -120,8 +121,10 @@ public class ServiceApp extends UntypedActor {
 		Config geometryDatabaseConfig = config.getConfig("geometry-database");
 		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
 		
+		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database));
+		
 		Config harvesterConfig = config.getConfig("harvester");
-		final ActorRef harvester = getContext().actorOf(Harvester.props(database, harvesterConfig), "harvester");
+		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 		
@@ -129,9 +132,9 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
 		
-		ActorRef jobs = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
+		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
-		getContext().actorOf(Admin.props(database, harvester, loader, service, jobs), "admin");
+		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
