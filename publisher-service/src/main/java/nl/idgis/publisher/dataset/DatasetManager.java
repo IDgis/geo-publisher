@@ -136,14 +136,14 @@ public class DatasetManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Dataset> getSourceDatasetVersion(final AsyncHelper tx, final Integer versionId) {
-		log.debug("retrieving source dataset version");
+		log.debug("retrieving source dataset version: {}", versionId);
 		
 		return
 			f.collect(
 				tx.query().from(sourceDatasetVersion)
 					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
-					.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+					.leftJoin(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 					.where(sourceDatasetVersion.id.eq(versionId))
 					.singleResult(
 						sourceDataset.identification,

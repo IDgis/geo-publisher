@@ -151,5 +151,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				dataset.getLogs());
 		
 		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);
+		
+		// verifies that the dataset manager is able to retrieve datasets without a categoryId 
+		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
 	}
 }
