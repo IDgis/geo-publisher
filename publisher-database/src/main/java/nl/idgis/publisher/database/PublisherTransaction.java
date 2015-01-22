@@ -53,6 +53,7 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
+import nl.idgis.publisher.database.messages.PerformDelete;
 import nl.idgis.publisher.database.messages.PerformInsert;
 import nl.idgis.publisher.database.messages.PerformQuery;
 import nl.idgis.publisher.database.messages.PerformUpdate;
@@ -99,6 +100,7 @@ import com.mysema.query.QueryMetadata;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
 import com.mysema.query.types.Expression;
@@ -201,6 +203,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
 		} else if (query instanceof PerformQuery) {
 			executePerformQuery((PerformQuery)query);
+		} else if (query instanceof PerformDelete) {
+			executePerformDelete((PerformDelete)query);		
 		} else if (query instanceof PerformInsert) {
 			executePerformInsert((PerformInsert)query);
 		} else if (query instanceof PerformUpdate) {
@@ -234,6 +238,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		answer(update.execute());		
+	}
+	
+	private void executePerformDelete(PerformDelete query) {
+		SQLDeleteClause delete = delete(query.getEntity());
+		
+		answer(delete.where(query.getMetadata().getWhere())
+			.execute());
 	}
 	
 	private void executePerformInsert(PerformInsert query) {

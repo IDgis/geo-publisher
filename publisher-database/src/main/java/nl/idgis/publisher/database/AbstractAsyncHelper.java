@@ -35,4 +35,9 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	public final AsyncSQLUpdateClause update(RelationalPath<?> entity) {
 		return new AsyncSQLUpdateClause(actor, f, entity);
 	}
+	
+	@Override
+	public final AsyncSQLDeleteClause delete(RelationalPath<?> entity) {
+		return new AsyncSQLDeleteClause(actor, f, entity);
+	}
 }

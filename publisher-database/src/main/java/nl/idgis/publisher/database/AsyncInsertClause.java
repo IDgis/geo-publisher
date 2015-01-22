@@ -4,7 +4,7 @@ import com.mysema.query.types.Path;
 import com.mysema.query.types.SubQueryExpression;
 
 /**
- * InsertClause defines a generic interface for Insert clauses
+ * AsyncInsertClause defines a generic interface for Insert clauses
  *
  * @param <C> concrete subtype
  */
