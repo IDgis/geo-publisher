@@ -22,15 +22,17 @@ public class InitiatorDispatcher extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final FiniteDuration timeout;
-	private final ActorRef target;
 	
-	public InitiatorDispatcher(ActorRef target, FiniteDuration timeout) {		
+	private final ActorRef jobManager, target;
+	
+	public InitiatorDispatcher(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
+		this.jobManager = jobManager;
 		this.target = target;
 		this.timeout = timeout;
 	}
 	
-	public static Props props(ActorRef target, FiniteDuration timeout) {
-		return Props.create(InitiatorDispatcher.class, target, timeout);
+	public static Props props(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
+		return Props.create(InitiatorDispatcher.class, jobManager, target, timeout);
 	}
 	
 	@Override
