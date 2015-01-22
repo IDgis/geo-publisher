@@ -1,5 +1,6 @@
 package nl.idgis.publisher.job.context;
 
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import akka.actor.ActorRef;
@@ -8,6 +9,7 @@ import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
@@ -32,8 +34,16 @@ public class JobContext extends UntypedActor {
 	
 	private final JobInfo jobInfo;
 	
-	private boolean stopOnAck;
+	private static class JobFinished implements Serializable {
+		
+		private static final long serialVersionUID = 2236542274270022155L;		
+	}
 	
+	private static class JobAcknowledged implements Serializable {
+		
+		private static final long serialVersionUID = -3851776170365172160L;		
+	}
+		
 	public JobContext(ActorRef jobManager, JobInfo jobInfo) {
 		this.jobManager = jobManager;
 		this.jobInfo = jobInfo;
@@ -46,38 +56,69 @@ public class JobContext extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
-		
-		stopOnAck = true;
-	}
-	
-	private void sendAck() {
-		getContext().parent().tell(new Ack(), getSelf());
-		
-		if(stopOnAck) {
-			log.debug("stopping on ack");
-			
-			//getContext().stop(getSelf());
-		} else {
-			log.debug("job in progress");
-			
-			getContext().setReceiveTimeout(Duration.create(5, TimeUnit.MINUTES));
-		}
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
-			log.debug("timeout");
+			log.error("timeout while starting job");
 			
-			sendAck();
-		} else if(msg instanceof Ack) {
-			log.debug("ack received");
+			getContext().parent().tell(new Ack(), getSelf());
+			getContext().stop(getSelf());
+		} else if(msg instanceof JobAcknowledged) {
+			getContext().become(acknowledged());
+		} else if(msg instanceof JobFinished) {
+			getContext().become(finished());
+		} else {
+			onReceiveElse(msg);
+		}
+	}
+	
+	private Procedure<Object> finished() {
+		log.debug("job finished");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof JobAcknowledged) {					
+					log.debug("job acknowledged -> stop context");
+					
+					getContext().stop(getSelf());					
+				} else {
+					onReceiveElse(msg);
+				}				
+			}
 			
-			sendAck();
+		};
+	}
+	
+	private Procedure<Object> acknowledged() {
+		log.debug("job acknowledged");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof JobFinished) {
+					log.debug("job finished -> stop context");
+					
+					getContext().stop(getSelf());
+				} else {
+					onReceiveElse(msg);
+				}
+			}
+			
+		};
+	}
+	
+	public void onReceiveElse(Object msg) {
+		if(msg instanceof Ack) {
+			getContext().parent().tell(msg, getSelf());
+			
+			getSelf().tell(new JobAcknowledged(), getSelf());
 		} else if(msg instanceof JobState) {
 			log.debug("job state received: {}", msg);
-			
-			stopOnAck = false;
 			
 			JobState jobState = (JobState)msg;
 			jobManager.tell(new UpdateJobState(jobInfo, jobState), getSender());
@@ -85,7 +126,7 @@ public class JobContext extends UntypedActor {
 			if(jobState.isFinished()) {
 				log.debug("job finished");
 				
-				//getContext().stop(getSelf());
+				getSelf().tell(new JobFinished(), getSelf());
 			}
 		} else if(msg instanceof Log) {
 			log.debug("log received: {}", msg);
