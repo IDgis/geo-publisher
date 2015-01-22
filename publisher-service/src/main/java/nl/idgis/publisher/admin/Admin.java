@@ -93,7 +93,7 @@ import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
-import nl.idgis.publisher.job.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;

@@ -34,13 +34,13 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 
-import nl.idgis.publisher.job.messages.CreateHarvestJob;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateRemoveJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
-import nl.idgis.publisher.job.messages.GetHarvestJobs;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
 

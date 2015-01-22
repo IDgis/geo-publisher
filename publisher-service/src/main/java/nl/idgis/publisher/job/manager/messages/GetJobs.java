@@ -1,4 +1,4 @@
-package nl.idgis.publisher.job.messages;
+package nl.idgis.publisher.job.manager.messages;
 
 public abstract class GetJobs extends JobManagerRequest {
 

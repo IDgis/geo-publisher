@@ -20,8 +20,8 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
-import nl.idgis.publisher.job.JobManager;
-import nl.idgis.publisher.job.messages.JobManagerRequest;
+import nl.idgis.publisher.job.manager.JobManager;
+import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public abstract class AbstractServiceTest extends AbstractDatabaseTest {
