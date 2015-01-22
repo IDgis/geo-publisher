@@ -1,4 +1,4 @@
-package nl.idgis.publisher.job;
+package nl.idgis.publisher.job.context;
 
 import java.util.concurrent.TimeUnit;
 
@@ -11,13 +11,17 @@ import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.JobInfo;
+import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 
+import nl.idgis.publisher.job.context.messages.AddJobNotification;
+import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 public class JobContext extends UntypedActor {
@@ -52,7 +56,7 @@ public class JobContext extends UntypedActor {
 		if(stopOnAck) {
 			log.debug("stopping on ack");
 			
-			getContext().stop(getSelf());
+			//getContext().stop(getSelf());
 		} else {
 			log.debug("job in progress");
 			
@@ -71,7 +75,7 @@ public class JobContext extends UntypedActor {
 			
 			sendAck();
 		} else if(msg instanceof JobState) {
-			log.debug("job state received: {}" + msg);
+			log.debug("job state received: {}", msg);
 			
 			stopOnAck = false;
 			
@@ -81,12 +85,20 @@ public class JobContext extends UntypedActor {
 			if(jobState.isFinished()) {
 				log.debug("job finished");
 				
-				getContext().stop(getSelf());
+				//getContext().stop(getSelf());
 			}
 		} else if(msg instanceof Log) {
-			log.debug("log received: {}" + msg);
+			log.debug("log received: {}", msg);
 			
 			jobManager.tell(new StoreLog(jobInfo, (Log)msg), getSender());
+		} else if(msg instanceof AddJobNotification) {
+			log.debug("add notification received: {}", msg);
+			
+			jobManager.tell(new AddNotification(jobInfo, ((AddJobNotification)msg).getNotificationType()), getSender());
+		} else if(msg instanceof RemoveJobNotification) {			
+			log.debug("remove notification received: {}", msg);
+			
+			jobManager.tell(new RemoveNotification(jobInfo, ((RemoveJobNotification)msg).getNotificationType()), getSender());
 		} else {
 			unhandled(msg);
 		}

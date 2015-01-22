@@ -30,10 +30,12 @@ import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
+import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
+import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateJobState;
@@ -106,6 +108,10 @@ public class JobManager extends UntypedActor {
 		if(msg instanceof UpdateJobState) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof StoreLog) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof AddNotification) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof RemoveNotification) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof GetImportJobs) {
 			returnToSender(handleGetImportJobs());

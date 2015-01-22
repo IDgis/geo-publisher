@@ -8,15 +8,11 @@ import java.util.Set;
 
 import nl.idgis.publisher.AbstractStateMachine;
 
-import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -35,6 +31,8 @@ import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.job.context.messages.AddJobNotification;
+import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -55,7 +53,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef initiator, database, geometryDatabase;
+	private final ActorRef jobContext, geometryDatabase;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
@@ -66,17 +64,15 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef initiator, 
-			ActorRef database, ActorRef geometryDatabase) {
+	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase) {
 		
 		this.importJob = importJob;
-		this.initiator = initiator;
-		this.database = database;
+		this.jobContext = jobContext;		
 		this.geometryDatabase = geometryDatabase;
 	}
 	
-	public static Props props(ImportJobInfo importJob, ActorRef initiator, ActorRef database, ActorRef geometryDatabase) {
-		return Props.create(LoaderSessionInitiator.class, importJob, initiator, database, geometryDatabase);
+	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase) {
+		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, geometryDatabase);
 	}
 
 	@Override
@@ -100,7 +96,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 				log.debug("notification already present");
 			} else {
 				log.debug("notification not present -> add it");
-				database.tell(new AddNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
+				jobContext.tell(new AddJobNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());
 				
 				continueImport = false;
 				become("adding notification", waitingForNotificationStored());
@@ -111,7 +107,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 			
 			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification present -> remove it");
-				database.tell(new RemoveNotification(importJob, ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
+				jobContext.tell(new RemoveJobNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
 				become("removing notification", waitingForNotificationStored());
 				return;
 			} else {
@@ -227,11 +223,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 						if(continueImport) {						
 							startTransaction();
 						} else {
-							database.tell(
-									new UpdateJobState(
-											importJob, 
-											JobState.FAILED), 
-									getSelf());
+							jobContext.tell(JobState.FAILED, getSelf());
 							
 							become("storing failed job state", waitingForJobFailedStored());
 						}
@@ -270,7 +262,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					log.debug("dataSource received");
 					
 					dataSource = (ActorRef)msg;
-					database.tell(new UpdateJobState(importJob, JobState.STARTED), getSelf());
+					jobContext.tell(JobState.STARTED, getSelf());
 					become("storing started job state", waitingForJobStartedStored());
 				}
 			}
@@ -318,7 +310,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 								importJob,
 								filterEvaluator,
 								transaction, 
-								database)), getSelf());
+								jobContext)), getSelf());
 		
 		become("starting session", waitingForSessionStarted());
 	}	
@@ -412,35 +404,31 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					
 					int logCount = 0;
 					if(!missingColumns.isEmpty()) {
-						database.tell(
-								new StoreLog(
-										importJob, 
-										Log.create(
-												LogLevel.WARNING, 
-												ImportLogType.MISSING_COLUMNS, 
-												
-												new MissingColumnsLog(
-														importJob.getDatasetId(), 
-														importJob.getDatasetName(), 
-														missingColumns))), 
-								getSelf());
+						jobContext.tell(								
+							Log.create(
+									LogLevel.WARNING, 
+									ImportLogType.MISSING_COLUMNS, 
+									
+									new MissingColumnsLog(
+											importJob.getDatasetId(), 
+											importJob.getDatasetName(), 
+											missingColumns)), 
+							getSelf());
 						
 						logCount++;						
 					}
 					
 					if(!missingFilterColumns.isEmpty()) {
-						database.tell(
-								new StoreLog(
-										importJob, 
-										Log.create(
-												LogLevel.ERROR, 
-												ImportLogType.MISSING_FILTER_COLUMNS, 
-												
-												new MissingColumnsLog(
-														importJob.getDatasetId(), 
-														importJob.getDatasetName(), 
-														missingFilterColumns))), 
-								getSelf());
+						jobContext.tell(								
+							Log.create(
+									LogLevel.ERROR, 
+									ImportLogType.MISSING_FILTER_COLUMNS, 
+									
+									new MissingColumnsLog(
+											importJob.getDatasetId(), 
+											importJob.getDatasetName(), 
+											missingFilterColumns)), 
+							getSelf());
 						
 						continueImport = false;
 						
@@ -480,6 +468,6 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private void acknowledgeJob() {
 		acknowledged = true;
-		initiator.tell(new Ack(), getSelf());
+		jobContext.tell(new Ack(), getSelf());
 	}
 }

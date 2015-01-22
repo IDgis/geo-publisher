@@ -10,7 +10,6 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
@@ -24,6 +23,7 @@ import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -46,28 +46,33 @@ public class LoaderSession extends UntypedActor {
 	
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef loader, geometryDatabase, database;
+	private final ActorRef loader, geometryDatabase, jobContext;
 	
 	private final FilterEvaluator filterEvaluator;
 	
 	private boolean inFailure = false;
+	
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) throws IOException {		
+	private FutureUtils f;
+	
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) throws IOException {		
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
 		this.geometryDatabase = geometryDatabase;
-		this.database = database;
+		this.jobContext = jobContext;
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, database);
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) {
+		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, jobContext);
 	}
 	
 	@Override
 	public final void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+		
+		f = new FutureUtils(getContext().dispatcher());
 	}
 
 	@Override
@@ -167,24 +172,21 @@ public class LoaderSession extends UntypedActor {
 	private void finalizeSession(JobState state) {
 		log.debug("finalizing session: " + state);
 		
-		Patterns.ask(database, new UpdateJobState(importJob, state), 15000)
-		.onSuccess(new OnSuccess<Object>() {
-
-			@Override
-			public void onSuccess(Object msg) throws Throwable {
-				Patterns.ask(loader, new SessionFinished(importJob), 15000)
-				.onSuccess(new OnSuccess<Object>() {
-
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						log.debug("session finalized");
-						
-						getContext().stop(getSelf());
-					}
-					
-				}, getContext().dispatcher());		
-			}					
-		}, getContext().dispatcher());
+		f.ask(jobContext, state).whenComplete((msg0, t0) -> {
+			if(t0 != null) {
+				log.error("couldn't change job state: {}", t0);
+			} 
+			
+			f.ask(loader, new SessionFinished(importJob)).whenComplete((msg1, t1) -> {
+				if(t1 != null) {
+					log.error("couldn't finish import session: {}", t1);
+				}
+				
+				log.debug("session finalized");
+				
+				getContext().stop(getSelf());
+			});
+		});
 	}
 	
 	private void handleRecords(Records msg) {

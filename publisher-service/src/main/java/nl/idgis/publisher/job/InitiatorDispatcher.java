@@ -2,6 +2,7 @@ package nl.idgis.publisher.job;
 
 import java.util.Iterator;
 
+import nl.idgis.publisher.job.context.JobContext;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.UniqueNameGenerator;

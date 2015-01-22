@@ -172,7 +172,7 @@ public class Loader extends UntypedActor {
 		log.debug("data import requested: " + importJob);
 		
 		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, getSender(), database, geometryDatabase),
+				LoaderSessionInitiator.props(importJob, getSender(), geometryDatabase),
 				nameGenerator.getName(LoaderSessionInitiator.class));
 		
 		database.tell(new GetDatasetStatus(importJob.getDatasetId()), initiator);

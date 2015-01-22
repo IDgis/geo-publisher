@@ -5,15 +5,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -37,11 +41,11 @@ import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -70,6 +74,7 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.job.context.JobContext;
 import nl.idgis.publisher.job.messages.CreateImportJob;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -290,51 +295,42 @@ public class LoaderTest extends AbstractServiceTest {
 		}		
 	}
 	
-	static class GetFinishedState {
+	static class LoaderFacade extends UntypedActor {
 		
-	}
-	
-	static class DatabaseAdapter extends UntypedActor {
+		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		private final ActorRef jobManager, loader;
 		
-		final ActorRef database;
+		private Map<ActorRef, ActorRef> senders;
+
+		public LoaderFacade(ActorRef jobManager, ActorRef loader) {
+			this.jobManager = jobManager;
+			this.loader = loader;
+		}
 		
-		ActorRef sender = null;
-		JobState finishedState = null;
+		public static Props props(ActorRef jobManager, ActorRef loader) {
+			return Props.create(LoaderFacade.class, jobManager, loader);
+		}
 		
-		DatabaseAdapter(ActorRef database) {
-			this.database = database;
+		@Override
+		public void preStart() {
+			senders = new HashMap<ActorRef, ActorRef>();
 		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			log.debug("received: " + msg);
-			
-			if(msg instanceof GetFinishedState) {
-				sender = getSender();
-				sendFinishedState();
-			} else {			
-				if(msg instanceof UpdateJobState) {
-					UpdateJobState ujs = (UpdateJobState)msg;
-					
-					JobState currentState = ujs.getState();
-					if(currentState.isFinished()) {					
-						finishedState = currentState;
-						sendFinishedState();					
-					}
-				}
+			if(msg instanceof JobInfo) {
+				log.debug("job info received");
 				
-				database.tell(msg, getSender());
-			}
-		}
-		
-		void sendFinishedState() {
-			if(sender != null && finishedState != null) {
-				sender.tell(finishedState, getSelf());
+				ActorRef jobContext = getContext().actorOf(JobContext.props(jobManager, (JobInfo)msg));
+				senders.put(jobContext, getSender());
+				loader.tell(msg, jobContext);
+			} else if(msg instanceof Ack) {
+				log.debug("ack received");
 				
-				sender = null;
-				finishedState = null;
+				senders.get(getSender()).tell(msg, getSelf());
+			} else {
+				unhandled(msg);
 			}
 		}
 		
@@ -342,7 +338,6 @@ public class LoaderTest extends AbstractServiceTest {
 	
 	ActorRef loader;
 	ActorRef dataSourceMock;
-	ActorRef databaseAdapter;
 	ActorRef geometryDatabaseMock;
 	
 	@Before
@@ -350,9 +345,8 @@ public class LoaderTest extends AbstractServiceTest {
 		geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
 		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
-		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");
 		
-		loader = actorOf(Loader.props(geometryDatabaseMock, databaseAdapter, harvesterMock), "loader");
+		loader = actorOf(LoaderFacade.props(jobManager, actorOf(Loader.props(geometryDatabaseMock, database, harvesterMock), "loader")), "loaderFacade");
 	}
 
 	@Test
@@ -364,11 +358,8 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo job : iterable.cast(ImportJobInfo.class)) {
 			sync.ask(loader, job, Ack.class);
+			assertFinishedJobState(JobState.SUCCEEDED, job);
 		}
-		
-		assertEquals(
-				JobState.SUCCEEDED, 				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
 		List<?> columns = sync.ask(dataSourceMock, new GetColumns(), List.class);
 		Iterator<?> columnItr = columns.iterator();
@@ -462,14 +453,11 @@ public class LoaderTest extends AbstractServiceTest {
 			}
 			
 			sync.ask(loader, jobInfo, Ack.class);
+			assertFinishedJobState(JobState.SUCCEEDED, jobInfo);			
 		}
 		
 		// the loader is still able to import, but informs us 
 		// about a missing column
-		assertEquals(
-				JobState.SUCCEEDED,
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
-		
 		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
 		
@@ -511,13 +499,12 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> itr = iterable.cast(ImportJobInfo.class).iterator();
-		assertTrue(itr.hasNext());		
-		sync.ask(loader, itr.next(), Ack.class);
+		assertTrue(itr.hasNext());
+		ImportJobInfo job = itr.next();
+		sync.ask(loader, job, Ack.class);
 		assertFalse(itr.hasNext());
 		
-		assertEquals(
-				JobState.SUCCEEDED,
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));		
+		assertFinishedJobState(JobState.SUCCEEDED, job);
 		
 		int count = sync.ask(geometryDatabaseMock, new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
@@ -570,13 +557,11 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		Iterator<ImportJobInfo> importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		sync.ask(loader, importJobItr.next(), Ack.class);
+		ImportJobInfo job = importJobItr.next(); 
+		sync.ask(loader, job, Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
-		assertEquals(
-				JobState.FAILED,
-				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
+		assertFinishedJobState(JobState.FAILED, job);
 		
 		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(2, infoList.getCount().intValue());
@@ -592,15 +577,27 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		sync.ask(loader, importJobItr.next(), Ack.class);
+		job = importJobItr.next();
+		sync.ask(loader, job, Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
-		assertEquals(
-				JobState.SUCCEEDED,
-				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
+		assertFinishedJobState(JobState.SUCCEEDED, job);
 		
 		infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(3, infoList.getCount().intValue());
+	}
+
+	private void assertFinishedJobState(JobState expected, JobInfo job) throws Exception {
+		JobState encountered;
+		while(!(encountered = JobState.valueOf(
+			query().from(jobState)
+				.where(jobState.jobId.eq(job.getId()))
+				.orderBy(jobState.id.desc())
+				.singleResult(jobState.state))).isFinished()) {
+			
+			Thread.sleep(100);
+		}
+		
+		assertEquals(encountered, expected);
 	}
 }
