@@ -69,7 +69,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertNotNull(notifications);
 		assertTrue(notifications.isEmpty());
 		
-		sync.ask(database, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		sync.ask(jobManager, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		Tuple notificationTuple =  
 			query().from(notification)
@@ -137,7 +137,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertEquals(ConfirmNotificationResult.OK, n.getResult());
 		
-		sync.ask(database, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		sync.ask(jobManager, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		assertFalse(
 			query().from(notification)
