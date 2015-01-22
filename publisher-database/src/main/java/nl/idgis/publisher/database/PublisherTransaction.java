@@ -72,7 +72,7 @@ import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
@@ -177,8 +177,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeUpdatedataset((UpdateDataset)query);
 		} else if(query instanceof DeleteDataset) {
 			executeDeleteDataset((DeleteDataset)query);
-		} else if(query instanceof UpdateJobState) {
-			executeUpdateJobState((UpdateJobState)query);
+		} else if(query instanceof UpdateState) {
+			executeUpdateJobState((UpdateState)query);
 		} else if(query instanceof GetDataSourceStatus) {
 			executeGetDataSourceStatus();
 		} else if(query instanceof GetJobLog) {
@@ -496,7 +496,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 
-	private void executeUpdateJobState(UpdateJobState query) {
+	private void executeUpdateJobState(UpdateState query) {
 		log.debug("updating job state: " + query);
 		
 		Integer jobId = getUnfinishedJobQuery( query.getJob())

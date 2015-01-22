@@ -12,7 +12,7 @@ import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.dataset.DatasetManager;
 
@@ -44,7 +44,7 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		TypedIterable<?> iterable = sync.ask(jobManager, request, TypedIterable.class);
 		assertTrue(iterable.contains(JobInfo.class));
 		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			sync.ask(database, new UpdateJobState(job, JobState.SUCCEEDED));
+			sync.ask(database, new UpdateState(job, JobState.SUCCEEDED));
 		}
 	}
 	

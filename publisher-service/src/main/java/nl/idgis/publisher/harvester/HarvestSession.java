@@ -17,6 +17,7 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -74,7 +75,7 @@ public class HarvestSession extends UntypedActor {
 	private void handleTimeout() {
 		log.error("timeout while executing job: " + harvestJob);
 		
-		f.ask(jobContext, JobState.FAILED).whenComplete((msg, t) -> {
+		f.ask(jobContext, new UpdateJobState(JobState.FAILED)).whenComplete((msg, t) -> {
 			if(t != null) {
 				log.error("couldn't change job state: {}", t);
 			} else {			
@@ -88,7 +89,7 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		f.ask(jobContext, JobState.SUCCEEDED).whenComplete((msg, t) -> {
+		f.ask(jobContext, new UpdateJobState(JobState.SUCCEEDED)).whenComplete((msg, t) -> {
 			if(t != null) {
 				log.error("couldn't change job state: {}", t);
 			} else {			

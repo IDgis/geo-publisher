@@ -18,7 +18,7 @@ import nl.idgis.publisher.AbstractStateMachine;
 
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
@@ -204,7 +204,7 @@ public class Service extends AbstractStateMachine<String> {
 					log.debug("verified job log stored"); 
 					
 					log.debug("service job succeeded: " + job);
-					tellDatabaseDelayed(new UpdateJobState(job, JobState.SUCCEEDED));
+					tellDatabaseDelayed(new UpdateState(job, JobState.SUCCEEDED));
 					
 					become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 				} else {
@@ -269,7 +269,7 @@ public class Service extends AbstractStateMachine<String> {
 							log.debug("creating new feature type");
 							
 							if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
-								tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
+								tellDatabaseDelayed(new UpdateState(job, JobState.FAILED));						
 								become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 							} else {
 								database.tell(new StoreLog(job, Log.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
@@ -279,7 +279,7 @@ public class Service extends AbstractStateMachine<String> {
 					} catch(Exception e) {
 						log.error(e, "service job failed: " + job);
 						
-						tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
+						tellDatabaseDelayed(new UpdateState(job, JobState.FAILED));						
 						become("storing job completed state", waitingForJobCompletedStored(job, initiator));
 					}					
 				} else {
@@ -293,7 +293,7 @@ public class Service extends AbstractStateMachine<String> {
 	private void handleServiceJob(ServiceJobInfo job) {
 		log.debug("executing service job: " + job);
 		
-		database.tell(new UpdateJobState(job, JobState.STARTED), getSelf());
+		database.tell(new UpdateState(job, JobState.STARTED), getSelf());
 		become("storing started job state", waitingForJobStartedStored(getSender(), job), false);
 	}	
 

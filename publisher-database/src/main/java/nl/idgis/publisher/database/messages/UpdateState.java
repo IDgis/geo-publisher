@@ -2,14 +2,15 @@ package nl.idgis.publisher.database.messages;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-public class UpdateJobState extends Query {
-
-	private static final long serialVersionUID = 4158324360734881565L;
+public class UpdateState extends Query {
 	
+	private static final long serialVersionUID = 4108859495125183484L;
+
 	private final JobInfo job;
+	
 	private final JobState state;
 	
-	public UpdateJobState(JobInfo job, JobState state) {
+	public UpdateState(JobInfo job, JobState state) {
 		this.job = job;
 		this.state = state;
 	}
@@ -24,6 +25,6 @@ public class UpdateJobState extends Query {
 
 	@Override
 	public String toString() {
-		return "UpdateJobState [job=" + job + ", state=" + state + "]";
+		return "UpdateState [job=" + job + ", state=" + state + "]";
 	}
 }

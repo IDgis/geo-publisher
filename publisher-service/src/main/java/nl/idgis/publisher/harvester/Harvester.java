@@ -12,6 +12,7 @@ import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -173,7 +174,7 @@ public class Harvester extends UntypedActor {
 	private void startHarvesting(final HarvestJobInfo harvestJob) {
 		
 		ActorRef sender = getSender();
-		f.ask(sender, JobState.STARTED).whenComplete((msg, t) -> {
+		f.ask(sender, new UpdateJobState(JobState.STARTED)).whenComplete((msg, t) -> {
 			if(t != null) {
 				log.error("couldn't change job state: {}", t);
 				sender.tell(new Ack(), getSelf());

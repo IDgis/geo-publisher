@@ -28,7 +28,7 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
@@ -205,7 +205,7 @@ public class JobTest extends AbstractServiceTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = sync.ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(database, new UpdateState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());
@@ -230,7 +230,7 @@ public class JobTest extends AbstractServiceTest {
 		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
 		
 		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
-		result = sync.ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(database, new UpdateState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());

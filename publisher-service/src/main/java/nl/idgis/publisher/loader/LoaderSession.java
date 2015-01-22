@@ -15,6 +15,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -172,7 +173,7 @@ public class LoaderSession extends UntypedActor {
 	private void finalizeSession(JobState state) {
 		log.debug("finalizing session: " + state);
 		
-		f.ask(jobContext, state).whenComplete((msg0, t0) -> {
+		f.ask(jobContext, new UpdateJobState(state)).whenComplete((msg0, t0) -> {
 			if(t0 != null) {
 				log.error("couldn't change job state: {}", t0);
 			} 

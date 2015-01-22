@@ -27,7 +27,7 @@ import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -102,7 +102,7 @@ public class InitiatorTest extends AbstractServiceTest {
 			log.debug("message received: " + msg);
 			
 			if(msg instanceof JobInfo) {
-				database.tell(new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED), getSelf());
+				database.tell(new UpdateState((JobInfo)msg, JobState.SUCCEEDED), getSelf());
 				
 				getContext().become(waitingForDatabaseAck((JobInfo)msg, getSender()));
 			} else {

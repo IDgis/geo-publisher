@@ -17,13 +17,14 @@ import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 public class JobContext extends UntypedActor {
@@ -117,11 +118,11 @@ public class JobContext extends UntypedActor {
 			getContext().parent().tell(msg, getSelf());
 			
 			getSelf().tell(new JobAcknowledged(), getSelf());
-		} else if(msg instanceof JobState) {
-			log.debug("job state received: {}", msg);
+		} else if(msg instanceof UpdateJobState) {
+			log.debug("update job state received: {}", msg);
 			
-			JobState jobState = (JobState)msg;
-			jobManager.tell(new UpdateJobState(jobInfo, jobState), getSender());
+			JobState jobState = ((UpdateJobState)msg).getState();
+			jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
 			
 			if(jobState.isFinished()) {
 				log.debug("job finished");

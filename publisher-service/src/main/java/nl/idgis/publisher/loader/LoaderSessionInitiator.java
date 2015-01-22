@@ -33,6 +33,7 @@ import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -223,7 +224,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 						if(continueImport) {						
 							startTransaction();
 						} else {
-							jobContext.tell(JobState.FAILED, getSelf());
+							jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());
 							
 							become("storing failed job state", waitingForJobFailedStored());
 						}
@@ -262,7 +263,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					log.debug("dataSource received");
 					
 					dataSource = (ActorRef)msg;
-					jobContext.tell(JobState.STARTED, getSelf());
+					jobContext.tell(new UpdateJobState(JobState.STARTED), getSelf());
 					become("storing started job state", waitingForJobStartedStored());
 				}
 			}

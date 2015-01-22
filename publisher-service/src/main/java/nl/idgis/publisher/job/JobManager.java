@@ -38,7 +38,7 @@ import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.RemoveNotification;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateJobState;
+import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
@@ -105,7 +105,7 @@ public class JobManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		log.debug("jobs: " + msg);
 		
-		if(msg instanceof UpdateJobState) {
+		if(msg instanceof UpdateState) {
 			database.forward(msg, getContext());
 		} else if(msg instanceof StoreLog) {
 			database.forward(msg, getContext());
