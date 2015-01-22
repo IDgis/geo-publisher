@@ -35,6 +35,8 @@ import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.QHarvestJobInfo;
 import nl.idgis.publisher.database.messages.QServiceJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
+import nl.idgis.publisher.database.messages.StoreLog;
+import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
@@ -101,7 +103,11 @@ public class JobManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		log.debug("jobs: " + msg);
 		
-		if(msg instanceof GetImportJobs) {
+		if(msg instanceof UpdateJobState) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof StoreLog) {
+			database.forward(msg, getContext());
+		} else if(msg instanceof GetImportJobs) {
 			returnToSender(handleGetImportJobs());
 		} else if(msg instanceof GetHarvestJobs) {
 			returnToSender(handleGetHarvestJobs());

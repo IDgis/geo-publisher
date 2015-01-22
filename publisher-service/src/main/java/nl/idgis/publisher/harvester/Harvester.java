@@ -3,7 +3,6 @@ package nl.idgis.publisher.harvester;
 import java.util.ArrayList;
 
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -18,16 +17,15 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -37,7 +35,7 @@ public class Harvester extends UntypedActor {
 	
 	private final Config config;
 	
-	private final ActorRef database, datasetManager;
+	private final ActorRef datasetManager;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -46,15 +44,16 @@ public class Harvester extends UntypedActor {
 	private BiMap<String, ActorRef> dataSources;
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
+	
+	private FutureUtils f;
 
-	public Harvester(ActorRef database, ActorRef datasetManager, Config config) {
-		this.database = database;	
+	public Harvester(ActorRef datasetManager, Config config) {			
 		this.datasetManager = datasetManager;
 		this.config = config;
 	}
 	
-	public static Props props(ActorRef database, ActorRef datasetManager, Config config) {
-		return Props.create(Harvester.class, database, datasetManager, config);
+	public static Props props(ActorRef datasetManager, Config config) {
+		return Props.create(Harvester.class, datasetManager, config);
 	}
 
 	@Override
@@ -69,6 +68,8 @@ public class Harvester extends UntypedActor {
 		dataSources = HashBiMap.create();
 		
 		sessions = HashBiMap.create();
+		
+		f = new FutureUtils(getContext().dispatcher());
 	}
 
 	@Override
@@ -171,25 +172,25 @@ public class Harvester extends UntypedActor {
 
 	private void startHarvesting(final HarvestJobInfo harvestJob) {
 		
-		final ActorRef sender = getSender();
-		Patterns.ask(database, new UpdateJobState(harvestJob, JobState.STARTED), 150000)
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("starting harvesting for dataSource: " + harvestJob);
-					
-					sender.tell(new Ack(), getSelf());
-					
-					ActorRef session = getContext().actorOf(
-							HarvestSession.props(database, datasetManager, harvestJob), 
-							nameGenerator.getName(HarvestSession.class));
-					
-					getContext().watch(session);
-					sessions.put(harvestJob, session);
-					
-					dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
-				}
-			}, getContext().dispatcher());
+		ActorRef sender = getSender();
+		f.ask(sender, JobState.STARTED).whenComplete((msg, t) -> {
+			if(t != null) {
+				log.error("couldn't change job state: {}", t);
+				sender.tell(new Ack(), getSelf());
+			} else {
+				log.debug("starting harvesting for dataSource: " + harvestJob);
+				
+				sender.tell(new Ack(), getSelf());
+				
+				ActorRef session = getContext().actorOf(
+						HarvestSession.props(sender, datasetManager, harvestJob), 
+						nameGenerator.getName(HarvestSession.class));
+				
+				getContext().watch(session);
+				sessions.put(harvestJob, session);
+				
+				dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
+			}
+		});
 	}
 }
