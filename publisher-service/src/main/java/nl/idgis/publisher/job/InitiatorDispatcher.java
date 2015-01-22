@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import scala.concurrent.duration.FiniteDuration;
 
@@ -20,6 +21,8 @@ import akka.japi.Procedure;
 public class InitiatorDispatcher extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final FiniteDuration timeout;
 	
@@ -97,7 +100,11 @@ public class InitiatorDispatcher extends UntypedActor {
 	private void tellTarget(JobInfo jobInfo) {
 		log.debug("sending message to target: " + jobInfo);
 		
-		target.tell(jobInfo, getSelf());
+		ActorRef jobContext = getContext().actorOf(
+				JobContext.props(jobManager, jobInfo), 
+				nameGenerator.getName(JobContext.class));
+		
+		target.tell(jobInfo, jobContext);
 	}	
 	
 	private void stop() {
