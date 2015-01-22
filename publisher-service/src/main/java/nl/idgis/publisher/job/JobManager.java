@@ -14,10 +14,12 @@ import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDa
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+import static nl.idgis.publisher.utils.JsonUtils.toJson;
 import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ import java.util.ListIterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
@@ -40,6 +43,8 @@ import nl.idgis.publisher.database.messages.ServiceJobInfo;
 import nl.idgis.publisher.database.messages.StoreLog;
 import nl.idgis.publisher.database.messages.UpdateState;
 
+import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
@@ -92,7 +97,13 @@ public class JobManager extends UntypedActor {
 	
 	private <T> void returnToSender(CompletableFuture<T> future) {
 		ActorRef sender = getSender();
-		future.thenAccept(t -> sender.tell(t, getSelf()));
+		future.whenComplete((msg, t) -> {
+			if(t != null) {
+				sender.tell(new Failure(t), getSelf());
+			} else {			
+				sender.tell(msg, getSelf());
+			}
+		});
 	}
 	
 	@Override
@@ -106,13 +117,13 @@ public class JobManager extends UntypedActor {
 		log.debug("jobs: " + msg);
 		
 		if(msg instanceof UpdateState) {
-			database.forward(msg, getContext());
+			returnToSender(handleUpdateState((UpdateState)msg));			
 		} else if(msg instanceof StoreLog) {
-			database.forward(msg, getContext());
+			returnToSender(handleStoreLog((StoreLog)msg));
 		} else if(msg instanceof AddNotification) {
-			database.forward(msg, getContext());
+			returnToSender(handleAddNotification((AddNotification)msg));
 		} else if(msg instanceof RemoveNotification) {
-			database.forward(msg, getContext());
+			returnToSender(handleRemoveNotification((RemoveNotification)msg));
 		} else if(msg instanceof GetImportJobs) {
 			returnToSender(handleGetImportJobs());
 		} else if(msg instanceof GetHarvestJobs) {
@@ -132,8 +143,75 @@ public class JobManager extends UntypedActor {
 		}
 	}
 	
+	private CompletableFuture<Ack> handleRemoveNotification(RemoveNotification msg) {
+		String type = msg.getNotificationType().name();
+		int jobId = msg.getJob().getId();
+		
+		return db.transactional(tx ->
+			f.collect(					
+				tx.delete(notificationResult)
+				.where(new SQLSubQuery().from(notification)
+					.where(notification.id.eq(notificationResult.notificationId)
+						.and(notification.type.eq(type)
+						.and(notification.jobId.eq(jobId))))
+					.exists())
+				.execute())
+			.collect(
+				tx.delete(notification)
+				.where(notification.type.eq(type)
+					.and(notification.jobId.eq(jobId)))
+				.execute()).thenApply((l0, l1) -> new Ack()));
+	}
+
+	private CompletableFuture<Ack> handleAddNotification(AddNotification msg) {
+		return db.insert(notification)
+			.set(notification.jobId, msg.getJob().getId())
+			.set(notification.type, msg.getNotificationType().name())
+			.execute().thenApply(l -> new Ack());
+	}
+
+	private CompletableFuture<Ack> handleStoreLog(StoreLog msg) {
+		Log log = msg.getJobLog();
+		
+		final String jsonContent;
+		MessageProperties content = log.getContent();
+		if(content == null) {
+			jsonContent = null;
+		} else {
+			try {
+				jsonContent = toJson(content);
+			} catch(Throwable t) {
+				this.log.error("couldn't serialize log content to json: {}", t);
+				
+				return f.failed(t);
+			}
+		}
+		
+		return db.transactional(tx ->
+			tx.query().from(jobState)
+				.where(jobState.jobId.eq(msg.getJob().getId()))
+				.orderBy(jobState.id.desc())
+				.singleResult(jobState.id).thenCompose(jobStateId ->
+					tx.insert(jobLog)
+						.set(jobLog.jobStateId, jobStateId)
+						.set(jobLog.level, log.getLevel().name())
+						.set(jobLog.type, log.getType().name())
+						.set(jobLog.content, jsonContent)
+						.execute().thenApply(l -> new Ack())));
+	}
+
 	private BooleanExpression isFinished(QJobState jobState) {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
+	}
+	
+	private CompletableFuture<Ack> handleUpdateState(UpdateState msg) {
+		log.debug("updating job state: " + msg);
+		
+		return 
+			db.insert(jobState)
+				.set(jobState.jobId, msg.getJob().getId())
+				.set(jobState.state, msg.getState().name())
+				.execute().thenApply(l -> new Ack());
 	}
 	
 	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {

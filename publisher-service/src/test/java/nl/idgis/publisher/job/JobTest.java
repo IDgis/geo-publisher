@@ -205,7 +205,7 @@ public class JobTest extends AbstractServiceTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = sync.ask(database, new UpdateState(importJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(jobManager, new UpdateState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());
@@ -230,7 +230,7 @@ public class JobTest extends AbstractServiceTest {
 		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
 		
 		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
-		result = sync.ask(database, new UpdateState(serviceJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(jobManager, new UpdateState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());

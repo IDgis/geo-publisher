@@ -123,7 +123,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 
 	private void handleQuery(Query msg) throws SQLException {
 		try {
-			log.debug("executing query");
+			log.debug("executing query: {} from {}", msg, getSender());
 			executeQuery(msg);
 			
 			finish();

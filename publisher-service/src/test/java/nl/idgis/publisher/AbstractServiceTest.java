@@ -44,7 +44,7 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		TypedIterable<?> iterable = sync.ask(jobManager, request, TypedIterable.class);
 		assertTrue(iterable.contains(JobInfo.class));
 		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			sync.ask(database, new UpdateState(job, JobState.SUCCEEDED));
+			sync.ask(jobManager, new UpdateState(job, JobState.SUCCEEDED));
 		}
 	}
 	
