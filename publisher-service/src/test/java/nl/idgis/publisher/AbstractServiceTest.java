@@ -12,7 +12,6 @@ import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.dataset.DatasetManager;
 
@@ -22,6 +21,7 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
+import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public abstract class AbstractServiceTest extends AbstractDatabaseTest {

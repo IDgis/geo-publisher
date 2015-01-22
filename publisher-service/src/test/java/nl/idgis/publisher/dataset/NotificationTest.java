@@ -14,11 +14,9 @@ import java.util.List;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.RemoveNotification;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
@@ -28,8 +26,10 @@ import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
+import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.RemoveNotification;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import org.junit.Test;

@@ -28,7 +28,6 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.HarvestJobInfo;
 import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
@@ -41,6 +40,7 @@ import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
 

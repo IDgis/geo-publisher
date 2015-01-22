@@ -13,11 +13,7 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.RemoveNotification;
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
@@ -25,6 +21,10 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.AddNotification;
+import nl.idgis.publisher.job.manager.messages.RemoveNotification;
+import nl.idgis.publisher.job.manager.messages.StoreLog;
+import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 public class JobContext extends UntypedActor {

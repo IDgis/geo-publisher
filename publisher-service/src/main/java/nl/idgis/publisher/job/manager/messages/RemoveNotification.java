@@ -1,12 +1,17 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.manager.messages;
+
+import java.io.Serializable;
+
+import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.domain.job.NotificationType;
 
-public class RemoveNotification extends Query {
+public class RemoveNotification implements Serializable {
 
-	private static final long serialVersionUID = -7852054940831000820L;
-	
+	private static final long serialVersionUID = 5920215786468904874L;
+
 	private final JobInfo job;
+	
 	private final NotificationType<?> notificationType;
 
 	public RemoveNotification(JobInfo job, NotificationType<?> notificationType) {

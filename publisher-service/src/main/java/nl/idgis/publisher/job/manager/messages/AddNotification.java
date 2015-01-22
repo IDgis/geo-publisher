@@ -1,12 +1,17 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.manager.messages;
+
+import java.io.Serializable;
+
+import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.domain.job.NotificationType;
 
-public class AddNotification extends Query {
+public class AddNotification implements Serializable {
 	
-	private static final long serialVersionUID = -7263842439939540377L;
-	
+	private static final long serialVersionUID = 2371788579123723067L;
+
 	private final JobInfo job;
+	
 	private final NotificationType<?> notificationType;
 
 	public AddNotification(JobInfo job, NotificationType<?> notificationType) {

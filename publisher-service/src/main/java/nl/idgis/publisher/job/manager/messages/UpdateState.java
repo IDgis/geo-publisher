@@ -1,10 +1,14 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.manager.messages;
+
+import java.io.Serializable;
+
+import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-public class UpdateState extends Query {
-	
-	private static final long serialVersionUID = 4108859495125183484L;
+public class UpdateState implements Serializable {
+
+	private static final long serialVersionUID = 6163260840249282877L;
 
 	private final JobInfo job;
 	
