@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
@@ -13,11 +12,9 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -74,7 +71,7 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
-import nl.idgis.publisher.job.context.JobContext;
+import nl.idgis.publisher.job.JobExecutorFacade;
 import nl.idgis.publisher.job.messages.CreateImportJob;
 import nl.idgis.publisher.job.messages.GetImportJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -295,50 +292,7 @@ public class LoaderTest extends AbstractServiceTest {
 		}		
 	}
 	
-	static class LoaderFacade extends UntypedActor {
-		
-		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-		
-		private final ActorRef jobManager, loader;
-		
-		private Map<ActorRef, ActorRef> senders;
-
-		public LoaderFacade(ActorRef jobManager, ActorRef loader) {
-			this.jobManager = jobManager;
-			this.loader = loader;
-		}
-		
-		public static Props props(ActorRef jobManager, ActorRef loader) {
-			return Props.create(LoaderFacade.class, jobManager, loader);
-		}
-		
-		@Override
-		public void preStart() {
-			senders = new HashMap<ActorRef, ActorRef>();
-		}
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof JobInfo) {
-				log.debug("job info received");
-				
-				ActorRef jobContext = getContext().actorOf(JobContext.props(jobManager, (JobInfo)msg));
-				senders.put(jobContext, getSender());
-				loader.tell(msg, jobContext);
-			} else if(msg instanceof Ack) {
-				log.debug("ack received");
-				
-				senders.get(getSender()).tell(msg, getSelf());
-			} else {
-				unhandled(msg);
-			}
-		}
-		
-	}
-	
-	ActorRef loader;
-	ActorRef dataSourceMock;
-	ActorRef geometryDatabaseMock;
+	ActorRef loader, dataSourceMock, geometryDatabaseMock;
 	
 	@Before
 	public void actors() {
@@ -346,7 +300,7 @@ public class LoaderTest extends AbstractServiceTest {
 		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
 		
-		loader = actorOf(LoaderFacade.props(jobManager, actorOf(Loader.props(geometryDatabaseMock, database, harvesterMock), "loader")), "loaderFacade");
+		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(geometryDatabaseMock, database, harvesterMock), "loader")), "loaderFacade");
 	}
 
 	@Test
