@@ -10,7 +10,6 @@ import nl.idgis.publisher.AbstractStateMachine;
 
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 
@@ -34,6 +33,7 @@ import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;

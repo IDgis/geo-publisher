@@ -16,9 +16,8 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.util.Timeout;
 
-import nl.idgis.publisher.database.messages.ServiceJobInfo;
-
 import nl.idgis.publisher.job.JobExecutorFacade;
+import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.messages.GetContent;
 import nl.idgis.publisher.service.messages.Layer;
@@ -26,11 +25,9 @@ import nl.idgis.publisher.service.messages.ServiceContent;
 import nl.idgis.publisher.service.messages.VirtualService;
 import nl.idgis.publisher.utils.SyncAskHelper;
 import nl.idgis.publisher.AbstractServiceTest;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;

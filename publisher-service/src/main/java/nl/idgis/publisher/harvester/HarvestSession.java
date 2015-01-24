@@ -2,8 +2,6 @@ package nl.idgis.publisher.harvester;
 
 import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -18,6 +16,7 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;

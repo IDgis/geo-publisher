@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
 
@@ -16,6 +15,7 @@ import nl.idgis.publisher.domain.service.Column;
 
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;

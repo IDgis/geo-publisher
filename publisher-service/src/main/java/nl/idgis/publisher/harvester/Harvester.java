@@ -2,8 +2,6 @@ package nl.idgis.publisher.harvester;
 
 import java.util.ArrayList;
 
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
@@ -13,6 +11,7 @@ import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;

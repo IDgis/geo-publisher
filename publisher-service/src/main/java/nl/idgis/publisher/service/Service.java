@@ -13,14 +13,13 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.AbstractStateMachine;
 
-import nl.idgis.publisher.database.messages.ServiceJobInfo;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.service.ServiceLogType;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;

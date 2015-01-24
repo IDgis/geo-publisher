@@ -16,7 +16,6 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
@@ -29,6 +28,7 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveNotification;
 import nl.idgis.publisher.utils.TypedIterable;
 
