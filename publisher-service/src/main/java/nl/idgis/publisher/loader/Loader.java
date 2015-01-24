@@ -16,6 +16,7 @@ import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.loader.messages.SessionStarted;
@@ -63,6 +64,8 @@ public class Loader extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ImportJobInfo) {
 			handleImportJob((ImportJobInfo)msg);
+		} else if(msg instanceof RemoveJobInfo) {
+			handleRemoveJob((RemoveJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);
 		} else if(msg instanceof SessionFinished) {
@@ -176,6 +179,12 @@ public class Loader extends UntypedActor {
 				nameGenerator.getName(LoaderSessionInitiator.class));
 		
 		database.tell(new GetDatasetStatus(importJob.getDatasetId()), initiator);
+	}
+	
+	private void handleRemoveJob(final RemoveJobInfo removeJob) {
+		log.debug("data remove requested: " + removeJob);
+		
+		// TODO: actually remove dataset
 	}
 	
 }
