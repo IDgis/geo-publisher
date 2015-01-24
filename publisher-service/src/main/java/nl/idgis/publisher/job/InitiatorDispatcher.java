@@ -2,8 +2,10 @@ package nl.idgis.publisher.job;
 
 import java.util.Iterator;
 
+import nl.idgis.publisher.job.context.JobContext;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import scala.concurrent.duration.FiniteDuration;
 
@@ -21,16 +23,20 @@ public class InitiatorDispatcher extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final FiniteDuration timeout;
-	private final ActorRef target;
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	public InitiatorDispatcher(ActorRef target, FiniteDuration timeout) {		
+	private final FiniteDuration timeout;
+	
+	private final ActorRef jobManager, target;
+	
+	public InitiatorDispatcher(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
+		this.jobManager = jobManager;
 		this.target = target;
 		this.timeout = timeout;
 	}
 	
-	public static Props props(ActorRef target, FiniteDuration timeout) {
-		return Props.create(InitiatorDispatcher.class, target, timeout);
+	public static Props props(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
+		return Props.create(InitiatorDispatcher.class, jobManager, target, timeout);
 	}
 	
 	@Override
@@ -95,7 +101,11 @@ public class InitiatorDispatcher extends UntypedActor {
 	private void tellTarget(JobInfo jobInfo) {
 		log.debug("sending message to target: " + jobInfo);
 		
-		target.tell(jobInfo, getSelf());
+		ActorRef jobContext = getContext().actorOf(
+				JobContext.props(jobManager, jobInfo), 
+				nameGenerator.getName(JobContext.class));
+		
+		target.tell(jobInfo, jobContext);
 	}	
 	
 	private void stop() {

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
@@ -34,14 +35,13 @@ import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.GetJobLog;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.database.messages.UpdateDataset;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -70,8 +70,10 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.JobExecutorFacade;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
@@ -290,69 +292,15 @@ public class LoaderTest extends AbstractServiceTest {
 		}		
 	}
 	
-	static class GetFinishedState {
-		
-	}
-	
-	static class DatabaseAdapter extends UntypedActor {
-		
-		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-		
-		final ActorRef database;
-		
-		ActorRef sender = null;
-		JobState finishedState = null;
-		
-		DatabaseAdapter(ActorRef database) {
-			this.database = database;
-		}
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			log.debug("received: " + msg);
-			
-			if(msg instanceof GetFinishedState) {
-				sender = getSender();
-				sendFinishedState();
-			} else {			
-				if(msg instanceof UpdateJobState) {
-					UpdateJobState ujs = (UpdateJobState)msg;
-					
-					JobState currentState = ujs.getState();
-					if(currentState.isFinished()) {					
-						finishedState = currentState;
-						sendFinishedState();					
-					}
-				}
-				
-				database.tell(msg, getSender());
-			}
-		}
-		
-		void sendFinishedState() {
-			if(sender != null && finishedState != null) {
-				sender.tell(finishedState, getSelf());
-				
-				sender = null;
-				finishedState = null;
-			}
-		}
-		
-	}
-	
-	ActorRef loader;
-	ActorRef dataSourceMock;
-	ActorRef databaseAdapter;
-	ActorRef geometryDatabaseMock;
+	ActorRef loader, dataSourceMock, geometryDatabaseMock;
 	
 	@Before
 	public void actors() {
 		geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
 		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
-		databaseAdapter = actorOf(Props.create(DatabaseAdapter.class, database), "databaseAdapter");
 		
-		loader = actorOf(Loader.props(geometryDatabaseMock, databaseAdapter, harvesterMock), "loader");
+		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(geometryDatabaseMock, database, harvesterMock), "loader")), "loaderFacade");
 	}
 
 	@Test
@@ -364,11 +312,8 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		for(ImportJobInfo job : iterable.cast(ImportJobInfo.class)) {
 			sync.ask(loader, job, Ack.class);
+			assertFinishedJobState(JobState.SUCCEEDED, job);
 		}
-		
-		assertEquals(
-				JobState.SUCCEEDED, 				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
 		
 		List<?> columns = sync.ask(dataSourceMock, new GetColumns(), List.class);
 		Iterator<?> columnItr = columns.iterator();
@@ -462,14 +407,11 @@ public class LoaderTest extends AbstractServiceTest {
 			}
 			
 			sync.ask(loader, jobInfo, Ack.class);
+			assertFinishedJobState(JobState.SUCCEEDED, jobInfo);			
 		}
 		
 		// the loader is still able to import, but informs us 
 		// about a missing column
-		assertEquals(
-				JobState.SUCCEEDED,
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
-		
 		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(1, infoList.getCount().intValue());
 		
@@ -511,13 +453,12 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(iterable.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> itr = iterable.cast(ImportJobInfo.class).iterator();
-		assertTrue(itr.hasNext());		
-		sync.ask(loader, itr.next(), Ack.class);
+		assertTrue(itr.hasNext());
+		ImportJobInfo job = itr.next();
+		sync.ask(loader, job, Ack.class);
 		assertFalse(itr.hasNext());
 		
-		assertEquals(
-				JobState.SUCCEEDED,
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));		
+		assertFinishedJobState(JobState.SUCCEEDED, job);
 		
 		int count = sync.ask(geometryDatabaseMock, new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
@@ -570,13 +511,11 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		Iterator<ImportJobInfo> importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		sync.ask(loader, importJobItr.next(), Ack.class);
+		ImportJobInfo job = importJobItr.next(); 
+		sync.ask(loader, job, Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
-		assertEquals(
-				JobState.FAILED,
-				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
+		assertFinishedJobState(JobState.FAILED, job);
 		
 		InfoList<?> infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(2, infoList.getCount().intValue());
@@ -592,15 +531,27 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		importJobItr = importJobIterable.cast(ImportJobInfo.class).iterator();
 		assertTrue(importJobItr.hasNext());
-		sync.ask(loader, importJobItr.next(), Ack.class);
+		job = importJobItr.next();
+		sync.ask(loader, job, Ack.class);
 		assertFalse(importJobItr.hasNext());
 		
-		assertEquals(
-				JobState.SUCCEEDED,
-				
-				sync.ask(databaseAdapter, new GetFinishedState(), JobState.class));
+		assertFinishedJobState(JobState.SUCCEEDED, job);
 		
 		infoList = sync.ask(database, new GetJobLog(LogLevel.DEBUG), InfoList.class);
 		assertEquals(3, infoList.getCount().intValue());
+	}
+
+	private void assertFinishedJobState(JobState expected, JobInfo job) throws Exception {
+		JobState encountered;
+		while(!(encountered = JobState.valueOf(
+			query().from(jobState)
+				.where(jobState.jobId.eq(job.getId()))
+				.orderBy(jobState.id.desc())
+				.singleResult(jobState.state))).isFinished()) {
+			
+			Thread.sleep(100);
+		}
+		
+		assertEquals(encountered, expected);
 	}
 }

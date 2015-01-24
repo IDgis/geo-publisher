@@ -13,9 +13,9 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-import nl.idgis.publisher.job.messages.CreateHarvestJob;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import akka.actor.ActorRef;

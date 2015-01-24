@@ -14,11 +14,8 @@ import java.util.List;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.AddNotification;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.RemoveNotification;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
@@ -28,8 +25,11 @@ import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.AddNotification;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RemoveNotification;
 import nl.idgis.publisher.utils.TypedIterable;
 
 import org.junit.Test;
@@ -69,7 +69,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertNotNull(notifications);
 		assertTrue(notifications.isEmpty());
 		
-		sync.ask(database, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		sync.ask(jobManager, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		Tuple notificationTuple =  
 			query().from(notification)
@@ -137,7 +137,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertEquals(ConfirmNotificationResult.OK, n.getResult());
 		
-		sync.ask(database, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		sync.ask(jobManager, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
 		
 		assertFalse(
 			query().from(notification)

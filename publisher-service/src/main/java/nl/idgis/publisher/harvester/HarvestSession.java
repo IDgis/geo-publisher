@@ -2,10 +2,6 @@ package nl.idgis.publisher.harvester;
 
 import java.util.concurrent.TimeUnit;
 
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateJobState;
-
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -19,6 +15,8 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -37,20 +35,20 @@ public class HarvestSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, datasetManager;
+	private final ActorRef jobContext, datasetManager;
 	
 	private final HarvestJobInfo harvestJob;
 	
 	private FutureUtils f;
 	
-	public HarvestSession(ActorRef database, ActorRef datasetManager, HarvestJobInfo harvestJob) {
-		this.database = database;
+	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob) {
+		this.jobContext = jobContext;
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
 	}
 	
-	public static Props props(ActorRef database, ActorRef datasetManager, HarvestJobInfo harvestJob) {
-		return Props.create(HarvestSession.class, database, datasetManager, harvestJob);
+	public static Props props(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob) {
+		return Props.create(HarvestSession.class, jobContext, datasetManager, harvestJob);
 	}
 	
 	@Override
@@ -68,8 +66,6 @@ public class HarvestSession extends UntypedActor {
 			handleDataset((Dataset)msg);			
 		} else if(msg instanceof End) {
 			handleEnd();
-		} else if(msg instanceof Log) {
-			handleJobLog((Log)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -78,23 +74,27 @@ public class HarvestSession extends UntypedActor {
 	private void handleTimeout() {
 		log.error("timeout while executing job: " + harvestJob);
 		
-		f.ask(database, new UpdateJobState(harvestJob, JobState.FAILED)).thenRun(() -> {
-			log.debug("harvesting of dataSource finished: " + harvestJob);
+		f.ask(jobContext, new UpdateJobState(JobState.FAILED)).whenComplete((msg, t) -> {
+			if(t != null) {
+				log.error("couldn't change job state: {}", t);
+			} else {			
+				log.debug("harvesting of dataSource finished: " + harvestJob);				
+			}
+			
 			getContext().stop(getSelf());
 		});
-	}
-
-	private void handleJobLog(Log msg) { 
-		log.debug("saving job log");
-		
-		database.tell(new StoreLog(harvestJob, msg), getSender());
-	}
+	}	
 
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		f.ask(database, new UpdateJobState(harvestJob, JobState.SUCCEEDED)).thenRun(() -> {
-			log.debug("harvesting of dataSource finished: " + harvestJob);
+		f.ask(jobContext, new UpdateJobState(JobState.SUCCEEDED)).whenComplete((msg, t) -> {
+			if(t != null) {
+				log.error("couldn't change job state: {}", t);
+			} else {			
+				log.debug("harvesting of dataSource finished: " + harvestJob);
+			}
+			
 			getContext().stop(getSelf());
 		});
 	}
@@ -133,9 +133,12 @@ public class HarvestSession extends UntypedActor {
 									dataset.getName()
 						));
 					
-					f.ask(database, new StoreLog(harvestJob, jobLog)).thenRun(() -> {
-						log.debug("dataset registration logged");
-						
+					f.ask(jobContext, jobLog).whenComplete((ack, t) -> {
+						if(t != null) {
+							log.error("couldn't store log: {}", t);
+						} else {
+							log.debug("dataset registration logged");
+						}
 						sender.tell(new NextItem(), getSelf());
 					});
 				} else if(msg instanceof Failure) {

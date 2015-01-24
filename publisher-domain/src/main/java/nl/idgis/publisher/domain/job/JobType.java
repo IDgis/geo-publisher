@@ -6,7 +6,7 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.load.ImportLogType;
 
 public enum JobType implements MessageType<MessageProperties> {
-	HARVEST(HarvestLogType.class), IMPORT(ImportLogType.class), SERVICE;
+	HARVEST(HarvestLogType.class), IMPORT(ImportLogType.class), SERVICE, REMOVE;
 
 	private final Class<? extends MessageType<?>> logMessageEnum;
 

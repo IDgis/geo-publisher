@@ -1,9 +1,11 @@
 package nl.idgis.publisher.job;
 
-import nl.idgis.publisher.job.messages.GetHarvestJobs;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.GetServiceJobs;
-import nl.idgis.publisher.job.messages.JobManagerRequest;
+import nl.idgis.publisher.job.manager.JobManager;
+import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
+import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -34,7 +36,8 @@ public class JobSystem extends UntypedActor {
 		getContext().actorOf(
 				Initiator.props()
 					.add(harvester, "harvester", new GetHarvestJobs())
-					.add(loader, "loader", new GetImportJobs())
+					.add(loader, "import", new GetImportJobs())
+					.add(loader, "remove", new GetRemoveJobs())
 					.add(service, "service", new GetServiceJobs())
 					.create(jobManager), 
 				"initiator");

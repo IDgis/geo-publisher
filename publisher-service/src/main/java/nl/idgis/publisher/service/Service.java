@@ -6,25 +6,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import scala.concurrent.duration.Duration;
 
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.AbstractStateMachine;
-
-import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.StoreLog;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.service.ServiceLogType;
 
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -49,18 +44,17 @@ public class Service extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;
 	private final ServiceRest rest;
+	
 	private final Map<String, String> connectionParameters;
 
-	public Service(ActorRef database, String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {
-		this.database = database;
+	public Service(String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
 		this.connectionParameters = Collections.unmodifiableMap(connectionParameters);
 		
 		rest = new ServiceRest(serviceLocation, user, password);		
 	}
 	
-	public static Props props(ActorRef database, Config geoserverConfig, Config geometryDatabaseConfig) {
+	public static Props props(Config geoserverConfig, Config geometryDatabaseConfig) {
 		String serviceLocation = geoserverConfig.getString("url") + "rest/";
 		String user = geoserverConfig.getString("user");
 		String password = geoserverConfig.getString("password");		
@@ -82,7 +76,7 @@ public class Service extends AbstractStateMachine<String> {
 		connectionParameters.put("user", geometryDatabaseConfig.getString("user"));
 		connectionParameters.put("passwd", geometryDatabaseConfig.getString("password"));
 		
-		return Props.create(Service.class, database, serviceLocation, user, password, connectionParameters);
+		return Props.create(Service.class, serviceLocation, user, password, connectionParameters);
 	}
 	
 	@Override
@@ -195,7 +189,7 @@ public class Service extends AbstractStateMachine<String> {
 		};
 	}
 	
-	private Procedure<Object> waitingJobLogStored(final ServiceJobInfo job, final ActorRef initiator) {
+	private Procedure<Object> waitingJobLogStored(final ServiceJobInfo job, final ActorRef jobContext) {
 		return new Procedure<Object>() {
 
 			@Override
@@ -204,9 +198,9 @@ public class Service extends AbstractStateMachine<String> {
 					log.debug("verified job log stored"); 
 					
 					log.debug("service job succeeded: " + job);
-					tellDatabaseDelayed(new UpdateJobState(job, JobState.SUCCEEDED));
+					jobContext.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
 					
-					become("storing job completed state", waitingForJobCompletedStored(job, initiator));
+					become("storing job completed state", waitingForJobCompletedStored(job, jobContext));
 				} else {
 					unhandled(job, msg);
 				}
@@ -215,19 +209,7 @@ public class Service extends AbstractStateMachine<String> {
 		};
 	}
 	
-	private void tellDatabaseDelayed(Object msg) {
-		getContext()
-			.system()
-			.scheduler()
-				.scheduleOnce(
-						Duration.create(10, TimeUnit.SECONDS), 
-						database, 
-						msg, 
-						getContext().dispatcher(), 
-						getSelf());
-	}
-	
-	private Procedure<Object> waitingForJobStartedStored(final ActorRef initiator, final ServiceJobInfo job) {
+	private Procedure<Object> waitingForJobStartedStored(final ActorRef jobContext, final ServiceJobInfo job) {
 		return new Procedure<Object>() {
 
 			@Override
@@ -263,24 +245,24 @@ public class Service extends AbstractStateMachine<String> {
 						if(hasTable(workspace, dataStore, tableName)) {
 							log.debug("feature type for table already exists");
 							
-							database.tell(new StoreLog(job, Log.create(LogLevel.INFO, ServiceLogType.VERIFIED)), getSelf());
-							become("storing verified job log", waitingJobLogStored(job, initiator));
+							jobContext.tell(Log.create(LogLevel.INFO, ServiceLogType.VERIFIED), getSelf());
+							become("storing verified job log", waitingJobLogStored(job, jobContext));
 						} else {
 							log.debug("creating new feature type");
 							
 							if(!rest.addFeatureType(workspace, dataStore, new FeatureType(tableName))) {
-								tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
-								become("storing job completed state", waitingForJobCompletedStored(job, initiator));
+								jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());						
+								become("storing job completed state", waitingForJobCompletedStored(job, jobContext));
 							} else {
-								database.tell(new StoreLog(job, Log.create(LogLevel.INFO, ServiceLogType.ADDED)), getSelf());
-								become("storing add job log", waitingJobLogStored(job, initiator));
+								jobContext.tell(Log.create(LogLevel.INFO, ServiceLogType.ADDED), getSelf());
+								become("storing add job log", waitingJobLogStored(job, jobContext));
 							}
 						}
 					} catch(Exception e) {
 						log.error(e, "service job failed: " + job);
 						
-						tellDatabaseDelayed(new UpdateJobState(job, JobState.FAILED));						
-						become("storing job completed state", waitingForJobCompletedStored(job, initiator));
+						jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());						
+						become("storing job completed state", waitingForJobCompletedStored(job, jobContext));
 					}					
 				} else {
 					unhandled(job, msg);
@@ -293,8 +275,9 @@ public class Service extends AbstractStateMachine<String> {
 	private void handleServiceJob(ServiceJobInfo job) {
 		log.debug("executing service job: " + job);
 		
-		database.tell(new UpdateJobState(job, JobState.STARTED), getSelf());
-		become("storing started job state", waitingForJobStartedStored(getSender(), job), false);
+		ActorRef jobContext = getSender();
+		jobContext.tell(new UpdateJobState(JobState.STARTED), getSelf());
+		become("storing started job state", waitingForJobStartedStored(jobContext, job), false);
 	}	
 
 	private boolean hasTable(Workspace workspace, DataStore dataStore, String tableName) throws Exception {

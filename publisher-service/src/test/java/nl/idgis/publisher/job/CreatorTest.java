@@ -8,12 +8,12 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 import nl.idgis.publisher.AbstractServiceTest;
-import nl.idgis.publisher.job.messages.CreateHarvestJob;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
-import nl.idgis.publisher.job.messages.GetHarvestJobs;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.JobManagerRequest;
+import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 
 public class CreatorTest extends AbstractServiceTest {
 	

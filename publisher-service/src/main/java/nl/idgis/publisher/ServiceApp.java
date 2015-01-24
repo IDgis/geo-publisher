@@ -124,13 +124,13 @@ public class ServiceApp extends UntypedActor {
 		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database));
 		
 		Config harvesterConfig = config.getConfig("harvester");
-		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
+		final ActorRef harvester = getContext().actorOf(Harvester.props(datasetManager, harvesterConfig), "harvester");
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		final ActorRef service = getContext().actorOf(Service.props(database, geoserverConfig, geometryDatabaseConfig), "service");
+		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, geometryDatabaseConfig), "service");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		

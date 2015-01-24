@@ -23,20 +23,21 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-import nl.idgis.publisher.job.messages.CreateHarvestJob;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
-import nl.idgis.publisher.job.messages.GetHarvestJobs;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.JobManager;
+import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 public class InitiatorTest extends AbstractServiceTest {
@@ -68,14 +69,14 @@ public class InitiatorTest extends AbstractServiceTest {
 		ActorRef sender = null;
 		List<JobInfo> jobs = new ArrayList<>();
 		
-		final ActorRef database;
+		final ActorRef jobManager;
 		
-		JobReceiver(ActorRef database) {
-			this.database = database;
+		JobReceiver(ActorRef jobManager) {
+			this.jobManager = jobManager;
 		}
 		
-		static Props props(ActorRef database) {
-			return Props.create(JobReceiver.class, database);
+		static Props props(ActorRef jobManager) {
+			return Props.create(JobReceiver.class, jobManager);
 		}
 		
 		Procedure<Object> waitingForDatabaseAck(final JobInfo job, final ActorRef initiator) {
@@ -102,7 +103,7 @@ public class InitiatorTest extends AbstractServiceTest {
 			log.debug("message received: " + msg);
 			
 			if(msg instanceof JobInfo) {
-				database.tell(new UpdateJobState((JobInfo)msg, JobState.SUCCEEDED), getSelf());
+				jobManager.tell(new UpdateState((JobInfo)msg, JobState.SUCCEEDED), getSelf());
 				
 				getContext().become(waitingForDatabaseAck((JobInfo)msg, getSender()));
 			} else {
@@ -136,12 +137,12 @@ public class InitiatorTest extends AbstractServiceTest {
 		
 		int skipMessageCount = 0;
 		
-		BrokenJobReceiver(ActorRef database) {
-			super(database);
+		BrokenJobReceiver(ActorRef jobManager) {
+			super(jobManager);
 		}
 
-		static Props props(ActorRef database) {
-			return Props.create(BrokenJobReceiver.class, database);
+		static Props props(ActorRef jobManager) {
+			return Props.create(BrokenJobReceiver.class, jobManager);
 		}
 		
 		@Override
@@ -180,7 +181,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	public void testHarvestJob() throws Exception {
 		sync.ask(manager, new CreateHarvestJob("testDataSource"));
 		
-		ActorRef harvester = actorOf(JobReceiver.props(database), "harvesterMock");
+		ActorRef harvester = actorOf(JobReceiver.props(jobManager), "harvesterMock");
 		actorOf(
 			Initiator.props()
 				.add(harvester, "harvester", new GetHarvestJobs())
@@ -196,7 +197,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		sync.ask(manager, new CreateImportJob("testDataset0"));
 		sync.ask(manager, new CreateImportJob("testDataset1"));
 		
-		ActorRef loader = actorOf(JobReceiver.props(database), "loaderMock");
+		ActorRef loader = actorOf(JobReceiver.props(jobManager), "loaderMock");
 		actorOf(
 			Initiator.props()
 				.add(loader, "loader", new GetImportJobs())
@@ -223,7 +224,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	public void testServiceJob() throws Exception {
 		sync.ask(manager, new CreateServiceJob("testDataset0"));
 
-		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
+		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())
@@ -236,7 +237,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	
 	@Test
 	public void testInterval() throws Exception {
-		ActorRef service = actorOf(JobReceiver.props(database), "serviceMock");
+		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())
@@ -263,7 +264,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	public void testTimeout() throws Exception {
 		sync.ask(manager, new CreateServiceJob("testDataset0"));
 		
-		ActorRef service = actorOf(BrokenJobReceiver.props(database), "serviceMock");
+		ActorRef service = actorOf(BrokenJobReceiver.props(jobManager), "serviceMock");
 		actorOf(
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())

@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import akka.actor.ActorRef;
 
-import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 
 public class SessionStarted implements Serializable {	
 	

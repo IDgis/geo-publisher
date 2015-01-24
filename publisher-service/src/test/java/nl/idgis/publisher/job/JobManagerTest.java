@@ -2,6 +2,7 @@ package nl.idgis.publisher.job;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QRemoveJob.removeJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -24,29 +25,50 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.HarvestJobInfo;
-import nl.idgis.publisher.database.messages.ImportJobInfo;
-import nl.idgis.publisher.database.messages.ServiceJobInfo;
-import nl.idgis.publisher.database.messages.UpdateJobState;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 
-import nl.idgis.publisher.job.messages.CreateHarvestJob;
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
-import nl.idgis.publisher.job.messages.GetHarvestJobs;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
+import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
+import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-public class JobTest extends AbstractServiceTest {	
+public class JobManagerTest extends AbstractServiceTest {
+	
+	@Test
+	public void testRemoveJob() throws Exception {
+		insertDataset();
+		
+		assertFalse(query().from(removeJob).exists());		
+		sync.ask(jobManager, new CreateRemoveJob("testDataset"), Ack.class);
+		assertTrue(query().from(removeJob).exists());
+		
+		TypedList<?> list = sync.ask(jobManager, new GetRemoveJobs(), TypedList.class);
+		assertTrue(list.contains(RemoveJobInfo.class));
+		
+		Iterator<RemoveJobInfo> itr = list.cast(RemoveJobInfo.class).iterator();
+		assertTrue(itr.hasNext());
+		assertEquals("testDataset", itr.next().getDatasetId());
+		assertFalse(itr.hasNext());
+	}
 
 	@Test
 	public void testHarvestJob() throws Exception {
@@ -194,7 +216,7 @@ public class JobTest extends AbstractServiceTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = sync.ask(database, new UpdateJobState(importJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(jobManager, new UpdateState(importJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());
@@ -219,7 +241,7 @@ public class JobTest extends AbstractServiceTest {
 		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
 		
 		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
-		result = sync.ask(database, new UpdateJobState(serviceJobInfo, JobState.SUCCEEDED));
+		result = sync.ask(jobManager, new UpdateState(serviceJobInfo, JobState.SUCCEEDED));
 		assertTrue(result instanceof Ack);
 		
 		result = sync.ask(database, new GetDatasetStatus());

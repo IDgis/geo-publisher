@@ -2,7 +2,7 @@ package nl.idgis.publisher.loader.messages;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.database.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 
 public class SessionFinished implements Serializable {	
 

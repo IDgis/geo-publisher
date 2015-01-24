@@ -8,5 +8,7 @@ public interface AsyncHelper {
 	
 	AsyncSQLInsertClause insert(RelationalPath<?> entity);
 	
-	AsyncSQLUpdateClause update(RelationalPath<?> entity);	
+	AsyncSQLUpdateClause update(RelationalPath<?> entity);
+
+	AsyncSQLDeleteClause delete(RelationalPath<?> entity);	
 }

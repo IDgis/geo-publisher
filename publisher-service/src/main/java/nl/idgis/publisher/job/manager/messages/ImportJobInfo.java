@@ -1,8 +1,9 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.manager.messages;
 
 import java.util.Collections;
 import java.util.List;
 
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.service.Column;

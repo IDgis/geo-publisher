@@ -1,7 +1,8 @@
-package nl.idgis.publisher.database.messages;
+package nl.idgis.publisher.job.manager.messages;
 
 import com.mysema.query.annotations.QueryProjection;
 
+import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobType;
 
 public class ServiceJobInfo extends JobInfo {

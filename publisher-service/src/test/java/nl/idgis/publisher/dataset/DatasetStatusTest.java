@@ -18,10 +18,10 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.CreateServiceJob;
-import nl.idgis.publisher.job.messages.GetImportJobs;
-import nl.idgis.publisher.job.messages.GetServiceJobs;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 
 import org.junit.Before;
 import org.junit.Test;

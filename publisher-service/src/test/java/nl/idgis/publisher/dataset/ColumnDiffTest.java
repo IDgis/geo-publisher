@@ -19,8 +19,8 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 
-import nl.idgis.publisher.job.messages.CreateImportJob;
-import nl.idgis.publisher.job.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 
 import org.junit.Before;
 import org.junit.Test;
