@@ -1,17 +1,25 @@
 package nl.idgis.publisher;
 
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QVersion.version;
+import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
+
 import java.io.File;
+import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.admin.Admin;
 
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
-import nl.idgis.publisher.database.messages.GetVersion;
-import nl.idgis.publisher.database.messages.TerminateJobs;
-import nl.idgis.publisher.database.messages.Version;
+import nl.idgis.publisher.database.QJobState;
+
+import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.dataset.DatasetManager;
 import nl.idgis.publisher.harvester.Harvester;
@@ -24,28 +32,47 @@ import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.monitor.messages.Tree;
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.Service;
 import nl.idgis.publisher.utils.Boot;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import com.mysema.query.sql.SQLSubQuery;
 import com.typesafe.config.Config;
 
 public class ServiceApp extends UntypedActor {
 	
+	private static class StartService implements Serializable {
+		
+		private static final long serialVersionUID = 2801573884157962370L;
+
+		@Override
+		public String toString() {
+			return "StartService []";
+		}
+		
+	}
+	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final QJobState jobStateSub = new QJobState("job_state_sub");
 	
 	private final Config config;
 	
 	private ActorRef database;
+	
+	private FutureUtils f;
+	
+	private AsyncDatabaseHelper db;
 	
 	public ServiceApp(Config config) {
 		this.config = config;
@@ -62,59 +89,64 @@ public class ServiceApp extends UntypedActor {
 		Config databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		database.tell(new GetVersion(), getSelf());
-		getContext().become(waitingForVersion());
+		f = new FutureUtils(getContext().dispatcher());
+		db = new AsyncDatabaseHelper(database, f, log);
+		
+		db.query().from(version)
+			.orderBy(version.id.desc())
+			.limit(1)
+			.singleResult(version.id, version.createTime).thenCompose(versionInfo -> {
+				int versionId = versionInfo.get(version.id);
+				Timestamp createTime = versionInfo.get(version.createTime);
+				
+				log.info("database version id: {}, createTime: {}", versionId, createTime);
+				
+				int lastVersionId = JdbcUtils.maxRev("nl/idgis/publisher/database", versionId);
+				
+				if(versionId != lastVersionId) {
+					log.error("database obsolete, expected version id: " + lastVersionId);
+					
+					return f.<Object>successful(PoisonPill.getInstance());
+				} else {
+					return db.insert(jobState)
+						.columns(
+							jobState.jobId,
+							jobState.state)
+						.select(new SQLSubQuery().from(job)
+							.where(new SQLSubQuery().from(jobStateSub)
+								.where(jobStateSub.jobId.eq(job.id)
+									.and(jobStateSub.state.in(
+										enumsToStrings(JobState.getFinished()))))
+									.notExists())
+							.list(
+								job.id, 
+								JobState.FAILED.name()))
+						.execute().thenApply(jobsTerminated -> {
+							log.debug("jobs terminated: {}",  + jobsTerminated);
+							
+							return new StartService();
+						});
+				}
+			}).whenComplete((msg, t) -> {
+				if(t != null) {
+					log.error("service initialization failed: {}", t);
+					
+					getSelf().tell(PoisonPill.getInstance(), getSelf());
+				} else {
+					log.debug("sending start message: {}", msg);
+					
+					getSelf().tell(msg, getSelf());
+				}
+			});
 	}
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		unhandled(msg);
-	}
-	
-	private Procedure<Object> waitingForJobTermination() {
-		log.debug("waiting for job termination");
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					getContext().become(running());
-				} else {
-					unhandled(msg);
-				}
-			}
-		};
-	}
-	
-	private Procedure<Object> waitingForVersion() {
-		log.debug("waiting for database version");
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Version) {
-					Version version = (Version)msg;
-					
-					log.info("database version: " + version);
-					
-					int versionId = version.getId();					
-					int lastVersionId = JdbcUtils.maxRev("nl/idgis/publisher/database", versionId);
-					
-					if(versionId != lastVersionId) {
-						log.error("database obsolete, expected version id: " + lastVersionId);
-						getContext().stop(getSelf());
-					} else {					
-						database.tell(new TerminateJobs(), getSelf());
-						getContext().become(waitingForJobTermination());
-					}
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
+		if(msg instanceof StartService) {
+			getContext().become(running());
+		} else {
+			unhandled(msg);
+		}
 	}
 	
 	private Procedure<Object> running() throws Exception {
