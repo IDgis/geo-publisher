@@ -36,19 +36,22 @@ import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
 import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
-public class JobTest extends AbstractServiceTest {
+public class JobManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testRemoveJob() throws Exception {
@@ -57,6 +60,14 @@ public class JobTest extends AbstractServiceTest {
 		assertFalse(query().from(removeJob).exists());		
 		sync.ask(jobManager, new CreateRemoveJob("testDataset"), Ack.class);
 		assertTrue(query().from(removeJob).exists());
+		
+		TypedList<?> list = sync.ask(jobManager, new GetRemoveJobs(), TypedList.class);
+		assertTrue(list.contains(RemoveJobInfo.class));
+		
+		Iterator<RemoveJobInfo> itr = list.cast(RemoveJobInfo.class).iterator();
+		assertTrue(itr.hasNext());
+		assertEquals("testDataset", itr.next().getDatasetId());
+		assertFalse(itr.hasNext());
 	}
 
 	@Test

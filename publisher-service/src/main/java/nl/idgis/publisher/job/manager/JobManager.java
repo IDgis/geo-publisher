@@ -51,11 +51,14 @@ import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
 import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
+import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.QHarvestJobInfo;
+import nl.idgis.publisher.job.manager.messages.QRemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.QServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveNotification;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.StoreLog;
@@ -127,6 +130,8 @@ public class JobManager extends UntypedActor {
 			returnToSender(handleRemoveNotification((RemoveNotification)msg));
 		} else if(msg instanceof GetImportJobs) {
 			returnToSender(handleGetImportJobs());
+		} else if(msg instanceof GetRemoveJobs) {
+			returnToSender(handleGetRemoveJobs());
 		} else if(msg instanceof GetHarvestJobs) {
 			returnToSender(handleGetHarvestJobs());
 		} else if(msg instanceof GetServiceJobs) {
@@ -144,6 +149,13 @@ public class JobManager extends UntypedActor {
 		}
 	}
 	
+	private CompletableFuture<TypedList<RemoveJobInfo>> handleGetRemoveJobs() {
+		return 
+			db.query().from(removeJob)
+				.join(dataset).on(removeJob.datasetId.eq(dataset.id))
+				.list(new QRemoveJobInfo(removeJob.jobId, dataset.identification));
+	}
+
 	private CompletableFuture<Ack> handleRemoveNotification(RemoveNotification msg) {
 		String type = msg.getNotificationType().name();
 		int jobId = msg.getJob().getId();
