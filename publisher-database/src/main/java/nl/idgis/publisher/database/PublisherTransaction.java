@@ -17,7 +17,6 @@ import static nl.idgis.publisher.database.QNotificationResult.notificationResult
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 import static nl.idgis.publisher.utils.JsonUtils.fromJson;
 
@@ -43,7 +42,6 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
-import nl.idgis.publisher.database.messages.GetVersion;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
@@ -56,13 +54,11 @@ import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
-import nl.idgis.publisher.database.messages.QVersion;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
-import nl.idgis.publisher.database.messages.TerminateJobs;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
@@ -148,9 +144,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	
 	@Override
 	protected void executeQuery(Query query) throws Exception {
-		if(query instanceof GetVersion) {
-			executeGetVersion();
-		} else if(query instanceof GetCategoryListInfo) {
+		if(query instanceof GetCategoryListInfo) {
 			executeGetCategoryListInfo();
 		} else if(query instanceof GetDatasetListInfo) {
 			executeGetDatasetListInfo((GetDatasetListInfo)query);			
@@ -172,8 +166,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			executeGetJobLog((GetJobLog)query);
 		} else if(query instanceof GetDatasetStatus) {
 			executeGetDatasetStatus((GetDatasetStatus)query);
-		} else if(query instanceof TerminateJobs) {
-			executeTerminateJobs();
 		} else if(query instanceof AddNotificationResult) {
 			executeAddNotificationResult((AddNotificationResult)query);
 		} else if (query instanceof GetNotifications) {
@@ -272,30 +264,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		ack();
 	}	
-
-	private void executeTerminateJobs() {
-		final QJobState jobStateSub = new QJobState("job_state_sub");
-		
-		long result = insert(jobState)
-			.columns(
-				jobState.jobId,
-				jobState.state)
-			.select(new SQLSubQuery().from(job)
-				.where(new SQLSubQuery().from(jobStateSub)
-						.where(jobStateSub.jobId.eq(job.id)
-								.and(jobStateSub.state.in(
-										enumsToStrings(JobState.getFinished()))))
-						.notExists())
-				.list(
-					job.id, 
-					JobState.FAILED.name()))
-			.execute();
-		
-		log.debug("jobs terminated: " + result);
-		
-		ack();
-	}
-
+	
 	private void executeGetDatasetStatus(GetDatasetStatus query) {		
 		SQLQuery baseQuery = query().from(datasetStatus)
 			.join(dataset).on(dataset.id.eq(datasetStatus.id));
@@ -777,18 +746,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				query().from(category)
 				.orderBy(category.identification.asc())
 				.list(new QCategoryInfo(category.identification,category.name)));
-	}
-
-	
-
-	private void executeGetVersion() {
-		log.debug("database version requested");
-		
-		answer(
-			query().from(version)
-				.orderBy(version.id.desc())
-				.limit(1)
-				.singleResult(new QVersion(version.id, version.createTime)));
 	}
 	
 	private void executeStoreNotificationResult (final StoreNotificationResult query) {
