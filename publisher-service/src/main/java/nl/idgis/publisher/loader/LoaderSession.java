@@ -1,9 +1,11 @@
 package nl.idgis.publisher.loader;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.Commit;
@@ -23,25 +25,41 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.dispatch.OnComplete;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
-import akka.pattern.Patterns;
+import akka.japi.Procedure; 
 
 public class LoaderSession extends UntypedActor {
+	
+	private static class FinalizeSession implements Serializable {
+
+		private static final long serialVersionUID = -6298981994732740388L;
+		
+		private final JobState jobState;
+		
+		FinalizeSession(JobState jobState) {
+			this.jobState = jobState;
+		}
+		
+		JobState getJobState() {
+			return this.jobState;
+		}
+
+		@Override
+		public String toString() {
+			return "FinalizeSession [jobState=" + jobState + "]";
+		}		
+	}
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -80,8 +98,16 @@ public class LoaderSession extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof StartImport) {
 			handleStartImport((StartImport)msg);
-		} else if(msg instanceof ReceiveTimeout) {
+		} else {
+			onReceiveElse(msg);
+		}
+	}
+	
+	private void onReceiveElse(Object msg) {
+		if(msg instanceof ReceiveTimeout) {				
 			handleTimeout();
+		} else if(msg instanceof FinalizeSession) {
+			handleFinalizeSession((FinalizeSession)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -98,12 +124,10 @@ public class LoaderSession extends UntypedActor {
 					handleFailure((Failure)msg);
 				} else if(msg instanceof End) {						
 					handleEnd((End)msg);
-				} else if(msg instanceof ReceiveTimeout) {
-					handleTimeout();
 				} else {
-					unhandled(msg);
+					onReceiveElse(msg);
 				}
-			}
+			}			
 		};
 	}
 
@@ -119,59 +143,56 @@ public class LoaderSession extends UntypedActor {
 		
 		// session initiator
 		msg.getInitiator().tell(new Ack(), getSelf());
-		
 				
 		getContext().become(importing());
 	}
 
 	private void handleTimeout() {
-		log.debug("timeout while executing job: " + importJob);
+		log.error("timeout while executing job: {}", importJob);
 		
-		finalizeSession(JobState.ABORTED);
+		getSelf().tell(new FinalizeSession(JobState.ABORTED), getSelf());
 	}
 	
-	private void handleEnd(final End msg) {
+	private void handleEnd(final End end) {
 		log.info("import completed");
 		
-		Patterns.ask(geometryDatabase, new Commit(), 15000)				
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("transaction committed");
-					
-					finalizeSession(JobState.SUCCEEDED);
-				}
-				
-			}, getContext().dispatcher());
+		f.ask(geometryDatabase, new Commit()).thenApply(msg -> {				
+			log.debug("transaction committed");					
+			
+			return new FinalizeSession(JobState.SUCCEEDED);
+		}).exceptionally(t -> {
+			log.error("couldn't commit transaction: {}", t);
+			
+			return new FinalizeSession(JobState.FAILED);
+		}).thenAccept(msg -> {
+			getSelf().tell(msg, getSelf());
+		});
 	}
 
 	private void handleFailure(final Failure failure) {
-		log.error("import failed: " + failure.getCause());
+		log.error("import failed: {}", failure.getCause());
 		
 		if(!inFailure) {
 			inFailure = true;
 		
-			Patterns.ask(geometryDatabase, new Rollback(), 15000)
-				.onComplete(new OnComplete<Object>() {
-	
-					@Override
-					public void onComplete(Throwable t, Object msg) throws Throwable {
-						if(t != null) {
-							log.warning("rollback failed");
-						} else {					
-							log.debug("transaction rolled back");
-						}
-						
-						finalizeSession(JobState.FAILED);
-					}
-					
-				}, getContext().dispatcher());
+			f.ask(geometryDatabase, new Rollback()).thenApply(msg -> {
+				log.debug("transaction rolled back");
+													
+				return new FinalizeSession(JobState.FAILED);
+			}).exceptionally(t -> {
+				log.error("couldn't rollback transaction: {}", t);
+				
+				return new FinalizeSession(JobState.FAILED);
+			}).thenAccept(msg -> {
+				getSelf().tell(msg, getSelf());
+			});
 		}
 	}
 	
-	private void finalizeSession(JobState state) {
-		log.debug("finalizing session: " + state);
+	private void handleFinalizeSession(FinalizeSession finalizeSession) {
+		JobState state = finalizeSession.getJobState();
+		
+		log.debug("finalizing session: {}",  state);
 		
 		f.ask(jobContext, new UpdateJobState(state)).whenComplete((msg0, t0) -> {
 			if(t0 != null) {
@@ -193,39 +214,47 @@ public class LoaderSession extends UntypedActor {
 	private void handleRecords(Records msg) {
 		List<Record> records = msg.getRecords();
 		
-		log.debug("records received: " + records.size());
+		log.debug("records received: {}", records.size());
 		
-		List<Future<Object>> futures = new ArrayList<>();
+		List<CompletableFuture<Object>> futures = new ArrayList<>();
 		for(Record record : records) {
 			futures.add(handleRecord(record));
 		}
 		
 		final ActorRef sender = getSender();
-		Futures.sequence(futures, getContext().dispatcher())
-			.onSuccess(new OnSuccess<Iterable<Object>>() {
-	
-				@Override
-				public void onSuccess(Iterable<Object> msgs) throws Throwable {
-					log.debug("records processed");
-					
-					loader.tell(new Progress(insertCount + filteredCount, totalCount), getSelf());					
-					sender.tell(new NextItem(), getSelf());
+		f.sequence(futures).whenComplete((results, t) -> {
+			if(t != null) {
+				log.error("exception waiting results: {}", t);
+				
+				getSelf().tell(new FinalizeSession(JobState.FAILED), getSelf());
+			} else {
+				for(Object result : results) {
+					if(result instanceof Failure) {
+						log.error("handle record failed: {}", result);
+						
+						sender.tell(new Stop(), getSelf());
+						getSelf().tell(new FinalizeSession(JobState.FAILED), getSelf());
+						
+						return;
+					}
 				}
 				
-			}, getContext().dispatcher());
+				log.debug("records processed");
+				
+				loader.tell(new Progress(insertCount + filteredCount, totalCount), getSelf());					
+				sender.tell(new NextItem(), getSelf());
+			}
+		});		
 	}
 
-	private Future<Object> handleRecord(final Record record) {
+	private CompletableFuture<Object> handleRecord(final Record record) {
 		
-		
-		if(log.isDebugEnabled()) { // Record.toString() is rather expensive
-			log.debug("record received: " + record + " " + (insertCount + filteredCount) + "/" + totalCount + " (filtered: " + filteredCount + ")");
-		}
+		log.debug("record received: {} {}/{} (filtered:{})", record, (insertCount + filteredCount), totalCount,  filteredCount);		
 		
 		if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
 			filteredCount++;
 			
-			return Futures.successful((Object)new Ack());
+			return f.successful((Object)new Ack());
 		} else {
 			insertCount++;
 			
@@ -248,34 +277,21 @@ public class LoaderSession extends UntypedActor {
 				values = recordValues;
 			}
 			
-			Future<Object> insertResult = Patterns.ask(geometryDatabase, new InsertRecord(
+			return f.ask(geometryDatabase, new InsertRecord(
 					importJob.getCategoryId(),
 					importJob.getDatasetId(), 
 					columns, 
-					values), 15000);
-			
-			insertResult.onComplete(new OnComplete<Object>() {
-
-				@Override
-				public void onComplete(Throwable t, Object msg) throws Throwable {
-					if(t != null) {
-						log.debug("exception during insert record");
-						
-						getSelf().tell(new Failure(t), getSelf());
-					}
-					
-					if(msg instanceof Failure) {
-						log.debug("failed to insert record");
-						
-						getSelf().tell(msg, getSelf());
-					}
-				}
-				
-			}, getContext().dispatcher());
-			
-			return insertResult;
+					values))
+						.exceptionally(t -> new Failure(t))
+						.thenApply(msg -> {
+							if(msg instanceof Failure) {
+								log.debug("failed to insert record: {}", record);
+								
+								return msg;
+							} else {							
+								return new Ack();
+							}
+						});
 		}
-				
-				
 	}
 }
