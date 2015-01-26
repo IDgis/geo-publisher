@@ -35,7 +35,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Duration receiveTimeout = Duration.apply(5, TimeUnit.MINUTES);
+	private final Duration receiveTimeout = Duration.apply(30, TimeUnit.SECONDS);
 	
 	protected final Connection connection;
 	
@@ -57,6 +57,8 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	@Override
 	public final void postStop() throws Exception {
+		log.debug("closing connection");
+		
 		connection.close();
 	};
 	

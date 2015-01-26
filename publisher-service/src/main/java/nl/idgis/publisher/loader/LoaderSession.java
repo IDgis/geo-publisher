@@ -89,7 +89,7 @@ public class LoaderSession extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 		
 		f = new FutureUtils(getContext().dispatcher());
 	}
