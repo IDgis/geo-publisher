@@ -3,7 +3,11 @@ package nl.idgis.publisher.admin;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QLastServiceJob.lastServiceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -20,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
+import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
@@ -27,7 +32,6 @@ import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
-import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
@@ -49,6 +53,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
@@ -118,6 +123,7 @@ import akka.util.Timeout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
 
@@ -133,7 +139,7 @@ public class Admin extends UntypedActor {
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	private AsyncDatabaseHelper databaseRef;
+	private AsyncDatabaseHelper db;
 
 	private FutureUtils f;
 	
@@ -152,7 +158,7 @@ public class Admin extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext().dispatcher(), Timeout.apply(15000));		
-		databaseRef = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, f, log);
 	}
 
 	@Override
@@ -319,7 +325,7 @@ public class Admin extends UntypedActor {
 		log.debug("handleListSourceDatasetColumns");
 		final ActorRef sender = getSender(), self = getSelf();
 
-		final CompletableFuture<TypedList<Column>> columnList = databaseRef
+		final CompletableFuture<TypedList<Column>> columnList = db
 				.query()
 				.from(sourceDatasetVersionColumn)
 				.join(sourceDatasetVersion)
@@ -347,7 +353,7 @@ public class Admin extends UntypedActor {
 		log.debug("handleListDatasetColumns");
 		final ActorRef sender = getSender(), self = getSelf();
 
-		final CompletableFuture<TypedList<Column>> columnList = databaseRef.query().from(datasetColumn).join(dataset)
+		final CompletableFuture<TypedList<Column>> columnList = db.query().from(datasetColumn).join(dataset)
 				.on(dataset.id.eq(datasetColumn.datasetId))
 				.where(dataset.identification.eq(listColumns.getDatasetId()))
 				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
@@ -385,7 +391,7 @@ public class Admin extends UntypedActor {
 		final CompletableFuture<Object> activeDataSourcesFuture = f.ask(harvester, new GetActiveDataSources(), 15000);
 		
 		final CompletableFuture<TypedList<DataSourceInfo>> dataSourceInfoFuture =
-				databaseRef.query().from(dataSource)
+				db.query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 		
@@ -422,7 +428,7 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		final CompletableFuture<TypedList<Category>> categoryList = 
-				databaseRef.query().from(category)
+				db.query().from(category)
 				.orderBy(category.identification.asc())
 				.list(new QCategory(category.identification, category.name));
 		
@@ -625,7 +631,7 @@ public class Admin extends UntypedActor {
 		
 		final ActorRef sender = getSender();
 		
-		final CompletableFuture<Category> categoryList = databaseRef.query().from(category)
+		final CompletableFuture<Category> categoryList = db.query().from(category)
 				.where(category.identification.eq(getEntity.id()))
 				.singleResult(new QCategory(category.identification, category.name));
 
@@ -669,7 +675,7 @@ public class Admin extends UntypedActor {
 
 		String sourceDatasetId = getEntity.id();
 
-		AsyncSQLQuery baseQuery = databaseRef
+		AsyncSQLQuery baseQuery = db
 				.query()
 				.from(sourceDataset)
 				.join(sourceDatasetVersion)
@@ -852,34 +858,153 @@ public class Admin extends UntypedActor {
 		);
 	}
 	
+	private static DatasetInfo createDatasetInfo (final Tuple t, final List<StoredNotification> notifications) {
+		return new DatasetInfo (
+				t.get (dataset.identification), 
+				t.get (dataset.name), 
+				t.get (sourceDataset.identification), 
+				t.get (sourceDatasetVersion.name),
+				t.get (category.identification),
+				t.get (category.name), 
+				t.get (dataset.filterConditions),
+				t.get (datasetStatus.imported),
+				t.get (datasetStatus.serviceCreated),
+				t.get (datasetStatus.sourceDatasetColumnsChanged),
+				t.get (lastImportJob.finishTime),
+				t.get (lastImportJob.finishState),
+				t.get (lastServiceJob.finishTime),
+				t.get (lastServiceJob.finishState),
+				t.get (lastServiceJob.verified),
+				t.get (lastServiceJob.added),
+				notifications
+			);
+	}
+	
+	private static StoredNotification createStoredNotification (final Tuple t) {
+		return new StoredNotification (
+				(long)t.get (datasetActiveNotification.notificationId), 
+				ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)), 
+				ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)), 
+				new JobInfo (
+					t.get (datasetActiveNotification.jobId), 
+					JobType.valueOf (t.get (datasetActiveNotification.jobType))
+				), 
+				new BaseDatasetInfo (
+					t.get (dataset.identification), 
+					t.get (dataset.name)
+				)
+			);
+	}
+	
 	private void handleListDatasets (final ListDatasets listDatasets) {
-		String categoryId = listDatasets.categoryId();
-		log.debug ("handleListDatasets categoryId=" + categoryId);
+		log.debug ("handleListDatasets: {}", listDatasets);
 		
+		String categoryId = listDatasets.categoryId();
+		long page = listDatasets.getPage();
+				
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> datasetInfo = Patterns.ask(database, new GetDatasetListInfo(categoryId), 15000);
-		
-				datasetInfo.onSuccess(new OnSuccess<Object>() {
-
-					@SuppressWarnings("unchecked")
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						List<DatasetInfo> datasetInfoList = (List<DatasetInfo>)msg;
-						log.debug("data sources info received");
-						
-						final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
-						final ObjectMapper objectMapper = new ObjectMapper ();
-						
-						for(DatasetInfo datasetInfo : datasetInfoList) {
-							pageBuilder.add (createDataset (datasetInfo, objectMapper));
-						}
-						
-						log.debug("sending dataset page");
-						sender.tell (pageBuilder.build (), self);
+		db.transactional(tx -> {
+			return tx.query().from(dataset)
+				.singleResult(dataset.count())
+				.thenCompose(datasetCount -> {
+					AsyncSQLQuery baseQuery = tx.query().from(dataset)
+						.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+						.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+							.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+									.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+								.notExists()))
+						.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+						.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
+						.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))
+						.leftJoin (lastServiceJob).on (dataset.id.eq (lastServiceJob.datasetId))
+						.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
+							
+					if(categoryId != null) {
+						baseQuery.where(category.identification.eq(categoryId));
 					}
-				}, getContext().dispatcher());
-		
+					
+					return baseQuery
+						.orderBy (dataset.identification.asc ())
+						.orderBy (datasetActiveNotification.jobCreateTime.desc ())
+						.offset (Math.max(0, (page - 1) * ITEMS_PER_PAGE))
+						.limit (ITEMS_PER_PAGE)
+						.list (
+							dataset.identification,
+							dataset.name,
+							sourceDataset.identification,
+							sourceDatasetVersion.name,
+							category.identification,
+							category.name,
+							dataset.filterConditions,
+							datasetStatus.imported,
+							datasetStatus.serviceCreated,
+							datasetStatus.sourceDatasetColumnsChanged,
+							lastImportJob.finishTime,
+							lastImportJob.finishState,
+							lastServiceJob.finishTime,
+							lastServiceJob.finishState,
+							lastServiceJob.verified,
+							lastServiceJob.added,
+							datasetActiveNotification.notificationId,
+							datasetActiveNotification.notificationType,
+							datasetActiveNotification.notificationResult,
+							datasetActiveNotification.jobId,
+							datasetActiveNotification.jobType).thenApply(tuples -> {
+								final List<DatasetInfo> datasetInfos = new ArrayList<> ();
+								String currentIdentification = null;
+								final List<StoredNotification> notifications = new ArrayList<> ();
+								Tuple lastTuple = null;
+								
+								for (final Tuple t: tuples) {				
+									// Emit a new dataset info:
+									final String datasetIdentification = t.get (dataset.identification);
+									if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
+										datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+										notifications.clear ();
+									}
+									
+									// Store the last seen tuple:
+									currentIdentification = datasetIdentification; 
+									lastTuple = t;
+									
+									// Add a notification:
+									final Integer notificationId = t.get (datasetActiveNotification.notificationId);
+									if (notificationId != null) {
+										notifications.add (createStoredNotification (t));
+									}
+								}
+								
+								if (currentIdentification != null) {
+									datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+								}
+								
+								log.debug("dataset info received");
+								
+								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
+								final ObjectMapper objectMapper = new ObjectMapper ();
+								
+								for(DatasetInfo datasetInfo : datasetInfos) {
+									try {
+										pageBuilder.add (createDataset (datasetInfo, objectMapper));
+									} catch(Throwable t) {
+										log.error("couldn't create dataset info: {}", t);
+									}
+								}
+								
+								log.debug("sending dataset page");
+								
+								return pageBuilder.build ();
+							});
+				});
+		}).whenComplete((msg, t) -> {
+			if(t != null) {
+				log.error("failed to retrieve information from database: {}" + t);
+			} else {
+				sender.tell (msg, self);
+			}
+		});
 	}
 
 	private void handleListIssues (final ListIssues listIssues) {

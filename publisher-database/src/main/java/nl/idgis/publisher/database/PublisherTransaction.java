@@ -37,7 +37,6 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
-import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
@@ -145,9 +144,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	@Override
 	protected void executeQuery(Query query) throws Exception {
 		if(query instanceof GetCategoryListInfo) {
-			executeGetCategoryListInfo();
-		} else if(query instanceof GetDatasetListInfo) {
-			executeGetDatasetListInfo((GetDatasetListInfo)query);			
+			executeGetCategoryListInfo();					
 		} else if(query instanceof GetDataSourceInfo) {
 			executeGetDataSourceInfo();
 		} else if(query instanceof GetSourceDatasetListInfo) {			
@@ -661,84 +658,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (lastServiceJob.added),
 				notifications
 			);
-	}
-	
-	private void executeGetDatasetListInfo(GetDatasetListInfo dli) {
-		String categoryId = dli.getCategoryId();
-		
-		SQLQuery baseQuery = query().from(dataset)
-			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-			.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-									.notExists()))
-			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
-			.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))
-			.leftJoin (lastServiceJob).on (dataset.id.eq (lastServiceJob.datasetId))
-			.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
-			
-		if(categoryId != null) {
-			baseQuery.where(category.identification.eq(categoryId));
-		}
-
-		baseQuery
-			.orderBy (dataset.identification.asc ())
-			.orderBy (datasetActiveNotification.jobCreateTime.desc ());
-		
-		final List<nl.idgis.publisher.database.messages.DatasetInfo> datasetInfos = new ArrayList<> ();
-		String currentIdentification = null;
-		final List<StoredNotification> notifications = new ArrayList<> ();
-		Tuple lastTuple = null;
-		
-		for (final Tuple t: baseQuery.list (
-				dataset.identification,
-				dataset.name,
-				sourceDataset.identification,
-				sourceDatasetVersion.name,
-				category.identification,
-				category.name,
-				dataset.filterConditions,
-				datasetStatus.imported,
-				datasetStatus.serviceCreated,
-				datasetStatus.sourceDatasetColumnsChanged,
-				lastImportJob.finishTime,
-				lastImportJob.finishState,
-				lastServiceJob.finishTime,
-				lastServiceJob.finishState,
-				lastServiceJob.verified,
-				lastServiceJob.added,
-				datasetActiveNotification.notificationId,
-				datasetActiveNotification.notificationType,
-				datasetActiveNotification.notificationResult,
-				datasetActiveNotification.jobId,
-				datasetActiveNotification.jobType
-			)) {
-		
-			// Emit a new dataset info:
-			final String datasetIdentification = t.get (dataset.identification);
-			if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
-				datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-				notifications.clear ();
-			}
-			
-			// Store the last seen tuple:
-			currentIdentification = datasetIdentification; 
-			lastTuple = t;
-			
-			// Add a notification:
-			final Integer notificationId = t.get (datasetActiveNotification.notificationId);
-			if (notificationId != null) {
-				notifications.add (createStoredNotification (t));
-			}
-		}
-		
-		if (currentIdentification != null) {
-			datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-		}
-
-		answer (datasetInfos);
 	}
 
 	private void executeGetCategoryListInfo() {

@@ -23,5 +23,11 @@ public class ListDatasets implements DomainQuery<Page<Dataset>>{
 	public long getPage() {
 		return page;
 	}
+
+	@Override
+	public String toString() {
+		return "ListDatasets [categoryId=" + categoryId + ", page=" + page
+				+ "]";
+	}
 }
  
