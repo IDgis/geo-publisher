@@ -40,16 +40,18 @@ public class GeometryTransaction extends JdbcTransaction {
 		List<Column> columns = query.getColumns();
 		List<Object> values = query.getValues();
 		
-		StringBuilder sb = new StringBuilder("insert into ");
+		StringBuilder sb = new StringBuilder("insert into \"");
 		sb.append(schemaName);
-		sb.append(".");
+		sb.append("\".\"");
 		sb.append(tableName);
-		sb.append("(");
+		sb.append("\"(");
 		
 		String separator = "";
 		for(Column column : columns) {
 			sb.append(separator);
+			sb.append("\"");
 			sb.append(column.getName());
+			sb.append("\"");
 			
 			separator = ", ";
 		}
@@ -93,20 +95,22 @@ public class GeometryTransaction extends JdbcTransaction {
 		String tableName = query.getTableName();
 		List<Column> columns = query.getColumns();
 		
-		execute("create schema if not exists " + schemaName);
+		execute("create schema if not exists \"" + schemaName + "\"");
 		
-		execute("drop table if exists " + schemaName + "." + tableName);
+		execute("drop table if exists \"" + schemaName + "\".\"" + tableName + "\"");
 		
-		StringBuilder sb = new StringBuilder("create table ");
+		StringBuilder sb = new StringBuilder("create table \"");
 		sb.append(schemaName);
-		sb.append(".");
+		sb.append("\".\"");
 		sb.append(tableName);		
-		sb.append(" (");
+		sb.append("\" (");
 		
 		String separator = "";
 		for(Column column : columns) {
 			sb.append(separator);
+			sb.append("\"");
 			sb.append(column.getName());
+			sb.append("\"");
 			sb.append(" ");
 			
 			Type dataType = column.getDataType();
