@@ -64,7 +64,7 @@ public class ServiceApp extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final QJobState jobStateSub = new QJobState("job_state_sub");
+	private final QJobState jobState1 = new QJobState("js1"), jobState2 = new QJobState("js2");
 	
 	private final Config config;
 	
@@ -108,18 +108,22 @@ public class ServiceApp extends UntypedActor {
 					
 					return f.<Object>successful(PoisonPill.getInstance());
 				} else {
+					// mark running all jobs (started but not finished) as failed 
+					
 					return db.insert(jobState)
 						.columns(
 							jobState.jobId,
 							jobState.state)
-						.select(new SQLSubQuery().from(job)
-							.where(new SQLSubQuery().from(jobStateSub)
-								.where(jobStateSub.jobId.eq(job.id)
-									.and(jobStateSub.state.in(
-										enumsToStrings(JobState.getFinished()))))
-									.notExists())
+						.select(
+							new SQLSubQuery().from(jobState1)
+								.where(jobState1.state.eq(JobState.STARTED.name())
+									.and(new SQLSubQuery().from(jobState2)
+											.where(jobState1.jobId.eq(jobState2.jobId)
+													.and(jobState2.state.in(
+														enumsToStrings(JobState.getFinished()))))
+											.notExists()))
 							.list(
-								job.id, 
+								jobState1.jobId, 
 								JobState.FAILED.name()))
 						.execute().thenApply(jobsTerminated -> {
 							log.debug("jobs terminated: {}",  + jobsTerminated);
