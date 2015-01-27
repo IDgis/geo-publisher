@@ -65,7 +65,7 @@ public class LoaderSession extends UntypedActor {
 	
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef loader, geometryDatabase, jobContext;
+	private final ActorRef loader, transaction, jobContext;
 	
 	private final FilterEvaluator filterEvaluator;
 	
@@ -75,16 +75,16 @@ public class LoaderSession extends UntypedActor {
 	
 	private FutureUtils f;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) throws IOException {		
+	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
-		this.geometryDatabase = geometryDatabase;
+		this.transaction = transaction;
 		this.jobContext = jobContext;
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) {
-		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, jobContext);
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	@Override
@@ -156,7 +156,7 @@ public class LoaderSession extends UntypedActor {
 	private void handleEnd(final End end) {
 		log.info("import completed");
 		
-		f.ask(geometryDatabase, new Commit()).thenApply(msg -> {				
+		f.ask(transaction, new Commit()).thenApply(msg -> {				
 			log.debug("transaction committed");					
 			
 			return new FinalizeSession(JobState.SUCCEEDED);
@@ -175,7 +175,7 @@ public class LoaderSession extends UntypedActor {
 		if(!inFailure) {
 			inFailure = true;
 		
-			f.ask(geometryDatabase, new Rollback()).thenApply(msg -> {
+			f.ask(transaction, new Rollback()).thenApply(msg -> {
 				log.debug("transaction rolled back");
 													
 				return new FinalizeSession(JobState.FAILED);
@@ -277,7 +277,7 @@ public class LoaderSession extends UntypedActor {
 				values = recordValues;
 			}
 			
-			return f.ask(geometryDatabase, new InsertRecord(
+			return f.ask(transaction, new InsertRecord(
 					importJob.getCategoryId(),
 					importJob.getDatasetId(), 
 					columns, 
