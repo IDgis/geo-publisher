@@ -4,9 +4,10 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
-import nl.idgis.publisher.recorder.messages.Clear;
-import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
+import nl.idgis.publisher.recorder.messages.RecorderCommand;
+import nl.idgis.publisher.recorder.messages.Watch;
+import nl.idgis.publisher.recorder.messages.Watching;
 
 public class AnyRecorder extends UntypedActor {
 	
@@ -23,8 +24,11 @@ public class AnyRecorder extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof GetRecording || msg instanceof Clear) {
+		if(msg instanceof RecorderCommand) {
 			recorder.forward(msg, getContext());
+		} else if(msg instanceof Watch) {
+			getContext().watch(((Watch)msg).getActorRef());
+			getSender().tell(new Watching(), getSelf());
 		} else {
 			recorder.tell(new RecordedMessage(getSelf(), getSender(), msg), getSelf());
 			onRecord(msg, getSender());
