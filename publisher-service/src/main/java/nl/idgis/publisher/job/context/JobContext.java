@@ -40,6 +40,11 @@ public class JobContext extends UntypedActor {
 		private static final long serialVersionUID = 2236542274270022155L;		
 	}
 	
+	private static class JobInProgress implements Serializable {
+		
+		private static final long serialVersionUID = -5282262057445760600L;		
+	}
+	
 	private static class JobAcknowledged implements Serializable {
 		
 		private static final long serialVersionUID = -3851776170365172160L;		
@@ -67,47 +72,30 @@ public class JobContext extends UntypedActor {
 			getContext().parent().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof JobAcknowledged) {
-			getContext().become(acknowledged());
-		} else if(msg instanceof JobFinished) {
-			getContext().become(finished());
+			log.debug("job acknowledged");
+			
+			getContext().stop(getSelf());
+		} else if(msg instanceof JobInProgress) {
+			log.debug("job started");
+			
+			getContext().become(started());
 		} else {
 			onReceiveElse(msg);
 		}
 	}
 	
-	private Procedure<Object> finished() {
-		log.debug("job finished");
-		
+	private Procedure<Object> started() {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof JobAcknowledged) {					
+				if(msg instanceof JobFinished) {					
 					log.debug("job acknowledged -> stop context");
 					
 					getContext().stop(getSelf());					
 				} else {
 					onReceiveElse(msg);
 				}				
-			}
-			
-		};
-	}
-	
-	private Procedure<Object> acknowledged() {
-		log.debug("job acknowledged");
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof JobFinished) {
-					log.debug("job finished -> stop context");
-					
-					getContext().stop(getSelf());
-				} else {
-					onReceiveElse(msg);
-				}
 			}
 			
 		};
@@ -125,9 +113,9 @@ public class JobContext extends UntypedActor {
 			jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
 			
 			if(jobState.isFinished()) {
-				log.debug("job finished");
-				
 				getSelf().tell(new JobFinished(), getSelf());
+			} else {
+				getSelf().tell(new JobInProgress(), getSelf());
 			}
 		} else if(msg instanceof Log) {
 			log.debug("log received: {}", msg);
