@@ -30,6 +30,7 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -41,6 +42,8 @@ import akka.japi.Procedure;
 
 public class LoaderSession extends UntypedActor {
 	
+	private static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(30, TimeUnit.SECONDS);
+
 	private static class FinalizeSession implements Serializable {
 
 		private static final long serialVersionUID = -6298981994732740388L;
@@ -69,11 +72,14 @@ public class LoaderSession extends UntypedActor {
 	
 	private final FilterEvaluator filterEvaluator;
 	
+	private final Duration receiveTimeout;
+	
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
 	private FutureUtils f;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+	public LoaderSession(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+		this.receiveTimeout = receiveTimeout;
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
@@ -81,13 +87,17 @@ public class LoaderSession extends UntypedActor {
 		this.jobContext = jobContext;
 	}
 	
+	public static Props props(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(LoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
+	}
+	
 	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, transaction, jobContext);
+		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
+		getContext().setReceiveTimeout(receiveTimeout);
 		
 		f = new FutureUtils(getContext().dispatcher());
 	}

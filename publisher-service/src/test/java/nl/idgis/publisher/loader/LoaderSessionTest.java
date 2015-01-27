@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +15,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Terminated;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.InsertRecord;
@@ -89,7 +92,7 @@ public class LoaderSessionTest {
 		ImportJobInfo importJob = new ImportJobInfo(0, "categoryId", "dataSourceId", "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
-		loaderSession = actorSystem.actorOf(LoaderSession.props(loader, importJob, null /* filterEvaluator */, transaction, jobContext));
+		loaderSession = actorSystem.actorOf(LoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));
 		
 		f = new FutureUtils(actorSystem.dispatcher());
 	}
@@ -211,6 +214,76 @@ public class LoaderSessionTest {
 			.assertHasNext()
 			.assertNext(UpdateJobState.class, updateJobState -> {
 				assertEquals(JobState.FAILED, updateJobState.getState());
+			})
+			.assertNotHasNext();
+		
+		f.ask(loader, new Wait(1), Waited.class).get();
+		f.ask(loader, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(SessionFinished.class)
+			.assertNotHasNext();
+		
+		f.ask(deadWatch, new Wait(1), Waited.class).get();
+		f.ask(deadWatch, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(Terminated.class, terminated -> {
+				assertEquals(loaderSession, terminated.actor());
+			})
+			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testTimeoutBeforeStart() throws Exception {
+		ActorRef deadWatch = actorSystem.actorOf(AnyRecorder.props());
+		f.ask(deadWatch, new Watch(loaderSession), Watching.class).get();
+		
+		f.ask(jobContext, new Wait(1), Waited.class).get();
+		f.ask(jobContext, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(UpdateJobState.class, updateJobState -> {
+				assertEquals(JobState.ABORTED, updateJobState.getState());
+			})
+			.assertNotHasNext();
+		
+		f.ask(loader, new Wait(1), Waited.class).get();
+		f.ask(loader, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(SessionFinished.class)
+			.assertNotHasNext();
+		
+		f.ask(deadWatch, new Wait(1), Waited.class).get();
+		f.ask(deadWatch, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(Terminated.class, terminated -> {
+				assertEquals(loaderSession, terminated.actor());
+			})
+			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testTimeoutWhileImporting() throws Exception {
+		ActorRef deadWatch = actorSystem.actorOf(AnyRecorder.props());
+		f.ask(deadWatch, new Watch(loaderSession), Watching.class).get();
+		
+		ActorRef initiator = actorSystem.actorOf(AnyRecorder.props());
+		
+		f.ask(loaderSession, new StartImport(initiator, 100), Ack.class);
+		
+		List<Object> values = new ArrayList<Object>();
+		for(int i = 0; i < columns.size(); i++) {
+			values.add(i);
+		}
+		
+		f.ask(loaderSession, new Records(Arrays.asList(new Record(values))), NextItem.class).get();
+		
+		f.ask(loader, new Wait(1), Waited.class);
+		f.ask(loader, new Clear(), Cleared.class);
+		
+		f.ask(jobContext, new Wait(1), Waited.class).get();
+		f.ask(jobContext, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(UpdateJobState.class, updateJobState -> {
+				assertEquals(JobState.ABORTED, updateJobState.getState());
 			})
 			.assertNotHasNext();
 		
