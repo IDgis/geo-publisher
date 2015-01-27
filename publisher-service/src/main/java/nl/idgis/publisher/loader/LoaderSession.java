@@ -33,6 +33,7 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
@@ -127,7 +128,9 @@ public class LoaderSession extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Records) {			 			
-					handleRecords((Records)msg);		
+					handleRecords((Records)msg);
+				} else if(msg instanceof Record) {
+					handleRecord((Record)msg);
 				} else if(msg instanceof Failure) {
 					handleFailure((Failure)msg);
 				} else if(msg instanceof End) {						
@@ -164,6 +167,7 @@ public class LoaderSession extends UntypedActor {
 	private void handleEnd(final End end) {
 		log.info("import completed");
 		
+		ActorRef self = getSelf();
 		f.ask(transaction, new Commit()).thenApply(msg -> {				
 			log.debug("transaction committed");					
 			
@@ -173,13 +177,14 @@ public class LoaderSession extends UntypedActor {
 			
 			return new FinalizeSession(JobState.FAILED);
 		}).thenAccept(msg -> {
-			getSelf().tell(msg, getSelf());
+			self.tell(msg, self);
 		});
 	}
 
 	private void handleFailure(final Failure failure) {
 		log.error("import failed: {}", failure.getCause());
 		
+		ActorRef self = getSelf();
 		f.ask(transaction, new Rollback()).thenApply(msg -> {
 			log.debug("transaction rolled back");
 												
@@ -189,7 +194,7 @@ public class LoaderSession extends UntypedActor {
 			
 			return new FinalizeSession(JobState.FAILED);
 		}).thenAccept(msg -> {
-			getSelf().tell(msg, getSelf());
+			self.tell(msg, self);
 		});	
 	}
 	
@@ -198,6 +203,7 @@ public class LoaderSession extends UntypedActor {
 		
 		log.debug("finalizing session: {}",  state);
 		
+		ActorRef self = getSelf();
 		f.ask(jobContext, new UpdateJobState(state)).whenComplete((msg0, t0) -> {
 			if(t0 != null) {
 				log.error("couldn't change job state: {}", t0);
@@ -210,7 +216,7 @@ public class LoaderSession extends UntypedActor {
 				
 				log.debug("session finalized");
 				
-				getContext().stop(getSelf());
+				self.tell(PoisonPill.getInstance(), self);
 			});
 		});
 	}
@@ -222,22 +228,22 @@ public class LoaderSession extends UntypedActor {
 		
 		List<CompletableFuture<Object>> futures = new ArrayList<>();
 		for(Record record : records) {
-			futures.add(handleRecord(record));
+			futures.add(f.ask(getSelf(), record));
 		}
 		
-		final ActorRef sender = getSender();
+		ActorRef sender = getSender(), self = getSelf();
 		f.sequence(futures).whenComplete((results, t) -> {
 			if(t != null) {
 				log.error("exception waiting results: {}", t);
 				
-				getSelf().tell(new FinalizeSession(JobState.FAILED), getSelf());
+				self.tell(new FinalizeSession(JobState.FAILED), self);
 			} else {
 				for(Object result : results) {
 					if(result instanceof Failure) {
 						log.error("handle record failed: {}", result);
 						
 						sender.tell(new Stop(), getSelf());
-						getSelf().tell(new FinalizeSession(JobState.FAILED), getSelf());
+						self.tell(new FinalizeSession(JobState.FAILED), self);
 						
 						return;
 					}
@@ -245,20 +251,20 @@ public class LoaderSession extends UntypedActor {
 				
 				log.debug("records processed");
 				
-				loader.tell(new Progress(insertCount + filteredCount, totalCount), getSelf());					
-				sender.tell(new NextItem(), getSelf());
+				loader.tell(new Progress(insertCount + filteredCount, totalCount), self);					
+				sender.tell(new NextItem(), self);
 			}
 		});		
 	}
 
-	private CompletableFuture<Object> handleRecord(final Record record) {
+	private void handleRecord(final Record record) {
 		
 		log.debug("record received: {} {}/{} (filtered:{})", record, (insertCount + filteredCount), totalCount,  filteredCount);		
 		
 		if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
 			filteredCount++;
 			
-			return f.successful((Object)new Ack());
+			getSender().tell(new NextItem(), getSelf());
 		} else {
 			insertCount++;
 			
@@ -281,21 +287,20 @@ public class LoaderSession extends UntypedActor {
 				values = recordValues;
 			}
 			
-			return f.ask(transaction, new InsertRecord(
-					importJob.getCategoryId(),
-					importJob.getDatasetId(), 
-					columns, 
-					values))
-						.exceptionally(t -> new Failure(t))
-						.thenApply(msg -> {
-							if(msg instanceof Failure) {
-								log.debug("failed to insert record: {}", record);
-								
-								return msg;
-							} else {							
-								return new Ack();
-							}
-						});
+			ActorRef sender = getSender(), self = getSelf();
+			f.ask(transaction, new InsertRecord(
+				importJob.getCategoryId(),
+				importJob.getDatasetId(), 
+				columns, 
+				values))
+					.exceptionally(t -> new Failure(t))
+					.thenAccept(msg -> {
+						if(msg instanceof Failure) {
+							log.error("failed to insert record: {}", record);
+						} 
+						
+						sender.tell(new NextItem(), self);
+					});
 		}
 	}
 }
