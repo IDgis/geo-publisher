@@ -3,6 +3,7 @@ package nl.idgis.publisher.loader;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import akka.actor.Terminated;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.Rollback;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
@@ -27,6 +29,7 @@ import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.recorder.AnyAckRecorder;
@@ -174,5 +177,55 @@ public class LoaderSessionTest {
 			.assertNext(Terminated.class, terminated -> {
 				assertEquals(loaderSession, terminated.getActor());
 			});
+	}
+	
+	@Test
+	public void testFailure() throws Exception {
+		ActorRef initiator = actorSystem.actorOf(AnyRecorder.props());
+		
+		f.ask(loaderSession, new StartImport(initiator, 100), Ack.class).get();
+		
+		List<Object> values = new ArrayList<Object>();
+		for(int i = 0; i < columns.size(); i++) {
+			values.add(i);
+		}
+		
+		f.ask(loaderSession, new Records(Arrays.asList(new Record(values))), NextItem.class).get();
+		
+		ActorRef deadWatch = actorSystem.actorOf(AnyRecorder.props());
+		f.ask(deadWatch, new Watch(loaderSession), Watching.class).get();
+		
+		f.ask(transaction, new Clear(), Cleared.class);
+		f.ask(jobContext, new Clear(), Cleared.class);
+		f.ask(loader, new Clear(), Cleared.class);
+		loaderSession.tell(new Failure(new IllegalStateException()), ActorRef.noSender());
+		
+		f.ask(transaction, new Wait(1), Waited.class).get();
+		f.ask(transaction, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(Rollback.class)
+			.assertNotHasNext();
+		
+		f.ask(jobContext, new Wait(1), Waited.class).get();
+		f.ask(jobContext, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(UpdateJobState.class, updateJobState -> {
+				assertEquals(JobState.FAILED, updateJobState.getState());
+			})
+			.assertNotHasNext();
+		
+		f.ask(loader, new Wait(1), Waited.class).get();
+		f.ask(loader, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(SessionFinished.class)
+			.assertNotHasNext();
+		
+		f.ask(deadWatch, new Wait(1), Waited.class).get();
+		f.ask(deadWatch, new GetRecording(), Recording.class).get()
+			.assertHasNext()
+			.assertNext(Terminated.class, terminated -> {
+				assertEquals(loaderSession, terminated.actor());
+			})
+			.assertNotHasNext();
 	}
 }

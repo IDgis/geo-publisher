@@ -69,8 +69,6 @@ public class LoaderSession extends UntypedActor {
 	
 	private final FilterEvaluator filterEvaluator;
 	
-	private boolean inFailure = false;
-	
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
 	private FutureUtils f;
@@ -172,21 +170,17 @@ public class LoaderSession extends UntypedActor {
 	private void handleFailure(final Failure failure) {
 		log.error("import failed: {}", failure.getCause());
 		
-		if(!inFailure) {
-			inFailure = true;
-		
-			f.ask(transaction, new Rollback()).thenApply(msg -> {
-				log.debug("transaction rolled back");
-													
-				return new FinalizeSession(JobState.FAILED);
-			}).exceptionally(t -> {
-				log.error("couldn't rollback transaction: {}", t);
-				
-				return new FinalizeSession(JobState.FAILED);
-			}).thenAccept(msg -> {
-				getSelf().tell(msg, getSelf());
-			});
-		}
+		f.ask(transaction, new Rollback()).thenApply(msg -> {
+			log.debug("transaction rolled back");
+												
+			return new FinalizeSession(JobState.FAILED);
+		}).exceptionally(t -> {
+			log.error("couldn't rollback transaction: {}", t);
+			
+			return new FinalizeSession(JobState.FAILED);
+		}).thenAccept(msg -> {
+			getSelf().tell(msg, getSelf());
+		});	
 	}
 	
 	private void handleFinalizeSession(FinalizeSession finalizeSession) {
