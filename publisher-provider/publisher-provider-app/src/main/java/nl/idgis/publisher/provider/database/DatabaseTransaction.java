@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -31,28 +32,32 @@ public class DatabaseTransaction extends JdbcTransaction {
 	public DatabaseTransaction(Connection connection) {
 		super(connection);
 	}
+	
+	public static Props props(Connection connection) {
+		return Props.create(DatabaseTransaction.class, connection);
+	}
 
 	@Override
-	protected void executeQuery(Query query) throws Exception {
+	protected Object executeQuery(Query query) throws Exception {
 		if(query instanceof DescribeTable) {
-			handleDescribeTable((DescribeTable)query);
+			return handleDescribeTable((DescribeTable)query);
 		} else if(query instanceof PerformCount){
-			handlePerformCount((PerformCount)query);
+			return handlePerformCount((PerformCount)query);
 		} else {
-			unhandled(query);
+			return null;
 		}
 	}
 	
 	@Override
-	protected void executeQuery(StreamingQuery query) throws Exception {
+	protected ActorRef executeQuery(StreamingQuery query) throws Exception {
 		if(query instanceof FetchTable) {
-			handleFetchTable((FetchTable)query);
+			return handleFetchTable((FetchTable)query);
 		} else {
-			unhandled(query);
+			return null;
 		}
 	}
 	
-	private void handleDescribeTable(DescribeTable query) throws SQLException {
+	private Object handleDescribeTable(DescribeTable query) throws SQLException {
 		String requestedTableName = query.getTableName();
 		
 		final String sql;
@@ -106,13 +111,13 @@ public class DatabaseTransaction extends JdbcTransaction {
 		stmt.close();
 		
 		if(columns.isEmpty()) {
-			answer(new TableNotFound());
+			return new TableNotFound();
 		} else {
-			answer(new TableInfo(columns.toArray(new ColumnInfo[columns.size()])));
+			return new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
 		}
 	}
 	
-	private void handlePerformCount(PerformCount query) throws SQLException {
+	private Object handlePerformCount(PerformCount query) throws SQLException {
 		String sql = "select count(*) from " + query.getTableName();
 		
 		Statement stmt = connection.createStatement();
@@ -120,13 +125,15 @@ public class DatabaseTransaction extends JdbcTransaction {
 		ResultSet rs = stmt.executeQuery(sql);
 		rs.next();
 		
-		answer(rs.getLong(1));
+		Object retval = rs.getLong(1);
 		
 		rs.close();		
 		stmt.close();	
+		
+		return retval;
 	}
 	
-	private void handleFetchTable(FetchTable msg) throws SQLException {
+	private ActorRef handleFetchTable(FetchTable msg) throws SQLException {
 		log.debug("fetch table: " + msg);
 		
 		StringBuilder sb = new StringBuilder("select ");
@@ -149,6 +156,6 @@ public class DatabaseTransaction extends JdbcTransaction {
 				DatabaseCursor.props(rs, msg.getMessageSize()), 
 				nameGenerator.getName(DatabaseCursor.class));
 		
-		answerStreaming(cursor);
+		return cursor;
 	}
 }

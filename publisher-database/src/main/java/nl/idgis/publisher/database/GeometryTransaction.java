@@ -1,8 +1,12 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
@@ -22,19 +26,53 @@ public class GeometryTransaction extends JdbcTransaction {
 	public GeometryTransaction(Connection connection) {
 		super(connection);
 	}
-
-	@Override
-	protected void executeQuery(Query query) throws Exception {
-		if(query instanceof CreateTable) {						
-			createTable((CreateTable)query);
-		} else if(query instanceof InsertRecord) {			
-			insertRecord((InsertRecord)query);
-		} else {
-			unhandled(query);
+	
+	public static Props props(Connection connection) {
+		return Props.create(GeometryTransaction.class, connection);
+	}
+	
+	private static class Prepared {
+		
+		PreparedStatement stmt;
+		
+		private Prepared(PreparedStatement stmt) {
+			this.stmt = stmt;
+		}
+		
+		public void execute(List<Object> args, Function<Object, Object> converter) throws Exception {
+			int i = 1;
+			
+			for(Object arg : args) {
+				stmt.setObject(i++, converter.apply(arg));
+			}
+			
+			stmt.execute();
+			stmt.close();
 		}
 	}
 	
-	private void insertRecord(InsertRecord query) throws Exception {
+	private Prepared prepare(String sql) throws SQLException {
+		return new Prepared(connection.prepareStatement(sql));
+	}
+	
+	private void execute(String sql) throws SQLException {
+		Statement stmt = connection.createStatement();
+		stmt.execute(sql);
+		stmt.close();
+	}
+
+	@Override
+	protected Object executeQuery(Query query) throws Exception {
+		if(query instanceof CreateTable) {						
+			return createTable((CreateTable)query);
+		} else if(query instanceof InsertRecord) {			
+			return insertRecord((InsertRecord)query);
+		} else {
+			return null;
+		}
+	}
+	
+	private Object insertRecord(InsertRecord query) throws Exception {
 		String schemaName = query.getSchemaName();
 		String tableName = query.getTableName();
 		List<Column> columns = query.getColumns();
@@ -86,11 +124,12 @@ public class GeometryTransaction extends JdbcTransaction {
 			}
 		});
 		
-		log.debug("ack");		
-		answer(new Ack());
+		log.debug("ack");
+
+		return new Ack();
 	}
 	
-	private void createTable(CreateTable query) throws Exception {
+	private Object createTable(CreateTable query) throws Exception {
 		String schemaName = query.getSchemaName();
 		String tableName = query.getTableName();
 		List<Column> columns = query.getColumns();
@@ -130,6 +169,7 @@ public class GeometryTransaction extends JdbcTransaction {
 		execute(sql);
 		
 		log.debug("ack");		
-		answer(new Ack());
+		
+		return new Ack();
 	}
 }

@@ -38,7 +38,7 @@ public class JobSystem extends UntypedActor {
 					.add(harvester, "harvester", new GetHarvestJobs())
 					.add(loader, "import", new GetImportJobs())
 					.add(loader, "remove", new GetRemoveJobs())
-					.add(service, "service", new GetServiceJobs())
+					//.add(service, "service", new GetServiceJobs())
 					.create(jobManager), 
 				"initiator");
 		

@@ -98,12 +98,13 @@ public class JdbcDatabaseTest {
 		
 		@Override
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		protected void executeQuery(Query query) throws Exception {
+		protected Object executeQuery(Query query) throws Exception {
 			if(query instanceof SqlQuery) {
 				SqlQuery sqlQuery = (SqlQuery)query;
 				
 				Statement stmt = connection.createStatement();
 				
+				Object retval = null;
 				switch(sqlQuery.getType()) {
 					case QUERY:
 						ResultSet rs = stmt.executeQuery(sqlQuery.getSql());
@@ -123,18 +124,18 @@ public class JdbcDatabaseTest {
 						
 						rs.close();
 						
-						answer(new TypedList(TypedList.class, records));
+						retval = new TypedList(TypedList.class, records);
 						
 						break;
 					case UPDATE:
-						answer(stmt.executeUpdate(sqlQuery.getSql()));
+						retval = stmt.executeUpdate(sqlQuery.getSql());
 						
 						break;
 				}
 				
-				stmt.close();
+				return retval;
 			} else {
-				unhandled(query);
+				return null;
 			}
 		}
 		

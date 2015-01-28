@@ -18,7 +18,7 @@ public class GeometryDatabase extends JdbcDatabase {
 
 	@Override
 	protected Props createTransaction(Connection connection) {
-		return Props.create(GeometryTransaction.class, connection);
+		return GeometryTransaction.props(connection);
 	}
 	
 }

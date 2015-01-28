@@ -20,6 +20,6 @@ public class Database extends JdbcDatabase {
 	
 	@Override
 	protected Props createTransaction(Connection connection) {
-		return Props.create(DatabaseTransaction.class, connection);
+		return DatabaseTransaction.props(connection);
 	}	
 }

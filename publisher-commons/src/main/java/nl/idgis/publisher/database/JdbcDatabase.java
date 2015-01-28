@@ -87,11 +87,11 @@ public abstract class JdbcDatabase extends UntypedActor {
 		boneCpConfig.setPassword(config.getString("password"));
 		boneCpConfig.setPoolName(poolName);
 		boneCpConfig.setDefaultAutoCommit(false);
-		boneCpConfig.setConnectionTimeout(1, TimeUnit.SECONDS);		
+		boneCpConfig.setConnectionTimeout(1, TimeUnit.SECONDS);
 		boneCpConfig.setMaxConnectionsPerPartition(poolSize);
 		
 		log.debug("creating database pool");
-		connectionPool = new BoneCP(boneCpConfig); 
+		connectionPool = new BoneCP(boneCpConfig);
 	}
 	
 	@Override
