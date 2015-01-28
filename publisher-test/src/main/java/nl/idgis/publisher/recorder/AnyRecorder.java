@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
+import nl.idgis.publisher.recorder.messages.Create;
+import nl.idgis.publisher.recorder.messages.Created;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.recorder.messages.RecorderCommand;
 import nl.idgis.publisher.recorder.messages.Watch;
@@ -29,6 +31,9 @@ public class AnyRecorder extends UntypedActor {
 		} else if(msg instanceof Watch) {
 			getContext().watch(((Watch)msg).getActorRef());
 			getSender().tell(new Watching(), getSelf());
+		} else if(msg instanceof Create) {
+			ActorRef actorRef = getContext().actorOf(((Create)msg).getProps());
+			getSender().tell(new Created(actorRef), getSelf());
 		} else {
 			recorder.tell(new RecordedMessage(getSelf(), getSender(), msg), getSelf());
 			onRecord(msg, getSender());
