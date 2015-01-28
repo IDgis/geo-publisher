@@ -4,22 +4,24 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 import oracle.sql.STRUCT;
 
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.UnsupportedType;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.stream.StreamCursor;
 
-import scala.concurrent.Future;
-
 import akka.actor.Props;
-import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -31,15 +33,18 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	private final SDOGeometryConverter converter = new SDOGeometryConverter();
 	
 	private final int messageSize;
+	
+	private final ExecutorService executorService;
 
-	public DatabaseCursor(ResultSet t, int messageSize) {
+	public DatabaseCursor(ResultSet t, int messageSize, ExecutorService executorService) {
 		super(t);
 		
 		this.messageSize = messageSize;
+		this.executorService = executorService;
 	}
 	
-	public static Props props(ResultSet t, int messageSize) {
-		return Props.create(DatabaseCursor.class, t, messageSize);
+	public static Props props(ResultSet t, int messageSize, ExecutorService executorService) {
+		return Props.create(DatabaseCursor.class, t, messageSize, executorService);
 	}
 	
 	private Object convert(Object value) throws Exception {
@@ -68,26 +73,45 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 
 	@Override
-	protected Future<Records> next() {
+	protected CompletableFuture<Records> next() {
 		log.debug("fetching next records");
 		
-		try {
-			List<Record> records = new ArrayList<>();
-			records.add(toRecord());
-			
-			for(int i = 1; i < messageSize; i++) {
-				if(!t.next()) {
-					break;
+		CompletableFuture<Records> future = new CompletableFuture<>();
+		
+		executorService.execute(() -> {
+			try {
+				List<Record> records = new ArrayList<>();
+				records.add(toRecord());
+				
+				for(int i = 1; i < messageSize; i++) {
+					if(!t.next()) {
+						break;
+					}
+					
+					records.add(toRecord());
 				}
 				
-				records.add(toRecord());
+				future.complete(new Records(records));
+			} catch(Throwable t0) {
+				log.error("failed to fetch records: {}", t0);
+				
+				f.ask(getContext().parent(), new Rollback()).whenComplete((answer, t1) -> {
+					if(t1 != null) {
+						log.error("exception while trying to rollback: {}", t1);
+					} else {
+						if(answer instanceof Ack) {
+							log.debug("rolled back");
+						} else if(answer instanceof Failure) {
+							log.error("failed to rollback: {}" + answer);
+						} 
+					}
+					
+					future.completeExceptionally(t0);
+				});
 			}
-			
-			return Futures.successful(new Records(records));
-		} catch(Throwable t) {
-			log.error(t, "failed to fetch records");			
-			return Futures.failed(t);
-		}
+		});
+		
+		return future;
 	}
 
 	@Override

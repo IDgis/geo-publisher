@@ -153,7 +153,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		ResultSet rs = stmt.executeQuery(sb.toString());
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseCursor.props(rs, msg.getMessageSize()), 
+				DatabaseCursor.props(rs, msg.getMessageSize(), executorService), 
 				nameGenerator.getName(DatabaseCursor.class));
 		
 		return cursor;

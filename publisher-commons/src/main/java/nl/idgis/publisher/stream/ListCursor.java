@@ -1,15 +1,13 @@
 package nl.idgis.publisher.stream;
 
 import java.util.Iterator;
-
-import nl.idgis.publisher.stream.messages.Item;
-
-import scala.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 import akka.actor.Props;
-import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
+import nl.idgis.publisher.stream.messages.Item;
 
 public class ListCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
 	
@@ -31,10 +29,10 @@ public class ListCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
 	}
 
 	@Override
-	protected Future<T> next() {
+	protected CompletableFuture<T> next() {
 		log.debug("next");
 		
-		return Futures.successful(t.next());
+		return f.successful(t.next());
 	}
 
 }

@@ -35,7 +35,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	protected final Connection connection;
 	
-	private ExecutorService executorService;
+	protected ExecutorService executorService;
 		
 	private Set<ActorRef> cursors;
 	
