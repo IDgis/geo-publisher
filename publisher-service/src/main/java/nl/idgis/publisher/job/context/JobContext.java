@@ -1,6 +1,5 @@
 package nl.idgis.publisher.job.context;
 
-import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import akka.actor.ActorRef;
@@ -34,21 +33,6 @@ public class JobContext extends UntypedActor {
 	private final ActorRef jobManager;
 	
 	private final JobInfo jobInfo;
-	
-	private static class JobFinished implements Serializable {
-		
-		private static final long serialVersionUID = 2236542274270022155L;		
-	}
-	
-	private static class JobInProgress implements Serializable {
-		
-		private static final long serialVersionUID = -5282262057445760600L;		
-	}
-	
-	private static class JobAcknowledged implements Serializable {
-		
-		private static final long serialVersionUID = -3851776170365172160L;		
-	}
 		
 	public JobContext(ActorRef jobManager, JobInfo jobInfo) {
 		this.jobManager = jobManager;
@@ -63,6 +47,11 @@ public class JobContext extends UntypedActor {
 	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
 	}
+	
+	@Override
+	public void postStop() throws Exception {
+		log.debug("stopped");
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -71,66 +60,118 @@ public class JobContext extends UntypedActor {
 			
 			getContext().parent().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
-		} else if(msg instanceof JobAcknowledged) {
-			log.debug("job acknowledged");
+		} else if(msg instanceof Ack) {
+			log.debug("acknowledged");
 			
+			getContext().parent().tell(msg, getSender());
 			getContext().stop(getSelf());
-		} else if(msg instanceof JobInProgress) {
-			log.debug("job started");
+		} else {
+			log.debug("other message");
 			
 			getContext().become(started());
-		} else {
-			onReceiveElse(msg);
+			getSelf().forward(msg, getContext());
 		}
 	}
 	
-	private Procedure<Object> started() {
+	private Procedure<Object> finished() {
+		log.debug("behavior: finished");
+		
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof JobFinished) {					
-					log.debug("job acknowledged -> stop context");
+				if(msg instanceof Ack) {
+					log.debug("acknowledged");
 					
-					getContext().stop(getSelf());					
+					getContext().parent().tell(msg, getSelf());
+					
+					getContext().stop(getSelf());
 				} else {
-					onReceiveElse(msg);
-				}				
+					unhandled(msg);
+				}
 			}
 			
 		};
 	}
 	
-	public void onReceiveElse(Object msg) {
-		if(msg instanceof Ack) {
-			getContext().parent().tell(msg, getSelf());
-			
-			getSelf().tell(new JobAcknowledged(), getSelf());
-		} else if(msg instanceof UpdateJobState) {
-			log.debug("update job state received: {}", msg);
-			
-			JobState jobState = ((UpdateJobState)msg).getState();
-			jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
-			
-			if(jobState.isFinished()) {
-				getSelf().tell(new JobFinished(), getSelf());
-			} else {
-				getSelf().tell(new JobInProgress(), getSelf());
+	private Procedure<Object> acknowledged() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Log) {
+					handleLog((Log)msg);
+				} else if(msg instanceof AddJobNotification) {
+					handleAddJobNotification((AddJobNotification)msg);
+				} else if(msg instanceof RemoveJobNotification) {			
+					handleRemoveJobNotification((RemoveJobNotification)msg);
+				} else if(msg instanceof UpdateJobState) {
+					log.debug("update job state received: {}", msg);
+					
+					JobState jobState = ((UpdateJobState)msg).getState();
+					jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
+					
+					if(jobState.isFinished()) {
+						getContext().stop(getSelf());
+					}
+				} else {
+					unhandled(msg);
+				}
+			}			
+		};
+	}
+	
+	private void handleRemoveJobNotification(RemoveJobNotification msg) {
+		log.debug("remove notification received: {}", msg);
+		
+		jobManager.tell(new RemoveNotification(jobInfo, msg.getNotificationType()), getSender());
+	}
+
+	private void handleAddJobNotification(AddJobNotification msg) {
+		log.debug("add notification received: {}", msg);
+		
+		jobManager.tell(new AddNotification(jobInfo, ((AddJobNotification)msg).getNotificationType()), getSender());
+	}
+
+	private void handleLog(Log msg) {
+		log.debug("log received: {}", msg);
+		
+		jobManager.tell(new StoreLog(jobInfo, msg), getSender());
+	}
+	
+	private Procedure<Object> started() {
+		log.debug("behavior: started");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Log) {
+					handleLog((Log)msg);	
+				} else if(msg instanceof AddJobNotification) {
+					handleAddJobNotification((AddJobNotification)msg);
+				} else if(msg instanceof RemoveJobNotification) {
+					handleRemoveJobNotification((RemoveJobNotification)msg);					
+				} if(msg instanceof Ack) {
+					log.debug("acknowledged");
+					
+					getContext().parent().tell(msg, getSelf());
+					
+					getContext().become(acknowledged());
+				} else if(msg instanceof UpdateJobState) {
+					log.debug("update job state received: {}", msg);
+					
+					JobState jobState = ((UpdateJobState)msg).getState();
+					jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
+					
+					if(jobState.isFinished()) {
+						getContext().become(finished());
+					}
+				} else { 
+					unhandled(msg);
+				}				
 			}
-		} else if(msg instanceof Log) {
-			log.debug("log received: {}", msg);
 			
-			jobManager.tell(new StoreLog(jobInfo, (Log)msg), getSender());
-		} else if(msg instanceof AddJobNotification) {
-			log.debug("add notification received: {}", msg);
-			
-			jobManager.tell(new AddNotification(jobInfo, ((AddJobNotification)msg).getNotificationType()), getSender());
-		} else if(msg instanceof RemoveJobNotification) {			
-			log.debug("remove notification received: {}", msg);
-			
-			jobManager.tell(new RemoveNotification(jobInfo, ((RemoveJobNotification)msg).getNotificationType()), getSender());
-		} else {
-			unhandled(msg);
-		}
+		};
 	}
 }
