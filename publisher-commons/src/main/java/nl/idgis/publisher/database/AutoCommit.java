@@ -12,7 +12,7 @@ import akka.japi.Procedure;
 
 public class AutoCommit extends AbstractAutoCommit<Query> {
 	
-	private Object answer;
+	private Object answer = null;
 	
 	public AutoCommit(Query query, ActorRef target) {
 		super(query, target);
@@ -48,7 +48,9 @@ public class AutoCommit extends AbstractAutoCommit<Query> {
 	
 	@Override
 	protected void onCompleted() {
-		target.tell(answer, getContext().parent());
+		if(answer != null) {
+			target.tell(answer, getContext().parent());
+		}
 	};
 	
 	@Override

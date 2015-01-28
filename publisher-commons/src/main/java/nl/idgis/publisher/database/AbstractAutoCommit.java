@@ -12,6 +12,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -105,7 +106,9 @@ abstract class AbstractAutoCommit<T> extends UntypedActor {
 		
 		target.tell(msg, getContext().parent());
 		
-		getContext().stop(getSelf());
+		getSender().tell(new Rollback(), getSelf());
+		
+		getContext().become(waitingForAck());
 	}	
 	
 	protected void handleTimeout() {

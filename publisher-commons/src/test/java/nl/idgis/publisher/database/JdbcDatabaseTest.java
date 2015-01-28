@@ -31,6 +31,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Identify;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.dispatch.sysmsg.Failed;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.Query;
@@ -323,5 +324,29 @@ public class JdbcDatabaseTest {
 		for(ActorRef transaction : transactions) {
 			f.ask(transaction, new Commit(), Ack.class);
 		}
+	}
+	
+	@Test
+	public void testManyAutoCommitQueries() throws Exception {
+		final int numberOfQueries = POOL_SIZE + 1;
+		
+		for(int i = 0; i < numberOfQueries; i++) {
+			f.ask(database, new SqlQuery("select 1", SqlQueryType.QUERY), TypedList.class).get();
+		}
+		
+		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		f.ask(transaction, new Commit(), Ack.class).get();
+	}
+	
+	@Test
+	public void testManyAutoCommitQueryFailures() throws Exception {
+		final int numberOfQueries = POOL_SIZE + 1;
+		
+		for(int i = 0; i < numberOfQueries; i++) {
+			f.ask(database, new SqlQuery("invalid sql", SqlQueryType.QUERY), Failed.class);
+		}
+		
+		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		f.ask(transaction, new Commit(), Ack.class).get();
 	}
 }
