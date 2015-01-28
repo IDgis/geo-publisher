@@ -163,6 +163,12 @@ public abstract class JdbcTransaction extends UntypedActor {
 	private void handleTimeout() {
 		log.error("timeout");
 		
+		try {
+			connection.rollback();
+		} catch(Exception e) {
+			log.error("rollback failed: {}" + e);
+		}
+		
 		getContext().stop(getSelf());
 	}
 
@@ -170,7 +176,6 @@ public abstract class JdbcTransaction extends UntypedActor {
 		log.error(e, "query failure");
 		
 		getSender().tell(new Failure(e), getSelf());
-		getContext().stop(getSelf());
 	}
 	
 	protected static class Prepared {

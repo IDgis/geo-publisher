@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 
@@ -8,6 +9,7 @@ import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.ConfigUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -28,11 +30,15 @@ import com.typesafe.config.Config;
 
 public abstract class JdbcDatabase extends UntypedActor {
 	
+	private static final int DEFAULT_POOL_SIZE = 10;
+	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final String poolName;
+	
+	private final int poolSize;
 
 	protected final Config config;
 	
@@ -59,8 +65,13 @@ public abstract class JdbcDatabase extends UntypedActor {
 	}
 	
 	public JdbcDatabase(Config config, String poolName) {
+		this(config, poolName, DEFAULT_POOL_SIZE);
+	}
+	
+	public JdbcDatabase(Config config, String poolName, int poolSize) {
 		this.config = config;
 		this.poolName = poolName;
+		this.poolSize = poolSize;
 	}
 	
 	@Override
@@ -75,6 +86,9 @@ public abstract class JdbcDatabase extends UntypedActor {
 		boneCpConfig.setUsername(config.getString("user"));
 		boneCpConfig.setPassword(config.getString("password"));
 		boneCpConfig.setPoolName(poolName);
+		boneCpConfig.setDefaultAutoCommit(false);
+		boneCpConfig.setConnectionTimeout(1, TimeUnit.SECONDS);		
+		boneCpConfig.setMaxConnectionsPerPartition(poolSize);
 		
 		log.debug("creating database pool");
 		connectionPool = new BoneCP(boneCpConfig); 
@@ -137,22 +151,19 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private void handleStartTransaction(StartTransaction msg) {
 		final ActorRef sender = getSender();
 		final ListenableFuture<Connection> connectionFuture = connectionPool.getAsyncConnection();
-		connectionFuture.addListener(new Runnable() {
-
-			@Override
-			public void run() {
-				final Connection connection; 
-				try {
-					connection = connectionFuture.get();
-					log.debug("connection obtained from pool");
-					
-					connection.setAutoCommit(false);
-					getSelf().tell(new CreateTransaction(sender, connection), getSelf());
-				} catch (Exception e) {
-					log.error(e, "couldn't obtain connection from pool");
-					return;
-				}
-			}				
+		connectionFuture.addListener(() -> {
+			 
+			try {
+				Connection connection = connectionFuture.get();
+				log.debug("connection obtained from pool");
+				
+				getSelf().tell(new CreateTransaction(sender, connection), getSelf());
+			} catch (Exception e) {
+				log.error("couldn't obtain connection from pool: {}", e);
+				
+				sender.tell(new Failure(e), getSelf());
+			}
+				
 		}, getContext().dispatcher());
 	}
 	
