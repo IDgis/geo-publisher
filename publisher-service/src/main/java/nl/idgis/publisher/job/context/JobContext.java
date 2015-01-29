@@ -56,7 +56,7 @@ public class JobContext extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
-			log.error("timeout while starting job");
+			log.error("timeout while starting job: {}", jobInfo);
 			
 			getContext().parent().tell(new Ack(), getSelf());
 			getContext().stop(getSelf());
