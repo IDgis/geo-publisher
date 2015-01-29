@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
@@ -11,7 +12,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
-public final class AsyncTransactionHelper extends AbstractAsyncHelper {  
+public final class AsyncTransactionHelper extends AbstractAsyncHelper implements Transaction<AsyncHelper> {  
 	
 	AsyncTransactionHelper(ActorRef transaction, FutureUtils f, LoggingAdapter log) {		
 		super(transaction, f, log);
@@ -53,5 +54,10 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper {
 					throw new IllegalStateException("rollback failed");
 				}
 			});
+	}
+
+	@Override
+	public <U> CompletableFuture<U> apply(Function<AsyncHelper, CompletableFuture<U>> handler) {
+		return handler.apply(this);
 	}
 }
