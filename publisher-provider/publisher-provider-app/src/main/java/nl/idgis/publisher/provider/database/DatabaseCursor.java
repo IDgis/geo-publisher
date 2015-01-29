@@ -12,9 +12,6 @@ import oracle.sql.STRUCT;
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
-import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.database.messages.Rollback;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.UnsupportedType;
@@ -92,22 +89,10 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 				}
 				
 				future.complete(new Records(records));
-			} catch(Throwable t0) {
-				log.error("failed to fetch records: {}", t0);
+			} catch(Throwable t) {
+				log.error("failed to fetch records: {}", t);
 				
-				f.ask(getContext().parent(), new Rollback()).whenComplete((answer, t1) -> {
-					if(t1 != null) {
-						log.error("exception while trying to rollback: {}", t1);
-					} else {
-						if(answer instanceof Ack) {
-							log.debug("rolled back");
-						} else if(answer instanceof Failure) {
-							log.error("failed to rollback: {}" + answer);
-						} 
-					}
-					
-					future.completeExceptionally(t0);
-				});
+				future.completeExceptionally(t);
 			}
 		});
 		
