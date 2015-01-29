@@ -9,11 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import akka.util.Timeout;
-
-import nl.idgis.publisher.utils.FutureUtils;
-
-public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
+public class AsyncUpdateClauseTest extends AbstractDatabaseHelperTest {
 
 	@Test
 	public void testExecute() throws Exception {
@@ -22,7 +18,7 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "name")		
 			.execute();
 		
-		CompletableFuture<Long> future = asyncUpdate().set(dataSource.name, "newName")			
+		CompletableFuture<Long> future = db.update(dataSource).set(dataSource.name, "newName")			
 			.execute();
 		
 		Long affectedRows = future.get(2, TimeUnit.SECONDS);
@@ -35,13 +31,7 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 				query().from(dataSource)
 				.where(dataSource.identification.eq("id"))
 				.singleResult(dataSource.name));
-	}
-
-	private AsyncSQLUpdateClause asyncUpdate() {
-		FutureUtils f = new FutureUtils(dispatcher(), new Timeout(1, TimeUnit.SECONDS));
-		AsyncSQLUpdateClause update = new AsyncSQLUpdateClause(database, f, dataSource);
-		return update;
-	}
+	}	
 	
 	@Test
 	public void testExecuteWhere() throws Exception {
@@ -50,7 +40,7 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 			.set(dataSource.name, "name")		
 			.execute();	
 		
-		CompletableFuture<Long> future = asyncUpdate().set(dataSource.name, "newName")
+		CompletableFuture<Long> future = db.update(dataSource).set(dataSource.name, "newName")
 			.where(dataSource.identification.eq("anotherId"))
 			.execute();
 		
@@ -65,7 +55,7 @@ public class AsyncUpdateClauseTest extends AbstractDatabaseTest {
 				.where(dataSource.identification.eq("id"))
 				.singleResult(dataSource.name));
 				
-		future = asyncUpdate().set(dataSource.name, "newName")
+		future = db.update(dataSource).set(dataSource.name, "newName")
 			.where(dataSource.identification.eq("id"))
 			.execute();
 			

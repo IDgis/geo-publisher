@@ -1,15 +1,13 @@
 package nl.idgis.publisher.database;
 
-import org.junit.Test;
-
-import nl.idgis.publisher.utils.FutureUtils;
-
 import static nl.idgis.publisher.database.QCategory.category;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class AsyncDeleteClauseTest extends AbstractDatabaseTest {
+import org.junit.Test;
 
+public class AsyncDeleteClauseTest extends AbstractDatabaseHelperTest {
+	
 	@Test
 	public void testExecute() throws Exception {
 		insert(category)
@@ -19,15 +17,13 @@ public class AsyncDeleteClauseTest extends AbstractDatabaseTest {
 		
 		assertTrue(query().from(category).exists());
 		
-		FutureUtils f = new FutureUtils(system.dispatcher());
-		
-		new AsyncSQLDeleteClause(database, f, category)
+		db.delete(category)
 			.where(category.identification.eq("anotherCategory"))
 			.execute().get();
 		
 		assertTrue(query().from(category).exists());
 		
-		new AsyncSQLDeleteClause(database, f, category)
+		db.delete(category)
 			.where(category.identification.eq("testCategory"))
 			.execute().get();
 		
@@ -40,7 +36,7 @@ public class AsyncDeleteClauseTest extends AbstractDatabaseTest {
 		
 		assertTrue(query().from(category).exists());
 		
-		new AsyncSQLDeleteClause(database, f, category)			
+		db.delete(category)
 			.execute().get();
 		
 		assertFalse(query().from(category).exists());
