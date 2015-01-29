@@ -32,6 +32,16 @@ GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(da
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, searchString: String ?="", page: Long ?= 1)
 
+#
+# Service beheer
+# 
+GET		/styles											controllers.Styles.list()
+GET 	/styles/-/create								controllers.Styles.createForm()
+POST 	/styles/-/create								controllers.Styles.submitCreate()
+GET		/styles/:styleId/edit							controllers.Styles.editForm(styleId: String)
+POST	/styles/:styleId/edit							controllers.Styles.submitEdit(styleId: String)
+GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
+
 # Logging
 GET		/logging/messages								controllers.Logging.messages()
 GET		/logging/messages/:logLevels/:page				controllers.Logging.messagesWithFilter(logLevels: String, page: Long)

@@ -1,0 +1,50 @@
+@(styles:nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style])
+
+@import nl.idgis.publisher.domain.web._ 
+@layout.application( title = "Style list" ) {
+
+<div class="page-content">
+		<h1 class="page-header">Styles</h1>
+
+	@* List of styles: *@
+	<div class="col-lg-9 ">
+		@if(styles.values.isEmpty) {
+		<div class="alert alert-info">Er zijn geen styles gevonden die
+			voldoen aan de criteria.</div>
+		} else {
+		<div class="list-group" id="style-list">
+
+			@for(style <- styles.values) {
+			<div class="list-group-item js-style-item" 
+				data-style-id="@style.id"
+				data-style-name="@style.name">
+				<div class="row">
+					<div class="col-md-10">
+						<h4 class="list-group-item-heading">
+							<a href="@routes.Styles.editForm(style.id)" class="text-warning">@style.name</a>
+						</h4>
+					</div>
+					<div class="col-md-2">
+						<div class="btn-group pull-right">
+							<a href="@routes.Styles.editForm(style.id)"
+								class="btn btn-default" title=Bewerken>
+								<span class="glyphicon glyphicon-edit"></span></a> 
+							<a href="@routes.Styles.delete(style.id)" 
+								class="btn btn-warning" title=Verwijderen>
+								<span class="glyphicon glyphicon-remove"></span></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			}
+		</div>
+		}
+		<div class="btn-group">
+			<a href="@routes.Styles.createForm()" 
+				class="btn btn-success" title=Toevoegen>
+				<span class="glyphicon glyphicon-plus">Toevoegen<span></a>
+		</div>
+
+	</div>
+</div>
+}

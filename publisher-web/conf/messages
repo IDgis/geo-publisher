@@ -148,6 +148,10 @@ web.application.page.dashboard.panel.errors=Foutmeldingen
 web.application.page.dashboard.panel.newerror=Nieuwe foutmelding
 web.application.page.dashboard.panel.newerrors=Nieuwe foutmeldingen
 
+#
+# Data beheer
+#
+
 # Datasets
 web.application.page.datasets.title=Datasets
 
@@ -244,4 +248,18 @@ web.application.page.sourcedatasets.list.datasetscoupledparam=Er zijn {0} datase
 web.application.page.datasources.title=Gegevensbronnen
 web.application.page.datasources.ref=Gegevensbron
 web.application.page.datasources.all=Alle gegevensbronnen
+
+
+#
+# Service beheer
+#
+
+# Styles
+web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
+web.application.page.styles.form.header.edit=Stijl {0} aanpassen
+
+web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
+web.application.page.styles.form.field.definition.placeholder=paste een stijl definitie of upload een bestand
+web.application.page.styles.form.field.name.help=De naam van de stijl
+web.application.page.styles.form.field.definition.help=De SLD xml definitie van de stijl
 

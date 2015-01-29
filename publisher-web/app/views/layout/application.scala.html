@@ -88,8 +88,26 @@
 			<div class="sidebar-collapse">
 				<ul class="nav" id="side-menu">
 					<li class="active"><a href="@routes.Dashboard.index()"><span class="glyphicon glyphicon-dashboard"></span> @Domain.message("web.application.layout.sidebar.dashboard")</a></li>
+					<li style="padding:5px 13px">
+						<span style="font-weight:bold;font-size:15px">
+							Databeheer
+						</span>
+					</li>
 					<li><a href="@routes.Datasets.list()"><span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")</a></li>
 					<li><a href="@routes.DataSources.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.sourcedatasets")</a></li>
+					
+					<li style="padding:5px 13px">
+						<span style="font-weight:bold;font-size:15px">
+							Servicebeheer
+						</span>
+					</li>
+					<li><a href="@routes.Styles.list()"><span class="glyphicon glyphicon-hdd"></span> Styles </a></li>
+					<li style="padding:5px 13px">
+						<span style="font-weight:bold;font-size:15px">
+							Logging
+						</span>
+					</li>
+					
 					<li>
 						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> @Domain.message("web.application.layout.sidebar.log") <span class="caret"></span></a>
 						<ul id="logging-menu" class="collapse nav nav-second-level">

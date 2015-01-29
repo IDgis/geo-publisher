@@ -1,0 +1,82 @@
+@(styleForm: Form[controllers.Styles.StyleForm], createStyle:Boolean)
+
+@import nl.idgis.publisher.domain.web._ 
+
+@styleId = @{styleForm("id").value()}
+
+@layout.application( title="Stijl toevoegen: "+ styleForm("name") ){
+
+<div class="page-content">
+	<h1 class="page-header">@if(createStyle){Nieuwe stijl}else{Bewerk stijl: @styleForm("name").value}</h1>
+	
+	@if(styleForm.hasErrors) {
+		<div class="alert alert-danger">
+			<h4>probleem</h4>
+			@if(styleForm.hasGlobalErrors) {
+				<h5>omschrijving</h5>
+				<ul>
+					@for(error <- styleForm.globalErrors) {
+						<li>@error.message</li>
+					}
+				</ul>
+			}
+		</div>
+	}
+		
+	<div class="row">
+		<div class="col-lg-12">
+			<form class="form-horizontal" method="post" @if(createStyle){action="@routes.Styles.submitCreate()"}else{action="@routes.Styles.submitEdit(styleId)"} >
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-name">Naam</label>
+					<div class="col-lg-8">
+							@helper.inputText(
+								styleForm("name"), 
+								'id -> "input-name", 
+								'_label -> "",
+								'class -> "form-control", 
+								'placeholder -> Domain.message("web.application.page.styles.form.field.name.placeholder"),
+								'_help -> Domain.message("web.application.page.styles.form.field.name.help")
+							)
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-definition">Defineren stijl</label>
+					<div class="col-sm-8">
+							@helper.textarea(
+								styleForm("definition"), 
+								'id -> "input-definition", 
+								'_label -> "",
+								'class -> "form-control", 
+								'rows -> 20,
+								'placeholder -> Domain.message("web.application.page.styles.form.field.definition.placeholder"), 
+								'_help -> Domain.message("web.application.page.styles.form.field.definition.help")
+							)
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">Selecteer uit bestand</label>
+					<div class="col-sm-10">
+						<input type="file" style="width: 600px">
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">Zit in de laag/lagen</label>
+					<div class="col-sm-8">
+						<span>Meren, Rivieren, Zeeën</span>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-offset-2 col-sm-10">
+						<button class="btn btn-success disabled" type="submit">Valideren</button>
+						<button class="btn btn-success" type="submit">Opslaan</button>
+						<a href="@routes.Styles.list()" 
+								class="btn btn-success" title=Annuleren>
+								Annuleren</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+}
