@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.After;
 import org.junit.Before;
@@ -348,5 +349,39 @@ public class JdbcDatabaseTest {
 		
 		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
 		f.ask(transaction, new Commit(), Ack.class).get();
+	}
+	
+	@Test
+	public void testManyQueries() throws Exception {
+		final int numberOfQueries = POOL_SIZE * 2;
+		
+		for(int i = 0; i < numberOfQueries; i++) {
+			f.ask(database, new SqlQuery("select 1", SqlQueryType.QUERY), TypedList.class).get();
+		}
+		
+		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		f.ask(transaction, new Commit(), Ack.class).get();
+	}
+	
+	@Test
+	public void testManyParallelQueries() throws Exception {
+		final int numberOfQueries = POOL_SIZE * 10;
+		
+		List<CompletableFuture<Object>> futures = new ArrayList<>();
+		for(int i = 0; i < numberOfQueries; i++) {			
+			futures.add(f.ask(database, new SqlQuery("select " + i, SqlQueryType.QUERY)));
+		}		
+		
+		int i = 0;
+		for(Object o : f.sequence(futures).get()) {					
+			assertTrue(o instanceof TypedList);
+			TypedList<?> records = (TypedList<?>)o;
+			assertTrue(records.contains(TypedList.class));
+			for(TypedList<?> record : records.cast(TypedList.class)) {				
+				for(Object column : record) {
+					assertEquals(i++, column);
+				}
+			}
+		}
 	}
 }
