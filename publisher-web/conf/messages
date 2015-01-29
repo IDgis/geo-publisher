@@ -89,6 +89,7 @@ web.application.login.failed=Inloggen mislukt.
 web.application.button.ok=Ok
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
+web.application.button.add=ToevoegenX
 
 # Application
 web.application.layout.togglenavigation=Toggle navigation
