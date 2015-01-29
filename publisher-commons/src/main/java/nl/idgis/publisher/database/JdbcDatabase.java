@@ -7,10 +7,10 @@ import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
@@ -43,6 +43,10 @@ public abstract class JdbcDatabase extends UntypedActor {
 	protected final Config config;
 	
 	private BoneCP connectionPool;
+	
+	private TransactionHandler<ActorRef> transactionHandler;
+	
+	private FutureUtils f;
 	
 	private static class CreateTransaction {
 		
@@ -92,6 +96,10 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		log.debug("creating database pool");
 		connectionPool = new BoneCP(boneCpConfig);
+		
+		f = new FutureUtils(getContext().dispatcher());
+		
+		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), f), log);
 	}
 	
 	@Override
@@ -108,8 +116,6 @@ public abstract class JdbcDatabase extends UntypedActor {
 			handleStartTransaction((StartTransaction)msg);
 		} else if(msg instanceof Query) {			
 			handleQuery((Query)msg);
-		} else if(msg instanceof StreamingQuery) {
-			handleStreamingQuery((StreamingQuery)msg);
 		} else if(msg instanceof CreateTransaction) { // internal message sent by connection pool listener
 			handleCreateTransaction((CreateTransaction)msg);
 		} else {
@@ -126,26 +132,19 @@ public abstract class JdbcDatabase extends UntypedActor {
 				nameGenerator.getName(transactionProps.clazz()));
 		
 		msg.getSender().tell(new TransactionCreated(transaction), getSelf());
-	}
-
-	private void handleStreamingQuery(final StreamingQuery query) {
-		log.debug("executing query in autocommit mode");
-		
-		ActorRef streamingAutoCommit = getContext().actorOf(
-				StreamingAutoCommit.props(query, getSender()),
-				nameGenerator.getName(StreamingAutoCommit.class, query.getClass()));
-		
-		getSelf().tell(new StartTransaction(), streamingAutoCommit);
-	}
+	}	
 
 	private void handleQuery(final Query query) {
 		log.debug("executing query in autocommit mode");
 		
-		ActorRef autoCommit = getContext().actorOf(
-				AutoCommit.props(query, getSender()), 
-				nameGenerator.getName(AutoCommit.class, query.getClass()));
-		
-		getSelf().tell(new StartTransaction(), autoCommit);
+		ActorRef sender = getSender(), self = getSelf();
+		transactionHandler.transactional(tx -> f.ask(tx, query)).whenComplete((result, t) -> {
+			if(t == null) {
+				sender.tell(result, self);
+			} else {
+				sender.tell(new Failure(t), self);
+			}
+		});
 	}
 
 	private void handleStartTransaction(StartTransaction msg) {
