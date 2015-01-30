@@ -112,6 +112,7 @@ web.application.layout.sidebar.datasets=Datasets
 web.application.layout.sidebar.sourcedatasets=Brongegevens
 web.application.layout.sidebar.layers=Lagen
 web.application.layout.sidebar.styles=Stijlen
+web.application.layout.sidebar.groups=Groepen
 web.application.layout.sidebar.log=Logboek
 web.application.layout.sidebar.log.tasks=Taken
 web.application.layout.sidebar.log.errors=Foutmeldingen
@@ -262,6 +263,11 @@ web.application.page.datasources.all=Alle gegevensbronnen
 # Layers
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
+
+
+# Groups
+web.application.page.groups.list.header=Groepen
+web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.
 
 
 # Styles

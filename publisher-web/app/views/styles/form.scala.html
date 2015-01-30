@@ -4,7 +4,7 @@
 
 @styleId = @{styleForm("id").value()}
 
-@layout.application( title="Stijl toevoegen: "+ styleForm("name") ){
+@layout.application( title="Stijl toevoegen: "+ styleForm("name").value ){
 
 <div class="page-content">
 	<h1 class="page-header">@if(createStyle){Nieuwe stijl}else{Bewerk stijl: @styleForm("name").value}</h1>
