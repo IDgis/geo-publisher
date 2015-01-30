@@ -52,6 +52,9 @@ GET		/styles/:styleId/edit							controllers.Styles.editForm(styleId: String)
 POST	/styles/:styleId/edit							controllers.Styles.submitEdit(styleId: String)
 GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
+
+GET		/tiledlayers									controllers.Tiledlayers.list()
+
 # Logging
 GET		/logging/messages								controllers.Logging.messages()
 GET		/logging/messages/:logLevels/:page				controllers.Logging.messagesWithFilter(logLevels: String, page: Long)
