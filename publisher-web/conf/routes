@@ -36,6 +36,9 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 # Service beheer
 # 
 
+GET		/services										controllers.Services.list()
+
+
 GET		/layers											controllers.Layers.list()
 
 
