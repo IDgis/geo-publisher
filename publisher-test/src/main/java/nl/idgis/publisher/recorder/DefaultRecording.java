@@ -18,29 +18,53 @@ class DefaultRecording implements Recording {
 	
 	@Override	
 	public Recording assertHasNext() {
-		assertTrue(iterator.hasNext());
+		return assertHasNext(null);
+	}
+	
+	@Override	
+	public Recording assertHasNext(String message) {
+		assertTrue(message, iterator.hasNext());
 		
 		return this;
 	}
 	
 	@Override	
 	public Recording assertNotHasNext() {
-		assertFalse(iterator.hasNext());
+		return assertNotHasNext(null);
+	}
+	
+	@Override	
+	public Recording assertNotHasNext(String message) {
+		assertFalse(message, iterator.hasNext());
 		
 		return this;
 	}
 	
 	@Override
 	public <T> Recording assertNext(Class<T> clazz) throws Exception {
-		return assertNext(clazz, null);
+		return assertNext(null, clazz, null);
+	}
+	
+	@Override
+	public <T> Recording assertNext(String message, Class<T> clazz) throws Exception {
+		return assertNext(message, clazz, null);
+	}
+	
+	@Override
+	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
+		return assertNext(null, clazz, procedure);
 	}
 	
 	@Override	
-	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
+	public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
 		Object val = iterator.next().getMessage();
 		
-		assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
-				+ val.getClass().getCanonicalName(), clazz.isInstance(val));
+		if(message == null) {
+			assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
+					+ val.getClass().getCanonicalName(), clazz.isInstance(val));
+		} else {
+			assertTrue(message, clazz.isInstance(val));
+		}
 		
 		if(procedure != null) {
 			procedure.accept(clazz.cast(val));

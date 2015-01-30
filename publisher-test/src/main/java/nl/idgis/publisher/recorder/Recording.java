@@ -4,12 +4,20 @@ import java.util.function.Consumer;
 
 public interface Recording {
 
-	public Recording assertHasNext();
+	Recording assertHasNext();
+	
+	Recording assertHasNext(String message);
 
-	public Recording assertNotHasNext();
+	Recording assertNotHasNext();
+	
+	Recording assertNotHasNext(String message);
 
-	public <T> Recording assertNext(Class<T> clazz) throws Exception;
+	<T> Recording assertNext(Class<T> clazz) throws Exception;
+	
+	<T> Recording assertNext(String message, Class<T> clazz) throws Exception;
 
-	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception;
+	<T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception;
+
+	<T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception;
 
 }
