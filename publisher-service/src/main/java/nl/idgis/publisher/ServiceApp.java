@@ -1,6 +1,5 @@
 package nl.idgis.publisher;
 
-import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
@@ -157,7 +156,7 @@ public class ServiceApp extends UntypedActor {
 		Config geometryDatabaseConfig = config.getConfig("geometry-database");
 		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
 		
-		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database));
+		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
 		Config harvesterConfig = config.getConfig("harvester");
 		final ActorRef harvester = getContext().actorOf(Harvester.props(datasetManager, harvesterConfig), "harvester");
