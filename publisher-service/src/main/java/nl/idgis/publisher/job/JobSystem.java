@@ -1,5 +1,6 @@
 package nl.idgis.publisher.job;
 
+import nl.idgis.publisher.job.creator.Creator;
 import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
