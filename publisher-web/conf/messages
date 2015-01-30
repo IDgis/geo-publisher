@@ -87,9 +87,10 @@ web.application.login.failed=Inloggen mislukt.
 
 # Widgets
 web.application.button.ok=Ok
+web.application.button.validate=Valideren
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
-web.application.button.add=ToevoegenX
+web.application.button.add=Toevoegen
 
 # Application
 web.application.layout.togglenavigation=Toggle navigation
@@ -257,12 +258,26 @@ web.application.page.datasources.all=Alle gegevensbronnen
 # Service beheer
 #
 
+
+# Layers
+web.application.page.layers.list.header=Lagen
+web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
+
+
 # Styles
+web.application.page.styles.list.header=Stijlen
+web.application.page.styles.list.empty=Er zijn geen stijlen gevonden die voldoen aan de criteria.
+
 web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
 web.application.page.styles.form.header.edit=Stijl {0} aanpassen
 
+web.application.page.styles.form.field.name.label=Naam
+web.application.page.styles.form.field.definition.label=Defineren stijl
+web.application.page.styles.form.field.browse.label=Selecteer uit bestand
+web.application.page.styles.form.field.layers.label=Zit in de laag/lagen
+
 web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
-web.application.page.styles.form.field.definition.placeholder=paste een stijl definitie of upload een bestand
+web.application.page.styles.form.field.definition.placeholder=Kopieer een stijl definitie of upload een bestand
 web.application.page.styles.form.field.name.help=De naam van de stijl
 web.application.page.styles.form.field.definition.help=De SLD xml definitie van de stijl
 

@@ -27,51 +27,39 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" @if(createStyle){action="@routes.Styles.submitCreate()"}else{action="@routes.Styles.submitEdit(styleId)"} >
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-name">Naam</label>
+					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.styles.form.field.name.label")</label>
 					<div class="col-lg-8">
-							@helper.inputText(
-								styleForm("name"), 
-								'id -> "input-name", 
-								'_label -> "",
-								'class -> "form-control", 
-								'placeholder -> Domain.message("web.application.page.styles.form.field.name.placeholder"),
-								'_help -> Domain.message("web.application.page.styles.form.field.name.help")
-							)
+						<input class="form-control" id="input-name" placeholder="@Domain.message("web.application.page.styles.form.field.name.placeholder")" value="@styleForm("name").value">
+						<span>@Domain.message("web.application.page.styles.form.field.name.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-definition">Defineren stijl</label>
+					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
 					<div class="col-sm-8">
-							@helper.textarea(
-								styleForm("definition"), 
-								'id -> "input-definition", 
-								'_label -> "",
-								'class -> "form-control", 
-								'rows -> 20,
-								'placeholder -> Domain.message("web.application.page.styles.form.field.definition.placeholder"), 
-								'_help -> Domain.message("web.application.page.styles.form.field.definition.help")
-							)
+						<textarea class="form-control"id="input-definition" rows="20" placeholder="@Domain.message("web.application.page.styles.form.field.definition.placeholder")">@styleForm("definition").value</textarea>
+						<span>@Domain.message("web.application.page.styles.form.field.definition.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Selecteer uit bestand</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.browse.label")</label>
 					<div class="col-sm-10">
 						<input type="file" style="width: 600px">
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Zit in de laag/lagen</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.layers.label")</label>
 					<div class="col-sm-8">
-						<span>Meren, Rivieren, Zeeën</span>
+						<span></span>
 					</div>
 				</div>
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
-						<button class="btn btn-success disabled" type="submit">Valideren</button>
-						<button class="btn btn-success" type="submit">Opslaan</button>
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.validate")</button>
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
 						<a href="@routes.Styles.list()" 
-								class="btn btn-success" title=Annuleren>
-								Annuleren</a>
+							class="btn btn-success" title=Annuleren>
+							@Domain.message("web.application.button.cancel")
+						</a>
 					</div>
 				</div>
 			</form>

@@ -1,16 +1,15 @@
 @(styles:nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style])
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = "Style list" ) {
+@layout.application( title = "Stijlen" ) {
 
 <div class="page-content">
-		<h1 class="page-header">Styles Overijssel</h1>
+	<h1 class="page-header">@Domain.message("web.application.page.styles.list.header")</h1>
 
 	@* List of styles: *@
 	<div class="col-lg-9 ">
 		@if(styles.values.isEmpty) {
-		<div class="alert alert-info">Er zijn geen styles gevonden die
-			voldoen aan de criteria.</div>
+		<div class="alert alert-info">@Domain.message("web.application.page.styles.list.empty")</div>
 		} else {
 		<div class="list-group" id="style-list">
 
@@ -28,10 +27,12 @@
 						<div class="btn-group pull-right">
 							<a href="@routes.Styles.editForm(style.id)"
 								class="btn btn-default" title=Bewerken>
-								<span class="glyphicon glyphicon-edit"></span></a> 
+								<span class="glyphicon glyphicon-edit"></span>
+							</a> 
 							<a href="@routes.Styles.delete(style.id)" 
 								class="btn btn-warning" title=Verwijderen>
-								<span class="glyphicon glyphicon-remove"></span></a>
+								<span class="glyphicon glyphicon-remove"></span>
+							</a>
 						</div>
 					</div>
 				</div>
@@ -42,10 +43,9 @@
 		<div class="btn-group">
 			<a href="@routes.Styles.createForm()" 
 				class="btn btn-success" title=Toevoegen>
-				<span class="glyphicon glyphicon-plus">@Domain.message("web.application.button.add")<span>
+				<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
 			</a>
 		</div>
-
 	</div>
 </div>
 }
