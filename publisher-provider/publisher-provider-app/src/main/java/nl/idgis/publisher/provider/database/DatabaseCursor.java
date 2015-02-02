@@ -1,7 +1,9 @@
 package nl.idgis.publisher.provider.database;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -47,7 +49,9 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	private Object convert(Object value) throws Exception {
 		if(value == null 
 				|| value instanceof String
-				|| value instanceof Number) {
+				|| value instanceof Number
+				|| value instanceof Date
+				|| value instanceof Timestamp) {
 			
 			return value;
 		} else if(value instanceof STRUCT) {
