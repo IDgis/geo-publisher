@@ -6,6 +6,7 @@ import java.util.Set;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
+import nl.idgis.publisher.protocol.messages.SetPersistent;
 import nl.idgis.publisher.protocol.messages.StopPackager;
 
 import com.google.common.collect.BiMap;
@@ -95,6 +96,16 @@ public class MessagePackagerProvider extends UntypedActor {
 			}
 			
 			getSender().tell(new Ack(), getSelf());
+		} else if(msg instanceof SetPersistent) {
+			log.debug("set persistent");
+			
+			if(messagePackagers.containsValue(getSender())) {
+				log.debug("packager requested to be marked as persistent");
+				
+				persistentPackagers.add(getSender());
+			} else {
+				log.error("SetPersistent sender is not a known packager");
+			}
 		} else {
 			unhandled(msg);
 		}

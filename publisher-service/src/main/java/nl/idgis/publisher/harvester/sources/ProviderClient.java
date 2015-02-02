@@ -16,6 +16,7 @@ import scala.concurrent.duration.FiniteDuration;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.protocol.messages.SetPersistent;
 import nl.idgis.publisher.provider.protocol.EchoRequest;
 import nl.idgis.publisher.provider.protocol.EchoResponse;
 
@@ -89,6 +90,7 @@ public class ProviderClient extends UntypedActor {
 		provider = getSender();		
 		scheduleEchoRequest(BigInteger.ZERO);
 		
+		provider.tell(new SetPersistent(), getSelf()); // prevent message packager termination
 		provider.tell(new Hello(harvesterName), getSelf());
 		
 		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(provider), msg.getName());		
