@@ -289,7 +289,7 @@ public class LoaderSession extends UntypedActor {
 			
 			ActorRef sender = getSender(), self = getSelf();
 			f.ask(transaction, new InsertRecord(
-				importJob.getCategoryId(),
+				"staging_data",
 				importJob.getDatasetId(), 
 				columns, 
 				values))

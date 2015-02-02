@@ -54,7 +54,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef jobContext, geometryDatabase, database;
+	private final ActorRef jobContext, database;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
@@ -65,15 +65,14 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase, ActorRef database) {		
+	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
 		this.importJob = importJob;
-		this.jobContext = jobContext;		
-		this.geometryDatabase = geometryDatabase;
+		this.jobContext = jobContext;
 		this.database = database;
 	}
 	
-	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase, ActorRef database) {
-		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, geometryDatabase, database);
+	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
+		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, database);
 	}
 	
 	private Procedure<Object> waitingForDatasetStatusInfo() {
@@ -371,7 +370,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					transaction = ((TransactionCreated) msg).getActor();
 					
 					CreateTable ct = new CreateTable(
-							importJob.getCategoryId(),
+							"staging_data",
 							importJob.getDatasetId(),  
 							importJob.getColumns());
 					
@@ -442,7 +441,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	}
 	
 	private void startTransaction() {
-		geometryDatabase.tell(new StartTransaction(), getSelf());
+		database.tell(new StartTransaction(), getSelf());
 		become("starting transaction", waitingForTransactionCreated());
 	}
 	

@@ -34,7 +34,7 @@ public class Loader extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef geometryDatabase, database, harvester;
+	private final ActorRef database, harvester;
 	
 	private Map<ImportJobInfo, ActorRef> sessions;
 	
@@ -42,14 +42,13 @@ public class Loader extends UntypedActor {
 	
 	private Map<String, Integer> busyDataSources;
 
-	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
-		this.geometryDatabase = geometryDatabase;
+	public Loader(ActorRef database, ActorRef harvester) {		
 		this.database = database;
 		this.harvester = harvester;
 	}
 	
-	public static Props props(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
-		return Props.create(Loader.class, geometryDatabase, database, harvester);
+	public static Props props(ActorRef database, ActorRef harvester) {
+		return Props.create(Loader.class, database, harvester);
 	}
 	
 	@Override
@@ -173,7 +172,7 @@ public class Loader extends UntypedActor {
 		log.debug("data import requested: " + importJob);
 		
 		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, getSender(), geometryDatabase, database),
+				LoaderSessionInitiator.props(importJob, getSender(), database),
 				nameGenerator.getName(LoaderSessionInitiator.class));
 		
 		getSelf().tell(new GetDataSource(importJob.getDataSourceId()), initiator);

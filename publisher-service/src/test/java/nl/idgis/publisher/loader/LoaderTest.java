@@ -119,12 +119,19 @@ public class LoaderTest extends AbstractServiceTest {
 		
 	}
 	
-	static class GeometryDatabaseMock extends UntypedActor {
+	static class DatabaseMock extends UntypedActor {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
+		final ActorRef database;
+		
 		ActorRef sender;
+	
 		Integer insertCount;
+		
+		public DatabaseMock(ActorRef database)  {
+			this.database = database;
+		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
@@ -140,7 +147,7 @@ public class LoaderTest extends AbstractServiceTest {
 				ActorRef transaction = getContext().actorOf(Props.create(TransactionMock.class));				
 				getSender().tell(new TransactionCreated(transaction), getSelf());
 			} else {
-				unhandled(msg);
+				database.forward(msg, getContext());
 			}
 		}
 
@@ -292,15 +299,15 @@ public class LoaderTest extends AbstractServiceTest {
 		}		
 	}
 	
-	ActorRef loader, dataSourceMock, geometryDatabaseMock;
+	ActorRef loader, dataSourceMock, databaseMock;
 	
 	@Before
 	public void actors() {
-		geometryDatabaseMock = actorOf(Props.create(GeometryDatabaseMock.class), "geometryDatabaseMock");
+		databaseMock = actorOf(Props.create(DatabaseMock.class, database), "databaseMock");
 		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
 		
-		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(geometryDatabaseMock, database, harvesterMock), "loader")), "loaderFacade");
+		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, harvesterMock), "loader")), "loaderFacade");
 	}
 
 	@Test
@@ -324,7 +331,7 @@ public class LoaderTest extends AbstractServiceTest {
 		assertFalse(columnItr.hasNext());
 		
 		int insertCount = sync.ask(
-				geometryDatabaseMock, 
+				databaseMock, 
 				new GetInsertCount(), 
 				Integer.class);
 		
@@ -460,7 +467,7 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		assertFinishedJobState(JobState.SUCCEEDED, job);
 		
-		int count = sync.ask(geometryDatabaseMock, new GetInsertCount(), Integer.class);
+		int count = sync.ask(databaseMock, new GetInsertCount(), Integer.class);
 		assertEquals(10, count);
 		
 		// verify that the loader doens't inform us about missing 

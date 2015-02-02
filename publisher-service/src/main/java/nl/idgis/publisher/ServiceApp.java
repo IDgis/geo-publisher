@@ -14,7 +14,6 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.admin.Admin;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.QJobState;
 
@@ -71,6 +70,8 @@ public class ServiceApp extends UntypedActor {
 	
 	private FutureUtils f;
 	
+	private Config databaseConfig;
+	
 	private AsyncDatabaseHelper db;
 	
 	public ServiceApp(Config config) {
@@ -85,7 +86,7 @@ public class ServiceApp extends UntypedActor {
 	public void preStart() throws Exception {
 		log.info("starting service application");
 		
-		Config databaseConfig = config.getConfig("database");
+		databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
 		f = new FutureUtils(getContext().dispatcher());
@@ -153,19 +154,16 @@ public class ServiceApp extends UntypedActor {
 	}
 	
 	private Procedure<Object> running() throws Exception {
-		Config geometryDatabaseConfig = config.getConfig("geometry-database");
-		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
-		
 		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
 		Config harvesterConfig = config.getConfig("harvester");
 		final ActorRef harvester = getContext().actorOf(Harvester.props(datasetManager, harvesterConfig), "harvester");
 		
-		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(database, harvester), "loader");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, geometryDatabaseConfig), "service");
+		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, databaseConfig), "service");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
