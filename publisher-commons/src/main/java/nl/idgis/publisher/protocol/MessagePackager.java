@@ -3,6 +3,7 @@ package nl.idgis.publisher.protocol;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.messages.Envelope;
+import nl.idgis.publisher.protocol.messages.StopPackager;
 
 import scala.concurrent.duration.Duration;
 
@@ -39,7 +40,7 @@ public class MessagePackager extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
-			getContext().stop(getSelf());
+			getContext().parent().tell(new StopPackager(targetName), getSelf());
 		} else {		
 			final String sourceName;
 		
