@@ -771,8 +771,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	private Object executeInsertRecord(InsertRecord query) throws Exception {
-		String schemaName = query.getSchemaName();
-		String tableName = query.getTableName();
+		String schemaName = query.getSchemaName().toLowerCase();
+		String tableName = query.getTableName().toLowerCase();
 		List<Column> columns = query.getColumns();
 		List<Object> values = query.getValues();
 		
@@ -786,7 +786,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		for(Column column : columns) {
 			sb.append(separator);
 			sb.append("\"");
-			sb.append(column.getName());
+			sb.append(column.getName().toLowerCase());
 			sb.append("\"");
 			
 			separator = ", ";
@@ -828,8 +828,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	private Object executeCreateTable(CreateTable query) throws Exception {
-		String schemaName = query.getSchemaName();
-		String tableName = query.getTableName();
+		String schemaName = query.getSchemaName().toLowerCase();
+		String tableName = query.getTableName().toLowerCase();
 		List<Column> columns = query.getColumns();
 		
 		execute("create schema if not exists \"" + schemaName + "\"");
@@ -846,7 +846,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		for(Column column : columns) {
 			sb.append(separator);
 			sb.append("\"");
-			sb.append(column.getName());
+			sb.append(column.getName().toLowerCase());
 			sb.append("\"");
 			sb.append(" ");
 			
