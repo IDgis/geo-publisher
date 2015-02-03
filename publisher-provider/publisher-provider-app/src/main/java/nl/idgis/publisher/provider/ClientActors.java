@@ -64,12 +64,12 @@ public class ClientActors extends MessageProtocolActors {
 		log.debug("creating providers");
 		
 		for(Config instance : config.getConfigList("instances")) {
-			final String instanceName = "provider-" + instance.getString("name");
+			final String instanceName = instance.getString("name");
 			
 			final Props database = Database.props(instance.getConfig("database"), instanceName);
 			final Props metadata = Metadata.props(new File(instance.getString("metadata.folder")));					
 			
-			final ActorRef provider = getContext().actorOf(Provider.props(database, metadata), instanceName);					
+			final ActorRef provider = getContext().actorOf(Provider.props(database, metadata), "provider-" + instanceName);					
 			harvester.tell(new Hello(instanceName), provider);
 		}
 	} 
