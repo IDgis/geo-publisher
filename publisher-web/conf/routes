@@ -37,6 +37,7 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 # 
 
 GET		/services										controllers.Services.list()
+GET 	/services/-/create								controllers.Services.createForm()
 
 
 GET		/layers											controllers.Layers.list()

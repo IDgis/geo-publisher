@@ -268,6 +268,33 @@ web.application.page.datasources.all=Alle gegevensbronnen
 web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
 
+web.application.page.services.form.field.name.label=Naam
+web.application.page.services.form.field.title.label=Titel
+web.application.page.services.form.field.alttitle.label=Alternatieve titel
+web.application.page.services.form.field.summary.label=Samenvatting
+web.application.page.services.form.field.keywords.label=Trefwoorden
+web.application.page.services.form.field.publish.label=Publiceren
+web.application.page.services.form.field.structure.label=Structuur
+
+web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
+
+web.application.page.services.form.field.watermark.header=Watermerk instellingen
+web.application.page.services.form.field.watermarkenable.label=Watermerk inschakelen
+web.application.page.services.form.field.watermarkurl.label=Watermerk URL
+web.application.page.services.form.field.watermarktransparency.label=Transparantie (0 - 100)
+web.application.page.services.form.field.watermarkposition.label=Watermerk positie
+
+web.application.page.services.form.field.watermarkposition1.option=Linksboven
+web.application.page.services.form.field.watermarkposition2.option=Boven gecentreerd
+web.application.page.services.form.field.watermarkposition3.option=Rechtsboven
+web.application.page.services.form.field.watermarkposition4.option=Linksmidden
+web.application.page.services.form.field.watermarkposition5.option=Midden gecentreerd
+web.application.page.services.form.field.watermarkposition6.option=Rechtsmidden
+web.application.page.services.form.field.watermarkposition7.option=Linksonder
+web.application.page.services.form.field.watermarkposition8.option=Onder gecentreerd
+web.application.page.services.form.field.watermarkposition9.option=Rechtsonder
+
+
 
 # Layers
 web.application.page.layers.list.header=Lagen
@@ -278,7 +305,7 @@ web.application.page.layers.form.field.name.label=Naam
 web.application.page.layers.form.field.title.label=Titel
 web.application.page.layers.form.field.summary.label=Samenvatting
 web.application.page.layers.form.field.keywords.label=Trefwoorden
-web.application.page.layers.form.field.publicate.label=Publiceren
+web.application.page.layers.form.field.publish.label=Publiceren
 web.application.page.layers.form.field.groups.label=Zit in de groep(en)
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 
@@ -289,10 +316,10 @@ web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen
 web.application.page.groups.form.field.name.label=Naam
 web.application.page.groups.form.field.title.label=Titel
 web.application.page.groups.form.field.summary.label=Samenvatting
-web.application.page.groups.form.field.publicate.label=Publiceren
+web.application.page.groups.form.field.publish.label=Publiceren
 web.application.page.groups.form.field.structure.label=Structuur
-web.application.page.groups.form.field.addlayer.label=Toevoegen laag
-web.application.page.groups.form.field.addgroup.label=Toevoegen groep
+web.application.page.groups.form.field.addlayer.button=Toevoegen laag
+web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)
 
 

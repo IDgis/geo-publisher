@@ -5,6 +5,7 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.services.form;
 import views.html.services.list;
 import actions.DefaultAuthenticator;
 
@@ -12,6 +13,13 @@ import actions.DefaultAuthenticator;
 public class Services extends Controller {
 
 	// CRUD
+	
+	public static Promise<Result> createForm () {
+		Logger.debug ("create Service");
+		
+		return Promise.pure (ok (form.render ()));
+	}
+	
 	
 	public static Promise<Result> list () {
 		Logger.debug ("list Services ");
