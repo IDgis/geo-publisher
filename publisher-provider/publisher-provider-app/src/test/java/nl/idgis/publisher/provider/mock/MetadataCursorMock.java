@@ -3,14 +3,12 @@ package nl.idgis.publisher.provider.mock;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
 
-import scala.concurrent.Future;
-
 import akka.actor.Props;
-import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -34,11 +32,11 @@ public class MetadataCursorMock extends StreamCursor<Iterator<Map.Entry<String, 
 	}
 
 	@Override
-	protected Future<MetadataItem> next() {
+	protected CompletableFuture<MetadataItem> next() {
 		log.debug("next");
 		
 		Entry<String, byte[]> entry = t.next();
-		return Futures.successful(new MetadataItem(entry.getKey(), entry.getValue()));
+		return f.successful(new MetadataItem(entry.getKey(), entry.getValue()));
 	}
 	
 }

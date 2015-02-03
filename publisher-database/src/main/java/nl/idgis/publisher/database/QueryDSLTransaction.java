@@ -13,6 +13,8 @@ import com.mysema.query.sql.dml.SQLUpdateClause;
 import com.mysema.query.types.Expression;
 import com.typesafe.config.Config;
 
+import nl.idgis.publisher.utils.TypedList;
+
 public abstract class QueryDSLTransaction extends JdbcTransaction {
 		
 	private SQLTemplates templates;
@@ -52,7 +54,7 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected <T> void answerQuery(QueryMetadata metadata, Expression<T> expression) {
-		answer((Class<T>)expression.getType(), query(metadata).list(expression));
+	protected <T> TypedList<T> toTypedList(QueryMetadata metadata, Expression<T> expression) {
+		return new TypedList<>((Class<T>)expression.getType(), query(metadata).list(expression));
 	}
 }

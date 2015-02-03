@@ -21,6 +21,9 @@ import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 import static nl.idgis.publisher.utils.JsonUtils.fromJson;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.UUID;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
+import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.DeleteDataset;
@@ -37,12 +41,12 @@ import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
-import nl.idgis.publisher.database.messages.GetDatasetListInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
+import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.PerformDelete;
@@ -77,9 +81,14 @@ import nl.idgis.publisher.domain.service.ColumnDiffOperation;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.protocol.WKBGeometry;
+import nl.idgis.publisher.utils.TypedList;
 
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.Tuple;
@@ -104,6 +113,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	
 	public PublisherTransaction(Config config, Connection connection) {
 		super(config, connection);
+	}
+	
+	public static Props props(Config config, Connection connection) {
+		return Props.create(PublisherTransaction.class, config, connection);
 	}
 	
 	private void insertDatasetColumns(int datasetId, List<Column> columns) {
@@ -143,64 +156,66 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	}
 	
 	@Override
-	protected void executeQuery(Query query) throws Exception {
+	protected Object executeQuery(Query query) throws Exception {
 		if(query instanceof GetCategoryListInfo) {
-			executeGetCategoryListInfo();
-		} else if(query instanceof GetDatasetListInfo) {
-			executeGetDatasetListInfo((GetDatasetListInfo)query);			
+			return executeGetCategoryListInfo();					
 		} else if(query instanceof GetDataSourceInfo) {
-			executeGetDataSourceInfo();
+			return executeGetDataSourceInfo();
 		} else if(query instanceof GetSourceDatasetListInfo) {			
-			executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
+			return executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof CreateDataset) {
-			executeCreateDataset((CreateDataset)query);
+			return executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
-			executeGetDatasetInfo((GetDatasetInfo)query);
+			return executeGetDatasetInfo((GetDatasetInfo)query);
 		} else if(query instanceof UpdateDataset) {						
-			executeUpdatedataset((UpdateDataset)query);
+			return executeUpdatedataset((UpdateDataset)query);
 		} else if(query instanceof DeleteDataset) {
-			executeDeleteDataset((DeleteDataset)query);
+			return executeDeleteDataset((DeleteDataset)query);
 		} else if(query instanceof GetDataSourceStatus) {
-			executeGetDataSourceStatus();
+			return executeGetDataSourceStatus();
 		} else if(query instanceof GetJobLog) {
-			executeGetJobLog((GetJobLog)query);
+			return executeGetJobLog((GetJobLog)query);
 		} else if(query instanceof GetDatasetStatus) {
-			executeGetDatasetStatus((GetDatasetStatus)query);
+			return executeGetDatasetStatus((GetDatasetStatus)query);
 		} else if(query instanceof AddNotificationResult) {
-			executeAddNotificationResult((AddNotificationResult)query);
+			return executeAddNotificationResult((AddNotificationResult)query);
 		} else if (query instanceof GetNotifications) {
-			executeGetNotifications ((GetNotifications) query);
+			return executeGetNotifications ((GetNotifications) query);
 		} else if (query instanceof StoreNotificationResult) {
-			executeStoreNotificationResult ((StoreNotificationResult) query);
+			return executeStoreNotificationResult ((StoreNotificationResult) query);
 		} else if (query instanceof GetDatasetColumnDiff) {
-			executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
+			return executeGetDatasetColumnDiff ((GetDatasetColumnDiff) query);
 		} else if (query instanceof PerformQuery) {
-			executePerformQuery((PerformQuery)query);
+			return executePerformQuery((PerformQuery)query);
 		} else if (query instanceof PerformDelete) {
-			executePerformDelete((PerformDelete)query);		
+			return executePerformDelete((PerformDelete)query);		
 		} else if (query instanceof PerformInsert) {
-			executePerformInsert((PerformInsert)query);
+			return executePerformInsert((PerformInsert)query);
 		} else if (query instanceof PerformUpdate) {
-			executePerformUpdate((PerformUpdate)query);
+			return executePerformUpdate((PerformUpdate)query);
+		} else if (query instanceof CreateTable) {
+			return executeCreateTable((CreateTable)query);
+		} else if (query instanceof InsertRecord) {
+			return executeInsertRecord((InsertRecord)query);
 		} else {
-			unhandled(query);
+			return null;
 		}
 	}
 
-	private void executePerformQuery(PerformQuery query) {
+	private Object executePerformQuery(PerformQuery query) {
 		QueryMetadata metadata = query.getMetadata();
 		
 		List<Expression<?>> projection = metadata.getProjection();
 		if(projection.size() == 1) {	
-			answerQuery(metadata, projection.get(0));
+			return toTypedList(metadata, projection.get(0));
 		} else {		
-			answer(
+			return new TypedList<>(
 				Tuple.class,		
 				query(metadata).list(projection.toArray(new Expression<?>[projection.size()])));
 		}
 	}
 	
-	private void executePerformUpdate(PerformUpdate query) {
+	private Object executePerformUpdate(PerformUpdate query) {
 		SQLUpdateClause update = update(query.getEntity());
 		
 		update.set(query.getColumns(), query.getValues());
@@ -210,17 +225,16 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			update.where(metadata.getWhere());
 		}
 		
-		answer(update.execute());		
+		return update.execute();		
 	}
 	
-	private void executePerformDelete(PerformDelete query) {
+	private Object executePerformDelete(PerformDelete query) {
 		SQLDeleteClause delete = delete(query.getEntity());
 		
-		answer(delete.where(query.getMetadata().getWhere())
-			.execute());
+		return delete.where(query.getMetadata().getWhere()).execute();
 	}
 	
-	private void executePerformInsert(PerformInsert query) {
+	private Object executePerformInsert(PerformInsert query) {
 		SQLInsertClause insert = insert(query.getEntity());
 		
 		Path<?>[] columns = query.getColumns();
@@ -239,13 +253,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		Path<?> key = query.getKey();
 		
 		if(key != null) {
-			answer(insert.executeWithKey(key));
+			return insert.executeWithKey(key);
 		} else {
-			answer(insert.execute());
+			return insert.execute();
 		}
 	}	
 
-	private void executeAddNotificationResult(AddNotificationResult query) {
+	private Object executeAddNotificationResult(AddNotificationResult query) {
 		JobInfo job = query.getJob();
 		NotificationType<?> type = query.getNotificationType();
 		NotificationResult result = query.getNotificationResult();
@@ -262,10 +276,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 					result.name()))
 			.execute();
 		
-		ack();
+		return new Ack();
 	}	
 	
-	private void executeGetDatasetStatus(GetDatasetStatus query) {		
+	private Object executeGetDatasetStatus(GetDatasetStatus query) {		
 		SQLQuery baseQuery = query().from(datasetStatus)
 			.join(dataset).on(dataset.id.eq(datasetStatus.id));
 		
@@ -282,14 +296,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		String datasourceId = query.getDatasetId();
 		if(datasourceId == null) {		
-			answer(
+			return new TypedList<>(
 				DatasetStatusInfo.class,
 				
 				baseQuery.list(expression));
 		} else {
-			answer(
+			return
 				baseQuery.where(dataset.identification.eq(datasourceId))
-				.singleResult(expression));
+				.singleResult(expression);
 		}
 	}	
 
@@ -299,7 +313,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.singleResult(dataset.id);
 	}	
 
-	private void executeGetJobLog(GetJobLog query) throws Exception {
+	private Object executeGetJobLog(GetJobLog query) throws Exception {
 		final SQLQuery baseQuery = query().from(jobLog)
 				.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
 				.join(job).on(job.id.eq(jobState.jobId));
@@ -352,10 +366,10 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			jobLogs.add(new StoredJobLog(jobInfo, logLevel, logType, when, contentObject));
 		}
 		
-		answer(new InfoList<StoredJobLog> (jobLogs, baseQuery.count ()));
+		return new InfoList<StoredJobLog> (jobLogs, baseQuery.count ());
 	}
 	
-	private void executeGetNotifications (final GetNotifications query) throws Exception {
+	private Object executeGetNotifications (final GetNotifications query) throws Exception {
 		
 		final SQLQuery baseQuery = query ().from (datasetActiveNotification);
 		
@@ -395,16 +409,16 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				));
 		}
 		
-		answer (new InfoList<StoredNotification> (notifications, baseQuery.count ()));
+		return new InfoList<StoredNotification> (notifications, baseQuery.count ());
 						
 	}
 	
 
-	private void executeGetDataSourceStatus() {
+	private Object executeGetDataSourceStatus() {
 		QJobState jobStateSub = new QJobState("job_state_sub");			
 		QHarvestJob harvestJobSub = new QHarvestJob("harvest_job_sub");			
 		
-		answer(
+		return new TypedList<>(
 			DataSourceStatus.class,
 				
 			query().from(jobState)
@@ -425,7 +439,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 	
-	private void executeDeleteDataset(DeleteDataset dds) {
+	private Object executeDeleteDataset(DeleteDataset dds) {
 		Long nrOfDatasetColumnsDeleted = delete(datasetColumn)
 				.where(
 					new SQLSubQuery().from(dataset)
@@ -440,13 +454,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
 		
 		if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
-			answer(new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted));
+			return new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted);
 		} else {
-			answer(new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId()));
+			return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId());
 		}
 	}
 
-	private void executeUpdatedataset(UpdateDataset uds) {
+	private Object executeUpdatedataset(UpdateDataset uds) {
 		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 		String datasetIdent = uds.getDatasetIdentification();
 		String datasetName = uds.getDatasetName();
@@ -471,12 +485,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			.execute();
 		
 		insertDatasetColumns(datasetId, uds.getColumnList());
-		answer(new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent));
 		
 		log.debug("dataset updated");
+		
+		return new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent);
 	}
 
-	private void executeGetDatasetInfo(GetDatasetInfo gds) {
+	private Object executeGetDatasetInfo(GetDatasetInfo gds) {
 		String datasetIdent = gds.getId();
 		log.debug("get dataset " + datasetIdent);
 
@@ -531,13 +546,13 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		if (lastTuple == null) {
-			answer ((Object) null);
+			return null;
 		} else {		
-			answer (createDatasetInfo (lastTuple, notifications));
+			return createDatasetInfo (lastTuple, notifications);
 		}
 	}
 	
-	private void executeCreateDataset(CreateDataset cds) {
+	private Object executeCreateDataset(CreateDataset cds) {
 		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
 		String datasetIdent = cds.getDatasetIdentification();
 		String datasetName = cds.getDatasetName();
@@ -549,7 +564,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				.singleResult(sourceDataset.id);
 			if(sourceDatasetId == null) {
 				log.error("sourceDataset not found: " + sourceDatasetIdent);
-				answer(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+				return new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent);
 			} else {
 				insert(dataset)
 					.set(dataset.identification, datasetIdent)
@@ -562,14 +577,15 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				
 				Integer datasetId = getDatasetId(datasetIdent);
 				
-				insertDatasetColumns(datasetId, cds.getColumnList());					
-				answer(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent));
+				insertDatasetColumns(datasetId, cds.getColumnList());
 				
 				log.debug("dataset inserted");
+				
+				return new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent);
 			}
 	}	
 
-	private void executeGetSourceDatasetListInfo(GetSourceDatasetListInfo sdi) {
+	private Object executeGetSourceDatasetListInfo(GetSourceDatasetListInfo sdi) {
 		log.debug(sdi.toString());
 		
 		String categoryId = sdi.getCategoryId();
@@ -602,7 +618,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		applyListParams(listQuery, sdi, sourceDatasetVersion.name);
 		
-		answer(
+		return
 			new InfoList<SourceDatasetInfo>(			
 				listQuery					
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
@@ -614,15 +630,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 							dataset.count())),
 							
 				baseQuery.count()
-			)
-		);
+			);
 	}
 
-	private void executeGetDataSourceInfo() {
-		answer(
+	private Object executeGetDataSourceInfo() {
+		return
 			query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
-				.list(new QDataSourceInfo(dataSource.identification, dataSource.name)));
+				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 	}
 
 	private StoredNotification createStoredNotification (final Tuple t) {
@@ -662,129 +677,50 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				notifications
 			);
 	}
-	
-	private void executeGetDatasetListInfo(GetDatasetListInfo dli) {
-		String categoryId = dli.getCategoryId();
-		
-		SQLQuery baseQuery = query().from(dataset)
-			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-			.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-						.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-									.notExists()))
-			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
-			.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))
-			.leftJoin (lastServiceJob).on (dataset.id.eq (lastServiceJob.datasetId))
-			.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
-			
-		if(categoryId != null) {
-			baseQuery.where(category.identification.eq(categoryId));
-		}
 
-		baseQuery
-			.orderBy (dataset.identification.asc ())
-			.orderBy (datasetActiveNotification.jobCreateTime.desc ());
-		
-		final List<nl.idgis.publisher.database.messages.DatasetInfo> datasetInfos = new ArrayList<> ();
-		String currentIdentification = null;
-		final List<StoredNotification> notifications = new ArrayList<> ();
-		Tuple lastTuple = null;
-		
-		for (final Tuple t: baseQuery.list (
-				dataset.identification,
-				dataset.name,
-				sourceDataset.identification,
-				sourceDatasetVersion.name,
-				category.identification,
-				category.name,
-				dataset.filterConditions,
-				datasetStatus.imported,
-				datasetStatus.serviceCreated,
-				datasetStatus.sourceDatasetColumnsChanged,
-				lastImportJob.finishTime,
-				lastImportJob.finishState,
-				lastServiceJob.finishTime,
-				lastServiceJob.finishState,
-				lastServiceJob.verified,
-				lastServiceJob.added,
-				datasetActiveNotification.notificationId,
-				datasetActiveNotification.notificationType,
-				datasetActiveNotification.notificationResult,
-				datasetActiveNotification.jobId,
-				datasetActiveNotification.jobType
-			)) {
-		
-			// Emit a new dataset info:
-			final String datasetIdentification = t.get (dataset.identification);
-			if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
-				datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-				notifications.clear ();
-			}
-			
-			// Store the last seen tuple:
-			currentIdentification = datasetIdentification; 
-			lastTuple = t;
-			
-			// Add a notification:
-			final Integer notificationId = t.get (datasetActiveNotification.notificationId);
-			if (notificationId != null) {
-				notifications.add (createStoredNotification (t));
-			}
-		}
-		
-		if (currentIdentification != null) {
-			datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-		}
-
-		answer (datasetInfos);
-	}
-
-	private void executeGetCategoryListInfo() {
-		answer(
+	private Object executeGetCategoryListInfo() {
+		return
 				query().from(category)
 				.orderBy(category.identification.asc())
-				.list(new QCategoryInfo(category.identification,category.name)));
+				.list(new QCategoryInfo(category.identification,category.name));
 	}
 	
-	private void executeStoreNotificationResult (final StoreNotificationResult query) {
+	private Object executeStoreNotificationResult (final StoreNotificationResult query) {
 		log.debug("storing notification result: " + query);
 
 		if (!query().from (notification)
 			.where (notification.id.eq (query.getNotificationId ()))
-			.exists ()) {
-			return;
-		}
-		
-		if (query ()
-			.from (notificationResult)
-			.where (notificationResult.notificationId.eq (query.getNotificationId ()))
-			.exists ()) {
-			
-			if (query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {				
-				delete (notificationResult)
-					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
-					.execute ();
+			.exists ()) {			
+		} else {		
+			if (query ()
+				.from (notificationResult)
+				.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+				.exists ()) {
+				
+				if (query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {				
+					delete (notificationResult)
+						.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+						.execute ();
+				} else {
+					update (notificationResult)
+						.set (notificationResult.result, query.getResult ().name ())
+						.where (notificationResult.notificationId.eq (query.getNotificationId ()))
+						.execute ();
+				}
 			} else {
-				update (notificationResult)
-					.set (notificationResult.result, query.getResult ().name ())
-					.where (notificationResult.notificationId.eq (query.getNotificationId ()))
-					.execute ();
-			}
-		} else {
-			if (!query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
-				insert (notificationResult)
-					.set (notificationResult.notificationId, query.getNotificationId ())
-					.set (notificationResult.result, query.getResult ().name ())
-					.execute ();
+				if (!query.getResult ().equals (ConfirmNotificationResult.UNDETERMINED)) {
+					insert (notificationResult)
+						.set (notificationResult.notificationId, query.getNotificationId ())
+						.set (notificationResult.result, query.getResult ().name ())
+						.execute ();
+				}
 			}
 		}
 
-		answer (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
+		return (new Response<String>(CrudOperation.CREATE, CrudResponse.OK, "" + query.getNotificationId ()));
 	}
 	
-	private void executeGetDatasetColumnDiff (final GetDatasetColumnDiff query) {
+	private Object executeGetDatasetColumnDiff (final GetDatasetColumnDiff query) {
 		final SQLQuery baseQuery = query ().from (sourceDatasetColumnDiff)
 				.join (dataset).on (sourceDatasetColumnDiff.datasetId.eq (dataset.id))
 				.where (dataset.identification.eq (query.getDatasetIdentification ()))
@@ -801,6 +737,137 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			));
 		}
 		
-		answer (new InfoList<ColumnDiff> (diffs, baseQuery.count ()));
+		return new InfoList<ColumnDiff> (diffs, baseQuery.count ());
+	}
+	
+	private static class Prepared {
+		
+		PreparedStatement stmt;
+		
+		private Prepared(PreparedStatement stmt) {
+			this.stmt = stmt;
+		}
+		
+		public void execute(List<Object> args, Function<Object, Object> converter) throws Exception {
+			int i = 1;
+			
+			for(Object arg : args) {
+				stmt.setObject(i++, converter.apply(arg));
+			}
+			
+			stmt.execute();
+			stmt.close();
+		}
+	}
+	
+	private Prepared prepare(String sql) throws SQLException {
+		return new Prepared(connection.prepareStatement(sql));
+	}
+	
+	private void execute(String sql) throws SQLException {
+		Statement stmt = connection.createStatement();
+		stmt.execute(sql);
+		stmt.close();
+	}
+	
+	private Object executeInsertRecord(InsertRecord query) throws Exception {
+		String schemaName = query.getSchemaName().toLowerCase();
+		String tableName = query.getTableName().toLowerCase();
+		List<Column> columns = query.getColumns();
+		List<Object> values = query.getValues();
+		
+		StringBuilder sb = new StringBuilder("insert into \"");
+		sb.append(schemaName);
+		sb.append("\".\"");
+		sb.append(tableName);
+		sb.append("\"(");
+		
+		String separator = "";
+		for(Column column : columns) {
+			sb.append(separator);
+			sb.append("\"");
+			sb.append(column.getName().toLowerCase());
+			sb.append("\"");
+			
+			separator = ", ";
+		}
+		
+		sb.append(") values (");
+		
+		separator = "";
+		for(Column column : columns) {
+			sb.append(separator);
+			if(column.getDataType() == Type.GEOMETRY) {
+				sb.append("ST_SetSRID(ST_GeomFromWKB(?), 28992)");
+			} else {
+				sb.append("?");
+			}
+			
+			separator = ", ";
+		}	
+		
+		sb.append(")");
+		
+		String sql = sb.toString();
+		log.debug(sql);
+		prepare(sql).execute(values, new Function<Object, Object>() {
+
+			@Override
+			public Object apply(Object o) throws Exception {
+				if(o instanceof WKBGeometry) {
+					return ((WKBGeometry) o).getBytes();
+				} else {
+					return o;
+				}
+			}
+		});
+		
+		log.debug("ack");
+
+		return new Ack();
+	}
+	
+	private Object executeCreateTable(CreateTable query) throws Exception {
+		String schemaName = query.getSchemaName().toLowerCase();
+		String tableName = query.getTableName().toLowerCase();
+		List<Column> columns = query.getColumns();
+		
+		execute("create schema if not exists \"" + schemaName + "\"");
+		
+		execute("drop table if exists \"" + schemaName + "\".\"" + tableName + "\"");
+		
+		StringBuilder sb = new StringBuilder("create table \"");
+		sb.append(schemaName);
+		sb.append("\".\"");
+		sb.append(tableName);		
+		sb.append("\" (");
+		
+		String separator = "";
+		for(Column column : columns) {
+			sb.append(separator);
+			sb.append("\"");
+			sb.append(column.getName().toLowerCase());
+			sb.append("\"");
+			sb.append(" ");
+			
+			Type dataType = column.getDataType();
+			if(dataType.equals(Type.GEOMETRY)) {
+				sb.append("geometry(Geometry, 28992)");
+			} else {
+				sb.append(dataType.toString().toLowerCase());
+			}
+			
+			separator = ", ";
+		}
+		
+		sb.append(")");
+		
+		String sql = sb.toString();
+		log.debug(sql);
+		execute(sql);
+		
+		log.debug("ack");		
+		
+		return new Ack();
 	}
 }

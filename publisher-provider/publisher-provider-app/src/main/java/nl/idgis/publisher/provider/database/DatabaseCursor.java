@@ -1,9 +1,13 @@
 package nl.idgis.publisher.provider.database;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 import oracle.sql.STRUCT;
 
@@ -16,10 +20,7 @@ import nl.idgis.publisher.provider.protocol.UnsupportedType;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.stream.StreamCursor;
 
-import scala.concurrent.Future;
-
 import akka.actor.Props;
-import akka.dispatch.Futures;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -31,21 +32,26 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	private final SDOGeometryConverter converter = new SDOGeometryConverter();
 	
 	private final int messageSize;
+	
+	private final ExecutorService executorService;
 
-	public DatabaseCursor(ResultSet t, int messageSize) {
+	public DatabaseCursor(ResultSet t, int messageSize, ExecutorService executorService) {
 		super(t);
 		
 		this.messageSize = messageSize;
+		this.executorService = executorService;
 	}
 	
-	public static Props props(ResultSet t, int messageSize) {
-		return Props.create(DatabaseCursor.class, t, messageSize);
+	public static Props props(ResultSet t, int messageSize, ExecutorService executorService) {
+		return Props.create(DatabaseCursor.class, t, messageSize, executorService);
 	}
 	
 	private Object convert(Object value) throws Exception {
 		if(value == null 
 				|| value instanceof String
-				|| value instanceof Number) {
+				|| value instanceof Number
+				|| value instanceof Date
+				|| value instanceof Timestamp) {
 			
 			return value;
 		} else if(value instanceof STRUCT) {
@@ -68,26 +74,33 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 
 	@Override
-	protected Future<Records> next() {
+	protected CompletableFuture<Records> next() {
 		log.debug("fetching next records");
 		
-		try {
-			List<Record> records = new ArrayList<>();
-			records.add(toRecord());
-			
-			for(int i = 1; i < messageSize; i++) {
-				if(!t.next()) {
-					break;
+		CompletableFuture<Records> future = new CompletableFuture<>();
+		
+		executorService.execute(() -> {
+			try {
+				List<Record> records = new ArrayList<>();
+				records.add(toRecord());
+				
+				for(int i = 1; i < messageSize; i++) {
+					if(!t.next()) {
+						break;
+					}
+					
+					records.add(toRecord());
 				}
 				
-				records.add(toRecord());
+				future.complete(new Records(records));
+			} catch(Throwable t) {
+				log.error("failed to fetch records: {}", t);
+				
+				future.completeExceptionally(t);
 			}
-			
-			return Futures.successful(new Records(records));
-		} catch(Throwable t) {
-			log.error(t, "failed to fetch records");			
-			return Futures.failed(t);
-		}
+		});
+		
+		return future;
 	}
 
 	@Override

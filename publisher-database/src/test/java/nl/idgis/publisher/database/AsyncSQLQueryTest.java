@@ -14,32 +14,38 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
 
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
 public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	
-	private AsyncSQLQuery asyncQuery() {
-		FutureUtils f = new FutureUtils(dispatcher(), new Timeout(1, TimeUnit.SECONDS));
-		return new AsyncSQLQuery(database, f);
-	}
+	FutureUtils f;
 	
-	private <T> T result(CompletableFuture<T> future) throws Exception {
-		return future.get(2, TimeUnit.SECONDS);
+	AsyncDatabaseHelper db;
+	
+	@Before
+	public void setup() {
+		LoggingAdapter log = Logging.getLogger(system, this);
+		
+		f = new FutureUtils(system.dispatcher(), Timeout.apply(1, TimeUnit.SECONDS));
+		db = new AsyncDatabaseHelper(database, f, log);
 	}
 	
 	@Test
 	public void testTuple() throws Exception {
 		insertCategory();
 		
-		CompletableFuture<TypedList<Tuple>> future = asyncQuery()
+		CompletableFuture<TypedList<Tuple>> future = db.query()
 			.from(category)
 			.list(category.id, category.name);
 		
-		Iterator<Tuple> itr = result(future).iterator();
+		Iterator<Tuple> itr = future.get().iterator();
 		
 		assertTrue(itr.hasNext());
 		assertEquals("testCategory", itr.next().get(category.name));
@@ -50,11 +56,11 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	public void testProjection() throws Exception {
 		insertCategory();
 		
-		CompletableFuture<TypedList<String>> future = asyncQuery()
+		CompletableFuture<TypedList<String>> future = db.query()
 			.from(category)
 			.list(category.name);
 		
-		Iterator<String> itr = result(future).iterator();
+		Iterator<String> itr = future.get().iterator();
 		
 		assertTrue(itr.hasNext());
 		assertEquals("testCategory", itr.next());
@@ -64,18 +70,16 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	@Test
 	public void testSingleResult() throws Exception {
 		assertNull(
-			result(
-					asyncQuery()
+				db.query()
 						.from(category)
-						.singleResult(category.id, category.name)));
+						.singleResult(category.id, category.name).get());
 		
 		insertCategory();
 		
 		assertNotNull(
-				result(
-						asyncQuery()
-							.from(category)
-							.singleResult(category.id, category.name)));
+				db.query()
+						.from(category)
+						.singleResult(category.id, category.name).get());
 	}
 
 	private void insertCategory() {
@@ -88,34 +92,30 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	@Test
 	public void testExists() throws Exception {
 		assertFalse(
-			result(
-					asyncQuery()
+				db.query()
 						.from(category)
-						.exists()));
+						.exists().get());
 		
 		insertCategory();
 		
 		assertTrue(
-				result(
-					asyncQuery()
+				db.query()
 						.from(category)
-						.exists()));
+						.exists().get());
 	}
 	
 	@Test
 	public void testNotExists() throws Exception {
 		assertTrue(
-			result(
-					asyncQuery()
+				db.query()
 						.from(category)
-						.notExists()));
+						.notExists().get());
 		
 		insertCategory();
 		
 		assertFalse(
-				result(
-					asyncQuery()
+				db.query()
 						.from(category)
-						.notExists()));
+						.notExists().get());
 	}
 }

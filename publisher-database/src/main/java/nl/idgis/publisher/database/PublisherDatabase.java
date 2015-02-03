@@ -18,6 +18,6 @@ public class PublisherDatabase extends JdbcDatabase {
 
 	@Override
 	protected Props createTransaction(Connection connection) {		
-		return Props.create(PublisherTransaction.class, config, connection);
+		return PublisherTransaction.props(config, connection);
 	}
 }

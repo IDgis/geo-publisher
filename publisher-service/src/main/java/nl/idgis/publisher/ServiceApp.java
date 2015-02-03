@@ -1,6 +1,5 @@
 package nl.idgis.publisher;
 
-import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
@@ -15,7 +14,6 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.admin.Admin;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-import nl.idgis.publisher.database.GeometryDatabase;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.QJobState;
 
@@ -64,13 +62,15 @@ public class ServiceApp extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final QJobState jobStateSub = new QJobState("job_state_sub");
+	private final QJobState jobState1 = new QJobState("js1"), jobState2 = new QJobState("js2");
 	
 	private final Config config;
 	
 	private ActorRef database;
 	
 	private FutureUtils f;
+	
+	private Config databaseConfig;
 	
 	private AsyncDatabaseHelper db;
 	
@@ -86,7 +86,7 @@ public class ServiceApp extends UntypedActor {
 	public void preStart() throws Exception {
 		log.info("starting service application");
 		
-		Config databaseConfig = config.getConfig("database");
+		databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
 		f = new FutureUtils(getContext().dispatcher());
@@ -108,18 +108,22 @@ public class ServiceApp extends UntypedActor {
 					
 					return f.<Object>successful(PoisonPill.getInstance());
 				} else {
+					// mark running all jobs (started but not finished) as failed 
+					
 					return db.insert(jobState)
 						.columns(
 							jobState.jobId,
 							jobState.state)
-						.select(new SQLSubQuery().from(job)
-							.where(new SQLSubQuery().from(jobStateSub)
-								.where(jobStateSub.jobId.eq(job.id)
-									.and(jobStateSub.state.in(
-										enumsToStrings(JobState.getFinished()))))
-									.notExists())
+						.select(
+							new SQLSubQuery().from(jobState1)
+								.where(jobState1.state.eq(JobState.STARTED.name())
+									.and(new SQLSubQuery().from(jobState2)
+											.where(jobState1.jobId.eq(jobState2.jobId)
+													.and(jobState2.state.in(
+														enumsToStrings(JobState.getFinished()))))
+											.notExists()))
 							.list(
-								job.id, 
+								jobState1.jobId, 
 								JobState.FAILED.name()))
 						.execute().thenApply(jobsTerminated -> {
 							log.debug("jobs terminated: {}",  + jobsTerminated);
@@ -150,19 +154,16 @@ public class ServiceApp extends UntypedActor {
 	}
 	
 	private Procedure<Object> running() throws Exception {
-		Config geometryDatabaseConfig = config.getConfig("geometry-database");
-		final ActorRef geometryDatabase = getContext().actorOf(GeometryDatabase.props(geometryDatabaseConfig), "geometryDatabase");
-		
-		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database));
+		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
 		Config harvesterConfig = config.getConfig("harvester");
 		final ActorRef harvester = getContext().actorOf(Harvester.props(datasetManager, harvesterConfig), "harvester");
 		
-		final ActorRef loader = getContext().actorOf(Loader.props(geometryDatabase, database, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(database, harvester), "loader");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, geometryDatabaseConfig), "service");
+		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, databaseConfig), "service");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		

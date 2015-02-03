@@ -2,11 +2,9 @@ package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 
 import akka.actor.Props;
-import akka.dispatch.Futures;
-
-import scala.concurrent.Future;
 
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
@@ -27,11 +25,11 @@ public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 	}
 
 	@Override
-	protected Future<MetadataItem> next() {
+	protected CompletableFuture<MetadataItem> next() {
 		try {
-			return Futures.successful(MetadataParser.createMetadataItem(t.next()));
+			return f.successful(MetadataParser.createMetadataItem(t.next()));
 		} catch(Exception e) {
-			return Futures.failed(e);
+			return f.failed(e);
 		}
 	}
 }

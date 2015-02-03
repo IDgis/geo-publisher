@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
@@ -13,12 +15,12 @@ import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.mock.messages.PutTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -28,38 +30,21 @@ public class DatabaseMock extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private static class Table {
-		
-		private final TableInfo tableInfo;
-		
-		private final List<Record> records;
-		
-		public Table(TableInfo tableInfo, List<Record> records) {
-			this.tableInfo = tableInfo;
-			this.records = records;
-		}
-
-		public TableInfo getTableInfo() {
-			return tableInfo;
-		}
-
-		public List<Record> getRecords() {
-			return records;
-		}
-	}
-	
-	private final Map<String, Table> tables;	
-	
 	private final ActorRef recorder;
 	
+	private Map<String, Table> tables;
+	
 	public DatabaseMock(ActorRef recorder) {
-		tables = new HashMap<>();
-		
 		this.recorder = recorder;
 	}
 	
 	public static Props props(ActorRef recorder) {
 		return Props.create(DatabaseMock.class, recorder);
+	}
+	
+	@Override
+	public void preStart() throws Exception {
+		tables = new HashMap<>();
 	}
 
 	@Override
@@ -87,18 +72,21 @@ public class DatabaseMock extends UntypedActor {
 				getSender().tell(new TableNotFound(), getSelf());
 			}
 		} else if(msg instanceof PutTable) {
-			log.debug("put table");
-			
 			PutTable putTable = (PutTable)msg;
+			String tableName = putTable.getTableName();
+			
+			log.debug("put table: {}", tableName);
 			
 			tables.put(putTable.getTableName(), new Table(putTable.getTableInfo(), putTable.getRecords()));
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof FetchTable) {
-			log.debug("fetch table");
-			
 			String tableName = ((FetchTable)msg).getTableName();
 			
-			if(tables.containsKey(tableName)) {				
+			log.debug("fetch table: {}", tableName);
+			
+			if(tables.containsKey(tableName)) {
+				log.debug("table exists");
+				
 				List<Records> records = new ArrayList<>();
 				
 				int messageSize = ((FetchTable) msg).getMessageSize();
@@ -119,11 +107,18 @@ public class DatabaseMock extends UntypedActor {
 				ActorRef cursor = getContext().actorOf(ListCursor.props(records.iterator()));
 				cursor.tell(new NextItem(), getSender()); 
 			} else {
+				log.debug("table not found");
+				
 				getSender().tell(new TableNotFound(), getSelf());
 			}
+		} else if(msg instanceof StartTransaction) {
+			ActorRef transaction = getContext().actorOf(TransactionMock.props(recorder));
+			getSender().tell(new TransactionCreated(transaction), getSelf());
+		} else if(msg instanceof PutTable) {
+			ActorSelection.apply(getSelf(), "*").forward(msg, getContext());		
 		} else {
 			unhandled(msg);
 		}
 	}
-	
+
 }

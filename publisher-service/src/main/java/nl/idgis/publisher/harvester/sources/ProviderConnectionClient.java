@@ -9,22 +9,23 @@ import akka.io.Tcp.ConnectionClosed;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.protocol.messages.SetPersistent;
 
-public class ProviderClient extends UntypedActor {
+public class ProviderConnectionClient extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final String harvesterName;
 	
 	private final ActorRef harvester;
-		
-	public ProviderClient(String harvesterName, ActorRef harvester) {
+			
+	public ProviderConnectionClient(String harvesterName, ActorRef harvester) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
 	}
 	
 	public static Props props(String harvesterName, ActorRef harvester) {
-		return Props.create(ProviderClient.class, harvesterName, harvester);
+		return Props.create(ProviderConnectionClient.class, harvesterName, harvester);
 	}
 
 	@Override
@@ -36,7 +37,7 @@ public class ProviderClient extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
-	}
+	}	
 
 	private void handleConnectionClosed() {
 		log.debug("disconnected");
@@ -46,9 +47,12 @@ public class ProviderClient extends UntypedActor {
 	private void handleHello(Hello msg) {
 		log.debug(msg.toString());
 		
-		getSender().tell(new Hello(harvesterName), getSelf());
+		ActorRef provider = getSender();
 		
-		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(getSender()), msg.getName());		
+		provider.tell(new SetPersistent(), getSelf()); // prevent message packager termination
+		provider.tell(new Hello(harvesterName), getSelf());
+		
+		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(provider), msg.getName());		
 		harvester.tell(new DataSourceConnected(msg.getName()), dataSource);
 	}
 }

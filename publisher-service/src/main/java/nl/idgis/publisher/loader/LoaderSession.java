@@ -1,9 +1,11 @@
 package nl.idgis.publisher.loader;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.Commit;
@@ -23,55 +25,80 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.dispatch.OnComplete;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
-import akka.pattern.Patterns;
+import akka.japi.Procedure; 
 
 public class LoaderSession extends UntypedActor {
+	
+	private static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(30, TimeUnit.SECONDS);
+
+	private static class FinalizeSession implements Serializable {
+
+		private static final long serialVersionUID = -6298981994732740388L;
+		
+		private final JobState jobState;
+		
+		FinalizeSession(JobState jobState) {
+			this.jobState = jobState;
+		}
+		
+		JobState getJobState() {
+			return this.jobState;
+		}
+
+		@Override
+		public String toString() {
+			return "FinalizeSession [jobState=" + jobState + "]";
+		}		
+	}
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef loader, geometryDatabase, jobContext;
+	private final ActorRef loader, transaction, jobContext;
 	
 	private final FilterEvaluator filterEvaluator;
 	
-	private boolean inFailure = false;
+	private final Duration receiveTimeout;
 	
 	private long totalCount = 0, insertCount = 0, filteredCount = 0;
 	
 	private FutureUtils f;
 	
-	public LoaderSession(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) throws IOException {		
+	public LoaderSession(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+		this.receiveTimeout = receiveTimeout;
 		this.loader = loader;
 		this.importJob = importJob;
 		this.filterEvaluator = filterEvaluator;
-		this.geometryDatabase = geometryDatabase;
+		this.transaction = transaction;
 		this.jobContext = jobContext;
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef geometryDatabase, ActorRef jobContext) {
-		return Props.create(LoaderSession.class, loader, importJob, filterEvaluator, geometryDatabase, jobContext);
+	public static Props props(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(LoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
+	}
+	
+	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(5, TimeUnit.MINUTES));
+		getContext().setReceiveTimeout(receiveTimeout);
 		
 		f = new FutureUtils(getContext().dispatcher());
 	}
@@ -80,8 +107,16 @@ public class LoaderSession extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof StartImport) {
 			handleStartImport((StartImport)msg);
-		} else if(msg instanceof ReceiveTimeout) {
+		} else {
+			onReceiveElse(msg);
+		}
+	}
+	
+	private void onReceiveElse(Object msg) {
+		if(msg instanceof ReceiveTimeout) {				
 			handleTimeout();
+		} else if(msg instanceof FinalizeSession) {
+			handleFinalizeSession((FinalizeSession)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -93,17 +128,17 @@ public class LoaderSession extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Records) {			 			
-					handleRecords((Records)msg);		
+					handleRecords((Records)msg);
+				} else if(msg instanceof Record) {
+					handleRecord((Record)msg);
 				} else if(msg instanceof Failure) {
 					handleFailure((Failure)msg);
 				} else if(msg instanceof End) {						
 					handleEnd((End)msg);
-				} else if(msg instanceof ReceiveTimeout) {
-					handleTimeout();
 				} else {
-					unhandled(msg);
+					onReceiveElse(msg);
 				}
-			}
+			}			
 		};
 	}
 
@@ -119,60 +154,56 @@ public class LoaderSession extends UntypedActor {
 		
 		// session initiator
 		msg.getInitiator().tell(new Ack(), getSelf());
-		
 				
 		getContext().become(importing());
 	}
 
 	private void handleTimeout() {
-		log.debug("timeout while executing job: " + importJob);
+		log.error("timeout while executing job: {}", importJob);
 		
-		finalizeSession(JobState.ABORTED);
+		getSelf().tell(new FinalizeSession(JobState.ABORTED), getSelf());
 	}
 	
-	private void handleEnd(final End msg) {
+	private void handleEnd(final End end) {
 		log.info("import completed");
 		
-		Patterns.ask(geometryDatabase, new Commit(), 15000)				
-			.onSuccess(new OnSuccess<Object>() {
-
-				@Override
-				public void onSuccess(Object msg) throws Throwable {
-					log.debug("transaction committed");
-					
-					finalizeSession(JobState.SUCCEEDED);
-				}
-				
-			}, getContext().dispatcher());
+		ActorRef self = getSelf();
+		f.ask(transaction, new Commit()).thenApply(msg -> {				
+			log.debug("transaction committed");					
+			
+			return new FinalizeSession(JobState.SUCCEEDED);
+		}).exceptionally(t -> {
+			log.error("couldn't commit transaction: {}", t);
+			
+			return new FinalizeSession(JobState.FAILED);
+		}).thenAccept(msg -> {
+			self.tell(msg, self);
+		});
 	}
 
 	private void handleFailure(final Failure failure) {
-		log.error("import failed: " + failure.getCause());
+		log.error("import failed: {}", failure.getCause());
 		
-		if(!inFailure) {
-			inFailure = true;
-		
-			Patterns.ask(geometryDatabase, new Rollback(), 15000)
-				.onComplete(new OnComplete<Object>() {
-	
-					@Override
-					public void onComplete(Throwable t, Object msg) throws Throwable {
-						if(t != null) {
-							log.warning("rollback failed");
-						} else {					
-							log.debug("transaction rolled back");
-						}
-						
-						finalizeSession(JobState.FAILED);
-					}
-					
-				}, getContext().dispatcher());
-		}
+		ActorRef self = getSelf();
+		f.ask(transaction, new Rollback()).thenApply(msg -> {
+			log.debug("transaction rolled back");
+												
+			return new FinalizeSession(JobState.FAILED);
+		}).exceptionally(t -> {
+			log.error("couldn't rollback transaction: {}", t);
+			
+			return new FinalizeSession(JobState.FAILED);
+		}).thenAccept(msg -> {
+			self.tell(msg, self);
+		});	
 	}
 	
-	private void finalizeSession(JobState state) {
-		log.debug("finalizing session: " + state);
+	private void handleFinalizeSession(FinalizeSession finalizeSession) {
+		JobState state = finalizeSession.getJobState();
 		
+		log.debug("finalizing session: {}",  state);
+		
+		ActorRef self = getSelf();
 		f.ask(jobContext, new UpdateJobState(state)).whenComplete((msg0, t0) -> {
 			if(t0 != null) {
 				log.error("couldn't change job state: {}", t0);
@@ -185,7 +216,7 @@ public class LoaderSession extends UntypedActor {
 				
 				log.debug("session finalized");
 				
-				getContext().stop(getSelf());
+				self.tell(PoisonPill.getInstance(), self);
 			});
 		});
 	}
@@ -193,39 +224,47 @@ public class LoaderSession extends UntypedActor {
 	private void handleRecords(Records msg) {
 		List<Record> records = msg.getRecords();
 		
-		log.debug("records received: " + records.size());
+		log.debug("records received: {}", records.size());
 		
-		List<Future<Object>> futures = new ArrayList<>();
+		List<CompletableFuture<Object>> futures = new ArrayList<>();
 		for(Record record : records) {
-			futures.add(handleRecord(record));
+			futures.add(f.ask(getSelf(), record));
 		}
 		
-		final ActorRef sender = getSender();
-		Futures.sequence(futures, getContext().dispatcher())
-			.onSuccess(new OnSuccess<Iterable<Object>>() {
-	
-				@Override
-				public void onSuccess(Iterable<Object> msgs) throws Throwable {
-					log.debug("records processed");
-					
-					loader.tell(new Progress(insertCount + filteredCount, totalCount), getSelf());					
-					sender.tell(new NextItem(), getSelf());
+		ActorRef sender = getSender(), self = getSelf();
+		f.sequence(futures).whenComplete((results, t) -> {
+			if(t != null) {
+				log.error("exception waiting results: {}", t);
+				
+				self.tell(new FinalizeSession(JobState.FAILED), self);
+			} else {
+				for(Object result : results) {
+					if(result instanceof Failure) {
+						log.error("handle record failed: {}", result);
+						
+						sender.tell(new Stop(), getSelf());
+						self.tell(new FinalizeSession(JobState.FAILED), self);
+						
+						return;
+					}
 				}
 				
-			}, getContext().dispatcher());
+				log.debug("records processed");
+				
+				loader.tell(new Progress(insertCount + filteredCount, totalCount), self);					
+				sender.tell(new NextItem(), self);
+			}
+		});		
 	}
 
-	private Future<Object> handleRecord(final Record record) {
+	private void handleRecord(final Record record) {
 		
-		
-		if(log.isDebugEnabled()) { // Record.toString() is rather expensive
-			log.debug("record received: " + record + " " + (insertCount + filteredCount) + "/" + totalCount + " (filtered: " + filteredCount + ")");
-		}
+		log.debug("record received: {} {}/{} (filtered:{})", record, (insertCount + filteredCount), totalCount,  filteredCount);		
 		
 		if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
 			filteredCount++;
 			
-			return Futures.successful((Object)new Ack());
+			getSender().tell(new NextItem(), getSelf());
 		} else {
 			insertCount++;
 			
@@ -248,34 +287,20 @@ public class LoaderSession extends UntypedActor {
 				values = recordValues;
 			}
 			
-			Future<Object> insertResult = Patterns.ask(geometryDatabase, new InsertRecord(
-					importJob.getCategoryId(),
-					importJob.getDatasetId(), 
-					columns, 
-					values), 15000);
-			
-			insertResult.onComplete(new OnComplete<Object>() {
-
-				@Override
-				public void onComplete(Throwable t, Object msg) throws Throwable {
-					if(t != null) {
-						log.debug("exception during insert record");
+			ActorRef sender = getSender(), self = getSelf();
+			f.ask(transaction, new InsertRecord(
+				"staging_data",
+				importJob.getDatasetId(), 
+				columns, 
+				values))
+					.exceptionally(t -> new Failure(t))
+					.thenAccept(msg -> {
+						if(msg instanceof Failure) {
+							log.error("failed to insert record: {}", record);
+						} 
 						
-						getSelf().tell(new Failure(t), getSelf());
-					}
-					
-					if(msg instanceof Failure) {
-						log.debug("failed to insert record");
-						
-						getSelf().tell(msg, getSelf());
-					}
-				}
-				
-			}, getContext().dispatcher());
-			
-			return insertResult;
+						sender.tell(new NextItem(), self);
+					});
 		}
-				
-				
 	}
 }

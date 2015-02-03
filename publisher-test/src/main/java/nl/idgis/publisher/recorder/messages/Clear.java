@@ -1,10 +1,8 @@
 package nl.idgis.publisher.recorder.messages;
 
-import java.io.Serializable;
+public class Clear extends RecorderCommand {
 
-public class Clear implements Serializable {
-
-	private static final long serialVersionUID = 1270374002309424466L;
+	private static final long serialVersionUID = 3885336546943362634L;
 
 	@Override
 	public String toString() {

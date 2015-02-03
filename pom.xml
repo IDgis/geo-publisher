@@ -28,6 +28,21 @@
 		<guava.version>17.0</guava.version>
 		<h2.version>1.4.180</h2.version>
 	</properties>
+	
+	<profiles>
+		<profile>
+			<id>play</id>
+			<activation>
+				<property>
+					<name>!skipPlay</name>
+				</property>
+			</activation>
+    
+    		<modules>
+    			<module>publisher-web</module>
+    		</modules>
+  		</profile>
+	</profiles>
 
 	<repositories>
 		<repository>
@@ -394,8 +409,7 @@
 	<modules>
 		<module>publisher-commons</module>
 		<module>publisher-provider</module>		
-		<module>publisher-monitor</module>
-		<module>publisher-web</module>
+		<module>publisher-monitor</module>		
 		<module>publisher-database</module>
 		<module>publisher-service</module>
 		<module>publisher-domain</module>

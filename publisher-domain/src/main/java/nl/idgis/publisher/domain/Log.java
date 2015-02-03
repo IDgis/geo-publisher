@@ -80,7 +80,7 @@ public class Log implements Serializable {
 
 	@Override
 	public String toString() {
-		return "JobLog [level=" + level + ", type=" + type + ", content="
+		return "Log [level=" + level + ", type=" + type + ", content="
 				+ content + "]";
 	}
 }

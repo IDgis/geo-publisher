@@ -11,9 +11,9 @@
   	<logger name="nl.idgis.publisher.provider" level="debug"/>
   -->
    
-  <!--
+  
   	<logger name="nl.idgis.publisher.provider.App" level="debug"/>
-  -->
+  
 
   <!-- 
   	<logger name="nl.idgis.publisher.provider.metadata" level="debug"/>

@@ -10,6 +10,7 @@ import nl.idgis.publisher.AbstractStateMachine;
 
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
+import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 
@@ -27,7 +28,6 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 
-import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
@@ -54,7 +54,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 
 	private final ImportJobInfo importJob;
 	
-	private final ActorRef jobContext, geometryDatabase;
+	private final ActorRef jobContext, database;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	private FilterEvaluator filterEvaluator = null;
@@ -65,25 +65,50 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase) {
-		
+	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
 		this.importJob = importJob;
-		this.jobContext = jobContext;		
-		this.geometryDatabase = geometryDatabase;
+		this.jobContext = jobContext;
+		this.database = database;
 	}
 	
-	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef geometryDatabase) {
-		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, geometryDatabase);
+	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
+		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, database);
+	}
+	
+	private Procedure<Object> waitingForDatasetStatusInfo() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof DatasetStatusInfo) {
+					datasetStatus = (DatasetStatusInfo)msg;
+					
+					handleDatasetStatusInfo();
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof DatasetStatusInfo) {
-			datasetStatus = (DatasetStatusInfo)msg;
+		if(msg instanceof NotConnected) {					
+			log.warning("not connected: " + importJob.getDataSourceId());
 			
-			handleDatasetStatusInfo();
-		} else {
-			unhandled(msg);
+			acknowledgeJobAndStop();
+		} else if(msg instanceof Busy) {
+			log.debug("busy: " + importJob.getDataSourceId());
+			
+			acknowledgeJobAndStop();
+		} else if(msg instanceof ActorRef) {
+			log.debug("dataSource received");
+			
+			dataSource = (ActorRef)msg;
+			
+			database.tell(new GetDatasetStatus(importJob.getDatasetId()), getSelf());
+			become("retrieving dataset status info", waitingForDatasetStatusInfo());
 		}
 	}
 
@@ -135,7 +160,8 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 			}
 		}
 		
-		requestDataSource();		
+		jobContext.tell(new UpdateJobState(JobState.STARTED), getSelf());
+		become("storing started job state", waitingForJobStartedStored());		
 	}
 	
 	private void prepareJob() throws Exception {		
@@ -233,41 +259,6 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					unhandled(msg);
 				}
 			}			
-		};
-	}
-
-	private void requestDataSource() {
-		final String dataSourceId = importJob.getDataSourceId();		
-		
-		log.debug("fetching dataSource from loader: " + dataSourceId);			
-		getContext().parent().tell(new GetDataSource(dataSourceId), getSelf());
-		become("fetching dataSource from loader", waitingForDataSource());		
-	}
-	
-	private Procedure<Object> waitingForDataSource() {
-		log.debug("waiting for harvester");
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception { 
-				if(msg instanceof NotConnected) {					
-					log.warning("not connected: " + importJob.getDataSourceId());
-					
-					acknowledgeJobAndStop();
-				} else if(msg instanceof Busy) {
-					log.debug("busy: " + importJob.getDataSourceId());
-					
-					acknowledgeJobAndStop();
-				} else if(msg instanceof ActorRef) {
-					log.debug("dataSource received");
-					
-					dataSource = (ActorRef)msg;
-					jobContext.tell(new UpdateJobState(JobState.STARTED), getSelf());
-					become("storing started job state", waitingForJobStartedStored());
-				}
-			}
-			
 		};
 	}
 	
@@ -379,7 +370,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 					transaction = ((TransactionCreated) msg).getActor();
 					
 					CreateTable ct = new CreateTable(
-							importJob.getCategoryId(),
+							"staging_data",
 							importJob.getDatasetId(),  
 							importJob.getColumns());
 					
@@ -450,7 +441,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	}
 	
 	private void startTransaction() {
-		geometryDatabase.tell(new StartTransaction(), getSelf());
+		database.tell(new StartTransaction(), getSelf());
 		become("starting transaction", waitingForTransactionCreated());
 	}
 	

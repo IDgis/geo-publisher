@@ -11,7 +11,6 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -35,7 +34,7 @@ public class Loader extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef geometryDatabase, database, harvester;
+	private final ActorRef database, harvester;
 	
 	private Map<ImportJobInfo, ActorRef> sessions;
 	
@@ -43,14 +42,13 @@ public class Loader extends UntypedActor {
 	
 	private Map<String, Integer> busyDataSources;
 
-	public Loader(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
-		this.geometryDatabase = geometryDatabase;
+	public Loader(ActorRef database, ActorRef harvester) {		
 		this.database = database;
 		this.harvester = harvester;
 	}
 	
-	public static Props props(ActorRef geometryDatabase, ActorRef database, ActorRef harvester) {
-		return Props.create(Loader.class, geometryDatabase, database, harvester);
+	public static Props props(ActorRef database, ActorRef harvester) {
+		return Props.create(Loader.class, database, harvester);
 	}
 	
 	@Override
@@ -151,8 +149,7 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleSessionStarted(SessionStarted msg) {
-		log.debug("data import session started: " + msg);
-		
+		log.debug("data import session started: " + msg);		
 		
 		ImportJobInfo job = msg.getImportJob();
 
@@ -175,10 +172,10 @@ public class Loader extends UntypedActor {
 		log.debug("data import requested: " + importJob);
 		
 		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, getSender(), geometryDatabase),
+				LoaderSessionInitiator.props(importJob, getSender(), database),
 				nameGenerator.getName(LoaderSessionInitiator.class));
 		
-		database.tell(new GetDatasetStatus(importJob.getDatasetId()), initiator);
+		getSelf().tell(new GetDataSource(importJob.getDataSourceId()), initiator);
 	}
 	
 	private void handleRemoveJob(final RemoveJobInfo removeJob) {

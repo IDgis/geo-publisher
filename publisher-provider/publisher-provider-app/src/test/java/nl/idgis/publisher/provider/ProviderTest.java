@@ -16,6 +16,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
@@ -88,7 +92,11 @@ public class ProviderTest {
 	
 	@Before
 	public void actorSystem() {
-		ActorSystem actorSystem = ActorSystem.create("test");
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
 		provider = actorSystem.actorOf(Provider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
@@ -119,11 +127,11 @@ public class ProviderTest {
 		
 		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
 			for(final String tableName : tableNames) {				
-				assertHasNext()
+				assertHasNext("database interaction for: " + tableName)
 				.assertNext(DescribeTable.class, describeTable -> {
 					assertEquals(tableName, describeTable.getTableName());						
 				})
-				.assertHasNext()
+				.assertHasNext("database interaction for: " + tableName)
 				.assertNext(PerformCount.class, performCount -> {
 					assertEquals(tableName, performCount.getTableName());
 				});
@@ -156,6 +164,34 @@ public class ProviderTest {
 		@Override
 		public <T> DatabaseRecording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
 			recording.assertNext(clazz, procedure);
+			
+			return this;
+		}
+
+		@Override
+		public Recording assertHasNext(String message) {
+			recording.assertHasNext(message);
+			
+			return this;
+		}
+
+		@Override
+		public Recording assertNotHasNext(String message) {
+			recording.assertNotHasNext(message);
+			
+			return this;
+		}
+
+		@Override
+		public <T> Recording assertNext(String message, Class<T> clazz) throws Exception {
+			recording.assertNext(message, clazz);
+			
+			return this;
+		}
+
+		@Override
+		public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
+			recording.assertNext(message, clazz, procedure);
 			
 			return this;
 		}		
@@ -196,7 +232,7 @@ public class ProviderTest {
 		replayRecording()
 			.assertHasNext()
 			.assertNext(GetAllMetadata.class)				
-			.assertDatabaseInteraction(firstTableName)
+			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
 		
 		sync.ask(database, new PutTable(firstTableName, tableInfo, tableContent), Ack.class);
@@ -213,7 +249,7 @@ public class ProviderTest {
 		replayRecording()
 			.assertHasNext()
 			.assertNext(GetAllMetadata.class)			
-			.assertDatabaseInteraction(firstTableName)
+			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
 		
 		metadataDocument.setAlternateTitle("Test_schema.Test_table");
