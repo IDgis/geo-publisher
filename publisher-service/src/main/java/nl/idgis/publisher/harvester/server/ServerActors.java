@@ -5,7 +5,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.harvester.sources.ProviderClient;
+import nl.idgis.publisher.harvester.sources.ProviderConnectionClient;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
 
 public class ServerActors extends MessageProtocolActors {
@@ -28,6 +28,6 @@ public class ServerActors extends MessageProtocolActors {
 	protected void createActors(ActorRef messagePackagerProvider) {
 		log.debug("creating server actors");
 		
-		getContext().actorOf(ProviderClient.props(harvesterName, harvester), "harvester");				
+		getContext().actorOf(ProviderConnectionClient.props(harvesterName, harvester), "harvester");				
 	}
 }
