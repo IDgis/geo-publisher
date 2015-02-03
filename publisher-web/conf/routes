@@ -43,6 +43,7 @@ GET 	/services/-/create								controllers.Services.createForm()
 GET		/layers											controllers.Layers.list()
 GET 	/layers/-/create								controllers.Layers.createForm()
 
+
 GET		/groups											controllers.Groups.list()
 GET 	/groups/-/create								controllers.Groups.createForm()
 
@@ -56,6 +57,7 @@ GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
 
 GET		/tiledlayers									controllers.Tiledlayers.list()
+GET 	/tiledlayers/-/create							controllers.Tiledlayers.createForm()
 
 # Logging
 GET		/logging/messages								controllers.Logging.messages()
