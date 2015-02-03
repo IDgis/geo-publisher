@@ -76,9 +76,11 @@ public class ClientActors extends MessageProtocolActors {
 	
 	protected void createActors(ActorRef messagePackagerProvider) {
 		log.debug("creating client actors");
+		
+		getContext().actorOf(Admin.props(), "admin");
 
 		ActorRef self = getSelf();
-		f.ask(messagePackagerProvider, new GetMessagePackager("harvester"), ActorRef.class).thenAccept(harvester -> {
+		f.ask(messagePackagerProvider, new GetMessagePackager("harvester", true), ActorRef.class).thenAccept(harvester -> {
 			self.tell(new CreateProviders(harvester), self);
 		});
 	}
