@@ -1,6 +1,7 @@
 package nl.idgis.publisher.provider;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
@@ -52,7 +53,7 @@ public class VectorDatasetFetcher extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.create(15, TimeUnit.SECONDS));
 	}
 	
-	public Procedure<Object> waitingForAck() {
+	private Procedure<Object> waitingForAck() {
 		return new Procedure<Object>() {
 
 			@Override
@@ -64,10 +65,12 @@ public class VectorDatasetFetcher extends UntypedActor {
 				} else if(msg instanceof Failure) {
 					log.error("failed to commit: {}", msg);
 					
+					sender.tell(msg, getSelf());
 					getContext().stop(getSelf());
 				} else if(msg instanceof ReceiveTimeout) {
-					log.error("timout while waiting for commit to complete");
+					log.error("timout while committing");
 					
+					sender.tell(new Failure(new TimeoutException("while commiting")), getSelf());
 					getContext().stop(getSelf());
 				} else {
 					unhandled(msg);
@@ -77,12 +80,17 @@ public class VectorDatasetFetcher extends UntypedActor {
 		};
 	}
 	
-	public Procedure<Object> fetchingData(ActorRef transaction) {
+	private Procedure<Object> fetchingData(ActorRef transaction) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof TableNotFound) {
+				if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while fetching data");
+					
+					sender.tell(new Failure(new TimeoutException("while fetching data")), getSelf());
+					getContext().stop(getSelf());
+				} else if(msg instanceof TableNotFound) {
 					log.debug("table not found");
 					
 					sender.tell(new DatasetNotAvailable(request.getIdentification()), getSelf());
@@ -91,7 +99,16 @@ public class VectorDatasetFetcher extends UntypedActor {
 					log.debug("records");
 					
 					sender.tell(msg, getSender());					
+					
+					// we assume that the the database is still
+					// producing records as long as the cursor actor
+					// is still alive.
 					getContext().watch(getSender());
+					
+					// disable the receive timeout as we don't get to see
+					// additional records objects as these are send directly
+					// to the consumer. 
+					getContext().setReceiveTimeout(Duration.Inf());  
 				} else if(msg instanceof Terminated) {
 					log.debug("cursor terminated");
 					
@@ -104,14 +121,15 @@ public class VectorDatasetFetcher extends UntypedActor {
 		};
 	}
 	
-	public Procedure<Object> startingTransaction(String tableName) {
+	private Procedure<Object> startingTransaction(String tableName) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof ReceiveTimeout) {
-					log.error("timeout");
+					log.error("timeout while starting transaction");
 					
+					sender.tell(new Failure(new TimeoutException("while starting transaction")), getSelf());
 					getContext().stop(getSelf());
 				} else if(msg instanceof Failure) {
 					log.error("database failure: {}", msg);
@@ -135,8 +153,9 @@ public class VectorDatasetFetcher extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
-			log.error("timeout");
+			log.error("timeout while collecting information");
 			
+			sender.tell(new Failure(new TimeoutException("collecting information")), getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof MetadataNotFound) {
 			log.debug("metadata not found");
