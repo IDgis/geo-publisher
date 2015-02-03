@@ -1,10 +1,10 @@
-package nl.idgis.publisher.monitor.messages;
+package nl.idgis.publisher.tree;
 
 import java.io.Serializable;
 
 public class ParentNode extends ValueNode implements Serializable {
-	
-	private static final long serialVersionUID = 8750215094197383822L;
+
+	private static final long serialVersionUID = 8815083348398329740L;
 	
 	private final Node[] children;
 	

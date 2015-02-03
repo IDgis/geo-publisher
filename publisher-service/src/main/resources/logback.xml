@@ -41,7 +41,7 @@
   -->
   
   <!--
-  	<logger name="nl.idgis.publisher.harvester.sources.ProviderClient" level="debug"/>
+  	<logger name="nl.idgis.publisher.harvester.sources.ProviderConnectionClient" level="debug"/>
    -->
   
   <!-- 

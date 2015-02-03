@@ -1,10 +1,10 @@
-package nl.idgis.publisher.monitor.messages;
+package nl.idgis.publisher.tree;
 
 import java.io.Serializable;
 
-public class ValueNode extends Node implements Serializable {
-		
-	private static final long serialVersionUID = -8986247890293001497L;
+public class ValueNode extends Node implements Serializable {			
+
+	private static final long serialVersionUID = 2267637445750981082L;
 	
 	protected final Object value;
 

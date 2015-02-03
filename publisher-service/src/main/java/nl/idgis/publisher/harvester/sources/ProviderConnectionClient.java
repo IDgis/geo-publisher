@@ -8,8 +8,11 @@ import akka.event.LoggingAdapter;
 import akka.io.Tcp.ConnectionClosed;
 
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.protocol.messages.SetPersistent;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class ProviderConnectionClient extends UntypedActor {
 	
@@ -17,17 +20,25 @@ public class ProviderConnectionClient extends UntypedActor {
 	
 	private final String harvesterName;
 	
-	private final ActorRef harvester;
+	private final ActorRef harvester, admin;
+	
+	private FutureUtils f;
 			
-	public ProviderConnectionClient(String harvesterName, ActorRef harvester) {
+	public ProviderConnectionClient(String harvesterName, ActorRef harvester, ActorRef admin) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
+		this.admin = admin;
 	}
 	
-	public static Props props(String harvesterName, ActorRef harvester) {
-		return Props.create(ProviderConnectionClient.class, harvesterName, harvester);
+	public static Props props(String harvesterName, ActorRef harvester, ActorRef admin) {
+		return Props.create(ProviderConnectionClient.class, harvesterName, harvester, admin);
 	}
-
+	
+	@Override
+	public void preStart() throws Exception {
+		f = new FutureUtils(getContext().dispatcher());
+	}
+	
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Hello) {
@@ -47,12 +58,17 @@ public class ProviderConnectionClient extends UntypedActor {
 	private void handleHello(Hello msg) {
 		log.debug(msg.toString());
 		
-		ActorRef provider = getSender();
+		ActorRef sender = getSender(), self = getSelf();		
+		sender.tell(new SetPersistent(), getSelf()); // prevent message packager termination
 		
-		provider.tell(new SetPersistent(), getSelf()); // prevent message packager termination
-		provider.tell(new Hello(harvesterName), getSelf());
-		
-		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(provider), msg.getName());		
-		harvester.tell(new DataSourceConnected(msg.getName()), dataSource);
+		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(sender), "data-source-" + msg.getName());
+		f.ask(harvester, new DataSourceConnected(msg.getName(), dataSource), Ack.class).whenComplete((ack, t) -> {
+			if(t != null) {
+				log.error("failed to register data source: {}", t);				
+				sender.tell(new Failure(t), self);
+			} else {
+				sender.tell(new Hello(harvesterName), self);
+			}
+		});
 	}
 }

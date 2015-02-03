@@ -14,15 +14,50 @@ import scala.concurrent.duration.Duration;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorInitializationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
+import akka.actor.SupervisorStrategy.Directive;
+import akka.actor.SupervisorStrategyConfigurator;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 
 public class Boot {
+	
+	/**
+	 * Provides a SupervisorStrategy that doesn't stop on ActorKilledException
+	 * 
+	 * @author copierrj
+	 *
+	 */
+	public static class RestartSupervisorStrategy implements SupervisorStrategyConfigurator {
+		
+		private final static SupervisorStrategy supervisorStrategy = new OneForOneStrategy(-1, Duration.Inf(), new Function<Throwable, Directive>() {
+
+			@Override
+			public Directive apply(Throwable t) throws Exception {		
+				if(t instanceof ActorInitializationException) {
+					return OneForOneStrategy.stop();
+				} else if(t instanceof Exception) {
+					return OneForOneStrategy.restart();
+				}
+				
+				return OneForOneStrategy.escalate();
+			}
+		});		
+
+		@Override
+		public SupervisorStrategy create() {
+			return supervisorStrategy;
+		}
+		
+	}
 	
 	public static class Terminator extends UntypedActor {
 		
@@ -49,7 +84,7 @@ public class Boot {
 		@Override
 		public void onReceive(Object msg) throws Exception {			
 			if(msg instanceof Terminated) {
-				log.debug("terminating actor system");
+				log.info("terminating actor system");
 				getContext().system().shutdown();
 			} else {
 				unhandled(msg);

@@ -163,11 +163,15 @@ public class Harvester extends UntypedActor {
 	}
 
 	private void handleDataSourceConnected(DataSourceConnected msg) {
-		String dataSourceId = msg.getDataSourceId();
-		log.debug("DataSource connected: " + dataSourceId);
+		log.debug("dataSource connected: {}", msg);
 		
-		getContext().watch(getSender());
-		dataSources.put(dataSourceId, getSender());
+		String dataSourceId = msg.getDataSourceId();
+		ActorRef dataSource = msg.getDataSource();
+		
+		getContext().watch(dataSource);
+		dataSources.put(dataSourceId, dataSource);
+		
+		getSender().tell(new Ack(), getSelf());
 	}	
 
 	private void startHarvesting(final HarvestJobInfo harvestJob) {

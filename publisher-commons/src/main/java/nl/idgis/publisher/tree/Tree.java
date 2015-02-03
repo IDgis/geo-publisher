@@ -1,10 +1,10 @@
-package nl.idgis.publisher.monitor.messages;
+package nl.idgis.publisher.tree;
 
 import java.io.Serializable;
 
-public class Tree implements Serializable {
-	
-	private static final long serialVersionUID = -1399058412949973059L;
+public class Tree implements Serializable {		
+
+	private static final long serialVersionUID = -1915026461703049312L;
 	
 	private final String name;
 	private final Node[] children;
