@@ -40,7 +40,7 @@ GET		/services										controllers.Services.list()
 
 
 GET		/layers											controllers.Layers.list()
-
+GET 	/layers/-/create								controllers.Layers.createForm()
 
 GET		/groups											controllers.Groups.list()
 

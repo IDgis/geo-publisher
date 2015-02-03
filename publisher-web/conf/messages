@@ -90,6 +90,8 @@ web.application.button.ok=Ok
 web.application.button.validate=Valideren
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
+web.application.button.preview=Preview
+web.application.button.tilingproperties=Tiling eigenschappen
 web.application.button.add=Toevoegen
 
 # Application
@@ -271,6 +273,14 @@ web.application.page.services.list.empty=Er zijn geen services gevonden die vold
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
 
+web.application.page.layers.form.field.dataset.label=Dataset
+web.application.page.layers.form.field.name.label=Naam
+web.application.page.layers.form.field.title.label=Titel
+web.application.page.layers.form.field.summary.label=Samenvatting
+web.application.page.layers.form.field.keywords.label=Trefwoorden
+web.application.page.layers.form.field.publicate.label=Publiceren
+web.application.page.layers.form.field.groups.label=Zit in de groep(en)
+web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 
 # Groups
 web.application.page.groups.list.header=Groepen

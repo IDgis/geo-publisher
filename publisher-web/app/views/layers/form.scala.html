@@ -1,74 +1,59 @@
-@(styleForm: Form[controllers.Styles.StyleForm], createStyle:Boolean)
-
 @import nl.idgis.publisher.domain.web._ 
-
-@styleId = @{styleForm("id").value()}
-
-@layout.application( title="Stijl toevoegen: "+ styleForm("name") ){
+@layout.application( title="Laag toevoegen: "+ "naam" ){
 
 <div class="page-content">
-	<h1 class="page-header">@if(createStyle){Nieuwe stijl}else{Bewerk stijl: @styleForm("name").value}</h1>
+	<h1 class="page-header">Nieuwe laag</h1>
 	
 	<div class="row">
 		<div class="col-lg-12">
-			<div style="margin:20px 0px">
-				<h1 class="page-header">Gemeentelijke bossen</h1>
-			</div>
-			
-			<form class="form-horizontal" method="get" action="Lagen.html">
+			<form class="form-horizontal" method="get" action="@routes.Layers.list()">
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Dataset</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
 					<div class="col-sm-8">
-						<input class="form-control" value="Gemeentelijke bossen" readonly>
+						<input class="form-control" readonly>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Naam</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.name.label")</label>
 					<div class="col-sm-8">
-						<input class="form-control" value="Gemeentelijke bossen" readonly>
+						<input class="form-control" readonly>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Titel</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.title.label")</label>
 					<div class="col-sm-8">
-						<input class="form-control" value="Gemeentelijke bossen">
+						<input class="form-control">
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Samenvatting</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.summary.label")</label>
 					<div class="col-sm-8">
-						<textarea class="form-control" rows="4">Een weergave van de bossen onder gemeentelijk beheer.</textarea>
+						<textarea class="form-control" rows="4"></textarea>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Trefwoorden</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.keywords.label")</label>
 					<div class="col-sm-8">
-						<textarea class="form-control" rows="4">Bos</textarea>
+						<textarea class="form-control" rows="4"></textarea>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Publiceren</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.publicate.label")</label>
 					<div class="col-sm-1">
-						<input type="checkbox" checked>
+						<input type="checkbox">
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">Zit in de groep(en)</label>
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.groups.label")</label>
 					<div class="col-sm-8">
-						<span>Bos</span>
+						<span></span>
 					</div>
 				</div>
 				<div id="stijlen">
 					<div class="form-group">
-						<label class="col-sm-2 control-label">Gebruikt de stijl(en)</label>
+						<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 						<div class="col-sm-4">
-							<!-- <span>Groen, Bos</span>  -->
 							<select class="form-control">
-								<option>Groen</option>
-								<option selected>Bos</option>
-								<option>Blauw</option>
-								<option>Water</option>
-								<option>Natuur</option>
 							</select>
 						</div>
 						<div class="col-sm-1">
@@ -79,16 +64,39 @@
 					</div>
 				</div>
 				<div class="form-group">
-						<div class="col-sm-offset-2 col-sm-10">
-							<button class="btn btn-success" type="submit">Opslaan</button>
-							<button class="btn btn-success" type="submit">Annuleren</button>
-							<button class="btn btn-success" type="button" onclick="preview()">Preview</button>
-							<button class="btn btn-success" type="button" onclick="tiledGBos()">Tiling eigenschappen</button>
-						</div>
+					<div class="col-sm-offset-2 col-sm-10">
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.cancel")</button>
+						<button class="btn btn-success" type="button">@Domain.message("web.application.button.preview")</button>
+						<button class="btn btn-success" type="button">@Domain.message("web.application.button.tilingproperties")</button>
+					</div>
 				</div>
-				
 			</form>
 		</div>
 	</div>
 </div>
 }
+
+<script>
+function extra(e) {
+	var node = e.currentTarget;
+	var pnode = node.parentNode;
+	var ppnode = pnode.parentNode;
+	var pppnode = ppnode.parentNode;
+	
+	var cln = ppnode.cloneNode(true);
+	
+	var a = cln.childNodes;
+	var b = a[5].childNodes;
+	var c = b[1].childNodes;
+	
+	var d = b[1].parentNode;
+	var e = d.parentNode;
+	
+	c[1].className = "glyphicon glyphicon-minus";
+	b[1].onclick = function() {pppnode.removeChild(e) }
+	
+	var lijst = document.getElementById("stijlen");
+	lijst.insertBefore(cln, stijlen[1]);
+}
+</script>
