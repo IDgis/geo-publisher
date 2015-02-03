@@ -95,7 +95,15 @@ public class MessagePackagerProvider extends UntypedActor {
 				log.warning("no packager for target");
 			}
 			
-			getSender().tell(new Ack(), getSelf());
+			ActorRef sender = getSender();
+			if(messagePackagers.containsValue(sender)) {
+				log.debug("stop packager request send by a packager -> not acknowledging");
+			} else {
+				log.debug("acknowledge stop packager request");
+				
+				sender.tell(new Ack(), getSelf());
+			}
+			
 		} else if(msg instanceof SetPersistent) {
 			log.debug("set persistent");
 			
