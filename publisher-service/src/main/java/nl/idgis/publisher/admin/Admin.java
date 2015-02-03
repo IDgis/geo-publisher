@@ -982,6 +982,11 @@ public class Admin extends UntypedActor {
 								
 								log.debug("dataset info received");
 								
+								long pageCount = datasetCount / ITEMS_PER_PAGE;
+								if(datasetCount % ITEMS_PER_PAGE > 0) {
+									pageCount++;
+								}
+								
 								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
 								final ObjectMapper objectMapper = new ObjectMapper ();
 								
@@ -995,7 +1000,11 @@ public class Admin extends UntypedActor {
 								
 								log.debug("sending dataset page");
 								
-								return pageBuilder.build ();
+								return pageBuilder
+									.setHasMorePages(true)
+									.setCurrentPage(page)
+									.setPageCount(pageCount)
+									.build ();
 							});
 				});
 		}).whenComplete((msg, t) -> {
