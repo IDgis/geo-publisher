@@ -1,0 +1,64 @@
+@import nl.idgis.publisher.domain.web._ 
+@layout.application( title="Laag toevoegen: "+ "naam" ){
+
+<div class="page-content">
+	<h1 class="page-header">Nieuwe groep</h1>
+	
+	<div class="row">
+		<div class="col-lg-12">
+			<form class="form-horizontal" method="get" action="@routes.Groups.list()">
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.name.label")</label>
+					<div class="col-sm-8">
+						<input class="form-control" readonly>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.title.label")</label>
+					<div class="col-sm-8">
+						<input class="form-control">
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.summary.label")</label>
+					<div class="col-sm-8">
+						<textarea class="form-control" rows="4"></textarea>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.publicate.label")</label>
+					<div class="col-sm-1">
+						<input type="checkbox">
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
+					<div class="col-sm-8" id="groepstructuur">
+						<button class="btn btn-default btn-sm" type="button">
+			    			<span>@Domain.message("web.application.page.groups.form.field.addlayer.label")</span>
+			    		</button>
+			    		<button class="btn btn-default btn-sm" type="button">
+			    			<span>@Domain.message("web.application.page.groups.form.field.addgroup.label")</span>
+			    		</button>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.services.label")</label>
+					<div class="col-sm-8">
+					</div>
+				</div>
+											
+				<div class="form-group">
+					<div class="col-sm-offset-2 col-sm-10">
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.cancel")</button>
+						<button class="btn btn-success" type="button">@Domain.message("web.application.button.preview")</button>
+						<button class="btn btn-success" type="button">@Domain.message("web.application.button.tilingproperties")</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+}

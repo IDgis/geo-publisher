@@ -286,6 +286,16 @@ web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 web.application.page.groups.list.header=Groepen
 web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.
 
+web.application.page.groups.form.field.name.label=Naam
+web.application.page.groups.form.field.title.label=Titel
+web.application.page.groups.form.field.summary.label=Samenvatting
+web.application.page.groups.form.field.publicate.label=Publiceren
+web.application.page.groups.form.field.structure.label=Structuur
+web.application.page.groups.form.field.addlayer.label=Toevoegen laag
+web.application.page.groups.form.field.addgroup.label=Toevoegen groep
+web.application.page.groups.form.field.services.label=Zit in de service(s)
+
+
 
 # Styles
 web.application.page.styles.list.header=Stijlen
