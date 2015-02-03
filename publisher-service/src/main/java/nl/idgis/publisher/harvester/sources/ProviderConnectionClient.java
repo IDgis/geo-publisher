@@ -17,17 +17,23 @@ public class ProviderConnectionClient extends UntypedActor {
 	
 	private final String harvesterName;
 	
-	private final ActorRef harvester;
+	private final ActorRef harvester, admin;
 			
-	public ProviderConnectionClient(String harvesterName, ActorRef harvester) {
+	public ProviderConnectionClient(String harvesterName, ActorRef harvester, ActorRef admin) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
+		this.admin = admin;
 	}
 	
-	public static Props props(String harvesterName, ActorRef harvester) {
-		return Props.create(ProviderConnectionClient.class, harvesterName, harvester);
+	public static Props props(String harvesterName, ActorRef harvester, ActorRef admin) {
+		return Props.create(ProviderConnectionClient.class, harvesterName, harvester, admin);
 	}
-
+	
+	@Override
+	public void preStart() throws Exception {
+		getContext().actorOf(ProviderAdminClient.props(admin), "admin");
+	}
+	
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof Hello) {
@@ -52,7 +58,7 @@ public class ProviderConnectionClient extends UntypedActor {
 		provider.tell(new SetPersistent(), getSelf()); // prevent message packager termination
 		provider.tell(new Hello(harvesterName), getSelf());
 		
-		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(provider), msg.getName());		
+		ActorRef dataSource = getContext().actorOf(ProviderDataSource.props(provider), "data-source-" + msg.getName());		
 		harvester.tell(new DataSourceConnected(msg.getName()), dataSource);
 	}
 }

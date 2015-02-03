@@ -64,7 +64,7 @@ public class ClientActors extends MessageProtocolActors {
 		log.debug("creating providers");
 		
 		for(Config instance : config.getConfigList("instances")) {
-			final String instanceName = instance.getString("name");					
+			final String instanceName = "provider-" + instance.getString("name");
 			
 			final Props database = Database.props(instance.getConfig("database"), instanceName);
 			final Props metadata = Metadata.props(new File(instance.getString("metadata.folder")));					
