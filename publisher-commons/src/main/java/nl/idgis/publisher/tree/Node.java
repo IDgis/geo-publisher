@@ -1,7 +1,11 @@
 package nl.idgis.publisher.tree;
 
-public abstract class Node {
+import java.io.Serializable;
 
+public abstract class Node implements Serializable {
+
+	private static final long serialVersionUID = -6477411997768999518L;
+	
 	protected final String name;
 	
 	Node(String name) {
