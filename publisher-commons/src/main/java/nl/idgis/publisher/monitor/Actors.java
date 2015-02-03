@@ -10,10 +10,11 @@ import java.util.Set;
 
 import nl.idgis.publisher.monitor.messages.GetResources;
 import nl.idgis.publisher.monitor.messages.GetTree;
-import nl.idgis.publisher.monitor.messages.Node;
-import nl.idgis.publisher.monitor.messages.ParentNode;
-import nl.idgis.publisher.monitor.messages.Tree;
-import nl.idgis.publisher.monitor.messages.ValueNode;
+import nl.idgis.publisher.tree.Node;
+import nl.idgis.publisher.tree.ParentNode;
+import nl.idgis.publisher.tree.Tree;
+import nl.idgis.publisher.tree.ValueNode;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

@@ -7,12 +7,12 @@ import com.typesafe.config.Config;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.monitor.messages.Tree;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.messages.ConnectFailed;
 import nl.idgis.publisher.provider.messages.ConnectionClosed;
 import nl.idgis.publisher.provider.messages.Connect;
 import nl.idgis.publisher.provider.messages.Stop;
+import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 
 import akka.actor.ActorRef;
