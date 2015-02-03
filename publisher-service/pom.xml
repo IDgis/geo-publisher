@@ -86,6 +86,10 @@
 		  <groupId>ch.qos.logback</groupId>
 		  <artifactId>logback-classic</artifactId>		  
 		</dependency>
+		<dependency>
+		  <groupId>com.ning</groupId>
+		  <artifactId>async-http-client</artifactId>		  
+		</dependency>
 	</dependencies>
 
 	<build>
