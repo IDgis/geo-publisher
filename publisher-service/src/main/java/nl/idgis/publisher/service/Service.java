@@ -17,20 +17,20 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.service.rest.ServiceRest;
+import nl.idgis.publisher.service.rest.GeoServerRest;
 
 public class Service extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ServiceRest rest;
+	private final GeoServerRest rest;
 	
 	private final Map<String, String> connectionParameters;
 
 	public Service(String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
 		this.connectionParameters = Collections.unmodifiableMap(connectionParameters);
 		
-		rest = new ServiceRest(serviceLocation, user, password);
+		rest = new GeoServerRest(serviceLocation, user, password);
 	}
 	
 	public static Props props(Config geoserverConfig, Config geometryDatabaseConfig) {
@@ -66,6 +66,15 @@ public class Service extends AbstractStateMachine<String> {
 			handleGetActiveJobs();
 		} else {
 			unhandled(msg);
+		}
+	}
+	
+	@Override
+	public void postStop() {
+		try {
+			rest.close();
+		} catch(Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 	

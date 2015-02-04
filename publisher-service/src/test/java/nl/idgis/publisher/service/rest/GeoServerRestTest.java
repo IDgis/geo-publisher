@@ -7,12 +7,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.service.TestServers;
 import nl.idgis.publisher.service.rest.Attribute;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
-import nl.idgis.publisher.service.rest.ServiceRest;
+import nl.idgis.publisher.service.rest.GeoServerRest;
 import nl.idgis.publisher.service.rest.Workspace;
 
 import org.h2.server.pg.PgServer;
@@ -20,7 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ServiceRestTest {
+public class GeoServerRestTest {
 	
 	TestServers testServers;
 	
@@ -36,17 +37,17 @@ public class ServiceRestTest {
 	}
 
 	@Test
-	public void testRest() throws Exception {
+	public void doTest() throws Exception {
 		
-		final ServiceRest service = new ServiceRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		GeoServerRest service = new GeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
 		
-		List<Workspace> workspaces = service.getWorkspaces();
+		List<Workspace> workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
 		assertTrue(workspaces.isEmpty());
 		
-		assertTrue(service.addWorkspace(new Workspace("testWorkspace")));
+		assertTrue(service.addWorkspace(new Workspace("testWorkspace")).get());
 		
-		workspaces = service.getWorkspaces();
+		workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
 		assertEquals(1, workspaces.size());
 		
@@ -54,7 +55,7 @@ public class ServiceRestTest {
 		assertNotNull(workspace);
 		assertEquals("testWorkspace", workspace.getName());
 		
-		List<DataStore> dataStores = service.getDataStores(workspace);
+		List<CompletableFuture<DataStore>> dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
 		assertTrue(dataStores.isEmpty());
 		
@@ -66,13 +67,13 @@ public class ServiceRestTest {
 		connectionParameters.put("passwd", "postgres");
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("schema", "public");
-		assertTrue(service.addDataStore(workspace, new DataStore("testDataStore", connectionParameters)));
+		assertTrue(service.addDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get());
 		
-		dataStores = service.getDataStores(workspace);
+		dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
 		assertEquals(1, dataStores.size());
 		
-		DataStore dataStore = dataStores.get(0);
+		DataStore dataStore = dataStores.get(0).get();
 		assertNotNull(dataStore);
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
@@ -83,17 +84,17 @@ public class ServiceRestTest {
 		assertEquals("postgis", connectionParameters.get("dbtype"));
 		assertEquals("public", connectionParameters.get("schema"));
 		
-		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore);
+		List<CompletableFuture<FeatureType>> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		assertTrue(service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")));
+		assertTrue(service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")).get());
 		
-		featureTypes = service.getFeatureTypes(workspace, dataStore);
+		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
 		assertEquals(1, featureTypes.size());
 		
-		FeatureType featureType = featureTypes.get(0);
+		FeatureType featureType = featureTypes.get(0).get();
 		assertNotNull(featureType);
 		
 		assertEquals("test", featureType.getName());
@@ -110,5 +111,7 @@ public class ServiceRestTest {
 		attribute = attributes.get(1);
 		assertNotNull(attribute);
 		assertEquals("test", attribute.getName());
+		
+		service.close();
 	}
 }
