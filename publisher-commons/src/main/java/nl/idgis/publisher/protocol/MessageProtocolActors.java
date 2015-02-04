@@ -15,14 +15,19 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class MessageProtocolActors extends UntypedActor {
 	
-	private static class CreateActors implements Serializable {
-	
-		private static final long serialVersionUID = -5194402567506379192L;
+	private static class CreateActors implements Serializable {			
 		
-		private final ActorRef messagePackagerProvider;
+		private static final long serialVersionUID = -8268253283325568062L;
 		
-		CreateActors(ActorRef messagePackagerProvider) {
+		private final ActorRef messageProtocolHandler, messagePackagerProvider;
+		
+		CreateActors(ActorRef messageProtocolHandler, ActorRef messagePackagerProvider) {
+			this.messageProtocolHandler = messageProtocolHandler;
 			this.messagePackagerProvider = messagePackagerProvider;
+		}
+		
+		ActorRef getMessageProtocolHandler() {
+			return messageProtocolHandler;
 		}
 		
 		ActorRef getMessagePackagerProvider() {
@@ -31,14 +36,15 @@ public abstract class MessageProtocolActors extends UntypedActor {
 
 		@Override
 		public String toString() {
-			return "CreateActors [messagePackagerProvider="
+			return "CreateActors [messageProtocolHandler="
+					+ messageProtocolHandler + ", messagePackagerProvider="
 					+ messagePackagerProvider + "]";
-		}
+		}		
 	}
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	protected abstract void createActors(ActorRef messagePackagerProvider);
+	protected abstract void createActors(ActorRef messageProtocolHandler, ActorRef messagePackagerProvider);
 	
 	protected void onReceiveElse(Object msg) {
 		unhandled(msg);
@@ -64,11 +70,13 @@ public abstract class MessageProtocolActors extends UntypedActor {
 					ActorRef messagePackagerProvider = registered.getMessagePackagerProvider();
 				
 					log.debug("registered");
-					self.tell(new CreateActors(messagePackagerProvider), self);
+					self.tell(new CreateActors(messageProtocolHandler, messagePackagerProvider), self);
 				}
 			});
 		} else if(msg instanceof CreateActors) {
-			createActors(((CreateActors)msg).getMessagePackagerProvider());
+			CreateActors createActors = (CreateActors)msg;
+			
+			createActors(createActors.getMessageProtocolHandler(), createActors.getMessagePackagerProvider());
 		} else {
 			onReceiveElse(msg);
 		}

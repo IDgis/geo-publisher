@@ -7,9 +7,12 @@ import scala.concurrent.duration.Duration;
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.protocol.messages.Close;
+import nl.idgis.publisher.protocol.messages.GetTransferedTotal;
 import nl.idgis.publisher.protocol.messages.Message;
 import nl.idgis.publisher.protocol.messages.Register;
 import nl.idgis.publisher.protocol.messages.Registered;
+import nl.idgis.publisher.protocol.messages.TransferedTotal;
+
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -30,14 +33,20 @@ import akka.util.ByteString;
 public class MessageProtocolHandler extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
 	private final Serialization serialization = SerializationExtension.get(getContext().system());
 	
 	private final boolean isServer;
+	
 	private final Config sslConfig;
-	private final ActorRef connection, container;
+	
+	private final ActorRef connection, container;	
 	
 	private ByteString data = ByteString.empty();
+	
 	private ActorRef messageTarget, messagePackagerProvider, messageDispatcher;
+	
+	private long received = 0, sent = 0;
 	
 	public MessageProtocolHandler(boolean isServer, Config sslConfig, ActorRef connection, ActorRef container) {
 		this.isServer = isServer;
@@ -66,7 +75,11 @@ public class MessageProtocolHandler extends UntypedActor {
 	public void onReceive(final Object msg) throws Exception {
 		if(msg instanceof Received) {
 			ByteString newData = ((Received)msg).data();
-			log.debug("new data received: " + newData.size());
+			int newDataSize = newData.size();
+			
+			log.debug("new data received: {}", newDataSize);
+			
+			received += newDataSize;
 			
 			data = data.concat(newData);
 			
@@ -105,6 +118,8 @@ public class MessageProtocolHandler extends UntypedActor {
 		} else if(msg instanceof Message) {
 			final byte[] messageBytes = serialization.serialize(msg).get();
 			
+			sent += messageBytes.length;
+			
 			ByteBuffer buffer = ByteBuffer.allocate(messageBytes.length + 4);
 			buffer.putInt(messageBytes.length);
 			buffer.put(messageBytes);
@@ -123,6 +138,8 @@ public class MessageProtocolHandler extends UntypedActor {
 			messageDispatcher = getContext().actorOf(MessageDispatcher.props(messagePackagerProvider, container), "dispatcher");
 			
 			getSender().tell(new Registered(messagePackagerProvider), getSender());
+		} else if(msg instanceof GetTransferedTotal) {
+			getSender().tell(new TransferedTotal(received, sent), getSelf());
 		} else {
 			unhandled(msg);
 		}

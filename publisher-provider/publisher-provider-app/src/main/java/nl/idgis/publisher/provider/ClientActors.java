@@ -74,7 +74,7 @@ public class ClientActors extends MessageProtocolActors {
 		}
 	} 
 	
-	protected void createActors(ActorRef messagePackagerProvider) {
+	protected void createActors(ActorRef messageProtocolHandler, ActorRef messagePackagerProvider) {
 		log.debug("creating client actors");
 		
 		getContext().actorOf(Admin.props(), "admin");
