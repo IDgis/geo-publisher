@@ -47,6 +47,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QService.service;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -155,6 +156,15 @@ public abstract class AbstractDatabaseTest {
 			.set(dataSource.identification, dataSourceId)
 			.set(dataSource.name, "My Test DataSource")
 			.executeWithKey(dataSource.id);
+	}
+	
+	protected void insertService(String serviceId) throws Exception {
+		insert(service)
+			.columns(
+				service.identification)
+			.values(
+				serviceId)
+			.execute();
 	}
 	
 	protected int insertDataSource() {

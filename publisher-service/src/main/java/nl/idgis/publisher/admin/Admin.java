@@ -7,7 +7,6 @@ import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActi
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
-import static nl.idgis.publisher.database.QLastServiceJob.lastServiceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -128,6 +127,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.sql.types.Null;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Order;
 
 public class Admin extends UntypedActor {
@@ -572,20 +573,11 @@ public class Admin extends UntypedActor {
 								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
 								final Progress progress = (Progress)activeServiceJob.getProgress();
 								
-								activeTasks.add(getDatasetInfo(job.getTableName()).map(new Mapper<Object, ActiveTask>() {
-									
-									public ActiveTask apply(Object msg) {
-										DatasetInfo datasetInfo = (DatasetInfo)msg;
-										
-										return new ActiveTask(
-											"" + job.getId(),
-											datasetInfo.getName(),
-											new Message(JobType.SERVICE, new DefaultMessageProperties (
-													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
-											(int)(progress.getCount() * 100 / progress.getTotalCount()));
-									}
-									
-								}, getContext().dispatcher()));
+								activeTasks.add(Futures.successful(new ActiveTask(
+										"" + job.getId(), 
+										job.getServiceId(), 
+										new Message(JobType.SERVICE, null),
+										(int)(progress.getCount() * 100 / progress.getTotalCount()))));
 							}
 							
 							return Futures.sequence(activeTasks, getContext().dispatcher());
@@ -976,14 +968,14 @@ public class Admin extends UntypedActor {
 				t.get (category.name), 
 				t.get (dataset.filterConditions),
 				t.get (datasetStatus.imported),
-				t.get (datasetStatus.serviceCreated),
+				false,
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				t.get (lastServiceJob.finishTime),
-				t.get (lastServiceJob.finishState),
-				t.get (lastServiceJob.verified),
-				t.get (lastServiceJob.added),
+				null,
+				null,
+				null,
+				null,
 				notifications
 			);
 	}
@@ -1025,8 +1017,7 @@ public class Admin extends UntypedActor {
 								.notExists()))
 						.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
 						.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-						.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))
-						.leftJoin (lastServiceJob).on (dataset.id.eq (lastServiceJob.datasetId))
+						.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))						
 						.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
 							
 					if(categoryId != null) {
@@ -1047,14 +1038,14 @@ public class Admin extends UntypedActor {
 							category.name,
 							dataset.filterConditions,
 							datasetStatus.imported,
-							datasetStatus.serviceCreated,
+							Expressions.constant(false),
 							datasetStatus.sourceDatasetColumnsChanged,
 							lastImportJob.finishTime,
 							lastImportJob.finishState,
-							lastServiceJob.finishTime,
-							lastServiceJob.finishState,
-							lastServiceJob.verified,
-							lastServiceJob.added,
+							Null.CONSTANT,
+							Null.CONSTANT,
+							Null.CONSTANT,
+							Null.CONSTANT,
 							datasetActiveNotification.notificationId,
 							datasetActiveNotification.notificationType,
 							datasetActiveNotification.notificationResult,

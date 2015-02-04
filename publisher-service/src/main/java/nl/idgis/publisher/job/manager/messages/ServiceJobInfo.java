@@ -5,32 +5,26 @@ import com.mysema.query.annotations.QueryProjection;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobType;
 
-public class ServiceJobInfo extends JobInfo {
+public class ServiceJobInfo extends JobInfo {	
 
-	private static final long serialVersionUID = -2378569116461842009L;
+	private static final long serialVersionUID = 2177579863192957269L;
 	
-	private final String schemaName, tableName;
+	private final String serviceId;
 
 	@QueryProjection
-	public ServiceJobInfo(int id, String schemaName, String tableName) {
+	public ServiceJobInfo(int id, String serviceId) {
 		super(id, JobType.SERVICE);
 		
-		this.schemaName = schemaName;
-		this.tableName = tableName;
+		this.serviceId = serviceId;
 	}
 
-	public String getSchemaName() {
-		return schemaName;
-	}
-
-	public String getTableName() {
-		return tableName;
+	public String getServiceId() {
+		return serviceId;
 	}
 
 	@Override
 	public String toString() {
-		return "ServiceJobInfo [schemaName=" + schemaName + ", tableName="
-				+ tableName + ", id=" + id + "]";
+		return "ServiceJobInfo [serviceId=" + serviceId + "]";
 	}
 	
 }
