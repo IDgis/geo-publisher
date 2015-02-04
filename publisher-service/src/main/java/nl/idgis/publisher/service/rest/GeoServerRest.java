@@ -57,7 +57,7 @@ public class GeoServerRest implements Closeable {
 		asyncHttpClient = new AsyncHttpClient();
 	}	
 	
-	private CompletableFuture<Document> getDocument(String path) throws Exception {
+	private CompletableFuture<Document> getDocument(String path) {
 		CompletableFuture<Document> future = new CompletableFuture<>();
 		
 		asyncHttpClient.prepareGet(path + ".xml")
@@ -89,7 +89,7 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}	
 	
-	private CompletableFuture<Integer> sendDocument(String path, byte[] document) throws Exception {
+	private CompletableFuture<Integer> sendDocument(String path, byte[] document) {
 		CompletableFuture<Integer> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePost(path)
@@ -114,30 +114,43 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}
 	
-	public CompletableFuture<Boolean> addWorkspace(Workspace workspace) throws Exception {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	public CompletableFuture<Boolean> addWorkspace(Workspace workspace) {
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
 		
-		XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-		streamWriter.writeStartDocument();
-			streamWriter.writeStartElement("workspace");
-				streamWriter.writeStartElement("name");
-					streamWriter.writeCharacters(workspace.getName());
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			
+			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
+			streamWriter.writeStartDocument();
+				streamWriter.writeStartElement("workspace");
+					streamWriter.writeStartElement("name");
+						streamWriter.writeCharacters(workspace.getName());
+					streamWriter.writeEndElement();
 				streamWriter.writeEndElement();
-			streamWriter.writeEndElement();
-		streamWriter.writeEndDocument();
-		streamWriter.close();
+			streamWriter.writeEndDocument();
+			streamWriter.close();
+			
+			outputStream.close();
+			
+			sendDocument(getWorkspacesPath(), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
+				if(t != null) {
+					future.completeExceptionally(t);
+				} else {
+					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
+				}
+			});
+		} catch(Exception e) {
+			future.completeExceptionally(e);
+		}
 		
-		outputStream.close();
-		
-		return sendDocument(getWorkspacesPath(), outputStream.toByteArray()).thenApply(responseCode ->		
-			responseCode == HttpURLConnection.HTTP_CREATED);
+		return future;
 	}
 
 	private String getWorkspacesPath() {
 		return serviceLocation + "workspaces";
 	}	
 	
-	public CompletableFuture<List<Workspace>> getWorkspaces() throws Exception {
+	public CompletableFuture<List<Workspace>> getWorkspaces() {
 		CompletableFuture<List<Workspace>> future = new CompletableFuture<>();
 
 		getDocument(getWorkspacesPath()).whenComplete((document, t) -> {
@@ -163,7 +176,7 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}
 	
-	private CompletableFuture<DataStore> getDataStore(Workspace workspace, String dataStoreName) throws Exception {
+	private CompletableFuture<DataStore> getDataStore(Workspace workspace, String dataStoreName) {
 		CompletableFuture<DataStore> future = new CompletableFuture<>();
 		
 		getDocument(getDataStorePath(workspace, dataStoreName)).whenComplete((document, t) -> {
@@ -197,7 +210,7 @@ public class GeoServerRest implements Closeable {
 		return getDataStoresPath(workspace) + "/" + dataStoreName;
 	}
 
-	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) throws Exception {
+	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
 		
 		getDocument(getDataStoresPath(workspace)).whenComplete((document, t) -> {
@@ -223,29 +236,42 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}
 
-	public CompletableFuture<Boolean> addDataStore(Workspace workspace, DataStore dataStore) throws Exception {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	public CompletableFuture<Boolean> addDataStore(Workspace workspace, DataStore dataStore) {
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
 		
-		XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-		streamWriter.writeStartDocument();
-		streamWriter.writeStartElement("dataStore");
-			streamWriter.writeStartElement("name");
-				streamWriter.writeCharacters(dataStore.getName());
-			streamWriter.writeEndElement();
-			streamWriter.writeStartElement("connectionParameters");
-				for(Map.Entry<String, String> connectionParameter : dataStore.getConnectionParameters().entrySet()) {
-					streamWriter.writeStartElement(connectionParameter.getKey());
-					streamWriter.writeCharacters(connectionParameter.getValue());
-					streamWriter.writeEndElement();
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			
+			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
+			streamWriter.writeStartDocument();
+			streamWriter.writeStartElement("dataStore");
+				streamWriter.writeStartElement("name");
+					streamWriter.writeCharacters(dataStore.getName());
+				streamWriter.writeEndElement();
+				streamWriter.writeStartElement("connectionParameters");
+					for(Map.Entry<String, String> connectionParameter : dataStore.getConnectionParameters().entrySet()) {
+						streamWriter.writeStartElement(connectionParameter.getKey());
+						streamWriter.writeCharacters(connectionParameter.getValue());
+						streamWriter.writeEndElement();
+					}
+				streamWriter.writeEndElement();
+			streamWriter.writeEndDocument();
+			streamWriter.close();
+			
+			outputStream.close();
+			
+			sendDocument(getDataStoresPath(workspace), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
+				if(t != null) {
+					future.completeExceptionally(t);
+				} else {
+					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
 				}
-			streamWriter.writeEndElement();
-		streamWriter.writeEndDocument();
-		streamWriter.close();
+			});				
+		} catch(Exception e) {
+			future.completeExceptionally(e);
+		}
 		
-		outputStream.close();
-		
-		return sendDocument(getDataStoresPath(workspace), outputStream.toByteArray()).thenApply(responseCode ->
-			responseCode == HttpURLConnection.HTTP_CREATED);
+		return future;
 	}
 
 	private String getDataStoresPath(Workspace workspace) {
@@ -256,7 +282,7 @@ public class GeoServerRest implements Closeable {
 		return getFeatureTypesPath(workspace, dataStore) + "/" + featureTypeName;
 	}
 	
-	private CompletableFuture<FeatureType> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) throws Exception {
+	private CompletableFuture<FeatureType> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) {
 		CompletableFuture<FeatureType> future = new CompletableFuture<>();
 		
 		getDocument(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((document, t) -> {
@@ -286,7 +312,7 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}
 	
-	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) throws Exception {
+	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
 		
 		getDocument(getFeatureTypesPath(workspace, dataStore)).whenComplete((document, t) -> {
@@ -312,30 +338,43 @@ public class GeoServerRest implements Closeable {
 		return future;
 	}
 	
-	public CompletableFuture<Boolean> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) throws Exception {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	public CompletableFuture<Boolean> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
 		
-		XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-		streamWriter.writeStartDocument();
-		streamWriter.writeStartElement("featureType");
-			streamWriter.writeStartElement("name");
-				streamWriter.writeCharacters(featureType.getName());
-			streamWriter.writeEndElement();
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
-			String nativeName = featureType.getNativeName();
-			if(nativeName != null) {
-				streamWriter.writeStartElement("nativeName");
-					streamWriter.writeCharacters(nativeName);
+			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
+			streamWriter.writeStartDocument();
+			streamWriter.writeStartElement("featureType");
+				streamWriter.writeStartElement("name");
+					streamWriter.writeCharacters(featureType.getName());
 				streamWriter.writeEndElement();
-			}
-		streamWriter.writeEndElement();
-		streamWriter.writeEndDocument();
-		streamWriter.close();
+				
+				String nativeName = featureType.getNativeName();
+				if(nativeName != null) {
+					streamWriter.writeStartElement("nativeName");
+						streamWriter.writeCharacters(nativeName);
+					streamWriter.writeEndElement();
+				}
+			streamWriter.writeEndElement();
+			streamWriter.writeEndDocument();
+			streamWriter.close();
+			
+			outputStream.close();
+			
+			sendDocument(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
+				if(t != null) {
+					future.completeExceptionally(t);
+				} else {
+					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
+				}
+			});
+		} catch(Exception e) {
+			future.completeExceptionally(e);
+		}
 		
-		outputStream.close();
-		
-		return sendDocument(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray()).thenApply(responseCode ->
-			responseCode == HttpURLConnection.HTTP_CREATED);
+		return future;
 	}
 	
 	private String getFeatureTypesPath(Workspace workspace, DataStore dataStore) {
