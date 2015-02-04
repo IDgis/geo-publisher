@@ -17,6 +17,7 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.service.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.rest.GeoServerRest;
 
 public class Service extends AbstractStateMachine<String> {
@@ -30,7 +31,7 @@ public class Service extends AbstractStateMachine<String> {
 	public Service(String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
 		this.connectionParameters = Collections.unmodifiableMap(connectionParameters);
 		
-		rest = new GeoServerRest(serviceLocation, user, password);
+		rest = new DefaultGeoServerRest(serviceLocation, user, password);
 	}
 	
 	public static Props props(Config geoserverConfig, Config geometryDatabaseConfig) {

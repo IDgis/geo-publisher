@@ -13,7 +13,7 @@ import nl.idgis.publisher.service.TestServers;
 import nl.idgis.publisher.service.rest.Attribute;
 import nl.idgis.publisher.service.rest.DataStore;
 import nl.idgis.publisher.service.rest.FeatureType;
-import nl.idgis.publisher.service.rest.GeoServerRest;
+import nl.idgis.publisher.service.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.rest.Workspace;
 
 import org.h2.server.pg.PgServer;
@@ -21,7 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class GeoServerRestTest {
+public class DefaultGeoServerRestTest {
 	
 	TestServers testServers;
 	
@@ -39,7 +39,7 @@ public class GeoServerRestTest {
 	@Test
 	public void doTest() throws Exception {
 		
-		GeoServerRest service = new GeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
 		
 		List<Workspace> workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
