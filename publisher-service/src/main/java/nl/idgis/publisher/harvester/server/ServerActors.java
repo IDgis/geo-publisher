@@ -64,7 +64,7 @@ public class ServerActors extends MessageProtocolActors {
 	}
 
 	@Override
-	protected void createActors(ActorRef messagePackagerProvider) {
+	protected void createActors(ActorRef messageProtocolHandler, ActorRef messagePackagerProvider) {
 		log.debug("creating server actors");
 		
 		ActorRef self = getSelf();
