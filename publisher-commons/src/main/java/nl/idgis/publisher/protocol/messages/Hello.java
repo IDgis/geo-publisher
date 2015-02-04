@@ -2,9 +2,9 @@ package nl.idgis.publisher.protocol.messages;
 
 import java.io.Serializable;
 
-public class Hello implements Serializable {	
+public class Hello implements Serializable {
 	
-	private static final long serialVersionUID = 8154468094980603280L;
+	private static final long serialVersionUID = 6884946820561493766L;
 	
 	private final String name;
 	
