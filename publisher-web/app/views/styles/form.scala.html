@@ -29,14 +29,14 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.styles.form.field.name.label")</label>
 					<div class="col-lg-8">
-						<input class="form-control" id="input-name" placeholder="@Domain.message("web.application.page.styles.form.field.name.placeholder")" value="@styleForm("name").value">
+						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.styles.form.field.name.placeholder")" value="@styleForm("name").value">
 						<span>@Domain.message("web.application.page.styles.form.field.name.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
 					<div class="col-sm-8">
-						<textarea class="form-control"id="input-definition" rows="20" placeholder="@Domain.message("web.application.page.styles.form.field.definition.placeholder")">@styleForm("definition").value</textarea>
+						<textarea class="form-control" id="input-definition" name="definition" rows="20" placeholder="@Domain.message("web.application.page.styles.form.field.definition.placeholder")">@styleForm("definition").value</textarea>
 						<span>@Domain.message("web.application.page.styles.form.field.definition.help")</span>
 					</div>
 				</div>
