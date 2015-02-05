@@ -749,7 +749,7 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender();
 		
 		final CompletableFuture<Style> styleFuture = 
-				databaseRef.query().from(style)
+				db.query().from(style)
 				.where(style.identification.eq(getEntity.id()))
 				.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
 
@@ -770,7 +770,7 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender();
 		
 		// Check if there is another style with the same name
-		final CompletableFuture<String>  styleId = databaseRef.query().from(style)
+		final CompletableFuture<String>  styleId = db.query().from(style)
 				.where(style.name.eq(styleName))
 				.singleResult(style.name);
 
@@ -778,7 +778,7 @@ public class Admin extends UntypedActor {
 			if (msg == null){
 				// there is no other style with the same name
 				log.debug("Inserting new style with name: " + styleName);
-				databaseRef.insert(style)
+				db.insert(style)
 				.set(style.identification, UUID.randomUUID().toString())
 				.set(style.name, styleName)
 				.set(style.version, putStyle.getStyle().version())
@@ -806,7 +806,7 @@ public class Admin extends UntypedActor {
 		final ActorRef sender = getSender();
 		
 		final CompletableFuture<TypedList<Style>> styleList = 
-				databaseRef.query().from(style)
+				db.query().from(style)
 				.list(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
 
 		styleList.thenAccept(msg -> {
