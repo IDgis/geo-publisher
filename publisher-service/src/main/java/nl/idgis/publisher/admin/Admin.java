@@ -165,6 +165,8 @@ public class Admin extends UntypedActor {
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext().dispatcher(), Timeout.apply(15000));		
 		db = new AsyncDatabaseHelper(database, f, log);
+		
+		getContext().actorOf(DataSources.props(database), "data-sources");
 	}
 
 	@Override
