@@ -1,18 +1,6 @@
 package controllers;
 
 import static models.Domain.from;
-
-import java.util.UUID;
-
-import controllers.Datasets.DatasetForm;
-import models.Domain.Function;
-import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.response.Response;
-import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Identifiable;
-import nl.idgis.publisher.domain.web.Style;
-import nl.idgis.publisher.domain.web.messages.PutStyle;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -26,7 +14,17 @@ import play.mvc.Security;
 import views.html.styles.form;
 import views.html.styles.list;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
+
+import models.Domain.Function;
+
+import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.PutStyle;
+import nl.idgis.publisher.domain.web.Style;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {

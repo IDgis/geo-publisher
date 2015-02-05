@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.admin.messages.QStyleInfo;
 import nl.idgis.publisher.admin.messages.StyleInfo;
+
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
@@ -48,6 +49,7 @@ import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
+
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -76,6 +78,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.PutStyle;
 import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
@@ -96,7 +99,7 @@ import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.domain.web.Style;
-import nl.idgis.publisher.domain.web.messages.PutStyle;
+
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
@@ -108,7 +111,9 @@ import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+
 import scala.concurrent.Future;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;

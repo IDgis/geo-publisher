@@ -1,11 +1,9 @@
 /**
  * 
  */
-package nl.idgis.publisher.domain.web.messages;
+package nl.idgis.publisher.domain.web;
 
 import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.web.Identifiable;
-import nl.idgis.publisher.domain.web.Style;
 
 /**
  * PutStyle combines Style with a crud operation (create or update).
