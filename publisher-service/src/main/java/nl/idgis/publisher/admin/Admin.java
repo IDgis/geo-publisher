@@ -84,7 +84,6 @@ import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
-import nl.idgis.publisher.domain.web.DatasetServiceStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Filter;
@@ -127,8 +126,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.sql.types.Null;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Order;
 
 public class Admin extends UntypedActor {
@@ -894,7 +891,7 @@ public class Admin extends UntypedActor {
 
 	private static Dataset createDataset (final DatasetInfo datasetInfo, final ObjectMapper objectMapper) throws Throwable {
 		// Determine dataset status and notification list:
-		final Status importStatus, serviceStatus;
+		final Status importStatus;
 		final List<DashboardItem> notifications = new ArrayList<> ();
 		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
 			// Set imported status:
@@ -913,34 +910,6 @@ public class Admin extends UntypedActor {
 			importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
 		}
 		
-		final DatasetServiceStatusType serviceStatusType;		
-		final Timestamp lastServiceTime = datasetInfo.getLastServiceTime () != null
-				? datasetInfo.getLastServiceTime ()
-				: new Timestamp (new Date ().getTime ());
-		
-		if (datasetInfo.getServiceCreated() != null && datasetInfo.getServiceCreated()) {			
-			if (datasetInfo.isServiceLayerAdded()) {
-				serviceStatusType = DatasetServiceStatusType.ADDED;
-			} else if (datasetInfo.isServiceLayerVerified()) {
-				serviceStatusType = DatasetServiceStatusType.VERIFIED;
-			} else {
-				serviceStatusType = DatasetServiceStatusType.NOT_VERIFIED;
-			}
-		} else {
-			JobState serviceJobState = datasetInfo.getLastServiceJobState();
-			if( serviceJobState == null) {
-				serviceStatusType = DatasetServiceStatusType.NOT_VERIFIED;				
-			} else {			
-				if (datasetInfo.isServiceLayerVerified()) {
-					serviceStatusType = DatasetServiceStatusType.ADD_FAILED;
-				} else {
-					serviceStatusType = DatasetServiceStatusType.VERIFY_FAILED;
-				}
-			}
-		}
-		
-		serviceStatus = new Status (serviceStatusType, lastServiceTime);
-		
 		// Add notifications:
 		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
 			for (final StoredNotification sn: datasetInfo.getNotifications ()) {
@@ -951,7 +920,6 @@ public class Admin extends UntypedActor {
 		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
 				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 				importStatus,
-				serviceStatus,
 				notifications, // notification list
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
@@ -1038,14 +1006,9 @@ public class Admin extends UntypedActor {
 							category.name,
 							dataset.filterConditions,
 							datasetStatus.imported,
-							Expressions.constant(false),
 							datasetStatus.sourceDatasetColumnsChanged,
 							lastImportJob.finishTime,
-							lastImportJob.finishState,
-							Null.CONSTANT,
-							Null.CONSTANT,
-							Null.CONSTANT,
-							Null.CONSTANT,
+							lastImportJob.finishState,							
 							datasetActiveNotification.notificationId,
 							datasetActiveNotification.notificationType,
 							datasetActiveNotification.notificationResult,

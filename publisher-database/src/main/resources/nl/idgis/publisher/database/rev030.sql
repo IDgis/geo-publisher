@@ -1,25 +1,7 @@
-
-delete from publisher.job_state js
-where job_id in (
-	select id from publisher.job j
-	where j.type = 'SERVICE'
-);
-
-delete from publisher.service_job;
-
-delete from publisher.job
-where type = 'SERVICE';
-
-drop view publisher.last_service_job;
-
-alter table publisher.service_job drop column dataset_id;
-alter table publisher.service_job drop column source_dataset_version_id;
-
-alter table publisher.service_job add column service_id integer not null;
-alter table publisher.service_job add constraint service_job_service_id_fk foreign key (service_id) references publisher.service(id);
-
 -- service_created column dropped
-create or replace view publisher.dataset_status as
+drop view publisher.dataset_status;
+
+create view publisher.dataset_status as 
 select 
 	d.id,
 	d.identification,
@@ -54,5 +36,24 @@ select
 		where lij.dataset_id = d.id		
 	) filter_condition_changed	
 from publisher.dataset d;
+
+delete from publisher.job_state js
+where job_id in (
+	select id from publisher.job j
+	where j.type = 'SERVICE'
+);
+
+delete from publisher.service_job;
+
+delete from publisher.job
+where type = 'SERVICE';
+
+drop view publisher.last_service_job;
+
+alter table publisher.service_job drop column dataset_id;
+alter table publisher.service_job drop column source_dataset_version_id;
+
+alter table publisher.service_job add column service_id integer not null;
+alter table publisher.service_job add constraint service_job_service_id_fk foreign key (service_id) references publisher.service(id);
 
 insert into publisher.version(id) values(30);
