@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QLastServiceJob.lastServiceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.database.QStyle.style;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -19,8 +20,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.admin.messages.QStyleInfo;
+import nl.idgis.publisher.admin.messages.StyleInfo;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
@@ -45,7 +49,6 @@ import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -73,6 +76,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
@@ -93,7 +97,8 @@ import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
-
+import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.messages.PutStyle;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
@@ -105,9 +110,7 @@ import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
 import scala.concurrent.Future;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -178,6 +181,10 @@ public class Admin extends UntypedActor {
 				handleListDashboardActiveTasks (null);
 			} else if (listEntity.cls ().equals (Issue.class)) {
 				handleListDashboardIssues (null);
+
+			} else if (listEntity.cls ().equals (Style.class)) {
+				handleListStyles (null);
+			
 			} else {
 				handleEmptyList (listEntity);
 			}
@@ -192,6 +199,10 @@ public class Admin extends UntypedActor {
 				handleGetDataset(getEntity);
 			} else if (getEntity.cls ().equals (SourceDataset.class)) {
 				handleGetSourceDataset(getEntity);
+
+			} else if (getEntity.cls ().equals (Style.class)) {
+				handleGetStyle (getEntity);
+			
 			} else {
 				sender ().tell (null, self ());
 			}
@@ -203,6 +214,14 @@ public class Admin extends UntypedActor {
 					handleCreateDataset(putDataset);
 				}else{
 					handleUpdateDataset(putDataset);
+				}
+			}
+			if (putEntity.value() instanceof PutStyle) {
+				PutStyle putStyle = (PutStyle)putEntity.value(); 
+				if (putStyle.getOperation() == CrudOperation.CREATE){
+					handleCreateStyle(putStyle);
+				}else{
+//					handleUpdateStyle(putStyle);
 				}
 			}
 			
@@ -719,6 +738,95 @@ public class Admin extends UntypedActor {
 		});
 	}
 
+	
+	/*
+	 * Admin service Configuration getters
+	 */
+	
+	private void handleGetStyle (final GetEntity<?> getEntity) {
+		log.debug ("handleGetStyle");
+		
+		final ActorRef sender = getSender();
+		
+		final CompletableFuture<Style> styleFuture = 
+				db.query().from(style)
+				.where(style.identification.eq(getEntity.id()))
+				.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
+
+		styleFuture.thenAccept(style -> {
+			if (style != null) {
+				log.debug("sending style: " + style);
+				sender.tell(style, getSelf());
+			} else {
+				sender.tell(new NotFound(), getSelf());
+			}
+		});
+	}
+	
+	private void handleCreateStyle(PutStyle putStyle) throws JsonProcessingException {
+		String styleName = putStyle.getStyle().name();
+		log.debug ("handle create style: " + styleName);
+		
+		final ActorRef sender = getSender();
+		
+		// Check if there is another style with the same name
+		final CompletableFuture<String>  styleId = db.query().from(style)
+				.where(style.name.eq(styleName))
+				.singleResult(style.name);
+
+		styleId.thenAccept(msg -> {
+			if (msg == null){
+				// there is no other style with the same name
+				log.debug("Inserting new style with name: " + styleName);
+				db.insert(style)
+				.set(style.identification, UUID.randomUUID().toString())
+				.set(style.name, styleName)
+				.set(style.version, putStyle.getStyle().version())
+				.set(style.format, putStyle.getStyle().format())
+				.set(style.definition, putStyle.getStyle().definition())
+				.execute();
+				
+				sender.tell(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName), getSelf());
+			} else {
+				log.error("Another style found with same name: " + styleName);
+				sender.tell(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, styleName), getSelf());
+			}
+		});
+				
+	}
+
+	
+	/*
+	 * Admin service Configuration list
+	 */
+
+	private void handleListStyles (final ListEntity<?> listEntity) {
+		log.debug ("handleListStyles");
+		
+		final ActorRef sender = getSender();
+		
+		final CompletableFuture<TypedList<Style>> styleList = 
+				db.query().from(style)
+				.list(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
+
+		styleList.thenAccept(msg -> {
+			if (msg != null){
+				final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
+				pageBuilder.addAll(msg.asCollection());
+				log.debug("sending style list");
+				sender.tell(pageBuilder.build(), getSelf());
+			} else {
+				sender.tell(new NotFound(), getSelf());
+			}
+		});
+
+	}
+	
+	/*
+	 * Admin service Configuration end
+	 */
+	
+	
 	private void handleListSourceDatasets (final ListSourceDatasets message) {
 		
 		log.debug ("handleListSourceDatasets");

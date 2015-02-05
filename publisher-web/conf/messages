@@ -87,8 +87,12 @@ web.application.login.failed=Inloggen mislukt.
 
 # Widgets
 web.application.button.ok=Ok
+web.application.button.validate=Valideren
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
+web.application.button.preview=Preview
+web.application.button.tilingproperties=Tiling eigenschappen
+web.application.button.add=Toevoegen
 
 # Application
 web.application.layout.togglenavigation=Toggle navigation
@@ -108,6 +112,11 @@ web.application.layout.dropdowntitle.errors=Nieuwe fouten
 web.application.layout.sidebar.dashboard=Dashboard
 web.application.layout.sidebar.datasets=Datasets
 web.application.layout.sidebar.sourcedatasets=Brongegevens
+web.application.layout.sidebar.services=Services
+web.application.layout.sidebar.layers=Lagen
+web.application.layout.sidebar.groups=Groepen
+web.application.layout.sidebar.styles=Stijlen
+web.application.layout.sidebar.tiledlayers=Tiled lagen
 web.application.layout.sidebar.log=Logboek
 web.application.layout.sidebar.log.tasks=Taken
 web.application.layout.sidebar.log.errors=Foutmeldingen
@@ -147,6 +156,10 @@ web.application.page.dashboard.panel.error=Foutmelding
 web.application.page.dashboard.panel.errors=Foutmeldingen
 web.application.page.dashboard.panel.newerror=Nieuwe foutmelding
 web.application.page.dashboard.panel.newerrors=Nieuwe foutmeldingen
+
+#
+# Data beheer
+#
 
 # Datasets
 web.application.page.datasets.title=Datasets
@@ -245,3 +258,161 @@ web.application.page.datasources.title=Gegevensbronnen
 web.application.page.datasources.ref=Gegevensbron
 web.application.page.datasources.all=Alle gegevensbronnen
 
+
+#
+# Service beheer
+#
+
+
+# Services
+web.application.page.services.list.header=Services
+web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
+
+web.application.page.services.form.field.name.label=Naam
+web.application.page.services.form.field.title.label=Titel
+web.application.page.services.form.field.alttitle.label=Alternatieve titel
+web.application.page.services.form.field.summary.label=Samenvatting
+web.application.page.services.form.field.keywords.label=Trefwoorden
+web.application.page.services.form.field.publish.label=Publiceren
+web.application.page.services.form.field.structure.label=Structuur
+
+web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
+
+web.application.page.services.form.field.watermark.header=Watermerk instellingen
+web.application.page.services.form.field.watermarkenable.label=Watermerk inschakelen
+web.application.page.services.form.field.watermarkurl.label=Watermerk URL
+web.application.page.services.form.field.watermarktransparency.label=Transparantie (0 - 100)
+web.application.page.services.form.field.watermarkposition.label=Watermerk positie
+
+web.application.page.services.form.field.watermarkposition1.option=Linksboven
+web.application.page.services.form.field.watermarkposition2.option=Boven gecentreerd
+web.application.page.services.form.field.watermarkposition3.option=Rechtsboven
+web.application.page.services.form.field.watermarkposition4.option=Linksmidden
+web.application.page.services.form.field.watermarkposition5.option=Midden gecentreerd
+web.application.page.services.form.field.watermarkposition6.option=Rechtsmidden
+web.application.page.services.form.field.watermarkposition7.option=Linksonder
+web.application.page.services.form.field.watermarkposition8.option=Onder gecentreerd
+web.application.page.services.form.field.watermarkposition9.option=Rechtsonder
+
+
+
+# Layers
+web.application.page.layers.list.header=Lagen
+web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
+
+web.application.page.layers.form.field.dataset.label=Dataset
+web.application.page.layers.form.field.name.label=Naam
+web.application.page.layers.form.field.title.label=Titel
+web.application.page.layers.form.field.summary.label=Samenvatting
+web.application.page.layers.form.field.keywords.label=Trefwoorden
+web.application.page.layers.form.field.publish.label=Publiceren
+web.application.page.layers.form.field.groups.label=Zit in de groep(en)
+web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
+
+# Groups
+web.application.page.groups.list.header=Groepen
+web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.
+
+web.application.page.groups.form.field.name.label=Naam
+web.application.page.groups.form.field.title.label=Titel
+web.application.page.groups.form.field.summary.label=Samenvatting
+web.application.page.groups.form.field.publish.label=Publiceren
+web.application.page.groups.form.field.structure.label=Structuur
+web.application.page.groups.form.field.addlayer.button=Toevoegen laag
+web.application.page.groups.form.field.addgroup.button=Toevoegen groep
+web.application.page.groups.form.field.services.label=Zit in de service(s)
+
+
+
+# Styles
+web.application.page.styles.list.header=Stijlen
+web.application.page.styles.list.empty=Er zijn geen stijlen gevonden die voldoen aan de criteria.
+
+web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
+web.application.page.styles.form.header.edit=Stijl {0} aanpassen
+
+web.application.page.styles.form.field.name.label=Naam
+web.application.page.styles.form.field.definition.label=Defineren stijl
+web.application.page.styles.form.field.browse.label=Selecteer uit bestand
+web.application.page.styles.form.field.layers.label=Zit in de laag/lagen
+
+web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
+web.application.page.styles.form.field.definition.placeholder=Kopieer een stijl definitie of upload een bestand
+web.application.page.styles.form.field.name.help=De naam van de stijl
+web.application.page.styles.form.field.definition.help=De SLD xml definitie van de stijl
+
+
+# Tiledlayers
+web.application.page.tiledlayers.list.header=Tiled lagen
+web.application.page.tiledlayers.list.empty=Er zijn geen tiled lagen gevonden die voldoen aan de criteria.
+
+web.application.page.tiledlayers.form.field.tilesenable.label=Tiles inschakelen
+web.application.page.tiledlayers.form.field.formats.label=Formaten
+web.application.page.tiledlayers.form.field.metatilingwidth.label=Metatiling breedte
+web.application.page.tiledlayers.form.field.metatilingheight.label=Metatiling hoogte
+web.application.page.tiledlayers.form.field.servercache.label=Server cache laten verlopen in aantal seconden (0 betekent bron instellingen)
+web.application.page.tiledlayers.form.field.clientcache.label=Client cache laten verlopen in aantal seconden (0 betekent bron instellingen)
+web.application.page.tiledlayers.form.field.gutter.label=Overloop in pixels
+
+web.application.page.tiledlayers.form.field.formaat1.label=png
+web.application.page.tiledlayers.form.field.formaat2.label=png8
+web.application.page.tiledlayers.form.field.formaat3.label=jpg
+web.application.page.tiledlayers.form.field.formaat4.label=gif
+
+web.application.page.tiledlayers.form.field.metatilingwidth1.option=1
+web.application.page.tiledlayers.form.field.metatilingwidth2.option=2
+web.application.page.tiledlayers.form.field.metatilingwidth3.option=3
+web.application.page.tiledlayers.form.field.metatilingwidth4.option=4
+web.application.page.tiledlayers.form.field.metatilingwidth5.option=5
+web.application.page.tiledlayers.form.field.metatilingwidth6.option=6
+web.application.page.tiledlayers.form.field.metatilingwidth7.option=7
+web.application.page.tiledlayers.form.field.metatilingwidth8.option=8
+web.application.page.tiledlayers.form.field.metatilingwidth9.option=9
+web.application.page.tiledlayers.form.field.metatilingwidth10.option=10
+web.application.page.tiledlayers.form.field.metatilingwidth11.option=11
+web.application.page.tiledlayers.form.field.metatilingwidth12.option=12
+web.application.page.tiledlayers.form.field.metatilingwidth13.option=13
+web.application.page.tiledlayers.form.field.metatilingwidth14.option=14
+web.application.page.tiledlayers.form.field.metatilingwidth15.option=15
+web.application.page.tiledlayers.form.field.metatilingwidth16.option=16
+web.application.page.tiledlayers.form.field.metatilingwidth17.option=17
+web.application.page.tiledlayers.form.field.metatilingwidth18.option=18
+web.application.page.tiledlayers.form.field.metatilingwidth19.option=19
+web.application.page.tiledlayers.form.field.metatilingwidth20.option=20
+
+web.application.page.tiledlayers.form.field.metatilingheight1.option=1
+web.application.page.tiledlayers.form.field.metatilingheight2.option=2
+web.application.page.tiledlayers.form.field.metatilingheight3.option=3
+web.application.page.tiledlayers.form.field.metatilingheight4.option=4
+web.application.page.tiledlayers.form.field.metatilingheight5.option=5
+web.application.page.tiledlayers.form.field.metatilingheight6.option=6
+web.application.page.tiledlayers.form.field.metatilingheight7.option=7
+web.application.page.tiledlayers.form.field.metatilingheight8.option=8
+web.application.page.tiledlayers.form.field.metatilingheight9.option=9
+web.application.page.tiledlayers.form.field.metatilingheight10.option=10
+web.application.page.tiledlayers.form.field.metatilingheight11.option=11
+web.application.page.tiledlayers.form.field.metatilingheight12.option=12
+web.application.page.tiledlayers.form.field.metatilingheight13.option=13
+web.application.page.tiledlayers.form.field.metatilingheight14.option=14
+web.application.page.tiledlayers.form.field.metatilingheight15.option=15
+web.application.page.tiledlayers.form.field.metatilingheight16.option=16
+web.application.page.tiledlayers.form.field.metatilingheight17.option=17
+web.application.page.tiledlayers.form.field.metatilingheight18.option=18
+web.application.page.tiledlayers.form.field.metatilingheight19.option=19
+web.application.page.tiledlayers.form.field.metatilingheight20.option=20
+
+web.application.page.tiledlayers.form.field.gutter1.option=0
+web.application.page.tiledlayers.form.field.gutter2.option=1
+web.application.page.tiledlayers.form.field.gutter3.option=2
+web.application.page.tiledlayers.form.field.gutter4.option=3
+web.application.page.tiledlayers.form.field.gutter5.option=4
+web.application.page.tiledlayers.form.field.gutter6.option=5
+web.application.page.tiledlayers.form.field.gutter7.option=6
+web.application.page.tiledlayers.form.field.gutter8.option=7
+web.application.page.tiledlayers.form.field.gutter9.option=8
+web.application.page.tiledlayers.form.field.gutter10.option=9
+web.application.page.tiledlayers.form.field.gutter11.option=10
+web.application.page.tiledlayers.form.field.gutter12.option=15
+web.application.page.tiledlayers.form.field.gutter13.option=20
+web.application.page.tiledlayers.form.field.gutter14.option=50
+web.application.page.tiledlayers.form.field.gutter15.option=100
