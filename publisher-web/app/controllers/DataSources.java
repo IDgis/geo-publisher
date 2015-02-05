@@ -2,7 +2,9 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import models.Domain.Function;
@@ -109,6 +111,38 @@ public class DataSources extends Controller {
 								}
 								
 							});
+				}
+			});
+	}
+	
+	/**
+	 * Make a csv file for download. contains information about source datasets. <br>
+	 * Comma separated, double quotes around values, encoded to iso-8859-1. 
+	 * @param search select source datasets that match search string in their name.
+	 * If empty select all sourcedatasets.
+	 * @return
+	 */
+	public static Promise<Result> download(final String search) {
+		final String encoding = "iso-8859-1";
+		final String filename = "sourcedatasets.csv";
+
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		String currentDataSource = null; 
+		String currentCategory = null;
+		return from (database)
+			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, null))
+			.execute (new Function<Page<SourceDatasetStats>, Result> () {
+				@Override
+				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {
+					StringBuilder sb = new StringBuilder();
+					sb.append("\"id\", \"name\", \"category\", \"datasets\"\n");
+					for (SourceDatasetStats sourceDatasetStat : sourceDatasetStats.values()) {
+						sb.append("\"" + sourceDatasetStat.sourceDataset().id() + "\",\""+sourceDatasetStat.sourceDataset().name() + "\",\""+sourceDatasetStat.sourceDataset().category().name() + "\",\""+sourceDatasetStat.datasetCount() +"\" \n");
+					}
+					response().setContentType("application/x-download; charset=" + encoding);  
+					response().setHeader("Content-disposition","attachment; filename=" + filename); 
+					return ok(sb.toString(), encoding);
 				}
 			});
 	}
