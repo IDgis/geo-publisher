@@ -168,6 +168,8 @@ public class InitiatorTest extends AbstractServiceTest {
 	public void databaseContent() throws Exception {
 		insertDataset("testDataset0");
 		insertDataset("testDataset1");
+		
+		insertService("testService");
 	}
 	
 	ActorRef manager;
@@ -219,10 +221,10 @@ public class InitiatorTest extends AbstractServiceTest {
 		assertTrue(datasets.contains("testDataset0"));
 		assertTrue(datasets.contains("testDataset1"));
 	}
-	
+
 	@Test
 	public void testServiceJob() throws Exception {
-		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testService"));
 
 		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
@@ -246,23 +248,23 @@ public class InitiatorTest extends AbstractServiceTest {
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		sync.ask(manager, new CreateServiceJob("testDataset0"));
+		sync.ask(manager, new CreateServiceJob("testService"));
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(jobManager), "serviceMock");
 		actorOf(

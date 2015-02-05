@@ -14,6 +14,7 @@ import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDa
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -228,15 +229,15 @@ public class JobManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
-		final String datasetId = msg.getDatasetId();
+		final String serviceId = msg.getServiceId();
 		
-		log.debug("creating service job: {}", datasetId);
+		log.debug("creating service job: {}", serviceId);
 		
 		return db.transactional(tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
-				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
-				.where(dataset.identification.eq(datasetId))
+				.join(service).on(service.id.eq(serviceJob.serviceId))
+				.where(service.identification.eq(serviceId))
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
 						.where(isFinished(jobState))
@@ -245,7 +246,7 @@ public class JobManager extends UntypedActor {
 			
 			.thenCompose(notExists -> {
 				if(notExists) {
-					return createServiceJob(tx, datasetId)
+					return createServiceJob(tx, serviceId)
 						.thenApply(l -> {
 							log.debug("service job created");
 							
@@ -258,19 +259,18 @@ public class JobManager extends UntypedActor {
 			}));
 	}
 	
-	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String datasetId) {
+	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String serviceId) {
 		return
 			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
-				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
-					tx.insert(serviceJob)
-						.columns(
-							serviceJob.jobId,
-							serviceJob.datasetId,
-							serviceJob.sourceDatasetVersionId)
-						.select(new SQLSubQuery().from(dataset)
-							.where(dataset.identification.eq(datasetId))
-							.list(jobId, dataset.id, datasetVersionId))						
-						.execute()));
+				tx.insert(serviceJob)
+					.columns(
+						serviceJob.jobId,
+						serviceJob.serviceId)
+					.select(new SQLSubQuery().from(service)
+						.where(service.identification.eq(serviceId))
+						.list(jobId, service.id))
+					.execute());
+				
 	}
 	
 	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
@@ -438,16 +438,13 @@ public class JobManager extends UntypedActor {
 		
 		return
 			db.query().from(serviceJob)
-				.join(dataset).on(dataset.id.eq(serviceJob.datasetId))
-				.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(serviceJob.sourceDatasetVersionId))
-				.join(category).on(category.id.eq(sourceDatasetVersion.categoryId))
+				.join(service).on(service.id.eq(serviceJob.serviceId))				
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(serviceJob.jobId))
 						.notExists())
 				.list(new QServiceJobInfo(
 						serviceJob.jobId, 
-						category.identification, 
-						dataset.identification));
+						service.identification));
 	}
 
 	private CompletableFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {

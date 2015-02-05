@@ -11,7 +11,6 @@ import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
-import static nl.idgis.publisher.database.QLastServiceJob.lastServiceJob;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -97,6 +96,8 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
+import com.mysema.query.sql.types.Null;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.Path;
@@ -290,7 +291,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						datasetStatus.filterConditionChanged, 
 						datasetStatus.sourceDatasetChanged, 
 						datasetStatus.imported, 
-						datasetStatus.serviceCreated, 
+						Expressions.constant(false), 
 						datasetStatus.sourceDatasetColumnsChanged, 
 						datasetStatus.sourceDatasetRevisionChanged);
 		
@@ -505,8 +506,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 						.notExists()))
 			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
 			.leftJoin (datasetStatus).on (datasetStatus.id.eq (dataset.id))
-			.leftJoin (lastImportJob).on (lastImportJob.datasetId.eq (dataset.id))
-			.leftJoin (lastServiceJob).on (lastServiceJob.datasetId.eq (dataset.id))
+			.leftJoin (lastImportJob).on (lastImportJob.datasetId.eq (dataset.id))			
 			.leftJoin (datasetActiveNotification).on (datasetActiveNotification.datasetId.eq (dataset.id))
 			.where(dataset.identification.eq( datasetIdent ))
 			.orderBy (datasetActiveNotification.jobCreateTime.desc ());
@@ -523,14 +523,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				category.name, 
 				dataset.filterConditions,
 				datasetStatus.imported,
-				datasetStatus.serviceCreated,
+				Expressions.constant(false),
 				datasetStatus.sourceDatasetColumnsChanged,
 				lastImportJob.finishTime,
 				lastImportJob.finishState,
-				lastServiceJob.finishTime,
-				lastServiceJob.finishState,
-				lastServiceJob.verified,
-				lastServiceJob.added,
+				Null.CONSTANT,
+				Null.CONSTANT,
+				Null.CONSTANT,
+				Null.CONSTANT,
 				datasetActiveNotification.notificationId,
 				datasetActiveNotification.notificationType,
 				datasetActiveNotification.notificationResult,
@@ -666,14 +666,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (category.name), 
 				t.get (dataset.filterConditions),
 				t.get (datasetStatus.imported),
-				t.get (datasetStatus.serviceCreated),
+				false,
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				t.get (lastServiceJob.finishTime),
-				t.get (lastServiceJob.finishState),
-				t.get (lastServiceJob.verified),
-				t.get (lastServiceJob.added),
+				null,
+				null,
+				null,
+				null,
 				notifications
 			);
 	}

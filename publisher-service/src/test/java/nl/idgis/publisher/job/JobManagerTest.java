@@ -1,15 +1,15 @@
 package nl.idgis.publisher.job;
 
 import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QRemoveJob.removeJob;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QRemoveJob.removeJob;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -20,6 +20,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+
+import org.junit.Test;
+
+import com.mysema.query.Tuple;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
@@ -33,23 +37,16 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
-import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-
-import org.junit.Test;
-
-import com.mysema.query.Tuple;
 
 public class JobManagerTest extends AbstractServiceTest {
 	
@@ -97,7 +94,7 @@ public class JobManagerTest extends AbstractServiceTest {
 	}	
 	
 	@Test
-	public void testImportAndServiceJob() throws Exception {
+	public void testImportJob() throws Exception {
 		int dataSourceId = insertDataSource();
 		
 		int sourceDatasetId = 
@@ -163,8 +160,7 @@ public class JobManagerTest extends AbstractServiceTest {
 		assertNotNull(datasetStatus);
 		
 		assertEquals("testDataset", datasetStatus.getDatasetId());
-		assertFalse(datasetStatus.isImported());		
-		assertFalse(datasetStatus.isServiceCreated());
+		assertFalse(datasetStatus.isImported());
 		
 		assertFalse(i.hasNext());
 		
@@ -230,32 +226,6 @@ public class JobManagerTest extends AbstractServiceTest {
 		assertTrue(i.hasNext());
 		
 		datasetStatus = i.next();
-		assertFalse(datasetStatus.isServiceCreated());
-		
-		result = sync.ask(jobManager, new CreateServiceJob("testDataset"));
-		assertTrue(result instanceof Ack);
-		
-		TypedIterable<?> serviceJobsInfos = sync.ask(jobManager, new GetServiceJobs(), TypedIterable.class);
-		assertTrue(serviceJobsInfos.contains(ServiceJobInfo.class));
-		
-		Iterator<ServiceJobInfo> serviceJobsItr = serviceJobsInfos.cast(ServiceJobInfo.class).iterator();
-		
-		ServiceJobInfo serviceJobInfo = serviceJobsItr.next();
-		result = sync.ask(jobManager, new UpdateState(serviceJobInfo, JobState.SUCCEEDED));
-		assertTrue(result instanceof Ack);
-		
-		result = sync.ask(database, new GetDatasetStatus());
-		assertTrue(result instanceof TypedIterable);
-		
-		typedIterable = (TypedIterable<?>) result;
-		assertTrue(typedIterable.contains(DatasetStatusInfo.class));
-		
-		i = typedIterable.cast(DatasetStatusInfo.class).iterator();
-		assertNotNull(i);
-		assertTrue(i.hasNext());
-		
-		datasetStatus = i.next();
-		assertTrue(datasetStatus.isServiceCreated());
 	}
 
 	private void assertColumns(List<Column> columns) {		

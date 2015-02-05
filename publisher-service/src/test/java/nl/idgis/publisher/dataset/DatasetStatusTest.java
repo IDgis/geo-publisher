@@ -19,9 +19,7 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
-import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -90,89 +88,6 @@ public class DatasetStatusTest extends AbstractServiceTest {
 				DatasetStatusInfo.class)
 				
 			.isImported());
-	}
-	
-	@Test
-	public void testServiceCreated() throws Exception {
-		// initially a service is not yet created for a dataset
-		assertFalse(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));
-		
-		executeJobs(new GetImportJobs());
-		
-		// importing a dataset doesn't create a service
-		assertFalse(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		sync.ask(jobManager, new CreateServiceJob("testDataset"));
-		
-		// service job created, service still not created
-		assertFalse(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		executeJobs(new GetServiceJobs());
-		
-		// service job executed -> service created
-		assertTrue(
-				sync.ask(database, 
-					new GetDatasetStatus("testDataset"), 
-					DatasetStatusInfo.class)
-				
-				.isServiceCreated());
-		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));
-		
-		// import job created, existing service still created
-		assertTrue(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		executeJobs(new GetImportJobs());
-		
-		// import job could(!) have introduced a new table -> service maybe(!) not created 
-		assertFalse(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		sync.ask(jobManager, new CreateServiceJob("testDataset"));
-		
-		// service job created, service still not created
-		assertFalse(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
-		
-		executeJobs(new GetServiceJobs());
-		
-		// service job executed -> service created
-		assertTrue(
-			sync.ask(database, 
-				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
-			
-			.isServiceCreated());
 	}
 	
 	@Test
