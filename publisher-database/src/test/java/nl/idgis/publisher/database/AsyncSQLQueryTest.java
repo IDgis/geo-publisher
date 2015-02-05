@@ -118,4 +118,13 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 						.from(category)
 						.notExists().get());
 	}
+	
+	@Test
+	public void testCount() throws Exception {
+		assertEquals(0, db.query().from(category).count().get().longValue());
+		
+		insertCategory();
+		
+		assertEquals(1, db.query().from(category).count().get().longValue());
+	}
 }

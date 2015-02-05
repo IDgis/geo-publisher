@@ -54,6 +54,16 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 		});
 	}
 	
+	public CompletableFuture<Long> count() {
+		return f.ask(database, new PerformQuery(getMetadata())).thenApply(msg -> {
+			if(msg instanceof Failure) {
+				throw new RuntimeException(((Failure) msg).getCause());
+			}
+			
+			return (Long)msg;
+		});
+	}
+	
 	@Override
 	@SuppressWarnings("unchecked")
 	public <RT> CompletableFuture<TypedList<RT>> list(Expression<RT> projection) {

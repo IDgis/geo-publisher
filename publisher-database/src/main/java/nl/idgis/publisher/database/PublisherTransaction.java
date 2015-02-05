@@ -207,12 +207,16 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		QueryMetadata metadata = query.getMetadata();
 		
 		List<Expression<?>> projection = metadata.getProjection();
-		if(projection.size() == 1) {	
-			return toTypedList(metadata, projection.get(0));
-		} else {		
-			return new TypedList<>(
-				Tuple.class,		
-				query(metadata).list(projection.toArray(new Expression<?>[projection.size()])));
+		
+		switch(projection.size()) {
+			case 0:
+				return query(metadata).count();
+			case 1:
+				return toTypedList(metadata, projection.get(0));				
+			default:
+				return new TypedList<>(
+					Tuple.class,		
+					query(metadata).list(projection.toArray(new Expression<?>[projection.size()])));
 		}
 	}
 	
