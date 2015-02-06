@@ -37,7 +37,7 @@ public class DataSources extends AbstractAdmin {
 
 	@Override
 	protected void queries() {
-		query(ListSourceDatasets.class, msg -> {			
+		query(ListSourceDatasets.class, msg -> {
 			return db.transactional(tx -> {
 				AsyncSQLQuery baseQuery = tx.query().from(sourceDataset)
 					.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
@@ -64,8 +64,7 @@ public class DataSources extends AbstractAdmin {
 				}
 					
 				AsyncSQLQuery listQuery = baseQuery.clone()					
-					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))					
-					.orderBy(sourceDatasetVersion.name.asc());
+					.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 				
 				Long page = msg.getPage();
 				singlePage(listQuery, page);
@@ -74,7 +73,8 @@ public class DataSources extends AbstractAdmin {
 					.collect(listQuery					
 						.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 						.groupBy(dataSource.identification).groupBy(dataSource.name)
-						.groupBy(category.identification).groupBy(category.name)						
+						.groupBy(category.identification).groupBy(category.name)		
+						.orderBy(sourceDatasetVersion.name.trim().asc())
 						.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
 							dataSource.identification, dataSource.name,
 							category.identification,category.name,
@@ -98,6 +98,6 @@ public class DataSources extends AbstractAdmin {
 						return pageBuilder.build();
 					});
 			});
-		});
+		});	
 	}
 }
