@@ -107,7 +107,7 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 				if(itr.hasNext()) {
 					throw new NonUniqueResultException();
 				} else {
-					return Optional.of(retval);
+					return Optional.ofNullable(retval);
 				}
 			} else {
 				return Optional.empty();
