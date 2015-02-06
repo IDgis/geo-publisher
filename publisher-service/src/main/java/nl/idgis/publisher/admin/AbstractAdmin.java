@@ -80,7 +80,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getHandlers.put(entity, func);
 	}
 	
-	protected abstract void addQueries();
+	protected abstract void preStartAdmin();
 	
 	@Override
 	public final void preStart() throws Exception {
@@ -91,7 +91,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		listHandlers = new HashMap<>();
 		getHandlers = new HashMap<>();
 		
-		addQueries();
+		preStartAdmin();
 	}
 	
 	private void toSender(CompletableFuture<?> future) {

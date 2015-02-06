@@ -37,7 +37,7 @@ public class DataSources extends AbstractAdmin {
 	}	
 
 	@Override
-	protected void addQueries() {
+	protected void preStartAdmin() {
 		addQuery(ListSourceDatasets.class, msg -> {
 			return db.transactional(tx -> {
 				AsyncSQLQuery baseQuery = tx.query().from(sourceDataset)
