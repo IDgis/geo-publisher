@@ -14,11 +14,9 @@ import play.mvc.Security;
 import views.html.styles.form;
 import views.html.styles.list;
 import actions.DefaultAuthenticator;
-
 import akka.actor.ActorSelection;
-
+import models.Domain;
 import models.Domain.Function;
-
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -53,6 +51,12 @@ public class Styles extends Controller {
 		final Form<StyleForm> styleForm = Form.form (StyleForm.class).bindFromRequest ();
 		Logger.debug ("submit Style: " + styleForm.field("name").value());
 		
+		// validation
+		if (styleForm.field("name").value().length() == 1 ) 
+			styleForm.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
+		if (!isValidXml(styleForm.field("definition").value())) 
+			styleForm.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", styleForm.field("format").value()));
+		
 		if (styleForm.hasErrors ()) {
 			return renderCreateForm (styleForm);
 		}
@@ -73,17 +77,22 @@ public class Styles extends Controller {
 				public Promise<Result> apply (final Response<?> response) throws Throwable {
 					if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
 						Logger.debug ("response: " + response);
-						styleForm.reject ("Er bestaat al een style met naam " + response.getValue());
+						styleForm.reject (Domain.message("web.application.page.styles.form.field.name.exists", response.getValue().toString()));
 						return renderCreateForm (styleForm);
 					}
 					
-					flash ("success", "Style " + style.getName () + " is toegevoegd.");
+					flash ("success", Domain.message("web.application.page.styles.name") + " " + style.getName () + " is " + Domain.message("web.application.added").toLowerCase());
 					
 					return Promise.pure (redirect (routes.Styles.list ()));
 				}
 			});
 	}
 	
+
+	private static boolean isValidXml(String value) {
+		//TODO validate against SLD or SE xsd
+		return value.toLowerCase().indexOf("xml") > 0;
+	}
 
 	public static Promise<Result> list () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -144,11 +153,10 @@ public class Styles extends Controller {
 	}
 	
 	public static class StyleForm {
-
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
-		@Constraints.MinLength (1)
+		@Constraints.MinLength (value=1)
 		private String name;
 		@Constraints.Required
 		private String format;
