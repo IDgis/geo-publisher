@@ -101,7 +101,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 		future.whenComplete((resp, t) -> {
 			if(t != null) {
 				log.error("failure: {}", t);
-			} else {			
+			} else {
+				log.debug("sending response: {}", resp);				
 				sender.tell(resp, self);
 			}
 		});
