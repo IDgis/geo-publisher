@@ -28,7 +28,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractAdmin extends UntypedActor {
 	
-	private static final long ITEMS_PER_PAGE = 20;
+	protected static final long ITEMS_PER_PAGE = 20;
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -39,10 +39,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	protected AsyncDatabaseHelper db;
 	
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Function> queryHandlers, getHandlers;
-	
-	@SuppressWarnings("rawtypes")
-	protected Map<Class, Supplier> listHandlers; 
+	protected Map<Class, Function> queryHandlers, listHandlers, getHandlers; 
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -74,7 +71,11 @@ public abstract class AbstractAdmin extends UntypedActor {
 		queryHandlers.put(query, func);
 	}
 	
-	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {	
+	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
+		addList(entity, (Long page) -> func.get());
+	}
+	
+	protected <T extends Entity> void addList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
 		listHandlers.put(entity, func);
 	}
 	
@@ -137,7 +138,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			Class<?> entity = ((ListEntity<?>)msg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Supplier<CompletableFuture<?>> listHandler = listHandlers.get(entity);
+			Function<Long, CompletableFuture<?>> listHandler = listHandlers.get(entity);
 			if(listHandler == null) {
 				log.debug("list entity not handled: {}", entity);
 				
@@ -145,7 +146,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			} else {
 				log.debug("handling list entity: {}", entity);
 				
-				toSender(listHandler.get());
+				toSender(listHandler.apply(((ListEntity<?>)msg).page()));
 			}
 		} else if(msg instanceof DomainQuery) {
 			@SuppressWarnings("unchecked")

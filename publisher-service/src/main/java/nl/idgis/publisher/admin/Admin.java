@@ -127,8 +127,6 @@ public class Admin extends AbstractAdmin {
 	
 	private final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 	
-	private final long ITEMS_PER_PAGE = 20;
-	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef harvester, loader, service, jobSystem;
@@ -756,11 +754,11 @@ public class Admin extends AbstractAdmin {
 						baseQuery.where(category.identification.eq(categoryId));
 					}
 					
+					singlePage(baseQuery, page);
+					
 					return baseQuery
 						.orderBy (dataset.identification.asc ())
 						.orderBy (datasetActiveNotification.jobCreateTime.desc ())
-						.offset (Math.max(0, (page - 1) * ITEMS_PER_PAGE))
-						.limit (ITEMS_PER_PAGE)
 						.list (
 							dataset.identification,
 							dataset.name,
@@ -808,11 +806,6 @@ public class Admin extends AbstractAdmin {
 								
 								log.debug("dataset info received");
 								
-								long pageCount = datasetCount / ITEMS_PER_PAGE;
-								if(datasetCount % ITEMS_PER_PAGE > 0) {
-									pageCount++;
-								}
-								
 								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
 								final ObjectMapper objectMapper = new ObjectMapper ();
 								
@@ -826,11 +819,9 @@ public class Admin extends AbstractAdmin {
 								
 								log.debug("sending dataset page");
 								
-								return pageBuilder
-									.setHasMorePages(true)
-									.setCurrentPage(page)
-									.setPageCount(pageCount)
-									.build ();
+								addPageInfo(pageBuilder, page, datasetCount);
+								
+								return pageBuilder.build ();
 							});
 				});
 		});
@@ -839,7 +830,7 @@ public class Admin extends AbstractAdmin {
 	private CompletableFuture<Page<Issue>> handleListIssues (final ListIssues listIssues) {
 		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
 		
-		final long page = listIssues.getPage () != null ? Math.max (1, listIssues.getPage ()) : 1;
+		final Long page = listIssues.getPage () != null ? Math.max (1, listIssues.getPage ()) : 1;
 		final long limit = listIssues.getLimit () != null ? Math.max (1, listIssues.getLimit ()) : ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 		
