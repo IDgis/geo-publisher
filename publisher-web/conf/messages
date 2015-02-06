@@ -69,7 +69,6 @@ web.application.loglevel.title.INFO=Informatie
 web.application.loglevel.title.ERROR=Fout
 web.application.loglevel.title.WARNING=Waarschuwing
 
-
 web.application.none=geen
 web.application.yes=ja
 web.application.no=nee
@@ -84,6 +83,10 @@ web.application.login.placeholder.user=E-mail
 web.application.login.placeholder.password=Wachwoord
 web.application.login.failed.message=Ongeldige gebruikersnaam of wachtwoord
 web.application.login.failed=Inloggen mislukt.
+
+web.application.form.errors.header=De {0} kan niet worden opgeslagen
+web.application.form.errors.text=Niet alle ingevulde waarden zijn geldig, de onderstaande gemarkeerde fouten dienen eerst hersteld te worden.
+web.application.form.globalerrors.header=Validatiefouten
 
 # Widgets
 web.application.button.ok=Ok
@@ -264,10 +267,15 @@ web.application.page.datasources.all=Alle gegevensbronnen
 # Service beheer
 #
 
-
 # Services
+web.application.page.services.name=Service
+
 web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
+
+web.application.page.services.form.title=Service formulier
+web.application.page.services.form.header.new=Nieuwe service toevoegen
+web.application.page.services.form.header.edit=Service {0} aanpassen
 
 web.application.page.services.form.field.name.label=Naam
 web.application.page.services.form.field.title.label=Titel
@@ -298,8 +306,14 @@ web.application.page.services.form.field.watermarkposition9.option=Rechtsonder
 
 
 # Layers
+web.application.page.layers.name=Laag
+
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
+
+web.application.page.layers.form.title=Laag formulier
+web.application.page.layers.form.header.new=Nieuwe layer toevoegen
+web.application.page.layers.form.header.edit=Layer {0} aanpassen
 
 web.application.page.layers.form.field.dataset.label=Dataset
 web.application.page.layers.form.field.name.label=Naam
@@ -311,8 +325,14 @@ web.application.page.layers.form.field.groups.label=Zit in de groep(en)
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 
 # Groups
+web.application.page.groups.name=Groep
+
 web.application.page.groups.list.header=Groepen
 web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.
+
+web.application.page.groups.form.title=Groep formulier
+web.application.page.groups.form.header.new=Nieuwe groep toevoegen
+web.application.page.groups.form.header.edit=Groep {0} aanpassen
 
 web.application.page.groups.form.field.name.label=Naam
 web.application.page.groups.form.field.title.label=Titel
@@ -324,23 +344,30 @@ web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)
 
 
-
 # Styles
+web.application.page.styles.name=Stijl
+
 web.application.page.styles.list.header=Stijlen
 web.application.page.styles.list.empty=Er zijn geen stijlen gevonden die voldoen aan de criteria.
 
+web.application.page.styles.form.title=Stijl formulier
 web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
 web.application.page.styles.form.header.edit=Stijl {0} aanpassen
 
 web.application.page.styles.form.field.name.label=Naam
+web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
+web.application.page.styles.form.field.name.help=De naam van de stijl
+web.application.page.styles.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.styles.form.field.name.exists=Er bestaat al een stijl met de naam {0}
+
 web.application.page.styles.form.field.definition.label=Defineren stijl
+web.application.page.styles.form.field.definition.placeholder=Kopieer een stijl definitie of upload een bestand
+web.application.page.styles.form.field.definition.help=De SLD xml definitie van de stijl
+web.application.page.styles.form.field.definition.validation.error=Inhoud moet xml zijn volgens de {0} standaard
+
 web.application.page.styles.form.field.browse.label=Selecteer uit bestand
 web.application.page.styles.form.field.layers.label=Zit in de laag/lagen
 
-web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
-web.application.page.styles.form.field.definition.placeholder=Kopieer een stijl definitie of upload een bestand
-web.application.page.styles.form.field.name.help=De naam van de stijl
-web.application.page.styles.form.field.definition.help=De SLD xml definitie van de stijl
 
 
 # Tiledlayers
