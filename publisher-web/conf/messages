@@ -97,6 +97,9 @@ web.application.button.save=Opslaan
 web.application.button.preview=Preview
 web.application.button.tilingproperties=Tiling eigenschappen
 web.application.button.add=Toevoegen
+web.application.button.edit=Bewerken
+web.application.button.remove=Verwijderen
+
 
 # Application
 web.application.layout.togglenavigation=Toggle navigation
