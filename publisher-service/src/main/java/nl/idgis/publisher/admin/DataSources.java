@@ -11,10 +11,11 @@ import com.mysema.query.sql.SQLSubQuery;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
+import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
+
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
-import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
-import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;

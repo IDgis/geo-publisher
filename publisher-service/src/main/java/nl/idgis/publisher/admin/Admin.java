@@ -22,7 +22,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.QStyleInfo;
+import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.StyleInfo;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
@@ -41,8 +43,6 @@ import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
-import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
-import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
