@@ -9,8 +9,8 @@ import java.util.List;
 import nl.idgis.publisher.domain.web.Entity;
 
 public final class Page<T extends Entity> implements Serializable {
-	
-	private static final long serialVersionUID = 6206734086529244167L;
+
+	private static final long serialVersionUID = 8536662427478663910L;
 	
 	private final List<T> values;
 	private final long currentPage;
@@ -89,5 +89,12 @@ public final class Page<T extends Entity> implements Serializable {
 		public Page<A> build () {
 			return new Page<A> (list, currentPage, hasMorePages, pageCount);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "Page [values=" + values + ", currentPage=" + currentPage
+				+ ", hasMorePages=" + hasMorePages + ", pageCount=" + pageCount
+				+ "]";
 	}
 }
