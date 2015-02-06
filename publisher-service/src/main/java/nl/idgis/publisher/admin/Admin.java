@@ -22,13 +22,26 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.Order;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.dispatch.OnSuccess;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
+
+import scala.concurrent.Future;
+
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
-import nl.idgis.publisher.admin.messages.QStyleInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
-import nl.idgis.publisher.admin.messages.StyleInfo;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
@@ -58,7 +71,6 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.DeleteEntity;
-import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
@@ -76,8 +88,6 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.PutStyle;
-import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
@@ -93,8 +103,9 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
+import nl.idgis.publisher.domain.web.PutStyle;
+import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
-import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.domain.web.Style;
 
@@ -107,31 +118,10 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
-import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedList;
 
-import scala.concurrent.Future;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
-import akka.dispatch.OnComplete;
-import akka.dispatch.OnSuccess;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
-import akka.util.Timeout;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Iterables;
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.Order;
-
-public class Admin extends UntypedActor {
+public class Admin extends AbstractAdmin {
 	
 	private final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 	
@@ -139,16 +129,13 @@ public class Admin extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, service, jobSystem;
+	private final ActorRef harvester, loader, service, jobSystem;
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 	
-	private AsyncDatabaseHelper db;
-
-	private FutureUtils f;
-	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
-		this.database = database;
+		super(database);
+		
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;
@@ -157,60 +144,11 @@ public class Admin extends UntypedActor {
 	
 	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
-	}	
-	
-	@Override
-	public void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher(), Timeout.apply(15000));		
-		db = new AsyncDatabaseHelper(database, f, log);
-		
-		getContext().actorOf(DataSources.props(database), "data-sources");
 	}
-
-	@Override
-	public void onReceive (final Object message) throws Exception {
-		if (message instanceof ListEntity<?>) {
-			final ListEntity<?> listEntity = (ListEntity<?>)message;
-			
-			if (listEntity.cls ().equals (DataSource.class)) {
-				handleListDataSources (listEntity);
-			} else if (listEntity.cls ().equals (Category.class)) {
-				handleListCategories (listEntity);
-			} else if (listEntity.cls ().equals (Dataset.class)) {
-				handleListDatasets (null);
-			} else if (listEntity.cls ().equals (Notification.class)) {
-				handleListDashboardNotifications (null);
-			} else if (listEntity.cls ().equals (ActiveTask.class)) {
-				handleListDashboardActiveTasks (null);
-			} else if (listEntity.cls ().equals (Issue.class)) {
-				handleListDashboardIssues (null);
-
-			} else if (listEntity.cls ().equals (Style.class)) {
-				handleListStyles (null);
-			
-			} else {
-				handleEmptyList (listEntity);
-			}
-		} else if (message instanceof GetEntity<?>) {
-			final GetEntity<?> getEntity = (GetEntity<?>)message;
-			
-			if (getEntity.cls ().equals (DataSource.class)) {
-				handleGetDataSource (getEntity);
-			} else if (getEntity.cls ().equals (Category.class)) {
-				handleGetCategory (getEntity);
-			} else if (getEntity.cls ().equals (Dataset.class)) {
-				handleGetDataset(getEntity);
-			} else if (getEntity.cls ().equals (SourceDataset.class)) {
-				handleGetSourceDataset(getEntity);
-
-			} else if (getEntity.cls ().equals (Style.class)) {
-				handleGetStyle (getEntity);
-			
-			} else {
-				sender ().tell (null, self ());
-			}
-		} else if (message instanceof PutEntity<?>) {
-			final PutEntity<?> putEntity = (PutEntity<?>)message;
+	
+	protected void toFallback(Object msg) throws Exception {
+		if (msg instanceof PutEntity<?>) {
+			final PutEntity<?> putEntity = (PutEntity<?>)msg;
 			if (putEntity.value() instanceof PutDataset) {
 				PutDataset putDataset = (PutDataset)putEntity.value(); 
 				if (putDataset.getOperation() == CrudOperation.CREATE){
@@ -227,31 +165,48 @@ public class Admin extends UntypedActor {
 //					handleUpdateStyle(putStyle);
 				}
 			}
-			
-		} else if (message instanceof DeleteEntity<?>) {
-			final DeleteEntity<?> delEntity = (DeleteEntity<?>)message;
+		} else if (msg instanceof DeleteEntity<?>) {
+			final DeleteEntity<?> delEntity = (DeleteEntity<?>)msg;
 			if (delEntity.cls ().equals (Dataset.class)) {
 				handleDeleteDataset(delEntity.id());
-			}
-		} else if (message instanceof ListDatasets) {
-			handleListDatasets (((ListDatasets)message));
-		} else if (message instanceof ListSourceDatasetColumns) {
-			handleListSourceDatasetColumns ((ListSourceDatasetColumns) message);
-		} else if (message instanceof ListDatasetColumns) {
-			handleListDatasetColumns ((ListDatasetColumns) message);
-		} else if (message instanceof RefreshDataset) {
-			handleRefreshDataset(((RefreshDataset) message).getDatasetId());
-		} else if (message instanceof ListIssues) {
-			handleListIssues ((ListIssues)message);
-		} else if (message instanceof ListActiveNotifications) {
-			handleListActiveNotifications ((ListActiveNotifications) message);
-		} else if (message instanceof PutNotificationResult) {
-			handlePutNotificationResult ((PutNotificationResult) message);
-		} else if (message instanceof ListDatasetColumnDiff) {
-			handleListDatasetColumnDiff ((ListDatasetColumnDiff) message);
+			} 
 		} else {
-			unhandled (message);
+			log.error("query not handled: {}", msg);
+			
+			unhandled(msg);
 		}
+	}
+	
+	@Override
+	public void preStartAdmin() {
+		getContext().actorOf(DataSources.props(database), "data-sources");
+	
+		addList(DataSource.class, this::handleListDataSources);
+		addList(Category.class, this::handleListCategories);
+		addList(Dataset.class, () -> handleListDatasets(null));
+		addList(Notification.class, this::handleListDashboardNotifications);
+		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
+		addList(Issue.class, this::handleListDashboardIssues);
+		addList(Style.class, this::handleListStyles);
+		
+		addGet(Category.class, this::handleGetCategory);
+		addGet(DataSource.class, this::handleGetDataSource);
+		addGet(Dataset.class, this::handleGetDataset);
+		addGet(SourceDataset.class, this::handleGetSourceDataset);
+		addGet(Style.class, this::handleGetStyle);
+		
+		// TODO: put
+		
+		// TODO: delete
+		
+		addQuery(ListDatasets.class, this::handleListDatasets);
+		addQuery(ListIssues.class, this::handleListIssues);
+		addQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
+		addQuery(ListDatasetColumns.class, this::handleListDatasetColumns);
+		addQuery(RefreshDataset.class, this::handleRefreshDataset);
+		addQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
+		addQuery(PutNotificationResult.class, this::handlePutNotificationResult);
+		addQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
 	}
 
 	private static Notification createNotification (final StoredNotification storedNotification) {
@@ -326,24 +281,16 @@ public class Admin extends UntypedActor {
 
 	}
 	
-	private void handleRefreshDataset(String datasetId) {
-		log.debug("requesting to refresh dataset: " + datasetId);
+	private CompletableFuture<Boolean> handleRefreshDataset(RefreshDataset refreshDataset) {
+		String datasetId = refreshDataset.getDatasetId();
 		
-		final ActorRef sender = getSender(), self = getSelf();
-		Patterns.ask(jobSystem, new CreateImportJob(datasetId), 15000)
-			.onComplete(new OnComplete<Object>() {
-
-				@Override
-				public void onComplete(Throwable t, Object msg) throws Throwable {
-					sender.tell(t == null, self);
-				}
-				
-			}, getContext().dispatcher());
+		log.debug("requesting to refresh dataset: {}", datasetId);
+		
+		return f.ask(jobSystem, new CreateImportJob(datasetId), Ack.class).thenApply(msg -> true);
 	}
 	
-	private void handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {
+	private CompletableFuture<List<Column>> handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {
 		log.debug("handleListSourceDatasetColumns");
-		final ActorRef sender = getSender(), self = getSelf();
 
 		final CompletableFuture<TypedList<Column>> columnList = db
 				.query()
@@ -362,64 +309,54 @@ public class Admin extends UntypedActor {
 						dataSource.identification.eq(listColumns.getDataSourceId())))
 				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
 
-		columnList.thenAccept(msg -> {
+		return columnList.thenApply(msg -> {
 			log.debug("sourcedataset column list received");
 			log.debug("sending sourcedataset column list");
-			sender.tell(msg.asCollection(), self);
+			
+			return msg.list();
 		});
 	}
 
-	private void handleListDatasetColumns(final ListDatasetColumns listColumns) {
-		log.debug("handleListDatasetColumns");
-		final ActorRef sender = getSender(), self = getSelf();
+	private CompletableFuture<List<Column>> handleListDatasetColumns(final ListDatasetColumns listColumns) {
+		log.debug("handleListDatasetColumns");		
 
 		final CompletableFuture<TypedList<Column>> columnList = db.query().from(datasetColumn).join(dataset)
 				.on(dataset.id.eq(datasetColumn.datasetId))
 				.where(dataset.identification.eq(listColumns.getDatasetId()))
 				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
 
-		columnList.thenAccept(msg -> {
+		return columnList.thenApply(msg -> {
 			log.debug("dataset column list received");
 			log.debug("sending dataset column list");
-			sender.tell(msg.asCollection(), self);
+			
+			return msg.list();
 		});		
 
 	}
 	
-	private void handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
-		final ActorRef sender = sender ();
-		final ActorRef self = self ();
-		
-		final Future<Object> result = Patterns.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ()), 15000);
-		
-		result.onSuccess(new OnSuccess<Object> () {
-			@Override
-			public void onSuccess (final Object msg) throws Throwable {
-				@SuppressWarnings("unchecked")
-				final InfoList<ColumnDiff> diffs = (InfoList<ColumnDiff>) msg;
+	private CompletableFuture<List<ColumnDiff>> handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
 				
-				sender.tell (diffs.getList (), self);
-			}
-		}, context ().dispatcher ());
+		return f.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ())).thenApply(msg -> {
+			@SuppressWarnings("unchecked")
+			final InfoList<ColumnDiff> diffs = (InfoList<ColumnDiff>) msg;
+			
+			return diffs.getList ();
+		});		
 	}
 
-	private void handleListDataSources (final ListEntity<?> listEntity) {
-		log.debug ("List received for: " + listEntity.cls ().getCanonicalName ());
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		final CompletableFuture<Object> activeDataSourcesFuture = f.ask(harvester, new GetActiveDataSources(), 15000);
+	private CompletableFuture<Page<DataSource>> handleListDataSources () {
+		final CompletableFuture<Object> activeDataSourcesFuture = f.ask(harvester, new GetActiveDataSources());
 		
 		final CompletableFuture<TypedList<DataSourceInfo>> dataSourceInfoFuture =
 				db.query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
 		
-		activeDataSourcesFuture.thenAccept(msg0 -> {
+		return activeDataSourcesFuture.thenCompose(msg0 -> {
 			final Set<String> activeDataSources = (Set<String>)msg0;
 			log.debug("active data sources received");
 			
-			dataSourceInfoFuture.thenAccept(msg1 -> {
+			return dataSourceInfoFuture.thenApply(msg1 -> {
 					List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg1.asCollection();
 					log.debug("data sources info received");
 					
@@ -438,191 +375,148 @@ public class Admin extends UntypedActor {
 					}
 					
 					log.debug("sending data source page");
-					sender.tell (pageBuilder.build (), self);
+					return pageBuilder.build ();
 				});
 		});
 	}
 	
-	private void handleListCategories(final ListEntity<?> listEntity) {
+	private CompletableFuture<Page<Category>> handleListCategories() {
 		log.debug("handleCategoryList");
 		
-		final ActorRef sender = getSender(), self = getSelf();
 		final CompletableFuture<TypedList<Category>> categoryList = 
 				db.query().from(category)
 				.orderBy(category.identification.asc())
 				.list(new QCategory(category.identification, category.name));
 		
-		categoryList.thenAccept(msg -> {
+		return categoryList.thenApply(msg -> {
 				log.debug("category info received");
 				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> ();
 				pageBuilder.addAll(msg.asCollection());				
 				log.debug("sending category list");
-				sender.tell(pageBuilder.build(), self);
+
+				return pageBuilder.build();
 			});
 	}
 	
-	private void handleListDashboardIssues(Object object) {
+	private CompletableFuture<Page<Issue>> handleListDashboardIssues() {
 		log.debug ("handleListDashboardIssues");
 		
-		handleListIssues (new ListIssues (LogLevel.WARNING.andUp ()));
+		return handleListIssues (new ListIssues (LogLevel.WARNING.andUp ()));
 	}
 
-	private void handleListDashboardActiveTasks(Object object) {
+	private CompletableFuture<Page<ActiveTask>> handleListDashboardActiveTasks() {
 		log.debug ("handleDashboardActiveTaskList");
 		
-		final Future<Object> dataSourceInfo = Patterns.ask(database, new GetDataSourceInfo(), 15000);
-		final Future<Object> harvestJobs = Patterns.ask(harvester, new GetActiveJobs(), 15000);
-		final Future<Object> loaderJobs = Patterns.ask(loader, new GetActiveJobs(), 15000);
-		final Future<Object> serviceJobs = Patterns.ask(service, new GetActiveJobs(), 15000);
+		CompletableFuture<Object> dataSourceInfo = f.ask(database, new GetDataSourceInfo());
+		CompletableFuture<Object> harvestJobs = f.ask(harvester, new GetActiveJobs());
+		CompletableFuture<Object> loaderJobs = f.ask(loader, new GetActiveJobs());
+		CompletableFuture<Object> serviceJobs = f.ask(service, new GetActiveJobs());
 		
-		final Future<Map<String, String>> dataSourceNames = dataSourceInfo.map(new Mapper<Object, Map<String, String>>() {
+		CompletableFuture<Map<String, String>> dataSourceNames = dataSourceInfo.thenApply(msg -> {
+			List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;
 			
-			@SuppressWarnings("unchecked")
-			public Map<String, String> apply(Object msg) {
-				List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;
-				
-				Map<String, String> retval = new HashMap<String, String>();
-				for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
-					retval.put(dataSourceInfo.getId(), dataSourceInfo.getName());
-				}
-				
-				return retval;
+			Map<String, String> retval = new HashMap<String, String>();
+			for(DataSourceInfo dsi : dataSourceInfos) {
+				retval.put(dsi.getId(), dsi.getName());
 			}
 			
-		}, getContext().dispatcher());
+			return retval;
+		});
 		
-		final Future<Iterable<ActiveTask>> activeHarvestTasks = 
-			harvestJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
-
-			@Override
-			public Future<Iterable<ActiveTask>> apply(Object msg) {
+		
+		final CompletableFuture<Iterable<ActiveTask>> activeHarvestTasks = 
+			harvestJobs.thenCompose(msg -> {
 				final ActiveJobs activeJobs = (ActiveJobs)msg;
 				
-				return dataSourceNames.map(new Mapper<Map<String, String>, Iterable<ActiveTask>>() {
+				return dataSourceNames.thenApply(dsn -> {
+					List<ActiveTask> activeTasks = new ArrayList<>();
 					
-					public Iterable<ActiveTask> apply(Map<String, String> dataSourceNames) {
-						List<ActiveTask> activeTasks = new ArrayList<>();
-						
-						for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
-							HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
-							 
-							activeTasks.add(
-									new ActiveTask(
-											"" + harvestJob.getId(), 
-											dataSourceNames.get(harvestJob.getDataSourceId()), 
-											new Message(JobType.HARVEST, new DefaultMessageProperties (
-													EntityType.DATA_SOURCE, harvestJob.getDataSourceId (), dataSourceNames.get(harvestJob.getDataSourceId()))), 
-											null));
-						}
-						
-						return activeTasks;
+					for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
+						HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
+						 
+						activeTasks.add(
+							new ActiveTask(
+									"" + harvestJob.getId(), 
+									dsn.get(harvestJob.getDataSourceId()), 
+									new Message(JobType.HARVEST, new DefaultMessageProperties (
+											EntityType.DATA_SOURCE, harvestJob.getDataSourceId (), dsn.get(harvestJob.getDataSourceId()))), 
+									null));
 					}
-				}, getContext().dispatcher());
-			}
-			
-		}, getContext().dispatcher());
+					
+					return activeTasks;					
+				});			
+		});
 		
-		final Future<Iterable<ActiveTask>> activeDatasetTasks = 
-			loaderJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
-				
-				public Future<Iterable<ActiveTask>> apply(Object msg) {
+		final CompletableFuture<Iterable<ActiveTask>> activeDatasetTasks = 
+			loaderJobs.thenCompose(msg -> {
 					final ActiveJobs activeLoaderJobs = (ActiveJobs)msg;
 					
-					final Map<String, Future<Object>> datasetInfos = new HashMap<String, Future<Object>>();
+					final Map<String, CompletableFuture<Object>> datasetInfos = new HashMap<>();
 					
-					return serviceJobs.flatMap(new Mapper<Object, Future<Iterable<ActiveTask>>>() {
-						
-						private Future<Object> getDatasetInfo(String datasetId) {
-							if(!datasetInfos.containsKey(datasetId)) {
-								datasetInfos.put(
-										datasetId,							
-										Patterns.ask(
-												database, 
-												new GetDatasetInfo(datasetId), 
-												15000));
-							}
+					return serviceJobs.thenCompose(msg1 -> {
+							final ActiveJobs activeServiceJobs = (ActiveJobs)msg1;
 							
-							return datasetInfos.get(datasetId);
-						}
-						
-						public Future<Iterable<ActiveTask>> apply(Object msg) {
-							final ActiveJobs activeServiceJobs = (ActiveJobs)msg;
-							
-							List<Future<ActiveTask>> activeTasks = new ArrayList<>();
+							List<CompletableFuture<ActiveTask>> activeTasks = new ArrayList<>();
 							for(ActiveJob activeLoaderJob : activeLoaderJobs.getActiveJobs()) {
 								final ImportJobInfo job = (ImportJobInfo)activeLoaderJob.getJob();
-								final Progress progress = (Progress)activeLoaderJob.getProgress();								
+								final Progress progress = (Progress)activeLoaderJob.getProgress();
 								
-								activeTasks.add(getDatasetInfo(job.getDatasetId()).map(new Mapper<Object, ActiveTask>() {
+								CompletableFuture<Object> dsi;
+								String datasetId = job.getDatasetId();
+								if(!datasetInfos.containsKey(datasetId)) {
+									dsi = f.ask(database, new GetDatasetInfo(datasetId));
 									
-									public ActiveTask apply(Object msg) {
-										DatasetInfo datasetInfo = (DatasetInfo)msg;
-										
-										return new ActiveTask(
-											"" + job.getId(),
-											datasetInfo.getName(),
-											new Message(JobType.IMPORT, new DefaultMessageProperties (
-													EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
-											(int)(progress.getCount() * 100 / progress.getTotalCount()));
-									}
+									datasetInfos.put(datasetId, dsi);
+								} else {
+									dsi = datasetInfos.get(datasetId);
+								}
+								
+								activeTasks.add(dsi.thenApply(msg2 -> {
+									DatasetInfo datasetInfo = (DatasetInfo)msg2;
 									
-								}, getContext().dispatcher()));
+									return new ActiveTask(
+										"" + job.getId(),
+										datasetInfo.getName(),
+										new Message(JobType.IMPORT, new DefaultMessageProperties (
+												EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
+										(int)(progress.getCount() * 100 / progress.getTotalCount()));
+								}));
 							}
 							
 							for(ActiveJob activeServiceJob : activeServiceJobs.getActiveJobs()) {								
 								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
 								final Progress progress = (Progress)activeServiceJob.getProgress();
 								
-								activeTasks.add(Futures.successful(new ActiveTask(
+								activeTasks.add(f.successful(new ActiveTask(
 										"" + job.getId(), 
 										job.getServiceId(), 
 										new Message(JobType.SERVICE, null),
 										(int)(progress.getCount() * 100 / progress.getTotalCount()))));
 							}
 							
-							return Futures.sequence(activeTasks, getContext().dispatcher());
-						}
-						
-					}, getContext().dispatcher());		
-					
-				}
-				
-			}, getContext().dispatcher());
+							return f.sequence(activeTasks);
+						});					
+				});
 		
-		final ActorRef sender = getSender();
-		activeHarvestTasks.flatMap(new Mapper<Iterable<ActiveTask>, Future<Iterable<ActiveTask>>>() {
-			
-			public Future<Iterable<ActiveTask>> apply(final Iterable<ActiveTask> activeHarvestTasks) {
-				return activeDatasetTasks.map(new Mapper<Iterable<ActiveTask>, Iterable<ActiveTask>>() {
-					
-					public Iterable<ActiveTask> apply(final Iterable<ActiveTask> activeLoaderTasks) {
-						return Iterables.concat(activeHarvestTasks, activeLoaderTasks);
-					}
-				}, getContext().dispatcher());
-			}
-			
-		}, getContext().dispatcher()).onSuccess(new OnSuccess<Iterable<ActiveTask>>() {
-
-			@Override
-			public void onSuccess(Iterable<ActiveTask> activeTasks) throws Throwable {
+		return activeHarvestTasks.thenCompose(harvestTasks -> {
+			return activeDatasetTasks.thenApply(loaderTasks -> {
+				Iterable<ActiveTask> tasks = Iterables.concat(harvestTasks, loaderTasks);
+				
 				Builder<ActiveTask> builder = new Page.Builder<>();
-				for(ActiveTask activeTask : activeTasks) {
+				for(ActiveTask activeTask : tasks) {
 					builder.add(activeTask);
 				}
-				sender.tell(builder.build(), getSelf());				
-			}
-			
-		}, getContext().dispatcher());
+				return builder.build();
+			});				
+		});
 	}
 
-	private void handleListDashboardNotifications(Object object) {
+	private CompletableFuture<Page<Notification>> handleListDashboardNotifications() {
 		log.debug ("handleDashboardNotificationList");
-		
-		final ActorRef sender = getSender();
 		 
 		final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification> ();
 		
-		sender.tell (dashboardNotifications.build (), getSelf());
+		return f.successful(dashboardNotifications.build ());
 	}
 
 	private void handleEmptyList (final ListEntity<?> listEntity) {
@@ -631,60 +525,54 @@ public class Admin extends UntypedActor {
 		sender ().tell (builder.build (), self ());
 	}
 	
-	private void handleGetDataSource (final GetEntity<?> getEntity) {
-		final DataSource dataSource = new DataSource (getEntity.id (), "DataSource: " + getEntity.id (), new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
+	private CompletableFuture<Object> handleGetDataSource (String dataSourceId) {
+		final DataSource dataSource = new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
 		
-		sender ().tell (dataSource, self ());
+		return f.successful(dataSource);
 	}
 	
-	private void handleGetCategory (final GetEntity<?> getEntity) {
+	private CompletableFuture<Object> handleGetCategory (String categoryId) {
 		log.debug ("handleCategory");
 		
-		final ActorRef sender = getSender();
-		
 		final CompletableFuture<Category> categoryList = db.query().from(category)
-				.where(category.identification.eq(getEntity.id()))
+				.where(category.identification.eq(categoryId))
 				.singleResult(new QCategory(category.identification, category.name));
 
-		categoryList.thenAccept(category -> {
+		return categoryList.thenApply(category -> {
 			if (category != null) {
 				log.debug("category received");
 				log.debug("sending category: " + category);
-				sender.tell(category, getSelf());
+
+				return category;
 			} else {
-				sender.tell(new NotFound(), getSelf());
+				return new NotFound();
 			}
 		});
 	}
 	
-	private void handleGetDataset (final GetEntity<?> getEntity) {
+	private CompletableFuture<Object> handleGetDataset (String datasetId) {
 		log.debug ("handleDataset");
 		
-		final ActorRef sender = getSender();
-		
-		final Future<Object> datasetInfo = Patterns.ask(database, new GetDatasetInfo(getEntity.id ()), 15000);
-				datasetInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						if(msg instanceof DatasetInfo) {
-							DatasetInfo datasetInfo = (DatasetInfo)msg;
-							log.debug("dataset info received");
-							final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
-							log.debug("sending dataset: " + dataset);
-							sender.tell (dataset, getSelf());
-						} else {
-							sender.tell (new NotFound(), getSelf());
-						}
-					}
-				}, getContext().dispatcher());
+		return f.ask(database, new GetDatasetInfo(datasetId)).thenApply(msg -> {
+			try {
+				if(msg instanceof DatasetInfo) {
+					DatasetInfo datasetInfo = (DatasetInfo)msg;
+					log.debug("dataset info received");
+					final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
+					log.debug("sending dataset: " + dataset);
+	
+					return dataset;
+				} else {
+					return new NotFound();
+				}
+			} catch(Throwable t) {
+				throw new RuntimeException(t);
+			}
+		});				
 	}
 	
-	private void handleGetSourceDataset(final GetEntity<?> getEntity) {
+	private CompletableFuture<Object> handleGetSourceDataset(String sourceDatasetId) {
 		log.debug("handleSourceDataset");
-
-		final ActorRef sender = getSender();
-
-		String sourceDatasetId = getEntity.id();
 
 		AsyncSQLQuery baseQuery = db
 				.query()
@@ -716,16 +604,17 @@ public class Admin extends UntypedActor {
 								dataSource.identification, dataSource.name, category.identification, category.name,
 								dataset.count()));
 
-		sourceDatasetInfo.thenAccept(msg -> {
+		return sourceDatasetInfo.thenApply(msg -> {
 			if (msg != null) {
 				log.debug("sourcedataset info received");
 				final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
 						EntityType.CATEGORY, msg.getCategoryId(), msg.getCategoryName()), new EntityRef(
 						EntityType.DATA_SOURCE, msg.getDataSourceId(), msg.getDataSourceName()));
 				log.debug("sending sourcedataset: " + sourceDataset);
-				sender.tell(sourceDataset, getSelf());
+
+				return sourceDataset;
 			} else {
-				sender.tell(new NotFound(), getSelf());
+				return new NotFound();
 			}
 		});
 	}
@@ -735,22 +624,21 @@ public class Admin extends UntypedActor {
 	 * Admin service Configuration getters
 	 */
 	
-	private void handleGetStyle (final GetEntity<?> getEntity) {
+	private CompletableFuture<Object> handleGetStyle (String styleId) {
 		log.debug ("handleGetStyle");
-		
-		final ActorRef sender = getSender();
 		
 		final CompletableFuture<Style> styleFuture = 
 				db.query().from(style)
-				.where(style.identification.eq(getEntity.id()))
+				.where(style.identification.eq(styleId))
 				.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
 
-		styleFuture.thenAccept(style -> {
+		return styleFuture.thenApply(style -> {
 			if (style != null) {
 				log.debug("sending style: " + style);
-				sender.tell(style, getSelf());
+
+				return style;
 			} else {
-				sender.tell(new NotFound(), getSelf());
+				return new NotFound();
 			}
 		});
 	}
@@ -792,24 +680,23 @@ public class Admin extends UntypedActor {
 	 * Admin service Configuration list
 	 */
 
-	private void handleListStyles (final ListEntity<?> listEntity) {
+	private CompletableFuture<Page<Style>> handleListStyles () {
 		log.debug ("handleListStyles");
-		
-		final ActorRef sender = getSender();
 		
 		final CompletableFuture<TypedList<Style>> styleList = 
 				db.query().from(style)
 				.list(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
 
-		styleList.thenAccept(msg -> {
-			if (msg != null){
-				final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
-				pageBuilder.addAll(msg.asCollection());
-				log.debug("sending style list");
-				sender.tell(pageBuilder.build(), getSelf());
-			} else {
-				sender.tell(new NotFound(), getSelf());
-			}
+		return styleList.thenApply(msg -> {
+			final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
+			
+			if (msg != null){				
+				pageBuilder.addAll(msg.asCollection());				
+			} 
+			
+			log.debug("sending style list");
+
+			return pageBuilder.build();
 		});
 
 	}
@@ -902,15 +789,13 @@ public class Admin extends UntypedActor {
 			);
 	}
 	
-	private void handleListDatasets (final ListDatasets listDatasets) {
+	private CompletableFuture<Page<Dataset>> handleListDatasets (final ListDatasets listDatasets) {
 		log.debug ("handleListDatasets: {}", listDatasets);
 		
 		String categoryId = listDatasets.categoryId();
 		long page = listDatasets.getPage();
-				
-		final ActorRef sender = getSender(), self = getSelf();
 		
-		db.transactional(tx -> {
+		return db.transactional(tx -> {
 			return tx.query().from(dataset)
 				.singleResult(dataset.count())
 				.thenCompose(datasetCount -> {
@@ -1007,119 +892,93 @@ public class Admin extends UntypedActor {
 									.build ();
 							});
 				});
-		}).whenComplete((msg, t) -> {
-			if(t != null) {
-				log.error("failed to retrieve information from database: {}" + t);
-			} else {
-				sender.tell (msg, self);
-			}
 		});
 	}
 
-	private void handleListIssues (final ListIssues listIssues) {
+	private CompletableFuture<Page<Issue>> handleListIssues (final ListIssues listIssues) {
 		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
 		
-		final ActorRef sender = sender ();
-		final ActorRef self = self ();
-
 		final long page = listIssues.getPage () != null ? Math.max (1, listIssues.getPage ()) : 1;
 		final long limit = listIssues.getLimit () != null ? Math.max (1, listIssues.getLimit ()) : ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 		
-		final Future<Object> issues = Patterns.ask (database, new GetJobLog (Order.DESC, offset, limit, listIssues.getLogLevels (), listIssues.getSince ()), 15000);
+		final CompletableFuture<Object> issues = f.ask (database, new GetJobLog (Order.DESC, offset, limit, listIssues.getLogLevels (), listIssues.getSince ()));
 		
-		issues.onSuccess (new OnSuccess<Object> () {
-			@Override
-			public void onSuccess (final Object msg) throws Throwable {
-				final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
+		return issues.thenApply(msg -> {
+			final Page.Builder<Issue> dashboardIssues = new Page.Builder<Issue>();
+			
+			@SuppressWarnings("unchecked")
+			InfoList<StoredJobLog> jobLogs = (InfoList<StoredJobLog>)msg;
+			for(StoredJobLog jobLog : jobLogs.getList ()) {
+				JobInfo job = jobLog.getJob();
 				
-				@SuppressWarnings("unchecked")
-				InfoList<StoredJobLog> jobLogs = (InfoList<StoredJobLog>)msg;
-				for(StoredJobLog jobLog : jobLogs.getList ()) {
-					JobInfo job = jobLog.getJob();
-					
-					MessageType<?> type = jobLog.getType();
-					
-					dashboardIssues.add(
-						new Issue(
-							"" + job.getId(),
-							new Message(
-								type,
-								jobLog.getContent ()
-							),
-							jobLog.getLevel(),
-							job.getJobType(),
-							jobLog.getWhen ()
-						)
-					);
-					
-				}
-
-				// Paging:
-				long count = jobLogs.getCount();
-				long pages = count / limit + Math.min(1, count % limit);
+				MessageType<?> type = jobLog.getType();
 				
-				if(pages > 1) {
-					dashboardIssues
-						.setHasMorePages(true)
-						.setPageCount(pages)
-						.setCurrentPage(page);
-				}
+				dashboardIssues.add(
+					new Issue(
+						"" + job.getId(),
+						new Message(
+							type,
+							jobLog.getContent ()
+						),
+						jobLog.getLevel(),
+						job.getJobType(),
+						jobLog.getWhen ()
+					)
+				);
 				
-				sender.tell(dashboardIssues.build(), self);
 			}
-		}, getContext().dispatcher());
+
+			// Paging:
+			long count = jobLogs.getCount();
+			long pages = count / limit + Math.min(1, count % limit);
+			
+			if(pages > 1) {
+				dashboardIssues
+					.setHasMorePages(true)
+					.setPageCount(pages)
+					.setCurrentPage(page);
+			}
+			
+			return dashboardIssues.build();
+		});	
 	}
 	
-	private void handleListActiveNotifications (final ListActiveNotifications listNotifications) {
-		final ActorRef sender = sender ();
-		final ActorRef self = self ();
-		
+	private CompletableFuture<Page<Notification>> handleListActiveNotifications (final ListActiveNotifications listNotifications) {
 		final long page = listNotifications.getPage () != null ? Math.max (1, listNotifications.getPage ()) : 1;
 		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 
-		final Future<Object> notifications = Patterns.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()), 15000);
+		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));
 		
-		notifications.onSuccess (new OnSuccess<Object> () {
-			@Override
-			public void onSuccess (final Object msg) throws Throwable {
-				final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
-				
-				@SuppressWarnings("unchecked")
-				final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
-				
-				for (final StoredNotification storedNotification: storedNotifications.getList ()) {
-					dashboardNotifications.add (createNotification (storedNotification));
-				}
-				
-				// Paging:
-				long count = storedNotifications.getCount ();
-				long pages = count / limit + Math.min(1, count % limit);
-				
-				if(pages > 1) {
-					dashboardNotifications
-						.setHasMorePages(true)
-						.setPageCount(pages)
-						.setCurrentPage(page);
-				}
-				
-				sender.tell (dashboardNotifications.build(), self);
+		return notifications.thenApply(msg -> {
+			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
+			
+			@SuppressWarnings("unchecked")
+			final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
+			
+			for (final StoredNotification storedNotification: storedNotifications.getList ()) {
+				dashboardNotifications.add (createNotification (storedNotification));
 			}
-		}, getContext().dispatcher());
+			
+			// Paging:
+			long count = storedNotifications.getCount ();
+			long pages = count / limit + Math.min(1, count % limit);
+			
+			if(pages > 1) {
+				dashboardNotifications
+					.setHasMorePages(true)
+					.setPageCount(pages)
+					.setCurrentPage(page);
+			}
+			
+			return dashboardNotifications.build();
+		});		
 	}
 	
-	private void handlePutNotificationResult (final PutNotificationResult query) {
-		final ActorRef sender = sender ();
-		final ActorRef self = self ();
-		
-		final Future<Object> result = Patterns.ask (database, new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), 15000);
-		
-		result.onSuccess (new OnSuccess<Object> () {
-			@Override
-			public void onSuccess (final Object msg) throws Throwable {
-				sender.tell ((Response<?>) msg, self);
-			}
-		}, context ().dispatcher ());
+	private CompletableFuture<Response<?>> handlePutNotificationResult (final PutNotificationResult query) {		
+		return f.ask (database, 
+			new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), Response.class)
+			.thenApply(resp -> (Response<?>)resp);
 	}
 } 

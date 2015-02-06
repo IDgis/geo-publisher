@@ -30,7 +30,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database;	
+	protected final ActorRef database;	
 	
 	protected FutureUtils f;
 	
@@ -68,15 +68,15 @@ public abstract class AbstractAdmin extends UntypedActor {
 		}
 	}
 	
-	protected <T, U extends DomainQuery<T>> void addQuery(Class<U> query, Function<? super U, CompletableFuture<? extends T>> func) {	
+	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
 		queryHandlers.put(query, func);
 	}
 	
-	protected <T extends Entity> void addList(Class<T> entity, Supplier<CompletableFuture<Page<? extends T>>> func) {	
+	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {	
 		listHandlers.put(entity, func);
 	}
 	
-	protected <T extends Entity> void addGet(Class<T> entity, Function<String, CompletableFuture<? extends T>> func) {	
+	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Object>> func) {	
 		getHandlers.put(entity, func);
 	}
 	
@@ -98,6 +98,12 @@ public abstract class AbstractAdmin extends UntypedActor {
 		ActorRef sender = getSender(), self = getSelf();
 		future.thenAccept(resp -> sender.tell(resp, self));
 	}
+	
+	protected void toFallback(Object msg) throws Exception {
+		log.debug("sending to parent");
+		
+		getContext().parent().forward(msg, getContext());
+	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
@@ -109,9 +115,9 @@ public abstract class AbstractAdmin extends UntypedActor {
 			@SuppressWarnings("unchecked")
 			Function<String, CompletableFuture<?>> getHandler = getHandlers.get(entity);
 			if(getHandler == null) {
-				log.debug("forwarding get entity to parent: {}", entity);
+				log.debug("get entity not handled: {}", entity);
 				
-				getContext().parent().forward(msg, getContext());
+				toFallback(msg);
 			} else {
 				log.debug("handling get entity: {}", entity);
 				
@@ -123,9 +129,9 @@ public abstract class AbstractAdmin extends UntypedActor {
 			@SuppressWarnings("unchecked")
 			Supplier<CompletableFuture<?>> listHandler = listHandlers.get(entity);
 			if(listHandler == null) {
-				log.debug("forwarding list entity to parent: {}", entity);
+				log.debug("list entity not handled: {}", entity);
 				
-				getContext().parent().forward(msg, getContext());
+				toFallback(msg);
 			} else {
 				log.debug("handling list entity: {}", entity);
 				
@@ -135,9 +141,9 @@ public abstract class AbstractAdmin extends UntypedActor {
 			@SuppressWarnings("unchecked")
 			Function<DomainQuery<?>, CompletableFuture<?>> queryHandler = queryHandlers.get(clazz);
 			if(queryHandler == null) {
-				log.debug("forwarding query to parent: {}", msg);
+				log.debug("query not handled: {}", msg);
 				
-				getContext().parent().forward(msg, getContext());
+				toFallback(msg);
 			} else {
 				log.debug("handling query: {}", msg);
 				
