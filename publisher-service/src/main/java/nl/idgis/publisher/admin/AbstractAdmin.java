@@ -108,7 +108,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		});
 	}
 	
-	protected void toFallback(Object msg) throws Exception {
+	protected void unhandledQuery(Object msg) throws Exception {
 		log.debug("sending to parent");
 		
 		getContext().parent().forward(msg, getContext());
@@ -126,7 +126,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			if(getHandler == null) {
 				log.debug("get entity not handled: {}", entity);
 				
-				toFallback(msg);
+				unhandledQuery(msg);
 			} else {
 				log.debug("handling get entity: {}", entity);
 				
@@ -141,7 +141,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			if(listHandler == null) {
 				log.debug("list entity not handled: {}", entity);
 				
-				toFallback(msg);
+				unhandledQuery(msg);
 			} else {
 				log.debug("handling list entity: {}", entity);
 				
@@ -153,7 +153,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			if(queryHandler == null) {
 				log.debug("query not handled: {}", msg);
 				
-				toFallback(msg);
+				unhandledQuery(msg);
 			} else {
 				log.debug("handling query: {}", msg);
 				

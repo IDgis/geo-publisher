@@ -148,7 +148,7 @@ public class Admin extends AbstractAdmin {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
 	}
 	
-	protected void toFallback(Object msg) throws Exception {
+	protected void unhandledQuery(Object msg) throws Exception {
 		if (msg instanceof PutEntity<?>) {
 			final PutEntity<?> putEntity = (PutEntity<?>)msg;
 			if (putEntity.value() instanceof PutDataset) {
