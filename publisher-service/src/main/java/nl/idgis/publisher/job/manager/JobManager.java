@@ -314,8 +314,15 @@ public class JobManager extends UntypedActor {
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.where(dataset.identification.eq(datasetId))
-			.singleResult(sourceDatasetVersion.id.max()).thenApply(id ->
-				id.orElseThrow(() -> new IllegalStateException("dataset missing")));			
+			.singleResult(sourceDatasetVersion.id.max()).thenApply(id -> {			
+				// Optional.orElseThrow cannot be used here because of a bug in javac
+				if(id.isPresent()) {
+					return id.get();
+				} else {					 
+					throw new IllegalStateException("dataset missing");
+				}
+			});
+							
 	}
 
 	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
