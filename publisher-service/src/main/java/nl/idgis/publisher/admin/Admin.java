@@ -18,6 +18,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -525,32 +526,19 @@ public class Admin extends AbstractAdmin {
 		sender ().tell (builder.build (), self ());
 	}
 	
-	private CompletableFuture<Object> handleGetDataSource (String dataSourceId) {
-		final DataSource dataSource = new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())));
-		
-		return f.successful(dataSource);
+	private CompletableFuture<Optional<DataSource>> handleGetDataSource (String dataSourceId) {
+		return f.successful(Optional.of(new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())))));
 	}
 	
-	private CompletableFuture<Object> handleGetCategory (String categoryId) {
+	private CompletableFuture<Optional<Category>> handleGetCategory (String categoryId) {
 		log.debug ("handleCategory");
 		
-		final CompletableFuture<Category> categoryList = db.query().from(category)
-				.where(category.identification.eq(categoryId))
-				.singleResult(new QCategory(category.identification, category.name));
-
-		return categoryList.thenApply(category -> {
-			if (category != null) {
-				log.debug("category received");
-				log.debug("sending category: " + category);
-
-				return category;
-			} else {
-				return new NotFound();
-			}
-		});
+		return db.query().from(category)
+			.where(category.identification.eq(categoryId))
+			.singleResult(new QCategory(category.identification, category.name));		
 	}
 	
-	private CompletableFuture<Object> handleGetDataset (String datasetId) {
+	private CompletableFuture<Optional<Dataset>> handleGetDataset (String datasetId) {
 		log.debug ("handleDataset");
 		
 		return f.ask(database, new GetDatasetInfo(datasetId)).thenApply(msg -> {
@@ -561,9 +549,9 @@ public class Admin extends AbstractAdmin {
 					final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
 					log.debug("sending dataset: " + dataset);
 	
-					return dataset;
+					return Optional.of(dataset);
 				} else {
-					return new NotFound();
+					return Optional.empty();
 				}
 			} catch(Throwable t) {
 				throw new RuntimeException(t);
@@ -571,7 +559,7 @@ public class Admin extends AbstractAdmin {
 		});				
 	}
 	
-	private CompletableFuture<Object> handleGetSourceDataset(String sourceDatasetId) {
+	private CompletableFuture<Optional<SourceDataset>> handleGetSourceDataset(String sourceDatasetId) {
 		log.debug("handleSourceDataset");
 
 		AsyncSQLQuery baseQuery = db
@@ -588,35 +576,32 @@ public class Admin extends AbstractAdmin {
 
 		if (sourceDatasetId != null) {
 			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
-		}
+		}		
 
-		AsyncSQLQuery listQuery = baseQuery.clone().leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
-
-		final CompletableFuture<SourceDatasetInfo> sourceDatasetInfo = listQuery
-				.groupBy(sourceDataset.identification)
-				.groupBy(sourceDatasetVersion.name)
-				.groupBy(dataSource.identification)
-				.groupBy(dataSource.name)
-				.groupBy(category.identification)
-				.groupBy(category.name)
-				.singleResult(
-						new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name,
-								dataSource.identification, dataSource.name, category.identification, category.name,
-								dataset.count()));
-
-		return sourceDatasetInfo.thenApply(msg -> {
-			if (msg != null) {
-				log.debug("sourcedataset info received");
-				final SourceDataset sourceDataset = new SourceDataset(msg.getId(), msg.getName(), new EntityRef(
-						EntityType.CATEGORY, msg.getCategoryId(), msg.getCategoryName()), new EntityRef(
-						EntityType.DATA_SOURCE, msg.getDataSourceId(), msg.getDataSourceName()));
-				log.debug("sending sourcedataset: " + sourceDataset);
-
-				return sourceDataset;
-			} else {
-				return new NotFound();
-			}
-		});
+		return baseQuery
+			.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.groupBy(sourceDataset.identification)
+			.groupBy(sourceDatasetVersion.name)
+			.groupBy(dataSource.identification)
+			.groupBy(dataSource.name)
+			.groupBy(category.identification)
+			.groupBy(category.name)
+			.singleResult(
+				new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name,
+					dataSource.identification, dataSource.name, category.identification, category.name,
+					dataset.count())).thenApply(sourceDatasetInfoOptional -> 
+						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
+							new SourceDataset(
+								sourceDatasetInfo.getId(), 
+								sourceDatasetInfo.getName(), 
+								new EntityRef(
+									EntityType.CATEGORY, 
+									sourceDatasetInfo.getCategoryId(), 
+									sourceDatasetInfo.getCategoryName()), 
+								new EntityRef(
+									EntityType.DATA_SOURCE, 
+									sourceDatasetInfo.getDataSourceId(), 
+									sourceDatasetInfo.getDataSourceName()))));	
 	}
 
 	
@@ -624,23 +609,13 @@ public class Admin extends AbstractAdmin {
 	 * Admin service Configuration getters
 	 */
 	
-	private CompletableFuture<Object> handleGetStyle (String styleId) {
+	private CompletableFuture<Optional<Style>> handleGetStyle (String styleId) {
 		log.debug ("handleGetStyle");
 		
-		final CompletableFuture<Style> styleFuture = 
-				db.query().from(style)
-				.where(style.identification.eq(styleId))
-				.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
-
-		return styleFuture.thenApply(style -> {
-			if (style != null) {
-				log.debug("sending style: " + style);
-
-				return style;
-			} else {
-				return new NotFound();
-			}
-		});
+		return 
+			db.query().from(style)
+			.where(style.identification.eq(styleId))
+			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));		
 	}
 	
 	private void handleCreateStyle(PutStyle putStyle) throws JsonProcessingException {
@@ -652,7 +627,7 @@ public class Admin extends AbstractAdmin {
 		// Check if there is another style with the same name
 		final CompletableFuture<String>  styleId = db.query().from(style)
 				.where(style.name.eq(styleName))
-				.singleResult(style.name);
+				.singleResult(style.name).thenApply(id -> id.get());
 
 		styleId.thenAccept(msg -> {
 			if (msg == null){
@@ -797,7 +772,7 @@ public class Admin extends AbstractAdmin {
 		
 		return db.transactional(tx -> {
 			return tx.query().from(dataset)
-				.singleResult(dataset.count())
+				.count()
 				.thenCompose(datasetCount -> {
 					AsyncSQLQuery baseQuery = tx.query().from(dataset)
 						.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))

@@ -3,8 +3,6 @@ package nl.idgis.publisher.database;
 import static nl.idgis.publisher.database.QCategory.category;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
@@ -69,17 +67,17 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 	
 	@Test
 	public void testSingleResult() throws Exception {
-		assertNull(
+		assertFalse(
 				db.query()
 						.from(category)
-						.singleResult(category.id, category.name).get());
+						.singleResult(category.id, category.name).get().isPresent());
 		
 		insertCategory();
 		
-		assertNotNull(
+		assertTrue(
 				db.query()
 						.from(category)
-						.singleResult(category.id, category.name).get());
+						.singleResult(category.id, category.name).get().isPresent());
 	}
 
 	private void insertCategory() {

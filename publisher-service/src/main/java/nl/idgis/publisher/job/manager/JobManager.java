@@ -205,9 +205,10 @@ public class JobManager extends UntypedActor {
 			tx.query().from(jobState)
 				.where(jobState.jobId.eq(msg.getJob().getId()))
 				.orderBy(jobState.id.desc())
-				.singleResult(jobState.id).thenCompose(jobStateId ->
+				.singleResult(jobState.id).thenCompose(jobStateId ->					
 					tx.insert(jobLog)
-						.set(jobLog.jobStateId, jobStateId)
+						.set(jobLog.jobStateId, jobStateId
+							.orElseThrow(() -> new IllegalStateException("job state missing")))
 						.set(jobLog.level, log.getLevel().name())
 						.set(jobLog.type, log.getType().name())
 						.set(jobLog.content, jsonContent)
@@ -313,7 +314,8 @@ public class JobManager extends UntypedActor {
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.where(dataset.identification.eq(datasetId))
-			.singleResult(sourceDatasetVersion.id.max());
+			.singleResult(sourceDatasetVersion.id.max()).thenApply(id ->
+				id.orElseThrow(() -> new IllegalStateException("dataset missing")));			
 	}
 
 	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
@@ -378,7 +380,8 @@ public class JobManager extends UntypedActor {
 							.thenCompose((jobId, datasetId) -> 
 								tx.insert(removeJob)
 									.set(removeJob.jobId, jobId)
-									.set(removeJob.datasetId, datasetId)
+									.set(removeJob.datasetId, datasetId
+										.orElseThrow(() -> new IllegalArgumentException("dataset not exists")))
 									.execute().thenApply(l -> new Ack()));
 					}
 				})
@@ -416,7 +419,8 @@ public class JobManager extends UntypedActor {
 							return 
 								tx.insert(harvestJob)
 									.set(harvestJob.jobId, jobId)				
-									.set(harvestJob.dataSourceId, dataSourceId)
+									.set(harvestJob.dataSourceId, dataSourceId
+										.orElseThrow(() -> new IllegalArgumentException("data source not exists")))
 									.execute();
 						})
 						

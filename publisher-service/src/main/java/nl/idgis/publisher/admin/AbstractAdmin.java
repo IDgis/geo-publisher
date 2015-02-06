@@ -2,6 +2,7 @@ package nl.idgis.publisher.admin;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -76,7 +77,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		listHandlers.put(entity, func);
 	}
 	
-	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Object>> func) {	
+	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
 		getHandlers.put(entity, func);
 	}
 	

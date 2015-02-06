@@ -44,6 +44,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.typesafe.config.Config;
 
@@ -95,41 +96,49 @@ public class ServiceApp extends UntypedActor {
 		db.query().from(version)
 			.orderBy(version.id.desc())
 			.limit(1)
-			.singleResult(version.id, version.createTime).thenCompose(versionInfo -> {
-				int versionId = versionInfo.get(version.id);
-				Timestamp createTime = versionInfo.get(version.createTime);
-				
-				log.info("database version id: {}, createTime: {}", versionId, createTime);
-				
-				int lastVersionId = JdbcUtils.maxRev("nl/idgis/publisher/database", versionId);
-				
-				if(versionId != lastVersionId) {
-					log.error("database obsolete, expected version id: " + lastVersionId);
+			.singleResult(version.id, version.createTime).thenCompose(versionInfoOptional -> {
+				if(versionInfoOptional.isPresent()) {
+					Tuple versionInfo = versionInfoOptional.get();
+			
+					int versionId = versionInfo.get(version.id);
+					Timestamp createTime = versionInfo.get(version.createTime);
+					
+					log.info("database version id: {}, createTime: {}", versionId, createTime);
+					
+					int lastVersionId = JdbcUtils.maxRev("nl/idgis/publisher/database", versionId);
+					
+					if(versionId != lastVersionId) {
+						log.error("database obsolete, expected version id: " + lastVersionId);
+						
+						return f.<Object>successful(PoisonPill.getInstance());
+					} else {
+						// mark running all jobs (started but not finished) as failed 
+						
+						return db.insert(jobState)
+							.columns(
+								jobState.jobId,
+								jobState.state)
+							.select(
+								new SQLSubQuery().from(jobState1)
+									.where(jobState1.state.eq(JobState.STARTED.name())
+										.and(new SQLSubQuery().from(jobState2)
+												.where(jobState1.jobId.eq(jobState2.jobId)
+														.and(jobState2.state.in(
+															enumsToStrings(JobState.getFinished()))))
+												.notExists()))
+								.list(
+									jobState1.jobId, 
+									JobState.FAILED.name()))
+							.execute().thenApply(jobsTerminated -> {
+								log.debug("jobs terminated: {}",  + jobsTerminated);
+								
+								return new StartService();
+							});
+					}
+				} else {
+					log.error("version info missing");
 					
 					return f.<Object>successful(PoisonPill.getInstance());
-				} else {
-					// mark running all jobs (started but not finished) as failed 
-					
-					return db.insert(jobState)
-						.columns(
-							jobState.jobId,
-							jobState.state)
-						.select(
-							new SQLSubQuery().from(jobState1)
-								.where(jobState1.state.eq(JobState.STARTED.name())
-									.and(new SQLSubQuery().from(jobState2)
-											.where(jobState1.jobId.eq(jobState2.jobId)
-													.and(jobState2.state.in(
-														enumsToStrings(JobState.getFinished()))))
-											.notExists()))
-							.list(
-								jobState1.jobId, 
-								JobState.FAILED.name()))
-						.execute().thenApply(jobsTerminated -> {
-							log.debug("jobs terminated: {}",  + jobsTerminated);
-							
-							return new StartService();
-						});
 				}
 			}).whenComplete((msg, t) -> {
 				if(t != null) {

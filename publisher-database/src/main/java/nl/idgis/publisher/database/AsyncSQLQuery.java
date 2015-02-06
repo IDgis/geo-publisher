@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.DefaultQueryMetadata;
@@ -97,7 +98,7 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 		return exprArgs;
 	}
 	
-	private <T> CompletableFuture<T> singleResult(CompletableFuture<TypedList<T>> listResult) {
+	private <T> CompletableFuture<Optional<T>> singleResult(CompletableFuture<TypedList<T>> listResult) {
 		return listResult.thenApply(list -> {
 			Iterator<T> itr = list.iterator();
 			
@@ -106,32 +107,32 @@ public class AsyncSQLQuery extends AbstractAsyncSQLQuery<AsyncSQLQuery> implemen
 				if(itr.hasNext()) {
 					throw new NonUniqueResultException();
 				} else {
-					return retval;
+					return Optional.of(retval);
 				}
 			} else {
-				return null;
+				return Optional.empty();
 			}
 		});
 	}
 
 	@Override
-	public CompletableFuture<Tuple> singleResult(Expression<?>... args) {
+	public CompletableFuture<Optional<Tuple>> singleResult(Expression<?>... args) {
 		return singleResult(list(args));
 	}
 
 	@Override
-	public <RT> CompletableFuture<RT> singleResult(Expression<RT> projection) {
+	public <RT> CompletableFuture<Optional<RT>> singleResult(Expression<RT> projection) {
 		return singleResult(list(projection));
 	}
 
 	@Override
-	public CompletableFuture<Tuple> singleResult(Object... args) {
+	public CompletableFuture<Optional<Tuple>> singleResult(Object... args) {
 		return singleResult(asExpressions(args));
 	}
 
 	@Override
 	public CompletableFuture<Boolean> exists() {
-		return limit(1).singleResult(NumberTemplate.ONE).thenApply(i -> i != null);
+		return limit(1).singleResult(NumberTemplate.ONE).thenApply(i -> i.isPresent());
 	}
 
 	@Override
