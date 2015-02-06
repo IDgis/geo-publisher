@@ -97,8 +97,14 @@ public abstract class AbstractAdmin extends UntypedActor {
 	}
 	
 	private void toSender(CompletableFuture<?> future) {
-		ActorRef sender = getSender(), self = getSelf();
-		future.thenAccept(resp -> sender.tell(resp, self));
+		ActorRef sender = getSender(), self = getSelf();		
+		future.whenComplete((resp, t) -> {
+			if(t != null) {
+				log.error("failure: {}", t);
+			} else {			
+				sender.tell(resp, self);
+			}
+		});
 	}
 	
 	protected void toFallback(Object msg) throws Exception {
