@@ -22,6 +22,7 @@ import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
+import nl.idgis.publisher.domain.web.NotFound;
 
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -114,7 +115,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			Class<?> entity = ((GetEntity<?>)msg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<?>> getHandler = getHandlers.get(entity);
+			Function<String, CompletableFuture<Optional<Object>>> getHandler = getHandlers.get(entity);
 			if(getHandler == null) {
 				log.debug("get entity not handled: {}", entity);
 				
@@ -122,7 +123,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 			} else {
 				log.debug("handling get entity: {}", entity);
 				
-				toSender(getHandler.apply(((GetEntity<?>)msg).id()));
+				toSender(getHandler.apply(((GetEntity<?>)msg).id())
+					.thenApply(resp -> resp.orElse(new NotFound())));
 			}
 		} else if(msg instanceof ListEntity) {
 			Class<?> entity = ((ListEntity<?>)msg).cls();
