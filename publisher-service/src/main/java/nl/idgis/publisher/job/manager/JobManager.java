@@ -315,7 +315,7 @@ public class JobManager extends UntypedActor {
 			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.where(dataset.identification.eq(datasetId))
 			.singleResult(sourceDatasetVersion.id.max()).thenApply(id -> {			
-				// Optional.orElseThrow cannot be used here because of a bug in javac
+				// Optional.orElseThrow cannot be used here because of a bug in javac (JDK-8054569)
 				if(id.isPresent()) {
 					return id.get();
 				} else {					 
