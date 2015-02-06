@@ -37,8 +37,8 @@ public class DataSources extends AbstractAdmin {
 	}	
 
 	@Override
-	protected void queries() {
-		query(ListSourceDatasets.class, msg -> {
+	protected void addQueries() {
+		addQuery(ListSourceDatasets.class, msg -> {
 			return db.transactional(tx -> {
 				AsyncSQLQuery baseQuery = tx.query().from(sourceDataset)
 					.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
@@ -99,6 +99,6 @@ public class DataSources extends AbstractAdmin {
 						return pageBuilder.build();
 					});
 			});
-		});	
+		});
 	}
 }

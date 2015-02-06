@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.mysema.query.SimpleQuery;
 
@@ -15,10 +16,11 @@ import akka.util.Timeout;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
-import nl.idgis.publisher.protocol.messages.Failure;
-
 import nl.idgis.publisher.domain.query.DomainQuery;
+import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.web.Entity;
 
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -35,7 +37,10 @@ public abstract class AbstractAdmin extends UntypedActor {
 	protected AsyncDatabaseHelper db;
 	
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Function> queryHandlers;
+	protected Map<Class, Function> queryHandlers, getHandlers;
+	
+	@SuppressWarnings("rawtypes")
+	protected Map<Class, Supplier> listHandlers; 
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -63,11 +68,19 @@ public abstract class AbstractAdmin extends UntypedActor {
 		}
 	}
 	
-	protected <T, U extends DomainQuery<T>> void query(Class<U> query, Function<? super U, CompletableFuture<? extends T>> func) {	
+	protected <T, U extends DomainQuery<T>> void addQuery(Class<U> query, Function<? super U, CompletableFuture<? extends T>> func) {	
 		queryHandlers.put(query, func);
 	}
 	
-	protected abstract void queries();
+	protected <T extends Entity> void addList(Class<T> entity, Supplier<CompletableFuture<Page<? extends T>>> func) {	
+		listHandlers.put(entity, func);
+	}
+	
+	protected <T extends Entity> void addGet(Class<T> entity, Function<String, CompletableFuture<? extends T>> func) {	
+		getHandlers.put(entity, func);
+	}
+	
+	protected abstract void addQueries();
 	
 	@Override
 	public final void preStart() throws Exception {
@@ -75,31 +88,60 @@ public abstract class AbstractAdmin extends UntypedActor {
 		db = new AsyncDatabaseHelper(database, f, log);
 		
 		queryHandlers = new HashMap<>();
-		queries();
+		listHandlers = new HashMap<>();
+		getHandlers = new HashMap<>();
+		
+		addQueries();
+	}
+	
+	private void toSender(CompletableFuture<?> future) {
+		ActorRef sender = getSender(), self = getSelf();
+		future.thenAccept(resp -> sender.tell(resp, self));
 	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
 		Class<?> clazz = msg.getClass();
 		
-		if(msg instanceof DomainQuery) {
+		if(msg instanceof GetEntity) {
+			Class<?> entity = ((GetEntity<?>)msg).cls();
+			
+			@SuppressWarnings("unchecked")
+			Function<String, CompletableFuture<?>> getHandler = getHandlers.get(entity);
+			if(getHandler == null) {
+				log.debug("forwarding get entity to parent: {}", entity);
+				
+				getContext().parent().forward(msg, getContext());
+			} else {
+				log.debug("handling get entity: {}", entity);
+				
+				toSender(getHandler.apply(((GetEntity<?>)msg).id()));
+			}
+		} else if(msg instanceof ListEntity) {
+			Class<?> entity = ((ListEntity<?>)msg).cls();
+			
+			@SuppressWarnings("unchecked")
+			Supplier<CompletableFuture<?>> listHandler = listHandlers.get(entity);
+			if(listHandler == null) {
+				log.debug("forwarding list entity to parent: {}", entity);
+				
+				getContext().parent().forward(msg, getContext());
+			} else {
+				log.debug("handling list entity: {}", entity);
+				
+				toSender(listHandler.get());
+			}
+		} else if(msg instanceof DomainQuery) {
 			@SuppressWarnings("unchecked")
 			Function<DomainQuery<?>, CompletableFuture<?>> queryHandler = queryHandlers.get(clazz);
 			if(queryHandler == null) {
-				log.debug("forwarding to parent: {}", msg);
+				log.debug("forwarding query to parent: {}", msg);
 				
 				getContext().parent().forward(msg, getContext());
 			} else {
 				log.debug("handling query: {}", msg);
 				
-				ActorRef sender = getSender(), self = getSelf();
-				queryHandler.apply((DomainQuery<?>)msg).whenComplete((resp, t) -> {
-					if(t != null) {
-						sender.tell(new Failure(t), self);
-					} else {
-						sender.tell(resp, self);
-					}
-				});
+				toSender(queryHandler.apply((DomainQuery<?>)msg));
 			}
 		} else {
 			unhandled(msg);
