@@ -1,0 +1,15 @@
+@(errors: java.util.List[play.data.validation.ValidationError])
+<!--
+ Inserts alert help block with a list of errors if appropriate.
+ Use in a form page near or under the form field (input, textarea, ..).
+-->
+
+@if(!errors.isEmpty) {
+	<div class="help-block">
+		<ul class="alert alert-danger">
+			@for(error <- errors) {
+				<li>@Messages(error.message, error.arguments: _*)</li>
+			}
+		</ul>
+	</div>
+}
