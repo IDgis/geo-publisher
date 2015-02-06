@@ -2,9 +2,19 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import models.Domain.Function;
+import models.Domain.Function4;
+import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.SourceDataset;
+import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -12,32 +22,16 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.datasources.list;
+import actions.DefaultAuthenticator;
+import actors.Database;
+import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import views.html.datasources.list;
-import actions.DefaultAuthenticator;
-
-import akka.actor.ActorSelection;
-
-import models.Domain.Function;
-import models.Domain.Function4;
-
-import nl.idgis.publisher.domain.query.ListSourceDatasets;
-import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.web.Category;
-import nl.idgis.publisher.domain.web.DataSource;
-import nl.idgis.publisher.domain.web.SourceDataset;
-import nl.idgis.publisher.domain.web.SourceDatasetStats;
-
 @Security.Authenticated (DefaultAuthenticator.class)
-public class DataSources extends Controller {	
-	
-	private static ActorSelection adminActor () {
-		return Akka.system().actorSelection (
-			Play.application().configuration().getString("publisher.database.actorRef")
-			+ "/data-sources");
-	}
+public class DataSources extends Controller {
+	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
 	public static Promise<Result> list (final String search, final long page) {
 		return listByDataSourceAndCategory (null, null, search, page);
@@ -52,7 +46,10 @@ public class DataSources extends Controller {
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
-		return from(adminActor ())
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
 			.query(new ListSourceDatasets (dataSourceId, categoryId))
 			.execute(new Function<Page<SourceDatasetStats>, Result>() {
 
@@ -87,8 +84,15 @@ public class DataSources extends Controller {
 		return listByDataSourceAndCategoryAndSearchString (null, null, search, page);
 	}
 	
-	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, final String categoryId, final String search, final long page) {		
-		return from (adminActor ())
+	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, final String categoryId, final String search, final long page) {
+		// Hack: force the database actor to be loaded:
+		if (Database.instance == null) {
+			throw new NullPointerException ();
+		}
+		
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
 			.list (DataSource.class)
 			.list (Category.class)
 			.get (DataSource.class, dataSourceId)
@@ -97,7 +101,7 @@ public class DataSources extends Controller {
 				@Override
 				public Promise<Result> apply (final Page<DataSource> dataSources, final Page<Category> categories, final DataSource currentDataSource, final Category currentCategory) throws Throwable {
 					
-					return from (adminActor ())
+					return from (database)
 							.query (new ListSourceDatasets (currentDataSource, currentCategory, search, page))
 							.execute (new Function<Page<SourceDatasetStats>, Result> () {
 								@Override
@@ -121,10 +125,12 @@ public class DataSources extends Controller {
 	public static Promise<Result> download(final String search) {
 		final String encoding = "iso-8859-1";
 		final String filename = "sourcedatasets.csv";
+
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		String currentDataSource = null; 
 		String currentCategory = null;
-		return from (adminActor ())
+		return from (database)
 			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, null))
 			.execute (new Function<Page<SourceDatasetStats>, Result> () {
 				@Override

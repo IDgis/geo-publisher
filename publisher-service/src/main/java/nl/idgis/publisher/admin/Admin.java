@@ -79,6 +79,7 @@ import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
+import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
@@ -101,12 +102,12 @@ import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
-import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.PutStyle;
 import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.SourceDataset;
+import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.domain.web.Style;
 
@@ -180,8 +181,6 @@ public class Admin extends AbstractAdmin {
 	
 	@Override
 	public void preStartAdmin() {
-		getContext().actorOf(DataSources.props(database), "data-sources");
-	
 		addList(DataSource.class, this::handleListDataSources);
 		addList(Category.class, this::handleListCategories);
 		addList(Dataset.class, () -> handleListDatasets(null));
@@ -208,6 +207,7 @@ public class Admin extends AbstractAdmin {
 		addQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
 		addQuery(PutNotificationResult.class, this::handlePutNotificationResult);
 		addQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
+		addQuery(ListSourceDatasets.class, this::handleListSourceDatasets);
 	}
 
 	private static Notification createNotification (final StoredNotification storedNotification) {
@@ -321,18 +321,11 @@ public class Admin extends AbstractAdmin {
 	private CompletableFuture<List<Column>> handleListDatasetColumns(final ListDatasetColumns listColumns) {
 		log.debug("handleListDatasetColumns");		
 
-		final CompletableFuture<TypedList<Column>> columnList = db.query().from(datasetColumn).join(dataset)
-				.on(dataset.id.eq(datasetColumn.datasetId))
-				.where(dataset.identification.eq(listColumns.getDatasetId()))
-				.list(new QColumn(datasetColumn.name, datasetColumn.dataType));
-
-		return columnList.thenApply(msg -> {
-			log.debug("dataset column list received");
-			log.debug("sending dataset column list");
-			
-			return msg.list();
-		});		
-
+		return db.query().from(datasetColumn)
+			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+			.where(dataset.identification.eq(listColumns.getDatasetId()))
+			.list(new QColumn(datasetColumn.name, datasetColumn.dataType))
+			.thenApply(columns -> columns.list());
 	}
 	
 	private CompletableFuture<List<ColumnDiff>> handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
@@ -955,5 +948,68 @@ public class Admin extends AbstractAdmin {
 		return f.ask (database, 
 			new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), Response.class)
 			.thenApply(resp -> (Response<?>)resp);
+	}
+	
+	private CompletableFuture<Page<SourceDatasetStats>> handleListSourceDatasets(ListSourceDatasets msg) {
+		return db.transactional(tx -> {
+			AsyncSQLQuery baseQuery = tx.query().from(sourceDataset)
+				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+						.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+							.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+						.notExists()))
+				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
+			
+			String categoryId = msg.categoryId();
+			if(categoryId != null) {				
+				baseQuery.where(category.identification.eq(categoryId));
+			}
+			
+			String dataSourceId = msg.dataSourceId();
+			if(dataSourceId != null) {				
+				baseQuery.where(dataSource.identification.eq(dataSourceId));
+			}
+			
+			String searchStr = msg.getSearchString();
+			if (!(searchStr == null || searchStr.isEmpty())){
+				baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
+			}
+				
+			AsyncSQLQuery listQuery = baseQuery.clone()					
+				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
+			
+			Long page = msg.getPage();
+			singlePage(listQuery, page);
+			
+			return f
+				.collect(listQuery					
+					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
+					.groupBy(dataSource.identification).groupBy(dataSource.name)
+					.groupBy(category.identification).groupBy(category.name)		
+					.orderBy(sourceDatasetVersion.name.trim().asc())
+					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
+						dataSource.identification, dataSource.name,
+						category.identification,category.name,
+						dataset.count())))
+				.collect(baseQuery.count()).thenApply((list, count) -> {
+					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
+					
+					for(SourceDatasetInfo sourceDatasetInfo : list) {
+						SourceDataset sourceDataset = new SourceDataset (
+							sourceDatasetInfo.getId(), 
+							sourceDatasetInfo.getName(),
+							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
+							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+						);
+						
+						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+					}
+					
+					addPageInfo(pageBuilder, page, count);
+					
+					return pageBuilder.build();
+				});
+		});
 	}
 } 
