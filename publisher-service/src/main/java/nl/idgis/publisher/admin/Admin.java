@@ -700,14 +700,9 @@ public class Admin extends AbstractAdmin {
 				t.get (category.name), 
 				t.get (dataset.filterConditions),
 				t.get (datasetStatus.imported),
-				false,
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				null,
-				null,
-				null,
-				null,
 				notifications
 			);
 	}

@@ -93,7 +93,6 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
-import com.mysema.query.sql.types.Null;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
@@ -613,14 +612,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (category.name), 
 				t.get (dataset.filterConditions),
 				t.get (datasetStatus.imported),
-				false,
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				null,
-				null,
-				null,
-				null,
 				notifications
 			);
 	}

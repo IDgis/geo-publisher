@@ -8,33 +8,26 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.job.JobState;
 
-public class DatasetInfo extends BaseDatasetInfo implements Serializable {		
+public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
-	private static final long serialVersionUID = 6610907891041680317L;
+	private static final long serialVersionUID = -1977233205832290039L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
 	private final String filterConditions;
-	private final Boolean imported;
-	private final Boolean serviceCreated;
+	private final Boolean imported;	
 	private final Boolean sourceDatasetColumnsChanged;
-	private final Timestamp lastImportTime, lastServiceTime;
-	private final JobState lastImportJobState, lastServiceJobState;
-	private final Boolean serviceLayerVerified, serviceLayerAdded;
+	private final Timestamp lastImportTime;
+	private final JobState lastImportJobState;
 	private final List<StoredNotification> notifications;	
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName, 
 			final String filterConditions,
 			final Boolean imported,
-			final Boolean serviceCreated,
 			final Boolean sourceDatasetColumnsChanged,
 			final Timestamp lastImportTime,
 			final String lastImportJobState,
-			final Timestamp lastServiceTime,
-			final String lastServiceJobState,
-			final Boolean serviceLayerVerified,
-			final Boolean serviceLayerAdded,
 			final List<StoredNotification> notifications) {
 		super(id, name);
 		
@@ -44,14 +37,9 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.categoryName = categoryName;
 		this.filterConditions = filterConditions;
 		this.imported = imported;
-		this.serviceCreated = serviceCreated;
 		this.sourceDatasetColumnsChanged = sourceDatasetColumnsChanged;
 		this.lastImportTime = lastImportTime;
-		this.lastImportJobState = toJobState(lastImportJobState);
-		this.lastServiceTime = lastServiceTime;
-		this.lastServiceJobState = toJobState(lastServiceJobState);
-		this.serviceLayerVerified = serviceLayerVerified;
-		this.serviceLayerAdded = serviceLayerAdded;
+		this.lastImportJobState = toJobState(lastImportJobState);		
 		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
 	}
 	
@@ -85,11 +73,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
 	public Boolean getImported() {
 		return imported;
-	}
-
-	public Boolean getServiceCreated() {
-		return serviceCreated;
-	}
+	}	
 
 	public Boolean getSourceDatasetColumnsChanged() {
 		return sourceDatasetColumnsChanged;
@@ -102,25 +86,9 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	public JobState getLastImportJobState() {
 		return lastImportJobState;
 	}
-	
-	public Timestamp getLastServiceTime() {
-		return lastServiceTime;
-	}
-
-	public JobState getLastServiceJobState() {
-		return lastServiceJobState;
-	}
 
 	public List<StoredNotification> getNotifications () {
 		return Collections.unmodifiableList (notifications);
-	}
-	
-	public boolean isServiceLayerVerified() {
-		return serviceLayerVerified != null && serviceLayerVerified;
-	}
-
-	public boolean isServiceLayerAdded() {
-		return serviceLayerAdded != null && serviceLayerAdded;
 	}
 
 	@Override
@@ -129,16 +97,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 				+ ", sourceDatasetName=" + sourceDatasetName + ", categoryId="
 				+ categoryId + ", categoryName=" + categoryName
 				+ ", filterConditions=" + filterConditions + ", imported="
-				+ imported + ", serviceCreated=" + serviceCreated
-				+ ", sourceDatasetColumnsChanged="
+				+ imported + ", sourceDatasetColumnsChanged="
 				+ sourceDatasetColumnsChanged + ", lastImportTime="
-				+ lastImportTime + ", lastServiceTime=" + lastServiceTime
-				+ ", lastImportJobState=" + lastImportJobState
-				+ ", lastServiceJobState=" + lastServiceJobState
-				+ ", serviceLayerVerified=" + serviceLayerVerified
-				+ ", serviceLayerAdded=" + serviceLayerAdded
+				+ lastImportTime + ", lastImportJobState=" + lastImportJobState
 				+ ", notifications=" + notifications + "]";
 	}
-
 		
 }
