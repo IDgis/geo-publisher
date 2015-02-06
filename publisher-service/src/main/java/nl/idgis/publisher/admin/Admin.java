@@ -106,6 +106,7 @@ import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.PutStyle;
 import nl.idgis.publisher.domain.web.QCategory;
+import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
@@ -121,7 +122,6 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.utils.TypedList;
 
 public class Admin extends AbstractAdmin {
 	
@@ -293,7 +293,7 @@ public class Admin extends AbstractAdmin {
 	private CompletableFuture<List<Column>> handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {
 		log.debug("handleListSourceDatasetColumns");
 
-		final CompletableFuture<TypedList<Column>> columnList = db
+		return db
 				.query()
 				.from(sourceDatasetVersionColumn)
 				.join(sourceDatasetVersion)
@@ -308,14 +308,8 @@ public class Admin extends AbstractAdmin {
 				.on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(sourceDataset.identification.eq(listColumns.getSourceDatasetId()).and(
 						dataSource.identification.eq(listColumns.getDataSourceId())))
-				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType));
-
-		return columnList.thenApply(msg -> {
-			log.debug("sourcedataset column list received");
-			log.debug("sending sourcedataset column list");
-			
-			return msg.list();
-		});
+				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType))
+				.thenApply(columns -> columns.list());		
 	}
 
 	private CompletableFuture<List<Column>> handleListDatasetColumns(final ListDatasetColumns listColumns) {
@@ -339,55 +333,42 @@ public class Admin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<DataSource>> handleListDataSources () {
-		final CompletableFuture<Object> activeDataSourcesFuture = f.ask(harvester, new GetActiveDataSources());
-		
-		final CompletableFuture<TypedList<DataSourceInfo>> dataSourceInfoFuture =
-				db.query().from(dataSource)
-				.orderBy(dataSource.identification.asc())
-				.list(new QDataSourceInfo(dataSource.identification, dataSource.name));
-		
-		return activeDataSourcesFuture.thenCompose(msg0 -> {
-			final Set<String> activeDataSources = (Set<String>)msg0;
-			log.debug("active data sources received");
-			
-			return dataSourceInfoFuture.thenApply(msg1 -> {
-					List<DataSourceInfo> dataSourceList = (List<DataSourceInfo>)msg1.asCollection();
-					log.debug("data sources info received");
-					
+		return
+			db.query().from(dataSource)
+			.orderBy(dataSource.identification.asc())
+			.list(new QDataSourceInfo(dataSource.identification, dataSource.name))
+			.thenCompose(dataSourceInfos -> 
+				f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(activeDataSources -> {
 					final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
 					
-					for(DataSourceInfo dataSourceInfo : dataSourceList) {
+					for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
 						final String id = dataSourceInfo.getId() ;
 						final DataSource dataSourceBuilt = new DataSource (
-								id, 
-								dataSourceInfo.getName(),
-								new Status (activeDataSources.contains(id) 
-										? DataSourceStatusType.OK
-										: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
+							id, 
+							dataSourceInfo.getName(),
+							new Status (activeDataSources.contains(id) 
+								? DataSourceStatusType.OK
+								: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
 						
 						pageBuilder.add (dataSourceBuilt);
 					}
 					
-					log.debug("sending data source page");
 					return pageBuilder.build ();
-				});
-		});
+				}));
 	}
 	
 	private CompletableFuture<Page<Category>> handleListCategories() {
 		log.debug("handleCategoryList");
 		
-		final CompletableFuture<TypedList<Category>> categoryList = 
-				db.query().from(category)
-				.orderBy(category.identification.asc())
-				.list(new QCategory(category.identification, category.name));
-		
-		return categoryList.thenApply(msg -> {
+		return 
+			db.query().from(category)
+			.orderBy(category.identification.asc())
+			.list(new QCategory(category.identification, category.name))
+			.thenApply(categories -> {
 				log.debug("category info received");
+				
 				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> ();
-				pageBuilder.addAll(msg.asCollection());				
-				log.debug("sending category list");
-
+				pageBuilder.addAll(categories.asCollection());
 				return pageBuilder.build();
 			});
 	}
@@ -651,22 +632,14 @@ public class Admin extends AbstractAdmin {
 	private CompletableFuture<Page<Style>> handleListStyles () {
 		log.debug ("handleListStyles");
 		
-		final CompletableFuture<TypedList<Style>> styleList = 
-				db.query().from(style)
-				.list(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));
-
-		return styleList.thenApply(msg -> {
-			final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
-			
-			if (msg != null){				
-				pageBuilder.addAll(msg.asCollection());				
-			} 
-			
-			log.debug("sending style list");
-
-			return pageBuilder.build();
-		});
-
+		return 
+			db.query().from(style)
+			.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
+			.thenApply(styles -> {
+				final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
+				pageBuilder.addAll(styles.asCollection());
+				return pageBuilder.build();
+			});
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
