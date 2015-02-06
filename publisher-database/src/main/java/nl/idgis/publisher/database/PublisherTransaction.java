@@ -43,7 +43,6 @@ import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.JobInfo;
@@ -56,9 +55,7 @@ import nl.idgis.publisher.database.messages.QCategoryInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
-import nl.idgis.publisher.database.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.database.messages.Query;
-import nl.idgis.publisher.database.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
@@ -162,8 +159,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeGetCategoryListInfo();					
 		} else if(query instanceof GetDataSourceInfo) {
 			return executeGetDataSourceInfo();
-		} else if(query instanceof GetSourceDatasetListInfo) {			
-			return executeGetSourceDatasetListInfo((GetSourceDatasetListInfo)query);			
 		} else if(query instanceof CreateDataset) {
 			return executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
@@ -588,54 +583,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				return new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent);
 			}
 	}	
-
-	private Object executeGetSourceDatasetListInfo(GetSourceDatasetListInfo sdi) {
-		log.debug(sdi.toString());
-		
-		String categoryId = sdi.getCategoryId();
-		String dataSourceId = sdi.getDataSourceId();
-		String searchStr = sdi.getSearchString();
-		
-		SQLQuery baseQuery = query().from(sourceDataset)
-				.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-					.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-									.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-								.notExists()))
-				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
-		
-		if(categoryId != null) {				
-			baseQuery.where(category.identification.eq(categoryId));
-		}
-		
-		if(dataSourceId != null) {				
-			baseQuery.where(dataSource.identification.eq(dataSourceId));
-		}
-		
-		if (!(searchStr == null || searchStr.isEmpty())){
-			baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
-		}
-			
-		SQLQuery listQuery = baseQuery.clone()					
-				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
-		
-		applyListParams(listQuery, sdi, sourceDatasetVersion.name);
-		
-		return
-			new InfoList<SourceDatasetInfo>(			
-				listQuery					
-					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
-					.groupBy(dataSource.identification).groupBy(dataSource.name)
-					.groupBy(category.identification).groupBy(category.name)						
-					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
-							dataSource.identification, dataSource.name,
-							category.identification,category.name,
-							dataset.count())),
-							
-				baseQuery.count()
-			);
-	}
 
 	private Object executeGetDataSourceInfo() {
 		return

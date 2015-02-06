@@ -38,7 +38,6 @@ import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
-import nl.idgis.publisher.database.messages.GetSourceDatasetListInfo;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
@@ -67,7 +66,6 @@ import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
-import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
@@ -235,8 +233,6 @@ public class Admin extends UntypedActor {
 			if (delEntity.cls ().equals (Dataset.class)) {
 				handleDeleteDataset(delEntity.id());
 			}
-		} else if (message instanceof ListSourceDatasets) {
-			handleListSourceDatasets ((ListSourceDatasets)message);
 		} else if (message instanceof ListDatasets) {
 			handleListDatasets (((ListDatasets)message));
 		} else if (message instanceof ListSourceDatasetColumns) {
@@ -816,71 +812,6 @@ public class Admin extends UntypedActor {
 			}
 		});
 
-	}
-	
-	/*
-	 * Admin service Configuration end
-	 */
-	
-	
-	private void handleListSourceDatasets (final ListSourceDatasets message) {
-		
-		log.debug ("handleListSourceDatasets");
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		final Long page = message.getPage();
-		
-		final Long offset, limit;		 
-		if(page == null) {
-			offset = null;
-			limit = null;
-		} else {
-			offset = (page - 1) * ITEMS_PER_PAGE;
-			limit = ITEMS_PER_PAGE;
-		}
-		
-		final Future<Object> sourceDatasetInfo = Patterns.ask(database, new GetSourceDatasetListInfo(message.dataSourceId(), message.categoryId(), message.getSearchString(), offset, limit), 15000);
-		
-				sourceDatasetInfo.onSuccess(new OnSuccess<Object>() {
-
-					@SuppressWarnings("unchecked")
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						InfoList<SourceDatasetInfo> sourceDatasetInfoList = (InfoList<SourceDatasetInfo>)msg;
-						log.debug("data sources info received");
-						
-						final Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
-						
-						for(SourceDatasetInfo sourceDatasetInfo : sourceDatasetInfoList.getList()) {
-							final SourceDataset sourceDataset = new SourceDataset (
-									sourceDatasetInfo.getId(), 
-									sourceDatasetInfo.getName(),
-									new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
-									new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
-							);
-							
-							pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
-						}
-						
-						if(page != null) {
-							long count = sourceDatasetInfoList.getCount();
-							long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
-							
-							if(pages > 1) {
-								pageBuilder
-									.setHasMorePages(true)
-									.setPageCount(pages)
-									.setCurrentPage(page);
-							}
-						}
-						
-						
-						log.debug("sending data source page");
-						sender.tell (pageBuilder.build (), self);
-					}
-				}, getContext().dispatcher());
-		
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
