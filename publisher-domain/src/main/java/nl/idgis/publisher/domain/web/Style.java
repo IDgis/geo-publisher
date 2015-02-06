@@ -9,6 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mysema.query.annotations.QueryProjection;
 
 /**
+ * Representation of user defined style.
+ * 
  * @author Rob
  *
  */
@@ -21,9 +23,12 @@ public class Style extends Identifiable {
 
 	@JsonCreator
 	@QueryProjection
-	public Style(final @JsonProperty("id") String id, final @JsonProperty("name") String name,
-			final @JsonProperty("format") String format, final @JsonProperty("version") String version,
-			final @JsonProperty("definition") String definition) {
+	public Style(
+			final @JsonProperty("") String id, 
+			final @JsonProperty("") String name,
+			final @JsonProperty("") String format, 
+			final @JsonProperty("") String version,
+			final @JsonProperty("") String definition) {
 		super(id);
 		this.name = name;
 		this.format = format;
