@@ -3,18 +3,13 @@ package nl.idgis.publisher.admin;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
-import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QStyle.style;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
-import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
 
@@ -39,37 +32,24 @@ import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
-import nl.idgis.publisher.database.messages.BaseDatasetInfo;
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
-import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDatasetColumnDiff;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetJobLog;
-import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
-import nl.idgis.publisher.database.messages.StoredNotification;
-import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.database.projections.QColumn;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
-import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
-import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
-import nl.idgis.publisher.domain.job.load.ImportNotificationType;
-import nl.idgis.publisher.domain.query.DeleteEntity;
-import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
-import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -84,22 +64,15 @@ import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.ActiveTask;
-import nl.idgis.publisher.domain.web.Category;
-import nl.idgis.publisher.domain.web.DashboardItem;
-import nl.idgis.publisher.domain.web.Dataset;
-import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
-import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
-import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.PutStyle;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
-import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.domain.web.Style;
 
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
@@ -120,8 +93,6 @@ public class Admin extends AbstractAdmin {
 	
 	private final ActorRef harvester, loader, service, jobSystem;
 	
-	private final ObjectMapper objectMapper = new ObjectMapper ();
-	
 	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		super(database);
 		
@@ -135,19 +106,13 @@ public class Admin extends AbstractAdmin {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
 	}
 	
+	@Override	
 	protected void unhandledQuery(Object msg) throws Exception {
 		// TODO: add support for these query types to abstract admin 
 		
 		if (msg instanceof PutEntity<?>) {
 			final PutEntity<?> putEntity = (PutEntity<?>)msg;
-			if (putEntity.value() instanceof PutDataset) {
-				PutDataset putDataset = (PutDataset)putEntity.value(); 
-				if (putDataset.getOperation() == CrudOperation.CREATE){
-					handleCreateDataset(putDataset);
-				}else{
-					handleUpdateDataset(putDataset);
-				}
-			}
+			
 			if (putEntity.value() instanceof PutStyle) {
 				PutStyle putStyle = (PutStyle)putEntity.value(); 
 				if (putStyle.getOperation() == CrudOperation.CREATE){
@@ -156,11 +121,6 @@ public class Admin extends AbstractAdmin {
 //					handleUpdateStyle(putStyle);
 				}
 			}
-		} else if (msg instanceof DeleteEntity<?>) {
-			final DeleteEntity<?> delEntity = (DeleteEntity<?>)msg;
-			if (delEntity.cls ().equals (Dataset.class)) {
-				handleDeleteDataset(delEntity.id());
-			} 
 		} else {
 			log.error("query not handled: {}", msg);
 			
@@ -170,13 +130,12 @@ public class Admin extends AbstractAdmin {
 	
 	@Override
 	protected void preStartAdmin() {
-		addList(Dataset.class, () -> handleListDatasets(null));
+		
 		addList(Notification.class, this::handleListDashboardNotifications);
 		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
 		addList(Issue.class, this::handleListDashboardIssues);
 		addList(Style.class, this::handleListStyles);
 		
-		addGet(Dataset.class, this::handleGetDataset);
 		addGet(SourceDataset.class, this::handleGetSourceDataset);
 		addGet(Style.class, this::handleGetStyle);
 		
@@ -184,75 +143,15 @@ public class Admin extends AbstractAdmin {
 		
 		// TODO: delete
 		
-		addQuery(ListDatasets.class, this::handleListDatasets);
+		
 		addQuery(ListIssues.class, this::handleListIssues);
 		addQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
 		addQuery(ListDatasetColumns.class, this::handleListDatasetColumns);
 		addQuery(RefreshDataset.class, this::handleRefreshDataset);
-		addQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
+		
 		addQuery(PutNotificationResult.class, this::handlePutNotificationResult);
 		addQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
 		addQuery(ListSourceDatasets.class, this::handleListSourceDatasets);
-	}
-
-	private static Notification createNotification (final StoredNotification storedNotification) {
-		return new Notification (
-				"" + storedNotification.getId (), 
-				new Message (
-					storedNotification.getType (), 
-					new ImportNotificationProperties (
-							EntityType.DATASET, 
-							storedNotification.getDataset ().getId (), 
-							storedNotification.getDataset ().getName (),
-							(ConfirmNotificationResult)storedNotification.getResult ()
-						)
-				)
-			);
-	}
-	
-	private void handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
-		log.debug ("handle create dataset: " + putDataset.id());
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new CreateDataset(
-			putDataset.id(), 
-			putDataset.getDatasetName(),
-			putDataset.getSourceDatasetIdentification(), 
-			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions())),
-			Response.class).thenAccept(createdDataset -> {				
-				log.debug ("created dataset id: " + createdDataset.getValue());
-				sender.tell (createdDataset, self);
-			});
-	}
-
-	private void handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
-		log.debug ("handle update dataset: " + putDataset.id());
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new UpdateDataset(
-			putDataset.id(), 
-			putDataset.getDatasetName(),
-			putDataset.getSourceDatasetIdentification(), 
-			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions ())),
-			Response.class).thenAccept(updatedDataset -> {				
-				log.debug ("updated dataset id: " + updatedDataset.getValue());
-				sender.tell (updatedDataset, self);
-			});
-	}
-
-	private void handleDeleteDataset(String id) {
-		log.debug ("handle delete dataset: " + id);
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new DeleteDataset(id), Response.class).thenAccept(deletedDataset -> {
-			log.debug ("deleted dataset id: " + deletedDataset.getValue());
-			sender.tell (deletedDataset, self);
-		});
 	}
 	
 	private CompletableFuture<Boolean> handleRefreshDataset(RefreshDataset refreshDataset) {
@@ -423,26 +322,7 @@ public class Admin extends AbstractAdmin {
 		return f.successful(dashboardNotifications.build ());
 	}
 	
-	private CompletableFuture<Optional<Dataset>> handleGetDataset (String datasetId) {
-		log.debug ("handleDataset");
-		
-		return f.ask(database, new GetDatasetInfo(datasetId)).thenApply(msg -> {
-			try {
-				if(msg instanceof DatasetInfo) {
-					DatasetInfo datasetInfo = (DatasetInfo)msg;
-					log.debug("dataset info received");
-					final Dataset dataset = createDataset (datasetInfo, new ObjectMapper ());
-					log.debug("sending dataset: " + dataset);
 	
-					return Optional.of(dataset);
-				} else {
-					return Optional.empty();
-				}
-			} catch(Throwable t) {
-				throw new RuntimeException(t);
-			}
-		});				
-	}
 	
 	private CompletableFuture<Optional<SourceDataset>> handleGetSourceDataset(String sourceDatasetId) {
 		log.debug("handleSourceDataset");
@@ -548,188 +428,6 @@ public class Admin extends AbstractAdmin {
 			.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
 			.thenApply(this::toPage);
 	}
-	
-	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
-		switch (jobState) {
-		default:
-		case ABORTED:
-		case FAILED:
-			return DatasetImportStatusType.IMPORT_FAILED;
-		case STARTED:
-			return DatasetImportStatusType.IMPORTING;
-		case SUCCEEDED:
-			return DatasetImportStatusType.IMPORTED;
-		}
-	}
-
-	private static Dataset createDataset (final DatasetInfo datasetInfo, final ObjectMapper objectMapper) throws Throwable {
-		// Determine dataset status and notification list:
-		final Status importStatus;
-		final List<DashboardItem> notifications = new ArrayList<> ();
-		if (datasetInfo.getImported () != null && datasetInfo.getImported ()) {
-			// Set imported status:
-			if (datasetInfo.getLastImportJobState () != null) {
-				importStatus = new Status (
-						jobStateToDatasetStatus (datasetInfo.getLastImportJobState ()),
-						datasetInfo.getLastImportTime () != null
-							? datasetInfo.getLastImportTime ()
-							: new Timestamp (new Date ().getTime ())
-					);
-			} else {
-				importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-			}
-		} else {
-			// Dataset has never been imported, don't report any notifications:
-			importStatus = new Status (DatasetImportStatusType.NOT_IMPORTED, new Timestamp (new Date ().getTime ()));
-		}
-		
-		// Add notifications:
-		if (datasetInfo.getNotifications () != null && !datasetInfo.getNotifications ().isEmpty ()) {
-			for (final StoredNotification sn: datasetInfo.getNotifications ()) {
-				notifications.add (createNotification (sn));
-			}
-		}
-		
-		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
-				importStatus,
-				notifications, // notification list
-				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
-		);
-	}
-	
-	private static DatasetInfo createDatasetInfo (final Tuple t, final List<StoredNotification> notifications) {
-		return new DatasetInfo (
-				t.get (dataset.identification), 
-				t.get (dataset.name), 
-				t.get (sourceDataset.identification), 
-				t.get (sourceDatasetVersion.name),
-				t.get (category.identification),
-				t.get (category.name), 
-				t.get (dataset.filterConditions),
-				t.get (datasetStatus.imported),
-				t.get (datasetStatus.sourceDatasetColumnsChanged),
-				t.get (lastImportJob.finishTime),
-				t.get (lastImportJob.finishState),
-				notifications
-			);
-	}
-	
-	private static StoredNotification createStoredNotification (final Tuple t) {
-		return new StoredNotification (
-				(long)t.get (datasetActiveNotification.notificationId), 
-				ImportNotificationType.valueOf (t.get (datasetActiveNotification.notificationType)), 
-				ConfirmNotificationResult.valueOf (t.get (datasetActiveNotification.notificationResult)), 
-				new JobInfo (
-					t.get (datasetActiveNotification.jobId), 
-					JobType.valueOf (t.get (datasetActiveNotification.jobType))
-				), 
-				new BaseDatasetInfo (
-					t.get (dataset.identification), 
-					t.get (dataset.name)
-				)
-			);
-	}
-	
-	private CompletableFuture<Page<Dataset>> handleListDatasets (final ListDatasets listDatasets) {
-		log.debug ("handleListDatasets: {}", listDatasets);
-		
-		String categoryId = listDatasets.categoryId();
-		long page = listDatasets.getPage();
-		
-		return db.transactional(tx -> {
-			return tx.query().from(dataset)
-				.count()
-				.thenCompose(datasetCount -> {
-					AsyncSQLQuery baseQuery = tx.query().from(dataset)
-						.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-						.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-							.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-									.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-								.notExists()))
-						.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
-						.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-						.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))						
-						.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
-							
-					if(categoryId != null) {
-						baseQuery.where(category.identification.eq(categoryId));
-					}
-					
-					singlePage(baseQuery, page);
-					
-					return baseQuery
-						.orderBy (dataset.identification.asc ())
-						.orderBy (datasetActiveNotification.jobCreateTime.desc ())
-						.list (
-							dataset.identification,
-							dataset.name,
-							sourceDataset.identification,
-							sourceDatasetVersion.name,
-							category.identification,
-							category.name,
-							dataset.filterConditions,
-							datasetStatus.imported,
-							datasetStatus.sourceDatasetColumnsChanged,
-							lastImportJob.finishTime,
-							lastImportJob.finishState,							
-							datasetActiveNotification.notificationId,
-							datasetActiveNotification.notificationType,
-							datasetActiveNotification.notificationResult,
-							datasetActiveNotification.jobId,
-							datasetActiveNotification.jobType).thenApply(tuples -> {
-								final List<DatasetInfo> datasetInfos = new ArrayList<> ();
-								String currentIdentification = null;
-								final List<StoredNotification> notifications = new ArrayList<> ();
-								Tuple lastTuple = null;
-								
-								for (final Tuple t: tuples) {				
-									// Emit a new dataset info:
-									final String datasetIdentification = t.get (dataset.identification);
-									if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
-										datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-										notifications.clear ();
-									}
-									
-									// Store the last seen tuple:
-									currentIdentification = datasetIdentification; 
-									lastTuple = t;
-									
-									// Add a notification:
-									final Integer notificationId = t.get (datasetActiveNotification.notificationId);
-									if (notificationId != null) {
-										notifications.add (createStoredNotification (t));
-									}
-								}
-								
-								if (currentIdentification != null) {
-									datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-								}
-								
-								log.debug("dataset info received");
-								
-								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
-								final ObjectMapper objectMapper = new ObjectMapper ();
-								
-								for(DatasetInfo datasetInfo : datasetInfos) {
-									try {
-										pageBuilder.add (createDataset (datasetInfo, objectMapper));
-									} catch(Throwable t) {
-										log.error("couldn't create dataset info: {}", t);
-									}
-								}
-								
-								log.debug("sending dataset page");
-								
-								addPageInfo(pageBuilder, page, datasetCount);
-								
-								return pageBuilder.build ();
-							});
-				});
-		});
-	}
 
 	private CompletableFuture<Page<Issue>> handleListIssues (final ListIssues listIssues) {
 		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
@@ -780,37 +478,7 @@ public class Admin extends AbstractAdmin {
 		});	
 	}
 	
-	private CompletableFuture<Page<Notification>> handleListActiveNotifications (final ListActiveNotifications listNotifications) {
-		final long page = listNotifications.getPage () != null ? Math.max (1, listNotifications.getPage ()) : 1;
-		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : ITEMS_PER_PAGE;
-		final long offset = Math.max (0, (page - 1) * limit);
-
-		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));
-		
-		return notifications.thenApply(msg -> {
-			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
-			
-			@SuppressWarnings("unchecked")
-			final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
-			
-			for (final StoredNotification storedNotification: storedNotifications.getList ()) {
-				dashboardNotifications.add (createNotification (storedNotification));
-			}
-			
-			// Paging:
-			long count = storedNotifications.getCount ();
-			long pages = count / limit + Math.min(1, count % limit);
-			
-			if(pages > 1) {
-				dashboardNotifications
-					.setHasMorePages(true)
-					.setPageCount(pages)
-					.setCurrentPage(page);
-			}
-			
-			return dashboardNotifications.build();
-		});		
-	}
+	
 	
 	private CompletableFuture<Response<?>> handlePutNotificationResult (final PutNotificationResult query) {		
 		return f.ask (database, 
