@@ -117,9 +117,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	}
 	
 	protected void unhandledQuery(Object msg) throws Exception {
-		log.debug("sending to parent");
-		
-		getContext().parent().forward(msg, getContext());
+		unhandled(msg);
 	}
 
 	@Override
