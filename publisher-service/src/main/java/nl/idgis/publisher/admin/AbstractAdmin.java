@@ -63,8 +63,12 @@ public abstract class AbstractAdmin extends UntypedActor {
 			return;
 		}
 		
-		query.offset((page - 1) * ITEMS_PER_PAGE);
-		query.limit(ITEMS_PER_PAGE);
+		if(page > 0) {
+			query.offset((page - 1) * ITEMS_PER_PAGE);
+			query.limit(ITEMS_PER_PAGE);
+		} else {
+			throw new IllegalArgumentException("page parameter should be > 0");
+		}
 	}
 	
 	protected void addPageInfo(Page.Builder<?> pageBuilder, Long page, long count) {
