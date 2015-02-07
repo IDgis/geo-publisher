@@ -176,7 +176,7 @@ public class Admin extends AbstractAdmin {
 	}
 	
 	@Override
-	public void preStartAdmin() {
+	protected void preStartAdmin() {
 		addList(DataSource.class, this::handleListDataSources);
 		addList(Category.class, this::handleListCategories);
 		addList(Dataset.class, () -> handleListDatasets(null));
