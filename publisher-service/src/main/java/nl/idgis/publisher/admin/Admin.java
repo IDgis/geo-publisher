@@ -32,12 +32,8 @@ import com.mysema.query.types.Order;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
-
-import scala.concurrent.Future;
 
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
@@ -228,19 +224,16 @@ public class Admin extends AbstractAdmin {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> createDatasetInfo = Patterns.ask(database, 
-				new CreateDataset(putDataset.id(), putDataset.getDatasetName(),
-				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList(),
-				objectMapper.writeValueAsString (putDataset.getFilterConditions())), 15000);
-				createDatasetInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						Response <?> createdDataset = (Response<?>)msg;
-						log.debug ("created dataset id: " + createdDataset.getValue());
-						sender.tell (createdDataset, self);
-					}
-				}, getContext().dispatcher());
-
+		f.ask(database, new CreateDataset(
+			putDataset.id(), 
+			putDataset.getDatasetName(),
+			putDataset.getSourceDatasetIdentification(), 
+			putDataset.getColumnList(),
+			objectMapper.writeValueAsString (putDataset.getFilterConditions()))).thenAccept(msg -> {
+				Response <?> createdDataset = (Response<?>)msg;
+				log.debug ("created dataset id: " + createdDataset.getValue());
+				sender.tell (createdDataset, self);
+			});
 	}
 
 	private void handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
@@ -248,19 +241,16 @@ public class Admin extends AbstractAdmin {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> updateDatasetInfo = Patterns.ask(database, 
-				new UpdateDataset(putDataset.id(), putDataset.getDatasetName(),
-				putDataset.getSourceDatasetIdentification(), putDataset.getColumnList(),
-				objectMapper.writeValueAsString (putDataset.getFilterConditions ())), 15000);
-				updateDatasetInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						Response<?> updatedDataset = (Response<?>)msg;
-						log.debug ("updated dataset id: " + updatedDataset.getValue());
-						sender.tell (updatedDataset, self);
-					}
-				}, getContext().dispatcher());
-
+		f.ask(database, new UpdateDataset(
+			putDataset.id(), 
+			putDataset.getDatasetName(),
+			putDataset.getSourceDatasetIdentification(), 
+			putDataset.getColumnList(),
+			objectMapper.writeValueAsString (putDataset.getFilterConditions ()))).thenAccept(msg -> {
+				Response<?> updatedDataset = (Response<?>)msg;
+				log.debug ("updated dataset id: " + updatedDataset.getValue());
+				sender.tell (updatedDataset, self);
+			});
 	}
 
 	private void handleDeleteDataset(String id) {
@@ -268,16 +258,11 @@ public class Admin extends AbstractAdmin {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		final Future<Object> deleteDatasetInfo = Patterns.ask(database, new DeleteDataset(id), 15000);
-				deleteDatasetInfo.onSuccess(new OnSuccess<Object>() {
-					@Override
-					public void onSuccess(Object msg) throws Throwable {
-						Response<?> deletedDataset = (Response<?>)msg;
-						log.debug ("deleted dataset id: " + deletedDataset.getValue());
-						sender.tell (deletedDataset, self);
-					}
-				}, getContext().dispatcher());
-
+		f.ask(database, new DeleteDataset(id)).thenAccept(msg -> {
+			Response<?> deletedDataset = (Response<?>)msg;
+			log.debug ("deleted dataset id: " + deletedDataset.getValue());
+			sender.tell (deletedDataset, self);
+		});
 	}
 	
 	private CompletableFuture<Boolean> handleRefreshDataset(RefreshDataset refreshDataset) {
