@@ -76,6 +76,8 @@ web.application.thereis=Er is
 web.application.thereare=Er zijn
 web.application.removed=Verwijderd
 web.application.added=Toegevoegd
+web.application.edited=Aangepast
+web.application.updated=Aangepast
 web.application.required=Verplicht
 
 web.application.login=Inloggen

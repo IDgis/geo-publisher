@@ -50,10 +50,9 @@ GET 	/groups/-/create								controllers.Groups.createForm()
 
 
 GET		/styles											controllers.Styles.list()
-GET 	/styles/-/create								controllers.Styles.createForm()
-POST 	/styles/-/create								controllers.Styles.submitCreate()
-GET		/styles/:styleId/edit							controllers.Styles.editForm(styleId: String)
-POST	/styles/:styleId/edit							controllers.Styles.submitEdit(styleId: String)
+GET 	/styles/-/create								controllers.Styles.create()
+POST 	/styles/-/createupdate							controllers.Styles.submitCreateUpdate()
+GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
 

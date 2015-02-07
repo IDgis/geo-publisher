@@ -17,6 +17,7 @@ import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 import models.Domain;
 import models.Domain.Function;
+import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -39,50 +40,36 @@ public class Styles extends Controller {
          });
 	}
 	
-	public static Promise<Result> createForm () {
-		Logger.debug ("create Style");
-		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
-		
-		return renderCreateForm (styleForm);
-	}
-	
-	public static Promise<Result> submitCreate () {
+	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		final Form<StyleForm> styleForm = Form.form (StyleForm.class).bindFromRequest ();
-		Logger.debug ("submit Style: " + styleForm.field("name").value());
+		final Form<StyleForm> form = Form.form (StyleForm.class).bindFromRequest ();
+		Logger.debug ("submit Style: " + form.field("name").value());
 		
 		// validation
-		if (styleForm.field("name").value().length() == 1 ) 
-			styleForm.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
-		if (!isValidXml(styleForm.field("definition").value())) 
-			styleForm.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", styleForm.field("format").value()));
+		if (form.field("name").value().length() == 1 ) 
+			form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
+		if (!isValidXml(form.field("definition").value())) 
+			form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
 		
-		if (styleForm.hasErrors ()) {
-			return renderCreateForm (styleForm);
+		if (form.hasErrors ()) {
+			return renderCreateForm (form);
 		}
 		
-		final StyleForm style = styleForm.get ();
-		
-
-		final PutStyle putStyle = new PutStyle (CrudOperation.CREATE, 
-				new Style(style.id, style.name, style.format, style.version,style.definition)
-			);
-		
-		Logger.debug ("create style " + putStyle);
+		final StyleForm styleForm = form.get ();
+		final Style style = new Style(styleForm.id, styleForm.name, styleForm.format, styleForm.version,styleForm.definition);
 		
 		return from (database)
-			.put(putStyle)
+			.put(style)
 			.executeFlat (new Function<Response<?>, Promise<Result>> () {
 				@Override
 				public Promise<Result> apply (final Response<?> response) throws Throwable {
-					if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
-						Logger.debug ("response: " + response);
-						styleForm.reject (Domain.message("web.application.page.styles.form.field.name.exists", response.getValue().toString()));
-						return renderCreateForm (styleForm);
+					if (CrudOperation.CREATE.equals (response.getOperation())) {
+						Logger.debug ("Created style " + style);
+						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+					}else{
+						Logger.debug ("Updated style " + style);
+						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 					}
-					
-					flash ("success", Domain.message("web.application.page.styles.name") + " " + style.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-					
 					return Promise.pure (redirect (routes.Styles.list ()));
 				}
 			});
@@ -109,8 +96,14 @@ public class Styles extends Controller {
 			});
 	}
 
-
-	public static Promise<Result> editForm (final String styleId) {
+	public static Promise<Result> create () {
+		Logger.debug ("create Style");
+		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
+		
+		return renderCreateForm (styleForm);
+	}
+	
+	public static Promise<Result> edit (final String styleId) {
 		Logger.debug ("edit Style: " + styleId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -131,10 +124,6 @@ public class Styles extends Controller {
 			});
 	}
 
-	public static Promise<Result> submitEdit (final String styleId) {
-		return null;
-	}
-		
 	public static Promise<Result> delete(final String styleId){
 		Logger.debug ("delete Style " + styleId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
