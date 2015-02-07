@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.admin.Admin;
+import nl.idgis.publisher.admin.AdminParent;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.PublisherDatabase;
@@ -176,7 +176,7 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
-		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, service, jobSystem), "admin");
 		
 		Config metadataConfig = config.getConfig("metadata");
 		

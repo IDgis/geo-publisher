@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -52,7 +51,6 @@ import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
-import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
@@ -72,7 +70,6 @@ import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
-import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
@@ -89,8 +86,6 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
-import nl.idgis.publisher.domain.web.DataSource;
-import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
@@ -108,7 +103,6 @@ import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.domain.web.Style;
 
-import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
@@ -177,7 +171,6 @@ public class Admin extends AbstractAdmin {
 	
 	@Override
 	protected void preStartAdmin() {
-		addList(DataSource.class, this::handleListDataSources);
 		addList(Category.class, this::handleListCategories);
 		addList(Dataset.class, () -> handleListDatasets(null));
 		addList(Notification.class, this::handleListDashboardNotifications);
@@ -186,7 +179,6 @@ public class Admin extends AbstractAdmin {
 		addList(Style.class, this::handleListStyles);
 		
 		addGet(Category.class, this::handleGetCategory);
-		addGet(DataSource.class, this::handleGetDataSource);
 		addGet(Dataset.class, this::handleGetDataset);
 		addGet(SourceDataset.class, this::handleGetSourceDataset);
 		addGet(Style.class, this::handleGetStyle);
@@ -313,30 +305,7 @@ public class Admin extends AbstractAdmin {
 		});
 	}
 
-	private CompletableFuture<Page<DataSource>> handleListDataSources () {
-		return
-			db.query().from(dataSource)
-			.orderBy(dataSource.identification.asc())
-			.list(new QDataSourceInfo(dataSource.identification, dataSource.name))
-			.thenCompose(dataSourceInfos -> 
-				f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(activeDataSources -> {
-					final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
-					
-					for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
-						final String id = dataSourceInfo.getId() ;
-						final DataSource dataSourceBuilt = new DataSource (
-							id, 
-							dataSourceInfo.getName(),
-							new Status (activeDataSources.contains(id) 
-								? DataSourceStatusType.OK
-								: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
-						
-						pageBuilder.add (dataSourceBuilt);
-					}
-					
-					return pageBuilder.build ();
-				}));
-	}
+	
 	
 	private CompletableFuture<Page<Category>> handleListCategories() {
 		log.debug("handleCategoryList");
@@ -467,10 +436,6 @@ public class Admin extends AbstractAdmin {
 		final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification> ();
 		
 		return f.successful(dashboardNotifications.build ());
-	}	
-	
-	private CompletableFuture<Optional<DataSource>> handleGetDataSource (String dataSourceId) {
-		return f.successful(Optional.of(new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())))));
 	}
 	
 	private CompletableFuture<Optional<Category>> handleGetCategory (String categoryId) {
