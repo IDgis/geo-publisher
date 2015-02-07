@@ -25,6 +25,7 @@ import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.NotFound;
 
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractAdmin extends UntypedActor {
 	
@@ -65,6 +66,12 @@ public abstract class AbstractAdmin extends UntypedActor {
 					.setCurrentPage(page);
 			}
 		}
+	}
+	
+	protected <T extends Entity> Page<T> toPage(TypedList<T> list) {
+		Page.Builder<T> pageBuilder = new Page.Builder<>();
+		pageBuilder.addAll(list.asCollection());
+		return pageBuilder.build();
 	}
 	
 	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	

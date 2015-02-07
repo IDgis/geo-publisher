@@ -362,13 +362,7 @@ public class Admin extends AbstractAdmin {
 			db.query().from(category)
 			.orderBy(category.identification.asc())
 			.list(new QCategory(category.identification, category.name))
-			.thenApply(categories -> {
-				log.debug("category info received");
-				
-				final Page.Builder<Category> pageBuilder = new Page.Builder<Category> ();
-				pageBuilder.addAll(categories.asCollection());
-				return pageBuilder.build();
-			});
+			.thenApply(this::toPage);
 	}
 	
 	private CompletableFuture<Page<Issue>> handleListDashboardIssues() {
@@ -633,11 +627,7 @@ public class Admin extends AbstractAdmin {
 		return 
 			db.query().from(style)
 			.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
-			.thenApply(styles -> {
-				final Page.Builder<Style> pageBuilder = new Page.Builder<Style> ();
-				pageBuilder.addAll(styles.asCollection());
-				return pageBuilder.build();
-			});
+			.thenApply(this::toPage);
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
