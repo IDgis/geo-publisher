@@ -96,7 +96,6 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.PutStyle;
-import nl.idgis.publisher.domain.web.QCategory;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
@@ -171,14 +170,12 @@ public class Admin extends AbstractAdmin {
 	
 	@Override
 	protected void preStartAdmin() {
-		addList(Category.class, this::handleListCategories);
 		addList(Dataset.class, () -> handleListDatasets(null));
 		addList(Notification.class, this::handleListDashboardNotifications);
 		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
 		addList(Issue.class, this::handleListDashboardIssues);
 		addList(Style.class, this::handleListStyles);
 		
-		addGet(Category.class, this::handleGetCategory);
 		addGet(Dataset.class, this::handleGetDataset);
 		addGet(SourceDataset.class, this::handleGetSourceDataset);
 		addGet(Style.class, this::handleGetStyle);
@@ -304,18 +301,6 @@ public class Admin extends AbstractAdmin {
 			return diffs.getList ();
 		});
 	}
-
-	
-	
-	private CompletableFuture<Page<Category>> handleListCategories() {
-		log.debug("handleCategoryList");
-		
-		return 
-			db.query().from(category)
-			.orderBy(category.identification.asc())
-			.list(new QCategory(category.identification, category.name))
-			.thenApply(this::toPage);
-	}
 	
 	private CompletableFuture<Page<Issue>> handleListDashboardIssues() {
 		log.debug ("handleListDashboardIssues");
@@ -436,14 +421,6 @@ public class Admin extends AbstractAdmin {
 		final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification> ();
 		
 		return f.successful(dashboardNotifications.build ());
-	}
-	
-	private CompletableFuture<Optional<Category>> handleGetCategory (String categoryId) {
-		log.debug ("handleCategory");
-		
-		return db.query().from(category)
-			.where(category.identification.eq(categoryId))
-			.singleResult(new QCategory(category.identification, category.name));		
 	}
 	
 	private CompletableFuture<Optional<Dataset>> handleGetDataset (String datasetId) {

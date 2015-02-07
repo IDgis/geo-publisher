@@ -24,6 +24,7 @@ public class AdminParent extends UntypedActor {
 	public void preStart() throws Exception {
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
 		getContext().actorOf(DataSourceAdmin.props(database, harvester));
+		getContext().actorOf(CategoryAdmin.props(database));
 	}
 
 	@Override
