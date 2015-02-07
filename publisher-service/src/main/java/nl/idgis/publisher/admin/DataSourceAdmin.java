@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -41,33 +42,45 @@ public class DataSourceAdmin extends AbstractAdmin {
 		addGet(DataSource.class, this::handleGetDataSource);
 	}
 	
+	private CompletableFuture<Set<String>> activeDataSources() {
+		return f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(Function.identity());
+	}
+	
+	private DataSource toDataSource(DataSourceInfo dataSourceInfo, Set<String> activeDataSources) {
+		String id = dataSourceInfo.getId();
+		return new DataSource(
+			id, 
+			dataSourceInfo.getName(),
+			new Status (activeDataSources.contains(id) 
+				? DataSourceStatusType.OK
+				: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
+	}
+	
 	private CompletableFuture<Page<DataSource>> handleListDataSources () {
 		return
 			db.query().from(dataSource)
 			.orderBy(dataSource.identification.asc())
 			.list(new QDataSourceInfo(dataSource.identification, dataSource.name))
 			.thenCompose(dataSourceInfos -> 
-				f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(activeDataSources -> {
-					final Page.Builder<DataSource> pageBuilder = new Page.Builder<> ();
+				activeDataSources().thenApply(activeDataSources -> {
+					Page.Builder<DataSource> pageBuilder = new Page.Builder<>();
 					
-					for(DataSourceInfo dataSourceInfo : dataSourceInfos) {
-						final String id = dataSourceInfo.getId() ;
-						final DataSource dataSourceBuilt = new DataSource (
-							id, 
-							dataSourceInfo.getName(),
-							new Status (activeDataSources.contains(id) 
-								? DataSourceStatusType.OK
-								: DataSourceStatusType.NOT_CONNECTED, new Timestamp (new Date ().getTime ())));
-						
-						pageBuilder.add (dataSourceBuilt);
-					}
+					dataSourceInfos.list().stream()
+						.map(dataSourceInfo -> toDataSource(dataSourceInfo, activeDataSources))
+						.forEach(pageBuilder::add);
 					
 					return pageBuilder.build ();
 				}));
 	}
 	
 	private CompletableFuture<Optional<DataSource>> handleGetDataSource (String dataSourceId) {
-		return f.successful(Optional.of(new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())))));
+		 return activeDataSources().thenCompose(activeDataSources ->
+			db.query().from(dataSource)
+			.where(dataSource.identification.eq(dataSourceId))
+			.singleResult(new QDataSourceInfo(dataSource.identification, dataSource.name))
+			.thenApply(queryResult -> 
+				queryResult.map(dataSourceInfo -> 
+					toDataSource(dataSourceInfo, activeDataSources))));
 	}
 
 }
