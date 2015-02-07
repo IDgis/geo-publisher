@@ -143,6 +143,8 @@ public class Admin extends AbstractAdmin {
 	}
 	
 	protected void unhandledQuery(Object msg) throws Exception {
+		// TODO: add support for these query types to abstract admin 
+		
 		if (msg instanceof PutEntity<?>) {
 			final PutEntity<?> putEntity = (PutEntity<?>)msg;
 			if (putEntity.value() instanceof PutDataset) {
@@ -229,8 +231,8 @@ public class Admin extends AbstractAdmin {
 			putDataset.getDatasetName(),
 			putDataset.getSourceDatasetIdentification(), 
 			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions()))).thenAccept(msg -> {
-				Response <?> createdDataset = (Response<?>)msg;
+			objectMapper.writeValueAsString (putDataset.getFilterConditions())),
+			Response.class).thenAccept(createdDataset -> {				
 				log.debug ("created dataset id: " + createdDataset.getValue());
 				sender.tell (createdDataset, self);
 			});
@@ -246,8 +248,8 @@ public class Admin extends AbstractAdmin {
 			putDataset.getDatasetName(),
 			putDataset.getSourceDatasetIdentification(), 
 			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions ()))).thenAccept(msg -> {
-				Response<?> updatedDataset = (Response<?>)msg;
+			objectMapper.writeValueAsString (putDataset.getFilterConditions ())),
+			Response.class).thenAccept(updatedDataset -> {				
 				log.debug ("updated dataset id: " + updatedDataset.getValue());
 				sender.tell (updatedDataset, self);
 			});
@@ -258,8 +260,7 @@ public class Admin extends AbstractAdmin {
 		
 		final ActorRef sender = getSender(), self = getSelf();
 		
-		f.ask(database, new DeleteDataset(id)).thenAccept(msg -> {
-			Response<?> deletedDataset = (Response<?>)msg;
+		f.ask(database, new DeleteDataset(id), Response.class).thenAccept(deletedDataset -> {
 			log.debug ("deleted dataset id: " + deletedDataset.getValue());
 			sender.tell (deletedDataset, self);
 		});
@@ -305,14 +306,11 @@ public class Admin extends AbstractAdmin {
 			.thenApply(columns -> columns.list());
 	}
 	
+	@SuppressWarnings("unchecked")
 	private CompletableFuture<List<ColumnDiff>> handleListDatasetColumnDiff (final ListDatasetColumnDiff query) {
-				
-		return f.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ())).thenApply(msg -> {
-			@SuppressWarnings("unchecked")
-			final InfoList<ColumnDiff> diffs = (InfoList<ColumnDiff>) msg;
-			
+		return f.ask (database, new GetDatasetColumnDiff (query.datasetIdentification ()), InfoList.class).thenApply(diffs -> {
 			return diffs.getList ();
-		});		
+		});
 	}
 
 	private CompletableFuture<Page<DataSource>> handleListDataSources () {
@@ -469,13 +467,7 @@ public class Admin extends AbstractAdmin {
 		final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification> ();
 		
 		return f.successful(dashboardNotifications.build ());
-	}
-
-	private void handleEmptyList (final ListEntity<?> listEntity) {
-		final Page.Builder<Category> builder = new Page.Builder<> ();
-		
-		sender ().tell (builder.build (), self ());
-	}
+	}	
 	
 	private CompletableFuture<Optional<DataSource>> handleGetDataSource (String dataSourceId) {
 		return f.successful(Optional.of(new DataSource (dataSourceId, "DataSource: " + dataSourceId, new Status (DataSourceStatusType.OK, new Timestamp (new Date ().getTime ())))));
