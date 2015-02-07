@@ -315,7 +315,7 @@ public class Datasets extends Controller {
 									
 									flash ("success", "Dataset " + dataset.getName () + " is toegevoegd.");
 									
-									return Promise.pure (redirect (routes.Datasets.list (0)));
+									return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
 								}
 							});
 					}
