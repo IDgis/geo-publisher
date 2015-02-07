@@ -1,5 +1,7 @@
 package nl.idgis.publisher.admin;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -7,7 +9,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+
+
 import com.mysema.query.SimpleQuery;
+
+
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
@@ -15,7 +21,11 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
+
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
+
 
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -23,6 +33,8 @@ import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.NotFound;
+
+
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -104,11 +116,13 @@ public abstract class AbstractAdmin extends UntypedActor {
 		preStartAdmin();
 	}
 	
-	private void toSender(CompletableFuture<?> future) {
+	private void toSender(CompletableFuture<?> future) throws Exception {
 		ActorRef sender = getSender(), self = getSelf();		
 		future.whenComplete((resp, t) -> {
 			if(t != null) {
-				log.error("failure: {}", t);
+				StringWriter sw = new StringWriter();
+				t.printStackTrace(new PrintWriter(sw));
+				log.error("failure: {}", sw);
 			} else {
 				log.debug("sending response: {}", resp);				
 				sender.tell(resp, self);
