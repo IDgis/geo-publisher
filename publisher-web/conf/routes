@@ -38,16 +38,16 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 # 
 
 GET		/services										controllers.Services.list()
-GET 	/services/-/create								controllers.Services.createForm()
-
+GET 	/services/-/create								controllers.Services.create()
+POST 	/services/-/createupdate						controllers.Services.submitCreateUpdate()
+GET		/services/:serviceId/edit						controllers.Services.edit(serviceId: String)
+GET 	/services/:serviceId/delete						controllers.Services.delete(serviceId : String)
 
 GET		/layers											controllers.Layers.list()
 GET 	/layers/-/create								controllers.Layers.createForm()
 
-
 GET		/groups											controllers.Groups.list()
 GET 	/groups/-/create								controllers.Groups.createForm()
-
 
 GET		/styles											controllers.Styles.list()
 GET 	/styles/-/create								controllers.Styles.create()
@@ -55,9 +55,9 @@ POST 	/styles/-/createupdate							controllers.Styles.submitCreateUpdate()
 GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
-
 GET		/tiledlayers									controllers.Tiledlayers.list()
 GET 	/tiledlayers/-/create							controllers.Tiledlayers.createForm()
+
 
 # Logging
 GET		/logging/messages								controllers.Logging.messages()

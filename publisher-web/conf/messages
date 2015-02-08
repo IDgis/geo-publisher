@@ -284,9 +284,21 @@ web.application.page.services.form.header.new=Nieuwe service toevoegen
 web.application.page.services.form.header.edit=Service {0} aanpassen
 
 web.application.page.services.form.field.name.label=Naam
+web.application.page.services.form.field.name.placeholder=De naam voor de service
+web.application.page.services.form.field.name.help=De naam voor de service
+
 web.application.page.services.form.field.title.label=Titel
+web.application.page.services.form.field.name.placeholder=De naam voor de service
+web.application.page.services.form.field.name.help=De naam voor de service
+
 web.application.page.services.form.field.alttitle.label=Alternatieve titel
+web.application.page.services.form.field.name.placeholder=De naam voor de service
+web.application.page.services.form.field.name.help=De naam voor de service
+
 web.application.page.services.form.field.summary.label=Samenvatting
+web.application.page.services.form.field.name.placeholder=De naam voor de service
+web.application.page.services.form.field.name.help=De naam voor de service
+
 web.application.page.services.form.field.keywords.label=Trefwoorden
 web.application.page.services.form.field.publish.label=Publiceren
 web.application.page.services.form.field.structure.label=Structuur
