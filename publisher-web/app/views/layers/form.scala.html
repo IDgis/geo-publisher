@@ -1,46 +1,69 @@
+@(layerForm: Form[controllers.Layers.LayerForm], create: Boolean)
+
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title="Laag toevoegen: "+ "naam" ){
+@layout.application( title=Domain.message("web.application.page.layers.form.title")){
 
 <div class="page-content">
-	<h1 class="page-header">Nieuwe laag</h1>
+	@if(create){
+		<h1 class="page-header">@Domain.message("web.application.page.layers.form.header.new")</h1>
+	}else{
+		<h1 class="page-header">@Domain.message("web.application.page.layers.form.header.edit", layerForm("name").value) </h1>
+	}
+
+	@helper.formerrors(layerForm, Domain.message("web.application.page.layers.name").toLowerCase())	
+
 	
 	<div class="row">
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="get" action="@routes.Layers.list()">
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control" readonly>
+					<label class="col-sm-2 control-label" for="input-dataset">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-dataset" name="dataset" value="@layerForm("name").value" readonly>
+						@helper.fielderrors(layerForm("name").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.dataset.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.name.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control" readonly>
+					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.layers.form.field.name.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.layers.form.field.name.placeholder")" value="@layerForm("name").value" readonly>
+						@helper.fielderrors(layerForm("name").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.name.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.title.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control">
+					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.layers.form.field.title.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-title" title="title" placeholder="@Domain.message("web.application.page.layers.form.field.title.placeholder")" value="@layerForm("title").value">
+						@helper.fielderrors(layerForm("title").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.title.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.summary.label")</label>
-					<div class="col-sm-8">
-						<textarea class="form-control" rows="4"></textarea>
+					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.layers.form.field.summary.label")</label>
+					<div class="col-lg-8">
+						<textarea class="form-control" id="input-abstractText" title="abstractText" placeholder="@Domain.message("web.application.page.layers.form.field.abstract.placeholder")" value="@layerForm("abstractText").value" rows="4"></textarea>
+						@helper.fielderrors(layerForm("abstractText").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.abstract.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.keywords.label")</label>
-					<div class="col-sm-8">
-						<textarea class="form-control" rows="4"></textarea>
+					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.layers.form.field.keywords.label")</label>
+					<div class="col-lg-8">
+						<textarea class="form-control" id="input-keywords" title="keywords" placeholder="@Domain.message("web.application.page.layers.form.field.keywords.placeholder")" value="@layerForm("keywords").value" rows="2"></textarea>
+						@helper.fielderrors(layerForm("keywords").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.keywords.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.publish.label")</label>
-					<div class="col-sm-1">
-						<input type="checkbox">
+					<label class="col-sm-2 control-label" for="input-publish">@Domain.message("web.application.page.layers.form.field.publish.label")</label>
+					<div class="col-lg-8">
+						<div class="input-group input-group-sm">
+							<input type="checkbox" class="form-control" id="input-publish" name="publish" value="@layerForm("publish").value">
+						</div>
+						@helper.fielderrors(layerForm("publish").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.publish.help")</span>
 					</div>
 				</div>
 				<div class="form-group">

@@ -336,15 +336,32 @@ web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
 
 web.application.page.layers.form.title=Laag formulier
-web.application.page.layers.form.header.new=Nieuwe layer toevoegen
-web.application.page.layers.form.header.edit=Layer {0} aanpassen
+web.application.page.layers.form.header.new=Nieuwe laag toevoegen
+web.application.page.layers.form.header.edit=Laag {0} aanpassen
 
 web.application.page.layers.form.field.dataset.label=Dataset
+web.application.page.layers.form.field.dataset.help=Dataset die bij de laag hoort
+
 web.application.page.layers.form.field.name.label=Naam
+web.application.page.layers.form.field.name.placeholder=Naam
+web.application.page.layers.form.field.name.help=De naam voor de laag
+web.application.page.layers.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+
 web.application.page.layers.form.field.title.label=Titel
-web.application.page.layers.form.field.summary.label=Samenvatting
+web.application.page.layers.form.field.title.placeholder=Titel
+web.application.page.layers.form.field.title.help=De titel voor de laag
+
+web.application.page.layers.form.field.abstract.label=Samenvatting
+web.application.page.layers.form.field.abstract.placeholder=Samenvatting
+web.application.page.layers.form.field.abstract.help=De samenvastting voor de laag
+
 web.application.page.layers.form.field.keywords.label=Trefwoorden
+web.application.page.layers.form.field.keywords.placeholder=Trefwoorden
+web.application.page.layers.form.field.keywords.help=De trefwoorden voor de laag
+
 web.application.page.layers.form.field.publish.label=Publiceren
+web.application.page.layers.form.field.publish.help=Geef aan of de laag gepubliceerd wordt
+
 web.application.page.layers.form.field.groups.label=Zit in de groep(en)
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 
