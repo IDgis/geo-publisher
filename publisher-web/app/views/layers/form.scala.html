@@ -15,7 +15,7 @@
 	
 	<div class="row">
 		<div class="col-lg-12">
-			<form class="form-horizontal" method="get" action="@routes.Layers.list()">
+			<form class="form-horizontal" method="post" action="@routes.Layers.submitCreateUpdate()">
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-dataset">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
 					<div class="col-lg-8">
@@ -41,7 +41,7 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.layers.form.field.summary.label")</label>
+					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.layers.form.field.abstract.label")</label>
 					<div class="col-lg-8">
 						<textarea class="form-control" id="input-abstractText" title="abstractText" placeholder="@Domain.message("web.application.page.layers.form.field.abstract.placeholder")" value="@layerForm("abstractText").value" rows="4"></textarea>
 						@helper.fielderrors(layerForm("abstractText").errors)
@@ -89,7 +89,9 @@
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
 						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.cancel")</button>
+						<a href="@routes.Layers.list()" 
+							class="btn btn-success"> @Domain.message("web.application.button.cancel")
+						</a>
 						<button class="btn btn-success" type="button">@Domain.message("web.application.button.preview")</button>
 						<button class="btn btn-success" type="button">@Domain.message("web.application.button.tilingproperties")</button>
 					</div>
