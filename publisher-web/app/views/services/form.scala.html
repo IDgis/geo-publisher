@@ -1,51 +1,74 @@
+@(serviceForm: Form[controllers.Services.ServiceForm], create: Boolean)
+
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title="Service toevoegen: "+ "naam" ){
+@layout.application( title=Domain.message("web.application.page.services.form.title")){
 
 <div class="page-content">
-	<h1 class="page-header">Nieuwe service</h1>
-	
+	@if(create){
+		<h1 class="page-header">@Domain.message("web.application.page.services.form.header.new")</h1>
+	}else{
+		<h1 class="page-header">@Domain.message("web.application.page.services.form.header.edit", serviceForm("name").value) </h1>
+	}
+
+	@helper.formerrors(serviceForm, Domain.message("web.application.page.services.name").toLowerCase())	
+
 	<div class="row">
 		<div class="col-lg-12">
-			<form class="form-horizontal" method="get" action="Services.html">
+			<form class="form-horizontal" method="post" action="@routes.Services.submitCreateUpdate()" >
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.name.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control" readonly>
+					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.name.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.services.form.field.name.placeholder")" value="@serviceForm("name").value" @if(!create){readonly}>
+							@helper.fielderrors(serviceForm("name").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.name.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.title.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control">
+					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.services.form.field.title.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.services.form.field.title.placeholder")" value="@serviceForm("title").value">
+							@helper.fielderrors(serviceForm("title").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.title.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.alttitle.label")</label>
-					<div class="col-sm-8">
-						<input class="form-control">
+					<label class="col-sm-2 control-label" for="input-alternateTitle">@Domain.message("web.application.page.services.form.field.alttitle.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-alternateTitle" name="alternateTitle" placeholder="@Domain.message("web.application.page.services.form.field.alttitle.placeholder")" value="@serviceForm("alternateTitle").value">
+							@helper.fielderrors(serviceForm("alternateTitle").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.alttitle.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.summary.label")</label>
-					<div class="col-sm-8">
-						<textarea class="form-control" rows="4"></textarea>
+					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.services.form.field.abstract.label")</label>
+					<div class="col-lg-8">
+						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.services.form.field.abstract.placeholder")" value="@serviceForm("abstractText").value" rows="4"></textarea>
+							@helper.fielderrors(serviceForm("abstractText").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.abstract.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
-					<div class="col-sm-8">
-						<textarea class="form-control" rows="4"></textarea>
+					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
+					<div class="col-lg-8">
+						<textarea class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="@serviceForm("keywords").value" rows="2"></textarea>
+							@helper.fielderrors(serviceForm("keywords").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.keywords.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.publish.label")</label>
-					<div class="col-sm-1">
-						<input type="checkbox">
+					<label class="col-sm-2 control-label" for="input-publish">@Domain.message("web.application.page.services.form.field.publish.label")</label>
+					<div class="col-lg-8">
+							<div class="input-group input-group-sm">
+								<input type="checkbox" class="form-control" id="input-publish" name="publish" value="@serviceForm("publish").value">
+							</div>
+						
+							@helper.fielderrors(serviceForm("publish").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.publish.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 				
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.structure.label")</label>
+					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.structure.label")</label>
 					<div class="col-sm-8">
 					</div>
 				</div>
@@ -58,6 +81,7 @@
 					</div>
 				</div>
 
+<!-- 			
 				<div id="watermerk">
 					<div class="form-group">
 						<h3 class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.watermark.header")</h3>
@@ -98,10 +122,13 @@
 					</div>
 				</div>
 				
+		 -->
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
 						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.cancel")</button>
+						<a href="@routes.Services.list()" 
+							class="btn btn-success"> @Domain.message("web.application.button.cancel")
+						</a>
 					</div>
 				</div>
 			</form>

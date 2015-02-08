@@ -284,23 +284,29 @@ web.application.page.services.form.header.new=Nieuwe service toevoegen
 web.application.page.services.form.header.edit=Service {0} aanpassen
 
 web.application.page.services.form.field.name.label=Naam
-web.application.page.services.form.field.name.placeholder=De naam voor de service
+web.application.page.services.form.field.name.placeholder=Naam
 web.application.page.services.form.field.name.help=De naam voor de service
+web.application.page.services.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
 
 web.application.page.services.form.field.title.label=Titel
-web.application.page.services.form.field.name.placeholder=De naam voor de service
-web.application.page.services.form.field.name.help=De naam voor de service
+web.application.page.services.form.field.title.placeholder=Title
+web.application.page.services.form.field.title.help=De titel voor de service
 
 web.application.page.services.form.field.alttitle.label=Alternatieve titel
-web.application.page.services.form.field.name.placeholder=De naam voor de service
-web.application.page.services.form.field.name.help=De naam voor de service
+web.application.page.services.form.field.alttitle.placeholder=Alternatieve titel
+web.application.page.services.form.field.alttitle.help=De alternatieve titel voor de service
 
-web.application.page.services.form.field.summary.label=Samenvatting
-web.application.page.services.form.field.name.placeholder=De naam voor de service
-web.application.page.services.form.field.name.help=De naam voor de service
+web.application.page.services.form.field.abstract.label=Samenvatting
+web.application.page.services.form.field.abstract.placeholder=Samenvatting
+web.application.page.services.form.field.abstract.help=De samenvatting voor de service
 
 web.application.page.services.form.field.keywords.label=Trefwoorden
+web.application.page.services.form.field.keywords.placeholder=Trefwoorden
+web.application.page.services.form.field.keywords.help=De trefwoorden voor de service
+
 web.application.page.services.form.field.publish.label=Publiceren
+web.application.page.services.form.field.publish.help=Geef aan of de service gepubliceerd wordt
+
 web.application.page.services.form.field.structure.label=Structuur
 
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
