@@ -376,9 +376,25 @@ web.application.page.groups.form.header.new=Nieuwe groep toevoegen
 web.application.page.groups.form.header.edit=Groep {0} aanpassen
 
 web.application.page.groups.form.field.name.label=Naam
+web.application.page.groups.form.field.name.placeholder=Naam
+web.application.page.groups.form.field.name.help=De naam voor de groep
+web.application.page.groups.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+
 web.application.page.groups.form.field.title.label=Titel
-web.application.page.groups.form.field.summary.label=Samenvatting
+web.application.page.groups.form.field.title.placeholder=Titel
+web.application.page.groups.form.field.title.help=De titel voor de groep
+
+web.application.page.groups.form.field.abstract.label=Samenvatting
+web.application.page.groups.form.field.abstract.placeholder=Samenvatting
+web.application.page.groups.form.field.abstract.help=De samenvastting voor de groep
+
+web.application.page.groups.form.field.keywords.label=Trefwoorden
+web.application.page.groups.form.field.keywords.placeholder=Trefwoorden
+web.application.page.groups.form.field.keywords.help=De trefwoorden voor de groep
+
 web.application.page.groups.form.field.publish.label=Publiceren
+web.application.page.groups.form.field.publish.help=Geef aan of de groep gepubliceerd wordt
+
 web.application.page.groups.form.field.structure.label=Structuur
 web.application.page.groups.form.field.addlayer.button=Toevoegen laag
 web.application.page.groups.form.field.addgroup.button=Toevoegen groep

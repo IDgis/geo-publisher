@@ -50,7 +50,10 @@ GET		/layers/:layerId/edit							controllers.Layers.edit(layerId: String)
 GET 	/layers/:layerId/delete							controllers.Layers.delete(layerId : String)
 
 GET		/groups											controllers.Groups.list()
-GET 	/groups/-/create								controllers.Groups.createForm()
+GET 	/groups/-/create								controllers.Groups.create()
+POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
+GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)
+GET 	/groups/:groupId/delete							controllers.Groups.delete(groupId : String)
 
 GET		/styles											controllers.Styles.list()
 GET 	/styles/-/create								controllers.Styles.create()
