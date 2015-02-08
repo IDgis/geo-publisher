@@ -62,7 +62,10 @@ GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
 GET		/tiledlayers									controllers.Tiledlayers.list()
-GET 	/tiledlayers/-/create							controllers.Tiledlayers.createForm()
+GET 	/tiledlayers/-/create							controllers.Tiledlayers.create()
+POST 	/tiledlayers/-/createupdate						controllers.Tiledlayers.submitCreateUpdate()
+GET		/tiledlayers/:tiledlayerId/edit					controllers.Tiledlayers.edit(tiledlayerId: String)
+GET 	/tiledlayers/:tiledlayerId/delete				controllers.Tiledlayers.delete(tiledlayerId : String)
 
 
 # Logging
