@@ -1,0 +1,23 @@
+@(form: Form[_], item: String)
+
+<!--
+ Inserts an alert banner with header, text and a list of errors if appropriate.
+ Use in a form page under the page-header.
+ Displays generic error messages and a specific part in item for the header.
+-->
+
+@if(form.hasErrors) {
+	<div class="alert alert-danger">
+		<h4>@Domain.message("web.application.form.errors.header", item)</h4>
+		<p>@Domain.message("web.application.form.errors.text")</p>
+		@if(form.hasGlobalErrors) {
+			<h5>@Domain.message("web.application.form.globalerrors.header")</h5>
+			<ul>
+				@for(error <- form.globalErrors) {
+					<li>@error.message</li>
+				}
+			</ul>
+		}
+	</div>
+}
+

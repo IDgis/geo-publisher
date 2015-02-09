@@ -1,6 +1,27 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.io.IOException;
+import java.io.StringReader;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import models.Domain;
+import models.Domain.Function;
+import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Style;
+
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.InputSource;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -11,20 +32,13 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import actions.DefaultAuthenticator;
+import akka.actor.ActorSelection;
+import controllers.Styles.SimpleErrorHandler;
+import controllers.Styles.StyleForm;
 import views.html.styles.form;
 import views.html.styles.list;
-import actions.DefaultAuthenticator;
 
-import akka.actor.ActorSelection;
-
-import models.Domain.Function;
-
-import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.response.Response;
-import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.PutStyle;
-import nl.idgis.publisher.domain.web.Style;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
@@ -41,50 +55,89 @@ public class Styles extends Controller {
          });
 	}
 	
-	public static Promise<Result> createForm () {
-		Logger.debug ("create Style");
-		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
-		
-		return renderCreateForm (styleForm);
-	}
-	
-	public static Promise<Result> submitCreate () {
+	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		final Form<StyleForm> styleForm = Form.form (StyleForm.class).bindFromRequest ();
-		Logger.debug ("submit Style: " + styleForm.field("name").value());
+		final Form<StyleForm> form = Form.form (StyleForm.class).bindFromRequest ();
+		Logger.debug ("submit Style: " + form.field("name").value());
 		
-		if (styleForm.hasErrors ()) {
-			return renderCreateForm (styleForm);
+		// validation
+		if (form.field("name").value().length() == 1 ) {
+			form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
+		}
+		Logger.debug ("START VALIDATING ....");
+		boolean validXml = isValidXml(form.field("definition").value());
+		Logger.debug ("STOP VALIDATING .... " + validXml);
+		if (!validXml){ 
+			form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
+		}
+		if (form.hasErrors ()) {
+			return renderCreateForm (form);
 		}
 		
-		final StyleForm style = styleForm.get ();
-		
-
-		final PutStyle putStyle = new PutStyle (CrudOperation.CREATE, 
-				new Style(style.id, style.name, style.format, style.version,style.definition)
-			);
-		
-		Logger.debug ("create style " + putStyle);
+		final StyleForm styleForm = form.get ();
+		final Style style = new Style(styleForm.id, styleForm.name, styleForm.format, styleForm.version,styleForm.definition);
 		
 		return from (database)
-			.put(putStyle)
+			.put(style)
 			.executeFlat (new Function<Response<?>, Promise<Result>> () {
 				@Override
 				public Promise<Result> apply (final Response<?> response) throws Throwable {
-					if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
-						Logger.debug ("response: " + response);
-						styleForm.reject ("Er bestaat al een style met naam " + response.getValue());
-						return renderCreateForm (styleForm);
+					if (CrudOperation.CREATE.equals (response.getOperation())) {
+						Logger.debug ("Created style " + style);
+						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+					}else{
+						Logger.debug ("Updated style " + style);
+						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 					}
-					
-					flash ("success", "Style " + style.getName () + " is toegevoegd.");
-					
 					return Promise.pure (redirect (routes.Styles.list ()));
 				}
 			});
 	}
 	
 
+	private static boolean isValidXml(String xmlContent) {
+		boolean isValid = true;
+//        try {
+//            SAXParserFactory factory = SAXParserFactory.newInstance();
+//            factory.setValidating(true);
+//            factory.setNamespaceAware(true);
+//
+//            SAXParser parser = factory.newSAXParser();
+//            parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
+//
+//            XMLReader reader = parser.getXMLReader();
+//            SimpleErrorHandler errorHandler = new SimpleErrorHandler();
+//            reader.setErrorHandler(errorHandler);
+//            Logger.debug ("START VALIDATING ....");
+//            reader.parse(new InputSource(new StringReader(xmlContent)));
+              // parse does not return 		
+//            Logger.debug ("DONE VALIDATING .... " + isValid);
+//        } catch (ParserConfigurationException | SAXException | IOException e) {
+//            e.printStackTrace();
+//            isValid = false;
+//        }
+		return (xmlContent.indexOf("xml") >= 0);
+	}
+
+	public static class SimpleErrorHandler implements ErrorHandler {
+		
+		public SimpleErrorHandler (){
+			super();
+		}
+		
+	    public void warning(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	
+	    public void error(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	
+	    public void fatalError(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	}
+	
 	public static Promise<Result> list () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
@@ -100,8 +153,14 @@ public class Styles extends Controller {
 			});
 	}
 
-
-	public static Promise<Result> editForm (final String styleId) {
+	public static Promise<Result> create () {
+		Logger.debug ("create Style");
+		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
+		
+		return renderCreateForm (styleForm);
+	}
+	
+	public static Promise<Result> edit (final String styleId) {
 		Logger.debug ("edit Style: " + styleId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -122,10 +181,6 @@ public class Styles extends Controller {
 			});
 	}
 
-	public static Promise<Result> submitEdit (final String styleId) {
-		return null;
-	}
-		
 	public static Promise<Result> delete(final String styleId){
 		Logger.debug ("delete Style " + styleId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -144,11 +199,10 @@ public class Styles extends Controller {
 	}
 	
 	public static class StyleForm {
-
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
-		@Constraints.MinLength (1)
+		@Constraints.MinLength (value=1)
 		private String name;
 		@Constraints.Required
 		private String format;

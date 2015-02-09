@@ -1,40 +1,48 @@
+@(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service])
+
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = "Services" ) {
+@layout.application( title = Domain.message("web.application.page.services.list.header") ) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.services.list.header")</h1>
 	
-	
+	@* List of services: *@
 	<div class="col-lg-9 ">
-		<!-- <div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div> -->
-		<div class="list-group" id="style-list">
+		@if(services.values.isEmpty) {
+		<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
+		} else {
+		<div class="list-group" id="service-list">
 
-			<div class="list-group-item js-style-item" 
-				data-style-id="1"
-				data-style-name="@@service.name">
+			@for(service <- services.values) {
+			<div class="list-group-item js-service-item" 
+				data-service-id="@service.id"
+				data-service-name="@service.name">
 				<div class="row">
 					<div class="col-md-10">
 						<h4 class="list-group-item-heading">
-							<a href="" class="text-warning">@@service.name</a>
+							<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 						</h4>
 					</div>
 					<div class="col-md-2">
 						<div class="btn-group pull-right">
-							<a href=""
-								class="btn btn-default" title=Bewerken>
+							<a href="@routes.Services.edit(service.id)"
+								class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 								<span class="glyphicon glyphicon-edit"></span>
 							</a> 
-							<a href="" 
-								class="btn btn-warning" title=Verwijderen>
+							<a href="@routes.Services.delete(service.id)" 
+								class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
 								<span class="glyphicon glyphicon-remove"></span>
 							</a>
 						</div>
 					</div>
 				</div>
 			</div>
+			}
 		</div>
+		}
 		<div class="btn-group">
-			<a href="@routes.Services.createForm()" class="btn btn-success" title=Toevoegen>
+			<a href="@routes.Services.create()" 
+				class="btn btn-success" title=@Domain.message("web.application.button.add")>
 				<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
 			</a>
 		</div>

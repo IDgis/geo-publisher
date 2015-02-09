@@ -24,9 +24,6 @@ public class Service extends Identifiable {
 	private final String keywords;
 	private final String metadata;
 	private final String watermark;
-	private final EntityRef rootGroup;
-	private final EntityRef defaultCategory;
-	private final EntityRef application;
 	
 	@JsonCreator
 	@QueryProjection
@@ -38,10 +35,7 @@ public class Service extends Identifiable {
 			final @JsonProperty("") String abstractText, 
 			final @JsonProperty("") String keywords,
 			final @JsonProperty("") String metadata, 
-			final @JsonProperty("") String watermark, 
-			final @JsonProperty("") EntityRef rootGroup, 
-			final @JsonProperty("") EntityRef defaultCategory, 
-			final @JsonProperty("") EntityRef application) {
+			final @JsonProperty("") String watermark) {
 		super(id);
 		this.name = name;
 		this.title = title;
@@ -50,9 +44,6 @@ public class Service extends Identifiable {
 		this.keywords = keywords;
 		this.metadata = metadata;
 		this.watermark = watermark;
-		this.rootGroup = rootGroup;
-		this.defaultCategory = defaultCategory;
-		this.application = application;
 	}
 
 	@JsonGetter
@@ -90,20 +81,6 @@ public class Service extends Identifiable {
 		return watermark;
 	}
 
-	@JsonGetter
-	public EntityRef rootGroup() {
-		return rootGroup;
-	}
 
-	@JsonGetter
-	public EntityRef defaultCategory() {
-		return defaultCategory;
-	}
-
-	@JsonGetter
-	public EntityRef application() {
-		return application;
-	}
-	
 
 }
