@@ -29,7 +29,7 @@ import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
-import nl.idgis.publisher.service.Service;
+import nl.idgis.publisher.service.geoserver.Service;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;

@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.rest;
+package nl.idgis.publisher.service.geoserver.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -10,11 +10,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.service.TestServers;
-import nl.idgis.publisher.service.rest.Attribute;
-import nl.idgis.publisher.service.rest.DataStore;
-import nl.idgis.publisher.service.rest.FeatureType;
-import nl.idgis.publisher.service.rest.DefaultGeoServerRest;
-import nl.idgis.publisher.service.rest.Workspace;
+import nl.idgis.publisher.service.geoserver.rest.Attribute;
+import nl.idgis.publisher.service.geoserver.rest.DataStore;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.FeatureType;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;

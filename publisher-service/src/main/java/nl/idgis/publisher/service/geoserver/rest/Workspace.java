@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.rest;
+package nl.idgis.publisher.service.geoserver.rest;
 
 public class Workspace {	
 	
