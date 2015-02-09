@@ -106,21 +106,12 @@ public class Admin extends AbstractAdmin {
 	
 	@Override
 	protected void preStartAdmin() {
-		addPut(PutStyle.class, putStyle -> {
-			if (putStyle.getOperation() == CrudOperation.CREATE){
-				return handleCreateStyle(putStyle);
-			} else{
-				throw new IllegalArgumentException("not implemented yet");
-			}
-		});
 		
 		addList(Notification.class, this::handleListDashboardNotifications);
 		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
 		addList(Issue.class, this::handleListDashboardIssues);
-		addList(Style.class, this::handleListStyles);
 		
 		addGet(SourceDataset.class, this::handleGetSourceDataset);
-		addGet(Style.class, this::handleGetStyle);
 		
 		// TODO: put
 		
@@ -353,63 +344,6 @@ public class Admin extends AbstractAdmin {
 	}
 
 	
-	/*
-	 * Admin service Configuration getters
-	 */
-	
-	private CompletableFuture<Optional<Style>> handleGetStyle (String styleId) {
-		log.debug ("handleGetStyle");
-		
-		return 
-			db.query().from(style)
-			.where(style.identification.eq(styleId))
-			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));		
-	}
-	
-	private CompletableFuture<Response<?>> handleCreateStyle(PutStyle putStyle) {
-		String styleName = putStyle.getStyle().name();
-		log.debug ("handle create style: " + styleName);
-		
-		// Check if there is another style with the same name
-		final CompletableFuture<String>  styleId = db.query().from(style)
-				.where(style.name.eq(styleName))
-				.singleResult(style.name).thenApply(id -> id.get());
-		
-		return styleId.thenApply(msg -> {
-			if (msg == null){
-				// there is no other style with the same name
-				log.debug("Inserting new style with name: " + styleName);
-				db.insert(style)
-				.set(style.identification, UUID.randomUUID().toString())
-				.set(style.name, styleName)
-				.set(style.version, putStyle.getStyle().version())
-				.set(style.format, putStyle.getStyle().format())
-				.set(style.definition, putStyle.getStyle().definition())
-				.execute();
-				
-				return new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName);
-			} else {
-				log.error("Another style found with same name: " + styleName);
-				return new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, styleName);
-			}
-		});
-				
-	}
-
-	
-	/*
-	 * Admin service Configuration list
-	 */
-
-	private CompletableFuture<Page<Style>> handleListStyles () {
-		log.debug ("handleListStyles");
-		
-		return 
-			db.query().from(style)
-			.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
-			.thenApply(this::toPage);
-	}
-
 	private CompletableFuture<Page<Issue>> handleListIssues (final ListIssues listIssues) {
 		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
 		
