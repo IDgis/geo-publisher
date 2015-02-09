@@ -10,9 +10,10 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
-import nl.idgis.publisher.service.manager.messages.Dataset;
+import nl.idgis.publisher.service.manager.messages.DatasetNode;
 import nl.idgis.publisher.service.manager.messages.DefaultService;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GroupNode;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class ServiceManager extends UntypedActor {
@@ -51,6 +52,7 @@ public class ServiceManager extends UntypedActor {
 	private void handleGetService(GetService msg) {
 		ActorRef sender = getSender(), self = getSelf();
 		
-		sender.tell(new DefaultService("service0", Collections.<Dataset>emptyList(), Collections.<String, String>emptyMap()), self);
+		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
+		sender.tell(new DefaultService("service0", root, Collections.<DatasetNode>emptyList(), Collections.singletonList(root), Collections.<String, String>emptyMap()), self);
 	}
 }

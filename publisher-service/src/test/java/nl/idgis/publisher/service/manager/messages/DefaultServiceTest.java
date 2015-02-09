@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,21 +14,24 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class DefaultServiceTest {
-
+public class DefaultServiceTest {	
+	
 	@Test
-	public void testRootLayers() {
-		List<Dataset> datasets = Arrays.asList(
-			new Dataset("leaf0", "mySchema0", "myTable0"),
-			new Dataset("leaf1", "mySchema1", "myTable1"),
-			new Dataset("leaf2", "mySchema2", "myTable2"));
+	public void testNoGroup() {
+		List<DatasetNode> datasets = Arrays.asList(
+			new DatasetNode("leaf0", "name0", "title0", "abstract0", "mySchema0", "myTable0"),
+			new DatasetNode("leaf1", "name1", "title1", "abstract1", "mySchema1", "myTable1"),
+			new DatasetNode("leaf2", "name2", "title2", "abstract2", "mySchema2", "myTable2"));
+			
+		Map<String, String> structure = new LinkedHashMap<>();
+		structure.put("leaf0", "group0");
+		structure.put("leaf1", "group0");
+		structure.put("leaf2", "group0");
 		
-		Map<String, String> groups = new LinkedHashMap<>();
-		groups.put("leaf0", null);
-		groups.put("leaf1", null);
-		groups.put("leaf2", null);
+		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
+		Service service = new DefaultService("service0", root, datasets, Collections.singletonList(root), structure);
+		assertEquals("group0", service.getRootId());
 		
-		Service service = new DefaultService("service0", datasets, groups);
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);
 		
@@ -35,36 +39,47 @@ public class DefaultServiceTest {
 		assertDatasetLayer(itr, "leaf0", "mySchema0", "myTable0");
 		assertDatasetLayer(itr, "leaf1", "mySchema1", "myTable1");
 		assertDatasetLayer(itr, "leaf2", "mySchema2", "myTable2");
-		assertFalse(itr.hasNext());	
+		
+		assertFalse(itr.hasNext());
 	}
 	
 	@Test
-	public void testGroupLayer() {
-		List<Dataset> datasets = Arrays.asList(
-				new Dataset("leaf0", "mySchema0", "myTable0"),
-				new Dataset("leaf1", "mySchema1", "myTable1"),
-				new Dataset("leaf2", "mySchema2", "myTable2"));
-			
-		Map<String, String> groups = new LinkedHashMap<>();
-		groups.put("group0", null);
-		groups.put("leaf0", "group0");
-		groups.put("leaf1", "group0");
-		groups.put("leaf2", "group0");
+	public void testGroup() {
+		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
 		
-		Service service = new DefaultService("service0", datasets, groups);
+		List<GroupNode> groups = Arrays.asList(
+				root,
+				new GroupNode("group1", "name1", "title1", "abstract1"));
+		
+		List<DatasetNode> datasets = Arrays.asList(
+				new DatasetNode("leaf0", "name0", "title0", "abstract0", "mySchema0", "myTable0"),
+				new DatasetNode("leaf1", "name1", "title1", "abstract1", "mySchema1", "myTable1"),
+				new DatasetNode("leaf2", "name2", "title2", "abstract2", "mySchema2", "myTable2"));
+				
+		Map<String, String> structure = new LinkedHashMap<>();
+		structure.put("leaf0", "group0");
+		structure.put("leaf1", "group0");
+		structure.put("group1", "group0");
+		structure.put("leaf2", "group1");
+		
+		Service service = new DefaultService("service0", root, datasets, groups, structure);
+		assertEquals("group0", service.getRootId());
+		
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);
 		
 		Iterator<Layer> itr = layers.iterator();
-		List<Layer> childLayers = assertGroupLayer(itr, "group0").getLayers();
+		assertDatasetLayer(itr, "leaf0", "mySchema0", "myTable0");
+		assertDatasetLayer(itr, "leaf1", "mySchema1", "myTable1");
+		
+		List<Layer> childLayers = assertGroupLayer(itr, "group1").getLayers();
 		assertNotNull(childLayers);
 		
 		Iterator<Layer> childItr = childLayers.iterator();
-		assertDatasetLayer(childItr, "leaf0", "mySchema0", "myTable0");
-		assertDatasetLayer(childItr, "leaf1", "mySchema1", "myTable1");
-		assertDatasetLayer(childItr, "leaf2", "mySchema2", "myTable2");
-		
+		assertDatasetLayer(childItr, "leaf2", "mySchema2", "myTable2");		
 		assertFalse(childItr.hasNext());
+		
+		assertFalse(itr.hasNext());
 	}
 	
 	private GroupLayer assertGroupLayer(Iterator<Layer> itr, String id) {

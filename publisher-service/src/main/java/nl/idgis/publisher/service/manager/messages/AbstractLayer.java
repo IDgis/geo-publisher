@@ -6,18 +6,10 @@ public abstract class AbstractLayer implements Layer, Serializable {
 
 	private static final long serialVersionUID = 6734327906748493507L;
 	
-	protected final String id;
-	
 	private final boolean isGroup;
 	
-	public AbstractLayer(String id, boolean isGroup) {
-		this.id = id;
+	public AbstractLayer(boolean isGroup) {		
 		this.isGroup = isGroup;
-	}
-	
-	@Override
-	public final String getId() {
-		return id;
 	}
 	
 	@Override

@@ -7,33 +7,48 @@ import java.util.stream.Collectors;
 public class DefaultGroupLayer extends AbstractLayer implements GroupLayer {
 	
 	private static final long serialVersionUID = -5112614407998270385L;
+	
+	private final GroupNode group;
 
-	private final Map<String, DatasetLayer> datasets;
+	private final Map<String, DatasetNode> datasets;
 	
-	private final Map<String, String> groups;
+	private final Map<String, GroupNode> groups;
 	
-	public DefaultGroupLayer(String id, Map<String, DatasetLayer> datasets, Map<String, String> groups) {
-		super(id, true);
+	private final Map<String, String> structure;
+	
+	public DefaultGroupLayer(GroupNode group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, Map<String, String> structure) {
+		super(true);
 		
+		this.group = group;
 		this.datasets = datasets;
 		this.groups = groups;
+		this.structure = structure;
 	}
+	
+	@Override
+	public String getId() {
+		return group.getId();
+	}	
 	
 	private Layer asLayer(String id) {
 		if(datasets.containsKey(id)) {
-			return datasets.get(id);
+			return new DefaultDatasetLayer(datasets.get(id));
 		}
 		
-		return new DefaultGroupLayer(id, datasets, groups);
+		if(groups.containsKey(id)) {
+			return new DefaultGroupLayer(groups.get(id), datasets, groups, structure);
+		}
+		
+		throw new IllegalArgumentException("unknown layer id: " + id);
 	}
 	
 	protected boolean filterGroup(Map.Entry<String, String> groupEntry) {
-		return id.equals(groupEntry.getValue());
+		return getId().equals(groupEntry.getValue());
 	}
 
 	@Override
 	public List<Layer> getLayers() {
-		return groups.entrySet().stream()
+		return structure.entrySet().stream()
 			.filter(this::filterGroup)
 			.map(groupEntry -> asLayer(groupEntry.getKey()))
 			.collect(Collectors.toList());
