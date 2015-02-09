@@ -14,7 +14,17 @@ import java.util.function.Supplier;
 
 
 
+
+
+
+
+
 import com.mysema.query.SimpleQuery;
+
+
+
+
+
 
 
 
@@ -32,6 +42,12 @@ import akka.util.Timeout;
 
 
 
+
+
+
+
+
+import nl.idgis.publisher.admin.messages.AddDelete;
 import nl.idgis.publisher.admin.messages.AddGet;
 import nl.idgis.publisher.admin.messages.AddList;
 import nl.idgis.publisher.admin.messages.AddQuery;
@@ -43,12 +59,25 @@ import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 
 
+
+
+
+
+
+import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
+import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
+
+
+
+
+
 
 
 
@@ -71,7 +100,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	protected AsyncDatabaseHelper db;
 	
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Function> queryHandlers, listHandlers, getHandlers; 
+	protected Map<Class, Function> queryHandlers, listHandlers, getHandlers, deleteHandlers; 
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -128,6 +157,11 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getContext().parent().tell(new AddGet(entity), getSelf());
 	}
 	
+	protected <T extends Identifiable> void addDelete(Class<? super T> entity, Function<String, CompletableFuture<Response<?>>> func) {
+		deleteHandlers.put(entity, func);
+		getContext().parent().tell(new AddDelete(entity), getSelf());
+	}
+	
 	protected abstract void preStartAdmin();
 	
 	@Override
@@ -138,6 +172,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		queryHandlers = new HashMap<>();
 		listHandlers = new HashMap<>();
 		getHandlers = new HashMap<>();
+		deleteHandlers = new HashMap<>();
 		
 		preStartAdmin();
 	}
@@ -204,6 +239,20 @@ public abstract class AbstractAdmin extends UntypedActor {
 				log.debug("handling query: {}", msg);
 				
 				toSender(queryHandler.apply((DomainQuery<?>)msg));
+			}
+		} else if(msg instanceof DeleteEntity) {
+			Class<?> entity = ((DeleteEntity<?>)msg).cls();
+			
+			@SuppressWarnings("unchecked")
+			Function<String, CompletableFuture<?>> deleteHandler = deleteHandlers.get(entity);
+			if(deleteHandler == null) {
+				log.debug("delete not handled: {}", entity);
+				
+				unhandled(msg);
+			} else {
+				log.debug("handling delete: {}", entity);
+				
+				toSender(deleteHandler.apply(((DeleteEntity<?>)msg).id()));
 			}
 		} else {
 			unhandled(msg);

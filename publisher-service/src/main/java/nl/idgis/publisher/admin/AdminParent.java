@@ -9,10 +9,12 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.admin.messages.AddDelete;
 import nl.idgis.publisher.admin.messages.AddGet;
 import nl.idgis.publisher.admin.messages.AddList;
 import nl.idgis.publisher.admin.messages.AddQuery;
 
+import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
@@ -23,7 +25,7 @@ public class AdminParent extends UntypedActor {
 	
 	private final ActorRef database, harvester, loader, service, jobSystem;
 	
-	private Map<Class<?>, ActorRef> get, list, query;
+	private Map<Class<?>, ActorRef> get, list, query, delete;
 	
 	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
@@ -42,6 +44,7 @@ public class AdminParent extends UntypedActor {
 		get = new HashMap<>();
 		list = new HashMap<>();
 		query = new HashMap<>();
+		delete = new HashMap<>();
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
 		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
@@ -81,6 +84,16 @@ public class AdminParent extends UntypedActor {
 				log.error("Unhandled DomainQuery message: {}" + clazz);
 				unhandled(msg);
 			}
+		} else if(msg instanceof DeleteEntity) {
+			Class<?> entity = ((DeleteEntity<?>)msg).cls();
+			
+			if(query.containsKey(entity)) {
+				log.debug("forwarding query");
+				query.get(entity).forward(msg, getContext());
+			} else {
+				log.error("Unhandled DeleteEntity message: {}" + entity);
+				unhandled(msg);
+			}
 		} else if(msg instanceof AddGet) {
 			Class<?> entity = ((AddGet)msg).getEntity();
 			ActorRef sender = getSender();
@@ -99,6 +112,12 @@ public class AdminParent extends UntypedActor {
 			
 			log.debug("registering query: {} on actor '{}'", clazz, sender.path().name());
 			query.put(clazz, sender);
+		} else if(msg instanceof AddDelete) {
+			Class<?> entity= ((AddDelete)msg).getEntity();
+			ActorRef sender = getSender();
+			
+			log.debug("registering delete query: {} on actor '{}'", entity, sender.path().name());
+			delete.put(entity, sender);
 		} else {
 			unhandled(msg);
 		}

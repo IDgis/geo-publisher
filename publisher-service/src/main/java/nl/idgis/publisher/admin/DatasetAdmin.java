@@ -43,7 +43,6 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
-import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.PutEntity;
@@ -79,18 +78,12 @@ public class DatasetAdmin extends AbstractAdmin {
 		addQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
 		addList(Dataset.class, () -> handleListDatasets(null));
 		addGet(Dataset.class, this::handleGetDataset);
+		addDelete(Dataset.class, this::handleDeleteDataset);
 	}
 	
 	@Override	
 	protected void unhandledQuery(Object msg) throws Exception {
-		if(msg instanceof DeleteEntity<?>) {
-			DeleteEntity<?> delEntity = (DeleteEntity<?>)msg;
-			if (delEntity.cls ().equals (Dataset.class)) {
-				handleDeleteDataset(delEntity.id());
-			} else {
-				unhandled(msg);
-			}
-		} else if(msg instanceof PutEntity<?>) {
+		if(msg instanceof PutEntity<?>) {
 			PutEntity<?> putEntity = (PutEntity<?>)msg;
 			if (putEntity.value() instanceof PutDataset) {
 				PutDataset putDataset = (PutDataset)putEntity.value(); 
@@ -359,15 +352,8 @@ public class DatasetAdmin extends AbstractAdmin {
 		});		
 	}
 	
-	private void handleDeleteDataset(String id) {
-		log.debug ("handle delete dataset: " + id);
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new DeleteDataset(id), Response.class).thenAccept(deletedDataset -> {
-			log.debug ("deleted dataset id: " + deletedDataset.getValue());
-			sender.tell (deletedDataset, self);
-		});
+	private CompletableFuture<Response<?>> handleDeleteDataset(String id) {
+		return f.ask(database, new DeleteDataset(id), Response.class).thenApply(resp -> resp);
 	}
 	
 	private void handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
