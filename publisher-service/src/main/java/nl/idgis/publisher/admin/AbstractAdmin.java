@@ -11,7 +11,13 @@ import java.util.function.Supplier;
 
 
 
+
+
+
 import com.mysema.query.SimpleQuery;
+
+
+
 
 
 
@@ -23,7 +29,17 @@ import akka.util.Timeout;
 
 
 
+
+
+
+import nl.idgis.publisher.admin.messages.AddGet;
+import nl.idgis.publisher.admin.messages.AddList;
+import nl.idgis.publisher.admin.messages.AddQuery;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
+
+
 
 
 
@@ -33,6 +49,9 @@ import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.NotFound;
+
+
+
 
 
 
@@ -92,6 +111,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
 		queryHandlers.put(query, func);
+		getContext().parent().tell(new AddQuery(query), getSelf());
 	}
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
@@ -100,10 +120,12 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
 		listHandlers.put(entity, func);
+		getContext().parent().tell(new AddList(entity), getSelf());
 	}
 	
 	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
 		getHandlers.put(entity, func);
+		getContext().parent().tell(new AddGet(entity), getSelf());
 	}
 	
 	protected abstract void preStartAdmin();
@@ -140,8 +162,6 @@ public abstract class AbstractAdmin extends UntypedActor {
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
-		Class<?> clazz = msg.getClass();
-		
 		if(msg instanceof GetEntity) {
 			Class<?> entity = ((GetEntity<?>)msg).cls();
 			
@@ -172,6 +192,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 				toSender(listHandler.apply(((ListEntity<?>)msg).page()));
 			}
 		} else if(msg instanceof DomainQuery) {
+			Class<?> clazz = msg.getClass();
+			
 			@SuppressWarnings("unchecked")
 			Function<DomainQuery<?>, CompletableFuture<?>> queryHandler = queryHandlers.get(clazz);
 			if(queryHandler == null) {

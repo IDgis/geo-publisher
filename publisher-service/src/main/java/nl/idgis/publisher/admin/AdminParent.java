@@ -1,12 +1,29 @@
 package nl.idgis.publisher.admin;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
+import nl.idgis.publisher.admin.messages.AddGet;
+import nl.idgis.publisher.admin.messages.AddList;
+import nl.idgis.publisher.admin.messages.AddQuery;
+
+import nl.idgis.publisher.domain.query.DomainQuery;
+import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.ListEntity;
 
 public class AdminParent extends UntypedActor {
 	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
 	private final ActorRef database, harvester, loader, service, jobSystem;
+	
+	private Map<Class<?>, ActorRef> get, list, query;
 	
 	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
@@ -22,14 +39,68 @@ public class AdminParent extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
+		get = new HashMap<>();
+		list = new HashMap<>();
+		query = new HashMap<>();
+		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
-		getContext().actorOf(DataSourceAdmin.props(database, harvester));
-		getContext().actorOf(CategoryAdmin.props(database));
-		getContext().actorOf(DatasetAdmin.props(database));
+		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
+		getContext().actorOf(CategoryAdmin.props(database), "category");
+		getContext().actorOf(DatasetAdmin.props(database), "dataset");
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		unhandled(msg);
+		if(msg instanceof GetEntity) {
+			Class<?> entity = ((GetEntity<?>)msg).cls();
+			
+			if(get.containsKey(entity)) {
+				log.debug("forwarding get query");
+				get.get(entity).forward(msg, getContext());
+			} else {
+				log.error("Unhandled GetEntity message: {}", entity);				
+				unhandled(msg);
+			}
+		} else if(msg instanceof ListEntity) {
+			Class<?> entity = ((ListEntity<?>)msg).cls();
+			
+			if(list.containsKey(entity)) {
+				log.debug("forwarding list query");
+				list.get(entity).forward(msg, getContext());
+			} else {
+				log.error("Unhandled ListEntity message: {}", entity);
+				unhandled(msg);
+			}
+		} else if(msg instanceof DomainQuery) {
+			Class<?> clazz = msg.getClass();
+			
+			if(query.containsKey(clazz)) {
+				log.debug("forwarding query");
+				query.get(clazz).forward(msg, getContext());
+			} else {
+				log.error("Unhandled DomainQuery message: {}" + clazz);
+				unhandled(msg);
+			}
+		} else if(msg instanceof AddGet) {
+			Class<?> entity = ((AddGet)msg).getEntity();
+			ActorRef sender = getSender();
+			
+			log.debug("registering get query: {} on actor '{}'", entity, sender.path().name());
+			get.put(entity, sender);
+		} else if(msg instanceof AddList) {
+			Class<?> entity = ((AddList)msg).getEntity();
+			ActorRef sender = getSender();
+			
+			log.debug("registering list query: {} on actor '{}'", entity, sender.path().name());
+			list.put(entity, sender);
+		} else if(msg instanceof AddQuery) {
+			Class<?> clazz = ((AddQuery)msg).getClazz();
+			ActorRef sender = getSender();
+			
+			log.debug("registering query: {} on actor '{}'", clazz, sender.path().name());
+			query.put(clazz, sender);
+		} else {
+			unhandled(msg);
+		}
 	}
 }
