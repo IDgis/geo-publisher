@@ -45,7 +45,6 @@ import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
-import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -79,25 +78,17 @@ public class DatasetAdmin extends AbstractAdmin {
 		addList(Dataset.class, () -> handleListDatasets(null));
 		addGet(Dataset.class, this::handleGetDataset);
 		addDelete(Dataset.class, this::handleDeleteDataset);
-	}
-	
-	@Override	
-	protected void unhandledQuery(Object msg) throws Exception {
-		if(msg instanceof PutEntity<?>) {
-			PutEntity<?> putEntity = (PutEntity<?>)msg;
-			if (putEntity.value() instanceof PutDataset) {
-				PutDataset putDataset = (PutDataset)putEntity.value(); 
+		addPut(PutDataset.class, putDataset -> {
+			try {
 				if (putDataset.getOperation() == CrudOperation.CREATE){
-					handleCreateDataset(putDataset);
+					return handleCreateDataset(putDataset);
 				} else{
-					handleUpdateDataset(putDataset);
+					return handleUpdateDataset(putDataset);
 				}
-			} else {
-				unhandled(msg);
+			} catch(JsonProcessingException e) {
+				throw new RuntimeException(e);
 			}
-		} else {			
-			unhandled(msg);
-		}
+		});
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
@@ -356,38 +347,26 @@ public class DatasetAdmin extends AbstractAdmin {
 		return f.ask(database, new DeleteDataset(id), Response.class).thenApply(resp -> resp);
 	}
 	
-	private void handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
+	private CompletableFuture<Response<?>> handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
 		log.debug ("handle create dataset: " + putDataset.id());
 		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new CreateDataset(
+		return f.ask(database, new CreateDataset(
 			putDataset.id(), 
 			putDataset.getDatasetName(),
 			putDataset.getSourceDatasetIdentification(), 
 			putDataset.getColumnList(),
 			objectMapper.writeValueAsString (putDataset.getFilterConditions())),
-			Response.class).thenAccept(createdDataset -> {				
-				log.debug ("created dataset id: " + createdDataset.getValue());
-				sender.tell (createdDataset, self);
-			});
+			Response.class).thenApply(resp -> resp);
 	}
 
-	private void handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
-		log.debug ("handle update dataset: " + putDataset.id());
-		
-		final ActorRef sender = getSender(), self = getSelf();
-		
-		f.ask(database, new UpdateDataset(
+	private CompletableFuture<Response<?>> handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
+		return f.ask(database, new UpdateDataset(
 			putDataset.id(), 
 			putDataset.getDatasetName(),
 			putDataset.getSourceDatasetIdentification(), 
 			putDataset.getColumnList(),
 			objectMapper.writeValueAsString (putDataset.getFilterConditions ())),
-			Response.class).thenAccept(updatedDataset -> {				
-				log.debug ("updated dataset id: " + updatedDataset.getValue());
-				sender.tell (updatedDataset, self);
-			});
+			Response.class).thenApply(resp -> resp);
 	}
 
 }

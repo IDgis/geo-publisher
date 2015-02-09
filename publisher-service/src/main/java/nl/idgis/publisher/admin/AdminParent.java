@@ -12,12 +12,14 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.admin.messages.AddDelete;
 import nl.idgis.publisher.admin.messages.AddGet;
 import nl.idgis.publisher.admin.messages.AddList;
+import nl.idgis.publisher.admin.messages.AddPut;
 import nl.idgis.publisher.admin.messages.AddQuery;
 
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.ListEntity;
+import nl.idgis.publisher.domain.query.PutEntity;
 
 public class AdminParent extends UntypedActor {
 	
@@ -25,7 +27,7 @@ public class AdminParent extends UntypedActor {
 	
 	private final ActorRef database, harvester, loader, service, jobSystem;
 	
-	private Map<Class<?>, ActorRef> get, list, query, delete;
+	private Map<Class<?>, ActorRef> get, list, query, delete, put;
 	
 	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
 		this.database = database;
@@ -45,6 +47,7 @@ public class AdminParent extends UntypedActor {
 		list = new HashMap<>();
 		query = new HashMap<>();
 		delete = new HashMap<>();
+		put = new HashMap<>();
 		
 		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
 		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
@@ -74,6 +77,26 @@ public class AdminParent extends UntypedActor {
 				log.error("Unhandled ListEntity message: {}", entity);
 				unhandled(msg);
 			}
+		} else if(msg instanceof DeleteEntity) {
+			Class<?> entity = ((DeleteEntity<?>)msg).cls();
+			
+			if(delete.containsKey(entity)) {
+				log.debug("forwarding query");
+				delete.get(entity).forward(msg, getContext());
+			} else {
+				log.error("Unhandled DeleteEntity message: {}", entity);
+				unhandled(msg);
+			}
+		} else if(msg instanceof PutEntity) {
+			Class<?> entity = ((PutEntity<?>)msg).value().getClass();
+			
+			if(put.containsKey(entity)) {
+				log.debug("forwarding query");
+				put.get(entity).forward(msg, getContext());
+			} else {
+				log.error("Unhandled PutEntity message: {}", entity);
+				unhandled(msg);
+			}
 		} else if(msg instanceof DomainQuery) {
 			Class<?> clazz = msg.getClass();
 			
@@ -81,17 +104,7 @@ public class AdminParent extends UntypedActor {
 				log.debug("forwarding query");
 				query.get(clazz).forward(msg, getContext());
 			} else {
-				log.error("Unhandled DomainQuery message: {}" + clazz);
-				unhandled(msg);
-			}
-		} else if(msg instanceof DeleteEntity) {
-			Class<?> entity = ((DeleteEntity<?>)msg).cls();
-			
-			if(query.containsKey(entity)) {
-				log.debug("forwarding query");
-				query.get(entity).forward(msg, getContext());
-			} else {
-				log.error("Unhandled DeleteEntity message: {}" + entity);
+				log.error("Unhandled DomainQuery message: {}", clazz);
 				unhandled(msg);
 			}
 		} else if(msg instanceof AddGet) {
@@ -118,6 +131,12 @@ public class AdminParent extends UntypedActor {
 			
 			log.debug("registering delete query: {} on actor '{}'", entity, sender.path().name());
 			delete.put(entity, sender);
+		} else if(msg instanceof AddPut) {
+			Class<?> entity = ((AddPut)msg).getEntity();
+			ActorRef sender = getSender();
+			
+			log.debug("registering put query: {} on actor '{}'", entity, sender.path().name());
+			put.put(entity, sender);
 		} else {
 			unhandled(msg);
 		}

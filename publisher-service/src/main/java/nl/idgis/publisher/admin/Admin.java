@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
@@ -53,7 +52,6 @@ import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
-import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
@@ -106,30 +104,15 @@ public class Admin extends AbstractAdmin {
 		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
 	}
 	
-	@Override	
-	protected void unhandledQuery(Object msg) throws Exception {
-		// TODO: add support for these query types to abstract admin 
-		
-		if (msg instanceof PutEntity<?>) {
-			final PutEntity<?> putEntity = (PutEntity<?>)msg;
-			
-			if (putEntity.value() instanceof PutStyle) {
-				PutStyle putStyle = (PutStyle)putEntity.value(); 
-				if (putStyle.getOperation() == CrudOperation.CREATE){
-					handleCreateStyle(putStyle);
-				}else{
-//					handleUpdateStyle(putStyle);
-				}
-			}
-		} else {
-			log.error("query not handled: {}", msg);
-			
-			unhandled(msg);
-		}
-	}
-	
 	@Override
 	protected void preStartAdmin() {
+		addPut(PutStyle.class, putStyle -> {
+			if (putStyle.getOperation() == CrudOperation.CREATE){
+				return handleCreateStyle(putStyle);
+			} else{
+				throw new IllegalArgumentException("not implemented yet");
+			}
+		});
 		
 		addList(Notification.class, this::handleListDashboardNotifications);
 		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
@@ -383,18 +366,16 @@ public class Admin extends AbstractAdmin {
 			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));		
 	}
 	
-	private void handleCreateStyle(PutStyle putStyle) throws JsonProcessingException {
+	private CompletableFuture<Response<?>> handleCreateStyle(PutStyle putStyle) {
 		String styleName = putStyle.getStyle().name();
 		log.debug ("handle create style: " + styleName);
-		
-		final ActorRef sender = getSender();
 		
 		// Check if there is another style with the same name
 		final CompletableFuture<String>  styleId = db.query().from(style)
 				.where(style.name.eq(styleName))
 				.singleResult(style.name).thenApply(id -> id.get());
-
-		styleId.thenAccept(msg -> {
+		
+		return styleId.thenApply(msg -> {
 			if (msg == null){
 				// there is no other style with the same name
 				log.debug("Inserting new style with name: " + styleName);
@@ -406,10 +387,10 @@ public class Admin extends AbstractAdmin {
 				.set(style.definition, putStyle.getStyle().definition())
 				.execute();
 				
-				sender.tell(new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName), getSelf());
+				return new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName);
 			} else {
 				log.error("Another style found with same name: " + styleName);
-				sender.tell(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, styleName), getSelf());
+				return new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, styleName);
 			}
 		});
 				
