@@ -36,7 +36,6 @@ import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-
 import nl.idgis.publisher.protocol.messages.Failure;
 
 import nl.idgis.publisher.domain.Log;
@@ -116,22 +115,16 @@ public class DatasetManager extends UntypedActor {
 			return f.successful(null);
 		}
 		
-		return 
+		return
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
 				.singleResult(category.id).thenCompose(id -> {
-					if(id == null) {
-						log.debug("new category: {}", identification);
-						
-						return tx.insert(category)
-							.set(category.identification, identification)
-							.set(category.name, identification)
-							.executeWithKey(category.id);
-					} else {
-						log.debug("existing category: {}", identification);
-						
-						return f.successful(id);
-					}	
+					return id.map(f::successful)
+						.orElse(
+							tx.insert(category)
+								.set(category.identification, identification)
+								.set(category.name, identification)
+								.executeWithKey(category.id));
 				});
 	}
 	
@@ -164,7 +157,8 @@ public class DatasetManager extends UntypedActor {
 				.orderBy(sourceDatasetVersionColumn.index.asc())
 				.list(new QColumn(
 					sourceDatasetVersionColumn.name,
-					sourceDatasetVersionColumn.dataType))).thenApply((baseInfo, logInfo, columnInfo) -> {
+					sourceDatasetVersionColumn.dataType))).thenApply((baseInfoOptional, logInfo, columnInfo) -> {
+						Tuple baseInfo = baseInfoOptional.orElseThrow(() -> new IllegalArgumentException("source dataset version missing"));
 						
 						String id = baseInfo.get(sourceDataset.identification);
 						String name = baseInfo.get(sourceDatasetVersion.name);
@@ -241,10 +235,15 @@ public class DatasetManager extends UntypedActor {
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
 						.and(sourceDataset.identification.eq(identification)))
-				.singleResult(sourceDatasetVersion.id.max()).thenCompose(maxVersionId -> 
-					maxVersionId == null
-						? f.successful(Optional.empty())
-						: getSourceDatasetVersion(tx, maxVersionId).thenApply(dataset -> Optional.of(dataset)));
+				.singleResult(sourceDatasetVersion.id.max()).thenCompose(maxVersionId -> {
+					if(maxVersionId.isPresent()) {
+						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);						
+					} else {
+						return f.successful(Optional.empty());
+					}					
+
+				}); 
+						
 	}
 	
 	private CompletableFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, Dataset dataset) {
@@ -255,8 +254,11 @@ public class DatasetManager extends UntypedActor {
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
 					.and(sourceDataset.identification.eq(dataset.getId())))
-				.singleResult(sourceDataset.id).thenCompose(sourceDatasetId -> 
-					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).thenApply(v -> new Updated());
+				.singleResult(sourceDataset.id).thenCompose(sourceDatasetIdOptional -> {
+					Integer sourceDatasetId = sourceDatasetIdOptional.orElseThrow(() -> new IllegalStateException("source dataset id missing"));
+					
+					return insertSourceDatasetVersion(tx, sourceDatasetId, dataset).thenApply(v -> new Updated());
+				});
 	}
 	
 	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset) {
