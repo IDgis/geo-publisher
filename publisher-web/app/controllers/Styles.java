@@ -1,6 +1,27 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.io.IOException;
+import java.io.StringReader;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import models.Domain;
+import models.Domain.Function;
+import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Style;
+
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.InputSource;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -11,19 +32,13 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.styles.form;
-import views.html.styles.list;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
-import models.Domain;
-import models.Domain.Function;
-import nl.idgis.publisher.domain.query.PutEntity;
-import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.response.Response;
-import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.PutStyle;
-import nl.idgis.publisher.domain.web.Style;
+import controllers.Styles.SimpleErrorHandler;
+import controllers.Styles.StyleForm;
+import views.html.styles.form;
+import views.html.styles.list;
+
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
@@ -46,11 +61,15 @@ public class Styles extends Controller {
 		Logger.debug ("submit Style: " + form.field("name").value());
 		
 		// validation
-		if (form.field("name").value().length() == 1 ) 
+		if (form.field("name").value().length() == 1 ) {
 			form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
-		if (!isValidXml(form.field("definition").value())) 
+		}
+		Logger.debug ("START VALIDATING ....");
+		boolean validXml = isValidXml(form.field("definition").value());
+		Logger.debug ("STOP VALIDATING .... " + validXml);
+		if (!validXml){ 
 			form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-		
+		}
 		if (form.hasErrors ()) {
 			return renderCreateForm (form);
 		}
@@ -76,11 +95,49 @@ public class Styles extends Controller {
 	}
 	
 
-	private static boolean isValidXml(String value) {
-		//TODO validate against SLD or SE xsd
-		return value.toLowerCase().indexOf("xml") > 0;
+	private static boolean isValidXml(String xmlContent) {
+		boolean isValid = true;
+//        try {
+//            SAXParserFactory factory = SAXParserFactory.newInstance();
+//            factory.setValidating(true);
+//            factory.setNamespaceAware(true);
+//
+//            SAXParser parser = factory.newSAXParser();
+//            parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
+//
+//            XMLReader reader = parser.getXMLReader();
+//            SimpleErrorHandler errorHandler = new SimpleErrorHandler();
+//            reader.setErrorHandler(errorHandler);
+//            Logger.debug ("START VALIDATING ....");
+//            reader.parse(new InputSource(new StringReader(xmlContent)));
+              // parse does not return 		
+//            Logger.debug ("DONE VALIDATING .... " + isValid);
+//        } catch (ParserConfigurationException | SAXException | IOException e) {
+//            e.printStackTrace();
+//            isValid = false;
+//        }
+		return (xmlContent.indexOf("xml") >= 0);
 	}
 
+	public static class SimpleErrorHandler implements ErrorHandler {
+		
+		public SimpleErrorHandler (){
+			super();
+		}
+		
+	    public void warning(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	
+	    public void error(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	
+	    public void fatalError(SAXParseException e) {
+	        System.out.println(e.getMessage());
+	    }
+	}
+	
 	public static Promise<Result> list () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
