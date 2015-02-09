@@ -42,8 +42,9 @@ public class DataSourceAdmin extends AbstractAdmin {
 		addGet(DataSource.class, this::handleGetDataSource);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private CompletableFuture<Set<String>> activeDataSources() {
-		return f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(Function.identity());
+		return f.ask(harvester, new GetActiveDataSources(), Set.class).thenApply(resp -> resp);
 	}
 	
 	private DataSource toDataSource(DataSourceInfo dataSourceInfo, Set<String> activeDataSources) {
