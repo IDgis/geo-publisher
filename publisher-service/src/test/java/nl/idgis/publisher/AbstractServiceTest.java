@@ -22,6 +22,7 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
+import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public abstract class AbstractServiceTest extends AbstractDatabaseTest {
@@ -29,6 +30,8 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	protected ActorRef jobManager;
 	
 	protected ActorRef datasetManager;
+	
+	protected ActorRef serviceManager;
 	
 	@Before
 	public void jobManager() {
@@ -38,6 +41,11 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	@Before
 	public void datasetManager() {
 		datasetManager = actorOf(DatasetManager.props(database), "datasetManager");
+	}
+	
+	@Before
+	public void serviceManager() {
+		serviceManager = actorOf(ServiceManager.props(database), "serviceManager");
 	}
 	
 	protected void executeJobs(JobManagerRequest request) throws Exception {
