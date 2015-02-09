@@ -53,6 +53,11 @@ public class AdminParent extends UntypedActor {
 		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
 		getContext().actorOf(CategoryAdmin.props(database), "category");
 		getContext().actorOf(DatasetAdmin.props(database), "dataset");
+		getContext().actorOf(ServiceAdmin.props(database), "service");
+		getContext().actorOf(LayerAdmin.props(database), "layer");
+		getContext().actorOf(LayerGroupAdmin.props(database), "layergroup");
+		getContext().actorOf(TiledLayerAdmin.props(database), "tiledlayer");
+		getContext().actorOf(StyleAdmin.props(database), "style");
 	}
 
 	@Override
