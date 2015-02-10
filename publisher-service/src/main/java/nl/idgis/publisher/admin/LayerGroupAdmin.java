@@ -1,9 +1,6 @@
 package nl.idgis.publisher.admin;
 
-import com.mysema.query.types.ConstantImpl;
-
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -13,10 +10,12 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.LayerGroup;
+import nl.idgis.publisher.domain.web.QLayerGroup;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
+import com.mysema.query.types.ConstantImpl;
 
 public class LayerGroupAdmin extends AbstractAdmin {
 	
@@ -75,8 +74,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		return db.transactional(tx ->
 			// Check if there is another layergroup with the same name
 			tx.query().from(genericLayer)
-			.where(genericLayer.name.eq(layergroupId))
-			.singleResult(genericLayer.name)
+			.where(genericLayer.identification.eq(layergroupId))
+			.singleResult(genericLayer.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT

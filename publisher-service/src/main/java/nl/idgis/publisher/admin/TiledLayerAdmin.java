@@ -1,6 +1,6 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QTiledlayer.tiledlayer;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -36,17 +36,17 @@ public class TiledLayerAdmin extends AbstractAdmin {
 		log.debug ("handleListTiledlayers");
 		
 		return 
-			db.query().from(tiledlayer)
+			db.query().from(tiledLayer)
 			.list(new nl.idgis.publisher.domain.web.QTiledLayer(
-					tiledlayer.identification,
-					tiledlayer.name,
-					tiledlayer.mimeformats,
-					tiledlayer.metaheight,
-					tiledlayer.metawidth,
-					tiledlayer.expirecache,
-					tiledlayer.expireclients,
-					tiledlayer.gutter,
-					tiledlayer.enabled 
+					tiledLayer.identification,
+					tiledLayer.name,
+					tiledLayer.mimeFormats,
+					tiledLayer.metaHeight,
+					tiledLayer.metaWidth,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter,
+					tiledLayer.enabled 
 					
 					))
 			.thenApply(this::toPage);
@@ -57,18 +57,18 @@ public class TiledLayerAdmin extends AbstractAdmin {
 		log.debug ("handleGetTiledlayer: " + tiledlayerId);
 		
 		return 
-			db.query().from(tiledlayer)
-			.where(tiledlayer.identification.eq(tiledlayerId))
+			db.query().from(tiledLayer)
+			.where(tiledLayer.identification.eq(tiledlayerId))
 			.singleResult(new nl.idgis.publisher.domain.web.QTiledLayer(
-					tiledlayer.identification,
-					tiledlayer.name,
-					tiledlayer.mimeformats,
-					tiledlayer.metaheight,
-					tiledlayer.metawidth,
-					tiledlayer.expirecache,
-					tiledlayer.expireclients,
-					tiledlayer.gutter,
-					tiledlayer.enabled 
+					tiledLayer.identification,
+					tiledLayer.name,
+					tiledLayer.mimeFormats,
+					tiledLayer.metaHeight,
+					tiledLayer.metaWidth,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter,
+					tiledLayer.enabled 
 					));
 	}
 	
@@ -79,37 +79,37 @@ public class TiledLayerAdmin extends AbstractAdmin {
 		
 		return db.transactional(tx ->
 			// Check if there is another tiledlayer with the same name
-			tx.query().from(tiledlayer)
-			.where(tiledlayer.name.eq(tiledlayerId))
-			.singleResult(tiledlayer.name)
+			tx.query().from(tiledLayer)
+			.where(tiledLayer.identification.eq(tiledlayerId))
+			.singleResult(tiledLayer.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT
 					log.debug("Inserting new tiledlayer with name: " + tiledlayerName);
-					return tx.insert(tiledlayer)
-					.set(tiledlayer.identification, UUID.randomUUID().toString())
-					.set(tiledlayer.name, tiledlayerName)
-					.set(tiledlayer.mimeformats, theTiledlayer.mimeFormats())
-					.set(tiledlayer.metaheight, theTiledlayer.metaHeight())
-					.set(tiledlayer.metawidth, theTiledlayer.metaWidth())
-					.set(tiledlayer.expirecache, theTiledlayer.expireCache())
-					.set(tiledlayer.expireclients, theTiledlayer.expireClients())
-					.set(tiledlayer.gutter, theTiledlayer.gutter())
-					.set(tiledlayer.enabled, theTiledlayer.enabled()) 
+					return tx.insert(tiledLayer)
+					.set(tiledLayer.identification, UUID.randomUUID().toString())
+					.set(tiledLayer.name, tiledlayerName)
+					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
+					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
+					.set(tiledLayer.metaWidth, theTiledlayer.metaWidth())
+					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
+					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
+					.set(tiledLayer.gutter, theTiledlayer.gutter())
+					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, tiledlayerName));
 				} else {
 					// UPDATE
 					log.debug("Updating tiledlayer with name: " + tiledlayerName);
-					return tx.update(tiledlayer)
-					.set(tiledlayer.mimeformats, theTiledlayer.mimeFormats())
-					.set(tiledlayer.metaheight, theTiledlayer.metaHeight())
-					.set(tiledlayer.metawidth, theTiledlayer.metaWidth())
-					.set(tiledlayer.expirecache, theTiledlayer.expireCache())
-					.set(tiledlayer.expireclients, theTiledlayer.expireClients())
-					.set(tiledlayer.gutter, theTiledlayer.gutter())
-					.set(tiledlayer.enabled, theTiledlayer.enabled()) 
-					.where(tiledlayer.identification.eq(tiledlayerId))
+					return tx.update(tiledLayer)
+					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
+					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
+					.set(tiledLayer.metaWidth, theTiledlayer.metaWidth())
+					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
+					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
+					.set(tiledLayer.gutter, theTiledlayer.gutter())
+					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
+					.where(tiledLayer.identification.eq(tiledlayerId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, tiledlayerName));
 				}
@@ -118,8 +118,8 @@ public class TiledLayerAdmin extends AbstractAdmin {
 
 	private CompletableFuture<Response<?>> handleDeleteTiledlayer(String tiledlayerId) {
 		log.debug ("handleDeleteTiledlayer: " + tiledlayerId);
-		return db.delete(tiledlayer)
-			.where(tiledlayer.identification.eq(tiledlayerId))
+		return db.delete(tiledLayer)
+			.where(tiledLayer.identification.eq(tiledlayerId))
 			.execute()
 			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, tiledlayerId));
 	}

@@ -41,9 +41,9 @@ public class LayerAdmin extends AbstractAdmin {
 			db.query().from(leafLayer)
 			.list(new QLayer(
 					leafLayer.identification,
-					leafLayer.name,
-					leafLayer.title, 
-					leafLayer.abstractCol,
+					ConstantImpl.create("name"),
+					ConstantImpl.create("title"),
+					ConstantImpl.create("abstract"),
 					leafLayer.keywords,
 					ConstantImpl.create(false)
 				))
@@ -59,9 +59,9 @@ public class LayerAdmin extends AbstractAdmin {
 			.where(leafLayer.identification.eq(layerId))
 			.singleResult(new QLayer(
 					leafLayer.identification,
-					leafLayer.name,
-					leafLayer.title, 
-					leafLayer.abstractCol,
+					ConstantImpl.create("name"),
+					ConstantImpl.create("title"),
+					ConstantImpl.create("abstract"),
 					leafLayer.keywords,
 					ConstantImpl.create(false)
 			));		
@@ -75,17 +75,14 @@ public class LayerAdmin extends AbstractAdmin {
 		return db.transactional(tx ->
 			// Check if there is another layer with the same name
 			tx.query().from(leafLayer)
-			.where(leafLayer.name.eq(layerId))
-			.singleResult(leafLayer.name)
+			.where(leafLayer.identification.eq(layerId))
+			.singleResult(leafLayer.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT
 					log.debug("Inserting new layer with name: " + layerName);
 					return tx.insert(leafLayer)
 					.set(leafLayer.identification, UUID.randomUUID().toString())
-					.set(leafLayer.name, layerName)
-					.set(leafLayer.title, theLayer.title())
-					.set(leafLayer.abstractCol, theLayer.abstractText())
 					.set(leafLayer.keywords, theLayer.keywords())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, layerName));
@@ -93,8 +90,6 @@ public class LayerAdmin extends AbstractAdmin {
 					// UPDATE
 					log.debug("Updating layer with name: " + layerName);
 					return tx.update(leafLayer)
-					.set(leafLayer.title, theLayer.title())
-					.set(leafLayer.abstractCol, theLayer.abstractText())
 					.set(leafLayer.keywords, theLayer.keywords())
 					.where(leafLayer.identification.eq(layerId))
 					.execute()

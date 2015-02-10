@@ -60,8 +60,8 @@ public class StyleAdmin extends AbstractAdmin {
 		return db.transactional(tx ->
 			// Check if there is another style with the same name
 			tx.query().from(style)
-			.where(style.name.eq(styleId))
-			.singleResult(style.name)
+			.where(style.identification.eq(styleId))
+			.singleResult(style.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT

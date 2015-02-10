@@ -51,7 +51,8 @@ public class Services extends Controller {
 		
 		final ServiceForm serviceForm = form.get ();
 		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
-				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,serviceForm.metadata,serviceForm.watermark);
+				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
+				serviceForm.metadata,serviceForm.watermark, serviceForm.published);
 		
 		return from (database)
 			.put(service)
@@ -143,6 +144,7 @@ public class Services extends Controller {
 		private String keywords;
 		private String metadata;
 		private String watermark;
+		private Boolean published;
 		
 		public ServiceForm (){
 			super();
@@ -157,6 +159,7 @@ public class Services extends Controller {
 			this.keywords = service.keywords();
 			this.metadata = service.metadata();
 			this.watermark = service.watermark();
+			this.published = service.published();
 		}
 
 
@@ -237,6 +240,14 @@ public class Services extends Controller {
 
 		public void setWatermark(String watermark) {
 			this.watermark = watermark;
+		}
+
+		public Boolean getPublished() {
+			return published;
+		}
+
+		public void setPublished(Boolean published) {
+			this.published = published;
 		}
 		
 	}

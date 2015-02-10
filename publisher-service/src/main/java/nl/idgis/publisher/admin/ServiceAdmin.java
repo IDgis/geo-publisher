@@ -4,11 +4,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import com.mysema.query.types.ConstantImpl;
+
 import static nl.idgis.publisher.database.QService.service;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -36,15 +39,17 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
-			.list(new nl.idgis.publisher.domain.web.QService(
+			.list(new QService(
 					service.identification,
 					service.name,
 					service.title, 
-					service.alternatetitle, 
+					service.alternateTitle, 
 					service.abstractCol,
 					service.metadata,
 					service.keywords,
-					service.watermark))
+					service.watermark,
+					ConstantImpl.create(false)
+				))
 			.thenApply(this::toPage);
 	}
 
@@ -55,15 +60,16 @@ public class ServiceAdmin extends AbstractAdmin {
 		return 
 			db.query().from(service)
 			.where(service.identification.eq(serviceId))
-			.singleResult(new nl.idgis.publisher.domain.web.QService(
+			.singleResult(new QService(
 					service.identification,
 					service.name,
 					service.title, 
-					service.alternatetitle, 
+					service.alternateTitle, 
 					service.abstractCol,
 					service.metadata,
 					service.keywords,
-					service.watermark
+					service.watermark,
+					ConstantImpl.create(false)
 			));		
 	}
 	
@@ -75,8 +81,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		return db.transactional(tx ->
 			// Check if there is another service with the same name
 			tx.query().from(service)
-			.where(service.name.eq(serviceId))
-			.singleResult(service.name)
+			.where(service.identification.eq(serviceId))
+			.singleResult(service.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT
@@ -85,7 +91,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					.set(service.identification, UUID.randomUUID().toString())
 					.set(service.name, serviceName)
 					.set(service.title, theService.title())
-					.set(service.alternatetitle, theService.alternateTitle())
+					.set(service.alternateTitle, theService.alternateTitle())
 					.set(service.abstractCol, theService.abstractText())
 					.set(service.metadata, theService.metadata())
 					.set(service.keywords, theService.keywords())
@@ -97,7 +103,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					log.debug("Updating service with name: " + serviceName);
 					return tx.update(service)
 							.set(service.title, theService.title())
-							.set(service.alternatetitle, theService.alternateTitle())
+							.set(service.alternateTitle, theService.alternateTitle())
 							.set(service.abstractCol, theService.abstractText())
 							.set(service.metadata, theService.metadata())
 							.set(service.keywords, theService.keywords())

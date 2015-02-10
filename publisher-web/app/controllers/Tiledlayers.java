@@ -48,7 +48,7 @@ public class Tiledlayers extends Controller {
 		
 		final TiledLayerForm tiledlayerForm = form.get ();
 		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name, 
-				tiledlayerForm.mimeFormats,tiledlayerForm.abstractText,
+				tiledlayerForm.mimeFormats,
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
 				tiledlayerForm.gutter, tiledlayerForm.enabled   
@@ -141,7 +141,6 @@ public class Tiledlayers extends Controller {
 		@Constraints.Required
 		private Boolean enabled = false;
 		private String mimeFormats;
-		private String abstractText;
 		@Constraints.Required
 		private Integer metaWidth = 4;
 		@Constraints.Required
@@ -162,7 +161,6 @@ public class Tiledlayers extends Controller {
 			this.name = tl.name();
 			this.enabled = tl.enabled();
 			this.mimeFormats = tl.mimeFormats();
-			this.abstractText = tl.abstractText();
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
 			this.expireCache = tl.expireCache();
@@ -200,14 +198,6 @@ public class Tiledlayers extends Controller {
 
 		public void setMimeFormats(String mimeFormats) {
 			this.mimeFormats = mimeFormats;
-		}
-
-		public String getAbstractText() {
-			return abstractText;
-		}
-
-		public void setAbstractText(String abstractText) {
-			this.abstractText = abstractText;
 		}
 
 		public Integer getMetaWidth() {
