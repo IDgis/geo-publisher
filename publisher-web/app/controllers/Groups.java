@@ -121,12 +121,11 @@ public class Groups extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				System.out.println("apply delete: " + a);
-				return null;
+				return redirect (routes.Groups.list ());
 			}
 		});
 		
-		return list();
+		return Promise.pure (redirect (routes.Groups.list ()));
 	}
 	
 	

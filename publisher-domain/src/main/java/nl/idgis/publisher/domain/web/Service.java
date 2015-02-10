@@ -24,6 +24,7 @@ public class Service extends Identifiable {
 	private final String keywords;
 	private final String metadata;
 	private final String watermark;
+	private final Boolean published;
 	
 	@JsonCreator
 	@QueryProjection
@@ -35,7 +36,8 @@ public class Service extends Identifiable {
 			final @JsonProperty("") String abstractText, 
 			final @JsonProperty("") String keywords,
 			final @JsonProperty("") String metadata, 
-			final @JsonProperty("") String watermark) {
+			final @JsonProperty("") String watermark,
+			final @JsonProperty("") Boolean published) {
 		super(id);
 		this.name = name;
 		this.title = title;
@@ -44,6 +46,7 @@ public class Service extends Identifiable {
 		this.keywords = keywords;
 		this.metadata = metadata;
 		this.watermark = watermark;
+		this.published = published;
 	}
 
 	@JsonGetter
@@ -81,6 +84,10 @@ public class Service extends Identifiable {
 		return watermark;
 	}
 
+	@JsonGetter
+	public Boolean published() {
+		return published;
+	}
 
 
 }
