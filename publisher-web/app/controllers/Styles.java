@@ -190,12 +190,11 @@ public class Styles extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				System.out.println("apply delete: " + a);
-				return null;
+				return redirect (routes.Styles.list ());
 			}
 		});
 		
-		return list();
+		return Promise.pure (redirect (routes.Styles.list ()));
 	}
 	
 	public static class StyleForm {

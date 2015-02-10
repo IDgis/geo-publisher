@@ -123,12 +123,11 @@ public class Tiledlayers extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				System.out.println("apply delete: " + a);
-				return null;
+				return redirect (routes.Tiledlayers.list ());
 			}
 		});
 		
-		return list();
+		return Promise.pure (redirect (routes.Tiledlayers.list ()));
 	}
 	
 	

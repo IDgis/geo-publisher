@@ -120,12 +120,11 @@ public class Layers extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				System.out.println("apply delete: " + a);
-				return null;
+				return redirect (routes.Layers.list ());
 			}
 		});
 		
-		return list();
+		return Promise.pure (redirect (routes.Layers.list ()));
 	}
 	
 	
