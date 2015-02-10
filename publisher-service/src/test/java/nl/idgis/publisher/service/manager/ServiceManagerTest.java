@@ -1,5 +1,24 @@
 package nl.idgis.publisher.service.manager;
 
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -8,28 +27,14 @@ import org.junit.Test;
 
 import com.mysema.query.sql.SQLSubQuery;
 
+import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.service.manager.messages.DatasetLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.Layer;
 import nl.idgis.publisher.service.manager.messages.Service;
-import nl.idgis.publisher.AbstractServiceTest;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 public class ServiceManagerTest extends AbstractServiceTest {
-
+		
 	@Test
 	public void testGetService() throws Exception {
 		int dataSourceId = insert(dataSource)
@@ -112,10 +117,27 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					datasetColumn.dataType))
 			.execute();
 		
+		int genericLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer0")
+			.set(genericLayer.name, "layer-name0")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, genericLayerId)
+			.set(leafLayer.identification, "layer0") // TODO: remove column
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
 		int rootGroupId = insert(genericLayer)
 			.set(genericLayer.identification, "rootgroup")
 			.set(genericLayer.name, "rootgroup-name")
 			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootGroupId)
+			.set(layerStructure.childLayerId, genericLayerId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
 		
 		insert(service)
 			.set(service.identification, "service0")
@@ -129,6 +151,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(layers);
 		
 		Iterator<Layer> itr = layers.iterator();
+		assertTrue(itr.hasNext());
+		
+		Layer layer = itr.next();
+		assertNotNull(layer);
+		assertTrue(layer.isDataset());
+		
+		DatasetLayer datasetLayer = layer.asDataset();
+		assertEquals("layer0", datasetLayer.getId());
+		
 		assertFalse(itr.hasNext());
 	}
 }
