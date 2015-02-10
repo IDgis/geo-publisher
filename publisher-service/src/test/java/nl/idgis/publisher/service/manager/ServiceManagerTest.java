@@ -14,15 +14,18 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.mysema.query.sql.SQLSubQuery;
@@ -34,9 +37,11 @@ import nl.idgis.publisher.service.manager.messages.Layer;
 import nl.idgis.publisher.service.manager.messages.Service;
 
 public class ServiceManagerTest extends AbstractServiceTest {
+	
+	int datasetId;
 		
-	@Test
-	public void testGetService() throws Exception {
+	@Before
+	public void databaseContent() throws Exception {
 		int dataSourceId = insert(dataSource)
 			.set(dataSource.identification, "datasource0")
 			.set(dataSource.name, "datasource-name0")
@@ -68,7 +73,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		}
 		
-		int datasetId = insert(dataset)
+		datasetId = insert(dataset)
 			.set(dataset.identification, "dataset0")
 			.set(dataset.name, "dataset-name0")
 			.set(dataset.fileUuid, UUID.randomUUID().toString())
@@ -116,32 +121,35 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					datasetColumn.name,
 					datasetColumn.dataType))
 			.execute();
+	}
 		
-		int genericLayerId = insert(genericLayer)
+	@Test
+	public void testSingleLayer() throws Exception {
+		int layerId0 = insert(genericLayer)
 			.set(genericLayer.identification, "layer0")
 			.set(genericLayer.name, "layer-name0")
 			.executeWithKey(genericLayer.id);
 		
 		insert(leafLayer)
-			.set(leafLayer.genericLayerId, genericLayerId)
+			.set(leafLayer.genericLayerId, layerId0)
 			.set(leafLayer.identification, "layer0") // TODO: remove column
 			.set(leafLayer.datasetId, datasetId)
 			.execute();
 		
-		int rootGroupId = insert(genericLayer)
+		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "rootgroup")
 			.set(genericLayer.name, "rootgroup-name")
 			.executeWithKey(genericLayer.id);
 		
 		insert(layerStructure)
-			.set(layerStructure.parentLayerId, rootGroupId)
-			.set(layerStructure.childLayerId, genericLayerId)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, layerId0)
 			.set(layerStructure.layerorder, 0)
 			.execute();
 		
 		insert(service)
 			.set(service.identification, "service0")
-			.set(service.rootgroupId, rootGroupId) 
+			.set(service.rootgroupId, rootId) 
 			.execute();
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
@@ -159,6 +167,60 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
+		
+		assertFalse(itr.hasNext());
+	}
+	
+	@Test
+	public void testMultipleLayers() throws Exception {
+		List<Integer> layerIds = new ArrayList<>();
+		
+		for(int i = 0; i < 10; i++) {		
+			int layer = insert(genericLayer)
+				.set(genericLayer.identification, "layer" + i)
+				.set(genericLayer.name, "layer-name0")
+				.executeWithKey(genericLayer.id);
+			
+			insert(leafLayer)
+				.set(leafLayer.genericLayerId, layer)
+				.set(leafLayer.identification, "layer" + i) // TODO: remove column
+				.set(leafLayer.datasetId, datasetId)
+				.execute();
+			
+			layerIds.add(layer);
+		}
+		
+		int rootId = insert(genericLayer)
+				.set(genericLayer.identification, "rootgroup")
+				.set(genericLayer.name, "rootgroup-name")
+				.executeWithKey(genericLayer.id);
+			
+		for(int layerId : layerIds) {
+			insert(layerStructure)
+				.set(layerStructure.parentLayerId, rootId)
+				.set(layerStructure.childLayerId, layerId)
+				.set(layerStructure.layerorder, 0)
+				.execute();
+		}
+		
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.rootgroupId, rootId) 
+			.execute();
+	
+		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
+		assertEquals("rootgroup", service.getRootId());
+		
+		List<Layer> layers = service.getLayers();
+		assertNotNull(layers);
+		
+		Iterator<Layer> itr = layers.iterator();
+		for(int i = 0 ; i < layerIds.size(); i++) {
+			assertTrue(itr.hasNext());
+			
+			Layer layer = itr.next();
+			assertEquals("layer" + i, layer.getId());
+		}
 		
 		assertFalse(itr.hasNext());
 	}
