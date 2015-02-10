@@ -21,7 +21,7 @@
 					<label class="col-sm-2 control-label" for="input-enable">@Domain.message("web.application.page.tiledlayers.form.field.enabled.label")</label>
 					<div class="col-lg-8">
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-enable" name="enable" value="@tiledlayerForm("enabled").value">
+							<input type="checkbox" class="form-control" id="input-enable" name="enabled" value="true" @if(tiledlayerForm("enabled").value.equals("true")){checked}>
 						</div>
 						@helper.fielderrors(tiledlayerForm("enabled").errors)
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.enabled.help")</span>
@@ -31,86 +31,44 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.tiledlayers.form.field.formats.label")</label>
 					<div class="col-sm-5">
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-enable" name="enable" value="@tiledlayerForm("enabled").value">
+							<input type="checkbox" class="form-control" id="input-png" name="png" value="true" @if(tiledlayerForm("png").value.equals("true")){checked}>
 						</div>
-							<span>@Domain.message("web.application.page.tiledlayers.form.field.formaat1.label")</span>
+							<span>@Domain.message("web.application.page.tiledlayers.form.field.png.label")</span>
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-enable" name="enable" value="@tiledlayerForm("enabled").value">
+							<input type="checkbox" class="form-control" id="input-png8" name="png8" value="true" @if(tiledlayerForm("png8").value.equals("true")){checked}>
 						</div>
-							<span>@Domain.message("web.application.page.tiledlayers.form.field.formaat2.label")</span>
+							<span>@Domain.message("web.application.page.tiledlayers.form.field.png8.label")</span>
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-enable" name="enable" value="@tiledlayerForm("enabled").value">
+							<input type="checkbox" class="form-control" id="input-jpg" name="jpg" value="true" @if(tiledlayerForm("jpg").value.equals("true")){checked}>
 						</div>
-							<span>@Domain.message("web.application.page.tiledlayers.form.field.formaat3.label")</span>
+							<span>@Domain.message("web.application.page.tiledlayers.form.field.jpg.label")</span>
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-enable" name="enable" value="@tiledlayerForm("enabled").value">
+							<input type="checkbox" class="form-control" id="input-gif" name="gif" value="true" @if(tiledlayerForm("gif").value.equals("true")){checked}>
 						</div>
-							<span>@Domain.message("web.application.page.tiledlayers.form.field.formaat4.label")</span>
+							<span>@Domain.message("web.application.page.tiledlayers.form.field.gif.label")</span>
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.formats.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-metatilingwidth">@Domain.message("web.application.page.tiledlayers.form.field.metatilingwidth.label")</label>
-					<div class="col-sm-2">
-						<select class="form-control" id="input-metatilingwidth" name="metatilingwidth">
-							<option>1</option>
-							<option>2</option>
-							<option>3</option>
-							<option selected>4</option>
-							<option>5</option>
-							<option>6</option>
-							<option>7</option>
-							<option>8</option>
-							<option>9</option>
-							<option>10</option>
-							<option>11</option>
-							<option>12</option>
-							<option>13</option>
-							<option>14</option>
-							<option>15</option>
-							<option>16</option>
-							<option>17</option>
-							<option>18</option>
-							<option>19</option>
-							<option>20</option>
-						</select>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-metatilingwidth" name="metaWidth" placeholder="@Domain.message("web.application.page.groups.form.field.metatilingwidth.placeholder")" value="@tiledlayerForm("metaWidth").value">
+						@helper.fielderrors(tiledlayerForm("metaWidth").errors)
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.metatilingwidth.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-metatilingheight">@Domain.message("web.application.page.tiledlayers.form.field.metatilingheight.label")</label>
-					<div class="col-sm-2">
-						<select class="form-control" id="input-metatilingheight" name="metatilingheight">
-							<option>1</option>
-							<option>2</option>
-							<option>3</option>
-							<option selected>4</option>
-							<option>5</option>
-							<option>6</option>
-							<option>7</option>
-							<option>8</option>
-							<option>9</option>
-							<option>10</option>
-							<option>11</option>
-							<option>12</option>
-							<option>13</option>
-							<option>14</option>
-							<option>15</option>
-							<option>16</option>
-							<option>17</option>
-							<option>18</option>
-							<option>19</option>
-							<option>20</option>
-						</select>
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.metatilingheight.help")</span>					
+					<div class="col-lg-8">
+						<input class="form-control" id="input-metatilingheight" name="metaHeight" placeholder="@Domain.message("web.application.page.groups.form.field.metatilingheight.placeholder")" value="@tiledlayerForm("metaHeight").value">
+						@helper.fielderrors(tiledlayerForm("metaHeight").errors)
+						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.metatilingheight.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-servercache">@Domain.message("web.application.page.tiledlayers.form.field.servercache.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm">
-							<input class="form-control" id="input-servercache" name="servercache" value="@tiledlayerForm("expireCache").value">
-						</div>
+						<input class="form-control" id="input-servercache" name="expireCache" value="@tiledlayerForm("expireCache").value">
 						@helper.fielderrors(tiledlayerForm("expireCache").errors)
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.servercache.help")</span>
 					</div>
@@ -118,33 +76,16 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-clientcache">@Domain.message("web.application.page.tiledlayers.form.field.clientcache.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm">
-							<input class="form-control" id="input-clientcache" name="clientcache" value="@tiledlayerForm("expireClients").value">
-						</div>
+						<input class="form-control" id="input-clientcache" name="expireClients" value="@tiledlayerForm("expireClients").value">
 						@helper.fielderrors(tiledlayerForm("expireClients").errors)
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.clientcache.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-gutter">@Domain.message("web.application.page.tiledlayers.form.field.gutter.label")</label>
-					<div class="col-sm-2">
-						<select class="form-control" id="input-gutter" name="gutter" >
-							<option>1</option>
-							<option>2</option>	
-							<option>3</option>	
-							<option>4</option>	
-							<option>5</option>	
-							<option>6</option>	
-							<option>7</option>	
-							<option>8</option>	
-							<option>9</option>	
-							<option>10</option>	
-							<option>11</option>	
-							<option>10</option>	
-							<option>20</option>	
-							<option>50</option>	
-							<option>100</option>					
-						</select>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-gutter" name="gutter" value="@tiledlayerForm("gutter").value">
+						@helper.fielderrors(tiledlayerForm("gutter").errors)
 						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.gutter.help")</span>
 					</div>
 				</div>

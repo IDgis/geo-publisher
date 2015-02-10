@@ -51,7 +51,7 @@ public class Tiledlayers extends Controller {
 		
 		final TiledLayerForm tiledlayerForm = form.get ();
 		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name, 
-				tiledlayerForm.mimeFormats,
+				tiledlayerForm.getMimeFormats(),
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
 				tiledlayerForm.gutter, tiledlayerForm.enabled   
@@ -136,6 +136,10 @@ public class Tiledlayers extends Controller {
 	
 	public static class TiledLayerForm {
 		
+		private static final String GIF = "#gif#";
+		private static final String JPG = "#jpg#";
+		private static final String PNG8 = "#png8#";
+		private static final String PNG = "#png#";
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
@@ -143,7 +147,10 @@ public class Tiledlayers extends Controller {
 		private String name;
 		@Constraints.Required
 		private Boolean enabled = false;
-		private String mimeFormats;
+		private Boolean png = false;
+		private Boolean png8 = false;
+		private Boolean jpg = false;
+		private Boolean gif = false;
 		@Constraints.Required
 		private Integer metaWidth = 4;
 		@Constraints.Required
@@ -165,7 +172,7 @@ public class Tiledlayers extends Controller {
 			this.id = tl.id();
 			this.name = tl.name();
 			this.enabled = tl.enabled();
-			this.mimeFormats = tl.mimeFormats();
+			setMimeFormats(tl.mimeFormats());
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
 			this.expireCache = tl.expireCache();
@@ -198,11 +205,52 @@ public class Tiledlayers extends Controller {
 		}
 
 		public String getMimeFormats() {
-			return mimeFormats;
+			StringBuilder mimeFormats = new StringBuilder();
+			if (getPng()) mimeFormats.append(PNG);
+			if (getPng8()) mimeFormats.append(PNG8);
+			if (getJpg()) mimeFormats.append(JPG);
+			if (getGif()) mimeFormats.append(GIF);
+			return mimeFormats.toString();
 		}
 
 		public void setMimeFormats(String mimeFormats) {
-			this.mimeFormats = mimeFormats;
+			if (mimeFormats==null) return;
+			if (mimeFormats.indexOf(PNG) > -1) setPng(true);
+			if (mimeFormats.indexOf(PNG8) > -1) setPng8(true);
+			if (mimeFormats.indexOf(JPG) > -1) setJpg(true);
+			if (mimeFormats.indexOf(GIF) > -1) setGif(true);
+		}
+
+		public Boolean getPng() {
+			return png;
+		}
+
+		public void setPng(Boolean png) {
+			this.png = png;
+		}
+
+		public Boolean getPng8() {
+			return png8;
+		}
+
+		public void setPng8(Boolean png8) {
+			this.png8 = png8;
+		}
+
+		public Boolean getJpg() {
+			return jpg;
+		}
+
+		public void setJpg(Boolean jpg) {
+			this.jpg = jpg;
+		}
+
+		public Boolean getGif() {
+			return gif;
+		}
+
+		public void setGif(Boolean gif) {
+			this.gif = gif;
 		}
 
 		public Integer getMetaWidth() {
