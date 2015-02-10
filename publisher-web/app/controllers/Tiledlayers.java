@@ -1,6 +1,9 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.UUID;
+
 import models.Domain;
 import models.Domain.Function;
 import nl.idgis.publisher.domain.response.Page;
@@ -154,6 +157,8 @@ public class Tiledlayers extends Controller {
 		
 		public TiledLayerForm(){
 			super();
+			this.id = UUID.randomUUID().toString();
+			this.name = "name";
 		}
 
 		public TiledLayerForm(final TiledLayer tl){

@@ -1,6 +1,9 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.UUID;
+
 import models.Domain;
 import models.Domain.Function;
 import nl.idgis.publisher.domain.response.Page;
@@ -140,6 +143,7 @@ public class Layers extends Controller {
 
 		public LayerForm(){
 			super();
+			this.id = UUID.randomUUID().toString();
 		}
 		
 		public LayerForm(Layer layer){

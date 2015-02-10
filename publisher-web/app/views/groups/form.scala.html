@@ -15,6 +15,7 @@
 	<div class="row">
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Groups.submitCreateUpdate()">
+				<input type="hidden" class="form-control" id="input-id" name="id" value="@groupForm("id").value" >
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.groups.form.field.name.label")</label>
 					<div class="col-lg-8">
