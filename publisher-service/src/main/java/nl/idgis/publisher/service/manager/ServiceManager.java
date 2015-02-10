@@ -1,8 +1,9 @@
 package nl.idgis.publisher.service.manager;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
@@ -21,19 +22,22 @@ import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 
-import nl.idgis.publisher.service.manager.messages.DatasetNode;
 import nl.idgis.publisher.service.manager.messages.DefaultService;
 import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.GroupNode;
 import nl.idgis.publisher.service.manager.messages.QDatasetNode;
 import nl.idgis.publisher.service.manager.messages.QGroupNode;
+import nl.idgis.publisher.service.manager.messages.GroupNode;
+import nl.idgis.publisher.service.manager.messages.DatasetNode;
+
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.TypedList;
+
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
+
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 
 public class ServiceManager extends UntypedActor {
@@ -101,13 +105,13 @@ public class ServiceManager extends UntypedActor {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void handleGetService(GetService msg) {
 		ActorRef sender = getSender(), self = getSelf();
 		
 		String serviceId = msg.getServiceId();
 		
 		db.transactional(tx -> {
-			@SuppressWarnings("unchecked")
 			AsyncSQLQuery withServiceStructure = 
 			tx.query().withRecursive(serviceStructure, 
 					serviceStructure.serviceIdentification,
@@ -139,65 +143,68 @@ public class ServiceManager extends UntypedActor {
 							parent.id,
 							parent.identification,
 							layerStructure.layerorder)));
-				
-			return withServiceStructure.clone().from(serviceStructure)
+			
+			CompletableFuture<TypedList<Tuple>> structure = withServiceStructure.clone()
+				.from(serviceStructure)
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.orderBy(serviceStructure.layerorder.asc())
-				.list(serviceStructure.childLayerIdentification, serviceStructure.parentLayerIdentification)				
-				.thenCompose(structureResult -> {
-					Map<String, String> structure = new LinkedHashMap<>();
-					
-					for(Tuple structureTuple : structureResult) {
-						structure.put(
-							structureTuple.get(serviceStructure.childLayerIdentification),
-							structureTuple.get(serviceStructure.parentLayerIdentification));
-					}
-					
-					return tx.query().from(genericLayer)
-						.join(service).on(service.rootgroupId.eq(genericLayer.id))
-						.where(service.identification.eq(serviceId))
-						.singleResult(new QGroupNode(
-							genericLayer.identification, 
-							genericLayer.name, 
-							genericLayer.title, 
-							genericLayer.abstractCol)).thenCompose(rootResult -> {
-								
-							return withServiceStructure.clone()
-								.from(genericLayer)
-								.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-								.where(new SQLSubQuery().from(leafLayer)
-									.where(leafLayer.genericLayerId.eq(genericLayer.id))
-									.notExists())									
-								.list(new QGroupNode(
-									genericLayer.identification, 
-									genericLayer.name, 
-									genericLayer.title, 
-									genericLayer.abstractCol)).thenCompose(groupResult -> {
-										
-										return withServiceStructure.clone()
-											.from(leafLayer)
-											.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-											.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
-											.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-											.where(serviceStructure.serviceIdentification.eq(serviceId))
-											.list(new QDatasetNode(genericLayer.identification, 
-												genericLayer.name, 
-												genericLayer.title, 
-												genericLayer.abstractCol,
-												Expressions.constant("staging_data"),
-												dataset.name)).thenApply(datasetResult -> {
+				.list(serviceStructure.childLayerIdentification, serviceStructure.parentLayerIdentification);
+			
+			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
+				.join(service).on(service.rootgroupId.eq(genericLayer.id))
+				.where(service.identification.eq(serviceId))
+				.singleResult(new QGroupNode(
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol));
+			
+			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
+				.from(genericLayer)
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(new QGroupNode(
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol));
+			
+			// last query -> .clone() not required
+			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(new QDatasetNode(genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol,
+					Expressions.constant("staging_data"),
+					dataset.name));
+			
+			return structure.thenCompose(structureResult ->
+				root.thenCompose(rootResult ->								
+					groups.thenCompose(groupsResult ->										
+						datasets.thenApply(datasetsResult -> {												
+							Map<String, String> structureMap = new LinkedHashMap<>();
 							
-											return new DefaultService(
-												serviceId, 
-												rootResult.get(), 
-												datasetResult.list(), 
-												groupResult.list(), 
-												structure);
-										});
-								});
-					});
-				});
+							for(Tuple structureTuple : structureResult) {
+								structureMap.put(
+									structureTuple.get(serviceStructure.childLayerIdentification),
+									structureTuple.get(serviceStructure.parentLayerIdentification));
+							}
+			
+							return new DefaultService(
+								serviceId, 
+								rootResult.get(), 
+								datasetsResult.list(), 
+								groupsResult.list(), 
+								structureMap);
+						}))));
 		}).thenAccept(resp -> sender.tell(resp, self));
-		
 	}
 }
