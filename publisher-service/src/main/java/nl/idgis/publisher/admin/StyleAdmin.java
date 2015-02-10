@@ -30,6 +30,7 @@ public class StyleAdmin extends AbstractAdmin {
 		addList(Style.class, this::handleListStyles);
 		addGet(Style.class, this::handleGetStyle);
 		addPut(Style.class, this::handlePutStyle);
+		addDelete(Style.class, this::handleDeleteStyle);
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {
@@ -43,7 +44,7 @@ public class StyleAdmin extends AbstractAdmin {
 
 	
 	private CompletableFuture<Optional<Style>> handleGetStyle (String styleId) {
-		log.debug ("handleGetStyle");
+		log.debug ("handleGetStyle: " + styleId);
 		
 		return 
 			db.query().from(style)
@@ -52,44 +53,47 @@ public class StyleAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Response<?>> handlePutStyle(Style theStyle) {
-
+		String styleId = theStyle.id();
 		String styleName = theStyle.name();
-		log.debug ("handle update/create style: " + styleName);
-		
-		
-		// Check if there is another style with the same name
+		log.debug ("handle update/create style: " + styleId);
 		
 		return db.transactional(tx ->
+			// Check if there is another style with the same name
 			tx.query().from(style)
-			.where(style.name.eq(styleName))
+			.where(style.name.eq(styleId))
 			.singleResult(style.name)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
-					// there is no other style with the same name
 					// INSERT
 					log.debug("Inserting new style with name: " + styleName);
 					return tx.insert(style)
 					.set(style.identification, UUID.randomUUID().toString())
-					.set(style.name, styleName)
+					.set(style.name, styleId)
 					.set(style.version, theStyle.version())
 					.set(style.format, theStyle.format())
 					.set(style.definition, theStyle.definition())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName));
-					
 				} else {
 					// UPDATE
 					log.debug("Updating style with name: " + styleName);
-					
 					return tx.update(style)
 					.set(style.version, theStyle.version())
 					.set(style.format, theStyle.format())
 					.set(style.definition, theStyle.definition())
-					.where(style.name.eq(styleName))
+					.where(style.identification.eq(styleId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, styleName));
 				}
 		}));
 	}
 
+	private CompletableFuture<Response<?>> handleDeleteStyle(String styleId) {
+		log.debug ("handleDeleteStyle: " + styleId);
+		return db.delete(style)
+			.where(style.identification.eq(styleId))
+			.execute()
+			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, styleId));
+	}
+	
 }
