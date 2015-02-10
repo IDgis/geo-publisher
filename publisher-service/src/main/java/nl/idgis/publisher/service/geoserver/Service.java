@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.geoserver;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,8 +17,8 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.service.rest.DefaultGeoServerRest;
-import nl.idgis.publisher.service.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 
 public class Service extends AbstractStateMachine<String> {
 	

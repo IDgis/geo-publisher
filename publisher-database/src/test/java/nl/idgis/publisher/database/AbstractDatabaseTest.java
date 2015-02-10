@@ -3,7 +3,9 @@ package nl.idgis.publisher.database;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -126,6 +128,14 @@ public abstract class AbstractDatabaseTest {
 	
 	protected SQLDeleteClause delete(RelationalPath<?> entity) {
 		return new SQLDeleteClause(connection, templates, entity);
+	}
+	
+	protected Statement statement() throws SQLException {
+		return connection.createStatement();
+	}
+	
+	protected PreparedStatement prepare(String sql) throws SQLException {
+		return connection.prepareStatement(sql);
 	}
 	
 	protected SQLQuery query() {
