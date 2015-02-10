@@ -428,6 +428,8 @@ web.application.page.styles.form.field.layers.label=Zit in de laag/lagen
 
 
 # Tiledlayers
+web.application.page.tiledlayers.name=Tiled laag
+
 web.application.page.tiledlayers.list.header=Tiled lagen
 web.application.page.tiledlayers.list.empty=Er zijn geen tiled lagen gevonden die voldoen aan de criteria.
 
@@ -440,12 +442,16 @@ web.application.page.tiledlayers.form.field.enabled.help=Maak tiling actief
 
 web.application.page.tiledlayers.form.field.formats.label=Formaten
 web.application.page.tiledlayers.form.field.formats.help=Geef de mime formaten waarvoor tiles moeten worden aangemaakt
+web.application.page.tiledlayers.form.field.formats.png.label=png
+web.application.page.tiledlayers.form.field.formats.png8.label=png8
+web.application.page.tiledlayers.form.field.formats.jpg.label=jpg
+web.application.page.tiledlayers.form.field.formats.gif.label=gif
 
 web.application.page.tiledlayers.form.field.metatilingwidth.label=Metatiling breedte
-web.application.page.tiledlayers.form.field.metatilingwidth.help=Metatiling breedte
+web.application.page.tiledlayers.form.field.metatilingwidth.help=Metatiling breedte (1 - 20)
 
 web.application.page.tiledlayers.form.field.metatilingheight.label=Metatiling hoogte
-web.application.page.tiledlayers.form.field.metatilingheight.help=Metatiling hoogte
+web.application.page.tiledlayers.form.field.metatilingheight.help=Metatiling hoogte (1 - 20)
 
 web.application.page.tiledlayers.form.field.servercache.label=Server cache
 web.application.page.tiledlayers.form.field.servercache.help=Server cache laten verlopen in aantal seconden (0 betekent bron instellingen)
@@ -454,10 +460,5 @@ web.application.page.tiledlayers.form.field.clientcache.label=Client cache
 web.application.page.tiledlayers.form.field.clientcache.help=Client cache laten verlopen in aantal seconden (0 betekent bron instellingen)
 
 web.application.page.tiledlayers.form.field.gutter.label=Overloop in pixels
-web.application.page.tiledlayers.form.field.gutter.help=Overloop in pixels
-
-web.application.page.tiledlayers.form.field.formaat1.label=png
-web.application.page.tiledlayers.form.field.formaat2.label=png8
-web.application.page.tiledlayers.form.field.formaat3.label=jpg
-web.application.page.tiledlayers.form.field.formaat4.label=gif
+web.application.page.tiledlayers.form.field.gutter.help=Overloop in pixels (0 - 100)
 

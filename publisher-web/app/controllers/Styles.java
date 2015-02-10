@@ -4,6 +4,7 @@ import static models.Domain.from;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -213,7 +214,7 @@ public class Styles extends Controller {
 		
 		public StyleForm (){
 			super();
-			this.id = "id";
+			this.id = UUID.randomUUID().toString();
 			this.format = "SLD";
 			this.version = "1.0.0";
 

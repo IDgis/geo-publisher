@@ -1,6 +1,9 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.UUID;
+
 import controllers.Groups.GroupForm;
 import models.Domain;
 import models.Domain.Function;
@@ -140,6 +143,7 @@ public class Groups extends Controller {
 
 		public GroupForm(){
 			super();
+			this.id = UUID.randomUUID().toString();
 		}
 		
 		public GroupForm(LayerGroup group){

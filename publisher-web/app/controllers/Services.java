@@ -1,6 +1,9 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.UUID;
+
 import models.Domain;
 import models.Domain.Function;
 import nl.idgis.publisher.domain.response.Page;
@@ -41,7 +44,7 @@ public class Services extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 		Logger.debug ("submit Service: " + form.field("name").value());
-		
+		Logger.debug ("Form: "+ form);
 		// validation
 		if (form.field("name").value().length() == 1 ) 
 			form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
@@ -148,6 +151,7 @@ public class Services extends Controller {
 		
 		public ServiceForm (){
 			super();
+			this.id = UUID.randomUUID().toString();			
 		}
 		
 		public ServiceForm (final Service service){
