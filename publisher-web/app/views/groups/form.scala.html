@@ -19,7 +19,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.groups.form.field.name.label")</label>
 					<div class="col-lg-8">
-						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.groups.form.field.name.placeholder")" value="@groupForm("name").value" readonly>
+						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.groups.form.field.name.placeholder")" value="@groupForm("name").value" @if(!create){readonly}>
 						@helper.fielderrors(groupForm("name").errors)
 						<span class="help-block">@Domain.message("web.application.page.groups.form.field.name.help")</span>
 					</div>
@@ -27,7 +27,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.groups.form.field.title.label")</label>
 					<div class="col-lg-8">
-						<input class="form-control" id="input-title" title="title" placeholder="@Domain.message("web.application.page.groups.form.field.title.placeholder")" value="@groupForm("title").value">
+						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.groups.form.field.title.placeholder")" value="@groupForm("title").value">
 						@helper.fielderrors(groupForm("title").errors)
 						<span class="help-block">@Domain.message("web.application.page.groups.form.field.title.help")</span>
 					</div>
@@ -35,7 +35,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.groups.form.field.abstract.label")</label>
 					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" title="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4"></textarea>
+						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4"></textarea>
 						@helper.fielderrors(groupForm("abstractText").errors)
 						<span class="help-block">@Domain.message("web.application.page.groups.form.field.abstract.help")</span>
 					</div>
