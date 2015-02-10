@@ -68,7 +68,7 @@ public class StyleAdmin extends AbstractAdmin {
 					log.debug("Inserting new style with name: " + styleName);
 					return tx.insert(style)
 					.set(style.identification, UUID.randomUUID().toString())
-					.set(style.name, styleId)
+					.set(style.name, styleName)
 					.set(style.version, theStyle.version())
 					.set(style.format, theStyle.format())
 					.set(style.definition, theStyle.definition())
