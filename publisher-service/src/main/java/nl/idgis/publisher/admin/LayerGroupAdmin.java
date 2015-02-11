@@ -1,6 +1,7 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -37,15 +38,16 @@ public class LayerGroupAdmin extends AbstractAdmin {
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {
 		log.debug ("handleListLayergroups");
-		
 		return 
 			db.query().from(genericLayer)
+			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+			.where(leafLayer.genericLayerId.isNull())
 			.list(new QLayerGroup(
 					genericLayer.identification,
 					genericLayer.name,
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					ConstantImpl.create(false)
+					genericLayer.published
 				))
 			.thenApply(this::toPage);
 	}
@@ -53,7 +55,6 @@ public class LayerGroupAdmin extends AbstractAdmin {
 	
 	private CompletableFuture<Optional<LayerGroup>> handleGetLayergroup (String layergroupId) {
 		log.debug ("handleGetLayergroup: " + layergroupId);
-		
 		return 
 			db.query().from(genericLayer)
 			.where(genericLayer.identification.eq(layergroupId))
@@ -62,7 +63,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 					genericLayer.name,
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					ConstantImpl.create(false)
+					genericLayer.published
 			));		
 	}
 	
@@ -85,6 +86,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 					.set(genericLayer.name, layergroupName)
 					.set(genericLayer.title, theLayergroup.title())
 					.set(genericLayer.abstractCol, theLayergroup.abstractText())
+					.set(genericLayer.published, theLayergroup.published())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, layergroupName));
 				} else {
@@ -93,6 +95,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 					return tx.update(genericLayer)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.published, theLayergroup.published())
 					.where(genericLayer.identification.eq(layergroupId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, layergroupName));
@@ -101,6 +104,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayergroup(String layergroupId) {
+		// TODO remove from layerStructure if present in parent or child
 		log.debug ("handleDeleteLayergroup: " + layergroupId);
 		return db.delete(genericLayer)
 			.where(genericLayer.identification.eq(layergroupId))
