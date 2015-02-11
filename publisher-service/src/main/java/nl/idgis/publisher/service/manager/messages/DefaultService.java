@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class DefaultService implements Service, Serializable {
+public class DefaultService implements Service, Serializable {	
 
-	private static final long serialVersionUID = 635298313132926547L;
-	
+	private static final long serialVersionUID = -4848378212320861663L;
+
 	private final String id;
 	
 	private final GroupLayer root;

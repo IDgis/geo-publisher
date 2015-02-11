@@ -2,13 +2,16 @@ package nl.idgis.publisher.service.manager.messages;
 
 import java.io.Serializable;
 
-public abstract class AbstractLayer implements Layer, Serializable {	
+public abstract class AbstractLayer<T extends Item> implements Layer, Item, Serializable {
 
-	private static final long serialVersionUID = 6734327906748493507L;
+	private static final long serialVersionUID = 3426237753092705580L;
 	
 	private final boolean isGroup;
 	
-	public AbstractLayer(boolean isGroup) {		
+	protected final T item;
+	
+	public AbstractLayer(T item, boolean isGroup) {
+		this.item = item;
 		this.isGroup = isGroup;
 	}
 	
@@ -38,5 +41,25 @@ public abstract class AbstractLayer implements Layer, Serializable {
 		}
 		
 		return (DatasetLayer)this;
+	}
+
+	@Override
+	public String getId() {
+		return item.getId();
+	}
+
+	@Override
+	public String getName() {
+		return item.getName();
+	}
+
+	@Override
+	public String getTitle() {
+		return item.getTitle();
+	}
+
+	@Override
+	public String getAbstr() {
+		return item.getAbstr();
 	}	
 }
