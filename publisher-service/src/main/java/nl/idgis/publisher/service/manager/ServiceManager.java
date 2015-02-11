@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -21,6 +20,8 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
+
+import nl.idgis.publisher.domain.web.NotFound;
 
 import nl.idgis.publisher.service.manager.messages.DefaultService;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -135,7 +136,7 @@ public class ServiceManager extends UntypedActor {
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-						.join(serviceStructure).on(serviceStructure.parentLayerId.eq(layerStructure.childLayerId))
+						.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
 						.list(
 							serviceStructure.serviceIdentification, 
 							child.id,
@@ -183,13 +184,14 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					Expressions.constant("staging_data"),
 					dataset.name));
 			
-			return structure.thenCompose(structureResult ->
-				root.thenCompose(rootResult ->								
+			return root.thenCompose(rootResult ->
+				rootResult.isPresent()
+				? structure.thenCompose(structureResult ->
 					groups.thenCompose(groupsResult ->										
-						datasets.thenApply(datasetsResult -> {												
+						datasets.thenApply(datasetsResult -> {							
+							// LinkedHashMap is used to preserve layer order
 							Map<String, String> structureMap = new LinkedHashMap<>();
 							
 							for(Tuple structureTuple : structureResult) {
@@ -204,7 +206,8 @@ public class ServiceManager extends UntypedActor {
 								datasetsResult.list(), 
 								groupsResult.list(), 
 								structureMap);
-						}))));
+						})))
+				: f.successful(new NotFound()));
 		}).thenAccept(resp -> sender.tell(resp, self));
 	}
 }

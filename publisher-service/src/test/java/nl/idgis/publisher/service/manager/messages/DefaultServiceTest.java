@@ -19,9 +19,9 @@ public class DefaultServiceTest {
 	@Test
 	public void testNoGroup() {
 		List<DatasetNode> datasets = Arrays.asList(
-			new DatasetNode("leaf0", "name0", "title0", "abstract0", "mySchema0", "myTable0"),
-			new DatasetNode("leaf1", "name1", "title1", "abstract1", "mySchema1", "myTable1"),
-			new DatasetNode("leaf2", "name2", "title2", "abstract2", "mySchema2", "myTable2"));
+			new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0"),
+			new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1"),
+			new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2"));
 			
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
@@ -36,9 +36,9 @@ public class DefaultServiceTest {
 		assertNotNull(layers);
 		
 		Iterator<Layer> itr = layers.iterator();
-		assertDatasetLayer(itr, "leaf0", "mySchema0", "myTable0");
-		assertDatasetLayer(itr, "leaf1", "mySchema1", "myTable1");
-		assertDatasetLayer(itr, "leaf2", "mySchema2", "myTable2");
+		assertDatasetLayer(itr, "leaf0", "myTable0");
+		assertDatasetLayer(itr, "leaf1", "myTable1");
+		assertDatasetLayer(itr, "leaf2", "myTable2");
 		
 		assertFalse(itr.hasNext());
 	}
@@ -52,9 +52,9 @@ public class DefaultServiceTest {
 				new GroupNode("group1", "name1", "title1", "abstract1"));
 		
 		List<DatasetNode> datasets = Arrays.asList(
-				new DatasetNode("leaf0", "name0", "title0", "abstract0", "mySchema0", "myTable0"),
-				new DatasetNode("leaf1", "name1", "title1", "abstract1", "mySchema1", "myTable1"),
-				new DatasetNode("leaf2", "name2", "title2", "abstract2", "mySchema2", "myTable2"));
+				new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0"),
+				new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1"),
+				new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2"));
 				
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
@@ -69,14 +69,14 @@ public class DefaultServiceTest {
 		assertNotNull(layers);
 		
 		Iterator<Layer> itr = layers.iterator();
-		assertDatasetLayer(itr, "leaf0", "mySchema0", "myTable0");
-		assertDatasetLayer(itr, "leaf1", "mySchema1", "myTable1");
+		assertDatasetLayer(itr, "leaf0", "myTable0");
+		assertDatasetLayer(itr, "leaf1", "myTable1");
 		
 		List<Layer> childLayers = assertGroupLayer(itr, "group1").getLayers();
 		assertNotNull(childLayers);
 		
 		Iterator<Layer> childItr = childLayers.iterator();
-		assertDatasetLayer(childItr, "leaf2", "mySchema2", "myTable2");		
+		assertDatasetLayer(childItr, "leaf2", "myTable2");		
 		assertFalse(childItr.hasNext());
 		
 		assertFalse(itr.hasNext());
@@ -94,7 +94,7 @@ public class DefaultServiceTest {
 		return layer.asGroup();
 	}
 	
-	private void assertDatasetLayer(Iterator<Layer> itr, String id, String schemaName, String tableName) {
+	private void assertDatasetLayer(Iterator<Layer> itr, String id, String tableName) {
 		assertTrue(itr.hasNext());
 		
 		Layer layer = itr.next();
@@ -103,8 +103,7 @@ public class DefaultServiceTest {
 		assertFalse(layer.isGroup());
 		
 		DatasetLayer datasetLayer = layer.asDataset();
-		assertEquals(id, datasetLayer.getId());
-		assertEquals(schemaName, datasetLayer.getSchemaName());
+		assertEquals(id, datasetLayer.getId());		
 		assertEquals(tableName, datasetLayer.getTableName());
 	}
 }

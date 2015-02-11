@@ -2,9 +2,9 @@ package nl.idgis.publisher.service.manager.messages;
 
 import com.mysema.query.annotations.QueryProjection;
 
-public class GroupNode extends Node {
+public class GroupNode extends Node implements Group {
 
-	private static final long serialVersionUID = 4098077788913605267L;
+	private static final long serialVersionUID = -1256215511214933273L;
 
 	@QueryProjection
 	public GroupNode(String id, String name, String title, String abstr) {

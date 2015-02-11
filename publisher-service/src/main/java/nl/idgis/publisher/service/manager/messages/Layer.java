@@ -1,9 +1,7 @@
 package nl.idgis.publisher.service.manager.messages;
 
-public interface Layer {
+public interface Layer extends Item {
 	
-	String getId();
-
 	boolean isGroup();
 	GroupLayer asGroup();
 	

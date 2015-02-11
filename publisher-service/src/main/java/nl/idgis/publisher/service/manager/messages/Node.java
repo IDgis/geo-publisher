@@ -2,7 +2,7 @@ package nl.idgis.publisher.service.manager.messages;
 
 import java.io.Serializable;
 
-public abstract class Node implements Serializable {
+public abstract class Node implements Item, Serializable {
 
 	private static final long serialVersionUID = -1690842575697161436L;
 	
@@ -15,18 +15,22 @@ public abstract class Node implements Serializable {
 		this.abstr = abstr;
 	}
 
+	@Override
 	public String getId() {
 		return id;
 	}
 
+	@Override
 	public String getName() {
 		return name;
 	}
 
+	@Override
 	public String getTitle() {
 		return title;
 	}
 
+	@Override
 	public String getAbstr() {
 		return abstr;
 	}
