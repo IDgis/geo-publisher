@@ -30,6 +30,8 @@ import org.junit.Test;
 
 import com.mysema.query.sql.SQLSubQuery;
 
+import nl.idgis.publisher.domain.web.NotFound;
+
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.service.manager.messages.DatasetLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -387,5 +389,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(group0Itr.hasNext());
 		
 		assertFalse(rootItr.hasNext());
+	}
+	
+	@Test
+	public void testNotFound() throws Exception {
+		sync.ask(serviceManager, new GetService("service0"), NotFound.class);
 	}
 }

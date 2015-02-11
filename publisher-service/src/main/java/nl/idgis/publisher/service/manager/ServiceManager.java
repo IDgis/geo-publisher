@@ -22,6 +22,8 @@ import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 
+import nl.idgis.publisher.domain.web.NotFound;
+
 import nl.idgis.publisher.service.manager.messages.DefaultService;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.QDatasetNode;
@@ -186,10 +188,11 @@ public class ServiceManager extends UntypedActor {
 					Expressions.constant("staging_data"),
 					dataset.name));
 			
-			return structure.thenCompose(structureResult ->
-				root.thenCompose(rootResult ->								
+			return root.thenCompose(rootResult ->
+				rootResult.isPresent()
+				? structure.thenCompose(structureResult ->
 					groups.thenCompose(groupsResult ->										
-						datasets.thenApply(datasetsResult -> {												
+						datasets.thenApply(datasetsResult -> {
 							Map<String, String> structureMap = new LinkedHashMap<>();
 							
 							for(Tuple structureTuple : structureResult) {
@@ -204,7 +207,8 @@ public class ServiceManager extends UntypedActor {
 								datasetsResult.list(), 
 								groupsResult.list(), 
 								structureMap);
-						}))));
+						})))
+				: f.successful(new NotFound()));
 		}).thenAccept(resp -> sender.tell(resp, self));
 	}
 }
