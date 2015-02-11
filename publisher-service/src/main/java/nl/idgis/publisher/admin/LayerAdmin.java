@@ -84,7 +84,6 @@ public class LayerAdmin extends AbstractAdmin {
 						.where(genericLayer.identification.eq(layerId))
 						.singleResult(genericLayer.id)
 						.thenCompose(msg -> {
-							log.debug("genericlayer id: " + msg.get().toString());
 							if (!msg.isPresent()) {
 								// INSERT
 								String newLayerId = UUID.randomUUID().toString();
@@ -126,6 +125,7 @@ public class LayerAdmin extends AbstractAdmin {
 												});
 							} else {
 								// UPDATE
+								log.debug("genericlayer id: " + msg.get().toString());
 								log.debug("Updating layer with name: " + layerName);
 								return tx
 										.update(genericLayer)
@@ -166,6 +166,7 @@ public class LayerAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
+		// TODO remove from layerStructure if present in parent or child
 		log.debug("handleDeleteLayer: " + layerId);
 
 		return db.transactional(tx -> tx
@@ -207,7 +208,7 @@ public class LayerAdmin extends AbstractAdmin {
 											});
 									});
 							});
-						}));
+				}));
 	}
 	
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
@@ -220,13 +221,6 @@ public class LayerAdmin extends AbstractAdmin {
 						.and(layerStyle.styleId.eq(style.id)))
 				.list(new QStyle(style.identification, style.name, style.format, style.version, style.definition))
 				.thenApply(this::toList);
-		//		return db.query().from(style, leafLayer)
-//		.join(style).on(layerStyle.styleId.eq(style.id))
-//		.join(leafLayer).on(layerStyle.layerId.eq(leafLayer.id))
-//		.where(leafLayer.identification.eq(layerId))
-//		.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
-//		.thenApply(this::toList);
-
 	}
 	
 //	private CompletableFuture<Response<?>> handlePutLayerStyle (final PutLayerStyle putLayerStyle) {
