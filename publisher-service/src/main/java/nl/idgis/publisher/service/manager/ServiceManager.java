@@ -192,7 +192,8 @@ public class ServiceManager extends UntypedActor {
 				rootResult.isPresent()
 				? structure.thenCompose(structureResult ->
 					groups.thenCompose(groupsResult ->										
-						datasets.thenApply(datasetsResult -> {
+						datasets.thenApply(datasetsResult -> {							
+							// LinkedHashMap is used to preserve layer order
 							Map<String, String> structureMap = new LinkedHashMap<>();
 							
 							for(Tuple structureTuple : structureResult) {

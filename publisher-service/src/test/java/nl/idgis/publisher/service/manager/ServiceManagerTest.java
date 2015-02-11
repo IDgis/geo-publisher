@@ -174,60 +174,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	}
 	
 	@Test
-	public void testMultipleLayers() throws Exception {
-		List<Integer> layerIds = new ArrayList<>();
-		
-		for(int i = 0; i < 10; i++) {		
-			int layer = insert(genericLayer)
-				.set(genericLayer.identification, "layer" + i)
-				.set(genericLayer.name, "layer-name0")
-				.executeWithKey(genericLayer.id);
-			
-			insert(leafLayer)
-				.set(leafLayer.genericLayerId, layer)
-				.set(leafLayer.identification, "layer" + i) // TODO: remove column
-				.set(leafLayer.datasetId, datasetId)
-				.execute();
-			
-			layerIds.add(layer);
-		}
-		
-		int rootId = insert(genericLayer)
-				.set(genericLayer.identification, "rootgroup")
-				.set(genericLayer.name, "rootgroup-name")
-				.executeWithKey(genericLayer.id);
-			
-		for(int layerId : layerIds) {
-			insert(layerStructure)
-				.set(layerStructure.parentLayerId, rootId)
-				.set(layerStructure.childLayerId, layerId)
-				.set(layerStructure.layerorder, 0)
-				.execute();
-		}
-		
-		insert(service)
-			.set(service.identification, "service0")
-			.set(service.rootgroupId, rootId) 
-			.execute();
-	
-		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
-		assertEquals("rootgroup", service.getRootId());
-		
-		List<Layer> layers = service.getLayers();
-		assertNotNull(layers);
-		
-		Iterator<Layer> itr = layers.iterator();
-		for(int i = 0 ; i < layerIds.size(); i++) {
-			assertTrue(itr.hasNext());
-			
-			Layer layer = itr.next();
-			assertEquals("layer" + i, layer.getId());
-		}
-		
-		assertFalse(itr.hasNext());
-	}
-	
-	@Test
 	public void testGroup() throws Exception {
 		int layerId = insert(genericLayer)
 			.set(genericLayer.identification, "layer")
@@ -394,5 +340,168 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	@Test
 	public void testNotFound() throws Exception {
 		sync.ask(serviceManager, new GetService("service0"), NotFound.class);
+	}
+	
+	@Test
+	public void testMultipleServices() throws Exception {
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)
+			.set(leafLayer.identification, "layer") // TODO: remove column
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
+		int root0Id = insert(genericLayer)
+			.set(genericLayer.identification, "rootgroup0")
+			.set(genericLayer.name, "rootgroup-name0")
+			.executeWithKey(genericLayer.id);
+		
+		int root1Id = insert(genericLayer)
+			.set(genericLayer.identification, "rootgroup1")
+			.set(genericLayer.name, "rootgroup-name1")
+			.executeWithKey(genericLayer.id);
+		
+		int groupId = insert(genericLayer)
+			.set(genericLayer.identification, "group")
+			.set(genericLayer.name, "group-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, root0Id)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, root1Id)
+			.set(layerStructure.childLayerId, groupId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, groupId)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.rootgroupId, root0Id) 
+			.execute();
+		
+		insert(service)
+			.set(service.identification, "service1")
+			.set(service.rootgroupId, root1Id) 
+			.execute();
+		
+		Service service0 = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		
+		List<Layer> service0Layers = service0.getLayers();
+		assertNotNull(service0Layers);
+		
+		Iterator<Layer> service0Itr = service0Layers.iterator();
+		assertTrue(service0Itr.hasNext());
+		
+		Layer service0Layer = service0Itr.next();
+		assertNotNull(service0Layer);
+		assertFalse(service0Layer.isGroup());
+		assertTrue(service0Layer.isDataset());
+		assertEquals("layer", service0Layer.getId());
+		
+		assertFalse(service0Itr.hasNext());
+		
+		Service service1 = sync.ask(serviceManager, new GetService("service1"), Service.class);
+		
+		List<Layer> service1Layers = service1.getLayers();
+		assertNotNull(service1Layers);
+		
+		Iterator<Layer> service1Itr = service1Layers.iterator();
+		assertTrue(service1Itr.hasNext());
+		
+		Layer group = service1Itr.next();
+		assertNotNull(group);
+		assertTrue(group.isGroup());
+		assertFalse(group.isDataset());
+		
+		List<Layer> groupLayers = group.asGroup().getLayers();
+		assertNotNull(groupLayers);
+		
+		Iterator<Layer> groupItr = groupLayers.iterator();
+		assertTrue(groupItr.hasNext());
+		
+		Layer service1Layer = groupItr.next();
+		assertNotNull(service1Layer);
+		assertFalse(service1Layer.isGroup());
+		assertTrue(service1Layer.isDataset());
+		assertEquals("layer", service1Layer.getId());
+		
+		assertFalse(groupItr.hasNext());
+		
+		assertFalse(service1Itr.hasNext());
+	}
+	
+	@Test
+	public void testLayerOrder() throws Exception {
+		List<Integer> layerIds = new ArrayList<>();
+		List<String> layerIdentifications = new ArrayList<>();
+		
+		for(int i = 0; i < 10; i++) {
+			String layerIdentification = UUID.randomUUID().toString();
+			
+			layerIdentifications.add(layerIdentification);
+			
+			int layer = insert(genericLayer)
+				.set(genericLayer.identification, layerIdentification)
+				.set(genericLayer.name,  layerIdentification + "-name")
+				.executeWithKey(genericLayer.id);
+			
+			insert(leafLayer)
+				.set(leafLayer.genericLayerId, layer)
+				.set(leafLayer.identification,  layerIdentification) // TODO: remove column
+				.set(leafLayer.datasetId, datasetId)
+				.execute();
+			
+			layerIds.add(layer);
+		}
+		
+		int rootId = insert(genericLayer)
+				.set(genericLayer.identification, "rootgroup")
+				.set(genericLayer.name, "rootgroup-name")
+				.executeWithKey(genericLayer.id);
+			
+		int order = 0;
+		for(int layerId : layerIds) {
+			insert(layerStructure)
+				.set(layerStructure.parentLayerId, rootId)
+				.set(layerStructure.childLayerId, layerId)
+				.set(layerStructure.layerorder, order++)
+				.execute();
+		}
+		
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.rootgroupId, rootId) 
+			.execute();
+
+		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		assertEquals("rootgroup", service.getRootId());
+		
+		List<Layer> layers = service.getLayers();		
+		assertNotNull(layers);
+		
+		Iterator<Layer> layersItr = layers.iterator();
+		for(String layerIdentification : layerIdentifications) {
+			assertTrue(layersItr.hasNext());
+			
+			Layer layer = layersItr.next();
+			assertNotNull(layer);
+			assertEquals(layerIdentification, layer.getId());
+		}
+		
+		assertFalse(layersItr.hasNext());
 	}
 }
