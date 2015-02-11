@@ -10,7 +10,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -21,6 +20,11 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
+import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
+import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
+import nl.idgis.publisher.service.geoserver.messages.Ensured;
+import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -89,24 +93,89 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob) {
+	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob) {
+		if(msg instanceof ServiceJobInfo) {
+			// this shouldn't happen
+			log.error("receiving service job while provisioning");
+			getSender().tell(new Ack(), getSelf());
+		} else if(msg instanceof GetActiveJobs) {
+			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
+		} else{
+			unhandled(msg);
+		}
+	}
+	
+	private void ensured() {
+		log.debug("ensured");
+		
+		getSender().tell(new Ensured(), getSelf());
+	}
+	
+	private Procedure<Object> group(ServiceJobInfo serviceJob) {
+		return group(0, serviceJob);
+	}
+	
+	private Procedure<Object> group(int depth, ServiceJobInfo serviceJob) {
+		log.debug("-> group {}", depth);
+		
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof ServiceJobInfo) {
-					// this shouldn't happen
-					log.error("receiving service job while provisioning");
-					getSender().tell(new Ack(), getSelf());
-				} else if(msg instanceof GetActiveJobs) {
-					getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
-				} else if(msg instanceof Terminated) {
-					log.debug("provisioning completed");
+				if(msg instanceof EnsureGroup) {
+					ensured();
+					getContext().become(group(depth + 1, serviceJob), false);
+				} else if(msg instanceof EnsureFeatureType) {
+					ensured();
+				} else if(msg instanceof FinishEnsure) {
+					ensured();
 					
-					initiator.tell(new Ack(), getSelf());
-					getContext().become(receive());
+					log.debug("unbecome group {}", depth);
+					getContext().unbecome();
 				} else {
-					unhandled(msg);
+					elseProvisioning(msg, serviceJob);
+				}
+			}				
+		};
+	}
+	
+	private Procedure<Object> root(ActorRef initiator, ServiceJobInfo serviceJob) {
+		log.debug("-> root");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof EnsureGroup) {
+					ensured();
+					getContext().become(group(serviceJob), false);
+				} else if(msg instanceof EnsureFeatureType) {
+					ensured();
+				} else if(msg instanceof FinishEnsure) {
+					ensured();
+					
+					log.debug("ack job");
+					initiator.tell(new Ack(), getSelf());
+					getContext().unbecome();					
+				} else {
+					elseProvisioning(msg, serviceJob);
+				}
+			}
+		};
+	}
+	
+	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob) {
+		log.debug("-> provisioning");
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof EnsureWorkspace) {
+					ensured();
+					getContext().become(root(initiator, serviceJob), false);
+				} else {
+					elseProvisioning(msg, serviceJob);
 				}
 			}
 			
@@ -129,7 +198,6 @@ public class GeoServerService extends UntypedActor {
 				ProvisionService.props(), 
 				nameGenerator.getName(ProvisionService.class));
 		
-		getContext().watch(provisioningService);
 		serviceManager.tell(new GetService(serviceJob.getServiceId()), provisioningService);
 		
 		getContext().become(provisioning(getSender(), serviceJob));
