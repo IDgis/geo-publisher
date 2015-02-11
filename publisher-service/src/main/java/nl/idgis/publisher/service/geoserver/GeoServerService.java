@@ -10,14 +10,17 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -80,10 +83,34 @@ public class GeoServerService extends UntypedActor {
 		if(msg instanceof ServiceJobInfo) {
 			handleServiceJob((ServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
-			handleGetActiveJobs();
+			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof ServiceJobInfo) {
+					// this shouldn't happen
+					log.error("receiving service job while provisioning");
+					getSender().tell(new Ack(), getSelf());
+				} else if(msg instanceof GetActiveJobs) {
+					getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
+				} else if(msg instanceof Terminated) {
+					log.debug("provisioning completed");
+					
+					initiator.tell(new Ack(), getSelf());
+					getContext().become(receive());
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
 	}
 
 	@Override
@@ -93,20 +120,18 @@ public class GeoServerService extends UntypedActor {
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	private void handleGetActiveJobs() {
-		log.debug("no active job");
-		
-		getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
 	}	
 	
-	private void handleServiceJob(ServiceJobInfo job) {
-		log.debug("executing service job: " + job);
+	private void handleServiceJob(ServiceJobInfo serviceJob) {
+		log.debug("executing service job: " + serviceJob);
 		
-		ActorRef serviceProvisioning = getContext().actorOf(
-				ServiceProvisioning.props(getSender()), 
-				nameGenerator.getName(ServiceProvisioning.class));		
-		serviceManager.tell(new GetService(job.getServiceId()), serviceProvisioning);
+		ActorRef provisioningService = getContext().actorOf(
+				ProvisionService.props(), 
+				nameGenerator.getName(ProvisionService.class));
+		
+		getContext().watch(provisioningService);
+		serviceManager.tell(new GetService(serviceJob.getServiceId()), provisioningService);
+		
+		getContext().become(provisioning(getSender(), serviceJob));
 	}
 }
