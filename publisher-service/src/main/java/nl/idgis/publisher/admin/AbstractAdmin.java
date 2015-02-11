@@ -3,6 +3,7 @@ package nl.idgis.publisher.admin;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +23,9 @@ import java.util.function.Supplier;
 
 
 
+
 import com.mysema.query.SimpleQuery;
+
 
 
 
@@ -61,7 +64,6 @@ import nl.idgis.publisher.admin.messages.AddGet;
 import nl.idgis.publisher.admin.messages.AddList;
 import nl.idgis.publisher.admin.messages.AddPut;
 import nl.idgis.publisher.admin.messages.AddQuery;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 
@@ -153,6 +155,10 @@ public abstract class AbstractAdmin extends UntypedActor {
 		Page.Builder<T> pageBuilder = new Page.Builder<>();
 		pageBuilder.addAll(list.asCollection());
 		return pageBuilder.build();
+	}
+	
+	protected <T extends Entity> List<T> toList(TypedList<T> list) {
+		return list.list();
 	}
 	
 	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
