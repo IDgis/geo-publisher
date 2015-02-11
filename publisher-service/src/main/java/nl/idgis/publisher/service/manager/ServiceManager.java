@@ -135,7 +135,7 @@ public class ServiceManager extends UntypedActor {
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-						.join(serviceStructure).on(serviceStructure.parentLayerId.eq(layerStructure.childLayerId))
+						.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
 						.list(
 							serviceStructure.serviceIdentification, 
 							child.id,

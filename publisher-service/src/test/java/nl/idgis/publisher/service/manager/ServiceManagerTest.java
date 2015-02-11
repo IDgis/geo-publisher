@@ -224,4 +224,168 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 	}
+	
+	@Test
+	public void testGroup() throws Exception {
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)
+			.set(leafLayer.identification, "layer") // TODO: remove column
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "rootgroup")
+			.set(genericLayer.name, "rootgroup-name")
+			.executeWithKey(genericLayer.id);
+		
+		int groupId = insert(genericLayer)
+			.set(genericLayer.identification, "group")
+			.set(genericLayer.name, "group-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, groupId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, groupId)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.rootgroupId, rootId) 
+			.execute();
+		
+		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		
+		List<Layer> rootLayers = service.getLayers();
+		assertNotNull(rootLayers);
+		
+		Iterator<Layer> rootItr = rootLayers.iterator();
+		assertTrue(rootItr.hasNext());
+		
+		Layer group = rootItr.next();
+		assertNotNull(group);
+		assertTrue(group.isGroup());
+		assertFalse(group.isDataset());
+		
+		List<Layer> groupLayers = group.asGroup().getLayers();
+		assertNotNull(groupLayers);
+		
+		Iterator<Layer> groupItr = groupLayers.iterator();
+		assertTrue(groupItr.hasNext());
+		
+		Layer layer = groupItr.next();
+		assertNotNull(layer);
+		assertFalse(layer.isGroup());
+		assertTrue(layer.isDataset());
+		
+		assertFalse(groupItr.hasNext());
+		
+		assertFalse(rootItr.hasNext());
+	}
+	
+	@Test
+	public void testGroupInGroup() throws Exception {
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+			
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)
+			.set(leafLayer.identification, "layer") // TODO: remove column
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "rootgroup")
+			.set(genericLayer.name, "rootgroup-name")
+			.executeWithKey(genericLayer.id);
+		
+		int group0Id = insert(genericLayer)
+			.set(genericLayer.identification, "group0")
+			.set(genericLayer.name, "group-name0")
+			.executeWithKey(genericLayer.id);
+		
+		int group1Id = insert(genericLayer)
+			.set(genericLayer.identification, "group1")
+			.set(genericLayer.name, "group-name1")
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, group0Id)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, group0Id)
+			.set(layerStructure.childLayerId, group1Id)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, group1Id)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerorder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.rootgroupId, rootId) 
+			.execute();
+		
+		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		
+		List<Layer> rootLayers = service.getLayers();
+		assertNotNull(rootLayers);
+		
+		Iterator<Layer> rootItr = rootLayers.iterator();
+		assertTrue(rootItr.hasNext());
+		
+		Layer group0 = rootItr.next();
+		assertNotNull(group0);
+		assertTrue(group0.isGroup());
+		assertFalse(group0.isDataset());
+		assertEquals("group0", group0.getId());
+		
+		List<Layer> group0Layers = group0.asGroup().getLayers();
+		assertNotNull(group0Layers);
+		
+		Iterator<Layer> group0Itr = group0Layers.iterator();
+		assertTrue(group0Itr.hasNext());
+		
+		Layer group1 = group0Itr.next();
+		assertNotNull(group1);
+		assertTrue(group1.isGroup());
+		assertFalse(group1.isDataset());
+		assertEquals("group1", group1.getId());
+		
+		List<Layer> group1Layers = group1.asGroup().getLayers();		
+		assertNotNull(group1Layers);
+		
+		Iterator<Layer> group1Itr = group1Layers.iterator();
+		assertTrue(group1Itr.hasNext());
+		
+		Layer layer = group1Itr.next();
+		assertNotNull(layer);
+		assertFalse(layer.isGroup());
+		assertTrue(layer.isDataset());
+		
+		assertFalse(group1Itr.hasNext());
+		
+		assertFalse(group0Itr.hasNext());
+		
+		assertFalse(rootItr.hasNext());
+	}
 }
