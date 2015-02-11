@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -185,7 +184,6 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					Expressions.constant("staging_data"),
 					dataset.name));
 			
 			return root.thenCompose(rootResult ->

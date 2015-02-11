@@ -16,12 +16,7 @@ public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 	public String getId() {
 		return dataset.getId();
 	}
-
-	@Override
-	public String getSchemaName() {
-		return dataset.getSchemaName();
-	}
-
+	
 	@Override
 	public String getTableName() {
 		return dataset.getTableName();
