@@ -1,6 +1,7 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 
@@ -47,88 +48,166 @@ public class LayerAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
-		log.debug ("handleListLayers");
-		return 
-			db.query().from(leafLayer)
-			.list(new QLayer(
-					leafLayer.identification,
-					ConstantImpl.create("name"),
-					ConstantImpl.create("title"),
-					ConstantImpl.create("abstract"),
-					leafLayer.keywords,
-					ConstantImpl.create(false)
-				))
-			.thenApply(this::toPage);
+		log.debug("handleListLayers");
+		return db
+				.query()
+				.from(genericLayer)
+				.join(leafLayer)
+				.on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
+						genericLayer.abstractCol, leafLayer.keywords, genericLayer.published))
+				.thenApply(this::toPage);
 	}
 
 	
 	private CompletableFuture<Optional<Layer>> handleGetLayer (String layerId) {
-		log.debug ("handleGetLayer: " + layerId);
-		
-		return 
-			db.query().from(leafLayer)
-			.where(leafLayer.identification.eq(layerId))
-			.singleResult(new QLayer(
-					leafLayer.identification,
-					ConstantImpl.create("name"),
-					ConstantImpl.create("title"),
-					ConstantImpl.create("abstract"),
-					leafLayer.keywords,
-					ConstantImpl.create(false)
-			));		
+		log.debug("handleGetLayer: " + layerId);
+
+		return db
+				.query()
+				.from(genericLayer)
+				.join(leafLayer)
+				.on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.where(genericLayer.identification.eq(layerId))
+				.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
+							genericLayer.abstractCol, leafLayer.keywords, genericLayer.published));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
 		String layerId = theLayer.id();
 		String layerName = theLayer.name();
-		log.debug ("handle update/create layer: " + layerId);
-		
-		return db.transactional(tx ->
-			// Check if there is another layer with the same name
-			tx.query().from(leafLayer)
-			.where(leafLayer.identification.eq(layerId))
-			.singleResult(leafLayer.identification)
-			.thenCompose(msg -> {
-				if (!msg.isPresent()){
-					// INSERT
-					log.debug("Inserting new layer with name: " + layerName);
-					return tx.insert(leafLayer)
-					.set(leafLayer.identification, UUID.randomUUID().toString())
-					.set(leafLayer.keywords, theLayer.keywords())
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, layerName));
-				} else {
-					// UPDATE
-					log.debug("Updating layer with name: " + layerName);
-					return tx.update(leafLayer)
-					.set(leafLayer.keywords, theLayer.keywords())
-					.where(leafLayer.identification.eq(layerId))
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, layerName));
-				}
-		}));
+		log.debug("handle update/create layer: " + layerId);
+
+		return db
+				.transactional(tx ->
+				// Check if there is another layer with the same name
+				tx.query()
+						.from(genericLayer)
+						.where(genericLayer.identification.eq(layerId))
+						.singleResult(genericLayer.id)
+						.thenCompose(msg -> {
+							log.debug("genericlayer id: " + msg.get().toString());
+							if (!msg.isPresent()) {
+								// INSERT
+								String newLayerId = UUID.randomUUID().toString();
+								log.debug("Inserting new generic_layer with name: " + layerName + ", ident: "
+										+ newLayerId);
+								return tx
+										.insert(genericLayer)
+										.set(genericLayer.identification, newLayerId)
+										.set(genericLayer.name, theLayer.name())
+										.set(genericLayer.title, theLayer.title())
+										.set(genericLayer.abstractCol, theLayer.abstractText())
+										.set(genericLayer.published, theLayer.published())
+										.execute()
+										.thenCompose(
+												gl -> {
+													log.debug("Inserted generic_layer #: " + gl);
+													return tx
+															.query()
+															.from(genericLayer)
+															.where(genericLayer.identification.eq(newLayerId))
+															.singleResult(genericLayer.id)
+															.thenCompose(
+																	glId -> {
+																		log.debug("Inserting new leaf_layer with generic_layer id: "
+																				+ glId.get());
+																		return tx
+																				.insert(leafLayer)
+																				.set(leafLayer.genericLayerId,
+																						glId.get())
+																				.set(leafLayer.keywords,
+																						theLayer.keywords())
+																				.execute()
+																				.thenApply(
+																						l -> new Response<String>(
+																								CrudOperation.CREATE,
+																								CrudResponse.OK,
+																								layerName));
+																	});
+												});
+							} else {
+								// UPDATE
+								log.debug("Updating layer with name: " + layerName);
+								return tx
+										.update(genericLayer)
+										.set(genericLayer.name, theLayer.name())
+										.set(genericLayer.title, theLayer.title())
+										.set(genericLayer.abstractCol, theLayer.abstractText())
+										.set(genericLayer.published, theLayer.published())
+										.where(genericLayer.identification.eq(layerId))
+										.execute()
+										.thenCompose(
+												gl -> {
+													log.debug("updated generic_layer #: " + gl);
+													return tx
+															.query()
+															.from(genericLayer)
+															.where(genericLayer.identification.eq(layerId))
+															.singleResult(genericLayer.id)
+															.thenCompose(
+																	glId -> {
+																		log.debug("Updating new leaf_layer with generic_layer id: "
+																				+ glId.get());
+																		return tx
+																				.update(leafLayer)
+																				.set(leafLayer.keywords,
+																						theLayer.keywords())
+																				.where(leafLayer.genericLayerId.eq(glId
+																						.get()))
+																				.execute()
+																				.thenApply(
+																						l -> new Response<String>(
+																								CrudOperation.UPDATE,
+																								CrudResponse.OK,
+																								layerName));
+																	});
+												});
+							}
+						}));
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
-		log.debug ("handleDeleteLayer: " + layerId);
-		return db.delete(leafLayer)
-			.where(leafLayer.identification.eq(layerId))
-			.execute()
-			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, layerId));
+		log.debug("handleDeleteLayer: " + layerId);
+
+		return db.transactional(tx -> tx
+				.query()
+				.from(genericLayer)
+				.where(genericLayer.identification.eq(layerId))
+				.singleResult(genericLayer.id)
+				.thenCompose(
+						glId -> {
+							log.debug("genericlayer id: " + glId.get().toString());
+							log.debug("delete leaflayer ");
+							return db
+									.delete(leafLayer)
+									.where(leafLayer.genericLayerId.eq(glId.get()))
+									.execute()
+									.thenCompose(
+											ll -> {
+												log.debug("delete genericlayer ");
+												return tx
+														.delete(genericLayer)
+														.where(genericLayer.id.eq(glId.get()))
+														.execute()
+														.thenApply(
+																l -> new Response<String>(CrudOperation.DELETE,
+																		CrudResponse.OK, layerId));
+											});
+						}));
 	}
 	
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
-		log.debug ("handleListLayerStyles");
+		log.debug("handleListLayerStyles");
 		String layerId = listLayerStyles.layerId();
-		return db.query().from(style, leafLayer, layerStyle)
-		.where(
-				leafLayer.identification.eq(layerId)
-				.and(layerStyle.layerId.eq(leafLayer.id))
-				.and(layerStyle.styleId.eq(style.id))
-				)
-		.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
-		.thenApply(this::toList);
-//		return db.query().from(style, leafLayer)
+		return db
+				.query()
+				.from(style, leafLayer, layerStyle)
+				.where(leafLayer.identification.eq(layerId).and(layerStyle.layerId.eq(leafLayer.id))
+						.and(layerStyle.styleId.eq(style.id)))
+				.list(new QStyle(style.identification, style.name, style.format, style.version, style.definition))
+				.thenApply(this::toList);
+		//		return db.query().from(style, leafLayer)
 //		.join(style).on(layerStyle.styleId.eq(style.id))
 //		.join(leafLayer).on(layerStyle.layerId.eq(leafLayer.id))
 //		.where(leafLayer.identification.eq(layerId))

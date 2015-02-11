@@ -93,6 +93,7 @@ public class Layers extends Controller {
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
+					Logger.debug ("Layer list #: " + layers.values().size());
 					return ok (list.render (layers));
 				}
 			});
