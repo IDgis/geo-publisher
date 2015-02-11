@@ -42,8 +42,10 @@ public class Layers extends Controller {
 				.execute (new Function<Page<Style>, Result> () {
 
 					@Override
-					public Result apply (final Page<Style> styles) throws Throwable {
-						return ok (form.render (layerForm, true, styles));
+					public Result apply (final Page<Style> allStyles) throws Throwable {
+						Logger.debug ("allStyles: " + allStyles.values().size());
+						Logger.debug ("layerStyles: " + layerForm.get().styleList.size());
+						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList));
 					}
 				});
 	}
@@ -130,7 +132,9 @@ public class Layers extends Controller {
 					
 					Logger.debug ("Edit layerForm: " + layerForm);						
 
-					return ok (form.render (formLayerForm, false, allStyles));
+					Logger.debug ("allStyles: " + allStyles.values().size());
+					Logger.debug ("layerStyles: " + layerStyles.size());
+					return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles));
 				}
 			});
 	}
