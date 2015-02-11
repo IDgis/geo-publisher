@@ -1,9 +1,6 @@
 package nl.idgis.publisher.service.geoserver;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -41,18 +38,7 @@ public class TestServers {
 			}
 		};
 		
-		pgListenThread.start();		
-		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + PG_PORT + "/test", "postgres", "postgres");
-		
-		Statement stmt = connection.createStatement();		
-		stmt.execute("create table \"test_table\"(\"id\" serial, \"test\" integer)");
-		stmt.execute("create schema \"b0\"");
-		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
-		
-		stmt.close();
-				
-		connection.close();
+		pgListenThread.start();
 		
 		File dataDir = new File("target/geoserver-data");
 		

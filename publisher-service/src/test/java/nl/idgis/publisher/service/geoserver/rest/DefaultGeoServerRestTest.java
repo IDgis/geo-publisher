@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,17 @@ public class DefaultGeoServerRestTest {
 
 	@Test
 	public void doTest() throws Exception {
+		
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		
+		Statement stmt = connection.createStatement();		
+		stmt.execute("create table \"test_table\"(\"id\" serial, \"test\" integer)");
+		stmt.execute("create schema \"b0\"");
+		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
+		
+		stmt.close();
+				
+		connection.close();
 		
 		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
 		
