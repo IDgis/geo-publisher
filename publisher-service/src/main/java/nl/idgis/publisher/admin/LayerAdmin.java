@@ -120,12 +120,20 @@ public class LayerAdmin extends AbstractAdmin {
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
 		log.debug ("handleListLayerStyles");
 		String layerId = listLayerStyles.layerId();
-		return db.query().from(style, leafLayer)
-		.join(style).on(layerStyle.styleId.eq(style.id))
-		.join(leafLayer).on(layerStyle.layerId.eq(leafLayer.id))
-		.where(leafLayer.identification.eq(layerId))
+		return db.query().from(style, leafLayer, layerStyle)
+		.where(
+				leafLayer.identification.eq(layerId)
+				.and(layerStyle.layerId.eq(leafLayer.id))
+				.and(layerStyle.styleId.eq(style.id))
+				)
 		.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
 		.thenApply(this::toList);
+//		return db.query().from(style, leafLayer)
+//		.join(style).on(layerStyle.styleId.eq(style.id))
+//		.join(leafLayer).on(layerStyle.layerId.eq(leafLayer.id))
+//		.where(leafLayer.identification.eq(layerId))
+//		.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
+//		.thenApply(this::toList);
 
 	}
 	
