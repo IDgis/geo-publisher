@@ -52,8 +52,7 @@ public class LayerAdmin extends AbstractAdmin {
 		return db
 				.query()
 				.from(genericLayer)
-				.join(leafLayer)
-				.on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
 						genericLayer.abstractCol, leafLayer.keywords, genericLayer.published))
 				.thenApply(this::toPage);
@@ -66,8 +65,7 @@ public class LayerAdmin extends AbstractAdmin {
 		return db
 				.query()
 				.from(genericLayer)
-				.join(leafLayer)
-				.on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.where(genericLayer.identification.eq(layerId))
 				.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
 							genericLayer.abstractCol, leafLayer.keywords, genericLayer.published));
@@ -171,29 +169,44 @@ public class LayerAdmin extends AbstractAdmin {
 		log.debug("handleDeleteLayer: " + layerId);
 
 		return db.transactional(tx -> tx
-				.query()
-				.from(genericLayer)
-				.where(genericLayer.identification.eq(layerId))
-				.singleResult(genericLayer.id)
-				.thenCompose(
-						glId -> {
-							log.debug("genericlayer id: " + glId.get().toString());
-							log.debug("delete leaflayer ");
-							return db
-									.delete(leafLayer)
-									.where(leafLayer.genericLayerId.eq(glId.get()))
-									.execute()
-									.thenCompose(
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(layerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+					return tx.query().
+						from(leafLayer)
+						.where(leafLayer.genericLayerId.eq(glId.get()))
+						.singleResult(leafLayer.id)
+						.thenCompose(
+							llId -> {
+							log.debug("delete layerstyles with leaflayer id" + llId.get());
+							return tx
+								.delete(layerStyle)
+								.where(layerStyle.layerId.eq(llId.get()))
+								.execute()
+								.thenCompose(
+									ls -> {
+									log.debug("delete leaflayer " + glId.get());
+									return tx
+										.delete(leafLayer)
+										.where(leafLayer.genericLayerId.eq(glId.get()))
+										.execute()
+										.thenCompose(
 											ll -> {
-												log.debug("delete genericlayer ");
+												log.debug("delete genericlayer " + glId.get());
 												return tx
-														.delete(genericLayer)
-														.where(genericLayer.id.eq(glId.get()))
-														.execute()
-														.thenApply(
-																l -> new Response<String>(CrudOperation.DELETE,
-																		CrudResponse.OK, layerId));
+													.delete(genericLayer)
+													.where(genericLayer.id.eq(glId.get()))
+													.execute()
+													.thenApply(
+														l -> new Response<String>(CrudOperation.DELETE,
+															CrudResponse.OK, layerId));
 											});
+									});
+							});
 						}));
 	}
 	

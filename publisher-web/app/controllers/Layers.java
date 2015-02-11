@@ -165,7 +165,7 @@ public class Layers extends Controller {
 		private String title;
 		private String abstractText;
 		private String keywords;
-		private Boolean published;
+		private Boolean published = false;
 		private List<Style> styleList;
 
 		public LayerForm(){
@@ -237,6 +237,12 @@ public class Layers extends Controller {
 
 		public void setStyleList(List<Style> styleList) {
 			this.styleList = styleList;
+		}
+
+		@Override
+		public String toString() {
+			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
+					+ ", keywords=" + keywords + ", published=" + published + ", styleList=" + styleList + "]";
 		}
 		
 	}
