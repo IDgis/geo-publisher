@@ -2,14 +2,20 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import models.Domain;
 import models.Domain.Function;
+import models.Domain.Function2;
+import models.Domain.Function3;
+import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Layer;
+import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -30,12 +36,16 @@ public class Layers extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
-		 return Promise.promise(new F.Function0<Result>() {
-             @Override
-             public Result apply() throws Throwable {
-                 return ok (form.render (layerForm, true));
-             }
-         });
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		return from (database)
+				.list (Style.class)
+				.execute (new Function<Page<Style>, Result> () {
+
+					@Override
+					public Result apply (final Page<Style> styles) throws Throwable {
+						return ok (form.render (layerForm, true, styles));
+					}
+				});
 	}
 	
 	public static Promise<Result> submitCreateUpdate () {
@@ -88,9 +98,12 @@ public class Layers extends Controller {
 
 	public static Promise<Result> create () {
 		Logger.debug ("create Layer");
-		final Form<LayerForm> layerForm = Form.form (LayerForm.class).fill (new LayerForm ());
+		LayerForm layerForm = new LayerForm ();
+		// The list of styles for this layer is inititially empty
+		layerForm.setStyleList(new ArrayList<Style>());
+		final Form<LayerForm> formLayerForm = Form.form (LayerForm.class).fill (layerForm );
 		
-		return renderCreateForm (layerForm);
+		return renderCreateForm (formLayerForm);
 	}
 	
 	public static Promise<Result> edit (final String layerId) {
@@ -99,17 +112,25 @@ public class Layers extends Controller {
 		
 		return from (database)
 			.get (Layer.class, layerId)
-			.execute (new Function<Layer, Result> () {
+			.list (Style.class)
+			.query(new ListLayerStyles(layerId))
+			.execute (new Function3<Layer, Page<Style>, List<Style>, Result> () {
 
 				@Override
-				public Result apply (final Layer layer) throws Throwable {
-					final Form<LayerForm> layerForm = Form
+				public Result apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
+					LayerForm layerForm = new LayerForm (layer);
+					if (layerStyles==null){
+						layerForm.setStyleList(new ArrayList<Style>());
+					} else {
+						layerForm.setStyleList(layerStyles);						
+					}
+					final Form<LayerForm> formLayerForm = Form
 							.form (LayerForm.class)
-							.fill (new LayerForm (layer));
+							.fill (layerForm);
 					
 					Logger.debug ("Edit layerForm: " + layerForm);						
 
-					return ok (form.render (layerForm, false));
+					return ok (form.render (formLayerForm, false, allStyles));
 				}
 			});
 	}
@@ -140,6 +161,7 @@ public class Layers extends Controller {
 		private String abstractText;
 		private String keywords;
 		private Boolean published;
+		private List<Style> styleList;
 
 		public LayerForm(){
 			super();
@@ -202,6 +224,14 @@ public class Layers extends Controller {
 
 		public void setPublished(Boolean published) {
 			this.published = published;
+		}
+
+		public List<Style> getStyleList() {
+			return styleList;
+		}
+
+		public void setStyleList(List<Style> styleList) {
+			this.styleList = styleList;
 		}
 		
 	}

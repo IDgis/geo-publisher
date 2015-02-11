@@ -363,7 +363,9 @@ web.application.page.layers.form.field.publish.label=Publiceren
 web.application.page.layers.form.field.publish.help=Geef aan of de laag gepubliceerd wordt
 
 web.application.page.layers.form.field.groups.label=Zit in de groep(en)
+
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
+web.application.page.layers.form.field.styles.default=Default stijl
 
 # Groups
 web.application.page.groups.name=Groep
