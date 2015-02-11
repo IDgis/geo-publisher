@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.geoserver;
 
 import java.io.File;
 import java.sql.Connection;

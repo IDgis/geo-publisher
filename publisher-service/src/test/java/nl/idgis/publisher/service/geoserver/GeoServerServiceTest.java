@@ -21,7 +21,6 @@ import akka.actor.UntypedActor;
 import nl.idgis.publisher.domain.web.NotFound;
 
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.service.TestServers;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.Service;
 

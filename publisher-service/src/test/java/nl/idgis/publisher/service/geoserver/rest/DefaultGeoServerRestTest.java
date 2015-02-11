@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import nl.idgis.publisher.service.TestServers;
+import nl.idgis.publisher.service.geoserver.TestServers;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
