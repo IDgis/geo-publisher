@@ -57,6 +57,8 @@ class DefaultRecording implements Recording {
 	
 	@Override	
 	public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
+		assertHasNext(message);
+		
 		Object val = iterator.next().getMessage();
 		
 		if(message == null) {
