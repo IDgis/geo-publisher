@@ -120,8 +120,13 @@ public class GeoServerService extends UntypedActor {
 	private void toSelf(CompletableFuture<?> future) {
 		ActorRef self = getSelf();
 		
-		future.exceptionally(t -> new Failure(t))
-			.thenAccept(msg -> self.tell(msg, self));
+		future.whenComplete((msg, t) ->  {
+			if(t != null) {
+				self.tell(new Failure(t), self);
+			} else {
+				self.tell(msg, self);
+			}
+		});
 	}
 	
 	private void ensured(ActorRef provisioningService) {
