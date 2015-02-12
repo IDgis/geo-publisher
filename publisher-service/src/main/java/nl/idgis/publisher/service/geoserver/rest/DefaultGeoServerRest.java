@@ -116,8 +116,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Boolean> addWorkspace(Workspace workspace) {
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
+	public CompletableFuture<Void> addWorkspace(Workspace workspace) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -136,13 +136,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			sendDocument(getWorkspacesPath(), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
 				if(t != null) {
-					future.completeExceptionally(t);
+					future.completeExceptionally(new GeoServerException(t));
+				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {	
+					future.completeExceptionally(new GeoServerException(responseCode));
 				} else {
-					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
+					future.complete(null);
 				}
 			});
 		} catch(Exception e) {
-			future.completeExceptionally(e);
+			future.completeExceptionally(new GeoServerException(e));
 		}
 		
 		return future;
@@ -241,8 +243,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<Boolean> addDataStore(Workspace workspace, DataStore dataStore) {
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
+	public CompletableFuture<Void> addDataStore(Workspace workspace, DataStore dataStore) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -267,13 +269,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			sendDocument(getDataStoresPath(workspace), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
 				if(t != null) {
-					future.completeExceptionally(t);
+					future.completeExceptionally(new GeoServerException(t));
+				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {
+					future.completeExceptionally(new GeoServerException(responseCode));
 				} else {
-					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
+					future.complete(null);
 				}
 			});				
 		} catch(Exception e) {
-			future.completeExceptionally(e);
+			future.completeExceptionally(new GeoServerException(e));
 		}
 		
 		return future;
@@ -345,8 +349,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Boolean> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
+	public CompletableFuture<Void> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -372,13 +376,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			sendDocument(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
 				if(t != null) {
-					future.completeExceptionally(t);
+					future.completeExceptionally(new GeoServerException(t));
+				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {
+					future.completeExceptionally(new GeoServerException(responseCode));
 				} else {
-					future.complete(responseCode == HttpURLConnection.HTTP_CREATED);
+					future.complete(null);
 				}
 			});
 		} catch(Exception e) {
-			future.completeExceptionally(e);
+			future.completeExceptionally(new GeoServerException(e));
 		}
 		
 		return future;

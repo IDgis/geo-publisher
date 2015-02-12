@@ -203,14 +203,9 @@ public class GeoServerService extends UntypedActor {
 							}
 							
 							FeatureType featureType = new FeatureType(tableName);
-							return rest.addFeatureType(workspace, dataStore, featureType).thenApply(featureTypeSuccess -> {
-								if(featureTypeSuccess) {
-									log.debug("feature type created: " + tableName);
-									
-									return new FeatureTypeEnsured(featureType);
-								} else {
-									throw new IllegalStateException("feature type");
-								}
+							return rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
+								log.debug("feature type created: " + tableName);									
+								return new FeatureTypeEnsured(featureType);								
 							});
 						}));
 				} else if(msg instanceof FinishEnsure) {
@@ -280,23 +275,13 @@ public class GeoServerService extends UntypedActor {
 							}
 							
 							Workspace workspace = new Workspace(workspaceId);
-							return rest.addWorkspace(workspace).thenCompose(workspaceSuccess -> {
+							return rest.addWorkspace(workspace).thenCompose(vWorkspace -> {
 								log.debug("workspace created: {}", workspaceId);
-								
-								if(workspaceSuccess) {
-									DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
-									return rest.addDataStore(workspace, dataStore).thenApply(dataStoreSuccess -> {
-										if(dataStoreSuccess) {
-											log.debug("data store created: publisher-geometry");
-											
-											return new WorkspaceEnsured(workspace, dataStore); 
-										} else {
-											throw new IllegalStateException("dataStore");
-										}
-									});
-								} else {
-									throw new IllegalStateException("workspace");
-								}
+								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
+								return rest.addDataStore(workspace, dataStore).thenApply(vDataStore -> {									
+									log.debug("data store created: publisher-geometry");									
+									return new WorkspaceEnsured(workspace, dataStore);
+								});								
 							});
 						}));					
 				} else if(msg instanceof WorkspaceEnsured) {

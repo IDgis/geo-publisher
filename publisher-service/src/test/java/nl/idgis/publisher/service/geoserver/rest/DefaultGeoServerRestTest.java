@@ -60,7 +60,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(workspaces);
 		assertTrue(workspaces.isEmpty());
 		
-		assertTrue(service.addWorkspace(new Workspace("testWorkspace")).get());
+		service.addWorkspace(new Workspace("testWorkspace")).get();
 		
 		workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
@@ -82,7 +82,7 @@ public class DefaultGeoServerRestTest {
 		connectionParameters.put("passwd", "postgres");
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("schema", "public");
-		assertTrue(service.addDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get());
+		service.addDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get();
 		
 		dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
@@ -103,7 +103,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		assertTrue(service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")).get());
+		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
