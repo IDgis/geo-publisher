@@ -353,7 +353,7 @@ web.application.page.layers.form.field.title.help=De titel voor de laag
 
 web.application.page.layers.form.field.abstract.label=Samenvatting
 web.application.page.layers.form.field.abstract.placeholder=Samenvatting
-web.application.page.layers.form.field.abstract.help=De samenvastting voor de laag
+web.application.page.layers.form.field.abstract.help=De samenvatting voor de laag
 
 web.application.page.layers.form.field.keywords.label=Trefwoorden
 web.application.page.layers.form.field.keywords.placeholder=Trefwoorden
@@ -388,7 +388,7 @@ web.application.page.groups.form.field.title.help=De titel voor de groep
 
 web.application.page.groups.form.field.abstract.label=Samenvatting
 web.application.page.groups.form.field.abstract.placeholder=Samenvatting
-web.application.page.groups.form.field.abstract.help=De samenvastting voor de groep
+web.application.page.groups.form.field.abstract.help=De samenvatting voor de groep
 
 web.application.page.groups.form.field.keywords.label=Trefwoorden
 web.application.page.groups.form.field.keywords.placeholder=Trefwoorden
