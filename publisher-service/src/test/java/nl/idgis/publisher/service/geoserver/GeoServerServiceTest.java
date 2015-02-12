@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -10,12 +11,20 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -128,6 +137,30 @@ public class GeoServerServiceTest {
 		testServers.stop();
 	}
 	
+	private void processNodeList(NodeList nodeList, Set<String> retval) {
+		StringBuilder sb = new StringBuilder();
+		
+		for(int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			if(node.getNodeType() == Node.TEXT_NODE) {
+				sb.append(node.getTextContent());
+			} else {
+				processNodeList(node.getChildNodes(), retval);
+			}
+		}
+		
+		String result = sb.toString().trim();
+		if(!result.isEmpty()) {
+			retval.add(result);
+		}
+	}
+	
+	private Set<String> getText(Document d) {
+		Set<String> retval = new HashSet<>();		
+		processNodeList(d.getChildNodes(), retval);		
+		return retval;
+	}
+	
 	@Test
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
@@ -147,11 +180,18 @@ public class GeoServerServiceTest {
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"staging_data\"");
-		stmt.execute("create table \"staging_data\".\"tableName\"(\"id\" serial, \"test\" integer)");
+		stmt.execute("create table \"staging_data\".\"tableName\"(\"id\" serial, \"test\" text)");
+		stmt.execute("insert into \"staging_data\".\"tableName\"(\"test\") values('Hello, world!')");
 		stmt.close();
 				
 		connection.close();
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document d = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.0.0&typeName=tableName");
+		
+		assertTrue(getText(d).contains("Hello, world!"));
 	}
 }
