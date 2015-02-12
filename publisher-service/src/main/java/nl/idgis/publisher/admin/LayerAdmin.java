@@ -220,13 +220,23 @@ public class LayerAdmin extends AbstractAdmin {
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
 		log.debug("handleListLayerStyles");
 		String layerId = listLayerStyles.layerId();
-		return db
-				.query()
-				.from(style, leafLayer, layerStyle)
-				.where(leafLayer.identification.eq(layerId).and(layerStyle.layerId.eq(leafLayer.id))
-						.and(layerStyle.styleId.eq(style.id)))
-				.list(new QStyle(style.identification, style.name, style.format, style.version, style.definition))
-				.thenApply(this::toList);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(layerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+				return tx
+					.query()
+					.from(style, leafLayer, layerStyle)
+					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
+							.and(layerStyle.styleId.eq(style.id)))
+					.list(new QStyle(style.identification, style.name, style.format, style.version, style.definition))
+					.thenApply(this::toList);
+		}));
 	}
 	
 //	private CompletableFuture<Response<?>> handlePutLayerStyle (final PutLayerStyle putLayerStyle) {
