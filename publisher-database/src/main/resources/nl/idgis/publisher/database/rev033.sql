@@ -24,3 +24,5 @@ alter table publisher.service add column watermark_url text;
 alter table publisher.service add column watermark_transparency integer;
 alter table publisher.service add column watermark_position text;
 
+insert into publisher.version(id) values(33);
+-- ----------------------------------
