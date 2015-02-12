@@ -164,7 +164,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Layer layer = itr.next();
 		assertNotNull(layer);
-		assertTrue(layer.isDataset());
+		assertFalse(layer.isGroup());
 		
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
@@ -222,7 +222,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer group = rootItr.next();
 		assertNotNull(group);
 		assertTrue(group.isGroup());
-		assertFalse(group.isDataset());
 		
 		List<Layer> groupLayers = group.asGroup().getLayers();
 		assertNotNull(groupLayers);
@@ -233,7 +232,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer layer = groupItr.next();
 		assertNotNull(layer);
 		assertFalse(layer.isGroup());
-		assertTrue(layer.isDataset());
 		
 		assertFalse(groupItr.hasNext());
 		
@@ -301,7 +299,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer group0 = rootItr.next();
 		assertNotNull(group0);
 		assertTrue(group0.isGroup());
-		assertFalse(group0.isDataset());
 		assertEquals("group0", group0.getId());
 		
 		List<Layer> group0Layers = group0.asGroup().getLayers();
@@ -313,7 +310,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer group1 = group0Itr.next();
 		assertNotNull(group1);
 		assertTrue(group1.isGroup());
-		assertFalse(group1.isDataset());
 		assertEquals("group1", group1.getId());
 		
 		List<Layer> group1Layers = group1.asGroup().getLayers();		
@@ -325,7 +321,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer layer = group1Itr.next();
 		assertNotNull(layer);
 		assertFalse(layer.isGroup());
-		assertTrue(layer.isDataset());
 		
 		assertFalse(group1Itr.hasNext());
 		
@@ -405,7 +400,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer service0Layer = service0Itr.next();
 		assertNotNull(service0Layer);
 		assertFalse(service0Layer.isGroup());
-		assertTrue(service0Layer.isDataset());
 		assertEquals("layer", service0Layer.getId());
 		
 		assertFalse(service0Itr.hasNext());
@@ -421,7 +415,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer group = service1Itr.next();
 		assertNotNull(group);
 		assertTrue(group.isGroup());
-		assertFalse(group.isDataset());
 		
 		List<Layer> groupLayers = group.asGroup().getLayers();
 		assertNotNull(groupLayers);
@@ -432,7 +425,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Layer service1Layer = groupItr.next();
 		assertNotNull(service1Layer);
 		assertFalse(service1Layer.isGroup());
-		assertTrue(service1Layer.isDataset());
 		assertEquals("layer", service1Layer.getId());
 		
 		assertFalse(groupItr.hasNext());

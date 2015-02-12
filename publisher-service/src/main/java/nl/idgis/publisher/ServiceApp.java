@@ -29,7 +29,8 @@ import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
-import nl.idgis.publisher.service.geoserver.Service;
+import nl.idgis.publisher.service.geoserver.GeoServerService;
+import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -172,7 +173,9 @@ public class ServiceApp extends UntypedActor {
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		
-		final ActorRef service = getContext().actorOf(Service.props(geoserverConfig, databaseConfig), "service");
+		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
+		
+		final ActorRef service = getContext().actorOf(GeoServerService.props(serviceManager, geoserverConfig, databaseConfig), "service");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		

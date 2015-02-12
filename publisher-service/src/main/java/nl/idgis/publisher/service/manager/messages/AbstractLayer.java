@@ -28,11 +28,6 @@ public abstract class AbstractLayer<T extends Item> implements Layer, Item, Seri
 		
 		return (GroupLayer)this;
 	}
-	
-	@Override
-	public final boolean isDataset() {
-		return !isGroup;
-	}
 
 	@Override
 	public final DatasetLayer asDataset() {

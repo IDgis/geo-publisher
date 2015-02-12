@@ -89,7 +89,6 @@ public class DefaultServiceTest {
 		assertNotNull(layer);
 		assertEquals(id, layer.getId());
 		assertTrue(layer.isGroup());
-		assertFalse(layer.isDataset());
 		
 		return layer.asGroup();
 	}
@@ -99,7 +98,6 @@ public class DefaultServiceTest {
 		
 		Layer layer = itr.next();
 		assertNotNull(layer);
-		assertTrue(layer.isDataset());
 		assertFalse(layer.isGroup());
 		
 		DatasetLayer datasetLayer = layer.asDataset();
