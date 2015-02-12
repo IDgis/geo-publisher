@@ -3,6 +3,7 @@ package nl.idgis.publisher.service.geoserver;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,14 +21,19 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class GeoServerService extends UntypedActor {
@@ -43,6 +49,8 @@ public class GeoServerService extends UntypedActor {
 	private final Map<String, String> connectionParameters;
 	
 	private GeoServerRest rest;
+	
+	private FutureUtils f;
 
 	public GeoServerService(ActorRef serviceManager, String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
 		this.serviceManager = serviceManager;
@@ -73,6 +81,7 @@ public class GeoServerService extends UntypedActor {
 		connectionParameters.put("database", matcher.group(3));
 		connectionParameters.put("user", databaseConfig.getString("user"));
 		connectionParameters.put("passwd", databaseConfig.getString("password"));
+		connectionParameters.put("schema", geoserverConfig.getString("schema"));
 		
 		return Props.create(GeoServerService.class, serviceManager, serviceLocation, user, password, connectionParameters);
 	}
@@ -80,6 +89,7 @@ public class GeoServerService extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		rest = new DefaultGeoServerRest(serviceLocation, user, password);
+		f = new FutureUtils(getContext().dispatcher());
 	}
 	
 	@Override
@@ -100,22 +110,31 @@ public class GeoServerService extends UntypedActor {
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
-		} else{
+		} else if(msg instanceof Failure) {
+			// TODO: job failure
+		} else {
 			unhandled(msg);
 		}
 	}
 	
-	private void ensured() {
+	private void toSelf(CompletableFuture<?> future) {
+		ActorRef self = getSelf();
+		
+		future.exceptionally(t -> new Failure(t))
+			.thenAccept(msg -> self.tell(msg, self));
+	}
+	
+	private void ensured(ActorRef provisioningService) {
 		log.debug("ensured");
 		
-		getSender().tell(new Ensured(), getSelf());
+		provisioningService.tell(new Ensured(), getSelf());
 	}
 	
-	private Procedure<Object> group(ServiceJobInfo serviceJob) {
-		return group(0, serviceJob);
+	private Procedure<Object> group(ServiceJobInfo serviceJob, ActorRef provisioningService) {
+		return group(0, serviceJob, provisioningService);
 	}
 	
-	private Procedure<Object> group(int depth, ServiceJobInfo serviceJob) {
+	private Procedure<Object> group(int depth, ServiceJobInfo serviceJob, ActorRef provisioningService) {
 		log.debug("-> group {}", depth);
 		
 		return new Procedure<Object>() {
@@ -123,12 +142,12 @@ public class GeoServerService extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureGroup) {
-					ensured();
-					getContext().become(group(depth + 1, serviceJob), false);
+					ensured(provisioningService);
+					getContext().become(group(depth + 1, serviceJob, provisioningService), false);
 				} else if(msg instanceof EnsureFeatureType) {
-					ensured();
+					ensured(provisioningService);
 				} else if(msg instanceof FinishEnsure) {
-					ensured();
+					ensured(provisioningService);
 					
 					log.debug("unbecome group {}", depth);
 					getContext().unbecome();
@@ -139,24 +158,69 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> root(ActorRef initiator, ServiceJobInfo serviceJob) {
+	private static class FeatureTypeEnsured {
+		
+		public final FeatureType featureType;
+		
+		FeatureTypeEnsured(FeatureType featureType) {
+			this.featureType = featureType;
+		}
+		
+		FeatureType getFeatureType() {
+			return this.featureType; 
+		}
+	}
+	
+	private Procedure<Object> root(
+			ActorRef initiator, 
+			ServiceJobInfo serviceJob, 
+			ActorRef provisioningService, 
+			Workspace workspace, 
+			DataStore dataStore) {
+		
 		log.debug("-> root");
+		
+		CompletableFuture<Iterable<FeatureType>> featureTypesFuture = rest.getFeatureTypes(workspace, dataStore).thenCompose(f::sequence);
 		
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureGroup) {
-					ensured();
-					getContext().become(group(serviceJob), false);
+					ensured(provisioningService);
+					getContext().become(group(serviceJob, provisioningService), false);
 				} else if(msg instanceof EnsureFeatureType) {
-					ensured();
+					String tableName = ((EnsureFeatureType) msg).getTableName();
+					
+					toSelf(
+						featureTypesFuture.thenCompose(featureTypes -> {
+							for(FeatureType featureType : featureTypes) {
+								if(tableName.equals(featureType.getNativeName())) {
+									log.debug("existing feature type found: " + tableName);
+									
+									return f.successful(new FeatureTypeEnsured(featureType));
+								}
+							}
+							
+							FeatureType featureType = new FeatureType(tableName);
+							return rest.addFeatureType(workspace, dataStore, featureType).thenApply(featureTypeSuccess -> {
+								if(featureTypeSuccess) {
+									log.debug("feature type created: " + tableName);
+									
+									return new FeatureTypeEnsured(featureType);
+								} else {
+									throw new IllegalStateException("feature type");
+								}
+							});
+						}));
 				} else if(msg instanceof FinishEnsure) {
-					ensured();
+					ensured(provisioningService);
 					
 					log.debug("ack job");
 					initiator.tell(new Ack(), getSelf());
 					getContext().unbecome();					
+				} else if(msg instanceof FeatureTypeEnsured) {
+					ensured(provisioningService);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}
@@ -164,7 +228,27 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob) {
+	private static class WorkspaceEnsured {
+		
+		private final Workspace workspace;
+		
+		private final DataStore dataStore;
+		
+		WorkspaceEnsured(Workspace workspace, DataStore dataStore) {
+			this.workspace = workspace;
+			this.dataStore = dataStore;
+		} 
+		
+		Workspace getWorkspace() {
+			return workspace;
+		}
+		
+		DataStore getDataStore() {
+			return dataStore;
+		}
+	};
+	
+	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob, ActorRef provisioningService) {
 		log.debug("-> provisioning");
 		
 		return new Procedure<Object>() {
@@ -172,8 +256,54 @@ public class GeoServerService extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureWorkspace) {
-					ensured();
-					getContext().become(root(initiator, serviceJob), false);
+					String workspaceId = ((EnsureWorkspace)msg).getWorkspaceId();
+					
+					toSelf(
+						rest.getWorkspaces().thenCompose(workspaces -> {
+							for(Workspace workspace : workspaces) {
+								if(workspace.getName().equals(workspaceId)) {
+									log.debug("existing workspace found: {}", workspaceId);
+									
+									return rest.getDataStores(workspace).thenCompose(dataStoreFutures ->
+										f.sequence(dataStoreFutures).thenApply(dataStores -> {
+											for(DataStore dataStore : dataStores) {
+												if("publisher-geometry".equals(dataStore.getName())) {
+													log.debug("existing data store found: publisher-geometry");
+													
+													return new WorkspaceEnsured(workspace, dataStore);
+												}
+											}
+											
+											throw new IllegalStateException("publisher-geometry data store is missing");
+										}));
+								}
+							}
+							
+							Workspace workspace = new Workspace(workspaceId);
+							return rest.addWorkspace(workspace).thenCompose(workspaceSuccess -> {
+								log.debug("workspace created: {}", workspaceId);
+								
+								if(workspaceSuccess) {
+									DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
+									return rest.addDataStore(workspace, dataStore).thenApply(dataStoreSuccess -> {
+										if(dataStoreSuccess) {
+											log.debug("data store created: publisher-geometry");
+											
+											return new WorkspaceEnsured(workspace, dataStore); 
+										} else {
+											throw new IllegalStateException("dataStore");
+										}
+									});
+								} else {
+									throw new IllegalStateException("workspace");
+								}
+							});
+						}));					
+				} else if(msg instanceof WorkspaceEnsured) {
+					WorkspaceEnsured provisionRoot = (WorkspaceEnsured)msg;
+					
+					ensured(provisioningService);
+					getContext().become(root(initiator, serviceJob, provisioningService, provisionRoot.getWorkspace(), provisionRoot.getDataStore()), false);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}
@@ -200,6 +330,6 @@ public class GeoServerService extends UntypedActor {
 		
 		serviceManager.tell(new GetService(serviceJob.getServiceId()), provisioningService);
 		
-		getContext().become(provisioning(getSender(), serviceJob));
+		getContext().become(provisioning(getSender(), serviceJob, provisioningService));
 	}
 }

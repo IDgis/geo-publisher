@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +25,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.util.Timeout;
 
 import nl.idgis.publisher.domain.web.NotFound;
 
@@ -106,9 +108,10 @@ public class GeoServerServiceTest {
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
 		Config geoserverConfig = ConfigFactory.empty()
-			.withValue("url", ConfigValueFactory.fromAnyRef("http://localhost:" + TestServers.JETTY_PORT + "/geoserver/"))
+			.withValue("url", ConfigValueFactory.fromAnyRef("http://localhost:" + TestServers.JETTY_PORT + "/"))
 			.withValue("user", ConfigValueFactory.fromAnyRef("admin"))
-			.withValue("password", ConfigValueFactory.fromAnyRef("geoserver"));
+			.withValue("password", ConfigValueFactory.fromAnyRef("geoserver"))
+			.withValue("schema", ConfigValueFactory.fromAnyRef("staging_data"));
 		
 		Config databaseConfig = ConfigFactory.empty()
 			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test"))
@@ -117,7 +120,7 @@ public class GeoServerServiceTest {
 		
 		geoServerService = actorSystem.actorOf(GeoServerService.props(serviceManager, geoserverConfig, databaseConfig));
 		
-		sync = new SyncAskHelper(actorSystem);
+		sync = new SyncAskHelper(actorSystem, Timeout.apply(1, TimeUnit.MINUTES));
 	}
 	
 	@After
