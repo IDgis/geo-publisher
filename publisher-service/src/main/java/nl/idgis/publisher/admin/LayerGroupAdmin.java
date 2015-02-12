@@ -2,6 +2,7 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -104,12 +105,35 @@ public class LayerGroupAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayergroup(String layergroupId) {
-		// TODO remove from layerStructure if present in parent or child
-		log.debug ("handleDeleteLayergroup: " + layergroupId);
-		return db.delete(genericLayer)
+		log.debug("handleDeleteLayergroup: " + layergroupId);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
 			.where(genericLayer.identification.eq(layergroupId))
-			.execute()
-			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, layergroupId));
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+					// remove from layerStructure if present in parent or child
+					log.debug("delete layerstructures " + glId.get());
+					return tx
+						.delete(layerStructure)
+						.where(layerStructure.parentLayerId.eq(glId.get()).or(
+							   layerStructure.childLayerId.eq(glId.get())))
+						.execute()
+						.thenCompose(
+							nr -> {
+								log.debug("LayerStructures deleted: #" + nr);
+								log.debug("delete genericLayer: " + glId.get());
+								return tx
+									.delete(genericLayer)
+									.where(genericLayer.id.eq(glId.get()))
+									.execute()
+									.thenApply(
+										l -> new Response<String>(CrudOperation.DELETE,
+											CrudResponse.OK, layergroupId));
+							});
+						// TODO send ERROR message?
+					}));
 	}
 	
 }
