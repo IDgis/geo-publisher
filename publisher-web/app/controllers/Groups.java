@@ -139,7 +139,7 @@ public class Groups extends Controller {
 		private String name;
 		private String title;
 		private String abstractText;
-		private Boolean published;
+		private Boolean published = false;
 
 		public GroupForm(){
 			super();

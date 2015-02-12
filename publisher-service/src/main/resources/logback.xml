@@ -3,7 +3,8 @@
  
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+      <!-- Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern -->
+      <Pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</Pattern>
     </layout>
   </appender>
 
@@ -14,6 +15,11 @@
    <!-- 
   	<logger name="nl.idgis.publisher.admin" level="debug"/>
   --> 
+  	<logger name="nl.idgis.publisher.admin.ServiceAdmin" level="debug"/>
+  	<logger name="nl.idgis.publisher.admin.LayerAdmin" level="debug"/>
+  	<logger name="nl.idgis.publisher.admin.LayerGroupAdmin" level="debug"/>
+  	<logger name="nl.idgis.publisher.admin.StyleAdmin" level="debug"/>
+  	<logger name="nl.idgis.publisher.admin.TiledLayerAdmin" level="debug"/>
    
   <!--  
   	<logger name="nl.idgis.publisher.metadata.MetadataGenerator" level="debug"/>

@@ -134,7 +134,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId0)
-			.set(leafLayer.identification, "layer0") // TODO: remove column
 			.set(leafLayer.datasetId, datasetId)
 			.execute();
 		
@@ -146,7 +145,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootId)
 			.set(layerStructure.childLayerId, layerId0)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(service)
@@ -182,7 +181,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.identification, "layer") // TODO: remove column
 			.set(leafLayer.datasetId, datasetId)
 			.execute();
 		
@@ -199,13 +197,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootId)
 			.set(layerStructure.childLayerId, groupId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, groupId)
 			.set(layerStructure.childLayerId, layerId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(service)
@@ -251,7 +249,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.identification, "layer") // TODO: remove column
 			.set(leafLayer.datasetId, datasetId)
 			.execute();
 		
@@ -273,19 +270,19 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootId)
 			.set(layerStructure.childLayerId, group0Id)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, group0Id)
 			.set(layerStructure.childLayerId, group1Id)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, group1Id)
 			.set(layerStructure.childLayerId, layerId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(service)
@@ -351,7 +348,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.identification, "layer") // TODO: remove column
 			.set(leafLayer.datasetId, datasetId)
 			.execute();
 		
@@ -373,19 +369,19 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, root0Id)
 			.set(layerStructure.childLayerId, layerId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, root1Id)
 			.set(layerStructure.childLayerId, groupId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, groupId)
 			.set(layerStructure.childLayerId, layerId)
-			.set(layerStructure.layerorder, 0)
+			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(service)
@@ -445,7 +441,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	}
 	
 	@Test
-	public void testLayerOrder() throws Exception {
+	public void testlayerOrder() throws Exception {
 		List<Integer> layerIds = new ArrayList<>();
 		List<String> layerIdentifications = new ArrayList<>();
 		
@@ -461,7 +457,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			
 			insert(leafLayer)
 				.set(leafLayer.genericLayerId, layer)
-				.set(leafLayer.identification,  layerIdentification) // TODO: remove column
 				.set(leafLayer.datasetId, datasetId)
 				.execute();
 			
@@ -478,7 +473,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			insert(layerStructure)
 				.set(layerStructure.parentLayerId, rootId)
 				.set(layerStructure.childLayerId, layerId)
-				.set(layerStructure.layerorder, order++)
+				.set(layerStructure.layerOrder, order++)
 				.execute();
 		}
 		

@@ -132,7 +132,7 @@ public class ServiceManager extends UntypedActor {
 							child.identification,
 							parent.id,
 							parent.identification,
-							layerStructure.layerorder),
+							layerStructure.layerOrder),
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -143,7 +143,7 @@ public class ServiceManager extends UntypedActor {
 							child.identification,
 							parent.id,
 							parent.identification,
-							layerStructure.layerorder)));
+							layerStructure.layerOrder)));
 			
 			CompletableFuture<TypedList<Tuple>> structure = withServiceStructure.clone()
 				.from(serviceStructure)
