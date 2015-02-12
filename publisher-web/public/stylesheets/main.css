@@ -1,0 +1,9 @@
+.gp-tree-select .term,.gp-tree-select .add-term{margin-left:4px;margin-right:4px}
+.gp-tree-select .term .close,.gp-tree-select .add-term .close{float:none;display:inline-block;vertical-align:middle;margin-left:6px}
+
+.stylelistscroll {height:auto;overflow:auto}
+
+.gp-tree-values .dropdown-menu{max-height:300px;min-width:400px;overflow:auto;padding:8px}
+.gp-tree-values ul,.gp-tree-values li{display:block;margin:0;padding:0}
+.gp-tree-values li>ul{display:none;margin-left:2em}
+.gp-tree-values li.expanded>ul{display:block}
