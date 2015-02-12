@@ -3,7 +3,11 @@
 , layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style])
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title=Domain.message("web.application.page.layers.form.title")){
+@layout.application( 
+	title=Domain.message("web.application.page.layers.form.title"),
+	jsMain = routes.Assets.at("js/layers/form.js").url
+	
+){
 
 <div class="page-content">
 	@if(create){
@@ -75,41 +79,43 @@
 						<span></span>
 					</div>
 				</div>
-				<div id="stijlen">
-					<div class="form-group">
-						<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.default")</label>
+				
+				<!-- 
+				@for(layerstyle <- layerStyles) {
+					<div class="form-group" id="style">
+						<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 						<div class="col-sm-4">
-							<select class="form-control">
-							@for(style <- allStyles) {
-								<option>@style.name</option>
-							}
-							</select>
-						</div>
-						<div class="col-sm-1">
-							<button class="btn btn-default btn-sm" type="button" onclick="extra(event)">
-								<span class="glyphicon glyphicon-plus"></span>
-							</button>
+							<label>layerstyle.name</label>
 						</div>
 					</div>
-					<div class="form-group">
-						<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
-						@for(layerstyle <- layerStyles) {
-							<div class="col-sm-4">
-								<select class="form-control">
-								@for(style <- allStyles) {
-									<option>@style.name</option>
-								}
-								</select>
-								<label>layerstyle.name</label>
+				}
+				 -->
+				
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
+					<div class="controls col-sm-8">
+						<div class="gp-tree-select stylelistscroll form-control" id="test-control">
+							<input type="hidden" name="styles">
+						</div>
+
+						<div class="gp-tree-values dropdown">
+							<div class="dropdown-menu">
+								<ul>
+									@for(style <- allStyles) {
+										<li>
+											<a href="#" data-id="@style.id" data-label="@style.name">
+												<span class="glyphicon glyphicon-tag"></span>
+												@style.name
+											</a>
+										</li>
+									}
+								</ul>
 							</div>
-							<div class="col-sm-1">
-								<button class="btn btn-default btn-sm" type="button" onclick="extra(event)">
-									<span class="glyphicon glyphicon-minus"></span>
-								</button>
-							</div>
-						}
+						</div>
 					</div>
 				</div>
+				
+				
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
 						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
@@ -125,27 +131,3 @@
 	</div>
 </div>
 }
-
-<script>
-function extra(e) {
-	var node = e.currentTarget;
-	var pnode = node.parentNode;
-	var ppnode = pnode.parentNode;
-	var pppnode = ppnode.parentNode;
-	
-	var cln = ppnode.cloneNode(true);
-	
-	var a = cln.childNodes;
-	var b = a[5].childNodes;
-	var c = b[1].childNodes;
-	
-	var d = b[1].parentNode;
-	var e = d.parentNode;
-	
-	c[1].className = "glyphicon glyphicon-minus";
-	b[1].onclick = function() {pppnode.removeChild(e) }
-	
-	var lijst = document.getElementById("stijlen");
-	lijst.insertBefore(cln, stijlen[1]);
-}
-</script>
