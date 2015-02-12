@@ -35,16 +35,16 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.groups.form.field.abstract.label")</label>
 					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4"></textarea>
+						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4">@groupForm("abstractText").value</textarea>
 						@helper.fielderrors(groupForm("abstractText").errors)
 						<span class="help-block">@Domain.message("web.application.page.groups.form.field.abstract.help")</span>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-publish">@Domain.message("web.application.page.groups.form.field.publish.label")</label>
+					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.groups.form.field.publish.label")</label>
 					<div class="col-lg-8">
 						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-publish" name="publish" value="@groupForm("publish").value">
+							<input type="checkbox" class="form-control" id="input-published" name="published" value="true" @if(groupForm("published").value.equals("true")){checked}>
 						</div>
 						@helper.fielderrors(groupForm("publish").errors)
 						<span class="help-block">@Domain.message("web.application.page.groups.form.field.publish.help")</span>
