@@ -1,6 +1,9 @@
-@(layerForm: Form[controllers.Layers.LayerForm], create: Boolean
-, allStyles: java.util.List[nl.idgis.publisher.domain.web.Style]
-, layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style])
+@(layerForm: Form[controllers.Layers.LayerForm],
+ create: Boolean,
+ allStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
+ layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
+ layerStyleListString: java.lang.String)
+
 
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( 
@@ -95,9 +98,9 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 					<div class="controls col-sm-8">
 						<div class="gp-tree-select stylelistscroll form-control" id="test-control">
-							<input type="hidden" name="styles">
+							<input type="hidden" name="styles" value="@layerStyleListString">
+<!-- 							value="[["stijl1","8c10427c-3b2f-4dd0-b5a4-adec1c5acb79"],["stijl2","b7b5f873-7d2a-4225-a2c0-4b9516627ddc"]]"> -->
 						</div>
-
 						<div class="gp-tree-values dropdown">
 							<div class="dropdown-menu">
 								<ul>

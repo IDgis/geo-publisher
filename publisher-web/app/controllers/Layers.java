@@ -3,8 +3,13 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import models.Domain;
 import models.Domain.Function;
@@ -22,6 +27,7 @@ import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
 import play.libs.F;
+import play.libs.Json;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -45,7 +51,7 @@ public class Layers extends Controller {
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
 						Logger.debug ("layerStyles: " + layerForm.get().styleList.size());
-						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList));
+						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, ""));
 					}
 				});
 	}
@@ -54,6 +60,18 @@ public class Layers extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
 		Logger.debug ("submit Layer: " + form.field("name").value());
+		Logger.debug ("LayerForm from request: " + form.get());	
+		
+		List<String> layerStyleList = form.get().getStyles();
+		Logger.debug ("layerStyleList[0]      : " + layerStyleList.get(0));
+		final ObjectNode result = Json.newObject ();
+		final JsonNode result2 = Json.parse(layerStyleList.get(0));
+		Logger.debug ("layerStyleList jsonNode: " + result2);
+		
+		for (Iterator iterator = result2.fieldNames(); iterator.hasNext();) {
+			Entry entry = (Entry) iterator.next();
+			Logger.debug ("layerStyleList jsonentry: " + entry);
+		}
 		
 		// validation
 		if (form.field("name").value().length() == 1 ) 
@@ -135,7 +153,21 @@ public class Layers extends Controller {
 
 					Logger.debug ("allStyles: " + allStyles.values().size());
 					Logger.debug ("layerStyles: " + layerStyles.size());
-					return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles));
+					
+					// build a layer list string suitable for the value field of the form styles input
+					StringBuilder sb = new StringBuilder();
+					sb.append("[");
+					for (Style style : layerStyles) {
+						sb.append("[");
+						sb.append("\""+style.name()+"\"");
+						sb.append(",");
+						sb.append("\""+style.id()+"\"");
+						sb.append("]");
+						sb.append(",");
+					}
+					sb.append("]");
+					String layerStyleListString = sb.toString().replace("],]","]]");
+					return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
 				}
 			});
 	}
@@ -167,6 +199,7 @@ public class Layers extends Controller {
 		private String keywords;
 		private Boolean published = false;
 		private List<Style> styleList;
+		private List<String> styles;
 
 		public LayerForm(){
 			super();
@@ -239,11 +272,22 @@ public class Layers extends Controller {
 			this.styleList = styleList;
 		}
 
+		public List<String> getStyles() {
+			return styles;
+		}
+
+		public void setStyles(List<String> styles) {
+			this.styles = styles;
+		}
+
 		@Override
 		public String toString() {
+			
 			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
-					+ ", keywords=" + keywords + ", published=" + published + ", styleList=" + styleList + "]";
+					+ ", keywords=" + keywords + ", published=" + published + ", styleList=" + styleList + ", styles="
+					+ styles + "]";
 		}
+
 		
 	}
 }
