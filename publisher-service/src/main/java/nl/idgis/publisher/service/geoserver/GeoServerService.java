@@ -220,7 +220,7 @@ public class GeoServerService extends UntypedActor {
 							ensureLayer.getAbstract());
 						
 						toSelf(
-							rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
+							rest.postFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
 								log.debug("feature type created: " + layerId);									
 								return new LayerEnsured(featureType);
 						}));
@@ -250,7 +250,7 @@ public class GeoServerService extends UntypedActor {
 								groupLayer.getAbstract(),
 								groupLayers);
 							toSelf(
-								rest.addLayerGroup(workspace, layerGroup).thenApply(v -> {
+								rest.postLayerGroup(workspace, layerGroup).thenApply(v -> {
 									log.debug("layer group created: " + groupLayerId);									
 									return new GroupEnsured(layerGroup);
 							}));
@@ -356,10 +356,10 @@ public class GeoServerService extends UntypedActor {
 							}
 							
 							Workspace workspace = new Workspace(workspaceId);
-							return rest.addWorkspace(workspace).thenCompose(vWorkspace -> {
+							return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {
 								log.debug("workspace created: {}", workspaceId);
 								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
-								return rest.addDataStore(workspace, dataStore).thenApply(vDataStore -> {									
+								return rest.postDataStore(workspace, dataStore).thenApply(vDataStore -> {									
 									log.debug("data store created: publisher-geometry");									
 									return new WorkspaceEnsured(workspace, dataStore);
 								});

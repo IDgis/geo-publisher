@@ -30,6 +30,8 @@ import com.ning.http.client.Response;
 
 public class DefaultGeoServerRest implements GeoServerRest {
 	
+	private static final String RECURSE = "?recurse=true";
+
 	private final String authorization;
 	
 	private final String serviceLocation;
@@ -56,7 +58,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		asyncHttpClient = new AsyncHttpClient();
 	}	
 	
-	private CompletableFuture<Document> getDocument(String path) {
+	private CompletableFuture<Document> get(String path) {
 		CompletableFuture<Document> future = new CompletableFuture<>();
 		
 		asyncHttpClient.prepareGet(path + ".xml")
@@ -66,14 +68,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			@Override
 			public Response onCompleted(Response response) throws Exception {
 				try {
-					InputStream stream = response.getResponseBodyAsStream();
-					Document document = documentBuilder.parse(stream);
+					int responseCode = response.getStatusCode();
+					if(responseCode == HttpURLConnection.HTTP_OK) {					
+						InputStream stream = response.getResponseBodyAsStream();
+						Document document = documentBuilder.parse(stream);
 					
-					stream.close();
-					
-					future.complete(document);
+						stream.close();
+						
+						future.complete(document);
+					} else {
+						future.completeExceptionally(new GeoServerException(responseCode));
+					}
 				} catch(Exception e) {
-					future.completeExceptionally(e);
+					future.completeExceptionally(new GeoServerException(e));
 				}
 				
 				return response;
@@ -89,8 +96,37 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}	
 	
-	private CompletableFuture<Integer> sendDocument(String path, byte[] document) {
-		CompletableFuture<Integer> future = new CompletableFuture<>();
+	private CompletableFuture<Void> delete(String path) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
+		
+		asyncHttpClient.prepareDelete(path)
+			.addHeader("Authorization", authorization)
+			.execute(new AsyncCompletionHandler<Response>() {
+
+				@Override
+				public Response onCompleted(Response response) throws Exception {
+					int responseCode = response.getStatusCode();					
+					if(responseCode != HttpURLConnection.HTTP_OK) {	
+						future.completeExceptionally(new GeoServerException(responseCode));
+					} else {
+						future.complete(null);
+					}
+					
+					return response;
+				}
+				
+				@Override
+			    public void onThrowable(Throwable t){
+					future.completeExceptionally(new GeoServerException(t));
+			    }
+				
+			});
+		
+		return future;
+	}
+	
+	private CompletableFuture<Void> post(String path, byte[] document) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePost(path)
 			.addHeader("Authorization", authorization)
@@ -100,14 +136,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 				@Override
 				public Response onCompleted(Response response) throws Exception {
-					future.complete(response.getStatusCode());
+					int responseCode = response.getStatusCode();
+					if(responseCode != HttpURLConnection.HTTP_CREATED) {	
+						future.completeExceptionally(new GeoServerException(responseCode));
+					} else {
+						future.complete(null);
+					}
 
 					return response;
 				}
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(t);
+					future.completeExceptionally(new GeoServerException(t));
 			    }
 			});
 		
@@ -115,9 +156,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addWorkspace(Workspace workspace) {
-		CompletableFuture<Void> future = new CompletableFuture<>();
-		
+	public CompletableFuture<Void> postWorkspace(Workspace workspace) {
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
@@ -133,20 +172,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			outputStream.close();
 			
-			sendDocument(getWorkspacesPath(), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
-				if(t != null) {
-					future.completeExceptionally(new GeoServerException(t));
-				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {	
-					future.completeExceptionally(new GeoServerException(responseCode));
-				} else {
-					future.complete(null);
-				}
-			});
+			return post(getWorkspacesPath(), outputStream.toByteArray());
 		} catch(Exception e) {
-			future.completeExceptionally(new GeoServerException(e));
+			return failure(e);
 		}
-		
+	}
+
+	private <T> CompletableFuture<T> failure(Exception e) {
+		CompletableFuture<T> future = new CompletableFuture<>();
+		future.completeExceptionally(new GeoServerException(e));
 		return future;
+	}
+	
+	private String getWorkspacePath(Workspace workspace) {
+		return getWorkspacesPath() + "/" + workspace.getName();
 	}
 
 	private String getWorkspacesPath() {
@@ -157,7 +196,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
 		CompletableFuture<List<Workspace>> future = new CompletableFuture<>();
 
-		getDocument(getWorkspacesPath()).whenComplete((document, t) -> {
+		get(getWorkspacesPath()).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {			
@@ -183,7 +222,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	private CompletableFuture<DataStore> getDataStore(Workspace workspace, String dataStoreName) {
 		CompletableFuture<DataStore> future = new CompletableFuture<>();
 		
-		getDocument(getDataStorePath(workspace, dataStoreName)).whenComplete((document, t) -> {
+		get(getDataStorePath(workspace, dataStoreName)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -218,7 +257,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
 		
-		getDocument(getDataStoresPath(workspace)).whenComplete((document, t) -> {
+		get(getDataStoresPath(workspace)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -242,9 +281,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<Void> addDataStore(Workspace workspace, DataStore dataStore) {
-		CompletableFuture<Void> future = new CompletableFuture<>();
-		
+	public CompletableFuture<Void> postDataStore(Workspace workspace, DataStore dataStore) {
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
@@ -266,20 +303,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			outputStream.close();
 			
-			sendDocument(getDataStoresPath(workspace), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
-				if(t != null) {
-					future.completeExceptionally(new GeoServerException(t));
-				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {
-					future.completeExceptionally(new GeoServerException(responseCode));
-				} else {
-					future.complete(null);
-				}
-			});				
+			return post(getDataStoresPath(workspace), outputStream.toByteArray());			
 		} catch(Exception e) {
-			future.completeExceptionally(new GeoServerException(e));
+			return failure(e);
 		}
-		
-		return future;
 	}
 
 	private String getDataStoresPath(Workspace workspace) {
@@ -293,7 +320,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	private CompletableFuture<FeatureType> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) {
 		CompletableFuture<FeatureType> future = new CompletableFuture<>();
 		
-		getDocument(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((document, t) -> {
+		get(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -326,7 +353,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
 		
-		getDocument(getFeatureTypesPath(workspace, dataStore)).whenComplete((document, t) -> {
+		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -350,9 +377,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
-		CompletableFuture<Void> future = new CompletableFuture<>();
-		
+	public CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
@@ -387,20 +412,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			outputStream.close();
 			
-			sendDocument(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
-				if(t != null) {
-					future.completeExceptionally(new GeoServerException(t));
-				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {
-					future.completeExceptionally(new GeoServerException(responseCode));
-				} else {
-					future.complete(null);
-				}
-			});
-		} catch(Exception e) {
-			future.completeExceptionally(new GeoServerException(e));
+			return post(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray());
+		} catch(Exception e) {			
+			return failure(e);
 		}
-		
-		return future;
 	}
 	
 	private String getFeatureTypesPath(Workspace workspace, DataStore dataStore) {
@@ -419,7 +434,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	private CompletableFuture<LayerGroup> getLayerGroup(Workspace workspace, String layerGroupName) {
 		CompletableFuture<LayerGroup> future = new CompletableFuture<>();
 		
-		getDocument(getLayerGroupPath(workspace, layerGroupName)).whenComplete((document, t) -> {
+		get(getLayerGroupPath(workspace, layerGroupName)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -453,7 +468,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<LayerGroup>>> future = new CompletableFuture<>();
 		
-		getDocument(getLayerGroupsPath(workspace)).whenComplete((document, t) -> {
+		get(getLayerGroupsPath(workspace)).whenComplete((document, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -477,9 +492,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addLayerGroup(Workspace workspace, LayerGroup layerGroup) {
-		CompletableFuture<Void> future = new CompletableFuture<>();
-		
+	public CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup) {
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
@@ -521,19 +534,29 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			outputStream.close();
 			
-			sendDocument(getLayerGroupsPath(workspace), outputStream.toByteArray()).whenComplete((responseCode, t) -> {
-				if(t != null) {
-					future.completeExceptionally(new GeoServerException(t));
-				} else if(responseCode != HttpURLConnection.HTTP_CREATED) {
-					future.completeExceptionally(new GeoServerException(responseCode));
-				} else {
-					future.complete(null);
-				}
-			});
+			return post(getLayerGroupsPath(workspace), outputStream.toByteArray());
 		} catch(Exception e) {
-			future.completeExceptionally(new GeoServerException(e));
+			return failure(e);
 		}
-		
-		return future;
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteDataStore(Workspace workspace, DataStore dataStore) {		
+		return delete(getDataStorePath(workspace, dataStore.getName()) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		return delete(getFeatureTypePath(workspace, dataStore, featureType.getName()) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteLayerGroup(Workspace workspace, LayerGroup layerGroup) {
+		return delete(getLayerGroupPath(workspace, layerGroup.getName()));
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteWorkspace(Workspace workspace) { 
+		return delete(getWorkspacePath(workspace) + RECURSE);
 	}
 }
