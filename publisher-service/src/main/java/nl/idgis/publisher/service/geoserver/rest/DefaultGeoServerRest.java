@@ -30,6 +30,8 @@ import com.ning.http.client.Response;
 
 public class DefaultGeoServerRest implements GeoServerRest {
 	
+	private static final String RECURSE = "?recurse=true";
+
 	private final String authorization;
 	
 	private final String serviceLocation;
@@ -94,6 +96,35 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}	
 	
+	private CompletableFuture<Void> delete(String path) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
+		
+		asyncHttpClient.prepareDelete(path)
+			.addHeader("Authorization", authorization)
+			.execute(new AsyncCompletionHandler<Response>() {
+
+				@Override
+				public Response onCompleted(Response response) throws Exception {
+					int responseCode = response.getStatusCode();					
+					if(responseCode != HttpURLConnection.HTTP_OK) {	
+						future.completeExceptionally(new GeoServerException(responseCode));
+					} else {
+						future.complete(null);
+					}
+					
+					return response;
+				}
+				
+				@Override
+			    public void onThrowable(Throwable t){
+					future.completeExceptionally(new GeoServerException(t));
+			    }
+				
+			});
+		
+		return future;
+	}
+	
 	private CompletableFuture<Void> post(String path, byte[] document) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
@@ -151,6 +182,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		CompletableFuture<T> future = new CompletableFuture<>();
 		future.completeExceptionally(new GeoServerException(e));
 		return future;
+	}
+	
+	private String getWorkspacePath(Workspace workspace) {
+		return getWorkspacesPath() + "/" + workspace.getName();
 	}
 
 	private String getWorkspacesPath() {
@@ -503,5 +538,25 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		} catch(Exception e) {
 			return failure(e);
 		}
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteDataStore(Workspace workspace, DataStore dataStore) {		
+		return delete(getDataStorePath(workspace, dataStore.getName()) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		return delete(getFeatureTypePath(workspace, dataStore, featureType.getName()) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteLayerGroup(Workspace workspace, LayerGroup layerGroup) {
+		return delete(getLayerGroupPath(workspace, layerGroup.getName()));
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteWorkspace(Workspace workspace) { 
+		return delete(getWorkspacePath(workspace) + RECURSE);
 	}
 }

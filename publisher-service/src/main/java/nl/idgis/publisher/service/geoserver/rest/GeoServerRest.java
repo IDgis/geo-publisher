@@ -13,6 +13,14 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup);
 
 	CompletableFuture<Void> postWorkspace(Workspace workspace);
+	
+	CompletableFuture<Void> deleteDataStore(Workspace workspace, DataStore dataStore);
+
+	CompletableFuture<Void> deleteFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
+	
+	CompletableFuture<Void> deleteLayerGroup(Workspace workspace, LayerGroup layerGroup);
+
+	CompletableFuture<Void> deleteWorkspace(Workspace workspace);
 
 	CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace);
 

@@ -164,6 +164,9 @@ public class DefaultGeoServerRestTest {
 		assertEquals(Arrays.asList("test"), layerGroup.getLayers());
 		assertFalse(itr.hasNext());
 		
+		service.deleteWorkspace(workspace).get();		
+		assertTrue(service.getWorkspaces().get().isEmpty());
+		
 		service.close();
 	}
 }
