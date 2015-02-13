@@ -1,25 +1,27 @@
 package nl.idgis.publisher.domain.query;
 
+import java.util.List;
+
 import nl.idgis.publisher.domain.response.Response;
 
-public class PutLayerStyle implements DomainQuery<Response<?>>{
+public class PutLayerStyles implements DomainQuery<Response<?>>{
 
 	private static final long serialVersionUID = -816217513624403962L;
 
 	private final String layerId;
-	private final String styleId;
+	private final List<String> styleIds;
 	
-	public PutLayerStyle (final String layerId, final String styleId) {
+	public PutLayerStyles (final String layerId, final List<String> styleIds) {
 		this.layerId = layerId;
-		this.styleId = styleId;
+		this.styleIds = styleIds;
 	}
 	
 	public String layerId () {
 		return this.layerId;
 	}
 
-	public String styleId() {
-		return styleId;
+	public List<String> styleIdList() {
+		return styleIds;
 	}
 	
 }

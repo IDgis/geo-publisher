@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.domain.query.DeleteLayerStyle;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
-import nl.idgis.publisher.domain.query.PutLayerStyle;
+import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -46,6 +46,7 @@ public class LayerAdmin extends AbstractAdmin {
 		addDelete(Layer.class, this::handleDeleteLayer);
 		
 		addQuery(ListLayerStyles.class, this::handleListLayerStyles);
+		addQuery(PutLayerStyles.class, this::handlePutLayerStyles);
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
@@ -119,7 +120,7 @@ public class LayerAdmin extends AbstractAdmin {
 														l -> new Response<String>(
 															CrudOperation.CREATE,
 															CrudResponse.OK,
-															layerName));
+															newLayerId));
 													});
 									});
 					} else {
@@ -154,7 +155,7 @@ public class LayerAdmin extends AbstractAdmin {
 														l -> new Response<String>(
 																CrudOperation.UPDATE,
 																CrudResponse.OK,
-																layerName));
+																layerId));
 										});
 									});
 						}
@@ -218,8 +219,8 @@ public class LayerAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
-		log.debug("handleListLayerStyles");
 		String layerId = listLayerStyles.layerId();
+		log.debug("handleListLayerStyles layerId: " + layerId);
 		return db.transactional(tx -> tx
 			.query()
 			.from(genericLayer)
@@ -239,30 +240,42 @@ public class LayerAdmin extends AbstractAdmin {
 		}));
 	}
 	
-//	private CompletableFuture<Response<?>> handlePutLayerStyle (final PutLayerStyle putLayerStyle) {
-//		log.debug ("handleDeleteLayerStyle: " );
-//		String layerId = putLayerStyle.layerId();
-//		String styleId = putLayerStyle.styleId();
-//		
-//		return db.transactional(tx ->
-//			tx.query().from(leafLayer)
-//			.where(leafLayer.identification.eq(layerId))
-//			.singleResult(leafLayer.id)
-//			.thenCompose(msg -> {
-//				if (!msg.isPresent()){
-//					return tx.delete(layerStyle)
-//						.where(layerStyle.layerId.eq(msg.get()))
-//						.execute()
-//						.thenCompose(dsl -> {
-//							return tx.insert(layerStyle)
-//								.set(layerStyle.layerId, msg.get())
-//								.set(layerStyle.styleId, 
-//										new SQLSubQuery().from(style).where(style.identification.eq(styleId)).unique(style.id))
-//								.execute()
-//								.thenApply(isl -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, isl.toString()));
-//						});
-//				}
-//		}));
-//	}
-
+	private CompletableFuture<Response<?>> handlePutLayerStyles (final PutLayerStyles putLayerStyles) {
+		String layerId = putLayerStyles.layerId();
+		List<String> layerStyles =  putLayerStyles.styleIdList();
+		log.debug("handlePutLayerStyles layerId: " + layerId + ", styles: " +layerStyles);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(layerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+				return tx.query().
+					from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(glId.get()))
+					.singleResult(leafLayer.id)
+					.thenCompose(
+						llId -> {
+							// first delete the existing styles of this layer
+							return tx.delete(layerStyle)
+								.where(layerStyle.layerId.eq(llId.get()))
+								.execute()
+								.thenCompose(
+									llNr -> {
+									// then add the list of styles to the layer	
+									return tx
+										.insert(layerStyle)							
+										.set(layerStyle.layerId,llId.get())
+										.set(layerStyle.styleId,llId.get()) // TODO put layerStyles 
+										.execute()
+										.thenApply(
+											l -> new Response<String>(CrudOperation.UPDATE,
+											CrudResponse.OK, layerId));
+									});
+						});
+		}));
+	}
+	
 }
