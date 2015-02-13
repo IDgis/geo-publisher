@@ -135,11 +135,26 @@ public class GeoServerService extends UntypedActor {
 		provisioningService.tell(new Ensured(), getSelf());
 	}
 	
-	private Procedure<Object> group(ServiceJobInfo serviceJob, ActorRef provisioningService) {
-		return group(0, serviceJob, provisioningService);
+	private Procedure<Object> layers(
+			ActorRef initiator, 
+			ServiceJobInfo serviceJob, 
+			ActorRef provisioningService, 
+			Workspace workspace, 
+			DataStore dataStore,
+			CompletableFuture<Iterable<FeatureType>> featureTypesFuture) {
+		
+		return layers(0, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypesFuture);
 	}
 	
-	private Procedure<Object> group(int depth, ServiceJobInfo serviceJob, ActorRef provisioningService) {
+	private Procedure<Object> layers(
+			int depth, 
+			ActorRef initiator, 
+			ServiceJobInfo serviceJob, 
+			ActorRef provisioningService, 
+			Workspace workspace, 
+			DataStore dataStore,
+			CompletableFuture<Iterable<FeatureType>> featureTypesFuture) {
+		
 		log.debug("-> group {}", depth);
 		
 		return new Procedure<Object>() {
@@ -148,52 +163,8 @@ public class GeoServerService extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureGroup) {
 					ensured(provisioningService);
-					getContext().become(group(depth + 1, serviceJob, provisioningService), false);
-				} else if(msg instanceof EnsureLayer) {
-					ensured(provisioningService);
-				} else if(msg instanceof FinishEnsure) {
-					ensured(provisioningService);
-					
-					log.debug("unbecome group {}", depth);
-					getContext().unbecome();
-				} else {
-					elseProvisioning(msg, serviceJob);
-				}
-			}				
-		};
-	}
-	
-	private static class LayerEnsured {
-		
-		public final FeatureType featureType;
-		
-		LayerEnsured(FeatureType featureType) {
-			this.featureType = featureType;
-		}
-		
-		FeatureType getFeatureType() {
-			return this.featureType; 
-		}
-	}
-	
-	private Procedure<Object> root(
-			ActorRef initiator, 
-			ServiceJobInfo serviceJob, 
-			ActorRef provisioningService, 
-			Workspace workspace, 
-			DataStore dataStore) {
-		
-		log.debug("-> root");
-		
-		CompletableFuture<Iterable<FeatureType>> featureTypesFuture = rest.getFeatureTypes(workspace, dataStore).thenCompose(f::sequence);
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof EnsureGroup) {
-					ensured(provisioningService);
-					getContext().become(group(serviceJob, provisioningService), false);
+					getContext().become(layers(depth + 1, initiator, serviceJob, 
+						provisioningService, workspace, dataStore, featureTypesFuture), false);
 				} else if(msg instanceof EnsureLayer) {
 					EnsureLayer ensureLayer = (EnsureLayer)msg;
 					
@@ -216,19 +187,37 @@ public class GeoServerService extends UntypedActor {
 								return new LayerEnsured(featureType);								
 							});
 						}));
+				} else if(msg instanceof LayerEnsured) {
+						ensured(provisioningService);				
 				} else if(msg instanceof FinishEnsure) {
 					ensured(provisioningService);
 					
-					log.debug("ack job");
-					initiator.tell(new Ack(), getSelf());
+					if(depth == 0) {
+						log.debug("ack");
+						initiator.tell(new Ack(), getSelf());
+					} else {					
+						log.debug("unbecome group {}", depth);
+					}
+					
 					getContext().unbecome();
-				} else if(msg instanceof LayerEnsured) {
-					ensured(provisioningService);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}
-			}
+			}				
 		};
+	}
+	
+	private static class LayerEnsured {
+		
+		public final FeatureType featureType;
+		
+		LayerEnsured(FeatureType featureType) {
+			this.featureType = featureType;
+		}
+		
+		FeatureType getFeatureType() {
+			return this.featureType; 
+		}
 	}
 	
 	private static class WorkspaceEnsured {
@@ -296,7 +285,13 @@ public class GeoServerService extends UntypedActor {
 					WorkspaceEnsured provisionRoot = (WorkspaceEnsured)msg;
 					
 					ensured(provisioningService);
-					getContext().become(root(initiator, serviceJob, provisioningService, provisionRoot.getWorkspace(), provisionRoot.getDataStore()), false);
+					
+					Workspace workspace = provisionRoot.getWorkspace();
+					DataStore dataStore = provisionRoot.getDataStore();
+					
+					CompletableFuture<Iterable<FeatureType>> featureTypeFutures = rest.getFeatureTypes(workspace, dataStore).thenCompose(f::sequence);
+					
+					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypeFutures), false);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}

@@ -83,11 +83,11 @@ public class ProvisionServiceTest {
 			getSender().tell(new Ensured(), getSelf());
 		}
 		
-		private Procedure<Object> group() {
-			return group(0);
+		private Procedure<Object> layers(ActorRef initiator) {
+			return layers(initiator, 0);
 		}
 		
-		private Procedure<Object> group(int depth) {
+		private Procedure<Object> layers(ActorRef initiator, int depth) {
 			log.debug("group");
 			
 			return new Procedure<Object>() {
@@ -98,44 +98,24 @@ public class ProvisionServiceTest {
 					
 					if(msg instanceof EnsureGroup) {
 						ensured();
-						getContext().become(group(depth + 1), false);
+						getContext().become(layers(initiator, depth + 1), false);
 					} else if(msg instanceof EnsureLayer) {
 						ensured();
 					} else if(msg instanceof FinishEnsure) {
 						ensured();
 						
-						log.debug("unbecome {}", depth);
+						if(depth == 0) {
+							log.debug("ack");
+							initiator.tell(new Ack(), getSelf());							
+						} else {
+							log.debug("unbecome {}", depth);	
+						}
+						
 						getContext().unbecome();
 					} else {
 						unexpected(msg);
 					}
 				}				
-			};
-		}
-		
-		private Procedure<Object> root(ActorRef initiator) {
-			log.debug("root");
-			
-			return new Procedure<Object>() {
-
-				@Override
-				public void apply(Object msg) throws Exception {
-					record(msg);
-					
-					if(msg instanceof EnsureGroup) {
-						ensured();
-						getContext().become(group(), false);
-					} else if(msg instanceof EnsureLayer) {
-						ensured();
-					} else if(msg instanceof FinishEnsure) {
-						ensured();
-						log.debug("ack");
-						initiator.tell(new Ack(), getSelf());
-						getContext().unbecome();					
-					} else {
-						unexpected(msg);
-					}
-				}
 			};
 		}
 		
@@ -149,7 +129,7 @@ public class ProvisionServiceTest {
 					if(msg instanceof EnsureWorkspace) {
 						record(msg);
 						ensured();
-						getContext().become(root(initiator), false);
+						getContext().become(layers(initiator), false);
 					} else {
 						unexpected(msg);
 					}
