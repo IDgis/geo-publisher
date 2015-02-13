@@ -18,10 +18,17 @@
 				data-layer-id="@layer.id"
 				data-layer-name="@layer.name">
 				<div class="row">
-					<div class="col-md-10">
+					<div class="col-md-5">
 						<h4 class="list-group-item-heading">
 							<a href="@routes.Layers.edit(layer.id)" class="text-warning">@layer.name</a>
 						</h4>
+					</div>
+					<div class="col-md-5">
+						@if(layer.published){
+							<span><strong>@Domain.message("web.application.page.layers.list.published")</strong></span>
+						}else{
+							<span>@Domain.message("web.application.page.layers.list.notpublished")</span>
+						}
 					</div>
 					<div class="col-md-2">
 						<div class="btn-group pull-right">

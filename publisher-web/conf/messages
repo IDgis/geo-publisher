@@ -182,6 +182,7 @@ web.application.page.datasets.list.button.refresh=Verversen uit brondata
 web.application.page.datasets.list.button.remove=Verwijderen 
 
 web.application.page.datasets.list.button.newdataset=Maak een nieuwe dataset ...
+web.application.page.datasets.list.button.newlayer=Maak een nieuwe laag
 web.application.page.datasets.list.search.placeholder=Datasetnaam ...
 web.application.page.datasets.list.filtercategorie.title=Categoriën
 web.application.page.datasets.list.status.title=Status
@@ -334,6 +335,9 @@ web.application.page.layers.name=Laag
 
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
+web.application.page.layers.list.published=gepubliceerd
+web.application.page.layers.list.notpublished=niet gepubliceerd
+
 
 web.application.page.layers.form.title=Laag formulier
 web.application.page.layers.form.header.new=Nieuwe laag toevoegen
