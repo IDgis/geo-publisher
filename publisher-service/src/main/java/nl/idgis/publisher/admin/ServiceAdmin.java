@@ -42,15 +42,15 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
-			.join(category).on(service.defaultCategoryId.eq(category.id))
+			.leftJoin(category).on(service.defaultCategoryId.eq(category.id))
 			.list(new QService(
 					service.identification,
 					service.name,
 					service.title, 
 					service.alternateTitle, 
 					service.abstractCol,
-					service.metadata,
 					service.keywords,
+					service.metadata,
 					service.watermark,
 //					service.published
 					ConstantImpl.create(true),
@@ -69,7 +69,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
-			.join(category).on(service.defaultCategoryId.eq(category.id))
+			.leftJoin(category).on(service.defaultCategoryId.eq(category.id))
 			.where(service.identification.eq(serviceId))
 			.singleResult(new QService(
 					service.identification,
@@ -77,8 +77,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.title, 
 					service.alternateTitle, 
 					service.abstractCol,
-					service.metadata,
 					service.keywords,
+					service.metadata,
 					service.watermark,
 //					service.published
 					ConstantImpl.create(true),
@@ -113,18 +113,20 @@ public class ServiceAdmin extends AbstractAdmin {
 					.set(service.metadata, theService.metadata())
 					.set(service.keywords, theService.keywords())
 					.set(service.watermark, theService.watermark())
+					.set(service.published, theService.published())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceName));
 				} else {
 					// UPDATE
 					log.debug("Updating service with name: " + serviceName);
 					return tx.update(service)
-							.set(service.title, theService.title())
-							.set(service.alternateTitle, theService.alternateTitle())
-							.set(service.abstractCol, theService.abstractText())
-							.set(service.metadata, theService.metadata())
-							.set(service.keywords, theService.keywords())
-							.set(service.watermark, theService.watermark())
+						.set(service.title, theService.title())
+						.set(service.alternateTitle, theService.alternateTitle())
+						.set(service.abstractCol, theService.abstractText())
+						.set(service.metadata, theService.metadata())
+						.set(service.keywords, theService.keywords())
+						.set(service.watermark, theService.watermark())
+						.set(service.published, theService.published())
 					.where(service.identification.eq(serviceId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceName));

@@ -65,7 +65,8 @@ public class Services extends Controller {
 		final ServiceForm serviceForm = form.get ();
 		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
-				serviceForm.metadata,serviceForm.watermark, serviceForm.published);
+				serviceForm.metadata,serviceForm.watermark, serviceForm.published,
+				serviceForm.rootGroupId,serviceForm.categoryId, serviceForm.constantsId);
 		
 		return from (database)
 			.put(service)
@@ -94,6 +95,7 @@ public class Services extends Controller {
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
+					Logger.debug ("List Service: #" + services.values().size());
 					return ok (list.render (services));
 				}
 			});
@@ -178,7 +180,7 @@ public class Services extends Controller {
 			this.metadata = service.metadata();
 			this.watermark = service.watermark();
 			this.published = service.published();
-			this.categoryId =service.categoryId();
+			this.categoryId =service.defaultCategoryId();
 			this.rootGroupId =service.rootGroupId();
 			this.constantsId =service.constantsId();
 		}
