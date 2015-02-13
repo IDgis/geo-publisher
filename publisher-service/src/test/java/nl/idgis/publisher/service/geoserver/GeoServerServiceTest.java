@@ -248,9 +248,9 @@ public class GeoServerServiceTest {
 		
 		assertTrue(getText(getFeatureResponse).contains("Hello, world!"));
 		
-		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");
+		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");
 
-		assertTrue(getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse)).contains("service:layer"));
+		assertTrue(getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse)).contains("layer"));
 	}
 	
 	@Test
@@ -283,11 +283,11 @@ public class GeoServerServiceTest {
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");		
+		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");		
 		
 		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("service:layer" + i));
+			assertTrue(layerNames.contains("layer" + i));
 		}
 	}
 }
