@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
 import java.util.Map;
@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLayer {	
 
-	private static final long serialVersionUID = -7314479516492384110L;	
+	private static final long serialVersionUID = 4552928977448464315L;
 
 	private final Map<String, DatasetNode> datasets;
 	

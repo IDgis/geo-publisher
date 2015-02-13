@@ -1,11 +1,11 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
 
 public abstract class AbstractLayer<T extends Item> implements Layer, Item, Serializable {
-
-	private static final long serialVersionUID = 3426237753092705580L;
 	
+	private static final long serialVersionUID = -2491245716270367081L;
+
 	private final boolean isGroup;
 	
 	protected final T item;

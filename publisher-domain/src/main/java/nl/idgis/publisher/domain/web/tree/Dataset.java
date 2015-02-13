@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 public interface Dataset extends Item {
 	

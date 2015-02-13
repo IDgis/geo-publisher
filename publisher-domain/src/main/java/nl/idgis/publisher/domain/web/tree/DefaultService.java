@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 public class DefaultService implements Service, Serializable {	
 
-	private static final long serialVersionUID = -4848378212320861663L;
+	private static final long serialVersionUID = -4657847579083869249L;
 
 	private final String id;
 	

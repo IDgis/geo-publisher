@@ -1,10 +1,10 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import com.mysema.query.annotations.QueryProjection;
 
-public class DatasetNode extends Node implements Dataset {
+public class DatasetNode extends Node implements Dataset {	
 
-	private static final long serialVersionUID = 8501260170166422665L;
+	private static final long serialVersionUID = -1242206465492970518L;
 	
 	private final String tableName;
 	

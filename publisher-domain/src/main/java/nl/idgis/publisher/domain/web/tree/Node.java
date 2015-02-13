@@ -1,10 +1,10 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
 
 public abstract class Node implements Item, Serializable {
-
-	private static final long serialVersionUID = -1690842575697161436L;
+	
+	private static final long serialVersionUID = 3164923466251389875L;
 	
 	protected final String id, name, title, abstr;
 	

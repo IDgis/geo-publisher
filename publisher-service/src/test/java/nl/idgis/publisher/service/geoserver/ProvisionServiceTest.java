@@ -21,6 +21,11 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.Service;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -33,10 +38,6 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
-import nl.idgis.publisher.service.manager.messages.DatasetLayer;
-import nl.idgis.publisher.service.manager.messages.GroupLayer;
-import nl.idgis.publisher.service.manager.messages.Layer;
-import nl.idgis.publisher.service.manager.messages.Service;
 import nl.idgis.publisher.utils.SyncAskHelper;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
