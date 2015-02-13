@@ -1,9 +1,11 @@
 package nl.idgis.publisher.service.manager;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.EntityPathBase;
@@ -21,17 +23,24 @@ import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 
+import nl.idgis.publisher.protocol.messages.Failure;
+
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetNode;
+import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.GroupNode;
 import nl.idgis.publisher.domain.web.tree.QDatasetNode;
 import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
+import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
+
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
@@ -58,7 +67,7 @@ public class ServiceManager extends UntypedActor {
 		
 		StringPath childLayerIdentification = createString("child_layer_identification");
 		
-		NumberPath<Integer> layerorder = createNumber("layerorder", Integer.class);
+		NumberPath<Integer> layerOrder = createNumber("layer_order", Integer.class);
 		
 		QServiceStructure(String variable) {
 	        super(QServiceStructure.class, forVariable(variable));
@@ -68,7 +77,37 @@ public class ServiceManager extends UntypedActor {
 	        add(parentLayerIdentification);
 	        add(childLayerId);
 	        add(childLayerIdentification);
-	        add(layerorder);
+	        add(layerOrder);
+	    }
+	}
+	
+	private final static QGroupStructure groupStructure = new QGroupStructure("group_structure");
+	
+	static class QGroupStructure extends EntityPathBase<QGroupStructure> {		
+		
+		private static final long serialVersionUID = -9048925641878000032L;
+		
+		StringPath groupLayerIdentification = createString("group_layer_identification");
+
+		NumberPath<Integer> parentLayerId = createNumber("parent_layer_id", Integer.class);
+		
+		StringPath parentLayerIdentification = createString("parent_layer_identification");
+		
+		NumberPath<Integer> childLayerId = createNumber("child_layer_id", Integer.class);
+		
+		StringPath childLayerIdentification = createString("child_layer_identification");
+		
+		NumberPath<Integer> layerOrder = createNumber("layer_order", Integer.class);
+		
+		QGroupStructure(String variable) {
+	        super(QGroupStructure.class, forVariable(variable));
+	        
+	        add(groupLayerIdentification);
+	        add(parentLayerId);
+	        add(parentLayerIdentification);
+	        add(childLayerId);
+	        add(childLayerIdentification);
+	        add(layerOrder);
 	    }
 	}
 	
@@ -97,19 +136,131 @@ public class ServiceManager extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GetService) {
-			handleGetService((GetService)msg);
+			toSender(handleGetService((GetService)msg));
+		} else if(msg instanceof GetGroupLayer) {
+			toSender(handleGetGroupLayer((GetGroupLayer)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
-
-	@SuppressWarnings("unchecked")
-	private void handleGetService(GetService msg) {
+	
+	private void toSender(CompletableFuture<Object> future) {
 		ActorRef sender = getSender(), self = getSelf();
 		
+		future
+			.exceptionally(t -> new Failure(t))
+			.thenAccept(resp -> sender.tell(resp, self));
+	}
+
+	@SuppressWarnings("unchecked")
+	private CompletableFuture<Object> handleGetGroupLayer(GetGroupLayer msg) {
+		String groupLayerId = msg.getGroupLayerId();
+		
+		return db.transactional(tx -> {
+			AsyncSQLQuery withGroupStructure = 
+			tx.query().withRecursive(groupStructure, 
+					groupStructure.groupLayerIdentification,
+					groupStructure.childLayerId, 
+					groupStructure.childLayerIdentification,
+					groupStructure.parentLayerId,
+					groupStructure.parentLayerIdentification,
+					groupStructure.layerOrder).as(
+				new SQLSubQuery().unionAll(
+					new SQLSubQuery().from(layerStructure)
+						.join(child).on(child.id.eq(layerStructure.childLayerId))
+						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
+						.join(genericLayer).on(genericLayer.id.eq(layerStructure.parentLayerId))						
+						.list(
+							genericLayer.identification, 
+							child.id,
+							child.identification,
+							parent.id,
+							parent.identification,
+							layerStructure.layerOrder),
+					new SQLSubQuery().from(layerStructure)
+						.join(child).on(child.id.eq(layerStructure.childLayerId))
+						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
+						.join(groupStructure).on(groupStructure.childLayerId.eq(layerStructure.parentLayerId))
+						.list(
+							groupStructure.groupLayerIdentification, 
+							child.id,
+							child.identification,
+							parent.id,
+							parent.identification,
+							layerStructure.layerOrder)));
+			
+			CompletableFuture<TypedList<Tuple>> structure = withGroupStructure.clone()
+				.from(groupStructure)
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.orderBy(groupStructure.layerOrder.asc())
+				.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
+			
+			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)				
+				.where(genericLayer.identification.eq(groupLayerId)
+					.and(new SQLSubQuery().from(leafLayer)
+						.where(leafLayer.genericLayerId.eq(genericLayer.id))
+						.notExists()))
+				.singleResult(new QGroupNode(
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol));
+			
+			CompletableFuture<TypedList<GroupNode>> groups = withGroupStructure.clone()
+				.from(genericLayer)
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(new QGroupNode(
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol));
+			
+			// last query -> .clone() not required
+			CompletableFuture<TypedList<DatasetNode>> datasets = withGroupStructure  
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(new QDatasetNode(genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol,
+					dataset.name));
+			
+			return root.thenCompose(rootResult ->
+				rootResult.isPresent()
+				? structure.thenCompose(structureResult ->
+					groups.thenCompose(groupsResult ->										
+						datasets.thenApply(datasetsResult -> {							
+							// LinkedHashMap is used to preserve layer order
+							Map<String, String> structureMap = new LinkedHashMap<>();
+							
+							for(Tuple structureTuple : structureResult) {
+								structureMap.put(
+									structureTuple.get(groupStructure.childLayerIdentification),
+									structureTuple.get(groupStructure.parentLayerIdentification));
+							}
+			
+							return new DefaultGroupLayer(
+								rootResult.get(), 
+								datasetsResult.list(),
+								groupsResult.list(),
+								structureMap);
+						})))
+				: f.successful(new NotFound()));
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	private CompletableFuture<Object> handleGetService(GetService msg) {
 		String serviceId = msg.getServiceId();
 		
-		db.transactional(tx -> {
+		return db.transactional(tx -> {
 			AsyncSQLQuery withServiceStructure = 
 			tx.query().withRecursive(serviceStructure, 
 					serviceStructure.serviceIdentification,
@@ -117,7 +268,7 @@ public class ServiceManager extends UntypedActor {
 					serviceStructure.childLayerIdentification,
 					serviceStructure.parentLayerId,
 					serviceStructure.parentLayerIdentification,
-					serviceStructure.layerorder).as(
+					serviceStructure.layerOrder).as(
 				new SQLSubQuery().unionAll(
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -145,7 +296,7 @@ public class ServiceManager extends UntypedActor {
 			CompletableFuture<TypedList<Tuple>> structure = withServiceStructure.clone()
 				.from(serviceStructure)
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.orderBy(serviceStructure.layerorder.asc())
+				.orderBy(serviceStructure.layerOrder.asc())
 				.list(serviceStructure.childLayerIdentification, serviceStructure.parentLayerIdentification);
 			
 			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
@@ -205,6 +356,6 @@ public class ServiceManager extends UntypedActor {
 								structureMap);
 						})))
 				: f.successful(new NotFound()));
-		}).thenAccept(resp -> sender.tell(resp, self));
+		});
 	}
 }

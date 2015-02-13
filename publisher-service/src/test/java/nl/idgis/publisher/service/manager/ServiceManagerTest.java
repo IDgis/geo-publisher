@@ -31,10 +31,12 @@ import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 
 public class ServiceManagerTest extends AbstractServiceTest {
@@ -235,6 +237,24 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(groupItr.hasNext());
 		
 		assertFalse(rootItr.hasNext());
+		
+		GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer("group"), GroupLayer.class);
+		assertEquals("group", groupLayer.getId());
+		assertEquals("group-name", groupLayer.getName());
+		
+		groupLayers = groupLayer.getLayers();
+		assertNotNull(groupLayers);
+		
+		groupItr = groupLayers.iterator();
+		assertTrue(groupItr.hasNext());
+		
+		groupItr.next();
+		assertNotNull(layer);
+		assertFalse(layer.isGroup());
+		
+		assertFalse(groupItr.hasNext());
+		
+		assertFalse(rootItr.hasNext());
 	}
 	
 	@Test
@@ -318,6 +338,36 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(group1Itr.hasNext());
 		
 		Layer layer = group1Itr.next();
+		assertNotNull(layer);
+		assertFalse(layer.isGroup());
+		
+		assertFalse(group1Itr.hasNext());
+		
+		assertFalse(group0Itr.hasNext());
+		
+		assertFalse(rootItr.hasNext());
+		
+		GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer("group0"), GroupLayer.class);
+		assertEquals("group0", groupLayer.getId());
+		
+		group0Layers = groupLayer.getLayers();
+		assertNotNull(group0Layers);
+		
+		group0Itr = group0Layers.iterator();
+		assertTrue(group0Itr.hasNext());
+		
+		group1 = group0Itr.next();
+		assertNotNull(group1);
+		assertTrue(group1.isGroup());
+		assertEquals("group1", group1.getId());
+		
+		group1Layers = group1.asGroup().getLayers();		
+		assertNotNull(group1Layers);
+		
+		group1Itr = group1Layers.iterator();
+		assertTrue(group1Itr.hasNext());
+		
+		layer = group1Itr.next();
 		assertNotNull(layer);
 		assertFalse(layer.isGroup());
 		
@@ -432,7 +482,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	}
 	
 	@Test
-	public void testlayerOrder() throws Exception {
+	public void testLayerOrder() throws Exception {
 		List<Integer> layerIds = new ArrayList<>();
 		List<String> layerIdentifications = new ArrayList<>();
 		
