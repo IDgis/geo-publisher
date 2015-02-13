@@ -25,20 +25,21 @@ public class AdminParent extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, service, jobSystem;
+	private final ActorRef database, harvester, loader, service, jobSystem, serviceManager;
 	
 	private Map<Class<?>, ActorRef> get, list, query, delete, put;
 	
-	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
+	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem, ActorRef serviceManager) {
 		this.database = database;
 		this.harvester = harvester;
 		this.loader = loader;
 		this.service = service;
 		this.jobSystem = jobSystem;
+		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
-		return Props.create(AdminParent.class, database, harvester, loader, service, jobSystem);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem, ActorRef serviceManager) {
+		return Props.create(AdminParent.class, database, harvester, loader, service, jobSystem, serviceManager);
 	}
 	
 	@Override
@@ -53,9 +54,9 @@ public class AdminParent extends UntypedActor {
 		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
 		getContext().actorOf(CategoryAdmin.props(database), "category");
 		getContext().actorOf(DatasetAdmin.props(database), "dataset");
-		getContext().actorOf(ServiceAdmin.props(database), "service");
+		getContext().actorOf(ServiceAdmin.props(database, serviceManager), "service");
 		getContext().actorOf(LayerAdmin.props(database), "layer");
-		getContext().actorOf(LayerGroupAdmin.props(database), "layergroup");
+		getContext().actorOf(LayerGroupAdmin.props(database, serviceManager), "layergroup");
 		getContext().actorOf(TiledLayerAdmin.props(database), "tiledlayer");
 		getContext().actorOf(StyleAdmin.props(database), "style");
 	}

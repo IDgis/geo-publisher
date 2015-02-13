@@ -21,12 +21,16 @@ import akka.actor.Props;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
-	public ServiceAdmin(ActorRef database) {
+	private final ActorRef serviceManager;
+	
+	public ServiceAdmin(ActorRef database, ActorRef serviceManager) {
 		super(database); 
+		
+		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(ServiceAdmin.class, database);
+	public static Props props(ActorRef database, ActorRef serviceManager) {
+		return Props.create(ServiceAdmin.class, database, serviceManager);
 	}
 
 	@Override

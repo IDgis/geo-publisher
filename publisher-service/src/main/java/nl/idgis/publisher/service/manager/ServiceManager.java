@@ -22,19 +22,16 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.tree.DatasetNode;
+import nl.idgis.publisher.domain.web.tree.DefaultService;
+import nl.idgis.publisher.domain.web.tree.GroupNode;
+import nl.idgis.publisher.domain.web.tree.QDatasetNode;
+import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
-import nl.idgis.publisher.service.manager.messages.DefaultService;
 import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.QDatasetNode;
-import nl.idgis.publisher.service.manager.messages.QGroupNode;
-import nl.idgis.publisher.service.manager.messages.GroupNode;
-import nl.idgis.publisher.service.manager.messages.DatasetNode;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
-
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;

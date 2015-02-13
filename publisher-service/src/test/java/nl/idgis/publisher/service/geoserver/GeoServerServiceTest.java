@@ -49,14 +49,14 @@ import akka.actor.UntypedActor;
 import akka.util.Timeout;
 
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.service.manager.messages.DatasetLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.GroupLayer;
-import nl.idgis.publisher.service.manager.messages.Layer;
-import nl.idgis.publisher.service.manager.messages.Service;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
 public class GeoServerServiceTest {

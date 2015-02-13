@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -13,6 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DatasetNode;
+import nl.idgis.publisher.domain.web.tree.DefaultService;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.GroupNode;
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.Service;
 
 public class DefaultServiceTest {	
 	

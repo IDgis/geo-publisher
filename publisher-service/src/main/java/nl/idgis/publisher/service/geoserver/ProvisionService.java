@@ -13,13 +13,14 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.Service;
+
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
-import nl.idgis.publisher.service.manager.messages.Layer;
-import nl.idgis.publisher.service.manager.messages.Service;
 
 public class ProvisionService extends UntypedActor {
 	

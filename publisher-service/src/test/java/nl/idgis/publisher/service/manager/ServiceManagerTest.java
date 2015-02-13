@@ -14,7 +14,6 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -31,12 +30,12 @@ import org.junit.Test;
 import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
-import nl.idgis.publisher.service.manager.messages.DatasetLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.Layer;
-import nl.idgis.publisher.service.manager.messages.Service;
 
 public class ServiceManagerTest extends AbstractServiceTest {
 	

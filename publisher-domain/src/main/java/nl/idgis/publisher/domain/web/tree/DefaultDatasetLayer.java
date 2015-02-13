@@ -1,9 +1,9 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.domain.web.tree;
 
 public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements DatasetLayer {	
-	
-	private static final long serialVersionUID = 5033718583098886699L;
-	
+
+	private static final long serialVersionUID = -1629242928788272524L;
+
 	public DefaultDatasetLayer(Dataset dataset) {
 		super(dataset, false);
 	}
