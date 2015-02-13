@@ -26,7 +26,7 @@ categories: Page[Category])
 					<div class="col-lg-8">
 						<select class="form-control" id="input-category" name="category" >
 						@for(category <-categories.values){
-							<option value="@category.id" @if(serviceForm("categoryId").value==category.id){selected}>@category.name</option>
+							<option value="@category.id" @if(serviceForm("categoryName").value==category.name){selected}>@category.name</option>
 						}
 						</select>
 					</div>

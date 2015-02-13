@@ -66,7 +66,7 @@ public class Services extends Controller {
 		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
 				serviceForm.metadata,serviceForm.watermark, serviceForm.published,
-				serviceForm.rootGroupId,serviceForm.categoryId, serviceForm.constantsId);
+				serviceForm.rootGroupName,serviceForm.categoryName, serviceForm.constantsName);
 		
 		return from (database)
 			.put(service)
@@ -161,9 +161,9 @@ public class Services extends Controller {
 		private String metadata;
 		private String watermark;
 		private Boolean published = false;
-		private String categoryId = "";
-		private String rootGroupId = "";
-		private String constantsId = "";
+		private String categoryName = "";
+		private String rootGroupName = "";
+		private String constantsName = "";
 		
 		public ServiceForm (){
 			super();
@@ -180,9 +180,9 @@ public class Services extends Controller {
 			this.metadata = service.metadata();
 			this.watermark = service.watermark();
 			this.published = service.published();
-			this.categoryId =service.defaultCategoryId();
-			this.rootGroupId =service.rootGroupId();
-			this.constantsId =service.constantsId();
+			this.categoryName =service.defaultCategoryId();
+			this.rootGroupName =service.rootGroupId();
+			this.constantsName =service.constantsId();
 		}
 
 
@@ -273,36 +273,36 @@ public class Services extends Controller {
 			this.published = published;
 		}
 
-		public String getCategoryId() {
-			return categoryId;
+		public String getCategoryName() {
+			return categoryName;
 		}
 
-		public void setCategoryId(String categoryId) {
-			this.categoryId = categoryId;
+		public void setCategoryName(String categoryName) {
+			this.categoryName = categoryName;
 		}
 
-		public String getRootGroupId() {
-			return rootGroupId;
+		public String getRootGroupName() {
+			return rootGroupName;
 		}
 
-		public void setRootGroupId(String rootGroupId) {
-			this.rootGroupId = rootGroupId;
+		public void setRootGroupName(String rootGroupName) {
+			this.rootGroupName = rootGroupName;
 		}
 
-		public String getConstantsId() {
-			return constantsId;
+		public String getConstantsName() {
+			return constantsName;
 		}
 
-		public void setConstantsId(String constantsId) {
-			this.constantsId = constantsId;
+		public void setConstantsName(String constantsName) {
+			this.constantsName = constantsName;
 		}
 		
 		@Override
 		public String toString() {
 			return "ServiceForm [id=" + id + ", name=" + name + ", title=" + title + ", alternateTitle="
 					+ alternateTitle + ", abstractText=" + abstractText + ", keywords=" + keywords + ", metadata="
-					+ metadata + ", watermark=" + watermark + ", published=" + published + ", categoryId=" + categoryId
-					+ ", rootGroupId=" + rootGroupId + ", constantsId=" + constantsId + "]";
+					+ metadata + ", watermark=" + watermark + ", published=" + published + ", categoryName=" + categoryName
+					+ ", rootGroupName=" + rootGroupName + ", constantsName=" + constantsName + "]";
 		}
 
 	}
