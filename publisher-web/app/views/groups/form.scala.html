@@ -1,7 +1,10 @@
 @(groupForm: Form[controllers.Groups.GroupForm], create: Boolean)
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title="Groep toevoegen: "+ "naam" ){
+@layout.application( 
+	title="Groep toevoegen: "+ "naam",
+	jsMain = routes.Assets.at("js/groups/form.js").url
+){
 
 <div class="page-content">
 	@if(create){
@@ -53,13 +56,22 @@
 				
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
-					<div class="col-sm-8" id="groepstructuur">
-						<button class="btn btn-default btn-sm" type="button">
-			    			<span>@Domain.message("web.application.page.groups.form.field.addgroup.button")</span>
-			    		</button>
-			    		<button class="btn btn-default btn-sm" type="button">
-			    			<span>@Domain.message("web.application.page.groups.form.field.addlayer.button")</span>
-			    		</button>
+					<div class="col-sm-8">
+						<div class="list-group" id="groepstructuur" style="position: relative;">
+							
+						</div>
+						
+						<select id="addgroup">
+							<option selected disabled>@Domain.message("web.application.page.groups.form.field.addgroup.button")</option>
+							<option value="G2">Group 2</option>
+							<option value="G3">Group 3</option>
+						</select>
+						
+						<select id="addlayer">
+							<option selected disabled>@Domain.message("web.application.page.groups.form.field.addlayer.button")</option>
+							<option value="L3">Laag 3</option>
+							<option value="L4">Laag 4</option>
+						</select>
 					</div>
 				</div>
 				
@@ -75,8 +87,12 @@
 						<a href="@routes.Groups.list()" 
 							class="btn btn-success"> @Domain.message("web.application.button.cancel")
 						</a>
-						<button class="btn btn-success" type="button">@Domain.message("web.application.button.preview")</button>
-						<button class="btn btn-success" type="button">@Domain.message("web.application.button.tilingproperties")</button>
+						<a class="btn btn-success">
+							@Domain.message("web.application.button.preview")
+						</a>
+						<a class="btn btn-success">
+							@Domain.message("web.application.button.tilingproperties")
+						</a>
 					</div>
 				</div>
 			</form>
