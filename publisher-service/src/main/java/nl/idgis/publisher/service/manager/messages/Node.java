@@ -31,7 +31,7 @@ public abstract class Node implements Item, Serializable {
 	}
 
 	@Override
-	public String getAbstr() {
+	public String getAbstract() {
 		return abstr;
 	}
 }

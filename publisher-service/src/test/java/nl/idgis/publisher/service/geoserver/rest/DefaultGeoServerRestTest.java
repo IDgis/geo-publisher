@@ -1,13 +1,16 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -19,20 +22,31 @@ import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
+
 public class DefaultGeoServerRestTest {
 	
 	TestServers testServers;
+	
+	FutureUtils f;
 	
 	@Before
 	public void startServers() throws Exception {
 		testServers = new TestServers();
 		testServers.start();
+	} 
+	
+	@Before
+	public void async() throws Exception {
+		ActorSystem actorSystem = ActorSystem.create();
+		f = new FutureUtils(actorSystem.dispatcher());
 	}
 	
 	@After
@@ -45,8 +59,10 @@ public class DefaultGeoServerRestTest {
 		
 		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
 		
-		Statement stmt = connection.createStatement();		
-		stmt.execute("create table \"test_table\"(\"id\" serial, \"test\" integer)");
+		Statement stmt = connection.createStatement();
+		stmt.execute("create schema \"public\"");
+		stmt.execute("create table \"public\".\"test_table\"(\"id\" serial, \"test\" integer)");
+		stmt.execute("select AddGeometryColumn ('public', 'test_table', 'the_geom', 4326, 'GEOMETRY', 2)");
 		stmt.execute("create schema \"b0\"");
 		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
 		
@@ -103,7 +119,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")).get();
+		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
@@ -117,7 +133,7 @@ public class DefaultGeoServerRestTest {
 		
 		List<Attribute> attributes = featureType.getAttributes();
 		assertNotNull(attributes);
-		assertEquals(2, attributes.size());
+		assertEquals(3, attributes.size());
 		
 		Attribute attribute = attributes.get(0);
 		assertNotNull(attribute);
@@ -126,6 +142,27 @@ public class DefaultGeoServerRestTest {
 		attribute = attributes.get(1);
 		assertNotNull(attribute);
 		assertEquals("test", attribute.getName());
+		
+		attribute = attributes.get(2);
+		assertNotNull(attribute);
+		assertEquals("the_geom", attribute.getName());
+		
+		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		assertNotNull(layerGroups);
+		assertFalse(layerGroups.iterator().hasNext());
+		
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList("test"));
+		service.addLayerGroup(workspace, layerGroup).get();
+		
+		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		assertNotNull(layerGroups);
+		
+		Iterator<LayerGroup> itr = layerGroups.iterator();
+		assertTrue(itr.hasNext());
+		layerGroup = itr.next();
+		assertEquals("group", layerGroup.getName());
+		assertEquals(Arrays.asList("test"), layerGroup.getLayers());
+		assertFalse(itr.hasNext());
 		
 		service.close();
 	}

@@ -28,8 +28,8 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
-import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
+import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -83,11 +83,11 @@ public class ProvisionServiceTest {
 			getSender().tell(new Ensured(), getSelf());
 		}
 		
-		private Procedure<Object> group() {
-			return group(0);
+		private Procedure<Object> layers(ActorRef initiator) {
+			return layers(initiator, 0);
 		}
 		
-		private Procedure<Object> group(int depth) {
+		private Procedure<Object> layers(ActorRef initiator, int depth) {
 			log.debug("group");
 			
 			return new Procedure<Object>() {
@@ -96,46 +96,26 @@ public class ProvisionServiceTest {
 				public void apply(Object msg) throws Exception {
 					record(msg);
 					
-					if(msg instanceof EnsureGroup) {
+					if(msg instanceof EnsureGroupLayer) {
 						ensured();
-						getContext().become(group(depth + 1), false);
-					} else if(msg instanceof EnsureFeatureType) {
+						getContext().become(layers(initiator, depth + 1), false);
+					} else if(msg instanceof EnsureFeatureTypeLayer) {
 						ensured();
 					} else if(msg instanceof FinishEnsure) {
 						ensured();
 						
-						log.debug("unbecome {}", depth);
+						if(depth == 0) {
+							log.debug("ack");
+							initiator.tell(new Ack(), getSelf());							
+						} else {
+							log.debug("unbecome {}", depth);	
+						}
+						
 						getContext().unbecome();
 					} else {
 						unexpected(msg);
 					}
 				}				
-			};
-		}
-		
-		private Procedure<Object> root(ActorRef initiator) {
-			log.debug("root");
-			
-			return new Procedure<Object>() {
-
-				@Override
-				public void apply(Object msg) throws Exception {
-					record(msg);
-					
-					if(msg instanceof EnsureGroup) {
-						ensured();
-						getContext().become(group(), false);
-					} else if(msg instanceof EnsureFeatureType) {
-						ensured();
-					} else if(msg instanceof FinishEnsure) {
-						ensured();
-						log.debug("ack");
-						initiator.tell(new Ack(), getSelf());
-						getContext().unbecome();					
-					} else {
-						unexpected(msg);
-					}
-				}
 			};
 		}
 		
@@ -149,7 +129,7 @@ public class ProvisionServiceTest {
 					if(msg instanceof EnsureWorkspace) {
 						record(msg);
 						ensured();
-						getContext().become(root(initiator), false);
+						getContext().become(layers(initiator), false);
 					} else {
 						unexpected(msg);
 					}
@@ -212,6 +192,8 @@ public class ProvisionServiceTest {
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer0");
+		when(datasetLayer.getTitle()).thenReturn("title0");
+		when(datasetLayer.getAbstract()).thenReturn("abstract0");
 		when(datasetLayer.getTableName()).thenReturn("tableName0");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
@@ -228,9 +210,11 @@ public class ProvisionServiceTest {
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("service0", workspace.getWorkspaceId());
 			})
-			.assertNext(EnsureFeatureType.class, featureType -> {
-				assertEquals("layer0", featureType.getFeatureTypeId());
-				assertEquals("tableName0", featureType.getTableName());
+			.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
+				assertEquals("layer0", featureType.getLayerId());
+				assertEquals("title0", featureType.getTitle());
+				assertEquals("abstract0", featureType.getAbstract());
+				assertEquals("tableName0", featureType.getTableName());				
 			})
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)
@@ -256,6 +240,8 @@ public class ProvisionServiceTest {
 		when(groupLayer.isGroup()).thenReturn(true);
 		when(groupLayer.asGroup()).thenReturn(groupLayer);
 		when(groupLayer.getName()).thenReturn("group0");
+		when(groupLayer.getTitle()).thenReturn("groupTitle0");
+		when(groupLayer.getAbstract()).thenReturn("groupAbstract0");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		
 		Service service = mock(Service.class);
@@ -270,15 +256,17 @@ public class ProvisionServiceTest {
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("service0", workspace.getWorkspaceId());
 			})
-			.assertNext(EnsureGroup.class, group -> {
-				assertEquals("group0", group.getGroupId());
+			.assertNext(EnsureGroupLayer.class, group -> {
+				assertEquals("group0", group.getLayerId());
+				assertEquals("groupTitle0", group.getTitle());
+				assertEquals("groupAbstract0", group.getAbstract());
 			});
 		
 		for(int i = 0; i < numberOfLayers; i++) {
 			String featureTypeId = "layer" + i;
 			String tableName = "tableName" + i;
-			recording.assertNext(EnsureFeatureType.class, featureType -> {
-				assertEquals(featureTypeId, featureType.getFeatureTypeId());
+			recording.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
+				assertEquals(featureTypeId, featureType.getLayerId());
 				assertEquals(tableName, featureType.getTableName());
 			});
 		}			
