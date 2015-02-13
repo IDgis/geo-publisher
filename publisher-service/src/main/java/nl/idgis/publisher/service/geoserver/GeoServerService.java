@@ -1,7 +1,9 @@
 package nl.idgis.publisher.service.geoserver;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -31,6 +33,7 @@ import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -140,73 +143,6 @@ public class GeoServerService extends UntypedActor {
 		provisioningService.tell(new Ensured(), getSelf());
 	}
 	
-	private Procedure<Object> layers(
-			ActorRef initiator, 
-			ServiceJobInfo serviceJob, 
-			ActorRef provisioningService, 
-			Workspace workspace, 
-			DataStore dataStore,
-			Map<String, FeatureType> featureTypes) {
-		
-		return layers(0, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes);
-	}
-	
-	private Procedure<Object> layers(
-			int depth, 
-			ActorRef initiator, 
-			ServiceJobInfo serviceJob, 
-			ActorRef provisioningService, 
-			Workspace workspace, 
-			DataStore dataStore,
-			Map<String, FeatureType> featureTypes) {
-		
-		log.debug("-> group {}", depth);
-		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof EnsureGroup) {
-					ensured(provisioningService);
-					getContext().become(layers(depth + 1, initiator, serviceJob, 
-						provisioningService, workspace, dataStore, featureTypes), false);
-				} else if(msg instanceof EnsureLayer) {
-					EnsureLayer ensureLayer = (EnsureLayer)msg;
-					
-					String layerId = ensureLayer.getLayerId();					
-					if(featureTypes.containsKey(layerId)) { // TODO: also check feature type content
-						toSelf(new LayerEnsured(featureTypes.get(layerId)));
-						featureTypes.remove(layerId);
-					} else {
-						String tableName = ensureLayer.getTableName();						
-						FeatureType featureType = new FeatureType(layerId, tableName);
-						
-						toSelf(
-							rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
-								log.debug("feature type created: " + tableName);									
-								return new LayerEnsured(featureType);								
-						}));
-					}
-				} else if(msg instanceof LayerEnsured) {
-					ensured(provisioningService);				
-				} else if(msg instanceof FinishEnsure) {
-					ensured(provisioningService);
-					
-					if(depth == 0) {
-						log.debug("ack");
-						initiator.tell(new Ack(), getSelf());
-					} else {					
-						log.debug("unbecome group {}", depth);
-					}
-					
-					getContext().unbecome();
-				} else {
-					elseProvisioning(msg, serviceJob);
-				}
-			}				
-		};
-	}
-	
 	private static class LayerEnsured {
 		
 		public final FeatureType featureType;
@@ -216,8 +152,109 @@ public class GeoServerService extends UntypedActor {
 		}
 		
 		FeatureType getFeatureType() {
-			return this.featureType; 
+			return featureType; 
 		}
+	}
+	
+	private static class GroupEnsured {
+		
+		public final LayerGroup layerGroup;
+		
+		GroupEnsured(LayerGroup layerGroup) {
+			this.layerGroup = layerGroup;
+		}
+		
+		LayerGroup getLayerGroup() {
+			return layerGroup;
+		}
+	}
+	
+	private Procedure<Object> layers(
+			ActorRef initiator, 
+			ServiceJobInfo serviceJob, 
+			ActorRef provisioningService, 
+			Workspace workspace, 
+			DataStore dataStore,
+			Map<String, FeatureType> featureTypes,
+			Map<String, LayerGroup> layerGroups) {
+		
+		return layers(null, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups);
+	}
+	
+	private Procedure<Object> layers(
+			String groupName, 
+			ActorRef initiator, 
+			ServiceJobInfo serviceJob, 
+			ActorRef provisioningService, 
+			Workspace workspace, 
+			DataStore dataStore,
+			Map<String, FeatureType> featureTypes,
+			Map<String, LayerGroup> layerGroups) {
+		
+		List<String> groupLayers = new ArrayList<>();
+		
+		log.debug("-> group {}", groupName);
+		
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof EnsureGroup) {
+					ensured(provisioningService);
+					getContext().become(layers(((EnsureGroup)msg).getGroupId(), initiator, serviceJob, 
+						provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
+				} else if(msg instanceof EnsureLayer) {
+					EnsureLayer ensureLayer = (EnsureLayer)msg;
+					
+					String layerId = ensureLayer.getLayerId();		
+					groupLayers.add(layerId);
+					if(featureTypes.containsKey(layerId)) { // TODO: also check feature type content
+						log.debug("existing feature type found: " + layerId);
+						toSelf(new LayerEnsured(featureTypes.get(layerId)));
+						featureTypes.remove(layerId);
+					} else {
+						String tableName = ensureLayer.getTableName();						
+						FeatureType featureType = new FeatureType(layerId, tableName);
+						
+						toSelf(
+							rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
+								log.debug("feature type created: " + tableName);									
+								return new LayerEnsured(featureType);
+						}));
+					}
+				} else if(msg instanceof LayerEnsured) {
+					ensured(provisioningService);				
+				} else if(msg instanceof FinishEnsure) {
+					if(groupName == null) {
+						log.debug("ack");
+						
+						ensured(provisioningService);
+						initiator.tell(new Ack(), getSelf());
+						getContext().unbecome();
+					} else {
+						log.debug("unbecome group {}, groupLayers {}", groupName, groupLayers);
+						
+						if(layerGroups.containsKey(groupName)) {  // TODO: also check layer group content
+							log.debug("existing layer group found: " + groupName);
+							toSelf(new GroupEnsured(layerGroups.get(groupName)));
+							layerGroups.remove(groupName);
+						} else {
+							LayerGroup layerGroup = new LayerGroup(groupName, groupLayers);
+							toSelf(
+								rest.addLayerGroup(workspace, layerGroup).thenApply(v -> {
+									log.debug("layer group created: " + groupName);									
+									return new GroupEnsured(layerGroup);
+							}));
+						}
+					}
+				} else if(msg instanceof GroupEnsured) {
+					ensured(provisioningService);
+					getContext().unbecome();
+				} else {
+					elseProvisioning(msg, serviceJob);
+				}
+			}				
+		};
 	}
 	
 	private static class WorkspaceEnsured {
@@ -228,14 +265,17 @@ public class GeoServerService extends UntypedActor {
 		
 		private final Map<String, FeatureType> featureTypes;
 		
+		private final Map<String, LayerGroup> layerGroups;
+		
 		WorkspaceEnsured(Workspace workspace, DataStore dataStore) {
-			this(workspace, dataStore, new HashMap<>());
+			this(workspace, dataStore, new HashMap<>(), new HashMap<>());
 		}
 		
-		WorkspaceEnsured(Workspace workspace, DataStore dataStore, Map<String, FeatureType> featureTypes) {
+		WorkspaceEnsured(Workspace workspace, DataStore dataStore, Map<String, FeatureType> featureTypes, Map<String, LayerGroup> layerGroups) {
 			this.workspace = workspace;
 			this.dataStore = dataStore;
 			this.featureTypes = featureTypes;
+			this.layerGroups = layerGroups;
 		} 
 		
 		Workspace getWorkspace() {
@@ -248,6 +288,10 @@ public class GeoServerService extends UntypedActor {
 		
 		Map<String, FeatureType> getFeatureTypes() {
 			return featureTypes;
+		}
+		
+		Map<String, LayerGroup> getLayerGroups() {
+			return layerGroups;
 		}
 	};
 	
@@ -276,15 +320,24 @@ public class GeoServerService extends UntypedActor {
 												
 												return rest.getFeatureTypes(workspace, dataStore)
 													.thenCompose(f::sequence)
-													.thenApply(featureTypes -> {
+													.thenCompose(featureTypes ->
+														rest.getLayerGroups(workspace)
+														.thenCompose(f::sequence)
+														.thenApply(layerGroups -> {
+													
 													Map<String, FeatureType> featureTypesMap = new HashMap<>();
+													Map<String, LayerGroup> layerGroupsMap = new HashMap<>();
 													
 													for(FeatureType featureType : featureTypes) {
 														featureTypesMap.put(featureType.getName(), featureType);
 													}
 													
-													return new WorkspaceEnsured(workspace, dataStore, featureTypesMap);
-												});
+													for(LayerGroup layerGroup : layerGroups) {
+														layerGroupsMap.put(layerGroup.getName(), layerGroup);
+													}
+													
+													return new WorkspaceEnsured(workspace, dataStore, featureTypesMap, layerGroupsMap);
+												}));
 											}
 										}
 										
@@ -310,8 +363,9 @@ public class GeoServerService extends UntypedActor {
 					
 					Workspace workspace = workspaceEnsured.getWorkspace();
 					DataStore dataStore = workspaceEnsured.getDataStore();
-					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();					
-					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes), false);
+					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
+					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
+					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}

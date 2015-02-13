@@ -473,6 +473,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					streamWriter.writeCharacters(layerGroup.getName());
 				streamWriter.writeEndElement();
 				
+				streamWriter.writeStartElement("mode");
+					streamWriter.writeCharacters("NAMED");
+				streamWriter.writeEndElement();
+				
 				streamWriter.writeStartElement("layers");
 				for(String layer : layerGroup.getLayers()) {
 					streamWriter.writeStartElement("layer");

@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -283,11 +284,18 @@ public class GeoServerServiceTest {
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");		
+		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");
 		
 		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("layer" + i));
+			assertTrue(layerNames.contains("service:layer" + i)); // TODO: figure out how to remove the workspace from the name
 		}
+		assertTrue(layerNames.contains("group"));
+		
+		layerNames = getText(getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", getCapabilitiesResponse));
+		for(int i = 0; i < numberOfLayers; i++) {
+			assertTrue(layerNames.contains("service:layer" + i));
+		}
+		assertFalse(layerNames.contains("group"));
 	}
 }
