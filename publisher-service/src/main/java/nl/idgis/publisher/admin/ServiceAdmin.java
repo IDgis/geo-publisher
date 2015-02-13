@@ -7,6 +7,9 @@ import java.util.concurrent.CompletableFuture;
 import com.mysema.query.types.ConstantImpl;
 
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -39,6 +42,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
+			.join(category).on(service.defaultCategoryId.eq(category.id))
 			.list(new QService(
 					service.identification,
 					service.name,
@@ -48,7 +52,13 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.metadata,
 					service.keywords,
 					service.watermark,
-					ConstantImpl.create(false)
+//					service.published
+					ConstantImpl.create(true),
+					category.identification,
+//					service.rootgroupId,
+					ConstantImpl.create(""),					
+//					service.constantsId
+					ConstantImpl.create("")					
 				))
 			.thenApply(this::toPage);
 	}
@@ -59,6 +69,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
+			.join(category).on(service.defaultCategoryId.eq(category.id))
 			.where(service.identification.eq(serviceId))
 			.singleResult(new QService(
 					service.identification,
@@ -69,7 +80,13 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.metadata,
 					service.keywords,
 					service.watermark,
-					ConstantImpl.create(false)
+//					service.published
+					ConstantImpl.create(true),
+					category.identification,
+//					service.rootgroupId,
+					ConstantImpl.create(""),					
+//					service.constantsId
+					ConstantImpl.create("")					
 			));		
 	}
 	

@@ -149,7 +149,6 @@ public class Services extends Controller {
 
 		@Constraints.Required
 		private String id;
-		private String categoryId = "b7";
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
@@ -160,6 +159,9 @@ public class Services extends Controller {
 		private String metadata;
 		private String watermark;
 		private Boolean published;
+		private String categoryId = "b7";
+		private String rootGroupId;
+		private String constantsId;
 		
 		public ServiceForm (){
 			super();
@@ -169,7 +171,6 @@ public class Services extends Controller {
 		public ServiceForm (final Service service){
 			this.id = service.id();
 			this.name = service.name();
-			this.categoryId = "b7";
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
@@ -177,6 +178,9 @@ public class Services extends Controller {
 			this.metadata = service.metadata();
 			this.watermark = service.watermark();
 			this.published = service.published();
+			this.categoryId =service.categoryId();
+			this.rootGroupId =service.rootGroupId();
+			this.constantsId =service.constantsId();
 		}
 
 
@@ -189,14 +193,6 @@ public class Services extends Controller {
 			this.id = id;
 		}
 
-
-		public String getCategoryId() {
-			return categoryId;
-		}
-
-		public void setCategoryId(String categoryId) {
-			this.categoryId = categoryId;
-		}
 
 		public String getName() {
 			return name;
@@ -273,6 +269,30 @@ public class Services extends Controller {
 
 		public void setPublished(Boolean published) {
 			this.published = published;
+		}
+
+		public String getCategoryId() {
+			return categoryId;
+		}
+
+		public void setCategoryId(String categoryId) {
+			this.categoryId = categoryId;
+		}
+
+		public String getRootGroupId() {
+			return rootGroupId;
+		}
+
+		public void setRootGroupId(String rootGroupId) {
+			this.rootGroupId = rootGroupId;
+		}
+
+		public String getConstantsId() {
+			return constantsId;
+		}
+
+		public void setConstantsId(String constantsId) {
+			this.constantsId = constantsId;
 		}
 		
 	}
