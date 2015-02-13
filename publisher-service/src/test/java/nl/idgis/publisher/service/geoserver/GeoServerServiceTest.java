@@ -18,6 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.junit.After;
 import org.junit.Before;
@@ -165,7 +169,7 @@ public class GeoServerServiceTest {
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
-		when(datasetLayer.getTableName()).thenReturn("tableName");
+		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
 		
@@ -180,18 +184,28 @@ public class GeoServerServiceTest {
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"staging_data\"");
-		stmt.execute("create table \"staging_data\".\"tableName\"(\"id\" serial, \"test\" text)");
-		stmt.execute("insert into \"staging_data\".\"tableName\"(\"test\") values('Hello, world!')");
+		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
+		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
+		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
+		
 		stmt.close();
-				
+		
 		connection.close();
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document d = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.0.0&typeName=tableName");
 		
-		assertTrue(getText(d).contains("Hello, world!"));
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		Document getFeatureResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=myTable");
+		t.transform(new DOMSource(getFeatureResponse), new StreamResult(System.out));
+		
+		assertTrue(getText(getFeatureResponse).contains("Hello, world!"));
+		
+		Document getCapabilitiesResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");
+		t.transform(new DOMSource(getCapabilitiesResponse), new StreamResult(System.out));
 	}
 }

@@ -13,6 +13,11 @@
 	
 	<dependencies>
 		<dependency>
+			<groupId>org.opengeo</groupId>
+  			<artifactId>geodb</artifactId>
+  			<scope>test</scope>
+  		</dependency>
+		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-database</artifactId>
 			<classifier>tests</classifier>			
