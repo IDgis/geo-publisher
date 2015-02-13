@@ -1,5 +1,7 @@
 package nl.idgis.publisher.service.geoserver;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -225,13 +227,29 @@ public class GeoServerServiceTest {
 	}
 	
 	private NodeList getNodeList(String expression, Node node) throws Exception {
-		return (NodeList)xpath.evaluate(expression, node, XPathConstants.NODESET);		
+		return (NodeList)xpath.evaluate(expression, node, XPathConstants.NODESET);
+	}
+	
+	private String getText(String expression, Node node) throws Exception {
+		NodeList nodeList = getNodeList(expression, node);		
+		
+		if(nodeList.getLength() == 0) {
+			fail("no result");
+		}
+		
+		if(nodeList.getLength() > 1) {
+			fail("multiple results");
+		}
+		
+		return nodeList.item(0).getTextContent();		
 	}
 	
 	@Test
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
+		when(datasetLayer.getTitle()).thenReturn("title");
+		when(datasetLayer.getAbstract()).thenReturn("abstract");
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
@@ -251,7 +269,9 @@ public class GeoServerServiceTest {
 		
 		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");
 
-		assertTrue(getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse)).contains("layer"));
+		assertEquals("layer", getText("//wms:Layer/wms:Name", getCapabilitiesResponse));
+		assertEquals("title", getText("//wms:Layer[wms:Name = 'layer']/wms:Title", getCapabilitiesResponse));
+		assertEquals("abstract", getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", getCapabilitiesResponse));
 	}
 	
 	@Test
@@ -273,6 +293,8 @@ public class GeoServerServiceTest {
 		when(groupLayer.isGroup()).thenReturn(true);
 		when(groupLayer.asGroup()).thenReturn(groupLayer);
 		when(groupLayer.getName()).thenReturn("group");
+		when(groupLayer.getTitle()).thenReturn("groupTitle");
+		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		
 		Service service = mock(Service.class);
@@ -297,5 +319,8 @@ public class GeoServerServiceTest {
 			assertTrue(layerNames.contains("service:layer" + i));
 		}
 		assertFalse(layerNames.contains("group"));
+		
+		assertEquals("groupTitle", getText("//wms:Layer[wms:Name = 'group']/wms:Title", getCapabilitiesResponse));
+		assertEquals("groupAbstract", getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", getCapabilitiesResponse));
 	}
 }

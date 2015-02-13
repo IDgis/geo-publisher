@@ -28,8 +28,8 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
-import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
+import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -96,10 +96,10 @@ public class ProvisionServiceTest {
 				public void apply(Object msg) throws Exception {
 					record(msg);
 					
-					if(msg instanceof EnsureGroup) {
+					if(msg instanceof EnsureGroupLayer) {
 						ensured();
 						getContext().become(layers(initiator, depth + 1), false);
-					} else if(msg instanceof EnsureLayer) {
+					} else if(msg instanceof EnsureFeatureTypeLayer) {
 						ensured();
 					} else if(msg instanceof FinishEnsure) {
 						ensured();
@@ -192,6 +192,8 @@ public class ProvisionServiceTest {
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer0");
+		when(datasetLayer.getTitle()).thenReturn("title0");
+		when(datasetLayer.getAbstract()).thenReturn("abstract0");
 		when(datasetLayer.getTableName()).thenReturn("tableName0");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
@@ -208,9 +210,11 @@ public class ProvisionServiceTest {
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("service0", workspace.getWorkspaceId());
 			})
-			.assertNext(EnsureLayer.class, featureType -> {
+			.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
 				assertEquals("layer0", featureType.getLayerId());
-				assertEquals("tableName0", featureType.getTableName());
+				assertEquals("title0", featureType.getTitle());
+				assertEquals("abstract0", featureType.getAbstract());
+				assertEquals("tableName0", featureType.getTableName());				
 			})
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)
@@ -236,6 +240,8 @@ public class ProvisionServiceTest {
 		when(groupLayer.isGroup()).thenReturn(true);
 		when(groupLayer.asGroup()).thenReturn(groupLayer);
 		when(groupLayer.getName()).thenReturn("group0");
+		when(groupLayer.getTitle()).thenReturn("groupTitle0");
+		when(groupLayer.getAbstract()).thenReturn("groupAbstract0");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		
 		Service service = mock(Service.class);
@@ -250,14 +256,16 @@ public class ProvisionServiceTest {
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("service0", workspace.getWorkspaceId());
 			})
-			.assertNext(EnsureGroup.class, group -> {
-				assertEquals("group0", group.getGroupId());
+			.assertNext(EnsureGroupLayer.class, group -> {
+				assertEquals("group0", group.getLayerId());
+				assertEquals("groupTitle0", group.getTitle());
+				assertEquals("groupAbstract0", group.getAbstract());
 			});
 		
 		for(int i = 0; i < numberOfLayers; i++) {
 			String featureTypeId = "layer" + i;
 			String tableName = "tableName" + i;
-			recording.assertNext(EnsureLayer.class, featureType -> {
+			recording.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
 				assertEquals(featureTypeId, featureType.getLayerId());
 				assertEquals(tableName, featureType.getTableName());
 			});

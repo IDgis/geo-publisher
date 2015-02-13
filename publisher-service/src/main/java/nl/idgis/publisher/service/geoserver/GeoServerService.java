@@ -24,8 +24,8 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
-import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
+import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -182,7 +182,7 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	private Procedure<Object> layers(
-			String groupName, 
+			EnsureGroupLayer groupLayer, 
 			ActorRef initiator, 
 			ServiceJobInfo serviceJob, 
 			ActorRef provisioningService, 
@@ -193,18 +193,18 @@ public class GeoServerService extends UntypedActor {
 		
 		List<String> groupLayers = new ArrayList<>();
 		
-		log.debug("-> group {}", groupName);
+		log.debug("-> group {}", groupLayer);
 		
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof EnsureGroup) {
+				if(msg instanceof EnsureGroupLayer) {
 					ensured(provisioningService);
-					getContext().become(layers(((EnsureGroup)msg).getGroupId(), initiator, serviceJob, 
+					getContext().become(layers(((EnsureGroupLayer)msg), initiator, serviceJob, 
 						provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
-				} else if(msg instanceof EnsureLayer) {
-					EnsureLayer ensureLayer = (EnsureLayer)msg;
+				} else if(msg instanceof EnsureFeatureTypeLayer) {
+					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
 					String layerId = ensureLayer.getLayerId();		
 					groupLayers.add(layerId);
@@ -212,37 +212,46 @@ public class GeoServerService extends UntypedActor {
 						log.debug("existing feature type found: " + layerId);
 						toSelf(new LayerEnsured(featureTypes.get(layerId)));
 						featureTypes.remove(layerId);
-					} else {
-						String tableName = ensureLayer.getTableName();						
-						FeatureType featureType = new FeatureType(layerId, tableName);
+					} else {					
+						FeatureType featureType = new FeatureType(
+							layerId, 
+							ensureLayer.getTableName(),
+							ensureLayer.getTitle(),
+							ensureLayer.getAbstract());
 						
 						toSelf(
 							rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
-								log.debug("feature type created: " + tableName);									
+								log.debug("feature type created: " + layerId);									
 								return new LayerEnsured(featureType);
 						}));
 					}
 				} else if(msg instanceof LayerEnsured) {
 					ensured(provisioningService);				
 				} else if(msg instanceof FinishEnsure) {
-					if(groupName == null) {
+					if(groupLayer == null) {
 						log.debug("ack");
 						
 						ensured(provisioningService);
 						initiator.tell(new Ack(), getSelf());
 						getContext().unbecome();
 					} else {
-						log.debug("unbecome group {}, groupLayers {}", groupName, groupLayers);
+						String groupLayerId = groupLayer.getLayerId();
 						
-						if(layerGroups.containsKey(groupName)) {  // TODO: also check layer group content
-							log.debug("existing layer group found: " + groupName);
-							toSelf(new GroupEnsured(layerGroups.get(groupName)));
-							layerGroups.remove(groupName);
+						log.debug("unbecome group {}, groupLayers {}", groupLayerId, groupLayers);
+						
+						if(layerGroups.containsKey(groupLayerId)) {  // TODO: also check layer group content
+							log.debug("existing layer group found: " + groupLayerId);
+							toSelf(new GroupEnsured(layerGroups.get(groupLayerId)));
+							layerGroups.remove(groupLayerId);
 						} else {
-							LayerGroup layerGroup = new LayerGroup(groupName, groupLayers);
+							LayerGroup layerGroup = new LayerGroup(
+								groupLayerId,
+								groupLayer.getTitle(),
+								groupLayer.getAbstract(),
+								groupLayers);
 							toSelf(
 								rest.addLayerGroup(workspace, layerGroup).thenApply(v -> {
-									log.debug("layer group created: " + groupName);									
+									log.debug("layer group created: " + groupLayerId);									
 									return new GroupEnsured(layerGroup);
 							}));
 						}

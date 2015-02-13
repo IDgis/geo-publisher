@@ -8,5 +8,5 @@ public interface Item {
 	
 	String getTitle();
 	
-	String getAbstr();	
+	String getAbstract();	
 }

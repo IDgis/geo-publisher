@@ -54,7 +54,7 @@ public abstract class AbstractLayer<T extends Item> implements Layer, Item, Seri
 	}
 
 	@Override
-	public String getAbstr() {
-		return item.getAbstr();
+	public String getAbstract() {
+		return item.getAbstract();
 	}	
 }

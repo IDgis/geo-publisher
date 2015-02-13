@@ -119,7 +119,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table")).get();
+		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
@@ -151,7 +151,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
 		
-		LayerGroup layerGroup = new LayerGroup("group", Arrays.asList("test"));
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList("test"));
 		service.addLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();

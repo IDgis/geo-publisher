@@ -300,6 +300,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					String name = (String)xpath.evaluate("/featureType/name/text()", document, XPathConstants.STRING);
 					String nativeName = (String)xpath.evaluate("/featureType/nativeName/text()", document, XPathConstants.STRING);
+					String title = (String)xpath.evaluate("/featureType/title/text()", document, XPathConstants.STRING);
+					String abstr = (String)xpath.evaluate("/featureType/abstract/text()", document, XPathConstants.STRING);
 					
 					List<Attribute> attributes = new ArrayList<>();
 					NodeList result = (NodeList)xpath.evaluate("/featureType/attributes/attribute", document, XPathConstants.NODESET);
@@ -310,7 +312,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						attributes.add(new Attribute(attributeName));
 					}
 					
-					future.complete(new FeatureType(name, nativeName, Collections.unmodifiableList(attributes)));					
+					future.complete(new FeatureType(name, nativeName, title, abstr, Collections.unmodifiableList(attributes)));					
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}
@@ -361,10 +363,22 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					streamWriter.writeCharacters(featureType.getName());
 				streamWriter.writeEndElement();
 				
-				String nativeName = featureType.getNativeName();
-				if(nativeName != null) {
-					streamWriter.writeStartElement("nativeName");
-						streamWriter.writeCharacters(nativeName);
+				String nativeName = featureType.getNativeName();				
+				streamWriter.writeStartElement("nativeName");
+					streamWriter.writeCharacters(nativeName);
+				streamWriter.writeEndElement();				
+				
+				String title = featureType.getTitle();
+				if(title != null) {
+					streamWriter.writeStartElement("title");
+						streamWriter.writeCharacters(title);
+					streamWriter.writeEndElement();
+				}
+				
+				String abstr = featureType.getAbstract();
+				if(abstr != null) {
+					streamWriter.writeStartElement("abstract");
+						streamWriter.writeCharacters(abstr);
 					streamWriter.writeEndElement();
 				}
 			streamWriter.writeEndElement();
@@ -418,7 +432,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						layers.add(n.getTextContent());
 					}
 					
-					future.complete(new LayerGroup(layerGroupName, layers));
+					String title = (String)xpath.evaluate("/layerGroup/title/text()", document, XPathConstants.STRING);
+					String abstr = (String)xpath.evaluate("/layerGroup/abstractTxt/text()", document, XPathConstants.STRING);
+					
+					future.complete(new LayerGroup(layerGroupName, title, abstr, Collections.unmodifiableList(layers)));
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}
@@ -476,6 +493,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				streamWriter.writeStartElement("mode");
 					streamWriter.writeCharacters("NAMED");
 				streamWriter.writeEndElement();
+				
+				String title = layerGroup.getTitle();
+				if(title != null) {
+					streamWriter.writeStartElement("title");
+						streamWriter.writeCharacters(title);
+					streamWriter.writeEndElement();
+				}
+				
+				String abstr = layerGroup.getAbstract();
+				if(abstr != null) {
+					streamWriter.writeStartElement("abstractTxt");
+						streamWriter.writeCharacters(abstr);
+					streamWriter.writeEndElement();
+				}
 				
 				streamWriter.writeStartElement("layers");
 				for(String layer : layerGroup.getLayers()) {

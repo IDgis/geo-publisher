@@ -4,20 +4,19 @@ import java.util.List;
 
 public class FeatureType {
 	
-	private final String name, nativeName;
+	private final String name, nativeName, title, abstr;
+	
 	private final List<Attribute> attributes;
 	
-	public FeatureType(String name) {
-		this(name, null);
+	public FeatureType(String name, String nativeName, String title, String abstr) {
+		this(name, nativeName, title, abstr, null);
 	}
 	
-	public FeatureType(String name, String nativeName) {
-		this(name, nativeName, null);
-	}
-	
-	public FeatureType(String name, String nativeName, List<Attribute> attributes) {
-		this.name = name;
+	public FeatureType(String name, String nativeName, String title, String abstr, List<Attribute> attributes) {
+		this.name = name;		
 		this.nativeName = nativeName;
+		this.title = title;
+		this.abstr = abstr;
 		this.attributes = attributes;
 	}
 
@@ -27,6 +26,14 @@ public class FeatureType {
 
 	public String getNativeName() {
 		return nativeName;
+	}
+	
+	public String getTitle() {
+		return title;
+	}
+	
+	public String getAbstract() {
+		return abstr;
 	}
 	
 	public List<Attribute> getAttributes() {
