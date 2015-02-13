@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,6 +36,7 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -230,8 +232,16 @@ public class GeoServerServiceTest {
 		return (NodeList)xpath.evaluate(expression, node, XPathConstants.NODESET);
 	}
 	
+	private void notExists(String expression, Node node) throws Exception {
+		NodeList nodeList = getNodeList(expression, node);
+		
+		if(nodeList.getLength() != 0) {
+			fail("result");
+		}
+	}
+	
 	private String getText(String expression, Node node) throws Exception {
-		NodeList nodeList = getNodeList(expression, node);		
+		NodeList nodeList = getNodeList(expression, node);
 		
 		if(nodeList.getLength() == 0) {
 			fail("no result");
@@ -242,6 +252,12 @@ public class GeoServerServiceTest {
 		}
 		
 		return nodeList.item(0).getTextContent();		
+	}
+	
+	private Document getCapabilities(String serviceName, String serviceType, String version) throws SAXException, IOException {
+		return documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/" 
+			+ serviceName + "/" + serviceType.toLowerCase() + "?request=GetCapabilities&service=" 
+				+ serviceType.toUpperCase() + "&version=" + version);		
 	}
 	
 	@Test
@@ -263,15 +279,13 @@ public class GeoServerServiceTest {
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document getFeatureResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");		
+		Document features = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");			
+		assertTrue(getText(features).contains("Hello, world!"));
 		
-		assertTrue(getText(getFeatureResponse).contains("Hello, world!"));
-		
-		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");
-
-		assertEquals("layer", getText("//wms:Layer/wms:Name", getCapabilitiesResponse));
-		assertEquals("title", getText("//wms:Layer[wms:Name = 'layer']/wms:Title", getCapabilitiesResponse));
-		assertEquals("abstract", getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", getCapabilitiesResponse));
+		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
+		assertEquals("title", getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
+		assertEquals("abstract", getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
 	}
 	
 	@Test
@@ -306,21 +320,51 @@ public class GeoServerServiceTest {
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/service/wms?request=GetCapabilities&service=WMS&version=1.3.0");
-		
-		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse));
+		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
 			assertTrue(layerNames.contains("service:layer" + i)); // TODO: figure out how to remove the workspace from the name
 		}
 		assertTrue(layerNames.contains("group"));
 		
-		layerNames = getText(getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", getCapabilitiesResponse));
+		layerNames = getText(getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
 			assertTrue(layerNames.contains("service:layer" + i));
 		}
 		assertFalse(layerNames.contains("group"));
 		
-		assertEquals("groupTitle", getText("//wms:Layer[wms:Name = 'group']/wms:Title", getCapabilitiesResponse));
-		assertEquals("groupAbstract", getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", getCapabilitiesResponse));
+		assertEquals("groupTitle", getText("//wms:Layer[wms:Name = 'group']/wms:Title", capabilities));
+		assertEquals("groupAbstract", getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", capabilities));
 	}
+	
+	@Test
+	public void testRemoveLayer() throws Exception{
+		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer");		
+		when(datasetLayer.getTableName()).thenReturn("myTable");
+		when(datasetLayer.isGroup()).thenReturn(false);
+		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		
+		sync.ask(serviceManager, new PutService("service", service), Ack.class);
+		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
+		
+		service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.emptyList());
+		
+		sync.ask(serviceManager, new PutService("service", service), Ack.class);
+		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		capabilities = getCapabilities("service", "WMS", "1.3.0");		
+		notExists("//wms:Layer/wms:Name", capabilities);
+	}	
 }

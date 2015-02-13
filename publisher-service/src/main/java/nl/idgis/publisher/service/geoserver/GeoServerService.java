@@ -144,31 +144,11 @@ public class GeoServerService extends UntypedActor {
 		provisioningService.tell(new Ensured(), getSelf());
 	}
 	
-	private static class LayerEnsured {
-		
-		public final FeatureType featureType;
-		
-		LayerEnsured(FeatureType featureType) {
-			this.featureType = featureType;
-		}
-		
-		FeatureType getFeatureType() {
-			return featureType; 
-		}
-	}
+	private static class LayerEnsured { }
 	
-	private static class GroupEnsured {
-		
-		public final LayerGroup layerGroup;
-		
-		GroupEnsured(LayerGroup layerGroup) {
-			this.layerGroup = layerGroup;
-		}
-		
-		LayerGroup getLayerGroup() {
-			return layerGroup;
-		}
-	}
+	private static class GroupEnsured { }
+	
+	private static class WorkspaceEnsured { }
 	
 	private Procedure<Object> layers(
 			ActorRef initiator, 
@@ -194,7 +174,7 @@ public class GeoServerService extends UntypedActor {
 		
 		List<String> groupLayerContent = new ArrayList<>();
 		
-		log.debug("-> group {}", groupLayer);
+		log.debug("-> layers {}", groupLayer == null ? "" : null);
 		
 		return new Procedure<Object>() {
 			
@@ -230,7 +210,7 @@ public class GeoServerService extends UntypedActor {
 				toSelf(
 					rest.postFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
 						log.debug("feature type created: " + layerId);									
-						return new LayerEnsured(featureType);
+						return new LayerEnsured();
 				}));
 			}
 			
@@ -245,7 +225,7 @@ public class GeoServerService extends UntypedActor {
 				toSelf(
 					rest.postLayerGroup(workspace, layerGroup).thenApply(v -> {
 						log.debug("layer group created: " + groupLayerId);									
-						return new GroupEnsured(layerGroup);
+						return new GroupEnsured();
 				}));
 			}
 
@@ -266,7 +246,7 @@ public class GeoServerService extends UntypedActor {
 						FeatureType featureType = featureTypes.get(layerId);
 						if(unchanged(featureType, ensureLayer)) {
 							log.debug("feature type unchanged");
-							toSelf(new LayerEnsured(featureType));
+							toSelf(new LayerEnsured());
 						} else {
 							log.debug("feature type changed");
 							postFeatureType(ensureLayer);
@@ -280,12 +260,20 @@ public class GeoServerService extends UntypedActor {
 					ensured(provisioningService);				
 				} else if(msg instanceof FinishEnsure) {
 					if(groupLayer == null) {
-						// TODO: remove no longer used items from workspace
-						log.debug("ack");
+						log.debug("deleting removed items");
 						
-						ensured(provisioningService);
-						initiator.tell(new Ack(), getSelf());
-						getContext().unbecome();
+						List<CompletableFuture<Void>> futures = new ArrayList<>();
+						for(FeatureType featureType : featureTypes.values()) {
+							log.debug("deleting feature type {}", featureType.getName());
+							futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
+						}
+						
+						for(LayerGroup layerGroup : layerGroups.values()) {
+							log.debug("deleting layer group {}", layerGroup.getName());
+							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
+						}
+						
+						toSelf(f.sequence(futures).thenApply(v -> new WorkspaceEnsured()));
 					} else {
 						String groupLayerId = groupLayer.getLayerId();
 						
@@ -297,7 +285,7 @@ public class GeoServerService extends UntypedActor {
 							LayerGroup layerGroup = layerGroups.get(groupLayerId);
 							if(unchanged(layerGroup)) {
 								log.debug("layer group unchanged");
-								toSelf(new GroupEnsured(layerGroups.get(groupLayerId)));
+								toSelf(new GroupEnsured());
 							} else {
 								log.debug("layer group changed");
 								postLayerGroup();
@@ -308,6 +296,12 @@ public class GeoServerService extends UntypedActor {
 							postLayerGroup();
 						}
 					}
+				} else if(msg instanceof WorkspaceEnsured) {
+					log.debug("ack");
+					
+					ensured(provisioningService);
+					initiator.tell(new Ack(), getSelf());
+					getContext().unbecome();
 				} else if(msg instanceof GroupEnsured) {
 					ensured(provisioningService);
 					getContext().unbecome();
@@ -318,7 +312,7 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private static class WorkspaceEnsured {
+	private static class EnsuringWorkspace {
 		
 		private final Workspace workspace;
 		
@@ -328,11 +322,11 @@ public class GeoServerService extends UntypedActor {
 		
 		private final Map<String, LayerGroup> layerGroups;
 		
-		WorkspaceEnsured(Workspace workspace, DataStore dataStore) {
+		EnsuringWorkspace(Workspace workspace, DataStore dataStore) {
 			this(workspace, dataStore, new HashMap<>(), new HashMap<>());
 		}
 		
-		WorkspaceEnsured(Workspace workspace, DataStore dataStore, Map<String, FeatureType> featureTypes, Map<String, LayerGroup> layerGroups) {
+		EnsuringWorkspace(Workspace workspace, DataStore dataStore, Map<String, FeatureType> featureTypes, Map<String, LayerGroup> layerGroups) {
 			this.workspace = workspace;
 			this.dataStore = dataStore;
 			this.featureTypes = featureTypes;
@@ -397,7 +391,7 @@ public class GeoServerService extends UntypedActor {
 														layerGroupsMap.put(layerGroup.getName(), layerGroup);
 													}
 													
-													return new WorkspaceEnsured(workspace, dataStore, featureTypesMap, layerGroupsMap);
+													return new EnsuringWorkspace(workspace, dataStore, featureTypesMap, layerGroupsMap);
 												}));
 											}
 										}
@@ -413,12 +407,12 @@ public class GeoServerService extends UntypedActor {
 								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
 								return rest.postDataStore(workspace, dataStore).thenApply(vDataStore -> {									
 									log.debug("data store created: publisher-geometry");									
-									return new WorkspaceEnsured(workspace, dataStore);
+									return new EnsuringWorkspace(workspace, dataStore);
 								});
 							});
 						}));					
-				} else if(msg instanceof WorkspaceEnsured) {
-					WorkspaceEnsured workspaceEnsured = (WorkspaceEnsured)msg;
+				} else if(msg instanceof EnsuringWorkspace) {
+					EnsuringWorkspace workspaceEnsured = (EnsuringWorkspace)msg;
 					
 					ensured(provisioningService);
 					
@@ -426,7 +420,7 @@ public class GeoServerService extends UntypedActor {
 					DataStore dataStore = workspaceEnsured.getDataStore();
 					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
-					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
+					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups));
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}
