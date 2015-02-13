@@ -117,6 +117,11 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
+	private void toSelf(Object msg) {
+		ActorRef self = getSelf();
+		self.tell(msg, self);
+	}
+	
 	private void toSelf(CompletableFuture<?> future) {
 		ActorRef self = getSelf();
 		
@@ -141,9 +146,9 @@ public class GeoServerService extends UntypedActor {
 			ActorRef provisioningService, 
 			Workspace workspace, 
 			DataStore dataStore,
-			CompletableFuture<Iterable<FeatureType>> featureTypesFuture) {
+			Map<String, FeatureType> featureTypes) {
 		
-		return layers(0, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypesFuture);
+		return layers(0, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes);
 	}
 	
 	private Procedure<Object> layers(
@@ -153,7 +158,7 @@ public class GeoServerService extends UntypedActor {
 			ActorRef provisioningService, 
 			Workspace workspace, 
 			DataStore dataStore,
-			CompletableFuture<Iterable<FeatureType>> featureTypesFuture) {
+			Map<String, FeatureType> featureTypes) {
 		
 		log.debug("-> group {}", depth);
 		
@@ -164,31 +169,25 @@ public class GeoServerService extends UntypedActor {
 				if(msg instanceof EnsureGroup) {
 					ensured(provisioningService);
 					getContext().become(layers(depth + 1, initiator, serviceJob, 
-						provisioningService, workspace, dataStore, featureTypesFuture), false);
+						provisioningService, workspace, dataStore, featureTypes), false);
 				} else if(msg instanceof EnsureLayer) {
 					EnsureLayer ensureLayer = (EnsureLayer)msg;
 					
-					String tableName = ensureLayer.getTableName();
-					String layerId = ensureLayer.getLayerId();
-					
-					toSelf(
-						featureTypesFuture.thenCompose(featureTypes -> {
-							for(FeatureType featureType : featureTypes) {								
-								if(layerId.equals(featureType.getName())
-									&& tableName.equals(featureType.getNativeName())) {									
-									log.debug("existing feature type found: " + layerId);									
-									return f.successful(new LayerEnsured(featureType));
-								}
-							}
-							
-							FeatureType featureType = new FeatureType(layerId, tableName);
-							return rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
+					String layerId = ensureLayer.getLayerId();					
+					if(featureTypes.containsKey(layerId)) {
+						toSelf(new LayerEnsured(featureTypes.get(layerId)));
+					} else {
+						String tableName = ensureLayer.getTableName();						
+						FeatureType featureType = new FeatureType(layerId, tableName);
+						
+						toSelf(
+							rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
 								log.debug("feature type created: " + tableName);									
 								return new LayerEnsured(featureType);								
-							});
 						}));
+					}
 				} else if(msg instanceof LayerEnsured) {
-						ensured(provisioningService);				
+					ensured(provisioningService);				
 				} else if(msg instanceof FinishEnsure) {
 					ensured(provisioningService);
 					
@@ -226,9 +225,16 @@ public class GeoServerService extends UntypedActor {
 		
 		private final DataStore dataStore;
 		
+		private final Map<String, FeatureType> featureTypes;
+		
 		WorkspaceEnsured(Workspace workspace, DataStore dataStore) {
+			this(workspace, dataStore, new HashMap<>());
+		}
+		
+		WorkspaceEnsured(Workspace workspace, DataStore dataStore, Map<String, FeatureType> featureTypes) {
 			this.workspace = workspace;
 			this.dataStore = dataStore;
+			this.featureTypes = featureTypes;
 		} 
 		
 		Workspace getWorkspace() {
@@ -237,6 +243,10 @@ public class GeoServerService extends UntypedActor {
 		
 		DataStore getDataStore() {
 			return dataStore;
+		}
+		
+		Map<String, FeatureType> getFeatureTypes() {
+			return featureTypes;
 		}
 	};
 	
@@ -256,18 +266,29 @@ public class GeoServerService extends UntypedActor {
 								if(workspace.getName().equals(workspaceId)) {
 									log.debug("existing workspace found: {}", workspaceId);
 									
-									return rest.getDataStores(workspace).thenCompose(dataStoreFutures ->
-										f.sequence(dataStoreFutures).thenApply(dataStores -> {
-											for(DataStore dataStore : dataStores) {
-												if("publisher-geometry".equals(dataStore.getName())) {
-													log.debug("existing data store found: publisher-geometry");
+									return rest.getDataStores(workspace)
+										.thenCompose(f::sequence)
+										.thenCompose(dataStores -> {
+										for(DataStore dataStore : dataStores) {
+											if("publisher-geometry".equals(dataStore.getName())) {
+												log.debug("existing data store found: publisher-geometry");
+												
+												return rest.getFeatureTypes(workspace, dataStore)
+													.thenCompose(f::sequence)
+													.thenApply(featureTypes -> {
+													Map<String, FeatureType> featureTypesMap = new HashMap<>();
 													
-													return new WorkspaceEnsured(workspace, dataStore);
-												}
+													for(FeatureType featureType : featureTypes) {
+														featureTypesMap.put(featureType.getName(), featureType);
+													}
+													
+													return new WorkspaceEnsured(workspace, dataStore, featureTypesMap);
+												});
 											}
-											
-											throw new IllegalStateException("publisher-geometry data store is missing");
-										}));
+										}
+										
+										throw new IllegalStateException("publisher-geometry data store is missing");
+									});
 								}
 							}
 							
@@ -278,20 +299,18 @@ public class GeoServerService extends UntypedActor {
 								return rest.addDataStore(workspace, dataStore).thenApply(vDataStore -> {									
 									log.debug("data store created: publisher-geometry");									
 									return new WorkspaceEnsured(workspace, dataStore);
-								});								
+								});
 							});
 						}));					
 				} else if(msg instanceof WorkspaceEnsured) {
-					WorkspaceEnsured provisionRoot = (WorkspaceEnsured)msg;
+					WorkspaceEnsured workspaceEnsured = (WorkspaceEnsured)msg;
 					
 					ensured(provisioningService);
 					
-					Workspace workspace = provisionRoot.getWorkspace();
-					DataStore dataStore = provisionRoot.getDataStore();
-					
-					CompletableFuture<Iterable<FeatureType>> featureTypeFutures = rest.getFeatureTypes(workspace, dataStore).thenCompose(f::sequence);
-					
-					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypeFutures), false);
+					Workspace workspace = workspaceEnsured.getWorkspace();
+					DataStore dataStore = workspaceEnsured.getDataStore();
+					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();					
+					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes), false);
 				} else {
 					elseProvisioning(msg, serviceJob);
 				}
