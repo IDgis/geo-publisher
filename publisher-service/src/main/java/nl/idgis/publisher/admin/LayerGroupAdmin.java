@@ -21,12 +21,16 @@ import com.mysema.query.types.ConstantImpl;
 
 public class LayerGroupAdmin extends AbstractAdmin {
 	
-	public LayerGroupAdmin(ActorRef database) {
+	private final ActorRef serviceManager;
+	
+	public LayerGroupAdmin(ActorRef database, ActorRef serviceManager) {
 		super(database); 
+		
+		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(LayerGroupAdmin.class, database);
+	public static Props props(ActorRef database, ActorRef serviceManager) {
+		return Props.create(LayerGroupAdmin.class, database, serviceManager);
 	}
 
 	@Override

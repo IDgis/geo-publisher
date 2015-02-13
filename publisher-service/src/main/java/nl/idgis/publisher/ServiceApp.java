@@ -179,7 +179,7 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, service, jobSystem), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, service, jobSystem, serviceManager), "admin");
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
