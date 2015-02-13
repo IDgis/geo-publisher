@@ -4,12 +4,16 @@ import static models.Domain.from;
 
 import java.util.UUID;
 
+import controllers.Layers.LayerForm;
 import models.Domain;
 import models.Domain.Function;
+import models.Domain.Function2;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -32,18 +36,24 @@ public class Services extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
-		 return Promise.promise(new F.Function0<Result>() {
-             @Override
-             public Result apply() throws Throwable {
-                 return ok (form.render (serviceForm, true));
-             }
-         });
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		return from (database)
+				.list (Category.class)
+				.execute (new Function<Page<Category>, Result> () {
+
+					@Override
+					public Result apply (final Page<Category> categories) throws Throwable {
+						return ok (form.render (serviceForm, true, categories));
+					}
+				});
 	}
+	
 	
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 		Logger.debug ("submit Service: " + form.field("name").value());
+		Logger.debug ("Service cateorie: " + form.field("category").value());
 		Logger.debug ("Form: "+ form);
 		// validation
 		if (form.field("name").value().length() == 1 ) 
@@ -102,17 +112,18 @@ public class Services extends Controller {
 		
 		return from (database)
 			.get (Service.class, serviceId)
-			.execute (new Function<Service, Result> () {
+			.list(Category.class)
+			.execute (new Function2<Service, Page<Category>, Result> () {
 
 				@Override
-				public Result apply (final Service service) throws Throwable {
+				public Result apply (final Service service, final Page<Category> categories) throws Throwable {
 					final Form<ServiceForm> serviceForm = Form
 							.form (ServiceForm.class)
 							.fill (new ServiceForm (service));
 					
 					Logger.debug ("Edit serviceForm: " + serviceForm);						
 
-					return ok (form.render (serviceForm, false));
+					return ok (form.render (serviceForm, false, categories));
 				}
 			});
 	}
@@ -138,6 +149,7 @@ public class Services extends Controller {
 
 		@Constraints.Required
 		private String id;
+		private String categoryId = "b7";
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
@@ -157,6 +169,7 @@ public class Services extends Controller {
 		public ServiceForm (final Service service){
 			this.id = service.id();
 			this.name = service.name();
+			this.categoryId = "b7";
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
@@ -176,6 +189,14 @@ public class Services extends Controller {
 			this.id = id;
 		}
 
+
+		public String getCategoryId() {
+			return categoryId;
+		}
+
+		public void setCategoryId(String categoryId) {
+			this.categoryId = categoryId;
+		}
 
 		public String getName() {
 			return name;
