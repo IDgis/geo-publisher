@@ -13,17 +13,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
 import org.junit.After;
 import org.junit.Before;
@@ -32,6 +33,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -112,8 +115,43 @@ public class GeoServerServiceTest {
 	
 	SyncAskHelper sync;
 	
+	DocumentBuilder documentBuilder;
+		
+	XPath xpath;
+	
 	@Before
-	public void setUp() throws Exception {
+	public void xml() throws Exception {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		documentBuilder = dbf.newDocumentBuilder();
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("wms", "http://www.opengis.net/wms");
+		
+		XPathFactory xf = XPathFactory.newInstance();
+		xpath = xf.newXPath();
+		xpath.setNamespaceContext(new NamespaceContext() {
+
+			@Override
+			public String getNamespaceURI(String prefix) {
+				return namespaces.get(prefix);
+			}
+
+			@Override
+			public String getPrefix(String namespaceURI) {
+				return namespaces.inverse().get(namespaceURI);
+			}
+
+			@Override
+			public Iterator<?> getPrefixes(String namespaceURI) {
+				return Arrays.asList(getPrefix(namespaceURI)).iterator();
+			}
+			
+		});
+	}
+	
+	@Before
+	public void actors() throws Exception {
 		testServers = new TestServers();
 		testServers.start();
 		
@@ -137,7 +175,19 @@ public class GeoServerServiceTest {
 		
 		geoServerService = actorSystem.actorOf(GeoServerService.props(serviceManager, geoserverConfig, databaseConfig));
 		
-		sync = new SyncAskHelper(actorSystem, Timeout.apply(1, TimeUnit.MINUTES));
+		sync = new SyncAskHelper(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
+		
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		
+		Statement stmt = connection.createStatement();
+		stmt.execute("create schema \"staging_data\"");
+		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
+		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
+		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
+		
+		stmt.close();
+		
+		connection.close();
 	}
 	
 	@After
@@ -163,10 +213,18 @@ public class GeoServerServiceTest {
 		}
 	}
 	
-	private Set<String> getText(Document d) {
+	private Set<String> getText(Node node) {
+		return getText(node.getChildNodes());
+	}
+	
+	private Set<String> getText(NodeList nodeList) {
 		Set<String> retval = new HashSet<>();		
-		processNodeList(d.getChildNodes(), retval);		
+		processNodeList(nodeList, retval);		
 		return retval;
+	}
+	
+	private NodeList getNodeList(String expression, Node node) throws Exception {
+		return (NodeList)xpath.evaluate(expression, node, XPathConstants.NODESET);		
 	}
 	
 	@Test
@@ -184,33 +242,15 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
-		
-		Statement stmt = connection.createStatement();
-		stmt.execute("create schema \"staging_data\"");
-		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
-		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
-		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
-		
-		stmt.close();
-		
-		connection.close();
-		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
-		
-		Document getFeatureResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");
-		t.transform(new DOMSource(getFeatureResponse), new StreamResult(System.out));
+		Document getFeatureResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");		
 		
 		assertTrue(getText(getFeatureResponse).contains("Hello, world!"));
 		
-		Document getCapabilitiesResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");
-		t.transform(new DOMSource(getCapabilitiesResponse), new StreamResult(System.out));
+		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");
+
+		assertTrue(getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse)).contains("service:layer"));
 	}
 	
 	@Test
@@ -223,7 +263,7 @@ public class GeoServerServiceTest {
 			when(layer.isGroup()).thenReturn(false);
 			when(layer.asDataset()).thenReturn(layer);
 			when(layer.getName()).thenReturn("layer" + i);
-			when(layer.getTableName()).thenReturn("tableName" + i);
+			when(layer.getTableName()).thenReturn("myTable");
 			
 			layers.add(layer);
 		}
@@ -231,14 +271,23 @@ public class GeoServerServiceTest {
 		GroupLayer groupLayer = mock(GroupLayer.class);
 		when(groupLayer.isGroup()).thenReturn(true);
 		when(groupLayer.asGroup()).thenReturn(groupLayer);
-		when(groupLayer.getName()).thenReturn("group0");
+		when(groupLayer.getName()).thenReturn("group");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		
 		Service service = mock(Service.class);
-		when(service.getId()).thenReturn("service0");
+		when(service.getId()).thenReturn("service");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayer));
 		
-		//sync.ask(geoServerService, service, Ack.class);
+		sync.ask(serviceManager, new PutService("service", service), Ack.class);
+		
+		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		Document getCapabilitiesResponse = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");		
+		
+		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", getCapabilitiesResponse));
+		for(int i = 0; i < numberOfLayers; i++) {
+			assertTrue(layerNames.contains("service:layer" + i));
+		}
 	}
 }

@@ -174,8 +174,9 @@ public class GeoServerService extends UntypedActor {
 					EnsureLayer ensureLayer = (EnsureLayer)msg;
 					
 					String layerId = ensureLayer.getLayerId();					
-					if(featureTypes.containsKey(layerId)) {
+					if(featureTypes.containsKey(layerId)) { // TODO: also check feature type content
 						toSelf(new LayerEnsured(featureTypes.get(layerId)));
+						featureTypes.remove(layerId);
 					} else {
 						String tableName = ensureLayer.getTableName();						
 						FeatureType featureType = new FeatureType(layerId, tableName);
