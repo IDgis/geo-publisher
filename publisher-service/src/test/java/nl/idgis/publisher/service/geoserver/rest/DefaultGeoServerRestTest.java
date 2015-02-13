@@ -76,7 +76,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(workspaces);
 		assertTrue(workspaces.isEmpty());
 		
-		service.addWorkspace(new Workspace("testWorkspace")).get();
+		service.postWorkspace(new Workspace("testWorkspace")).get();
 		
 		workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
@@ -98,7 +98,7 @@ public class DefaultGeoServerRestTest {
 		connectionParameters.put("passwd", "postgres");
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("schema", "public");
-		service.addDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get();
+		service.postDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get();
 		
 		dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
@@ -119,7 +119,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		service.addFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
+		service.postFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
@@ -152,7 +152,7 @@ public class DefaultGeoServerRestTest {
 		assertFalse(layerGroups.iterator().hasNext());
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList("test"));
-		service.addLayerGroup(workspace, layerGroup).get();
+		service.postLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
 		assertNotNull(layerGroups);

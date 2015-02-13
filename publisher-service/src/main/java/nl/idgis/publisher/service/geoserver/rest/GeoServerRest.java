@@ -6,13 +6,13 @@ import java.util.concurrent.CompletableFuture;
 
 public interface GeoServerRest extends Closeable {
 
-	CompletableFuture<Void> addDataStore(Workspace workspace, DataStore dataStore);
+	CompletableFuture<Void> postDataStore(Workspace workspace, DataStore dataStore);
 
-	CompletableFuture<Void> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
+	CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
 	
-	CompletableFuture<Void> addLayerGroup(Workspace workspace, LayerGroup layerGroup);
+	CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup);
 
-	CompletableFuture<Void> addWorkspace(Workspace workspace);
+	CompletableFuture<Void> postWorkspace(Workspace workspace);
 
 	CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace);
 

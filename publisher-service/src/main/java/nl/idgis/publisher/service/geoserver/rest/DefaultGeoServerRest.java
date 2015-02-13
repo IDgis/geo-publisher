@@ -115,7 +115,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addWorkspace(Workspace workspace) {
+	public CompletableFuture<Void> postWorkspace(Workspace workspace) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
@@ -242,7 +242,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<Void> addDataStore(Workspace workspace, DataStore dataStore) {
+	public CompletableFuture<Void> postDataStore(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
@@ -350,7 +350,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+	public CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
@@ -477,7 +477,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> addLayerGroup(Workspace workspace, LayerGroup layerGroup) {
+	public CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		try {
