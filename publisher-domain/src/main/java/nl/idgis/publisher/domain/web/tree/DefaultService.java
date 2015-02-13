@@ -3,7 +3,6 @@ package nl.idgis.publisher.domain.web.tree;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class DefaultService implements Service, Serializable {	
 
@@ -15,7 +14,7 @@ public class DefaultService implements Service, Serializable {
 	
 	public DefaultService(String id, GroupNode root, List<DatasetNode> datasets, List<GroupNode> groups, Map<String, String> structure) {
 		this.id = id;
-		this.root = new DefaultGroupLayer(root, toMap(datasets), toMap(groups), structure);
+		this.root = new DefaultGroupLayer(root, datasets, groups, structure);
 	}
 	
 	@Override
@@ -26,13 +25,6 @@ public class DefaultService implements Service, Serializable {
 	@Override
 	public String getRootId() {
 		return root.getId();
-	}
-	
-	private <T extends Node> Map<String, T> toMap(List<T> list) {
-		return list.stream()
-			.collect(Collectors.toMap(
-				item -> item.getId(), 
-				item -> item));
 	}
 
 	@Override

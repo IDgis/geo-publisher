@@ -14,11 +14,22 @@ public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLaye
 	
 	private final Map<String, String> structure;
 	
-	public DefaultGroupLayer(Group group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, Map<String, String> structure) {
+	public DefaultGroupLayer(Group group, List<DatasetNode> datasets, List<GroupNode> groups, Map<String, String> structure) {
+		this(group, toMap(datasets), toMap(groups), structure);
+	}
+	
+	private DefaultGroupLayer(Group group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, Map<String, String> structure) {
 		super(group, true);
 		this.datasets = datasets;
 		this.groups = groups;
 		this.structure = structure;
+	}
+	
+	private static <T extends Node> Map<String, T> toMap(List<T> list) {
+		return list.stream()
+			.collect(Collectors.toMap(
+				item -> item.getId(), 
+				item -> item));
 	}
 	
 	private Layer asLayer(String id) {
