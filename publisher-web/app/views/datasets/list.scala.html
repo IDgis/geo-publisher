@@ -112,13 +112,13 @@
 						@for(dataset <- datasets.values) {
 						<div class="list-group-item js-dataset-item@if(!dataset.activeNotifications.isEmpty){ list-group-item-warning}" data-dataset-id="@dataset.id" data-dataset-name="@dataset.name">
 							<div class="row">
-								<div class="col-md-5">
+								<div class="col-md-4">
 									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning">@dataset.name</a></h4>
 									
 									@categoryRefLink(dataset.category, "label label-info")
 									<span class="label label-default">@Domain.message("web.application.page.datasets.list.sourcedatasetref"): @dataset.sourceDataset.name</span>
 								</div>
-								<div class="col-md-5">
+								<div class="col-md-4">
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
 											<p>
@@ -136,6 +136,9 @@
 											</div>
 										</div>
 									</div>
+								</div>
+								<div class="col-md-2">
+									<a href="@routes.Layers.create(dataset.id)" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
 								</div>
 								<div class="col-md-2">
 									<div class="btn-group pull-right">

@@ -16,6 +16,7 @@ import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
@@ -50,7 +51,7 @@ public class Layers extends Controller {
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
-						Logger.debug ("layerStyles: " + layerForm.get().styleList.size());
+						Logger.debug ("layerStyles: " + layerForm.get().styles);
 						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, ""));
 					}
 				});
@@ -61,6 +62,17 @@ public class Layers extends Controller {
 		final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
 		Logger.debug ("submit Layer: " + form.field("name").value());
 		Logger.debug ("LayerForm from request: " + form.get());	
+		
+		// validation
+		if (form.field("name").value().length() == 1 ) 
+			form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
+		Logger.debug ("LayerForm styles length: " + form.field("styles").value().length());	
+		
+		if (form.field("styles").value().length() == 0 ) 
+			form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
+		if (form.hasErrors ()) {
+			return renderCreateForm (form);
+		}
 		
 		// parse the list of (style.name, style.id) from the json string in the view form
 		String layerStyleList = form.get().getStyles();
@@ -73,13 +85,6 @@ public class Layers extends Controller {
 			styleIds.add (n.get (1).asText ());
 		}
 		Logger.debug ("layerStyleList: " + styleIds.toString ());
-		
-		// validation
-		if (form.field("name").value().length() == 1 ) 
-			form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
-		if (form.hasErrors ()) {
-			return renderCreateForm (form);
-		}
 		
 		final LayerForm layerForm = form.get ();
 		final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
@@ -129,14 +134,33 @@ public class Layers extends Controller {
 			});
 	}
 
-	public static Promise<Result> create () {
-		Logger.debug ("create Layer");
+	/**
+	 * Create a new layer given a dataset id.
+	 * @param datasetId
+	 * @return
+	 */
+	public static Promise<Result> create (String datasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		Logger.debug ("create Layer with dataset id: " + datasetId);
+		
 		LayerForm layerForm = new LayerForm ();
 		// The list of styles for this layer is inititially empty
 		layerForm.setStyleList(new ArrayList<Style>());
-		final Form<LayerForm> formLayerForm = Form.form (LayerForm.class).fill (layerForm );
 		
-		return renderCreateForm (formLayerForm);
+		return from (database)
+				.get (Dataset.class, datasetId)
+				.executeFlat (new Function<Dataset, Promise<Result>> () {
+					@Override
+					public Promise<Result> apply (final Dataset dataset) throws Throwable {
+						Logger.debug ("dataset: " + dataset.name());
+//						return ok (list.render (layers));
+						layerForm.setDatasetName(dataset.name());
+						layerForm.setName(dataset.name().replace(' ', '_'));						
+						final Form<LayerForm> formLayerForm = Form.form (LayerForm.class).fill (layerForm );
+						return renderCreateForm (formLayerForm);
+					}
+				});
 	}
 	
 	public static Promise<Result> edit (final String layerId) {
@@ -206,6 +230,7 @@ public class Layers extends Controller {
 		private String abstractText;
 		private String keywords;
 		private Boolean published = false;
+		private String datasetName;
 		/**
 		 * List of all styles in the system
 		 */
@@ -292,6 +317,14 @@ public class Layers extends Controller {
 
 		public void setStyles(String styles) {
 			this.styles = styles;
+		}
+
+		public String getDatasetName() {
+			return datasetName;
+		}
+
+		public void setDatasetName(String datasetName) {
+			this.datasetName = datasetName;
 		}
 
 		@Override

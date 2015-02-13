@@ -182,7 +182,7 @@ web.application.page.datasets.list.button.refresh=Verversen uit brondata
 web.application.page.datasets.list.button.remove=Verwijderen 
 
 web.application.page.datasets.list.button.newdataset=Maak een nieuwe dataset ...
-web.application.page.datasets.list.button.newlayer=Maak een nieuwe laag
+web.application.page.datasets.list.button.newlayer=Nieuwe laag
 web.application.page.datasets.list.search.placeholder=Datasetnaam ...
 web.application.page.datasets.list.filtercategorie.title=Categoriën
 web.application.page.datasets.list.status.title=Status
@@ -337,6 +337,7 @@ web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
 web.application.page.layers.list.published=gepubliceerd
 web.application.page.layers.list.notpublished=niet gepubliceerd
+web.application.page.layers.list.button.create=Maak een nieuwe laag met een dataset
 
 
 web.application.page.layers.form.title=Laag formulier
@@ -370,6 +371,8 @@ web.application.page.layers.form.field.groups.label=Zit in de groep(en)
 
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 web.application.page.layers.form.field.styles.default=Default stijl
+web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen
+web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 1 stijl worden toegevoegd
 
 # Groups
 web.application.page.groups.name=Groep
