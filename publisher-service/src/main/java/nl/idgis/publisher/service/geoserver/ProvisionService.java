@@ -13,7 +13,7 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
+import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
@@ -72,7 +72,7 @@ public class ProvisionService extends UntypedActor {
 							getContext().parent().tell(new EnsureGroup(layer.getName()), getSelf());							
 							getContext().become(layers(layer.asGroup().getLayers(), depth + 1), false);
 						} else {
-							getContext().parent().tell(new EnsureFeatureType(layer.getName(), layer.asDataset().getTableName()), getSelf());
+							getContext().parent().tell(new EnsureLayer(layer.getName(), layer.asDataset().getTableName()), getSelf());
 						}
 					} else {
 						log.debug("unbecome {}", depth);

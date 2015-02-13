@@ -22,7 +22,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
+import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
@@ -149,7 +149,7 @@ public class GeoServerService extends UntypedActor {
 				if(msg instanceof EnsureGroup) {
 					ensured(provisioningService);
 					getContext().become(group(depth + 1, serviceJob, provisioningService), false);
-				} else if(msg instanceof EnsureFeatureType) {
+				} else if(msg instanceof EnsureLayer) {
 					ensured(provisioningService);
 				} else if(msg instanceof FinishEnsure) {
 					ensured(provisioningService);
@@ -163,11 +163,11 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private static class FeatureTypeEnsured {
+	private static class LayerEnsured {
 		
 		public final FeatureType featureType;
 		
-		FeatureTypeEnsured(FeatureType featureType) {
+		LayerEnsured(FeatureType featureType) {
 			this.featureType = featureType;
 		}
 		
@@ -194,23 +194,26 @@ public class GeoServerService extends UntypedActor {
 				if(msg instanceof EnsureGroup) {
 					ensured(provisioningService);
 					getContext().become(group(serviceJob, provisioningService), false);
-				} else if(msg instanceof EnsureFeatureType) {
-					String tableName = ((EnsureFeatureType) msg).getTableName();
+				} else if(msg instanceof EnsureLayer) {
+					EnsureLayer ensureLayer = (EnsureLayer)msg;
+					
+					String tableName = ensureLayer.getTableName();
+					String layerId = ensureLayer.getLayerId();
 					
 					toSelf(
 						featureTypesFuture.thenCompose(featureTypes -> {
-							for(FeatureType featureType : featureTypes) {
-								if(tableName.equals(featureType.getNativeName())) {
-									log.debug("existing feature type found: " + tableName);
-									
-									return f.successful(new FeatureTypeEnsured(featureType));
+							for(FeatureType featureType : featureTypes) {								
+								if(layerId.equals(featureType.getName())
+									&& tableName.equals(featureType.getNativeName())) {									
+									log.debug("existing feature type found: " + layerId);									
+									return f.successful(new LayerEnsured(featureType));
 								}
 							}
 							
-							FeatureType featureType = new FeatureType(tableName);
+							FeatureType featureType = new FeatureType(layerId, tableName);
 							return rest.addFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
 								log.debug("feature type created: " + tableName);									
-								return new FeatureTypeEnsured(featureType);								
+								return new LayerEnsured(featureType);								
 							});
 						}));
 				} else if(msg instanceof FinishEnsure) {
@@ -218,8 +221,8 @@ public class GeoServerService extends UntypedActor {
 					
 					log.debug("ack job");
 					initiator.tell(new Ack(), getSelf());
-					getContext().unbecome();					
-				} else if(msg instanceof FeatureTypeEnsured) {
+					getContext().unbecome();
+				} else if(msg instanceof LayerEnsured) {
 					ensured(provisioningService);
 				} else {
 					elseProvisioning(msg, serviceJob);

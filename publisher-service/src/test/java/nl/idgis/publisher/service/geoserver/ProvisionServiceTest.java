@@ -28,7 +28,7 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureType;
+import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroup;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
@@ -99,7 +99,7 @@ public class ProvisionServiceTest {
 					if(msg instanceof EnsureGroup) {
 						ensured();
 						getContext().become(group(depth + 1), false);
-					} else if(msg instanceof EnsureFeatureType) {
+					} else if(msg instanceof EnsureLayer) {
 						ensured();
 					} else if(msg instanceof FinishEnsure) {
 						ensured();
@@ -125,7 +125,7 @@ public class ProvisionServiceTest {
 					if(msg instanceof EnsureGroup) {
 						ensured();
 						getContext().become(group(), false);
-					} else if(msg instanceof EnsureFeatureType) {
+					} else if(msg instanceof EnsureLayer) {
 						ensured();
 					} else if(msg instanceof FinishEnsure) {
 						ensured();
@@ -228,8 +228,8 @@ public class ProvisionServiceTest {
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("service0", workspace.getWorkspaceId());
 			})
-			.assertNext(EnsureFeatureType.class, featureType -> {
-				assertEquals("layer0", featureType.getFeatureTypeId());
+			.assertNext(EnsureLayer.class, featureType -> {
+				assertEquals("layer0", featureType.getLayerId());
 				assertEquals("tableName0", featureType.getTableName());
 			})
 			.assertNext(FinishEnsure.class)
@@ -277,8 +277,8 @@ public class ProvisionServiceTest {
 		for(int i = 0; i < numberOfLayers; i++) {
 			String featureTypeId = "layer" + i;
 			String tableName = "tableName" + i;
-			recording.assertNext(EnsureFeatureType.class, featureType -> {
-				assertEquals(featureTypeId, featureType.getFeatureTypeId());
+			recording.assertNext(EnsureLayer.class, featureType -> {
+				assertEquals(featureTypeId, featureType.getLayerId());
 				assertEquals(tableName, featureType.getTableName());
 			});
 		}			

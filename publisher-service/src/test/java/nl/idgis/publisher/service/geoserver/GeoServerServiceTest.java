@@ -8,10 +8,12 @@ import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +48,8 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.DatasetLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GroupLayer;
+import nl.idgis.publisher.service.manager.messages.Layer;
 import nl.idgis.publisher.service.manager.messages.Service;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
@@ -200,12 +204,41 @@ public class GeoServerServiceTest {
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();
 		
-		Document getFeatureResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=myTable");
+		Document getFeatureResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");
 		t.transform(new DOMSource(getFeatureResponse), new StreamResult(System.out));
 		
 		assertTrue(getText(getFeatureResponse).contains("Hello, world!"));
 		
 		Document getCapabilitiesResponse = db.parse("http://localhost:" + TestServers.JETTY_PORT + "/wms/service?request=GetCapabilities&service=WMS&version=1.3.0");
 		t.transform(new DOMSource(getCapabilitiesResponse), new StreamResult(System.out));
+	}
+	
+	@Test
+	public void testGroupLayer() throws Exception {
+		final int numberOfLayers = 10;
+		
+		List<Layer> layers = new ArrayList<>();
+		for(int i = 0; i < numberOfLayers; i++) {
+			DatasetLayer layer = mock(DatasetLayer.class);
+			when(layer.isGroup()).thenReturn(false);
+			when(layer.asDataset()).thenReturn(layer);
+			when(layer.getName()).thenReturn("layer" + i);
+			when(layer.getTableName()).thenReturn("tableName" + i);
+			
+			layers.add(layer);
+		}
+		
+		GroupLayer groupLayer = mock(GroupLayer.class);
+		when(groupLayer.isGroup()).thenReturn(true);
+		when(groupLayer.asGroup()).thenReturn(groupLayer);
+		when(groupLayer.getName()).thenReturn("group0");
+		when(groupLayer.getLayers()).thenReturn(layers);
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service0");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayer));
+		
+		//sync.ask(geoServerService, service, Ack.class);
 	}
 }
