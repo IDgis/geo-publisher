@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Objects;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -191,11 +192,62 @@ public class GeoServerService extends UntypedActor {
 			Map<String, FeatureType> featureTypes,
 			Map<String, LayerGroup> layerGroups) {
 		
-		List<String> groupLayers = new ArrayList<>();
+		List<String> groupLayerContent = new ArrayList<>();
 		
 		log.debug("-> group {}", groupLayer);
 		
 		return new Procedure<Object>() {
+			
+			private boolean unchanged(FeatureType rest, EnsureFeatureTypeLayer ensure) {
+				if(!Objects.equal(rest.getNativeName(), ensure.getTableName())) {
+					return false;
+				}
+				
+				if(!Objects.equal(rest.getTitle(), ensure.getTitle())) {
+					return false;
+				}
+				
+				if(!Objects.equal(rest.getAbstract(), ensure.getAbstract())) {
+					return false;
+				}
+				
+				return true;
+			}
+			
+			private boolean unchanged(LayerGroup rest) {
+				return rest.getLayers().equals(groupLayerContent);
+			}
+			
+			void postFeatureType(EnsureFeatureTypeLayer ensureLayer) {
+				String layerId = ensureLayer.getLayerId();
+				
+				FeatureType featureType = new FeatureType(
+					layerId, 
+					ensureLayer.getTableName(),
+					ensureLayer.getTitle(),
+					ensureLayer.getAbstract());
+				
+				toSelf(
+					rest.postFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
+						log.debug("feature type created: " + layerId);									
+						return new LayerEnsured(featureType);
+				}));
+			}
+			
+			void postLayerGroup() {
+				String groupLayerId = groupLayer.getLayerId();
+				
+				LayerGroup layerGroup = new LayerGroup(
+					groupLayerId,
+					groupLayer.getTitle(),
+					groupLayer.getAbstract(),
+					groupLayerContent);
+				toSelf(
+					rest.postLayerGroup(workspace, layerGroup).thenApply(v -> {
+						log.debug("layer group created: " + groupLayerId);									
+						return new GroupEnsured(layerGroup);
+				}));
+			}
 
 			@Override
 			public void apply(Object msg) throws Exception {
@@ -207,28 +259,28 @@ public class GeoServerService extends UntypedActor {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
 					String layerId = ensureLayer.getLayerId();		
-					groupLayers.add(layerId);
-					if(featureTypes.containsKey(layerId)) { // TODO: also check feature type content
+					groupLayerContent.add(layerId);
+					if(featureTypes.containsKey(layerId)) {
 						log.debug("existing feature type found: " + layerId);
-						toSelf(new LayerEnsured(featureTypes.get(layerId)));
+						
+						FeatureType featureType = featureTypes.get(layerId);
+						if(unchanged(featureType, ensureLayer)) {
+							log.debug("feature type unchanged");
+							toSelf(new LayerEnsured(featureType));
+						} else {
+							log.debug("feature type changed");
+							postFeatureType(ensureLayer);
+						}
+						
 						featureTypes.remove(layerId);
 					} else {					
-						FeatureType featureType = new FeatureType(
-							layerId, 
-							ensureLayer.getTableName(),
-							ensureLayer.getTitle(),
-							ensureLayer.getAbstract());
-						
-						toSelf(
-							rest.postFeatureType(workspace, dataStore, featureType).thenApply(v -> {								
-								log.debug("feature type created: " + layerId);									
-								return new LayerEnsured(featureType);
-						}));
+						postFeatureType(ensureLayer);
 					}
 				} else if(msg instanceof LayerEnsured) {
 					ensured(provisioningService);				
 				} else if(msg instanceof FinishEnsure) {
 					if(groupLayer == null) {
+						// TODO: remove no longer used items from workspace
 						log.debug("ack");
 						
 						ensured(provisioningService);
@@ -237,23 +289,23 @@ public class GeoServerService extends UntypedActor {
 					} else {
 						String groupLayerId = groupLayer.getLayerId();
 						
-						log.debug("unbecome group {}, groupLayers {}", groupLayerId, groupLayers);
+						log.debug("unbecome group {}, groupLayers {}", groupLayerId, groupLayerContent);
 						
-						if(layerGroups.containsKey(groupLayerId)) {  // TODO: also check layer group content
+						if(layerGroups.containsKey(groupLayerId)) {
 							log.debug("existing layer group found: " + groupLayerId);
-							toSelf(new GroupEnsured(layerGroups.get(groupLayerId)));
+							
+							LayerGroup layerGroup = layerGroups.get(groupLayerId);
+							if(unchanged(layerGroup)) {
+								log.debug("layer group unchanged");
+								toSelf(new GroupEnsured(layerGroups.get(groupLayerId)));
+							} else {
+								log.debug("layer group changed");
+								postLayerGroup();
+							}
+							
 							layerGroups.remove(groupLayerId);
 						} else {
-							LayerGroup layerGroup = new LayerGroup(
-								groupLayerId,
-								groupLayer.getTitle(),
-								groupLayer.getAbstract(),
-								groupLayers);
-							toSelf(
-								rest.postLayerGroup(workspace, layerGroup).thenApply(v -> {
-									log.debug("layer group created: " + groupLayerId);									
-									return new GroupEnsured(layerGroup);
-							}));
+							postLayerGroup();
 						}
 					}
 				} else if(msg instanceof GroupEnsured) {
