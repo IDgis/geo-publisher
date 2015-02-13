@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.query.DeleteLayerStyle;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
@@ -258,21 +259,26 @@ public class LayerAdmin extends AbstractAdmin {
 					.singleResult(leafLayer.id)
 					.thenCompose(
 						llId -> {
-							// first delete the existing styles of this layer
+							// A. delete the existing styles of this layer
 							return tx.delete(layerStyle)
 								.where(layerStyle.layerId.eq(llId.get()))
 								.execute()
 								.thenCompose(
 									llNr -> {
-									// then add the list of styles to the layer	
-									return tx
-										.insert(layerStyle)							
-										.set(layerStyle.layerId,llId.get())
-										.set(layerStyle.styleId,llId.get()) // TODO put layerStyles 
-										.execute()
-										.thenApply(
-											l -> new Response<String>(CrudOperation.UPDATE,
-											CrudResponse.OK, layerId));
+										// B. insert items of layerStyles	
+										return tx
+											.insert(layerStyle)
+											.columns(
+												layerStyle.layerId, 
+												layerStyle.styleId)
+											.select(new SQLSubQuery().from(style)
+												.where(style.identification.in(layerStyles))
+												.list(
+													llId.get(),
+													style.id))
+											.execute().thenApply(whatever ->
+											new Response<String>(CrudOperation.UPDATE,
+													CrudResponse.OK, layerId));
 									});
 						});
 		}));

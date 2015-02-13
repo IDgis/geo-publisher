@@ -62,14 +62,14 @@ public class Layers extends Controller {
 		Logger.debug ("submit Layer: " + form.field("name").value());
 		Logger.debug ("LayerForm from request: " + form.get());	
 		
-		// parse the list of style.name, style.id from the string in the form
+		// parse the list of (style.name, style.id) from the json string in the view form
 		String layerStyleList = form.get().getStyles();
 		final ObjectNode result = Json.newObject ();
 		final JsonNode result2 = Json.parse(layerStyleList);
 		
 		final List<String> styleIds = new ArrayList<> ();
 		for (final JsonNode n: Json.parse (layerStyleList)) {
-			// get the second element (style.id)
+			// get only the second element (style.id)
 			styleIds.add (n.get (1).asText ());
 		}
 		Logger.debug ("layerStyleList: " + styleIds.toString ());
@@ -166,31 +166,15 @@ public class Layers extends Controller {
 					Logger.debug ("allStyles: " + allStyles.values().size());
 					Logger.debug ("layerStyles: " + layerStyles.size());
 					
+					// build a json string with list of styles (style.name, style.id) 
 					final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
-					
 					for (final Style style: layerStyles) {
 						final ArrayNode styleNode = arrayNode.addArray ();
 						styleNode.add (style.name ());
 						styleNode.add (style.id ());
-					}
-					
+					}					
 					final String layerStyleListString = Json.stringify (arrayNode);
 					
-					// build a layer list string suitable for the value field of the form styles input
-					/*
-					StringBuilder sb = new StringBuilder();
-					sb.append("[");
-					for (Style style : layerStyles) {
-						sb.append("[");
-						sb.append("\""+style.name()+"\"");
-						sb.append(",");
-						sb.append("\""+style.id()+"\"");
-						sb.append("]");
-						sb.append(",");
-					}
-					sb.append("]");
-					String layerStyleListString = sb.toString().replace("],]","]]");
-					*/
 					return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
 				}
 			});
@@ -222,7 +206,13 @@ public class Layers extends Controller {
 		private String abstractText;
 		private String keywords;
 		private Boolean published = false;
+		/**
+		 * List of all styles in the system
+		 */
 		private List<Style> styleList;
+		/**
+		 * String that contains all styles of this layer in json format 
+		 */
 		private String styles;
 
 		public LayerForm(){
