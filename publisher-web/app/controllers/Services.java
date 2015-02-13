@@ -123,7 +123,7 @@ public class Services extends Controller {
 							.form (ServiceForm.class)
 							.fill (new ServiceForm (service));
 					
-					Logger.debug ("Edit serviceForm: " + serviceForm);						
+					Logger.debug ("Edit serviceForm: " + serviceForm.get());						
 
 					return ok (form.render (serviceForm, false, categories));
 				}
@@ -160,10 +160,10 @@ public class Services extends Controller {
 		private String keywords;
 		private String metadata;
 		private String watermark;
-		private Boolean published;
-		private String categoryId = "b7";
-		private String rootGroupId;
-		private String constantsId;
+		private Boolean published = false;
+		private String categoryId = "";
+		private String rootGroupId = "";
+		private String constantsId = "";
 		
 		public ServiceForm (){
 			super();
@@ -297,5 +297,13 @@ public class Services extends Controller {
 			this.constantsId = constantsId;
 		}
 		
+		@Override
+		public String toString() {
+			return "ServiceForm [id=" + id + ", name=" + name + ", title=" + title + ", alternateTitle="
+					+ alternateTitle + ", abstractText=" + abstractText + ", keywords=" + keywords + ", metadata="
+					+ metadata + ", watermark=" + watermark + ", published=" + published + ", categoryId=" + categoryId
+					+ ", rootGroupId=" + rootGroupId + ", constantsId=" + constantsId + "]";
+		}
+
 	}
 }
