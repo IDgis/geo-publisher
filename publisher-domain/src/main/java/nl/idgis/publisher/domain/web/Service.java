@@ -25,6 +25,10 @@ public class Service extends Identifiable {
 	private final String metadata;
 	private final String watermark;
 	private final Boolean published;
+	private final String rootGroupId;
+	private final String defaultCategoryId;
+	private final String constantsId;
+
 	
 	@JsonCreator
 	@QueryProjection
@@ -37,7 +41,11 @@ public class Service extends Identifiable {
 			final @JsonProperty("") String keywords,
 			final @JsonProperty("") String metadata, 
 			final @JsonProperty("") String watermark,
-			final @JsonProperty("") Boolean published) {
+			final @JsonProperty("") Boolean published,
+			final @JsonProperty("") String rootGroupId,
+			final @JsonProperty("") String defaultCategoryId,
+			final @JsonProperty("") String constantsId
+			) {
 		super(id);
 		this.name = name;
 		this.title = title;
@@ -47,6 +55,9 @@ public class Service extends Identifiable {
 		this.metadata = metadata;
 		this.watermark = watermark;
 		this.published = published;
+		this.rootGroupId = rootGroupId;
+		this.defaultCategoryId = defaultCategoryId;
+		this.constantsId = constantsId;
 	}
 
 	@JsonGetter
@@ -87,6 +98,18 @@ public class Service extends Identifiable {
 	@JsonGetter
 	public Boolean published() {
 		return published;
+	}
+
+	public String rootGroupId() {
+		return rootGroupId;
+	}
+
+	public String defaultCategoryId() {
+		return defaultCategoryId;
+	}
+
+	public String constantsId() {
+		return constantsId;
 	}
 
 

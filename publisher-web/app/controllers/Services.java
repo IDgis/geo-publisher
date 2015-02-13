@@ -65,7 +65,8 @@ public class Services extends Controller {
 		final ServiceForm serviceForm = form.get ();
 		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
-				serviceForm.metadata,serviceForm.watermark, serviceForm.published);
+				serviceForm.metadata,serviceForm.watermark, serviceForm.published,
+				serviceForm.rootGroupName,serviceForm.categoryName, serviceForm.constantsName);
 		
 		return from (database)
 			.put(service)
@@ -94,6 +95,7 @@ public class Services extends Controller {
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
+					Logger.debug ("List Service: #" + services.values().size());
 					return ok (list.render (services));
 				}
 			});
@@ -121,7 +123,7 @@ public class Services extends Controller {
 							.form (ServiceForm.class)
 							.fill (new ServiceForm (service));
 					
-					Logger.debug ("Edit serviceForm: " + serviceForm);						
+					Logger.debug ("Edit serviceForm: " + serviceForm.get());						
 
 					return ok (form.render (serviceForm, false, categories));
 				}
@@ -149,7 +151,6 @@ public class Services extends Controller {
 
 		@Constraints.Required
 		private String id;
-		private String categoryId = "b7";
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
@@ -159,7 +160,10 @@ public class Services extends Controller {
 		private String keywords;
 		private String metadata;
 		private String watermark;
-		private Boolean published;
+		private Boolean published = false;
+		private String categoryName = "";
+		private String rootGroupName = "";
+		private String constantsName = "";
 		
 		public ServiceForm (){
 			super();
@@ -169,7 +173,6 @@ public class Services extends Controller {
 		public ServiceForm (final Service service){
 			this.id = service.id();
 			this.name = service.name();
-			this.categoryId = "b7";
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
@@ -177,6 +180,9 @@ public class Services extends Controller {
 			this.metadata = service.metadata();
 			this.watermark = service.watermark();
 			this.published = service.published();
+			this.categoryName =service.defaultCategoryId();
+			this.rootGroupName =service.rootGroupId();
+			this.constantsName =service.constantsId();
 		}
 
 
@@ -189,14 +195,6 @@ public class Services extends Controller {
 			this.id = id;
 		}
 
-
-		public String getCategoryId() {
-			return categoryId;
-		}
-
-		public void setCategoryId(String categoryId) {
-			this.categoryId = categoryId;
-		}
 
 		public String getName() {
 			return name;
@@ -274,6 +272,38 @@ public class Services extends Controller {
 		public void setPublished(Boolean published) {
 			this.published = published;
 		}
+
+		public String getCategoryName() {
+			return categoryName;
+		}
+
+		public void setCategoryName(String categoryName) {
+			this.categoryName = categoryName;
+		}
+
+		public String getRootGroupName() {
+			return rootGroupName;
+		}
+
+		public void setRootGroupName(String rootGroupName) {
+			this.rootGroupName = rootGroupName;
+		}
+
+		public String getConstantsName() {
+			return constantsName;
+		}
+
+		public void setConstantsName(String constantsName) {
+			this.constantsName = constantsName;
+		}
 		
+		@Override
+		public String toString() {
+			return "ServiceForm [id=" + id + ", name=" + name + ", title=" + title + ", alternateTitle="
+					+ alternateTitle + ", abstractText=" + abstractText + ", keywords=" + keywords + ", metadata="
+					+ metadata + ", watermark=" + watermark + ", published=" + published + ", categoryName=" + categoryName
+					+ ", rootGroupName=" + rootGroupName + ", constantsName=" + constantsName + "]";
+		}
+
 	}
 }

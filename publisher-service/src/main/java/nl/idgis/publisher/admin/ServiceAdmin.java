@@ -7,6 +7,9 @@ import java.util.concurrent.CompletableFuture;
 import com.mysema.query.types.ConstantImpl;
 
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -39,16 +42,24 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
+			.leftJoin(category).on(service.defaultCategoryId.eq(category.id))
+			.leftJoin(genericLayer).on(service.rootgroupId.eq(genericLayer.id))
 			.list(new QService(
 					service.identification,
 					service.name,
 					service.title, 
 					service.alternateTitle, 
 					service.abstractCol,
-					service.metadata,
 					service.keywords,
+					service.metadata,
 					service.watermark,
-					ConstantImpl.create(false)
+//					service.published
+					ConstantImpl.create(true),
+					category.identification,
+//					service.rootgroupId,
+					genericLayer.identification,					
+//					service.constantsId
+					ConstantImpl.create("")					
 				))
 			.thenApply(this::toPage);
 	}
@@ -59,6 +70,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(service)
+			.leftJoin(category).on(service.defaultCategoryId.eq(category.id))
+			.leftJoin(genericLayer).on(service.rootgroupId.eq(genericLayer.id))
 			.where(service.identification.eq(serviceId))
 			.singleResult(new QService(
 					service.identification,
@@ -66,10 +79,16 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.title, 
 					service.alternateTitle, 
 					service.abstractCol,
-					service.metadata,
 					service.keywords,
+					service.metadata,
 					service.watermark,
-					ConstantImpl.create(false)
+//					service.published
+					ConstantImpl.create(true),
+					category.identification,
+//					service.rootgroupId,
+					genericLayer.identification,					
+//					service.constantsId
+					ConstantImpl.create("")					
 			));		
 	}
 	
@@ -85,32 +104,58 @@ public class ServiceAdmin extends AbstractAdmin {
 			.singleResult(service.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
-					// INSERT
-					log.debug("Inserting new service with name: " + serviceName);
-					return tx.insert(service)
-					.set(service.identification, UUID.randomUUID().toString())
-					.set(service.name, serviceName)
-					.set(service.title, theService.title())
-					.set(service.alternateTitle, theService.alternateTitle())
-					.set(service.abstractCol, theService.abstractText())
-					.set(service.metadata, theService.metadata())
-					.set(service.keywords, theService.keywords())
-					.set(service.watermark, theService.watermark())
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceName));
+					return tx.query().from(category)
+					.where(category.identification.eq(theService.defaultCategoryId()))
+					.singleResult(category.id)
+					.thenCompose(catId -> {
+						return tx.query().from(genericLayer)
+							.where(genericLayer.identification.eq(theService.rootGroupId()))
+							.singleResult(genericLayer.id)
+							.thenCompose(glId -> {
+								// INSERT
+								log.debug("Inserting new service with name: " + serviceName);
+								return tx.insert(service)
+									.set(service.identification, UUID.randomUUID().toString())
+									.set(service.name, serviceName)
+									.set(service.title, theService.title())
+									.set(service.alternateTitle, theService.alternateTitle())
+									.set(service.abstractCol, theService.abstractText())
+									.set(service.metadata, theService.metadata())
+									.set(service.keywords, theService.keywords())
+									.set(service.watermark, theService.watermark())
+									.set(service.published, theService.published())
+									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
+									.set(service.rootgroupId, glId.isPresent()?glId.get():null)
+									.execute()
+									.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceName));
+							});
+					});
 				} else {
-					// UPDATE
-					log.debug("Updating service with name: " + serviceName);
-					return tx.update(service)
-							.set(service.title, theService.title())
-							.set(service.alternateTitle, theService.alternateTitle())
-							.set(service.abstractCol, theService.abstractText())
-							.set(service.metadata, theService.metadata())
-							.set(service.keywords, theService.keywords())
-							.set(service.watermark, theService.watermark())
-					.where(service.identification.eq(serviceId))
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceName));
+					return tx.query().from(category)
+					.where(category.identification.eq(theService.defaultCategoryId()))
+					.singleResult(category.id)
+					.thenCompose(catId -> {
+						return tx.query().from(genericLayer)
+							.where(genericLayer.identification.eq(theService.rootGroupId()))
+							.singleResult(genericLayer.id)
+							.thenCompose(glId -> {
+								// UPDATE
+								log.debug("Updating service with name: " + serviceName);
+								return tx.update(service)
+									.set(service.title, theService.title())
+									.set(service.alternateTitle, theService.alternateTitle())
+									.set(service.abstractCol, theService.abstractText())
+									.set(service.metadata, theService.metadata())
+									.set(service.keywords, theService.keywords())
+									.set(service.watermark, theService.watermark())
+									.set(service.published, theService.published())
+									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
+									.set(service.rootgroupId, glId.isPresent()?glId.get():null)
+									.where(service.identification.eq(serviceId))
+									.execute()
+									.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceName));
+							});
+					});
 				}
 		}));
 	}

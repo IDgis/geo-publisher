@@ -29,8 +29,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-dataset">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
 					<div class="col-lg-8">
-						<input class="form-control" id="input-dataset" name="dataset" value="@layerForm("name").value" readonly>
-						@helper.fielderrors(layerForm("name").errors)
+						<input class="form-control" id="input-dataset" name="dataset" value="@layerForm("datasetName").value" readonly>
+						@helper.fielderrors(layerForm("datasetName").errors)
 						<span class="help-block">@Domain.message("web.application.page.layers.form.field.dataset.help")</span>
 					</div>
 				</div>
@@ -79,21 +79,10 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.groups.label")</label>
 					<div class="col-sm-8">
-						<span></span>
+						<span>-</span>
 					</div>
 				</div>
-				
-				<!-- 
-				@for(layerstyle <- layerStyles) {
-					<div class="form-group" id="style">
-						<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
-						<div class="col-sm-4">
-							<label>layerstyle.name</label>
-						</div>
-					</div>
-				}
-				 -->
-				
+						
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 					<div class="controls col-sm-8">
@@ -115,6 +104,8 @@
 								</ul>
 							</div>
 						</div>
+						@helper.fielderrors(layerForm("styles").errors)
+						<span class="help-block">@Domain.message("web.application.page.layers.form.field.styles.help")</span>
 					</div>
 				</div>
 				
