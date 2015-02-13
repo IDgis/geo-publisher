@@ -2,6 +2,7 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.List;
 import java.util.UUID;
 
 import controllers.Groups.GroupForm;
@@ -11,6 +12,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.LayerGroup;
+import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -140,6 +142,10 @@ public class Groups extends Controller {
 		private String title;
 		private String abstractText;
 		private Boolean published = false;
+		/**
+		 * List of id's of layers/groups in this group
+		 */
+		private List<String> groupLayerStructure;
 
 		public GroupForm(){
 			super();

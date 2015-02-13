@@ -1,9 +1,78 @@
 .gp-tree-select .term,.gp-tree-select .add-term{margin-left:4px;margin-right:4px}
 .gp-tree-select .term .close,.gp-tree-select .add-term .close{float:none;display:inline-block;vertical-align:middle;margin-left:6px}
 
-.stylelistscroll {height:auto;overflow:auto}
+.gp-tree-select {height:auto;overflow:auto}
 
 .gp-tree-values .dropdown-menu{max-height:300px;min-width:400px;overflow:auto;padding:8px}
 .gp-tree-values ul,.gp-tree-values li{display:block;margin:0;padding:0}
 .gp-tree-values li>ul{display:none;margin-left:2em}
 .gp-tree-values li.expanded>ul{display:block}
+
+.tree-item { padding-top:5px;padding-bottom:5px}
+
+.groupTree li {
+    margin: 0px 0px;
+    list-style-type: none;
+    position: relative;
+    padding: 7px 5px 0px 5px;
+}
+.groupTree li::before {
+    content:'';
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    right: auto;
+    left: -20px;
+    border-left: 1px solid #ccc;
+    bottom: 50px;
+}
+.groupTree li::after {
+    content:'';
+    position: absolute;
+    top: 22px;
+    width: 25px;
+    height: 20px;
+    right: auto;
+    left: -20px;
+    border-top: 1px solid #ccc;
+}
+.groupTree li a {
+    display: inline-block;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    text-decoration: none;
+    color: #000;
+    font-family: arial, verdana, tahoma;
+    font-size: 11px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    background-color:#F5F5F0;
+}
+
+.groupTree li a:last-child {
+   color:#999;
+   background-color:#fff;
+}
+
+/*Remove connectors before root*/
+ .groupTree > ul > li::before, .groupTree > ul > li::after {
+    border: 0;
+}
+/*Remove connectors after last child*/
+ .groupTree li:last-child::before {
+    height: 22px;
+}
+/*Time for some hover effects*/
+
+/*We will apply the hover effect the the lineage of the element also*/
+ .groupTree li a:hover, .groupTree li a:hover+ul li a {
+    background: #c8e4f8;
+    color: #000;
+    border: 1px solid #94a0b4;
+}
+/*Connector styles on hover*/
+ .groupTree li a:hover+ul li::after, .groupTree li a:hover+ul li::before, .groupTree li a:hover+ul::before, .groupTree li a:hover+ul ul::before {
+    border-color: #94a0b4;
+}
