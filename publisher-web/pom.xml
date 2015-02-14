@@ -120,6 +120,31 @@
     			</executions>
     			
     		</plugin>
+    		
+    		<!-- Deply the Play deliverable as a Maven artifact: -->
+    		<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-play-app</id>
+						<phase>package</phase>
+						<goals>
+							<goal>attach-artifact</goal>
+						</goals>
+						<configuration>
+							<artifacts>
+								<artifact>
+									<file>target/universal/${project.artifactId}-${project.version}.zip</file>
+									<type>zip</type>
+									<classifier>app</classifier>
+								</artifact>
+							</artifacts>
+						</configuration>
+					</execution>
+				</executions>
+    		</plugin>
+    		
     	</plugins>
     </build>
 	
