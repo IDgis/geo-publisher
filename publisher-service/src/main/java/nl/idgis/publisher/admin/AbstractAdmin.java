@@ -103,7 +103,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		return list.list();
 	}
 	
-	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
+	protected <T, U extends DomainQuery<? super T>> void doQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
 		doQuery.put(query, func);
 		getContext().parent().tell(new DoQuery(query), getSelf());
 	}
@@ -113,21 +113,21 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getContext().parent().tell(new OnQuery(query), getSelf());
 	}
 	
-	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
-		addList(entity, (Long page) -> func.get());
+	protected <T extends Entity> void doList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
+		doList(entity, (Long page) -> func.get());
 	}
 	
-	protected <T extends Entity> void addList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
+	protected <T extends Entity> void doList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
 		doList.put(entity, func);
 		getContext().parent().tell(new DoList(entity), getSelf());
 	}
 	
-	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
+	protected <T extends Entity> void doGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
 		doGet.put(entity, func);
 		getContext().parent().tell(new DoGet(entity), getSelf());
 	}
 	
-	protected <T extends Identifiable> void addDelete(Class<? super T> entity, Function<String, CompletableFuture<Response<?>>> func) {
+	protected <T extends Identifiable> void doDelete(Class<? super T> entity, Function<String, CompletableFuture<Response<?>>> func) {
 		doDelete.put(entity, func);
 		getContext().parent().tell(new DoDelete(entity), getSelf());
 	}
@@ -137,7 +137,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getContext().parent().tell(new OnDelete(entity), getSelf());
 	}
 	
-	protected <T extends Identifiable> void addPut(Class<? super T> entity, Function<T, CompletableFuture<Response<?>>> func) {
+	protected <T extends Identifiable> void doPut(Class<? super T> entity, Function<T, CompletableFuture<Response<?>>> func) {
 		doPut.put(entity, func);
 		getContext().parent().tell(new DoPut(entity), getSelf());
 	}

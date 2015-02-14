@@ -70,9 +70,9 @@ public class AdminTest {
 
 		@Override
 		protected void preStartAdmin() {
-			addGet(Category.class, categoryId ->
+			doGet(Category.class, categoryId ->
 				f.successful(Optional.of(new Category(categoryId, "name: " + categoryId))));
-			addList(Category.class, page -> {
+			doList(Category.class, page -> {
 				Page.Builder<Category> builder = new Page.Builder<>();
 				
 				for(int i = 0; i < 10; i++) {
@@ -81,11 +81,11 @@ public class AdminTest {
 				
 				return f.successful(builder.build());
 			});
-			addPut(Category.class, category ->
+			doPut(Category.class, category ->
 				f.successful(new Response<>(CrudOperation.CREATE, CrudResponse.OK, category.id())));			
-			addDelete(Category.class, categoryId ->
+			doDelete(Category.class, categoryId ->
 				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.OK, categoryId)));
-			addQuery(RefreshDataset.class, refreshDataset -> f.successful(true));
+			doQuery(RefreshDataset.class, refreshDataset -> f.successful(true));
 		}
 		
 	}

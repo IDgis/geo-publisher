@@ -107,25 +107,25 @@ public class Admin extends AbstractAdmin {
 	@Override
 	protected void preStartAdmin() {
 		
-		addList(Notification.class, this::handleListDashboardNotifications);
-		addList(ActiveTask.class, this::handleListDashboardActiveTasks);
-		addList(Issue.class, this::handleListDashboardIssues);
+		doList(Notification.class, this::handleListDashboardNotifications);
+		doList(ActiveTask.class, this::handleListDashboardActiveTasks);
+		doList(Issue.class, this::handleListDashboardIssues);
 		
-		addGet(SourceDataset.class, this::handleGetSourceDataset);
+		doGet(SourceDataset.class, this::handleGetSourceDataset);
 		
 		// TODO: put
 		
 		// TODO: delete
 		
 		
-		addQuery(ListIssues.class, this::handleListIssues);
-		addQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
-		addQuery(ListDatasetColumns.class, this::handleListDatasetColumns);
-		addQuery(RefreshDataset.class, this::handleRefreshDataset);
+		doQuery(ListIssues.class, this::handleListIssues);
+		doQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
+		doQuery(ListDatasetColumns.class, this::handleListDatasetColumns);
+		doQuery(RefreshDataset.class, this::handleRefreshDataset);
 		
-		addQuery(PutNotificationResult.class, this::handlePutNotificationResult);
-		addQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
-		addQuery(ListSourceDatasets.class, this::handleListSourceDatasets);
+		doQuery(PutNotificationResult.class, this::handlePutNotificationResult);
+		doQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
+		doQuery(ListSourceDatasets.class, this::handleListSourceDatasets);
 	}
 	
 	private CompletableFuture<Boolean> handleRefreshDataset(RefreshDataset refreshDataset) {

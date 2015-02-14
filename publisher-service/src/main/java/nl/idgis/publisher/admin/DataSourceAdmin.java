@@ -38,8 +38,8 @@ public class DataSourceAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(DataSource.class, this::handleListDataSources);
-		addGet(DataSource.class, this::handleGetDataSource);
+		doList(DataSource.class, this::handleListDataSources);
+		doGet(DataSource.class, this::handleGetDataSource);
 	}
 	
 	@SuppressWarnings("unchecked")
