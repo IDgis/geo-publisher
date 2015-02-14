@@ -3,7 +3,8 @@
 
 @(serviceForm: Form[controllers.Services.ServiceForm], 
 create: Boolean,
-categories: Page[Category])
+categories: Page[Category],
+groups: Page[LayerGroup])
 
 
 @layout.application( title=Domain.message("web.application.page.services.form.title")){
@@ -24,7 +25,7 @@ categories: Page[Category])
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-category">category</label>
 					<div class="col-lg-8">
-						<select class="form-control" id="input-category" name="category" >
+						<select class="form-control" id="input-category" name="categoryName"  @if(!create){disabled}>
 						@for(category <-categories.values){
 							<option value="@category.id" @if(serviceForm("categoryName").value==category.name){selected}>@category.name</option>
 						}
@@ -78,8 +79,20 @@ categories: Page[Category])
 							<input type="checkbox" class="form-control" id="input-published" name="published" value="true" @if(serviceForm("published").value.equals("true")){checked}>
 						</div>
 					
-						@helper.fielderrors(serviceForm("publish").errors)
+						@helper.fielderrors(serviceForm("published").errors)
 						<span class="help-block">@Domain.message("web.application.page.services.form.field.publish.help")</span>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-rootgroup">@Domain.message("web.application.page.services.form.field.rootgroup.label")</label>
+					<div class="col-lg-8">
+						<select class="form-control" id="input-rootgroup" name="rootGroupName" >
+						@for(group <- groups.values){
+							<option value="@group.id" @if(serviceForm("rootGroupName").value==group.name){selected}>@group.name</option>
+						}
+						</select>
+						@helper.fielderrors(serviceForm("rootGroupName").errors)
+						<span class="help-block">@Domain.message("web.application.page.services.form.field.rootgroup.help")</span>
 					</div>
 				</div>
 				<div class="form-group">

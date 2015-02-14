@@ -59,9 +59,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.watermark,
 //					service.published
 					ConstantImpl.create(true),
-					category.identification,
-//					service.rootgroupId,
 					genericLayer.identification,					
+					category.identification,
 //					service.constantsId
 					ConstantImpl.create("")					
 				))
@@ -88,9 +87,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.watermark,
 //					service.published
 					ConstantImpl.create(true),
-					category.identification,
-//					service.rootgroupId,
 					genericLayer.identification,					
+					category.identification,
 //					service.constantsId
 					ConstantImpl.create("")					
 			));		
@@ -128,8 +126,8 @@ public class ServiceAdmin extends AbstractAdmin {
 									.set(service.keywords, theService.keywords())
 									.set(service.watermark, theService.watermark())
 									.set(service.published, theService.published())
-									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
 									.set(service.rootgroupId, glId.isPresent()?glId.get():null)
+									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
 									.execute()
 									.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceName));
 							});
@@ -153,8 +151,8 @@ public class ServiceAdmin extends AbstractAdmin {
 									.set(service.keywords, theService.keywords())
 									.set(service.watermark, theService.watermark())
 									.set(service.published, theService.published())
-									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
 									.set(service.rootgroupId, glId.isPresent()?glId.get():null)
+									.set(service.defaultCategoryId, catId.isPresent()?catId.get():null)
 									.where(service.identification.eq(serviceId))
 									.execute()
 									.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceName));

@@ -310,6 +310,9 @@ web.application.page.services.form.field.publish.help=Geef aan of de service gep
 
 web.application.page.services.form.field.structure.label=Structuur
 
+web.application.page.services.form.field.rootgroup.label=Groep
+web.application.page.services.form.field.rootgroup.help=Geef de hoofdgroep
+
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
 
 web.application.page.services.form.field.watermark.header=Watermerk instellingen
