@@ -262,13 +262,12 @@ public class Admin extends AbstractAdmin {
 							
 							for(ActiveJob activeServiceJob : activeServiceJobs.getActiveJobs()) {								
 								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
-								final Progress progress = (Progress)activeServiceJob.getProgress();
 								
 								activeTasks.add(f.successful(new ActiveTask(
 										"" + job.getId(), 
 										job.getServiceId(), 
 										new Message(JobType.SERVICE, null),
-										(int)(progress.getCount() * 100 / progress.getTotalCount()))));
+										null)));
 							}
 							
 							return f.sequence(activeTasks);
