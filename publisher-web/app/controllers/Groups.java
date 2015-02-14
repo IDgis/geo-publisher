@@ -48,7 +48,7 @@ public class Groups extends Controller {
 
 						@Override
 						public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-							return ok (form.render (groupForm, true, groups, layers));
+							return ok (form.render (groupForm, true, groups, layers, null));
 						}
 					});
 
@@ -132,7 +132,7 @@ public class Groups extends Controller {
 						Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
 					}
 
-					return ok (form.render (groupForm, false, groups, layers));
+					return ok (form.render (groupForm, false, groups, layers, groupLayer));
 				}
 			});
 	}

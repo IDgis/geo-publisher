@@ -1,0 +1,22 @@
+@import nl.idgis.publisher.domain.web.tree._ 
+
+@(grouplayer: GroupLayer)
+
+		<ul>
+		@for(layer <- grouplayer.getLayers()){
+			@if( layer.isGroup()){
+				<li>
+					<a href="@routes.Groups.edit(grouplayer.getId())"><strong>@grouplayer.getName()</strong></a>
+				</li>
+				@helper.groupStructureItem(layer.asGroup())
+			}else{
+				<li>
+					<a href="@routes.Layers.edit(layer.getId())">@layer.getName()</a>
+				</li>
+			}
+		}
+		</ul>
+
+		
+
+

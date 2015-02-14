@@ -1,0 +1,25 @@
+@import nl.idgis.publisher.domain.web.tree._ 
+
+@(grouplayer: GroupLayer)
+
+
+	<div value="@grouplayer.getId()" class="list-group-item gp-draggable tree-item">
+		<input type="hidden" value="@grouplayer.getId()" name="structure">
+		<div class="row">
+			<div class="col-sm-11 groupTree">
+				@if(grouplayer != null){
+					<ul>
+						<li>
+							<a href="@routes.Groups.edit(grouplayer.getId())"><strong>GRP @grouplayer.getName()</strong></a>
+							@helper.groupStructureItem(grouplayer)
+						</li>
+					</ul>
+				}
+			</div>
+			<div class="col-sm-1">
+			</div>
+		</div>
+	
+	</div>
+
+	
