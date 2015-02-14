@@ -1,6 +1,10 @@
-@(groupForm: Form[controllers.Groups.GroupForm], create: Boolean)
-
 @import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.response._
+
+@(groupForm: Form[controllers.Groups.GroupForm], create: Boolean,
+groups: Page[LayerGroup],
+layers: Page[Layer])
+
 @layout.application( 
 	title="Groep toevoegen: "+ "naam",
 	jsMain = routes.Assets.at("js/groups/form.js").url
@@ -57,16 +61,35 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
-						<div class="list-group" id="groepstructuur" style="position: relative;"></div>
+
+						<div style="position: relative;" class="list-group" id="groepstructuur">
+							<div value="G1" class="list-group-item gp-draggable tree-item">
+							<input type="hidden" value="G1" name="structure">
+								<div class="row">
+									<div class="col-sm-11 groupTree">
+										<ul>
+											<li>
+											<a>Groep 1</a>
+											</li>
+										</ul>
+									</div>
+									<div class="col-sm-1">
+									</div>
+								</div>
+							</div>
+						</div>
+						
 							<select id="addgroup">
 								<option></option>
-								<option value="G1">Groep 1</option>
-								<option value="G2">Groep 2</option>
+								@for(group <- groups.values) {
+									<option value="@group.id">@group.name</option>
+								}
 							</select>
 							<select id="addlayer">
 								<option></option>
-								<option value="L1">Laag 2</option>
-								<option value="L1">Laag 1</option>
+								@for(layer <- layers.values) {
+									<option value="@layer.id">@layer.name</option>
+								}
 							</select>
 							<span class="help-block">Links: groep toevoegen | Rechts: laag toevoegen</span>
 					</div>

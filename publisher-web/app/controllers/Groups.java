@@ -8,9 +8,13 @@ import java.util.UUID;
 import controllers.Groups.GroupForm;
 import models.Domain;
 import models.Domain.Function;
+import models.Domain.Function2;
+import models.Domain.Function3;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
@@ -33,12 +37,18 @@ public class Groups extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
-		 return Promise.promise(new F.Function0<Result>() {
-             @Override
-             public Result apply() throws Throwable {
-                 return ok (form.render (groupForm, true));
-             }
-         });
+			final ActorSelection database = Akka.system().actorSelection (databaseRef);
+			return from (database)
+					.list (LayerGroup.class)
+					.list (Layer.class)
+					.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
+
+						@Override
+						public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+							return ok (form.render (groupForm, true, groups, layers));
+						}
+					});
+
 	}
 	
 	public static Promise<Result> submitCreateUpdate () {
@@ -102,17 +112,19 @@ public class Groups extends Controller {
 		
 		return from (database)
 			.get (LayerGroup.class, groupId)
-			.execute (new Function<LayerGroup, Result> () {
+			.list (LayerGroup.class)
+			.list (Layer.class)
+			.execute (new Function3<LayerGroup, Page<LayerGroup>, Page<Layer>, Result> () {
 
 				@Override
-				public Result apply (final LayerGroup group) throws Throwable {
+				public Result apply (final LayerGroup group, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 					final Form<GroupForm> groupForm = Form
 							.form (GroupForm.class)
 							.fill (new GroupForm (group));
 					
 					Logger.debug ("Edit groupForm: " + groupForm);						
 
-					return ok (form.render (groupForm, false));
+					return ok (form.render (groupForm, false, groups, layers));
 				}
 			});
 	}
