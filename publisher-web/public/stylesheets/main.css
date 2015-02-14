@@ -9,6 +9,7 @@
 .gp-tree-values li.expanded>ul{display:block}
 
 .tree-item { padding-top:5px;padding-bottom:5px}
+.tree-item-delete { padding-top:5px;padding-bottom:5px}
 
 .groupTree li {
     margin: 0px 0px;
