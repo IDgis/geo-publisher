@@ -149,9 +149,13 @@ public class ServiceManager extends UntypedActor {
 	private void toSender(CompletableFuture<? extends Object> future) {
 		ActorRef sender = getSender(), self = getSelf();
 		
-		future
-			.exceptionally(t -> new Failure(t))
-			.thenAccept(resp -> sender.tell(resp, self));
+		future.whenComplete((resp, t) -> {
+			if(t != null) {
+				sender.tell(new Failure(t), self);
+			} else {
+				sender.tell(resp, self);
+			}
+		});
 	}
 	
 	private CompletableFuture<TypedIterable<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
