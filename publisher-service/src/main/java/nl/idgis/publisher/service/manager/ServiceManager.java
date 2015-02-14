@@ -1,10 +1,14 @@
 package nl.idgis.publisher.service.manager;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import com.mysema.query.sql.SQLCommonQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
@@ -33,7 +37,9 @@ import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
 import static nl.idgis.publisher.database.QService.service;
@@ -134,17 +140,41 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetService((GetService)msg));
 		} else if(msg instanceof GetGroupLayer) {
 			toSender(handleGetGroupLayer((GetGroupLayer)msg));
+		} else if(msg instanceof GetServicesWithLayer) {
+			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
-	private void toSender(CompletableFuture<Object> future) {
+	private void toSender(CompletableFuture<? extends Object> future) {
 		ActorRef sender = getSender(), self = getSelf();
 		
 		future
 			.exceptionally(t -> new Failure(t))
 			.thenAccept(resp -> sender.tell(resp, self));
+	}
+	
+	private CompletableFuture<TypedIterable<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
+		String layerId = msg.getLayerId();
+		
+		return db.transactional(tx ->
+			withServiceStructure(tx.query())
+				.from(serviceStructure)
+				.where(serviceStructure.childLayerIdentification.eq(layerId))
+				.distinct()
+				.list(serviceStructure.serviceIdentification).thenCompose(child ->
+					tx.query().from(service)
+						.join(genericLayer).on(genericLayer.id.eq(service.rootgroupId))
+						.where(genericLayer.identification.eq(layerId))
+						.distinct()						
+						.list(service.identification).thenApply(root -> {
+							Set<String> serviceIds = new HashSet<>();
+							serviceIds.addAll(child.list());
+							serviceIds.addAll(root.list());
+							
+							return new TypedIterable<>(String.class, serviceIds);
+						})));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -256,37 +286,7 @@ public class ServiceManager extends UntypedActor {
 		String serviceId = msg.getServiceId();
 		
 		return db.transactional(tx -> {
-			AsyncSQLQuery withServiceStructure = 
-			tx.query().withRecursive(serviceStructure, 
-					serviceStructure.serviceIdentification,
-					serviceStructure.childLayerId, 
-					serviceStructure.childLayerIdentification,
-					serviceStructure.parentLayerId,
-					serviceStructure.parentLayerIdentification,
-					serviceStructure.layerOrder).as(
-				new SQLSubQuery().unionAll(
-					new SQLSubQuery().from(layerStructure)
-						.join(child).on(child.id.eq(layerStructure.childLayerId))
-						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-						.join(service).on(service.rootgroupId.eq(layerStructure.parentLayerId))						
-						.list(
-							service.identification, 
-							child.id,
-							child.identification,
-							parent.id,
-							parent.identification,
-							layerStructure.layerOrder),
-					new SQLSubQuery().from(layerStructure)
-						.join(child).on(child.id.eq(layerStructure.childLayerId))
-						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-						.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
-						.list(
-							serviceStructure.serviceIdentification, 
-							child.id,
-							child.identification,
-							parent.id,
-							parent.identification,
-							layerStructure.layerOrder)));
+			AsyncSQLQuery withServiceStructure = withServiceStructure(tx.query());
 			
 			CompletableFuture<TypedList<Tuple>> structure = withServiceStructure.clone()
 				.from(serviceStructure)
@@ -360,5 +360,39 @@ public class ServiceManager extends UntypedActor {
 							}))))
 				: f.successful(new NotFound()));
 		});
+	}
+
+	@SuppressWarnings("unchecked")
+	private <Q extends SQLCommonQuery<Q>> Q withServiceStructure(SQLCommonQuery<Q> query) {
+		return query.withRecursive(serviceStructure,
+			serviceStructure.serviceIdentification,
+			serviceStructure.childLayerId, 
+			serviceStructure.childLayerIdentification,
+			serviceStructure.parentLayerId,
+			serviceStructure.parentLayerIdentification,
+			serviceStructure.layerOrder).as(
+			new SQLSubQuery().unionAll(
+				new SQLSubQuery().from(layerStructure)
+					.join(child).on(child.id.eq(layerStructure.childLayerId))
+					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
+					.join(service).on(service.rootgroupId.eq(layerStructure.parentLayerId))						
+					.list(
+						service.identification, 
+						child.id,
+						child.identification,
+						parent.id,
+						parent.identification,
+						layerStructure.layerOrder),
+				new SQLSubQuery().from(layerStructure)
+					.join(child).on(child.id.eq(layerStructure.childLayerId))
+					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
+					.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
+					.list(
+						serviceStructure.serviceIdentification, 
+						child.id,
+						child.identification,
+						parent.id,
+						parent.identification,
+						layerStructure.layerOrder)));
 	}
 }
