@@ -272,6 +272,7 @@ public class GeoServerServiceTest {
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
 		
@@ -282,7 +283,7 @@ public class GeoServerServiceTest {
 		Document features = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");			
 		assertTrue(getText(features).contains("Hello, world!"));
 		
-		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
 		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
 		assertEquals("title", getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
 		assertEquals("abstract", getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
@@ -313,6 +314,7 @@ public class GeoServerServiceTest {
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayer));
 		
@@ -320,16 +322,16 @@ public class GeoServerServiceTest {
 		
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
 		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("service:layer" + i)); // TODO: figure out how to remove the workspace from the name
+			assertTrue(layerNames.contains("serviceName:layer" + i)); // TODO: figure out how to remove the workspace from the name
 		}
 		assertTrue(layerNames.contains("group"));
 		
 		layerNames = getText(getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("service:layer" + i));
+			assertTrue(layerNames.contains("serviceName:layer" + i));
 		}
 		assertFalse(layerNames.contains("group"));
 		
@@ -347,24 +349,26 @@ public class GeoServerServiceTest {
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		Document capabilities = getCapabilities("service", "WMS", "1.3.0");
+		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
 		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
 		
 		service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.emptyList());
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
 		
-		capabilities = getCapabilities("service", "WMS", "1.3.0");		
+		capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
 		notExists("//wms:Layer/wms:Name", capabilities);
 	}	
 }
