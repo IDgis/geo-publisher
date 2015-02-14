@@ -192,7 +192,6 @@ public abstract class AbstractAdminParent extends UntypedActor {
 			ActorRef sender = getSender();
 			
 			log.debug("registering put query event: {} on actor '{}'", entity, sender.path().name());
-			doPut.put(entity, sender);
 			
 			List<ActorRef> refs;
 			if(onPut.containsKey(entity)) {

@@ -53,8 +53,9 @@ public class EventDispatcher extends UntypedActor {
 			
 			origSender.forward(msg, getContext());
 			
+			Event event = new Event(origMsg);
 			for(ActorRef listener : listeners) {
-				listener.tell(origMsg, getSelf());
+				listener.tell(event, getSelf());
 			}
 		}
 		

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -23,6 +24,10 @@ import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
 import nl.idgis.publisher.admin.messages.DoPut;
 import nl.idgis.publisher.admin.messages.DoQuery;
+import nl.idgis.publisher.admin.messages.OnDelete;
+import nl.idgis.publisher.admin.messages.OnPut;
+import nl.idgis.publisher.admin.messages.OnQuery;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.domain.query.DeleteEntity;
@@ -36,6 +41,7 @@ import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
 
+import nl.idgis.publisher.utils.Event;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -52,7 +58,10 @@ public abstract class AbstractAdmin extends UntypedActor {
 	protected AsyncDatabaseHelper db;
 	
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Function> queryHandlers, listHandlers, getHandlers, deleteHandlers, putHandlers; 
+	protected Map<Class, Function> doQuery, doList, doGet, doDelete, doPut;
+		
+	@SuppressWarnings("rawtypes")
+	protected Map<Class, Consumer> onQuery, onDelete, onPut; 
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -95,8 +104,13 @@ public abstract class AbstractAdmin extends UntypedActor {
 	}
 	
 	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
-		queryHandlers.put(query, func);
+		doQuery.put(query, func);
 		getContext().parent().tell(new DoQuery(query), getSelf());
+	}
+	
+	protected <T, U extends DomainQuery<? super T>> void onQuery(Class<U> query, Consumer<U> func) {	
+		onQuery.put(query, func);
+		getContext().parent().tell(new OnQuery(query), getSelf());
 	}
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
@@ -104,23 +118,33 @@ public abstract class AbstractAdmin extends UntypedActor {
 	}
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
-		listHandlers.put(entity, func);
+		doList.put(entity, func);
 		getContext().parent().tell(new DoList(entity), getSelf());
 	}
 	
 	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
-		getHandlers.put(entity, func);
+		doGet.put(entity, func);
 		getContext().parent().tell(new DoGet(entity), getSelf());
 	}
 	
 	protected <T extends Identifiable> void addDelete(Class<? super T> entity, Function<String, CompletableFuture<Response<?>>> func) {
-		deleteHandlers.put(entity, func);
+		doDelete.put(entity, func);
 		getContext().parent().tell(new DoDelete(entity), getSelf());
 	}
 	
+	protected <T extends Identifiable> void onDelete(Class<? super T> entity, Consumer<String> func) {
+		onDelete.put(entity, func);
+		getContext().parent().tell(new OnDelete(entity), getSelf());
+	}
+	
 	protected <T extends Identifiable> void addPut(Class<? super T> entity, Function<T, CompletableFuture<Response<?>>> func) {
-		putHandlers.put(entity, func);
+		doPut.put(entity, func);
 		getContext().parent().tell(new DoPut(entity), getSelf());
+	}
+	
+	protected <T extends Identifiable> void onPut(Class<? super T> entity, Consumer<T> func) {
+		onPut.put(entity, func);
+		getContext().parent().tell(new OnPut(entity), getSelf());
 	}
 	
 	protected abstract void preStartAdmin();
@@ -130,11 +154,15 @@ public abstract class AbstractAdmin extends UntypedActor {
 		f = new FutureUtils(getContext().dispatcher(), Timeout.apply(15000));		
 		db = new AsyncDatabaseHelper(database, f, log);
 		
-		queryHandlers = new HashMap<>();
-		listHandlers = new HashMap<>();
-		getHandlers = new HashMap<>();
-		deleteHandlers = new HashMap<>();
-		putHandlers = new HashMap<>();
+		doQuery = new HashMap<>();
+		doList = new HashMap<>();
+		doGet = new HashMap<>();
+		doDelete = new HashMap<>();
+		doPut = new HashMap<>();
+		
+		onQuery = new HashMap<>();
+		onDelete = new HashMap<>();
+		onPut = new HashMap<>();
 		
 		preStartAdmin();
 	}
@@ -155,79 +183,135 @@ public abstract class AbstractAdmin extends UntypedActor {
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
-		if(msg instanceof GetEntity) {
+		if(msg instanceof Event) {
+			handleEvent((Event)msg);
+		} else if(msg instanceof GetEntity) {
 			Class<?> entity = ((GetEntity<?>)msg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<Optional<Object>>> getHandler = getHandlers.get(entity);
-			if(getHandler == null) {
+			Function<String, CompletableFuture<Optional<Object>>> handler = doGet.get(entity);
+			if(handler == null) {
 				log.debug("get entity not handled: {}", entity);
 				
 				unhandled(msg);
 			} else {
 				log.debug("handling get entity: {}", entity);
 				
-				toSender(getHandler.apply(((GetEntity<?>)msg).id())
+				toSender(handler.apply(((GetEntity<?>)msg).id())
 					.thenApply(resp -> resp.orElse(new NotFound())));
 			}
 		} else if(msg instanceof ListEntity) {
 			Class<?> entity = ((ListEntity<?>)msg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Function<Long, CompletableFuture<?>> listHandler = listHandlers.get(entity);
-			if(listHandler == null) {
+			Function<Long, CompletableFuture<?>> handler = doList.get(entity);
+			if(handler == null) {
 				log.debug("list entity not handled: {}", entity);
 				
 				unhandled(msg);
 			} else {
 				log.debug("handling list entity: {}", entity);
 				
-				toSender(listHandler.apply(((ListEntity<?>)msg).page()));
+				toSender(handler.apply(((ListEntity<?>)msg).page()));
 			}
 		} else if(msg instanceof DeleteEntity) {
 			Class<?> entity = ((DeleteEntity<?>)msg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<?>> deleteHandler = deleteHandlers.get(entity);
-			if(deleteHandler == null) {
+			Function<String, CompletableFuture<?>> handler = doDelete.get(entity);
+			if(handler == null) {
 				log.debug("delete not handled: {}", entity);
 				
 				unhandled(msg);
 			} else {
 				log.debug("handling delete: {}", entity);
 				
-				toSender(deleteHandler.apply(((DeleteEntity<?>)msg).id()));
+				toSender(handler.apply(((DeleteEntity<?>)msg).id()));
 			}
 		} else if(msg instanceof PutEntity) {
 			Object value = ((PutEntity<?>)msg).value();
 			Class<?> entity = value.getClass();
 			
 			@SuppressWarnings("unchecked")
-			Function<Object, CompletableFuture<?>> putHandler = putHandlers.get(entity);
-			if(putHandler == null) {
+			Function<Object, CompletableFuture<?>> handler = doPut.get(entity);
+			if(handler == null) {
 				log.debug("put not handled: {}", entity);
 				
 				unhandled(msg);
 			} else {
 				log.debug("handling put: {}", entity);
 				
-				toSender(putHandler.apply(value));
+				toSender(handler.apply(value));
 			}
 		} else if(msg instanceof DomainQuery) {
 			Class<?> clazz = msg.getClass();
 			
 			@SuppressWarnings("unchecked")
-			Function<DomainQuery<?>, CompletableFuture<?>> queryHandler = queryHandlers.get(clazz);
-			if(queryHandler == null) {
+			Function<DomainQuery<?>, CompletableFuture<?>> handler = doQuery.get(clazz);
+			if(handler == null) {
 				log.debug("query not handled: {}", msg);
 				
 				unhandled(msg);
 			} else {
 				log.debug("handling query: {}", msg);
 				
-				toSender(queryHandler.apply((DomainQuery<?>)msg));
+				toSender(handler.apply((DomainQuery<?>)msg));
 			}
 		} else {
+			unhandled(msg);
+		}
+	}
+
+	private void handleEvent(Event msg) throws Exception {
+		log.debug("event received: {}", msg);
+		
+		Object eventMsg = ((Event)msg).getMessage();
+		if(eventMsg instanceof DeleteEntity) {
+			Class<?> entity = ((DeleteEntity<?>)eventMsg).cls();
+			
+			@SuppressWarnings("unchecked")
+			Consumer<String> handler = onDelete.get(entity);
+			if(handler == null) {
+				log.debug("delete event not handled: {}", entity);
+				
+				unhandled(msg);
+			} else {
+				log.debug("handling delete event: {}", entity);
+				
+				handler.accept(((DeleteEntity<?>)eventMsg).id());
+			}
+		} else if(eventMsg instanceof PutEntity) {
+			Object value = ((PutEntity<?>)eventMsg).value();
+			Class<?> entity = value.getClass();
+			
+			@SuppressWarnings("unchecked")
+			Consumer<Object> handler = onPut.get(entity);
+			if(handler == null) {
+				log.debug("put event not handled: {}", entity);
+				
+				unhandled(msg);
+			} else {
+				log.debug("handling put: {}", entity);
+				
+				handler.accept(value);
+			}
+		} else if(eventMsg instanceof DomainQuery) {
+			Class<?> clazz = eventMsg.getClass();
+			
+			@SuppressWarnings("unchecked")
+			Consumer<DomainQuery<?>> handler = onQuery.get(clazz);
+			if(handler == null) {
+				log.debug("query not handled: {}", eventMsg);
+				
+				unhandled(msg);
+			} else {
+				log.debug("handling query: {}", eventMsg);
+				
+				handler.accept((DomainQuery<?>)eventMsg);
+			}
+		} else {
+			log.error("unhandled event: {}", msg);
+			
 			unhandled(msg);
 		}
 	}
