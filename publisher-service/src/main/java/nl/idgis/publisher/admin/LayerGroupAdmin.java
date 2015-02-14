@@ -35,10 +35,10 @@ public class LayerGroupAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(LayerGroup.class, this::handleListLayergroups);
-		addGet(LayerGroup.class, this::handleGetLayergroup);
-		addPut(LayerGroup.class, this::handlePutLayergroup);
-		addDelete(LayerGroup.class, this::handleDeleteLayergroup);
+		doList(LayerGroup.class, this::handleListLayergroups);
+		doGet(LayerGroup.class, this::handleGetLayergroup);
+		doPut(LayerGroup.class, this::handlePutLayergroup);
+		doDelete(LayerGroup.class, this::handleDeleteLayergroup);
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {

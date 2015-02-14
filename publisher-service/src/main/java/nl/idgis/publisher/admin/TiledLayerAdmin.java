@@ -26,10 +26,10 @@ public class TiledLayerAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(TiledLayer.class, this::handleListTiledlayers);
-		addGet(TiledLayer.class, this::handleGetTiledlayer);
-		addPut(TiledLayer.class, this::handlePutTiledlayer);
-		addDelete(TiledLayer.class, this::handleDeleteTiledlayer);
+		doList(TiledLayer.class, this::handleListTiledlayers);
+		doGet(TiledLayer.class, this::handleGetTiledlayer);
+		doPut(TiledLayer.class, this::handlePutTiledlayer);
+		doDelete(TiledLayer.class, this::handleDeleteTiledlayer);
 	}
 
 	private CompletableFuture<Page<TiledLayer>> handleListTiledlayers () {

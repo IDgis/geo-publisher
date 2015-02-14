@@ -41,13 +41,13 @@ public class LayerAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(Layer.class, this::handleListLayers);
-		addGet(Layer.class, this::handleGetLayer);
-		addPut(Layer.class, this::handlePutLayer);
-		addDelete(Layer.class, this::handleDeleteLayer);
+		doList(Layer.class, this::handleListLayers);
+		doGet(Layer.class, this::handleGetLayer);
+		doPut(Layer.class, this::handlePutLayer);
+		doDelete(Layer.class, this::handleDeleteLayer);
 		
-		addQuery(ListLayerStyles.class, this::handleListLayerStyles);
-		addQuery(PutLayerStyles.class, this::handlePutLayerStyles);
+		doQuery(ListLayerStyles.class, this::handleListLayerStyles);
+		doQuery(PutLayerStyles.class, this::handlePutLayerStyles);
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {

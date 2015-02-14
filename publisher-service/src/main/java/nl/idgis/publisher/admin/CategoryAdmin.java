@@ -24,8 +24,8 @@ public class CategoryAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(Category.class, this::handleListCategories);
-		addGet(Category.class, this::handleGetCategory);
+		doList(Category.class, this::handleListCategories);
+		doGet(Category.class, this::handleGetCategory);
 	}
 
 	private CompletableFuture<Page<Category>> handleListCategories() {

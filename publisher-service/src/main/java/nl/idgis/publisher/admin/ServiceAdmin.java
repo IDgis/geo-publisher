@@ -35,10 +35,10 @@ public class ServiceAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(Service.class, this::handleListServices);
-		addGet(Service.class, this::handleGetService);
-		addPut(Service.class, this::handlePutService);
-		addDelete(Service.class, this::handleDeleteService);
+		doList(Service.class, this::handleListServices);
+		doGet(Service.class, this::handleGetService);
+		doPut(Service.class, this::handlePutService);
+		doDelete(Service.class, this::handleDeleteService);
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {

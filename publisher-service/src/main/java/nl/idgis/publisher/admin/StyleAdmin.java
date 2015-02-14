@@ -27,10 +27,10 @@ public class StyleAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addList(Style.class, this::handleListStyles);
-		addGet(Style.class, this::handleGetStyle);
-		addPut(Style.class, this::handlePutStyle);
-		addDelete(Style.class, this::handleDeleteStyle);
+		doList(Style.class, this::handleListStyles);
+		doGet(Style.class, this::handleGetStyle);
+		doPut(Style.class, this::handlePutStyle);
+		doDelete(Style.class, this::handleDeleteStyle);
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {

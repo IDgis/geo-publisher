@@ -73,12 +73,12 @@ public class DatasetAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		addQuery(ListDatasets.class, this::handleListDatasets);
-		addQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
-		addList(Dataset.class, () -> handleListDatasets(null));
-		addGet(Dataset.class, this::handleGetDataset);
-		addDelete(Dataset.class, this::handleDeleteDataset);
-		addPut(PutDataset.class, putDataset -> {
+		doQuery(ListDatasets.class, this::handleListDatasets);
+		doQuery(ListActiveNotifications.class, this::handleListActiveNotifications);
+		doList(Dataset.class, () -> handleListDatasets(null));
+		doGet(Dataset.class, this::handleGetDataset);
+		doDelete(Dataset.class, this::handleDeleteDataset);
+		doPut(PutDataset.class, putDataset -> {
 			try {
 				if (putDataset.getOperation() == CrudOperation.CREATE){
 					return handleCreateDataset(putDataset);

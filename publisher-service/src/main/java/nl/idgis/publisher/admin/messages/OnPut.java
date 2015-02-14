@@ -2,13 +2,13 @@ package nl.idgis.publisher.admin.messages;
 
 import java.io.Serializable;
 
-public class AddDelete implements Serializable {	
+public class OnPut implements Serializable {		
 
-	private static final long serialVersionUID = -3734801063309425239L;
+	private static final long serialVersionUID = 1170969781722435976L;
 	
 	private final Class<?> entity;
 	
-	public AddDelete(Class<?> entity) {
+	public OnPut(Class<?> entity) {
 		this.entity = entity;
 	}
 	
@@ -18,6 +18,6 @@ public class AddDelete implements Serializable {
 
 	@Override
 	public String toString() {
-		return "AddDelete [entity=" + entity + "]";
+		return "OnPut [entity=" + entity + "]";
 	}
 }
