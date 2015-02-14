@@ -30,5 +30,6 @@ public class AdminParent extends AbstractAdminParent {
 		getContext().actorOf(LayerGroupAdmin.props(database, serviceManager), "layergroup");
 		getContext().actorOf(TiledLayerAdmin.props(database), "tiledlayer");
 		getContext().actorOf(StyleAdmin.props(database), "style");
+		getContext().actorOf(JobCreator.props(database, serviceManager, jobSystem), "job-creator");
 	}
 }

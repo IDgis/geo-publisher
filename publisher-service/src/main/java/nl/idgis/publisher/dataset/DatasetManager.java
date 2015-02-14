@@ -119,12 +119,14 @@ public class DatasetManager extends UntypedActor {
 			tx.query().from(category)
 				.where(category.identification.eq(identification))
 				.singleResult(category.id).thenCompose(id -> {
-					return id.map(f::successful)
-						.orElse(
-							tx.insert(category)
-								.set(category.identification, identification)
-								.set(category.name, identification)
-								.executeWithKey(category.id));
+					if(id.isPresent()) {
+						return f.successful(id.get());
+					} else {
+						return tx.insert(category)
+							.set(category.identification, identification)
+							.set(category.name, identification)
+							.executeWithKey(category.id);
+					}
 				});
 	}
 	

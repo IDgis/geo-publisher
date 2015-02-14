@@ -37,7 +37,7 @@ public class DefaultServiceTest {
 		structure.put("leaf2", "group0");
 		
 		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
-		Service service = new DefaultService("service0", root, datasets, Collections.singletonList(root), structure);
+		Service service = new DefaultService("service0", "service-name0", root, datasets, Collections.singletonList(root), structure);
 		assertEquals("group0", service.getRootId());
 		
 		List<Layer> layers = service.getLayers();
@@ -70,7 +70,7 @@ public class DefaultServiceTest {
 		structure.put("group1", "group0");
 		structure.put("leaf2", "group1");
 		
-		Service service = new DefaultService("service0", root, datasets, groups, structure);
+		Service service = new DefaultService("service0", "service-name0", root, datasets, groups, structure);
 		assertEquals("group0", service.getRootId());
 		
 		List<Layer> layers = service.getLayers();

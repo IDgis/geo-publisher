@@ -51,14 +51,13 @@ public class JobSystem extends UntypedActor {
 	public void preStart() throws Exception {
 		jobManager = getContext().actorOf(
 				JobManager.props(database), "manager");
-
-		// TODO add support for service jobs
 		
 		getContext().actorOf(
 				Initiator.props()
 					.add(harvester, "harvester", new GetHarvestJobs())
 					.add(loader, "import", new GetImportJobs())
 					.add(loader, "remove", new GetRemoveJobs())
+					.add(service, "service", new GetServiceJobs())
 					.create(jobManager), 
 				"initiator");
 		

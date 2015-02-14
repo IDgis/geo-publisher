@@ -1,11 +1,9 @@
 package nl.idgis.publisher.service.manager;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.EntityPathBase;
@@ -35,12 +33,9 @@ import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
-
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
@@ -334,27 +329,35 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.abstractCol,
 					dataset.name));
 			
+			CompletableFuture<Optional<Tuple>> serviceInfo = tx.query().from(service)
+				.where(service.identification.eq(serviceId))
+				.singleResult(
+					service.name,
+					service.title);
+			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
 				? structure.thenCompose(structureResult ->
-					groups.thenCompose(groupsResult ->										
-						datasets.thenApply(datasetsResult -> {							
-							// LinkedHashMap is used to preserve layer order
-							Map<String, String> structureMap = new LinkedHashMap<>();
-							
-							for(Tuple structureTuple : structureResult) {
-								structureMap.put(
-									structureTuple.get(serviceStructure.childLayerIdentification),
-									structureTuple.get(serviceStructure.parentLayerIdentification));
-							}
-			
-							return new DefaultService(
-								serviceId, 
-								rootResult.get(), 
-								datasetsResult.list(), 
-								groupsResult.list(), 
-								structureMap);
-						})))
+					groups.thenCompose(groupsResult ->	
+						serviceInfo.thenCompose(serviceInfoResult -> 
+							datasets.thenApply(datasetsResult -> {							
+								// LinkedHashMap is used to preserve layer order
+								Map<String, String> structureMap = new LinkedHashMap<>();
+								
+								for(Tuple structureTuple : structureResult) {
+									structureMap.put(
+										structureTuple.get(serviceStructure.childLayerIdentification),
+										structureTuple.get(serviceStructure.parentLayerIdentification));
+								}
+				
+								return new DefaultService(
+									serviceId, 
+									serviceInfoResult.get().get(service.name),
+									rootResult.get(), 
+									datasetsResult.list(), 
+									groupsResult.list(), 
+									structureMap);
+							}))))
 				: f.successful(new NotFound()));
 		});
 	}
