@@ -23,6 +23,8 @@ public class JobCreator extends AbstractAdmin {
 	}
 	
 	private void createServiceJob(String serviceId) {
+		log.debug("creating service job: {}", serviceId);
+		
 		jobSystem.tell(new CreateServiceJob(serviceId), getSelf());
 	}
 
