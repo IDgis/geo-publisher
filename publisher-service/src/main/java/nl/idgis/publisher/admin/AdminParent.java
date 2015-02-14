@@ -17,7 +17,7 @@ public class AdminParent extends AbstractAdminParent {
 	}
 	
 	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem, ActorRef serviceManager) {
-		return Props.create(AbstractAdminParent.class, database, harvester, loader, service, jobSystem, serviceManager);
+		return Props.create(AdminParent.class, database, harvester, loader, service, jobSystem, serviceManager);
 	}
 	
 	protected void createActors() {
