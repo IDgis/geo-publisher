@@ -25,7 +25,7 @@ groups: Page[LayerGroup])
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-category">category</label>
 					<div class="col-lg-8">
-						<select class="form-control" id="input-category" name="categoryName"  @if(!create){disabled}>
+						<select class="form-control" id="input-category" name="categoryName">
 						@for(category <-categories.values){
 							<option value="@category.id" @if(serviceForm("categoryName").value==category.name){selected}>@category.name</option>
 						}

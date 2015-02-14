@@ -56,7 +56,6 @@ public class Services extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 		Logger.debug ("submit Service: " + form.field("name").value());
-		Logger.debug ("Service cateorie: " + form.field("category").value());
 		Logger.debug ("Form: "+ form);
 		// validation
 		if (form.field("name").value().length() == 1 ) 
@@ -66,7 +65,6 @@ public class Services extends Controller {
 		}
 		
 		final ServiceForm serviceForm = form.get ();
-		Logger.debug ("Update/create serviceForm: " + serviceForm);
 		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
 				serviceForm.metadata,serviceForm.watermark, serviceForm.published,

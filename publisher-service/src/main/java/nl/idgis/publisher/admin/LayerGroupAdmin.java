@@ -1,23 +1,25 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.LayerGroup;
+import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-
-import com.mysema.query.types.ConstantImpl;
 
 public class LayerGroupAdmin extends AbstractAdmin {
 	
@@ -39,6 +41,20 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		doGet(LayerGroup.class, this::handleGetLayergroup);
 		doPut(LayerGroup.class, this::handlePutLayergroup);
 		doDelete(LayerGroup.class, this::handleDeleteLayergroup);
+		
+		doQueryOptional(GetGroupStructure.class, this::handleGetGroupStructure);
+
+	}
+
+	private CompletableFuture<Optional<GroupLayer>> handleGetGroupStructure (GetGroupStructure getGroupStructure) {
+		log.debug ("handleListLayergroups");
+		return f.ask(this.serviceManager, new GetGroupLayer(getGroupStructure.groupId())).thenApply(resp -> {
+			if(resp instanceof NotFound) {
+				return Optional.empty();
+			} else {
+				return Optional.of((GroupLayer)resp);
+			}
+		});
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {

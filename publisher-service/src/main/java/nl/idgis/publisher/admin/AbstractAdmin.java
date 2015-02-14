@@ -18,7 +18,6 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
-
 import nl.idgis.publisher.admin.messages.DoDelete;
 import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
@@ -27,9 +26,7 @@ import nl.idgis.publisher.admin.messages.DoQuery;
 import nl.idgis.publisher.admin.messages.OnDelete;
 import nl.idgis.publisher.admin.messages.OnPut;
 import nl.idgis.publisher.admin.messages.OnQuery;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -40,7 +37,6 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
-
 import nl.idgis.publisher.utils.Event;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -101,6 +97,11 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected <T extends Entity> List<T> toList(TypedList<T> list) {
 		return list.list();
+	}
+	
+	protected <T, U extends DomainQuery<? super T>> void doQueryOptional(Class<U> query, Function<U, CompletableFuture<Optional<T>>> func) {	
+		doQuery.put(query, func);
+		getContext().parent().tell(new DoQuery(query), getSelf());
 	}
 	
 	protected <T, U extends DomainQuery<? super T>> void doQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
@@ -167,7 +168,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 		preStartAdmin();
 	}
 	
-	private void toSender(CompletableFuture<?> future) throws Exception {
+	@SuppressWarnings("rawtypes")
+	private <T> void toSender(CompletableFuture<T> future) throws Exception {
 		ActorRef sender = getSender(), self = getSelf();		
 		future.whenComplete((resp, t) -> {
 			if(t != null) {
@@ -175,8 +177,20 @@ public abstract class AbstractAdmin extends UntypedActor {
 				t.printStackTrace(new PrintWriter(sw));
 				log.error("failure: {}", sw);
 			} else {
-				log.debug("sending response: {}", resp);				
-				sender.tell(resp, self);
+				Object result;
+				if(resp instanceof Optional) {
+					Optional<?> opt = ((Optional<?>)resp);
+					if(opt.isPresent()) {
+						result = opt.get();
+					} else {
+						result = new NotFound();
+					}
+				} else {
+					result = resp;
+				}				
+				
+				log.debug("sending response: {}", resp);
+				sender.tell(result, self);				
 			}
 		});
 	}
@@ -197,8 +211,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 			} else {
 				log.debug("handling get entity: {}", entity);
 				
-				toSender(handler.apply(((GetEntity<?>)msg).id())
-					.thenApply(resp -> resp.orElse(new NotFound())));
+				toSender(handler.apply(((GetEntity<?>)msg).id()));
 			}
 		} else if(msg instanceof ListEntity) {
 			Class<?> entity = ((ListEntity<?>)msg).cls();
