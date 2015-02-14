@@ -10,35 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import com.mysema.query.SimpleQuery;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
@@ -46,38 +18,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-import nl.idgis.publisher.admin.messages.AddDelete;
-import nl.idgis.publisher.admin.messages.AddGet;
-import nl.idgis.publisher.admin.messages.AddList;
-import nl.idgis.publisher.admin.messages.AddPut;
-import nl.idgis.publisher.admin.messages.AddQuery;
+import nl.idgis.publisher.admin.messages.DoDelete;
+import nl.idgis.publisher.admin.messages.DoGet;
+import nl.idgis.publisher.admin.messages.DoList;
+import nl.idgis.publisher.admin.messages.DoPut;
+import nl.idgis.publisher.admin.messages.DoQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
@@ -89,19 +35,6 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -163,7 +96,7 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected <T, U extends DomainQuery<? super T>> void addQuery(Class<U> query, Function<U, CompletableFuture<T>> func) {	
 		queryHandlers.put(query, func);
-		getContext().parent().tell(new AddQuery(query), getSelf());
+		getContext().parent().tell(new DoQuery(query), getSelf());
 	}
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Supplier<CompletableFuture<Page<T>>> func) {
@@ -172,22 +105,22 @@ public abstract class AbstractAdmin extends UntypedActor {
 	
 	protected <T extends Entity> void addList(Class<? super T> entity, Function<Long, CompletableFuture<Page<T>>> func) {	
 		listHandlers.put(entity, func);
-		getContext().parent().tell(new AddList(entity), getSelf());
+		getContext().parent().tell(new DoList(entity), getSelf());
 	}
 	
 	protected <T extends Entity> void addGet(Class<? super T> entity, Function<String, CompletableFuture<Optional<T>>> func) {	
 		getHandlers.put(entity, func);
-		getContext().parent().tell(new AddGet(entity), getSelf());
+		getContext().parent().tell(new DoGet(entity), getSelf());
 	}
 	
 	protected <T extends Identifiable> void addDelete(Class<? super T> entity, Function<String, CompletableFuture<Response<?>>> func) {
 		deleteHandlers.put(entity, func);
-		getContext().parent().tell(new AddDelete(entity), getSelf());
+		getContext().parent().tell(new DoDelete(entity), getSelf());
 	}
 	
 	protected <T extends Identifiable> void addPut(Class<? super T> entity, Function<T, CompletableFuture<Response<?>>> func) {
 		putHandlers.put(entity, func);
-		getContext().parent().tell(new AddPut(entity), getSelf());
+		getContext().parent().tell(new DoPut(entity), getSelf());
 	}
 	
 	protected abstract void preStartAdmin();

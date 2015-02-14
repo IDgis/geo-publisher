@@ -2,13 +2,13 @@ package nl.idgis.publisher.admin.messages;
 
 import java.io.Serializable;
 
-public class AddQuery implements Serializable {	
+public class OnQuery implements Serializable {
 
-	private static final long serialVersionUID = -6530132079755949454L;
+	private static final long serialVersionUID = 857619253569573006L;
 	
 	private final Class<?> clazz;
 	
-	public AddQuery(Class<?> clazz) {
+	public OnQuery(Class<?> clazz) {
 		this.clazz = clazz;
 	}
 	
@@ -18,6 +18,6 @@ public class AddQuery implements Serializable {
 
 	@Override
 	public String toString() {
-		return "AddQuery [clazz=" + clazz + "]";
+		return "OnQuery [clazz=" + clazz + "]";
 	}
 }
