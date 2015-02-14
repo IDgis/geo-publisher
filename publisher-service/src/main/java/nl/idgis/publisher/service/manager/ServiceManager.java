@@ -326,7 +326,7 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.name));
+					dataset.identification));
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = tx.query().from(service)
 				.where(service.identification.eq(serviceId))

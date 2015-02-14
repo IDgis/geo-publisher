@@ -173,6 +173,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
+		assertEquals("dataset0", datasetLayer.getTableName());
 		
 		assertFalse(itr.hasNext());
 	}
