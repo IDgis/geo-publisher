@@ -15,9 +15,9 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
+import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListEntity;
 import nl.idgis.publisher.domain.query.PutEntity;
 import nl.idgis.publisher.domain.query.RefreshDataset;
@@ -26,7 +26,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
-
+import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.GetRecording;
@@ -86,6 +86,7 @@ public class AdminTest {
 			doDelete(Category.class, categoryId ->
 				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.OK, categoryId)));
 			doQuery(RefreshDataset.class, refreshDataset -> f.successful(true));
+			doQueryOptional(GetGroupStructure.class, getGroupStructure -> f.successful(Optional.empty()));
 		}
 		
 	}
@@ -172,5 +173,10 @@ public class AdminTest {
 				assertEquals("datasetId", refreshDataset.getDatasetId());
 			})
 			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testOptionalQuery() throws Exception {
+		sync.ask(parent, new GetGroupStructure("groupId"), NotFound.class);
 	}
 }

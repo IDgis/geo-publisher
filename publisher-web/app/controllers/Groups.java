@@ -10,6 +10,8 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
+import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -17,6 +19,7 @@ import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -112,17 +115,22 @@ public class Groups extends Controller {
 		
 		return from (database)
 			.get (LayerGroup.class, groupId)
+			.query (new GetGroupStructure(groupId))
 			.list (LayerGroup.class)
 			.list (Layer.class)
-			.execute (new Function3<LayerGroup, Page<LayerGroup>, Page<Layer>, Result> () {
+			.execute (new Function4<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, Result> () {
 
 				@Override
-				public Result apply (final LayerGroup group, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+				public Result apply (final LayerGroup group, final GroupLayer groupLayer, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 					final Form<GroupForm> groupForm = Form
 							.form (GroupForm.class)
 							.fill (new GroupForm (group));
 					
-					Logger.debug ("Edit groupForm: " + groupForm);						
+					Logger.debug ("Edit groupForm: " + groupForm);		
+					Logger.debug ("GROUP LAYER layer name:" + groupLayer.getName() + " id:" + groupLayer.getId());
+					for (nl.idgis.publisher.domain.web.tree.Layer layer : groupLayer.getLayers()) {
+						Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
+					}
 
 					return ok (form.render (groupForm, false, groups, layers));
 				}
