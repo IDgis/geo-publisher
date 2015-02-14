@@ -133,7 +133,7 @@ public class AdminTest {
 	
 	@Test
 	public void testGet() throws Exception {
-		sync.ask(parent, new GetEntity<>(Category.class, "testCatagory"), Category.class);
+		sync.ask(parent, new GetEntity<>(Category.class, "testCategory"), Category.class);
 	}
 	
 	@Test
