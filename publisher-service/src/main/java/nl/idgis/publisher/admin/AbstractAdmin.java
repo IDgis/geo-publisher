@@ -23,6 +23,7 @@ import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
 import nl.idgis.publisher.admin.messages.DoPut;
 import nl.idgis.publisher.admin.messages.DoQuery;
+import nl.idgis.publisher.admin.messages.Initialized;
 import nl.idgis.publisher.admin.messages.OnDelete;
 import nl.idgis.publisher.admin.messages.OnPut;
 import nl.idgis.publisher.admin.messages.OnQuery;
@@ -166,6 +167,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 		onPut = new HashMap<>();
 		
 		preStartAdmin();
+		
+		getContext().parent().tell(new Initialized(), getSelf());
 	}
 	
 	@SuppressWarnings("rawtypes")

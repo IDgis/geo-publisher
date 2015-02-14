@@ -106,8 +106,8 @@ public class AdminTest {
 
 		@Override
 		protected void createActors() {
-			getContext().actorOf(Do.props(database), "do");
-			getContext().actorOf(On.props(database, recorder), "on");
+			createAdminActor(Do.props(database), "do");
+			createAdminActor(On.props(database, recorder), "on");
 		}
 	}
 	
@@ -127,8 +127,6 @@ public class AdminTest {
 		parent = actorSystem.actorOf(Parent.props(null, recorder), "parent");
 		
 		sync = new SyncAskHelper(actorSystem);
-		
-		Thread.sleep(100); // registering query handlers takes a while
 	}
 	
 	@Test
