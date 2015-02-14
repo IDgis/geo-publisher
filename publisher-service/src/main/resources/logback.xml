@@ -14,12 +14,27 @@
  
    <!-- 
   	<logger name="nl.idgis.publisher.admin" level="debug"/>
-  --> 
+  -->
+  
+  <!-- 
   	<logger name="nl.idgis.publisher.admin.ServiceAdmin" level="debug"/>
+   -->
+   
+  <!-- 
   	<logger name="nl.idgis.publisher.admin.LayerAdmin" level="debug"/>
+   -->
+   
+  <!--
   	<logger name="nl.idgis.publisher.admin.LayerGroupAdmin" level="debug"/>
+   -->
+   
+  <!--
   	<logger name="nl.idgis.publisher.admin.StyleAdmin" level="debug"/>
+   -->
+   
+  <!--  	
   	<logger name="nl.idgis.publisher.admin.TiledLayerAdmin" level="debug"/>
+   -->
    
   <!--  
   	<logger name="nl.idgis.publisher.metadata.MetadataGenerator" level="debug"/>
@@ -28,7 +43,7 @@
   <!--  
   	<logger name="nl.idgis.publisher.ServiceApp" level="debug"/>
    -->
-   
+
    <!--
     <logger name="nl.idgis.publisher.service" level="debug"/>
   -->
