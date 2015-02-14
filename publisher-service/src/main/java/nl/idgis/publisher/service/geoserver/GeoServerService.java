@@ -19,7 +19,9 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -118,7 +120,11 @@ public class GeoServerService extends UntypedActor {
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
 		} else if(msg instanceof Failure) {
-			// TODO: job failure
+			log.error("failure: {}", msg);
+			
+			// TODO: add logging
+			initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+			getContext().become(receive());
 		} else {
 			unhandled(msg);
 		}
