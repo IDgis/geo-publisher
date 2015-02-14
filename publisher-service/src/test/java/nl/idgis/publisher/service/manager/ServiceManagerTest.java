@@ -151,11 +151,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "serviceName0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
 		assertEquals("rootgroup", service.getRootId());
+		assertEquals("serviceName0", service.getName());
 		
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);

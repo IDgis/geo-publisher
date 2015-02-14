@@ -174,6 +174,7 @@ public class ProvisionServiceTest {
 	public void testEmptyService() throws Exception {
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
+		when(service.getName()).thenReturn("serviceName0");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.emptyList());
 		
@@ -182,7 +183,7 @@ public class ProvisionServiceTest {
 		sync.ask(recorder, new Wait(3), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)			
 			.assertNext(EnsureWorkspace.class, workspace -> {
-				assertEquals("service0", workspace.getWorkspaceId());
+				assertEquals("serviceName0", workspace.getWorkspaceId());
 			})			
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)
@@ -201,6 +202,8 @@ public class ProvisionServiceTest {
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
+		when(service.getName()).thenReturn("serviceName0");
+		
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
 		
@@ -209,7 +212,7 @@ public class ProvisionServiceTest {
 		sync.ask(recorder, new Wait(4), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
 			.assertNext(EnsureWorkspace.class, workspace -> {
-				assertEquals("service0", workspace.getWorkspaceId());
+				assertEquals("serviceName0", workspace.getWorkspaceId());
 			})
 			.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
 				assertEquals("layer0", featureType.getLayerId());
@@ -247,6 +250,7 @@ public class ProvisionServiceTest {
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
+		when(service.getName()).thenReturn("serviceName0");
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayer));
 		
@@ -255,7 +259,7 @@ public class ProvisionServiceTest {
 		
 		Recording recording = sync.ask(recorder, new GetRecording(), Recording.class)
 			.assertNext(EnsureWorkspace.class, workspace -> {
-				assertEquals("service0", workspace.getWorkspaceId());
+				assertEquals("serviceName0", workspace.getWorkspaceId());
 			})
 			.assertNext(EnsureGroupLayer.class, group -> {
 				assertEquals("group0", group.getLayerId());
