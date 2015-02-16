@@ -31,7 +31,9 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -67,6 +69,9 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
@@ -121,7 +126,7 @@ public class GeoServerServiceTest {
 		}
 	}
 	
-	TestServers testServers;
+	static TestServers testServers;
 	
 	ActorSystem actorSystem;
 	
@@ -132,6 +137,38 @@ public class GeoServerServiceTest {
 	DocumentBuilder documentBuilder;
 		
 	XPath xpath;
+	
+	@BeforeClass
+	public static void testServers() throws Exception {
+		testServers = new TestServers();
+		testServers.start();
+		
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		
+		Statement stmt = connection.createStatement();
+		stmt.execute("create schema \"staging_data\"");
+		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
+		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
+		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
+		
+		stmt.close();
+		
+		connection.close();
+	}
+	
+	@AfterClass
+	public static void stopServers() throws Exception {
+		testServers.stop();
+	}
+	
+	@After
+	public void cleanGeoServer() throws Exception {
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		for(Workspace workspace : service.getWorkspaces().get()) {
+			service.deleteWorkspace(workspace).get();
+		}
+		service.close();
+	}
 	
 	@Before
 	public void xml() throws Exception {
@@ -166,8 +203,6 @@ public class GeoServerServiceTest {
 	
 	@Before
 	public void actors() throws Exception {
-		testServers = new TestServers();
-		testServers.start();
 		
 		Config akkaConfig = ConfigFactory.empty()
 			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
@@ -191,24 +226,7 @@ public class GeoServerServiceTest {
 		
 		sync = new SyncAskHelper(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
-		
-		Statement stmt = connection.createStatement();
-		stmt.execute("create schema \"staging_data\"");
-		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
-		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
-		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
-		
-		stmt.close();
-		
-		connection.close();
-		
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
-	}
-	
-	@After
-	public void stopServers() throws Exception {
-		testServers.stop();
 	}
 	
 	private void processNodeList(NodeList nodeList, Set<String> retval) {
