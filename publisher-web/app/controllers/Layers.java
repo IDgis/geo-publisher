@@ -10,14 +10,17 @@ import java.util.UUID;
 
 import models.Domain;
 import models.Domain.Function;
+import models.Domain.Function2;
 import models.Domain.Function3;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
 import play.Play;
@@ -88,7 +91,7 @@ public class Layers extends Controller {
 		
 		final LayerForm layerForm = form.get ();
 		final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-				layerForm.abstractText,layerForm.keywords,layerForm.published);
+				layerForm.abstractText,layerForm.keywords,layerForm.published,layerForm.datasetId);
 		
 		return from (database)
 				.put(layer)
@@ -155,6 +158,7 @@ public class Layers extends Controller {
 					public Promise<Result> apply (final Dataset dataset) throws Throwable {
 						Logger.debug ("dataset: " + dataset.name());
 //						return ok (list.render (layers));
+						layerForm.setDatasetId(dataset.id());
 						layerForm.setDatasetName(dataset.name());
 						layerForm.setName(dataset.name().replace(' ', '_'));						
 						final Form<LayerForm> formLayerForm = Form.form (LayerForm.class).fill (layerForm );
@@ -171,35 +175,47 @@ public class Layers extends Controller {
 			.get (Layer.class, layerId)
 			.list (Style.class)
 			.query(new ListLayerStyles(layerId))
-			.execute (new Function3<Layer, Page<Style>, List<Style>, Result> () {
+			.executeFlat (new Function3<Layer, Page<Style>, List<Style>, Promise<Result>> () {
 
 				@Override
-				public Result apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
-					LayerForm layerForm = new LayerForm (layer);
-					if (layerStyles==null){
-						layerForm.setStyleList(new ArrayList<Style>());
-					} else {
-						layerForm.setStyleList(layerStyles);						
-					}
-					final Form<LayerForm> formLayerForm = Form
-							.form (LayerForm.class)
-							.fill (layerForm);
-					
-					Logger.debug ("Edit layerForm: " + layerForm);						
-
-					Logger.debug ("allStyles: " + allStyles.values().size());
-					Logger.debug ("layerStyles: " + layerStyles.size());
-					
-					// build a json string with list of styles (style.name, style.id) 
-					final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
-					for (final Style style: layerStyles) {
-						final ArrayNode styleNode = arrayNode.addArray ();
-						styleNode.add (style.name ());
-						styleNode.add (style.id ());
-					}					
-					final String layerStyleListString = Json.stringify (arrayNode);
-					
-					return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
+					return from (database)
+							.get(Dataset.class, layer.datasetId())
+							.execute (new Function<Dataset, Result> () {
+								@Override
+								
+							public Result apply (final Dataset dataset) throws Throwable {
+									
+								LayerForm layerForm = new LayerForm (layer);
+								if (layerStyles==null){
+									layerForm.setStyleList(new ArrayList<Style>());
+								} else {
+									layerForm.setStyleList(layerStyles);						
+								}
+								layerForm.setDatasetId(dataset.id());
+								layerForm.setDatasetName(dataset.name());
+								
+								final Form<LayerForm> formLayerForm = Form
+										.form (LayerForm.class)
+										.fill (layerForm);
+								
+								Logger.debug ("Edit layerForm: " + layerForm);						
+			
+								Logger.debug ("allStyles: " + allStyles.values().size());
+								Logger.debug ("layerStyles: " + layerStyles.size());
+								
+								// build a json string with list of styles (style.name, style.id) 
+								final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
+								for (final Style style: layerStyles) {
+									final ArrayNode styleNode = arrayNode.addArray ();
+									styleNode.add (style.name ());
+									styleNode.add (style.id ());
+								}					
+								final String layerStyleListString = Json.stringify (arrayNode);
+								
+								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
+								}
+							});
 				}
 			});
 	}
@@ -230,6 +246,7 @@ public class Layers extends Controller {
 		private String abstractText;
 		private String keywords;
 		private Boolean published = false;
+		private String datasetId;
 		private String datasetName;
 		/**
 		 * List of all styles in the system
@@ -252,6 +269,7 @@ public class Layers extends Controller {
 			this.abstractText = layer.abstractText();
 			this.keywords = layer.keywords();
 			this.published = layer.published();
+			this.datasetId = layer.datasetId();
 
 		}
 
@@ -325,6 +343,14 @@ public class Layers extends Controller {
 
 		public void setDatasetName(String datasetName) {
 			this.datasetName = datasetName;
+		}
+
+		public String getDatasetId() {
+			return datasetId;
+		}
+
+		public void setDatasetId(String datasetId) {
+			this.datasetId = datasetId;
 		}
 
 		@Override

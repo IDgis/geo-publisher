@@ -29,7 +29,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-dataset">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
 					<div class="col-lg-8">
-						<input class="form-control" id="input-dataset" name="dataset" value="@layerForm("datasetName").value" readonly>
+						<input class="form-control" id="input-dataset" name="datasetName" value="@layerForm("datasetName").value" readonly>
+						<input type="hidden" class="form-control" name="datasetId" value="@layerForm("datasetId").value">
 						@helper.fielderrors(layerForm("datasetName").errors)
 						<span class="help-block">@Domain.message("web.application.page.layers.form.field.dataset.help")</span>
 					</div>
