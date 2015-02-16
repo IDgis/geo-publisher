@@ -126,7 +126,7 @@ public class Datasets extends Controller {
 			.execute (new Function<Response<?>, Result> () {
 				@Override
 				public Result apply (final Response<?> response) throws Throwable {
-					if (response.getOperationresponse ().equals (CrudResponse.OK)) {
+					if (response.getOperationResponse ().equals (CrudResponse.OK)) {
 						flash ("success", "Resultaat van de structuurwijziging is opgeslagen");
 					} else {
 						flash ("danger", "Resultaat van de structuurwijziging kon niet worden opgeslagen");
@@ -308,7 +308,7 @@ public class Datasets extends Controller {
 							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
 								public Promise<Result> apply (final Response<?> response) throws Throwable {
-									if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
+									if (CrudResponse.NOK.equals (response.getOperationResponse ())) {
 										datasetForm.reject ("Er bestaat al een dataset met tabelnaam " + dataset.getId ());
 										return renderCreateForm (datasetForm);
 									}
@@ -429,7 +429,7 @@ public class Datasets extends Controller {
 							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
 								public Promise<Result> apply (final Response<?> response) throws Throwable {
-									if (CrudResponse.NOK.equals (response.getOperationresponse ())) {
+									if (CrudResponse.NOK.equals (response.getOperationResponse ())) {
 										datasetForm.reject ("dataset kon niet worden geupdate: " + dataset.getName ());
 										return renderEditForm (datasetForm);
 									}
