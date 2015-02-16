@@ -545,11 +545,13 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					streamWriter.writeStartElement("published");
 					streamWriter.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
 						streamWriter.writeStartElement("name");
-							streamWriter.writeCharacters(layerRef.getLayerId());
+							// layerGroup references without workspace prefix are not correctly resolved
+							streamWriter.writeCharacters(workspace.getName() + ":" + layerRef.getLayerId());
 						streamWriter.writeEndElement();
 					streamWriter.writeEndElement();
 				}
 				streamWriter.writeEndElement();
+				
 			streamWriter.writeEndElement();
 			streamWriter.writeEndDocument();
 			streamWriter.close();

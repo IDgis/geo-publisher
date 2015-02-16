@@ -450,19 +450,11 @@ public class GeoServerServiceTest {
 		when(group1.getAbstract()).thenReturn("groupAbstract1");
 		when(group1.getLayers()).thenReturn(Collections.singletonList(group0));
 		
-		GroupLayer rootLayer = mock(GroupLayer.class);
-		when(rootLayer.isGroup()).thenReturn(true);
-		when(rootLayer.asGroup()).thenReturn(rootLayer);
-		when(rootLayer.getName()).thenReturn("root");
-		when(rootLayer.getTitle()).thenReturn("rootTitle");
-		when(rootLayer.getAbstract()).thenReturn("rootAbstract");
-		when(rootLayer.getLayers()).thenReturn(Collections.singletonList(group1));
-		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
 		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
-		when(service.getLayers()).thenReturn(Collections.singletonList(rootLayer));
+		when(service.getLayers()).thenReturn(Collections.singletonList(group1));
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
@@ -471,6 +463,8 @@ public class GeoServerServiceTest {
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
-		assertEquals("layer", getText("//wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
+		assertEquals("serviceName:layer", getText("//wms:Layer/wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
+		assertEquals("serviceName:layer", getText("//wms:Layer/wms:Layer/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
+		assertEquals("serviceName:layer", getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
 	}
 }
