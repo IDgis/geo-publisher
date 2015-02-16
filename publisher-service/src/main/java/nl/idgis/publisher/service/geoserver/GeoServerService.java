@@ -38,6 +38,7 @@ import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
+import nl.idgis.publisher.service.geoserver.rest.LayerRef;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -179,7 +180,7 @@ public class GeoServerService extends UntypedActor {
 			Map<String, FeatureType> featureTypes,
 			Map<String, LayerGroup> layerGroups) {
 		
-		List<String> groupLayerContent = new ArrayList<>();
+		List<LayerRef> groupLayerContent = new ArrayList<>();
 		
 		log.debug("-> layers {}", groupLayer == null ? "" : null);
 		
@@ -208,6 +209,8 @@ public class GeoServerService extends UntypedActor {
 			void postFeatureType(EnsureFeatureTypeLayer ensureLayer) {
 				String layerId = ensureLayer.getLayerId();
 				
+				log.debug("posting feature type: {}", layerId);
+				
 				FeatureType featureType = new FeatureType(
 					layerId, 
 					ensureLayer.getTableName(),
@@ -224,6 +227,8 @@ public class GeoServerService extends UntypedActor {
 			void postLayerGroup() {
 				String groupLayerId = groupLayer.getLayerId();
 				
+				log.debug("posting layer group: {}", groupLayerId);
+				
 				LayerGroup layerGroup = new LayerGroup(
 					groupLayerId,
 					groupLayer.getTitle(),
@@ -239,14 +244,17 @@ public class GeoServerService extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureGroupLayer) {
+					EnsureGroupLayer ensureLayer = (EnsureGroupLayer)msg;
+					
 					ensured(provisioningService);
-					getContext().become(layers(((EnsureGroupLayer)msg), initiator, serviceJob, 
+					groupLayerContent.add(new LayerRef(ensureLayer.getLayerId(), true));
+					getContext().become(layers(ensureLayer, initiator, serviceJob, 
 						provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
-					String layerId = ensureLayer.getLayerId();		
-					groupLayerContent.add(layerId);
+					String layerId = ensureLayer.getLayerId();
+					groupLayerContent.add(new LayerRef(layerId, false));
 					if(featureTypes.containsKey(layerId)) {
 						log.debug("existing feature type found: " + layerId);
 						

@@ -422,5 +422,55 @@ public class GeoServerServiceTest {
 		
 		capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
 		notExists("//wms:Layer/wms:Name", capabilities);
-	}	
+	}
+	
+	@Test
+	public void testGroupInGroup() throws Exception {
+		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer");
+		when(datasetLayer.getTitle()).thenReturn("title");
+		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.getTableName()).thenReturn("myTable");
+		when(datasetLayer.isGroup()).thenReturn(false);
+		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		
+		GroupLayer group0 = mock(GroupLayer.class);
+		when(group0.isGroup()).thenReturn(true);
+		when(group0.asGroup()).thenReturn(group0);
+		when(group0.getName()).thenReturn("group0");
+		when(group0.getTitle()).thenReturn("groupTitle0");
+		when(group0.getAbstract()).thenReturn("groupAbstract0");
+		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		
+		GroupLayer group1 = mock(GroupLayer.class);
+		when(group1.isGroup()).thenReturn(true);
+		when(group1.asGroup()).thenReturn(group1);
+		when(group1.getName()).thenReturn("group1");
+		when(group1.getTitle()).thenReturn("groupTitle1");
+		when(group1.getAbstract()).thenReturn("groupAbstract1");
+		when(group1.getLayers()).thenReturn(Collections.singletonList(group0));
+		
+		GroupLayer rootLayer = mock(GroupLayer.class);
+		when(rootLayer.isGroup()).thenReturn(true);
+		when(rootLayer.asGroup()).thenReturn(rootLayer);
+		when(rootLayer.getName()).thenReturn("root");
+		when(rootLayer.getTitle()).thenReturn("rootTitle");
+		when(rootLayer.getAbstract()).thenReturn("rootAbstract");
+		when(rootLayer.getLayers()).thenReturn(Collections.singletonList(group1));
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(rootLayer));
+		
+		sync.ask(serviceManager, new PutService("service", service), Ack.class);
+		
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		
+		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
+		assertEquals("layer", getText("//wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
+	}
 }

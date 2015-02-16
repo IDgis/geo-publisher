@@ -151,7 +151,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
 		
-		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList("test"));
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
@@ -161,7 +161,14 @@ public class DefaultGeoServerRestTest {
 		assertTrue(itr.hasNext());
 		layerGroup = itr.next();
 		assertEquals("group", layerGroup.getName());
-		assertEquals(Arrays.asList("test"), layerGroup.getLayers());
+		
+		List<LayerRef> layers = layerGroup.getLayers();
+		assertEquals(1, layers.size());
+		LayerRef layerRef = layers.get(0);		
+		assertNotNull(layerRef);
+		assertEquals("test", layerRef.getLayerId());
+		assertEquals(false, layerRef.isGroup());
+		
 		assertFalse(itr.hasNext());
 		
 		service.deleteWorkspace(workspace).get();		

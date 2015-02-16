@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.stream.XMLOutputFactory;
@@ -19,10 +20,12 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
+
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -439,12 +442,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				future.completeExceptionally(t);
 			} else {
 				try {
-					List<String> layers = new ArrayList<>();
+					List<LayerRef> layers = new ArrayList<>();
 					
-					NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published[@type='layer']/name/text()", document, XPathConstants.NODESET);
+					NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						layers.add(n.getTextContent());
+						
+						
+						String name = (String)xpath.evaluate("name/text()", n, XPathConstants.STRING);
+						String type = (String)xpath.evaluate("@type", n, XPathConstants.STRING);
+						
+						switch(type) {
+							case "layer":
+								layers.add(new LayerRef(name, false));
+								break;
+							case "layerGroup":
+								layers.add(new LayerRef(name, true));
+								break;
+							default:
+								throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
+						}
+						
+						
 					}
 					
 					String title = (String)xpath.evaluate("/layerGroup/title/text()", document, XPathConstants.STRING);
@@ -521,10 +540,13 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					streamWriter.writeEndElement();
 				}
 				
-				streamWriter.writeStartElement("layers");
-				for(String layer : layerGroup.getLayers()) {
-					streamWriter.writeStartElement("layer");
-						streamWriter.writeCharacters(layer);
+				streamWriter.writeStartElement("publishables");
+				for(LayerRef layerRef : layerGroup.getLayers()) {
+					streamWriter.writeStartElement("published");
+					streamWriter.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
+						streamWriter.writeStartElement("name");
+							streamWriter.writeCharacters(layerRef.getLayerId());
+						streamWriter.writeEndElement();
 					streamWriter.writeEndElement();
 				}
 				streamWriter.writeEndElement();
