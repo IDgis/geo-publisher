@@ -1,5 +1,6 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QStyle.style;
@@ -56,8 +57,9 @@ public class LayerAdmin extends AbstractAdmin {
 			.query()
 			.from(genericLayer)
 			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-					genericLayer.abstractCol, leafLayer.keywords, genericLayer.published))
+					genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.name))
 			.thenApply(this::toPage);
 	}
 
@@ -69,14 +71,16 @@ public class LayerAdmin extends AbstractAdmin {
 			.query()
 			.from(genericLayer)
 			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-				genericLayer.abstractCol, leafLayer.keywords, genericLayer.published));
+				genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.name));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
 		String layerId = theLayer.id();
 		String layerName = theLayer.name();
+		String datasetName = theLayer.datasetName();
 		log.debug("handle update/create layer: " + layerId);
 
 		return db
@@ -110,19 +114,31 @@ public class LayerAdmin extends AbstractAdmin {
 										.singleResult(genericLayer.id)
 										.thenCompose(
 											glId -> {
-												log.debug("Inserting new leaf_layer with generic_layer id: "
-														+ glId.get());
+												log.debug("Finding dataset name: " + datasetName);
 												return tx
-													.insert(leafLayer)
-													.set(leafLayer.genericLayerId, glId.get())
-													.set(leafLayer.keywords, theLayer.keywords())
-													.execute()
-													.thenApply(
-														l -> new Response<String>(
-															CrudOperation.CREATE,
-															CrudResponse.OK,
-															newLayerId));
+													.query()
+													.from(dataset)
+													.where(dataset.name.eq(datasetName))
+													.singleResult(dataset.id)
+													.thenCompose(
+														dsId -> {
+														log.debug("dataset found id:  "
+																	+ dsId.get());
+														log.debug("Inserting new leaf_layer with generic_layer id: "
+																+ glId.get());
+													return tx
+														.insert(leafLayer)
+														.set(leafLayer.genericLayerId, glId.get())
+														.set(leafLayer.keywords, theLayer.keywords())
+														.set(leafLayer.datasetId, dsId.get())
+														.execute()
+														.thenApply(
+															l -> new Response<String>(
+																CrudOperation.CREATE,
+																CrudResponse.OK,
+																newLayerId));
 													});
+											});
 									});
 					} else {
 						// UPDATE

@@ -88,7 +88,7 @@ public class Layers extends Controller {
 		
 		final LayerForm layerForm = form.get ();
 		final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-				layerForm.abstractText,layerForm.keywords,layerForm.published);
+				layerForm.abstractText,layerForm.keywords,layerForm.published,layerForm.datasetName);
 		
 		return from (database)
 				.put(layer)
@@ -252,6 +252,7 @@ public class Layers extends Controller {
 			this.abstractText = layer.abstractText();
 			this.keywords = layer.keywords();
 			this.published = layer.published();
+			this.datasetName = layer.datasetName();
 
 		}
 
