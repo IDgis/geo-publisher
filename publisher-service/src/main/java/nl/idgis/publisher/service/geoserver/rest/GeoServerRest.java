@@ -34,4 +34,6 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<List<Workspace>> getWorkspaces();
 
+	CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceSettings serviceSettings);
+
 }

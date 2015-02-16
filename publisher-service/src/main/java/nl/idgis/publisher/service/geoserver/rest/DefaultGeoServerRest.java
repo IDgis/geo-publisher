@@ -138,8 +138,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 				@Override
 				public Response onCompleted(Response response) throws Exception {
+					System.out.println("response: " + response.getResponseBody());
+					
 					int responseCode = response.getStatusCode();
-					if(responseCode != HttpURLConnection.HTTP_OK) {	
+					if(responseCode != HttpURLConnection.HTTP_OK) {
 						future.completeExceptionally(new GeoServerException(responseCode));
 					} else {
 						future.complete(null);
@@ -185,6 +187,48 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			});
 		
 		return future;
+	}
+	
+	private String getServiceSettingsPath(Workspace workspace, ServiceType serviceType) {
+		return serviceLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
+			+ workspace.getName() + "/settings";
+	}
+	
+	@Override
+	public CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceSettings serviceSettings) {
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			
+			ServiceType serviceType = serviceSettings.getServiceType();
+			
+			XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
+			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
+			streamWriter.writeStartDocument();
+				streamWriter.writeStartElement(serviceType.name().toLowerCase());
+					streamWriter.writeStartElement("enabled");
+						streamWriter.writeCharacters("true");
+					streamWriter.writeEndElement();
+					
+					streamWriter.writeStartElement("name");
+						streamWriter.writeCharacters(serviceType.name().toUpperCase());
+					streamWriter.writeEndElement();
+					
+					String title = serviceSettings.getTitle();
+					if(title != null) {
+						streamWriter.writeStartElement("title");
+							streamWriter.writeCharacters(title);
+						streamWriter.writeEndElement();
+					}
+				streamWriter.writeEndElement();
+			streamWriter.writeEndDocument();
+			streamWriter.close();
+			
+			outputStream.close();
+			
+			return put(getServiceSettingsPath(workspace, serviceType), outputStream.toByteArray());
+		} catch(Exception e) {
+			return failure(e);
+		}
 	}
 	
 	@Override
