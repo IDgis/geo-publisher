@@ -40,6 +40,9 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QService.service;
+
 public class InitiatorTest extends AbstractServiceTest {
 	
 	static class GetReceivedJobs {
@@ -169,7 +172,16 @@ public class InitiatorTest extends AbstractServiceTest {
 		insertDataset("testDataset0");
 		insertDataset("testDataset1");
 		
-		insertService("testService");
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "root")
+			.set(genericLayer.name, "rootName")
+			.executeWithKey(genericLayer.id);
+		
+		insert(service)
+			.set(service.identification, "testService")
+			.set(service.name, "testServiceName")
+			.set(service.rootgroupId, rootId)
+			.execute();
 	}
 	
 	ActorRef manager;
@@ -223,7 +235,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	}
 
 	@Test
-	public void testServiceJob() throws Exception {
+	public void testServiceJob() throws Exception {		
 		sync.ask(manager, new CreateServiceJob("testService"));
 
 		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
