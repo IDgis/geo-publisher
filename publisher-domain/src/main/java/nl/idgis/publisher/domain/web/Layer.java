@@ -22,7 +22,7 @@ public class Layer extends Identifiable {
 	private final String abstractText;
 	private final String keywords;
 	private final Boolean published;
-	private final String datasetName;
+	private final String datasetId;
 
 	
 	@JsonCreator
@@ -34,7 +34,7 @@ public class Layer extends Identifiable {
 			final @JsonProperty("") String abstractText,
 			final @JsonProperty("") String keywords,
 			final @JsonProperty("") Boolean published,
-			final @JsonProperty("") String datasetName 
+			final @JsonProperty("") String datasetId 
 			) {
 		super(id);
 		this.name = name;
@@ -42,7 +42,7 @@ public class Layer extends Identifiable {
 		this.abstractText = abstractText;
 		this.keywords = keywords;
 		this.published = published;
-		this.datasetName = datasetName;
+		this.datasetId = datasetId;
 	}
 
 	@JsonGetter
@@ -70,8 +70,8 @@ public class Layer extends Identifiable {
 		return published;
 	}
 
-	public String datasetName() {
-		return datasetName;
+	public String datasetId() {
+		return datasetId;
 	}
 
 }

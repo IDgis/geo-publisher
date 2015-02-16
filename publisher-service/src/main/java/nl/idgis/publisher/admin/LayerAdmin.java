@@ -59,7 +59,7 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-					genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.name))
+					genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.identification))
 			.thenApply(this::toPage);
 	}
 
@@ -74,13 +74,13 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-				genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.name));
+				genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.identification));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
 		String layerId = theLayer.id();
 		String layerName = theLayer.name();
-		String datasetName = theLayer.datasetName();
+		String datasetId = theLayer.datasetId();
 		log.debug("handle update/create layer: " + layerId);
 
 		return db
@@ -114,11 +114,11 @@ public class LayerAdmin extends AbstractAdmin {
 										.singleResult(genericLayer.id)
 										.thenCompose(
 											glId -> {
-												log.debug("Finding dataset name: " + datasetName);
+												log.debug("Finding dataset identification: " + datasetId);
 												return tx
 													.query()
 													.from(dataset)
-													.where(dataset.name.eq(datasetName))
+													.where(dataset.identification.eq(datasetId))
 													.singleResult(dataset.id)
 													.thenCompose(
 														dsId -> {
