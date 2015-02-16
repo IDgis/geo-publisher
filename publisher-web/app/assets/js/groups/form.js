@@ -12,10 +12,10 @@ require ([
 	
 	'dojo/domReady!'
 ], function (dom, on, win, query, domattr, domConstruct, OrderedList, put) {
-	var main = dom.byId('groepstructuur');
+	var main = dom.byId('groupLayerStructure');
 	
-	if(dom.byId ('groepstructuur')) {
-		var list = new OrderedList ('#groepstructuur');
+	if(dom.byId ('groupLayerStructure')) {
+		var list = new OrderedList ('#groupLayerStructure');
 	}
 	
 	var groepen = dom.byId('addgroup');
