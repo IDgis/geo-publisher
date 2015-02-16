@@ -65,28 +65,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
-
-<!-- 						<div style="position: relative;" class="list-group" id="groepstructuur"> -->
-<!-- 							<div value="G1" class="list-group-item gp-draggable tree-item"> -->
-<!-- 							<input type="hidden" value="G1" name="structure"> -->
-<!-- 								<div class="row"> -->
-<!-- 									<div class="col-sm-11 groupTree"> -->
-<!-- 										<ul> -->
-<!-- 											<li> -->
-<!-- 											<a>Groep 1</a> -->
-<!-- 											</li> -->
-<!-- 										</ul> -->
-<!-- 									</div> -->
-<!-- 									<div class="col-sm-1"> -->
-<!-- 									</div> -->
-<!-- 								</div> -->
-<!-- 							</div> -->
-<!-- 						</div> -->
-						
-						<div style="position: relative;" class="list-group" id="groepstructuur">
-							@if(grouplayer != null){
-								@helper.groupStructure(grouplayer)
-							}
+						<div style="position: relative;" class="list-group" id="groupLayerStructure">
+							@helper.groupStructure(grouplayer)
 						</div>
 						
 							<select id="addgroup">

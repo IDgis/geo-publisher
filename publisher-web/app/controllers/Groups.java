@@ -2,6 +2,8 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +14,8 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.PutGroupStructure;
+import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -67,6 +71,18 @@ public class Groups extends Controller {
 		}
 		
 		final GroupForm groupForm = form.get ();
+		
+		List<String> structureIds;
+		if (groupForm.structure == null){
+			// empty list
+			structureIds = new ArrayList<String>();
+		} else {
+			structureIds = groupForm.structure;
+		}
+		
+		final List<String> layerIds = structureIds;
+		Logger.debug ("Group structure: " + groupForm.structure + ", list: " + layerIds);
+		
 		final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
 				groupForm.abstractText,groupForm.published);
 		
@@ -75,16 +91,27 @@ public class Groups extends Controller {
 			.executeFlat (new Function<Response<?>, Promise<Result>> () {
 				@Override
 				public Promise<Result> apply (final Response<?> response) throws Throwable {
-					if (CrudOperation.CREATE.equals (response.getOperation())) {
-						Logger.debug ("Created group " + group);
-						flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-					}else{
-						Logger.debug ("Updated group " + group);
-						flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
-					}
-					return Promise.pure (redirect (routes.Groups.list ()));
+					// Get the id of the layer we just put 
+					String groupId = response.getValue().toString();
+					PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds);															
+					return from (database)
+						.query(putGroupStructure)
+						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> response) throws Throwable {
+								if (CrudOperation.CREATE.equals (response.getOperation())) {
+									Logger.debug ("Created group " + group);
+									flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+								}else{
+									Logger.debug ("Updated group " + group);
+									flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+								}
+								return Promise.pure (redirect (routes.Groups.list ()));
+							}
+						});
 				}
 			});
+
 	}
 	
 	public static Promise<Result> list () {
@@ -165,7 +192,7 @@ public class Groups extends Controller {
 		/**
 		 * List of id's of layers/groups in this group
 		 */
-		private List<String> groupLayerStructure;
+		private List<String> structure;
 
 		public GroupForm(){
 			super();
@@ -220,7 +247,15 @@ public class Groups extends Controller {
 		public void setPublished(Boolean published) {
 			this.published = published;
 		}
-		
+
+		public List<String> getStructure() {
+			return structure;
+		}
+
+		public void setStructure(List<String> structure) {
+			this.structure = structure;
+		}
+
 	}
 	
 }

@@ -2,13 +2,21 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QStyle.style;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.PutGroupStructure;
+import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -18,6 +26,7 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.utils.StreamUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -43,6 +52,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		doDelete(LayerGroup.class, this::handleDeleteLayergroup);
 		
 		doQueryOptional(GetGroupStructure.class, this::handleGetGroupStructure);
+		doQuery(PutGroupStructure.class, this::handlePutGroupStructure);
 
 	}
 
@@ -102,24 +112,25 @@ public class LayerGroupAdmin extends AbstractAdmin {
 				if (!msg.isPresent()){
 					// INSERT
 					log.debug("Inserting new layergroup with name: " + layergroupName);
+					String identification = UUID.randomUUID().toString();
 					return tx.insert(genericLayer)
-					.set(genericLayer.identification, UUID.randomUUID().toString())
+					.set(genericLayer.identification, identification)
 					.set(genericLayer.name, layergroupName)
 					.set(genericLayer.title, theLayergroup.title())
 					.set(genericLayer.abstractCol, theLayergroup.abstractText())
 					.set(genericLayer.published, theLayergroup.published())
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, layergroupName));
+					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, identification));
 				} else {
 					// UPDATE
-					log.debug("Updating layergroup with name: " + layergroupName);
+					log.debug("Updating layergroup with name: " + layergroupName + ", id:" + layergroupId);
 					return tx.update(genericLayer)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
 							.set(genericLayer.published, theLayergroup.published())
 					.where(genericLayer.identification.eq(layergroupId))
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, layergroupName));
+					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, layergroupId));
 				}
 		}));
 	}
@@ -154,6 +165,49 @@ public class LayerGroupAdmin extends AbstractAdmin {
 							});
 						// TODO send ERROR message?
 					}));
+	}
+	
+	private CompletableFuture<Response<?>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
+		String groupId = putGroupStructure.groupId();
+		List<String> layerIdList =  putGroupStructure.layerIdList();
+		log.debug("handlePutGroupStructure groupId: " + groupId + ", layer id's: " +layerIdList);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(groupId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+							// A. delete the existing structure of this layer
+							return tx.delete(layerStructure)
+								.where(layerStructure.parentLayerId.eq(glId.get()))
+								.execute()
+								.thenCompose(
+									llNr -> {
+										// B. insert items of layerStructure
+										return f.sequence(												
+											StreamUtils.index(layerIdList.stream())
+												.map(styleIdIndexed -> 
+													tx
+														.insert(layerStructure)
+														.columns(
+															layerStructure.parentLayerId, 
+															layerStructure.childLayerId,
+															layerStructure.layerOrder)
+														.select(new SQLSubQuery().from(genericLayer)
+															.where(genericLayer.identification.eq(styleIdIndexed.getValue()))
+															.list(
+																glId.get(),
+																genericLayer.id,
+																styleIdIndexed.getIndex()))
+														.execute()
+														)
+												.collect(Collectors.toList())).thenApply(whatever ->
+													new Response<String>(CrudOperation.UPDATE,
+														CrudResponse.OK, groupId));												
+									});
+		}));
 	}
 	
 }
