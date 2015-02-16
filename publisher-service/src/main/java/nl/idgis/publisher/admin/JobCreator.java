@@ -1,13 +1,18 @@
 package nl.idgis.publisher.admin;
 
+import java.util.concurrent.CompletableFuture;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 
+import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.TypedIterable;
 
@@ -45,6 +50,12 @@ public class JobCreator extends AbstractAdmin {
 			}
 		});
 	}
+	
+	private CompletableFuture<Boolean> createImportJob(String datasetId) {
+		log.debug("requesting to refresh dataset: {}", datasetId);
+		
+		return f.ask(jobSystem, new CreateImportJob(datasetId), Ack.class) .thenApply(msg -> true);
+	}
 
 	@Override
 	protected void preStartAdmin() {
@@ -52,6 +63,7 @@ public class JobCreator extends AbstractAdmin {
 		
 		onPut(Layer.class, layer -> createServiceJobsForLayer(layer.id()));
 		onPut(LayerGroup.class, layer -> createServiceJobsForLayer(layer.id()));
+		
+		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 	}
-
 }
