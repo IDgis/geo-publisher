@@ -148,8 +148,13 @@ public abstract class AbstractDatabaseTest {
 	
 	@After
 	public void shutdown() throws Exception {
-		connection.close();		
-		system.shutdown();
+		if(connection != null) {
+			connection.close();
+		}
+		
+		if(system != null) {
+			system.shutdown();
+		}
 	}
 	
 	protected int insertDataSource(String dataSourceId) {
