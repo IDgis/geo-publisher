@@ -1,6 +1,6 @@
-package nl.idgis.publisher.utils;
+package nl.idgis.publisher.admin;
 
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import akka.actor.ActorRef;
@@ -12,6 +12,8 @@ import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.admin.messages.Event;
+
 public class EventDispatcher extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -20,22 +22,22 @@ public class EventDispatcher extends UntypedActor {
 	
 	private final ActorRef origSender;
 	
-	private final List<ActorRef> listeners;
+	private final Set<ActorRef> listeners;
 	
 	private final Duration timeout;
 	
-	public EventDispatcher(Object origMsg, ActorRef origSender, List<ActorRef> listeners, Duration timeout) {
+	public EventDispatcher(Object origMsg, ActorRef origSender, Set<ActorRef> listeners, Duration timeout) {
 		this.origMsg = origMsg;
 		this.origSender = origSender;
 		this.listeners = listeners;
 		this.timeout = timeout;
 	}
 	
-	public static Props props(Object origMsg, ActorRef origSender, List<ActorRef> listeners) {
+	public static Props props(Object origMsg, ActorRef origSender, Set<ActorRef> listeners) {
 		return props(origMsg, origSender, listeners, Duration.create(10, TimeUnit.SECONDS));
 	}
 	
-	public static Props props(Object origMsg, ActorRef origSender, List<ActorRef> listeners, Duration timeout) {
+	public static Props props(Object origMsg, ActorRef origSender, Set<ActorRef> listeners, Duration timeout) {
 		return Props.create(EventDispatcher.class, origMsg, origSender, listeners, timeout);
 	}
 	

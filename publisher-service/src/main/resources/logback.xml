@@ -51,6 +51,10 @@
    <!--
     <logger name="nl.idgis.publisher.service" level="debug"/>
   -->
+
+   <!-- 
+    <logger name="nl.idgis.publisher.service.geoserver.GeoServerService" level="debug"/>
+   -->
     
   <!--
  	<logger name="nl.idgis.publisher.job" level="debug"/>
