@@ -192,6 +192,26 @@ public class DefaultGeoServerRestTest {
 		assertEquals("MyAbstract", serviceSettings.getAbstract());
 		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), serviceSettings.getKeywords());
 		
+		WorkspaceSettings workspaceSettings = new WorkspaceSettings("MyContact", "MyOrganization", 
+			"MyPosition", "MyAddressType", "MyAddress", "MyCity", "MyState", "MyZipcode", 
+			"MyCountry", "MyTelephone", "MyFax", "MyEmail");
+		
+		service.putWorkspaceSettings(workspace, workspaceSettings).get();
+		
+		workspaceSettings = service.getWorkspaceSettings(workspace).get();
+		assertEquals("MyContact", workspaceSettings.getContact()); 
+		assertEquals("MyOrganization", workspaceSettings.getOrganization());
+		assertEquals("MyPosition", workspaceSettings.getPosition());
+		assertEquals("MyAddressType", workspaceSettings.getAddressType());
+		assertEquals("MyAddress", workspaceSettings.getAddress());
+		assertEquals("MyCity", workspaceSettings.getCity());
+		assertEquals("MyState", workspaceSettings.getState());
+		assertEquals("MyZipcode", workspaceSettings.getZipcode());
+		assertEquals("MyCountry", workspaceSettings.getCountry());
+		assertEquals("MyTelephone", workspaceSettings.getTelephone());
+		assertEquals("MyFax", workspaceSettings.getFax());
+		assertEquals("MyEmail", workspaceSettings.getEmail());
+		
 		service.deleteWorkspace(workspace).get();		
 		assertTrue(service.getWorkspaces().get().isEmpty());
 		
