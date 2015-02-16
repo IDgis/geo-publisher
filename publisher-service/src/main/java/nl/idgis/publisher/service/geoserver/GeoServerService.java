@@ -19,9 +19,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.domain.job.LogLevel;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -309,7 +307,7 @@ public class GeoServerService extends UntypedActor {
 					log.debug("ack");
 					
 					ensured(provisioningService);
-					initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
 					getContext().unbecome();
 				} else if(msg instanceof GroupEnsured) {
 					ensured(provisioningService);
