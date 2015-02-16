@@ -1,9 +1,13 @@
 @import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.web.tree._ 
 @import nl.idgis.publisher.domain.response._
 
-@(groupForm: Form[controllers.Groups.GroupForm], create: Boolean,
-groups: Page[LayerGroup],
-layers: Page[Layer])
+@(groupForm: Form[controllers.Groups.GroupForm], 
+	create: Boolean,
+	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
+	layers: Page[nl.idgis.publisher.domain.web.Layer],
+	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer
+)
 
 @layout.application( 
 	title="Groep toevoegen: "+ "naam",
@@ -62,21 +66,27 @@ layers: Page[Layer])
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
 
+<!-- 						<div style="position: relative;" class="list-group" id="groepstructuur"> -->
+<!-- 							<div value="G1" class="list-group-item gp-draggable tree-item"> -->
+<!-- 							<input type="hidden" value="G1" name="structure"> -->
+<!-- 								<div class="row"> -->
+<!-- 									<div class="col-sm-11 groupTree"> -->
+<!-- 										<ul> -->
+<!-- 											<li> -->
+<!-- 											<a>Groep 1</a> -->
+<!-- 											</li> -->
+<!-- 										</ul> -->
+<!-- 									</div> -->
+<!-- 									<div class="col-sm-1"> -->
+<!-- 									</div> -->
+<!-- 								</div> -->
+<!-- 							</div> -->
+<!-- 						</div> -->
+						
 						<div style="position: relative;" class="list-group" id="groepstructuur">
-							<div value="G1" class="list-group-item gp-draggable tree-item">
-							<input type="hidden" value="G1" name="structure">
-								<div class="row">
-									<div class="col-sm-11 groupTree">
-										<ul>
-											<li>
-											<a>Groep 1</a>
-											</li>
-										</ul>
-									</div>
-									<div class="col-sm-1">
-									</div>
-								</div>
-							</div>
+							@if(grouplayer != null){
+								@helper.groupStructure(grouplayer)
+							}
 						</div>
 						
 							<select id="addgroup">
