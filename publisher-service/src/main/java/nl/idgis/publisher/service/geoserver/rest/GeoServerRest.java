@@ -10,7 +10,11 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
 	
+	CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
+	
 	CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup);
+	
+	CompletableFuture<Void> putLayerGroup(Workspace workspace, LayerGroup layerGroup);
 
 	CompletableFuture<Void> postWorkspace(Workspace workspace);
 	
