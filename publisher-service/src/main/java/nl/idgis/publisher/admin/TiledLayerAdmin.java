@@ -1,6 +1,7 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -37,9 +38,10 @@ public class TiledLayerAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(tiledLayer)
+			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
 			.list(new nl.idgis.publisher.domain.web.QTiledLayer(
 					tiledLayer.identification,
-					tiledLayer.name,
+					genericLayer.name,
 					tiledLayer.mimeFormats,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
@@ -58,10 +60,11 @@ public class TiledLayerAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(tiledLayer)
+			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
 			.where(tiledLayer.identification.eq(tiledlayerId))
 			.singleResult(new nl.idgis.publisher.domain.web.QTiledLayer(
 					tiledLayer.identification,
-					tiledLayer.name,
+					genericLayer.name,
 					tiledLayer.mimeFormats,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
@@ -73,22 +76,20 @@ public class TiledLayerAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Response<?>> handlePutTiledlayer(TiledLayer theTiledlayer) {
-		String tiledlayerId = theTiledlayer.id();
-		String tiledlayerName = theTiledlayer.name();
-		log.debug ("handle update/create tiledlayer: " + tiledlayerId);
+		String tiledLayerId = theTiledlayer.id();
+		log.debug ("handle update/create tiledlayer: " + tiledLayerId);
 		
 		return db.transactional(tx ->
-			// Check if there is another tiledlayer with the same name
+			// Check if there is another tiledlayer with the same id
 			tx.query().from(tiledLayer)
-			.where(tiledLayer.identification.eq(tiledlayerId))
+			.where(tiledLayer.identification.eq(tiledLayerId))
 			.singleResult(tiledLayer.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT
-					log.debug("Inserting new tiledlayer with name: " + tiledlayerName);
+					log.debug("Inserting new tiledlayer with id: " + tiledLayerId);
 					return tx.insert(tiledLayer)
 					.set(tiledLayer.identification, UUID.randomUUID().toString())
-					.set(tiledLayer.name, tiledlayerName)
 					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
 					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
 					.set(tiledLayer.metaWidth, theTiledlayer.metaWidth())
@@ -97,10 +98,10 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
 					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, tiledlayerName));
+					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, tiledLayerId));
 				} else {
 					// UPDATE
-					log.debug("Updating tiledlayer with name: " + tiledlayerName);
+					log.debug("Updating tiledlayer with id: " + tiledLayerId);
 					return tx.update(tiledLayer)
 					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
 					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
@@ -109,9 +110,9 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
 					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
-					.where(tiledLayer.identification.eq(tiledlayerId))
+					.where(tiledLayer.identification.eq(tiledLayerId))
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, tiledlayerName));
+					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, tiledLayerId));
 				}
 		}));
 	}

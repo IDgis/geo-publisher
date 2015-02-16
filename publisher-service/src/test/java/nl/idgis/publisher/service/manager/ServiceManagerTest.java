@@ -214,6 +214,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 		
@@ -325,6 +326,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 		
@@ -451,11 +453,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, root0Id) 
 			.execute();
 		
 		insert(service)
 			.set(service.identification, "service1")
+			.set(service.name, "service-name1")
 			.set(service.rootgroupId, root1Id) 
 			.execute();
 		
@@ -541,6 +545,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 
