@@ -37,6 +37,12 @@ public class JobCreator extends AbstractAdmin {
 		jobSystem.tell(new CreateServiceJob(serviceId), getSelf());
 	}
 	
+	private void createServiceJobs(TypedIterable<?> serviceIds) {
+		for(String serviceId : serviceIds.cast(String.class)) {
+			createServiceJob(serviceId);
+		}
+	}
+	
 	private void createServiceJobsForLayer(String layerId) {
 		log.debug("creating service jobs for layer: {}", layerId);
 		
@@ -63,6 +69,14 @@ public class JobCreator extends AbstractAdmin {
 		
 		onPut(Layer.class, layer -> createServiceJobsForLayer(layer.id()));
 		onPut(LayerGroup.class, layer -> createServiceJobsForLayer(layer.id()));
+		
+		onDelete(Layer.class, 
+			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
+			this::createServiceJobs);
+		
+		onDelete(LayerGroup.class, 
+			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
+			this::createServiceJobs);
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 	}
