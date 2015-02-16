@@ -21,15 +21,15 @@ public class AdminParent extends AbstractAdminParent {
 	}
 	
 	protected void createActors() {
-		getContext().actorOf(Admin.props(database, harvester, loader, service, jobSystem), "admin");
-		getContext().actorOf(DataSourceAdmin.props(database, harvester), "data-source");
-		getContext().actorOf(CategoryAdmin.props(database), "category");
-		getContext().actorOf(DatasetAdmin.props(database), "dataset");
-		getContext().actorOf(ServiceAdmin.props(database, serviceManager), "service");
-		getContext().actorOf(LayerAdmin.props(database), "layer");
-		getContext().actorOf(LayerGroupAdmin.props(database, serviceManager), "layergroup");
-		getContext().actorOf(TiledLayerAdmin.props(database), "tiledlayer");
-		getContext().actorOf(StyleAdmin.props(database), "style");
-		getContext().actorOf(JobCreator.props(database, serviceManager, jobSystem), "job-creator");
+		createAdminActor(Admin.props(database, harvester, loader, service, jobSystem), "admin");
+		createAdminActor(DataSourceAdmin.props(database, harvester), "data-source");
+		createAdminActor(CategoryAdmin.props(database), "category");
+		createAdminActor(DatasetAdmin.props(database), "dataset");
+		createAdminActor(ServiceAdmin.props(database, serviceManager), "service");
+		createAdminActor(LayerAdmin.props(database), "layer");
+		createAdminActor(LayerGroupAdmin.props(database, serviceManager), "layergroup");
+		createAdminActor(TiledLayerAdmin.props(database), "tiledlayer");
+		createAdminActor(StyleAdmin.props(database), "style");
+		createAdminActor(JobCreator.props(database, serviceManager, jobSystem), "job-creator");
 	}
 }

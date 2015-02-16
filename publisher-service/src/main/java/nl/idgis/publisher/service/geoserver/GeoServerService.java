@@ -19,6 +19,9 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
+import nl.idgis.publisher.domain.job.JobState;
+
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
@@ -107,15 +110,19 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
-	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob) {
+	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator) {
 		if(msg instanceof ServiceJobInfo) {
-			// this shouldn't happen
-			log.error("receiving service job while provisioning");
+			// this shouldn't happen too often, TODO: rethink job mechanism
+			log.debug("receiving service job while provisioning");
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
 		} else if(msg instanceof Failure) {
-			// TODO: job failure
+			log.error("failure: {}", msg);
+			
+			// TODO: add logging
+			initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+			getContext().become(receive());
 		} else {
 			unhandled(msg);
 		}
@@ -300,13 +307,13 @@ public class GeoServerService extends UntypedActor {
 					log.debug("ack");
 					
 					ensured(provisioningService);
-					initiator.tell(new Ack(), getSelf());
+					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
 					getContext().unbecome();
 				} else if(msg instanceof GroupEnsured) {
 					ensured(provisioningService);
 					getContext().unbecome();
 				} else {
-					elseProvisioning(msg, serviceJob);
+					elseProvisioning(msg, serviceJob, initiator);
 				}
 			}				
 		};
@@ -358,6 +365,9 @@ public class GeoServerService extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureWorkspace) {
+					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
+					initiator.tell(new Ack(), getSelf());
+					
 					String workspaceId = ((EnsureWorkspace)msg).getWorkspaceId();
 					
 					toSelf(
@@ -422,7 +432,7 @@ public class GeoServerService extends UntypedActor {
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
 					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups));
 				} else {
-					elseProvisioning(msg, serviceJob);
+					elseProvisioning(msg, serviceJob, initiator);
 				}
 			}
 			

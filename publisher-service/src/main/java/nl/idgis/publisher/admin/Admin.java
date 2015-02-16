@@ -7,14 +7,12 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.collect.Iterables;
@@ -53,27 +51,20 @@ import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
-import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
-import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
-import nl.idgis.publisher.domain.web.PutStyle;
-import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
-import nl.idgis.publisher.domain.web.Style;
 
-import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -81,7 +72,6 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
-import nl.idgis.publisher.protocol.messages.Ack;
 
 public class Admin extends AbstractAdmin {
 	
@@ -120,20 +110,11 @@ public class Admin extends AbstractAdmin {
 		
 		doQuery(ListIssues.class, this::handleListIssues);
 		doQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
-		doQuery(ListDatasetColumns.class, this::handleListDatasetColumns);
-		doQuery(RefreshDataset.class, this::handleRefreshDataset);
+		doQuery(ListDatasetColumns.class, this::handleListDatasetColumns);		
 		
 		doQuery(PutNotificationResult.class, this::handlePutNotificationResult);
 		doQuery(ListDatasetColumnDiff.class, this::handleListDatasetColumnDiff);
 		doQuery(ListSourceDatasets.class, this::handleListSourceDatasets);
-	}
-	
-	private CompletableFuture<Boolean> handleRefreshDataset(RefreshDataset refreshDataset) {
-		String datasetId = refreshDataset.getDatasetId();
-		
-		log.debug("requesting to refresh dataset: {}", datasetId);
-		
-		return f.ask(jobSystem, new CreateImportJob(datasetId), Ack.class).thenApply(msg -> true);
 	}
 	
 	private CompletableFuture<List<Column>> handleListSourceDatasetColumns (final ListSourceDatasetColumns listColumns) {

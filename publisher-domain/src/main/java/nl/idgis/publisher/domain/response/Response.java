@@ -23,7 +23,7 @@ public class Response <T extends Serializable> implements Serializable{
 	public CrudOperation getOperation() {
 		return operation;
 	}
-	public CrudResponse getOperationresponse() {
+	public CrudResponse getOperationResponse() {
 		return operationresponse;
 	}
 	public Object getValue(){

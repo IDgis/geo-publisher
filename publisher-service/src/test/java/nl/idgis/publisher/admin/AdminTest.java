@@ -15,6 +15,7 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
@@ -27,6 +28,7 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.NotFound;
+
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.GetRecording;
@@ -53,7 +55,11 @@ public class AdminTest {
 		@Override
 		protected void preStartAdmin() {
 			onPut(Category.class, category -> recorder.tell(category, getSelf()));			
-			onDelete(Category.class, categoryId -> recorder.tell(categoryId, getSelf()));
+			onDelete(Category.class, categoryId -> {
+				recorder.tell(categoryId, getSelf());
+				
+				return f.successful(new Category(categoryId, "category-name"));
+			}, category -> recorder.tell(category, getSelf()));
 			onQuery(RefreshDataset.class, refreshDataset -> recorder.tell(refreshDataset, getSelf()));			
 		}
 	}
@@ -106,8 +112,8 @@ public class AdminTest {
 
 		@Override
 		protected void createActors() {
-			getContext().actorOf(Do.props(database), "do");
-			getContext().actorOf(On.props(database, recorder), "on");
+			createAdminActor(Do.props(database), "do");
+			createAdminActor(On.props(database, recorder), "on");
 		}
 	}
 	
@@ -127,13 +133,11 @@ public class AdminTest {
 		parent = actorSystem.actorOf(Parent.props(null, recorder), "parent");
 		
 		sync = new SyncAskHelper(actorSystem);
-		
-		Thread.sleep(100); // registering query handlers takes a while
 	}
 	
 	@Test
 	public void testGet() throws Exception {
-		sync.ask(parent, new GetEntity<>(Category.class, "testCatagory"), Category.class);
+		sync.ask(parent, new GetEntity<>(Category.class, "testCategory"), Category.class);
 	}
 	
 	@Test
@@ -156,10 +160,14 @@ public class AdminTest {
 	@Test
 	public void testDelete() throws Exception {
 		sync.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class);
-		sync.ask(recorder, new Wait(1), Waited.class);
+		sync.ask(recorder, new Wait(2), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
 			.assertNext(String.class, categoryId -> {
 				assertEquals("categoryId", categoryId);
+			})
+			.assertNext(Category.class, category -> {
+				assertEquals("categoryId", category.id());
+				assertEquals("category-name", category.name());
 			})
 			.assertNotHasNext();
 	}

@@ -31,7 +31,9 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -50,14 +52,26 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.util.Timeout;
 
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.recorder.AnyRecorder;
+import nl.idgis.publisher.recorder.Recording;
+import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.Cleared;
+import nl.idgis.publisher.recorder.messages.GetRecording;
+import nl.idgis.publisher.recorder.messages.Wait;
+import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
@@ -112,17 +126,49 @@ public class GeoServerServiceTest {
 		}
 	}
 	
-	TestServers testServers;
+	static TestServers testServers;
 	
 	ActorSystem actorSystem;
 	
-	ActorRef serviceManager, geoServerService;
+	ActorRef serviceManager, geoServerService, recorder;
 	
 	SyncAskHelper sync;
 	
 	DocumentBuilder documentBuilder;
 		
 	XPath xpath;
+	
+	@BeforeClass
+	public static void testServers() throws Exception {
+		testServers = new TestServers();
+		testServers.start();
+		
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		
+		Statement stmt = connection.createStatement();
+		stmt.execute("create schema \"staging_data\"");
+		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
+		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
+		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
+		
+		stmt.close();
+		
+		connection.close();
+	}
+	
+	@AfterClass
+	public static void stopServers() throws Exception {
+		testServers.stop();
+	}
+	
+	@After
+	public void cleanGeoServer() throws Exception {
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		for(Workspace workspace : service.getWorkspaces().get()) {
+			service.deleteWorkspace(workspace).get();
+		}
+		service.close();
+	}
 	
 	@Before
 	public void xml() throws Exception {
@@ -157,8 +203,6 @@ public class GeoServerServiceTest {
 	
 	@Before
 	public void actors() throws Exception {
-		testServers = new TestServers();
-		testServers.start();
 		
 		Config akkaConfig = ConfigFactory.empty()
 			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
@@ -182,22 +226,7 @@ public class GeoServerServiceTest {
 		
 		sync = new SyncAskHelper(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
-		
-		Statement stmt = connection.createStatement();
-		stmt.execute("create schema \"staging_data\"");
-		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
-		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
-		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
-		
-		stmt.close();
-		
-		connection.close();
-	}
-	
-	@After
-	public void stopServers() throws Exception {
-		testServers.stop();
+		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
 	}
 	
 	private void processNodeList(NodeList nodeList, Set<String> retval) {
@@ -260,6 +289,18 @@ public class GeoServerServiceTest {
 				+ serviceType.toUpperCase() + "&version=" + version);		
 	}
 	
+	private void assertSuccessful(Recording recording) throws Exception {
+		recording
+			.assertNext(UpdateJobState.class, updateJobState -> {
+				assertEquals(JobState.STARTED, updateJobState.getState());
+			})
+			.assertNext(Ack.class)
+			.assertNext(UpdateJobState.class, updateJobState -> {
+				assertEquals(JobState.SUCCEEDED, updateJobState.getState());
+			})
+			.assertNotHasNext();
+	}
+	
 	@Test
 	public void testSingleLayer() throws Exception {
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
@@ -278,7 +319,9 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		Document features = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");			
 		assertTrue(getText(features).contains("Hello, world!"));
@@ -320,7 +363,9 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
 		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", capabilities));
@@ -354,7 +399,11 @@ public class GeoServerServiceTest {
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
-		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		sync.ask(recorder, new Clear(), Cleared.class);
 		
 		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
 		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
@@ -363,10 +412,13 @@ public class GeoServerServiceTest {
 		when(service.getId()).thenReturn("service");
 		when(service.getName()).thenReturn("serviceName");
 		when(service.getRootId()).thenReturn("root");
-		when(service.getLayers()).thenReturn(Collections.emptyList());
+		when(service.getLayers()).thenReturn(Collections.emptyList()); // layer removed
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
-		sync.ask(geoServerService, new ServiceJobInfo(0, "service"), Ack.class);
+		
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
 		notExists("//wms:Layer/wms:Name", capabilities);

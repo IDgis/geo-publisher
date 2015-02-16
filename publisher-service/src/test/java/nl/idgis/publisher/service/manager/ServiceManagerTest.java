@@ -38,6 +38,8 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.utils.TypedIterable;
 
 public class ServiceManagerTest extends AbstractServiceTest {
 	
@@ -171,6 +173,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
+		assertEquals("dataset0", datasetLayer.getTableName());
 		
 		assertFalse(itr.hasNext());
 	}
@@ -211,6 +214,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 		
@@ -257,6 +261,22 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(groupItr.hasNext());
 		
 		assertFalse(rootItr.hasNext());
+		
+		TypedIterable<?> services = sync.ask(serviceManager, new GetServicesWithLayer("rootgroup"), TypedIterable.class);
+		assertTrue(services.contains(String.class));
+		
+		Iterator<String> servicesItr = services.cast(String.class).iterator();
+		assertTrue(servicesItr.hasNext());
+		assertEquals("service0", servicesItr.next());
+		assertFalse(servicesItr.hasNext());
+		
+		services = sync.ask(serviceManager, new GetServicesWithLayer("group"), TypedIterable.class);
+		assertTrue(services.contains(String.class));
+		
+		servicesItr = services.cast(String.class).iterator();
+		assertTrue(servicesItr.hasNext());
+		assertEquals("service0", servicesItr.next());
+		assertFalse(servicesItr.hasNext());
 	}
 	
 	@Test
@@ -306,6 +326,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 		
@@ -432,11 +453,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, root0Id) 
 			.execute();
 		
 		insert(service)
 			.set(service.identification, "service1")
+			.set(service.name, "service-name1")
 			.set(service.rootgroupId, root1Id) 
 			.execute();
 		
@@ -522,6 +545,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.identification, "service0")
+			.set(service.name, "service-name0")
 			.set(service.rootgroupId, rootId) 
 			.execute();
 
