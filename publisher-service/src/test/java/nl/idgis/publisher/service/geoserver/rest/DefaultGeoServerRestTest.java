@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
@@ -172,11 +173,24 @@ public class DefaultGeoServerRestTest {
 		
 		assertFalse(itr.hasNext());
 		
-		ServiceSettings serviceSettings = new ServiceSettings(ServiceType.WMS, "MyTitle");
-		service.putServiceSettings(workspace, serviceSettings).get();
+		assertFalse(service.getServiceSettings(workspace, ServiceType.WMS).get().isPresent());
+		
+		ServiceSettings serviceSettings = new ServiceSettings("MyTitle", "MyAbstract", Arrays.asList("keyword0", "keyword1", "keyword2"));
+		service.putServiceSettings(workspace, ServiceType.WMS, serviceSettings).get();
 		
 		Document capabilities = h.getCapabilities(workspace.getName(), ServiceType.WMS, "1.3.0");
 		assertEquals("MyTitle", h.getText("//wms:Service/wms:Title", capabilities));
+		assertEquals("MyAbstract", h.getText("//wms:Service/wms:Abstract", capabilities));
+		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), h.getText(
+			h.getNodeList("//wms:Service/wms:KeywordList/wms:Keyword", capabilities)));
+		
+		Optional<ServiceSettings> optionalServiceSettings = service.getServiceSettings(workspace, ServiceType.WMS).get();
+		assertTrue(optionalServiceSettings.isPresent());
+		
+		serviceSettings = optionalServiceSettings.get();
+		assertEquals("MyTitle", serviceSettings.getTitle());
+		assertEquals("MyAbstract", serviceSettings.getAbstract());
+		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), serviceSettings.getKeywords());
 		
 		service.deleteWorkspace(workspace).get();		
 		assertTrue(service.getWorkspaces().get().isEmpty());

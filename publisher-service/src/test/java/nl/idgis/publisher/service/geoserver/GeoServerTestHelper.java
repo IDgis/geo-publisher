@@ -9,10 +9,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -211,7 +212,7 @@ public class GeoServerTestHelper {
 		pgListenThread.join();
 	}
 	
-	public void processNodeList(NodeList nodeList, Set<String> retval) {
+	public void processNodeList(NodeList nodeList, Collection<String> retval) {
 		StringBuilder sb = new StringBuilder();
 		
 		for(int i = 0; i < nodeList.getLength(); i++) {
@@ -229,12 +230,12 @@ public class GeoServerTestHelper {
 		}
 	}
 	
-	public Set<String> getText(Node node) {
+	public List<String> getText(Node node) {
 		return getText(node.getChildNodes());
 	}
 	
-	public Set<String> getText(NodeList nodeList) {
-		Set<String> retval = new HashSet<>();		
+	public List<String> getText(NodeList nodeList) {
+		List<String> retval = new ArrayList<>();		
 		processNodeList(nodeList, retval);		
 		return retval;
 	}

@@ -9,13 +9,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+
 
 
 
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -27,6 +31,8 @@ import javax.xml.xpath.XPathFactory;
 
 
 
+
+
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -34,6 +40,9 @@ import org.w3c.dom.NodeList;
 
 
 
+
+
+import org.xml.sax.SAXException;
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -54,7 +63,55 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));
 		
 		asyncHttpClient = new AsyncHttpClient();
-	}	
+	}
+	
+	private Document getDocument(Response response) throws IOException, ParserConfigurationException, SAXException {
+		InputStream stream = response.getResponseBodyAsStream();
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+		
+		Document document = documentBuilder.parse(stream);
+		
+		stream.close();
+		
+		return document;
+	}
+	
+	private CompletableFuture<Optional<Document>> getOptional(String path) {
+		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
+		
+		asyncHttpClient.prepareGet(path + ".xml")
+			.addHeader("Authorization", authorization)
+			.execute(new AsyncCompletionHandler<Response>() {
+
+			@Override
+			public Response onCompleted(Response response) throws Exception {
+				try {
+					int responseCode = response.getStatusCode();
+					if(responseCode == HttpURLConnection.HTTP_OK) {
+						future.complete(Optional.of(getDocument(response)));
+					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+						future.complete(Optional.empty());
+					} else {
+						future.completeExceptionally(new GeoServerException(responseCode));
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(new GeoServerException(e));
+				}
+				
+				return response;
+			}			
+			
+			@Override
+		    public void onThrowable(Throwable t){
+				future.completeExceptionally(t);
+		    }
+			
+		});
+		
+		return future;
+	}
 	
 	private CompletableFuture<Document> get(String path) {
 		CompletableFuture<Document> future = new CompletableFuture<>();
@@ -67,17 +124,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			public Response onCompleted(Response response) throws Exception {
 				try {
 					int responseCode = response.getStatusCode();
-					if(responseCode == HttpURLConnection.HTTP_OK) {					
-						InputStream stream = response.getResponseBodyAsStream();
-						
-						DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-						DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
-						
-						Document document = documentBuilder.parse(stream);
-					
-						stream.close();
-						
-						future.complete(document);
+					if(responseCode == HttpURLConnection.HTTP_OK) {
+						future.complete(getDocument(response));
 					} else {
 						future.completeExceptionally(new GeoServerException(responseCode));
 					}
@@ -86,7 +134,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				}
 				
 				return response;
-			}
+			}			
 			
 			@Override
 		    public void onThrowable(Throwable t){
@@ -195,11 +243,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceSettings serviceSettings) {
+	public CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceType serviceType, ServiceSettings serviceSettings) {
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			
-			ServiceType serviceType = serviceSettings.getServiceType();
 			
 			XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
 			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
@@ -217,6 +263,24 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					if(title != null) {
 						streamWriter.writeStartElement("title");
 							streamWriter.writeCharacters(title);
+						streamWriter.writeEndElement();
+					}
+					
+					String abstr = serviceSettings.getAbstract();
+					if(abstr != null) {
+						streamWriter.writeStartElement("abstrct");
+							streamWriter.writeCharacters(abstr);
+						streamWriter.writeEndElement();
+					}
+					
+					List<String> keywords = serviceSettings.getKeywords();
+					if(keywords != null) {
+						streamWriter.writeStartElement("keywords");
+						for(String keyword : keywords) {
+							streamWriter.writeStartElement("string");
+								streamWriter.writeCharacters(keyword);
+							streamWriter.writeEndElement();
+						}
 						streamWriter.writeEndElement();
 					}
 				streamWriter.writeEndElement();
@@ -640,9 +704,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		}
 	}
 
-	private byte[] getLayerGroupDocument(Workspace workspace,
-			LayerGroup layerGroup) throws FactoryConfigurationError,
-			XMLStreamException, IOException {
+	private byte[] getLayerGroupDocument(Workspace workspace, LayerGroup layerGroup) throws FactoryConfigurationError, XMLStreamException, IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		
 		XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
@@ -711,5 +773,48 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> deleteWorkspace(Workspace workspace) { 
 		return delete(getWorkspacePath(workspace) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Optional<ServiceSettings>> getServiceSettings(Workspace workspace, ServiceType serviceType) {
+		CompletableFuture<Optional<ServiceSettings>> future = new CompletableFuture<>();
+		
+		getOptional(getServiceSettingsPath(workspace, serviceType)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();						
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						
+						Node titleNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/title", document, XPathConstants.NODE);
+						String title = titleNode == null ? null : titleNode.getTextContent();
+						
+						Node abstractNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/abstrct", document, XPathConstants.NODE);
+						String abstr = abstractNode == null ? null : abstractNode.getTextContent();
+						
+						NodeList keywordNodes = (NodeList)xpath.evaluate(serviceType.name().toLowerCase() + "/keywords/string", document, XPathConstants.NODESET);
+						List<String> keywords;
+						if(keywordNodes != null && keywordNodes.getLength() > 0) {
+							keywords = new ArrayList<>();
+							for(int i = 0; i < keywordNodes.getLength(); i++) {
+								keywords.add(keywordNodes.item(i).getTextContent());
+							}
+						} else {
+							keywords = null;
+						}
+						
+						future.complete(Optional.of(new ServiceSettings(title, abstr, keywords)));
+					} else {					
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+
+		return future;
 	}
 }

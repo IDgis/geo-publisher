@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -263,7 +262,7 @@ public class GeoServerServiceTest {
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
-		Set<String> layerNames = h.getText(h.getNodeList("//wms:Layer/wms:Name", capabilities));
+		List<String> layerNames = h.getText(h.getNodeList("//wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
 			assertTrue(layerNames.contains("serviceName:layer" + i)); // TODO: figure out how to remove the workspace prefix from the name
 		}
