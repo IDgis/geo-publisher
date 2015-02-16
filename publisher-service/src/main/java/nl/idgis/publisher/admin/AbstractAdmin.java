@@ -14,20 +14,28 @@ import java.util.function.Supplier;
 import com.mysema.query.SimpleQuery;
 
 import akka.actor.ActorRef;
-import akka.actor.UntypedActor;
+import akka.actor.UntypedActorWithStash;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 import akka.util.Timeout;
+
 import nl.idgis.publisher.admin.messages.DoDelete;
 import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
 import nl.idgis.publisher.admin.messages.DoPut;
 import nl.idgis.publisher.admin.messages.DoQuery;
+import nl.idgis.publisher.admin.messages.Event;
+import nl.idgis.publisher.admin.messages.EventCompleted;
+import nl.idgis.publisher.admin.messages.EventFailed;
+import nl.idgis.publisher.admin.messages.EventWaiting;
 import nl.idgis.publisher.admin.messages.Initialized;
 import nl.idgis.publisher.admin.messages.OnDelete;
 import nl.idgis.publisher.admin.messages.OnPut;
 import nl.idgis.publisher.admin.messages.OnQuery;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -38,11 +46,11 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.utils.Event;
+
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
-public abstract class AbstractAdmin extends UntypedActor {
+public abstract class AbstractAdmin extends UntypedActorWithStash {
 	
 	protected static final long ITEMS_PER_PAGE = 20;
 	
@@ -55,10 +63,10 @@ public abstract class AbstractAdmin extends UntypedActor {
 	protected AsyncDatabaseHelper db;
 	
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Function> doQuery, doList, doGet, doDelete, doPut;
+	protected Map<Class, Function> doQuery, doList, doGet, doDelete, doPut, onDeleteBefore;
 		
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Consumer> onQuery, onDelete, onPut; 
+	protected Map<Class, Consumer> onQuery, onDeleteAfter, onPut; 
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -134,8 +142,9 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getContext().parent().tell(new DoDelete(entity), getSelf());
 	}
 	
-	protected <T extends Identifiable> void onDelete(Class<? super T> entity, Consumer<String> func) {
-		onDelete.put(entity, func);
+	protected <T extends Identifiable, U> void onDelete(Class<? super T> entity, Function<String, CompletableFuture<U>> before, Consumer<U> after) {
+		onDeleteBefore.put(entity, before);
+		onDeleteAfter.put(entity, after);
 		getContext().parent().tell(new OnDelete(entity), getSelf());
 	}
 	
@@ -163,7 +172,8 @@ public abstract class AbstractAdmin extends UntypedActor {
 		doPut = new HashMap<>();
 		
 		onQuery = new HashMap<>();
-		onDelete = new HashMap<>();
+		onDeleteBefore = new HashMap<>();
+		onDeleteAfter = new HashMap<>();
 		onPut = new HashMap<>();
 		
 		preStartAdmin();
@@ -171,7 +181,6 @@ public abstract class AbstractAdmin extends UntypedActor {
 		getContext().parent().tell(new Initialized(), getSelf());
 	}
 	
-	@SuppressWarnings("rawtypes")
 	private <T> void toSender(CompletableFuture<T> future) throws Exception {
 		ActorRef sender = getSender(), self = getSelf();		
 		future.whenComplete((resp, t) -> {
@@ -277,6 +286,72 @@ public abstract class AbstractAdmin extends UntypedActor {
 			unhandled(msg);
 		}
 	}
+	
+	private static class BeforeCompleted {
+		
+		private final Object result;
+		
+		BeforeCompleted(Object result) {
+			this.result = result;
+		}
+		
+		Object getResult() {
+			return result;
+		}
+	}
+	
+	private Procedure<Object> afterDelete(ActorRef sender, Class<?> entity, Object beforeResult) {
+		return new Procedure<Object>() {
+			
+			@Override
+			@SuppressWarnings("unchecked")
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof EventCompleted && getSender().equals(sender)) {
+					log.debug("event completed");
+					
+					onDeleteAfter.get(entity).accept(beforeResult);
+					
+					finish();
+				} else if(msg instanceof EventFailed && getSender().equals(sender)) {
+					log.debug("event failed");
+					
+					finish();
+				} else {
+					log.debug("message stashed: {} from {}", msg, getSender());
+					
+					stash();
+				}
+			}
+			
+			private void finish() {
+				log.debug("delete event finished");
+				
+				unstashAll();
+				getContext().become(receive());
+			}
+			
+		};
+	}
+	
+	private Procedure<Object> beforeDelete(ActorRef sender, Class<?> entity) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof BeforeCompleted) {
+					log.debug("before completed");
+					
+					sender.tell(new EventWaiting(), getSelf());
+					getContext().become(afterDelete(sender, entity, ((BeforeCompleted)msg).getResult()));
+				} else {
+					log.debug("message stashed: {} from {}", msg, getSender());
+					
+					stash();
+				}
+			}
+			
+		};
+	}
 
 	private void handleEvent(Event msg) throws Exception {
 		log.debug("event received: {}", msg);
@@ -286,15 +361,23 @@ public abstract class AbstractAdmin extends UntypedActor {
 			Class<?> entity = ((DeleteEntity<?>)eventMsg).cls();
 			
 			@SuppressWarnings("unchecked")
-			Consumer<String> handler = onDelete.get(entity);
-			if(handler == null) {
+			Function<String, CompletableFuture<Object>> beforeHandler = onDeleteBefore.get(entity);
+			if(beforeHandler == null) {
 				log.debug("delete event not handled: {}", entity);
 				
 				unhandled(msg);
 			} else {
-				log.debug("handling delete event: {}", entity);
+				log.debug("handling delete event: {} from {}", entity, getSender());
 				
-				handler.accept(((DeleteEntity<?>)eventMsg).id());
+				beforeHandler.apply(((DeleteEntity<?>)eventMsg).id()).whenComplete((result, t) -> {
+					if(t != null) {
+						result = t;
+					}
+					
+					getSelf().tell(new BeforeCompleted(result), getSelf());
+				});
+				
+				getContext().become(beforeDelete(getSender(), entity));
 			}
 		} else if(eventMsg instanceof PutEntity) {
 			Object value = ((PutEntity<?>)eventMsg).value();
