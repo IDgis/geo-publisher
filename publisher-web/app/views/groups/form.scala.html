@@ -66,13 +66,16 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
 						<div style="position: relative;" class="list-group" id="groupLayerStructure">
-							@helper.groupStructure(grouplayer)
+							@helper.groupStructure(grouplayer, false)
 						</div>
 						
 							<select id="addgroup">
 								<option></option>
 								@for(group <- groups.values) {
-									<option value="@group.id">@group.name</option>
+									<!-- do not show this group in the selectbox  -->
+									@if(groupForm("id").value!=group.id){
+										<option value="@group.id">@group.name</option>
+									}
 								}
 							</select>
 							<select id="addlayer">

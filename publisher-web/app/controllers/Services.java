@@ -9,6 +9,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -16,6 +17,7 @@ import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -46,7 +48,7 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
-						return ok (form.render (serviceForm, true, categories, groups));
+						return ok (form.render (serviceForm, true, categories, groups, null));
 					}
 				});
 	}
@@ -127,9 +129,10 @@ public class Services extends Controller {
 					return from (database)
 						.get(Category.class, service.defaultCategoryId())
 						.get(LayerGroup.class, service.rootGroupId())
-						.execute (new Function2<Category, LayerGroup, Result> () {
+						.query (new GetGroupStructure(service.rootGroupId()))
+						.execute (new Function3<Category, LayerGroup, GroupLayer, Result> () {
 							@Override
-							public Result apply (final Category categorie, final LayerGroup group) throws Throwable {
+							public Result apply (final Category categorie, final LayerGroup group, final GroupLayer groupLayer) throws Throwable {
 
 								ServiceForm  serviceForm = new ServiceForm (service);
 								serviceForm.setRootGroupName(group.name());
@@ -140,7 +143,7 @@ public class Services extends Controller {
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, categories, groups));
+								return ok (form.render (formServiceForm, false, categories, groups, groupLayer));
 							}
 					});
 				}
