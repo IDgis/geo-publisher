@@ -18,6 +18,7 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudResponse;
 
 import nl.idgis.publisher.admin.messages.EventCompleted;
+import nl.idgis.publisher.admin.messages.EventFailed;
 import nl.idgis.publisher.admin.messages.EventWaiting;
 
 public class DeleteEventDispatcher extends UntypedActor {
@@ -60,7 +61,7 @@ private final LoggingAdapter log = Logging.getLogger(getContext().system(), this
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof ReceiveTimeout) {
-					log.error("timeout");
+					log.error("timeout while waiting for response");
 					getContext().stop(getSelf());
 				} else if(msg instanceof Response) {
 					log.debug("response received");
@@ -89,15 +90,23 @@ private final LoggingAdapter log = Logging.getLogger(getContext().system(), this
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
-			log.error("timeout");
-			getContext().stop(getSelf());
-		} else if(msg instanceof EventWaiting) {
-			log.debug("waiting");
+			log.error("timeout while waiting for listeners");
 			
-			pendingListeners.remove(getSender());
+			handler.tell(origMsg, origSender);
+			getContext().stop(getSelf());
+		} else if(msg instanceof EventWaiting || msg instanceof EventFailed) {
+			ActorRef listener = getSender();
+			
+			log.debug("listener ready: {}", listener);
+			
+			pendingListeners.remove(listener);
+			
+			if(msg instanceof EventFailed) {
+				listeners.remove(listener);
+			}
 			
 			if(pendingListeners.isEmpty()) {
-				log.debug("before listeners completed");
+				log.debug("listeners completed before function");
 				
 				handler.tell(origMsg, getSelf());
 				getContext().become(waitingForAnswer());

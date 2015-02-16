@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -14,11 +15,14 @@ import java.util.function.Supplier;
 import com.mysema.query.SimpleQuery;
 
 import akka.actor.ActorRef;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActorWithStash;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.util.Timeout;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.admin.messages.DoDelete;
 import nl.idgis.publisher.admin.messages.DoGet;
@@ -306,7 +310,11 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 			@Override
 			@SuppressWarnings("unchecked")
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof EventCompleted && getSender().equals(sender)) {
+				if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while waiting for event to complete");
+					
+					finish();
+				} else if(msg instanceof EventCompleted && getSender().equals(sender)) {
 					log.debug("event completed");
 					
 					onDeleteAfter.get(entity).accept(beforeResult);
@@ -327,6 +335,7 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 				log.debug("delete event finished");
 				
 				unstashAll();
+				getContext().setReceiveTimeout(Duration.Inf());
 				getContext().become(receive());
 			}
 			
@@ -338,7 +347,13 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof BeforeCompleted) {
+				if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while waiting for beforeDelete to complete");
+					
+					sender.tell(new EventFailed(), getSelf());
+					getContext().setReceiveTimeout(Duration.Inf());
+					getContext().become(receive());
+				} else if(msg instanceof BeforeCompleted) {
 					log.debug("before completed");
 					
 					sender.tell(new EventWaiting(), getSelf());
@@ -377,6 +392,7 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 					getSelf().tell(new BeforeCompleted(result), getSelf());
 				});
 				
+				getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
 				getContext().become(beforeDelete(getSender(), entity));
 			}
 		} else if(eventMsg instanceof PutEntity) {
