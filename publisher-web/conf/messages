@@ -390,7 +390,9 @@ web.application.page.groups.form.header.edit=Groep {0} aanpassen
 web.application.page.groups.form.field.name.label=Naam
 web.application.page.groups.form.field.name.placeholder=Naam
 web.application.page.groups.form.field.name.help=De naam voor de groep
-web.application.page.groups.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.groups.form.field.name.validation.length.error=Naam moet langer zijn dan {0} karakters
+web.application.page.groups.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
+web.application.page.groups.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
 
 web.application.page.groups.form.field.title.label=Titel
 web.application.page.groups.form.field.title.placeholder=Titel

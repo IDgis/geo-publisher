@@ -1,11 +1,13 @@
 @import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.web.tree._ 
 @import nl.idgis.publisher.domain.response._
 
 @(serviceForm: Form[controllers.Services.ServiceForm], 
-create: Boolean,
-categories: Page[Category],
-groups: Page[LayerGroup])
-
+	create: Boolean,
+	categories: Page[Category],
+	groups: Page[LayerGroup],
+	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer
+)
 
 @layout.application( title=Domain.message("web.application.page.services.form.title")){
 
@@ -99,6 +101,9 @@ groups: Page[LayerGroup])
 				
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.structure.label")</label>
 					<div class="col-sm-8">
+						<div style="position: relative;" class="list-group" id="groupLayerStructure">
+							@helper.groupStructure(grouplayer, true)
+						</div>
 					</div>
 				</div>
 				

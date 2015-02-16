@@ -12,10 +12,10 @@ require ([
 	
 	'dojo/domReady!'
 ], function (dom, on, win, query, domattr, domConstruct, OrderedList, put) {
-	var main = dom.byId('groepstructuur');
+	var main = dom.byId('groupLayerStructure');
 	
-	if(dom.byId ('groepstructuur')) {
-		var list = new OrderedList ('#groepstructuur');
+	if(dom.byId ('groupLayerStructure')) {
+		var list = new OrderedList ('#groupLayerStructure');
 	}
 	
 	var groepen = dom.byId('addgroup');
@@ -26,10 +26,11 @@ require ([
 		
 		var id = evt.currentTarget[selectIndex].value;
 		var naam = evt.currentTarget[selectIndex].innerHTML;
+		var structureName="structure[]";
 		
 		if(naam !== "") {
 			var el1 = put("div.list-group-item.gp-draggable.tree-item[value=$]", id);
-			var el2 = put(el1, "input[type=hidden][name=structure][value=$]", id);
+			var el2 = put(el1, "input[type=hidden][name=$][value=$]", structureName, id);
 			var el3 = put(el1, "div.row");
 			var el4 = put(el3, "div.col-sm-11.groupTree");
 			var el5 = put(el4, "ul");
@@ -49,10 +50,11 @@ require ([
 		
 		var id = evt.currentTarget[selectIndex].value;
 		var naam = evt.currentTarget[selectIndex].innerHTML;
+		var structureName="structure[]";
 		
 		if(naam !== "") {
 			var el1 = put("div.list-group-item.gp-draggable.tree-item[value=$]", id);
-			var el2 = put(el1, "input[type=hidden][name=structure][value=$]", id);
+			var el2 = put(el1, "input[type=hidden][name=$][value=$]", structureName, id);
 			var el3 = put(el1, "div.row");
 			var el4 = put(el3, "div.col-sm-11.groupTree");
 			var el5 = put(el4, "ul");
