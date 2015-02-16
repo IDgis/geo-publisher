@@ -3,31 +3,24 @@
 @(grouplayer: GroupLayer)
 
 
-	<div value="@grouplayer.getId()" class="list-group-item gp-draggable tree-item">
-		<input type="hidden" value="@grouplayer.getId()" name="structure">
-		<div class="row">
-			<div class="col-sm-11 groupTree">
-				@if(grouplayer != null){
-					<ul>
-						<li>
-							<a href="@routes.Groups.edit(grouplayer.getId())"><strong>GRP @grouplayer.getName()</strong></a>
-							@helper.groupStructureItem(grouplayer)
-						</li>
-					</ul>
-				}
-			</div>
-			<div class="col-sm-1">
-			
-				<div class="pull-right tree-item-delete">
-					<a href="#" 
-						class="btn btn-default btn-sm delete-el" value="@grouplayer.getId()" title=@Domain.message("web.application.button.remove")>
-						<span class="glyphicon glyphicon-remove"></span>
-					</a>
+@if(grouplayer != null){
+	@for(layer <- grouplayer.getLayers()){
+		<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
+			<input type="hidden" value="@layer.getId()" name="structure[]">
+			<div class="row">
+				<div class="col-sm-11 groupTree">
+					@helper.groupStructureItem(layer)
 				</div>
-			
+				<div class="col-sm-1">
+					<div class="pull-right tree-item-delete">
+						<a href="#" 
+							class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
+							<span class="glyphicon glyphicon-remove"></span>
+						</a>
+					</div>
+				</div>
 			</div>
 		</div>
-	
-	</div>
-
+	}
+}
 	

@@ -1,21 +1,21 @@
 @import nl.idgis.publisher.domain.web.tree._ 
 
-@(grouplayer: GroupLayer)
+@(grouplayer: Layer)
 
-		<ul>
-		@for(layer <- grouplayer.getLayers()){
-			@if( layer.isGroup()){
-				<li>
-					<a href="@routes.Groups.edit(grouplayer.getId())"><strong>@grouplayer.getName()</strong></a>
-				</li>
-				@helper.groupStructureItem(layer.asGroup())
-			}else{
-				<li>
-					<a href="@routes.Layers.edit(layer.getId())">@layer.getName()</a>
-				</li>
+<ul>
+	@if(grouplayer.isGroup()){
+			<li>
+			<a href="@routes.Groups.edit(grouplayer.getId())"><strong>@grouplayer.getName()</strong></a>
+			@for(layer <- grouplayer.asGroup().getLayers()){
+				@helper.groupStructureItem(layer)
 			}
-		}
-		</ul>
+			</li>
+	}else{
+		<li>
+			<a href="@routes.Layers.edit(grouplayer.getId())">@grouplayer.getName()</a>
+		</li>
+	}
+</ul>
 
 		
 
