@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLSubQuery;
 
@@ -25,6 +26,7 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.utils.StreamUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -184,21 +186,26 @@ public class LayerGroupAdmin extends AbstractAdmin {
 								.thenCompose(
 									llNr -> {
 										// B. insert items of layerStructure
-										return tx
-											.insert(layerStructure)
-											.columns(
-												layerStructure.parentLayerId, 
-												layerStructure.childLayerId
-												)
-											.select(new SQLSubQuery().from(genericLayer)
-												.where(genericLayer.identification.in(layerIdList))
-												.list(
-													glId.get(),
-													genericLayer.id
-													))
-											.execute().thenApply(whatever ->
-											new Response<String>(CrudOperation.UPDATE,
-													CrudResponse.OK, groupId));
+										return f.sequence(												
+											StreamUtils.index(layerIdList.stream())
+												.map(styleIdIndexed -> 
+													tx
+														.insert(layerStructure)
+														.columns(
+															layerStructure.parentLayerId, 
+															layerStructure.childLayerId,
+															layerStructure.layerOrder)
+														.select(new SQLSubQuery().from(genericLayer)
+															.where(genericLayer.identification.eq(styleIdIndexed.getValue()))
+															.list(
+																glId.get(),
+																genericLayer.id,
+																styleIdIndexed.getIndex()))
+														.execute()
+														)
+												.collect(Collectors.toList())).thenApply(whatever ->
+													new Response<String>(CrudOperation.UPDATE,
+														CrudResponse.OK, groupId));												
 									});
 		}));
 	}
