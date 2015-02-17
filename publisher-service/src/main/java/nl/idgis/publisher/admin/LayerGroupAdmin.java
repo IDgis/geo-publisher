@@ -5,6 +5,7 @@ import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QService.service;
 
 import java.util.List;
 import java.util.Optional;
@@ -144,11 +145,11 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		return db.transactional(tx -> 
 			tx.query()
 			.from(genericLayer)
+			.join(service).on(genericLayer.id.eq(service.rootgroupId))
 			.where(genericLayer.identification.eq(layergroupId)
-//				.and(new SQLSubQuery().from(service)
-//						.where(service.rootGroupId.eq(genericLayer.id))
-//						.notExists())
+					.and(service.id.isNull())
 					)
+			.limit(1)
 			.singleResult(genericLayer.id)
 			.thenCompose(
 				glId -> {
@@ -179,7 +180,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 									CrudResponse.NOK, layergroupId));
 						}
 					})
-		);
+				);
 	}
 	
 	private CompletableFuture<Response<?>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
