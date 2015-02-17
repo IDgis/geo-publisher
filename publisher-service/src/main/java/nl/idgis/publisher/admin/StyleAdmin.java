@@ -58,7 +58,7 @@ public class StyleAdmin extends AbstractAdmin {
 		log.debug ("handle update/create style: " + styleId);
 		
 		return db.transactional(tx ->
-			// Check if there is another style with the same name
+			// Check if there is another style with the same id
 			tx.query().from(style)
 			.where(style.identification.eq(styleId))
 			.singleResult(style.identification)

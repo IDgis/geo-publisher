@@ -27,6 +27,7 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
@@ -64,6 +65,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		log.debug ("handleListLayergroups");
 		return f.ask(this.serviceManager, new GetGroupLayer(getGroupStructure.groupId())).thenApply(resp -> {
 			if(resp instanceof NotFound) {
+				return Optional.empty();
+			} else if (resp instanceof Failure){
 				return Optional.empty();
 			} else {
 				return Optional.of((GroupLayer)resp);
@@ -108,7 +111,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		log.debug ("handle update/create layergroup: " + layergroupId);
 		
 		return db.transactional(tx ->
-			// Check if there is another layergroup with the same name
+			// Check if there is another layergroup with the same id
 			tx.query().from(genericLayer)
 			.where(genericLayer.identification.eq(layergroupId))
 			.singleResult(genericLayer.identification)
@@ -141,7 +144,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 
 	private CompletableFuture<Response<?>> handleDeleteLayergroup(String layergroupId) {
 		log.debug("handleDeleteLayergroup: " + layergroupId);
-		
+		//first check if generic layer is available and is not a service rootgroup
 		return db.transactional(tx -> 
 			tx.query()
 			.from(genericLayer)
@@ -204,7 +207,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 								// B. insert items of layerStructure
 								return f.sequence(												
 									StreamUtils.index(layerIdList.stream())
-										.map(styleIdIndexed -> 
+										.map(layerIdIndexed -> 
 											tx
 												.insert(layerStructure)
 												.columns(
@@ -212,11 +215,11 @@ public class LayerGroupAdmin extends AbstractAdmin {
 													layerStructure.childLayerId,
 													layerStructure.layerOrder)
 												.select(new SQLSubQuery().from(genericLayer)
-													.where(genericLayer.identification.eq(styleIdIndexed.getValue()))
+													.where(genericLayer.identification.eq(layerIdIndexed.getValue()))
 													.list(
 														glId.get(),
 														genericLayer.id,
-														styleIdIndexed.getIndex()))
+														layerIdIndexed.getIndex()))
 												.execute()
 												)
 										.collect(Collectors.toList())).thenApply(whatever ->

@@ -85,7 +85,7 @@ public class LayerAdmin extends AbstractAdmin {
 
 		return db
 			.transactional(tx ->
-			// Check if there is another layer with the same name
+			// Check if there is another layer with the same id
 			tx.query()
 				.from(genericLayer)
 				.where(genericLayer.identification.eq(layerId))

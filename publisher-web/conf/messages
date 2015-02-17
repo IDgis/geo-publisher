@@ -391,6 +391,7 @@ web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 
 # Groups
 web.application.page.groups.name=Groep
 web.application.page.groups.remove.failed=Groep is al verwijderd of is een hoofdgoep in een service
+web.application.page.groups.structure.error=Groepstructuur is mogelijk corrupt, dezelfde laag komt meerdere keren voor
 
 web.application.page.groups.list.header=Groepen
 web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.

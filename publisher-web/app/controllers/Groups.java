@@ -5,6 +5,7 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import controllers.Groups.GroupForm;
@@ -173,8 +174,19 @@ public class Groups extends Controller {
 							.form (GroupForm.class)
 							.fill (new GroupForm (group));
 					
-					Logger.debug ("Edit groupForm: " + groupForm);		
-					Logger.debug ("GROUP LAYER layer name:" + groupLayer.getName() + " id:" + groupLayer.getId());
+					Logger.debug ("Edit groupForm: " + groupForm);
+					
+					if(groupLayer==null){
+						Logger.debug ("Group could not be edited: " + groupId);
+						flash ("danger", 
+							Domain.message("web.application.editing") + " " + 
+							Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
+							Domain.message("web.application.failed").toLowerCase()
+							+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
+						return redirect(routes.Groups.list ());
+					}
+					
+					Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
 					for (nl.idgis.publisher.domain.web.tree.Layer layer : groupLayer.getLayers()) {
 						Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
 					}
