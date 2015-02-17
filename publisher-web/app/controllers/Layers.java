@@ -44,7 +44,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Layers extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
+	private final static String ID="#CREATE_LAYER#";
+	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -76,16 +77,18 @@ public class Layers extends Controller {
 					// validation start
 					if (form.field("name").value().length() == 1 ) 
 						form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
-					for (LayerGroup layerGroup : groups.values()) {
-						if (form.field("name").value().equals(layerGroup.name())){
-							form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.groupexists.error"));
+					if (form.field("id").value().equals(ID)){
+						for (LayerGroup layerGroup : groups.values()) {
+							if (form.field("name").value().equals(layerGroup.name())){
+								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.groupexists.error"));
+							}
+						}
+						for (Layer layer : layers.values()) {
+							if (form.field("name").value().equals(layer.name())){
+								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.layerexists.error"));
+							}
 						}
 					}
-					for (Layer layer : layers.values()) {
-						if (form.field("name").value().equals(layer.name())){
-							form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.layerexists.error"));
-						}
-					}				
 					if (form.field("styles").value().length() == 0 ) 
 						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
 					if (form.hasErrors ()) {
@@ -277,7 +280,7 @@ public class Layers extends Controller {
 
 		public LayerForm(){
 			super();
-			this.id = UUID.randomUUID().toString();
+			this.id = ID;
 		}
 		
 		public LayerForm(Layer layer){

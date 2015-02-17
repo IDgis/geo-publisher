@@ -43,7 +43,8 @@ import akka.actor.ActorSelection;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Groups extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
+	private final static String ID="#CREATE_GROUP#";
+	
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -70,22 +71,24 @@ public class Groups extends Controller {
 				@Override
 				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 					final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
+					final GroupForm groupForm = form.get ();
 					Logger.debug ("submit Group: " + form.field("name").value());
 					
 					// validation start
 					if (form.field("name").value().length() == 1 ) 
 						form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.length.error", "1"));
-					for (LayerGroup layerGroup : groups.values()) {
-						if (form.field("name").value().equals(layerGroup.name())){
-							form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.groupexists.error"));
+					if (form.field("id").value().equals(ID)){
+						for (LayerGroup layerGroup : groups.values()) {
+							if (form.field("name").value().equals(layerGroup.name())){
+								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.groupexists.error"));
+							}
+						}
+						for (Layer layer : layers.values()) {
+							if (form.field("name").value().equals(layer.name())){
+								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.layerexists.error"));
+							}
 						}
 					}
-					for (Layer layer : layers.values()) {
-						if (form.field("name").value().equals(layer.name())){
-							form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.layerexists.error"));
-						}
-					}
-					final GroupForm groupForm = form.get ();
 					if (groupForm.structure == null){
 						form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
 					}
@@ -227,7 +230,7 @@ public class Groups extends Controller {
 
 		public GroupForm(){
 			super();
-			this.id = UUID.randomUUID().toString();
+			this.id=ID;
 		}
 		
 		public GroupForm(LayerGroup group){

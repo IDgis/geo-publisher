@@ -39,7 +39,8 @@ import views.html.services.list;
 public class Services extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
+	private final static String ID="#CREATE_SERVICE#";
+	
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -64,14 +65,17 @@ public class Services extends Controller {
 				@Override
 				public Promise<Result> apply (final Page<Service> services) throws Throwable {
 					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
+					final ServiceForm serviceForm = form.get ();
 					Logger.debug ("submit Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
 					if (form.field("name").value().length() == 1 ) 
 						form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
-					for (Service service : services.values()) {
-						if (form.field("name").value().equals(service.name())){
-							form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
+					if (form.field("id").value().equals(ID)){
+						for (Service service : services.values()) {
+							if (form.field("name").value().equals(service.name())){
+								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
+							}
 						}
 					}
 					if (form.field("rootGroupName").value()==null || form.field("rootGroupName").value().isEmpty()){
@@ -82,7 +86,6 @@ public class Services extends Controller {
 					}
 					// validation end
 					
-					final ServiceForm serviceForm = form.get ();
 					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
 							serviceForm.metadata,serviceForm.watermark, serviceForm.published,
@@ -205,7 +208,7 @@ public class Services extends Controller {
 		
 		public ServiceForm (){
 			super();
-			this.id = UUID.randomUUID().toString();			
+			this.id = ID;		
 		}
 		
 		public ServiceForm (final Service service){

@@ -47,8 +47,9 @@ import views.html.styles.list;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
-	// CRUD 
+	private final static String ID="#CREATE_STYLE#";
+	
+	 
 	private static Promise<Result> renderCreateForm (final Form<StyleForm> styleForm) {
 		// No need to go to the database, because the form contains all information needed
 		 return Promise.promise(new F.Function0<Result>() {
@@ -74,9 +75,11 @@ public class Styles extends Controller {
 					if (form.field("name").value().length() == 1 ) {
 						form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
 					}
-					for (Style style : styles.values()) {
-						if (form.field("name").value().equals(style.name())){
-							form.reject("name", Domain.message("web.application.page.styles.form.field.name.exists",  style.name()));
+					if (form.field("id").value().equals(ID)){
+						for (Style style : styles.values()) {
+							if (form.field("name").value().equals(style.name())){
+								form.reject("name", Domain.message("web.application.page.styles.form.field.name.exists",  style.name()));
+							}
 						}
 					}
 					boolean validXml = isValidXml(form.field("definition").value());
@@ -229,7 +232,7 @@ public class Styles extends Controller {
 		
 		public StyleForm (){
 			super();
-			this.id = UUID.randomUUID().toString();
+			this.id = ID;
 			this.format = "SLD";
 			this.version = "1.0.0";
 
