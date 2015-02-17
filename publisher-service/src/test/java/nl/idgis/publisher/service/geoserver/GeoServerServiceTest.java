@@ -18,11 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -222,13 +217,7 @@ public class GeoServerServiceTest {
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
-		Document features = h.getFeature("serviceName", "layer");
-		
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
-		
-		t.transform(new DOMSource(features), new StreamResult(System.out));
-		
+		Document features = h.getFeature("serviceName", "layer");		
 		assertTrue(h.getText(features).contains("Hello, world!"));
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");

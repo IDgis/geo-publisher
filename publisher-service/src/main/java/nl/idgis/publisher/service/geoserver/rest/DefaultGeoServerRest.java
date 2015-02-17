@@ -9,44 +9,28 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-
-
-
-
-
-
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
-
-
-
-
-
-
 
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-
-
-
-
-import org.xml.sax.SAXException;
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -69,19 +53,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		asyncHttpClient = new AsyncHttpClient();
 	}
 	
-	private Document getDocument(Response response) throws IOException, ParserConfigurationException, SAXException {
-		InputStream stream = response.getResponseBodyAsStream();
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
-		
-		Document document = documentBuilder.parse(stream);
-		
-		stream.close();
-		
-		return document;
-	}
-	
 	private CompletableFuture<Optional<Document>> get(String path) {
 		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
 		
@@ -94,7 +65,16 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					int responseCode = response.getStatusCode();
 					if(responseCode == HttpURLConnection.HTTP_OK) {
-						future.complete(Optional.of(getDocument(response)));
+						InputStream stream = response.getResponseBodyAsStream();
+						
+						DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+						DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+						
+						Document document = documentBuilder.parse(stream);
+						
+						stream.close();
+						
+						future.complete(Optional.of(document));
 					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
 						future.complete(Optional.empty());
 					} else {
@@ -216,49 +196,55 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceType serviceType, ServiceSettings serviceSettings) {
 		try {
+			String serviceTypeName = serviceType.name().toLowerCase();
+			
+			// we have to use the default settings as a template otherwise all kind of 
+			// essential settings are set to null, causing NPE when using the service.
+			InputStream defaultServiceSettings =
+				getClass().getResourceAsStream(
+					"default-" + serviceTypeName + "-settings.xml");
+			
+			Objects.requireNonNull(defaultServiceSettings);
+			
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document document = db.parse(defaultServiceSettings);
+			
+			XPath xpath = XPathFactory.newInstance().newXPath();
+					
+			String title = serviceSettings.getTitle();
+			if(title != null) {
+				Node titleNode = (Node)xpath.evaluate(serviceTypeName + "/title/text()", document, XPathConstants.NODE);
+				titleNode.setTextContent(title);
+			}
+			
+			String abstr = serviceSettings.getAbstract();
+			if(abstr != null) {
+				Node abstractNode = (Node)xpath.evaluate(serviceTypeName + "/abstrct/text()", document, XPathConstants.NODE);
+				abstractNode.setTextContent(abstr);
+			}
+			
+			List<String> keywords = serviceSettings.getKeywords();
+			if(keywords != null) {
+				Node keywordsNode = (Node)xpath.evaluate(serviceTypeName + "/keywords", document, XPathConstants.NODE);				
+				
+				while(keywordsNode.hasChildNodes()) {
+					keywordsNode.removeChild(keywordsNode.getFirstChild());
+				}
+				
+				for(String keyword : keywords) {
+					Node keywordNode = document.createElement("keyword");
+					keywordNode.appendChild(document.createTextNode(keyword));					
+					keywordsNode.appendChild(keywordNode);
+				}
+			}
+			
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			
-			XMLOutputFactory of = XMLOutputFactory.newInstance();
-			XMLStreamWriter sw = of.createXMLStreamWriter(os);
-			sw.writeStartDocument();
-				sw.writeStartElement(serviceType.name().toLowerCase());
-					sw.writeStartElement("enabled");
-						sw.writeCharacters("true");
-					sw.writeEndElement();
-					
-					sw.writeStartElement("name");
-						sw.writeCharacters(serviceType.name().toUpperCase());
-					sw.writeEndElement();
-					
-					String title = serviceSettings.getTitle();
-					if(title != null) {
-						sw.writeStartElement("title");
-							sw.writeCharacters(title);
-						sw.writeEndElement();
-					}
-					
-					String abstr = serviceSettings.getAbstract();
-					if(abstr != null) {
-						sw.writeStartElement("abstrct");
-							sw.writeCharacters(abstr);
-						sw.writeEndElement();
-					}
-					
-					List<String> keywords = serviceSettings.getKeywords();
-					if(keywords != null) {
-						sw.writeStartElement("keywords");
-						for(String keyword : keywords) {
-							sw.writeStartElement("string");
-								sw.writeCharacters(keyword);
-							sw.writeEndElement();
-						}
-						sw.writeEndElement();
-					}
-				sw.writeEndElement();
-			sw.writeEndDocument();
-			sw.close();
+			TransformerFactory tf = TransformerFactory.newInstance();
+			Transformer t = tf.newTransformer();
 			
-			os.close();
+			t.transform(new DOMSource(document), new StreamResult(os));
 			
 			return put(getServiceSettingsPath(workspace, serviceType), os.toByteArray());
 		} catch(Exception e) {
