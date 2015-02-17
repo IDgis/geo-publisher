@@ -295,6 +295,7 @@ web.application.page.services.form.field.name.label=Naam
 web.application.page.services.form.field.name.placeholder=Naam
 web.application.page.services.form.field.name.help=De naam voor de service
 web.application.page.services.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.services.form.field.name.validation.exists.error=Een service met dezelfde naam bestaat al
 
 web.application.page.services.form.field.title.label=Titel
 web.application.page.services.form.field.title.placeholder=Title
@@ -319,6 +320,7 @@ web.application.page.services.form.field.structure.label=Structuur
 
 web.application.page.services.form.field.rootgroup.label=Groep
 web.application.page.services.form.field.rootgroup.help=Geef de hoofdgroep
+web.application.page.services.form.field.rootgroup.validation.error=Er moet een hoofdgroep zijn ingevuld
 
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
 
