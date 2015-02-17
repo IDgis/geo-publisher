@@ -66,21 +66,26 @@ private final LoggingAdapter log = Logging.getLogger(getContext().system(), this
 				} else if(msg instanceof Response) {
 					log.debug("response received");
 					
+					Object listenerResponse;
 					Response<?> response = (Response<?>)msg;
 					if(response.getOperationResponse().equals(CrudResponse.OK)) {
 						log.debug("ok");
-						
-						origSender.tell(msg, getSender());
-						
-						for(ActorRef listener : listeners) {							
-							listener.tell(new EventCompleted(), getSelf());
-						}
+						listenerResponse = new EventCompleted();
 					} else {
 						log.debug("nok");
+						listenerResponse = new EventFailed();
+					}
+					
+					origSender.tell(msg, getSender());
+					
+					for(ActorRef listener : listeners) {							
+						listener.tell(listenerResponse, getSelf());
 					}
 					
 					getContext().stop(getSelf());
 				} else {
+					log.debug("unhandled: {}", msg);
+					
 					unhandled(msg);
 				}
 			}

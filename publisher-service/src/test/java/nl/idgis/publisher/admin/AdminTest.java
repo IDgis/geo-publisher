@@ -27,10 +27,13 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.NotFound;
 
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
+import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
@@ -60,6 +63,11 @@ public class AdminTest {
 				
 				return f.successful(new Category(categoryId, "category-name"));
 			}, category -> recorder.tell(category, getSelf()));
+			onDelete(Dataset.class, datasetId -> {
+				recorder.tell(datasetId, getSelf());
+				
+				return f.successful(datasetId);
+			}, datasetId -> recorder.tell(datasetId, getSelf()));
 			onQuery(RefreshDataset.class, refreshDataset -> recorder.tell(refreshDataset, getSelf()));			
 		}
 	}
@@ -90,7 +98,9 @@ public class AdminTest {
 			doPut(Category.class, category ->
 				f.successful(new Response<>(CrudOperation.CREATE, CrudResponse.OK, category.id())));			
 			doDelete(Category.class, categoryId ->
-				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.OK, categoryId)));
+				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.OK, categoryId)));			
+			doDelete(Dataset.class, datasetId ->
+				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.NOK, datasetId)));
 			doQuery(RefreshDataset.class, refreshDataset -> f.successful(true));
 			doQueryOptional(GetGroupStructure.class, getGroupStructure -> f.successful(Optional.empty()));
 		}
@@ -158,7 +168,7 @@ public class AdminTest {
 	}
 	
 	@Test
-	public void testDelete() throws Exception {
+	public void testDeleteOk() throws Exception {		
 		sync.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class);
 		sync.ask(recorder, new Wait(2), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
@@ -170,6 +180,27 @@ public class AdminTest {
 				assertEquals("category-name", category.name());
 			})
 			.assertNotHasNext();
+		sync.ask(recorder, new Clear(), Cleared.class);
+	}
+	
+	@Test
+	public void testDeleteNok() throws Exception {
+		sync.ask(parent, new DeleteEntity<>(Dataset.class, "datasetId"), Response.class);
+		sync.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		sync.ask(recorder, new GetRecording(), Recording.class)
+			.assertNext(String.class, datasetId -> {
+				assertEquals("datasetId", datasetId);
+			})
+			.assertNext(String.class, categoryId -> {
+				assertEquals("categoryId", categoryId);
+			})
+			.assertNext(Category.class, category -> {
+				assertEquals("categoryId", category.id());
+				assertEquals("category-name", category.name());
+			})
+			.assertNotHasNext();
+		sync.ask(recorder, new Clear(), Cleared.class);
 	}
 	
 	@Test
