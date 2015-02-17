@@ -137,8 +137,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 				@Override
 				public Response onCompleted(Response response) throws Exception {
-					System.out.println("response: " + response.getResponseBody());
-					
 					int responseCode = response.getStatusCode();
 					if(responseCode != HttpURLConnection.HTTP_OK) {
 						future.completeExceptionally(new GeoServerException(responseCode));

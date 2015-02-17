@@ -206,6 +206,7 @@ public class ProvisionServiceTest {
 		when(service.getTitle()).thenReturn("serviceTitle0");
 		when(service.getAbstract()).thenReturn("serviceAbstract0");
 		when(service.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1", "keyword2"));
+		when(service.getTelephone()).thenReturn("serviceTelephone0");
 		
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
@@ -219,6 +220,7 @@ public class ProvisionServiceTest {
 				assertEquals("serviceTitle0", workspace.getTitle());
 				assertEquals("serviceAbstract0", workspace.getAbstract());
 				assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), workspace.getKeywords());
+				
 			})
 			.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
 				assertEquals("layer0", featureType.getLayerId());
