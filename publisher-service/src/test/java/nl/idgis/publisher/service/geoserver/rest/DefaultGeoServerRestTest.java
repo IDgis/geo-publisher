@@ -239,4 +239,15 @@ public class DefaultGeoServerRestTest {
 		
 		service.close();
 	}
+	
+	@Test
+	public void testServiceSettingsEquals() throws Exception {
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		ServiceSettings serviceSettings = new ServiceSettings("MyTitle", null, null);
+		service.putServiceSettings(workspace, ServiceType.WFS, serviceSettings).get();
+		
+		assertEquals(serviceSettings, service.getServiceSettings(workspace, ServiceType.WFS).get().get());
+	}
 }

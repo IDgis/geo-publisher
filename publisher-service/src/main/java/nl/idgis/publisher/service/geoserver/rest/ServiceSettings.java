@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ServiceSettings {
@@ -11,7 +12,7 @@ public class ServiceSettings {
 	public ServiceSettings(String title, String abstr, List<String> keywords) {
 		this.title = title;
 		this.abstr = abstr;
-		this.keywords = keywords;
+		this.keywords = keywords == null ? Collections.emptyList() : keywords;
 	}
 
 	public String getTitle() {

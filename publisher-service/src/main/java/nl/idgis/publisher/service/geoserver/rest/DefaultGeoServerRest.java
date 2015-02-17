@@ -212,23 +212,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					
 			String title = serviceSettings.getTitle();
 			if(title != null) {
-				Node titleNode = (Node)xpath.evaluate(serviceTypeName + "/title/text()", document, XPathConstants.NODE);
+				Node titleNode = (Node)xpath.evaluate(serviceTypeName + "/title", document, XPathConstants.NODE);
 				titleNode.setTextContent(title);
 			}
 			
 			String abstr = serviceSettings.getAbstract();
 			if(abstr != null) {
-				Node abstractNode = (Node)xpath.evaluate(serviceTypeName + "/abstrct/text()", document, XPathConstants.NODE);
+				Node abstractNode = (Node)xpath.evaluate(serviceTypeName + "/abstrct", document, XPathConstants.NODE);
 				abstractNode.setTextContent(abstr);
 			}
 			
 			List<String> keywords = serviceSettings.getKeywords();
 			if(keywords != null) {
-				Node keywordsNode = (Node)xpath.evaluate(serviceTypeName + "/keywords", document, XPathConstants.NODE);				
-				
-				while(keywordsNode.hasChildNodes()) {
-					keywordsNode.removeChild(keywordsNode.getFirstChild());
-				}
+				Node keywordsNode = (Node)xpath.evaluate(serviceTypeName + "/keywords", document, XPathConstants.NODE);
 				
 				for(String keyword : keywords) {
 					Node keywordNode = document.createElement("keyword");
@@ -619,11 +615,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 							
 						}
 						
-						Node titleNode = (Node)xpath.evaluate("/layerGroup/title", document, XPathConstants.NODE);
-						String title = titleNode == null ? null : titleNode.getTextContent();
-						
-						Node abstractNode = (Node)xpath.evaluate("/layerGroup/abstractTxt", document, XPathConstants.NODE);
-						String abstr = abstractNode == null ? null : abstractNode.getTextContent();
+						String title = getStringValue((Node)xpath.evaluate("/layerGroup/title", document, XPathConstants.NODE));
+						String abstr = getStringValue((Node)xpath.evaluate("/layerGroup/abstractTxt", document, XPathConstants.NODE));
 						
 						future.complete(Optional.of(new LayerGroup(layerGroupName, title, abstr, Collections.unmodifiableList(layers))));
 					} else {
@@ -758,6 +751,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> deleteWorkspace(Workspace workspace) { 
 		return delete(getWorkspacePath(workspace) + RECURSE);
 	}
+	
+	private String getStringValue(Node n) {
+		if(n == null) {
+			return null;
+		}
+		
+		String retval = n.getTextContent();
+		if(retval.trim().isEmpty()) {
+			return null;
+		}
+		
+		return retval;
+	}
 
 	@Override
 	public CompletableFuture<Optional<ServiceSettings>> getServiceSettings(Workspace workspace, ServiceType serviceType) {
@@ -772,21 +778,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						Document document = optionalDocument.get();						
 						XPath xpath = XPathFactory.newInstance().newXPath();
 						
-						Node titleNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/title", document, XPathConstants.NODE);
-						String title = titleNode == null ? null : titleNode.getTextContent();
+						String title = getStringValue((Node)xpath.evaluate(serviceType.name().toLowerCase() + "/title", document, XPathConstants.NODE));
+						String abstr = getStringValue((Node)xpath.evaluate(serviceType.name().toLowerCase() + "/abstrct", document, XPathConstants.NODE));						
 						
-						Node abstractNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/abstrct", document, XPathConstants.NODE);
-						String abstr = abstractNode == null ? null : abstractNode.getTextContent();
-						
-						NodeList keywordNodes = (NodeList)xpath.evaluate(serviceType.name().toLowerCase() + "/keywords/string", document, XPathConstants.NODESET);
-						List<String> keywords;
-						if(keywordNodes != null && keywordNodes.getLength() > 0) {
-							keywords = new ArrayList<>();
+						List<String> keywords = new ArrayList<>();
+						NodeList keywordNodes = (NodeList)xpath.evaluate(serviceType.name().toLowerCase() + "/keywords/string", document, XPathConstants.NODESET);						
+						if(keywordNodes != null && keywordNodes.getLength() > 0) {							
 							for(int i = 0; i < keywordNodes.getLength(); i++) {
 								keywords.add(keywordNodes.item(i).getTextContent());
 							}
-						} else {
-							keywords = null;
 						}
 						
 						future.complete(Optional.of(new ServiceSettings(title, abstr, keywords)));
@@ -818,42 +818,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					Document document = optionalDocument.get();
 					XPath xpath = XPathFactory.newInstance().newXPath();
 					
-					Node addressNode = (Node)xpath.evaluate("settings/contact/address", document, XPathConstants.NODE);
-					String address = addressNode == null ? null : addressNode.getTextContent();
-					
-					Node addressCityNode = (Node)xpath.evaluate("settings/contact/addressCity", document, XPathConstants.NODE);
-					String city = addressCityNode == null ? null : addressCityNode.getTextContent();
-					
-					Node addressCountryNode = (Node)xpath.evaluate("settings/contact/addressCountry", document, XPathConstants.NODE);
-					String country = addressCountryNode == null ? null : addressCountryNode.getTextContent();
-					
-					Node addressPostalCodeNode = (Node)xpath.evaluate("settings/contact/addressPostalCode", document, XPathConstants.NODE);
-					String zipcode = addressPostalCodeNode == null ? null : addressPostalCodeNode.getTextContent();
-					
-					Node addressStateNode = (Node)xpath.evaluate("settings/contact/addressState", document, XPathConstants.NODE);
-					String state = addressStateNode == null ? null : addressStateNode.getTextContent();
-					
-					Node addressTypeNode = (Node)xpath.evaluate("settings/contact/addressType", document, XPathConstants.NODE);
-					String addressType = addressTypeNode == null ? null : addressTypeNode.getTextContent();
-					
-					Node contactEmailNode = (Node)xpath.evaluate("settings/contact/contactEmail", document, XPathConstants.NODE);
-					String email = contactEmailNode == null ? null : contactEmailNode.getTextContent();
-					
-					Node contactFacsimileNode = (Node)xpath.evaluate("settings/contact/contactFacsimile", document, XPathConstants.NODE);
-					String fax = contactFacsimileNode == null ? null : contactFacsimileNode.getTextContent();
-					
-					Node contactOrganizationNode = (Node)xpath.evaluate("settings/contact/contactOrganization", document, XPathConstants.NODE);
-					String organization = contactOrganizationNode == null ? null : contactOrganizationNode.getTextContent();
-					
-					Node contactPersonNode = (Node)xpath.evaluate("settings/contact/contactPerson", document, XPathConstants.NODE);
-					String contact = contactPersonNode == null ? null : contactPersonNode.getTextContent();
-					
-					Node contactPositionNode = (Node)xpath.evaluate("settings/contact/contactPosition", document, XPathConstants.NODE);
-					String position = contactPositionNode == null ? null : contactPositionNode.getTextContent();
-					
-					Node contactVoiceNode = (Node)xpath.evaluate("settings/contact/contactVoice", document, XPathConstants.NODE);
-					String telephone = contactVoiceNode == null ? null : contactVoiceNode.getTextContent();
-					
+					String address = getStringValue((Node)xpath.evaluate("settings/contact/address", document, XPathConstants.NODE));
+					String city = getStringValue((Node)xpath.evaluate("settings/contact/addressCity", document, XPathConstants.NODE));					
+					String country = getStringValue((Node)xpath.evaluate("settings/contact/addressCountry", document, XPathConstants.NODE));
+					String zipcode = getStringValue((Node)xpath.evaluate("settings/contact/addressPostalCode", document, XPathConstants.NODE));					
+					String state = getStringValue((Node)xpath.evaluate("settings/contact/addressState", document, XPathConstants.NODE));
+					String addressType = getStringValue((Node)xpath.evaluate("settings/contact/addressType", document, XPathConstants.NODE));
+					String email = getStringValue((Node)xpath.evaluate("settings/contact/contactEmail", document, XPathConstants.NODE));
+					String fax = getStringValue((Node)xpath.evaluate("settings/contact/contactFacsimile", document, XPathConstants.NODE));
+					String organization = getStringValue((Node)xpath.evaluate("settings/contact/contactOrganization", document, XPathConstants.NODE));
+					String contact = getStringValue((Node)xpath.evaluate("settings/contact/contactPerson", document, XPathConstants.NODE));
+					String position = getStringValue((Node)xpath.evaluate("settings/contact/contactPosition", document, XPathConstants.NODE));
+					String telephone = getStringValue((Node)xpath.evaluate("settings/contact/contactVoice", document, XPathConstants.NODE));
+										
 					future.complete(new WorkspaceSettings(contact, organization, position, addressType, 
 						address, city, state, zipcode, country, telephone, fax, email));					
 				} catch(Exception e) {

@@ -453,7 +453,7 @@ public class GeoServerService extends UntypedActor {
 										log.debug("service settings service type {} unchanged", serviceType);														
 										return f.<Void>successful(null);
 									} else {
-										log.debug("service settings service type {} changed", serviceType);														
+										log.debug("service settings service type {} changed, was: {}, ensure: {}", serviceType, serviceSettings, ensureServiceSettings);														
 										return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
 									}
 								} else {
@@ -517,12 +517,10 @@ public class GeoServerService extends UntypedActor {
 							});
 						}));					
 				} else if(msg instanceof EnsuringWorkspace) {
-					log.debug("ensuring workspace content");
-					
 					EnsuringWorkspace workspaceEnsured = (EnsuringWorkspace)msg;
-					
 					ensured(provisioningService);
 					
+					log.debug("ensuring workspace content");
 					Workspace workspace = workspaceEnsured.getWorkspace();
 					DataStore dataStore = workspaceEnsured.getDataStore();
 					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();

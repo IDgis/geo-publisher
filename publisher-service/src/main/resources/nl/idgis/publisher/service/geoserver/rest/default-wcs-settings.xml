@@ -1,10 +1,9 @@
 <wcs>
   <enabled>true</enabled>
   <name>WCS</name>
-  <title>Web Coverage Service</title>
+  <title/>
   <maintainer>http://jira.codehaus.org/secure/BrowseProject.jspa?id=10311</maintainer>
-  <abstrct>This server implements the WCS specification 1.0 and 1.1.1, it&apos;s reference implementation of WCS 1.1.1. All layers published by this service are available on WMS also.
-     </abstrct>
+  <abstrct/>
   <accessConstraints>NONE</accessConstraints>
   <fees>NONE</fees>
   <versions>
@@ -18,11 +17,7 @@
       <version>2.0.1</version>
     </org.geotools.util.Version>
   </versions>
-  <keywords>
-    <string>WCS</string>
-    <string>WMS</string>
-    <string>GEOSERVER</string>
-  </keywords>
+  <keywords/>    
   <metadataLink>
     <type>undef</type>
     <about>http://geoserver.sourceforge.net/html/index.php</about>
