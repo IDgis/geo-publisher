@@ -52,10 +52,7 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
-import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
-import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
@@ -142,12 +139,8 @@ public class GeoServerServiceTest {
 	}
 	
 	@After
-	public void cleanGeoServer() throws Exception {
-		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
-		for(Workspace workspace : service.getWorkspaces().get()) {
-			service.deleteWorkspace(workspace).get();
-		}
-		service.close();
+	public void clean() throws Exception {
+		h.clean();
 	}
 	
 	@Before

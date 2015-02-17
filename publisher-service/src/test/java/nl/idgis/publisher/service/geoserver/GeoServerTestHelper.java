@@ -36,7 +36,10 @@ import com.google.common.collect.HashBiMap;
 import com.ning.http.util.Base64;
 import com.vividsolutions.jts.geom.Geometry;
 
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FileUtils;
 
 public class GeoServerTestHelper {
@@ -278,5 +281,13 @@ public class GeoServerTestHelper {
 	
 	public Document getFeature(String serviceName, String typeName) throws SAXException, IOException {
 		return documentBuilder.parse(getServiceUrl(serviceName, ServiceType.WFS) + "?request=GetFeature&service=WFS&version=1.1.0&typeName=" + typeName);
+	}	
+	
+	public void clean() throws Exception {	
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
+		for(Workspace workspace : service.getWorkspaces().get()) {
+			service.deleteWorkspace(workspace).get();
+		}
+		service.close();
 	}
 }
