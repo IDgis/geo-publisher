@@ -74,10 +74,17 @@ web.application.yes=ja
 web.application.no=nee
 web.application.thereis=Er is
 web.application.thereare=Er zijn
+web.application.isNot=is niet
+web.application.failed=mislukt
+web.application.succeeded=gelukt
 web.application.removed=Verwijderd
+web.application.removing=Verwijderen
 web.application.added=Toegevoegd
+web.application.adding=Toegevoegd
 web.application.edited=Aangepast
+web.application.editing=Aanpassen
 web.application.updated=Aangepast
+web.application.updating=Aanpassen
 web.application.required=Verplicht
 
 web.application.login=Inloggen
@@ -410,6 +417,9 @@ web.application.page.groups.form.field.publish.label=Publiceren
 web.application.page.groups.form.field.publish.help=Geef aan of de groep gepubliceerd wordt
 
 web.application.page.groups.form.field.structure.label=Structuur
+web.application.page.groups.form.field.structure.validation.error=Er moet mimimaal 1 groep of laag worden toegevoegd
+web.application.page.groups.form.field.structure.help=Voeg een groep of een laag toe
+
 web.application.page.groups.form.field.addlayer.button=Toevoegen laag
 web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)

@@ -19,6 +19,7 @@ import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
@@ -61,7 +62,6 @@ public class Groups extends Controller {
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		
 		return from (database)
 			.list (LayerGroup.class)
 			.list (Layer.class)
@@ -72,7 +72,7 @@ public class Groups extends Controller {
 					final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
 					Logger.debug ("submit Group: " + form.field("name").value());
 					
-					// validation
+					// validation start
 					if (form.field("name").value().length() == 1 ) 
 						form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.length.error", "1"));
 					for (LayerGroup layerGroup : groups.values()) {
@@ -85,23 +85,18 @@ public class Groups extends Controller {
 							form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.layerexists.error"));
 						}
 					}
+					final GroupForm groupForm = form.get ();
+					if (groupForm.structure == null){
+						form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+					}
 					
 					if (form.hasErrors ()) {
 						return renderCreateForm (form);
 					}
+					// validation end
 					
-					final GroupForm groupForm = form.get ();
-					
-					List<String> structureIds;
-					if (groupForm.structure == null){
-						// empty list
-						structureIds = new ArrayList<String>();
-					} else {
-						structureIds = groupForm.structure;
-					}
-					
-					final List<String> layerIds = structureIds;
-					Logger.debug ("Group structure: " + groupForm.structure + ", list: " + layerIds);
+					final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
+					Logger.debug ("Group structure list: " + layerIds);
 					
 					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
 							groupForm.abstractText,groupForm.published);
@@ -190,16 +185,30 @@ public class Groups extends Controller {
 		Logger.debug ("delete Group " + groupId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(LayerGroup.class, groupId)
-		.execute(new Function<Response<?>, Result>() {
+		return from(database).delete(LayerGroup.class, groupId)
+		.executeFlat(new Function<Response<?>, Promise<Result>>() {
 			
 			@Override
-			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Groups.list ());
+			public Promise<Result> apply(Response<?> response) throws Throwable {
+				if (response.getOperationResponse().equals(CrudResponse.NOK)) {
+					Logger.debug ("Group could not be deleted: " + groupId);
+					flash ("error", 
+						Domain.message("web.application.page.removing") + " " + 
+						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
+						Domain.message("web.application.failed").toLowerCase()
+						+" ("+response.getValue()+")");
+				}else{
+					Logger.debug ("Deleted group " + groupId);
+					flash ("success", 
+						Domain.message("web.application.page.removing") + " " + 
+						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
+						Domain.message("web.application.succeeded").toLowerCase()
+						+" ("+response.getValue()+")");
+				}
+				return Promise.pure (redirect (routes.Groups.list ()));
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Groups.list ()));
 	}
 	
 	

@@ -84,7 +84,8 @@
 									<option value="@layer.id">@layer.name</option>
 								}
 							</select>
-							<span class="help-block">Links: groep toevoegen | Rechts: laag toevoegen</span>
+							@helper.fielderrors(groupForm("structure").errors)
+							<span class="help-block">@Domain.message("web.application.page.groups.form.field.structure.help")</span>
 					</div>
 				</div>
 				
