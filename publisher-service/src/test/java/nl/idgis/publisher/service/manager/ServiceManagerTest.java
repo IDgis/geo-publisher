@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -151,12 +152,28 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
+		int constantsId = insert(constants)
+			.set(constants.contact, "serviceContact0")
+			.set(constants.organization, "serviceOrganization0")
+			.set(constants.position, "servicePosition0")
+			.set(constants.addressType, "serviceAdressType0")
+			.set(constants.address, "serviceAdress0")
+			.set(constants.city, "serviceCity0")
+			.set(constants.state, "serviceState0")
+			.set(constants.zipcode, "serviceZipcode0")
+			.set(constants.country, "serviceCountry0")
+			.set(constants.telephone, "serviceTlephone0")
+			.set(constants.fax, "serviceFax0")
+			.set(constants.email, "serviceEmail0")
+			.executeWithKey(constants.id);
+		
 		insert(service)
 			.set(service.identification, "service0")
 			.set(service.name, "serviceName0")
 			.set(service.title, "serviceTitle0")
 			.set(service.abstractCol, "serviceAbstract0")
-			.set(service.rootgroupId, rootId) 
+			.set(service.rootgroupId, rootId)
+			.set(service.constantsId, constantsId)
 			.execute();
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
@@ -164,6 +181,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("serviceName0", service.getName());
 		assertEquals("serviceTitle0", service.getTitle());
 		assertEquals("serviceAbstract0", service.getAbstract());
+		assertEquals("serviceContact0", service.getContact());
 		
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);
