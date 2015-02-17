@@ -74,10 +74,17 @@ web.application.yes=ja
 web.application.no=nee
 web.application.thereis=Er is
 web.application.thereare=Er zijn
+web.application.isNot=is niet
+web.application.failed=mislukt
+web.application.succeeded=gelukt
 web.application.removed=Verwijderd
+web.application.removing=Verwijderen
 web.application.added=Toegevoegd
+web.application.adding=Toegevoegd
 web.application.edited=Aangepast
+web.application.editing=Aanpassen
 web.application.updated=Aangepast
+web.application.updating=Aanpassen
 web.application.required=Verplicht
 
 web.application.login=Inloggen
@@ -288,6 +295,7 @@ web.application.page.services.form.field.name.label=Naam
 web.application.page.services.form.field.name.placeholder=Naam
 web.application.page.services.form.field.name.help=De naam voor de service
 web.application.page.services.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.services.form.field.name.validation.exists.error=Een service met dezelfde naam bestaat al
 
 web.application.page.services.form.field.title.label=Titel
 web.application.page.services.form.field.title.placeholder=Title
@@ -312,6 +320,7 @@ web.application.page.services.form.field.structure.label=Structuur
 
 web.application.page.services.form.field.rootgroup.label=Groep
 web.application.page.services.form.field.rootgroup.help=Geef de hoofdgroep
+web.application.page.services.form.field.rootgroup.validation.error=Er moet een hoofdgroep zijn ingevuld
 
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
 
@@ -354,6 +363,8 @@ web.application.page.layers.form.field.name.label=Naam
 web.application.page.layers.form.field.name.placeholder=Naam
 web.application.page.layers.form.field.name.help=De naam voor de laag
 web.application.page.layers.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.layers.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
+web.application.page.layers.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
 
 web.application.page.layers.form.field.title.label=Titel
 web.application.page.layers.form.field.title.placeholder=Titel
@@ -379,6 +390,8 @@ web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 
 
 # Groups
 web.application.page.groups.name=Groep
+web.application.page.groups.remove.failed=Groep is al verwijderd of is een hoofdgoep in een service
+web.application.page.groups.structure.error=Groepstructuur is mogelijk corrupt, dezelfde laag komt meerdere keren voor
 
 web.application.page.groups.list.header=Groepen
 web.application.page.groups.list.empty=Er zijn geen groepen gevonden die voldoen aan de criteria.
@@ -410,6 +423,9 @@ web.application.page.groups.form.field.publish.label=Publiceren
 web.application.page.groups.form.field.publish.help=Geef aan of de groep gepubliceerd wordt
 
 web.application.page.groups.form.field.structure.label=Structuur
+web.application.page.groups.form.field.structure.validation.error=Er moet mimimaal 1 groep of laag worden toegevoegd
+web.application.page.groups.form.field.structure.help=Voeg een groep of een laag toe
+
 web.application.page.groups.form.field.addlayer.button=Toevoegen laag
 web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)

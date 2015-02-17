@@ -100,7 +100,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		log.debug ("handle update/create service: " + serviceId);
 		
 		return db.transactional(tx ->
-			// Check if there is another service with the same name
+			// Check if there is another service with the same id
 			tx.query().from(service)
 			.where(service.identification.eq(serviceId))
 			.singleResult(service.identification)

@@ -5,6 +5,7 @@ import static models.Domain.from;
 import java.util.UUID;
 
 import controllers.Layers.LayerForm;
+import controllers.Styles.StyleForm;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
@@ -38,7 +39,8 @@ import views.html.services.list;
 public class Services extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
+	private final static String ID="#CREATE_SERVICE#";
+	
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -56,36 +58,55 @@ public class Services extends Controller {
 	
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
-		Logger.debug ("submit Service: " + form.field("name").value());
-		Logger.debug ("Form: "+ form);
-		// validation
-		if (form.field("name").value().length() == 1 ) 
-			form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
-		if (form.hasErrors ()) {
-			return renderCreateForm (form);
-		}
-		
-		final ServiceForm serviceForm = form.get ();
-		final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
-				serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
-				serviceForm.metadata,serviceForm.watermark, serviceForm.published,
-				serviceForm.rootGroupName,serviceForm.categoryName, serviceForm.constantsName);
-		Logger.debug ("Update/create service: " + service);
-		
 		return from (database)
-			.put(service)
-			.executeFlat (new Function<Response<?>, Promise<Result>> () {
+			.list (Service.class)
+			.executeFlat (new Function<Page<Service>, Promise<Result>> () {
+	
 				@Override
-				public Promise<Result> apply (final Response<?> response) throws Throwable {
-					if (CrudOperation.CREATE.equals (response.getOperation())) {
-						Logger.debug ("Created service " + service);
-						flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-					}else{
-						Logger.debug ("Updated service " + service);
-						flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+				public Promise<Result> apply (final Page<Service> services) throws Throwable {
+					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
+					final ServiceForm serviceForm = form.get ();
+					Logger.debug ("submit Service: " + form.field("name").value());
+					Logger.debug ("Form: "+ form);
+					// validation start
+					if (form.field("name").value().length() == 1 ) 
+						form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
+					if (form.field("id").value().equals(ID)){
+						for (Service service : services.values()) {
+							if (form.field("name").value().equals(service.name())){
+								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
+							}
+						}
 					}
-					return Promise.pure (redirect (routes.Services.list ()));
+					if (form.field("rootGroupName").value()==null || form.field("rootGroupName").value().isEmpty()){
+						form.reject("rootGroupName", Domain.message("web.application.page.services.form.field.rootgroup.validation.error"));
+					}
+					if (form.hasErrors ()) {
+						return renderCreateForm (form);
+					}
+					// validation end
+					
+					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
+							serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
+							serviceForm.metadata,serviceForm.watermark, serviceForm.published,
+							serviceForm.rootGroupName,serviceForm.categoryName, serviceForm.constantsName);
+					Logger.debug ("Update/create service: " + service);
+					
+					return from (database)
+						.put(service)
+						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> response) throws Throwable {
+								if (CrudOperation.CREATE.equals (response.getOperation())) {
+									Logger.debug ("Created service " + service);
+									flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+								}else{
+									Logger.debug ("Updated service " + service);
+									flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+								}
+								return Promise.pure (redirect (routes.Services.list ()));
+							}
+						});
 				}
 			});
 	}
@@ -187,7 +208,7 @@ public class Services extends Controller {
 		
 		public ServiceForm (){
 			super();
-			this.id = UUID.randomUUID().toString();			
+			this.id = ID;		
 		}
 		
 		public ServiceForm (final Service service){

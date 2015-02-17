@@ -12,9 +12,12 @@ import javax.xml.parsers.SAXParserFactory;
 
 import models.Domain;
 import models.Domain.Function;
+import models.Domain.Function2;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.web.Layer;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
 
 import org.xml.sax.ErrorHandler;
@@ -44,8 +47,9 @@ import views.html.styles.list;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-
-	// CRUD 
+	private final static String ID="#CREATE_STYLE#";
+	
+	 
 	private static Promise<Result> renderCreateForm (final Form<StyleForm> styleForm) {
 		// No need to go to the database, because the form contains all information needed
 		 return Promise.promise(new F.Function0<Result>() {
@@ -58,39 +62,53 @@ public class Styles extends Controller {
 	
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		final Form<StyleForm> form = Form.form (StyleForm.class).bindFromRequest ();
-		Logger.debug ("submit Style: " + form.field("name").value());
-		
-		// validation
-		if (form.field("name").value().length() == 1 ) {
-			form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
-		}
-		Logger.debug ("START VALIDATING ....");
-		boolean validXml = isValidXml(form.field("definition").value());
-		Logger.debug ("STOP VALIDATING .... " + validXml);
-		if (!validXml){ 
-			form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-		}
-		if (form.hasErrors ()) {
-			return renderCreateForm (form);
-		}
-		
-		final StyleForm styleForm = form.get ();
-		final Style style = new Style(styleForm.id, styleForm.name, styleForm.format, styleForm.version,styleForm.definition);
-		
 		return from (database)
-			.put(style)
-			.executeFlat (new Function<Response<?>, Promise<Result>> () {
+			.list (Style.class)
+			.executeFlat (new Function<Page<Style>, Promise<Result>> () {
+	
 				@Override
-				public Promise<Result> apply (final Response<?> response) throws Throwable {
-					if (CrudOperation.CREATE.equals (response.getOperation())) {
-						Logger.debug ("Created style " + style);
-						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-					}else{
-						Logger.debug ("Updated style " + style);
-						flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+				public Promise<Result> apply (final Page<Style> styles) throws Throwable {
+					final Form<StyleForm> form = Form.form (StyleForm.class).bindFromRequest ();
+					Logger.debug ("submit Style: " + form.field("name").value());
+					
+					// validation start
+					if (form.field("name").value().length() == 1 ) {
+						form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
 					}
-					return Promise.pure (redirect (routes.Styles.list ()));
+					if (form.field("id").value().equals(ID)){
+						for (Style style : styles.values()) {
+							if (form.field("name").value().equals(style.name())){
+								form.reject("name", Domain.message("web.application.page.styles.form.field.name.exists",  style.name()));
+							}
+						}
+					}
+					boolean validXml = isValidXml(form.field("definition").value());
+					if (!validXml){ 
+						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
+					}
+					if (form.hasErrors ()) {
+						return renderCreateForm (form);
+					}
+					// validation end
+					
+					final StyleForm styleForm = form.get ();
+					final Style style = new Style(styleForm.id, styleForm.name, styleForm.format, styleForm.version,styleForm.definition);
+					
+					return from (database)
+						.put(style)
+						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> response) throws Throwable {
+								if (CrudOperation.CREATE.equals (response.getOperation())) {
+									Logger.debug ("Created style " + style);
+									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+								}else{
+									Logger.debug ("Updated style " + style);
+									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+								}
+								return Promise.pure (redirect (routes.Styles.list ()));
+							}
+					});
 				}
 			});
 	}
@@ -214,7 +232,7 @@ public class Styles extends Controller {
 		
 		public StyleForm (){
 			super();
-			this.id = UUID.randomUUID().toString();
+			this.id = ID;
 			this.format = "SLD";
 			this.version = "1.0.0";
 
