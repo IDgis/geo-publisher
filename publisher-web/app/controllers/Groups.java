@@ -192,15 +192,15 @@ public class Groups extends Controller {
 			public Promise<Result> apply(Response<?> response) throws Throwable {
 				if (response.getOperationResponse().equals(CrudResponse.NOK)) {
 					Logger.debug ("Group could not be deleted: " + groupId);
-					flash ("error", 
-						Domain.message("web.application.page.removing") + " " + 
+					flash ("danger", 
+						Domain.message("web.application.removing") + " " + 
 						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 						Domain.message("web.application.failed").toLowerCase()
 						+" ("+response.getValue()+")");
 				}else{
 					Logger.debug ("Deleted group " + groupId);
 					flash ("success", 
-						Domain.message("web.application.page.removing") + " " + 
+						Domain.message("web.application.removing") + " " + 
 						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 						Domain.message("web.application.succeeded").toLowerCase()
 						+" ("+response.getValue()+")");

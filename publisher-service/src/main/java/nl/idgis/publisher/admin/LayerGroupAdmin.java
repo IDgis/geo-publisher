@@ -174,7 +174,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 							});
 						} else {
 							// generic layer id not in table
-							log.debug("delete genericLayer: " + glId.get());
+							log.debug("delete genericLayer failed: " + layergroupId);
 							return f.successful(new Response<String>(CrudOperation.DELETE,
 									CrudResponse.NOK, layergroupId));
 						}
