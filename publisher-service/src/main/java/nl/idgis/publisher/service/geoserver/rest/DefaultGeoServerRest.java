@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 
 
 
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -28,6 +29,7 @@ import javax.xml.stream.XMLStreamWriter;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
+
 
 
 
@@ -80,7 +82,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return document;
 	}
 	
-	private CompletableFuture<Optional<Document>> getOptional(String path) {
+	private CompletableFuture<Optional<Document>> get(String path) {
 		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
 		
 		asyncHttpClient.prepareGet(path + ".xml")
@@ -114,39 +116,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		
 		return future;
 	}
-	
-	private CompletableFuture<Document> get(String path) {
-		CompletableFuture<Document> future = new CompletableFuture<>();
-		
-		asyncHttpClient.prepareGet(path + ".xml")
-			.addHeader("Authorization", authorization)
-			.execute(new AsyncCompletionHandler<Response>() {
-
-			@Override
-			public Response onCompleted(Response response) throws Exception {
-				try {
-					int responseCode = response.getStatusCode();
-					if(responseCode == HttpURLConnection.HTTP_OK) {
-						future.complete(getDocument(response));
-					} else {
-						future.completeExceptionally(new GeoServerException(responseCode));
-					}
-				} catch(Exception e) {
-					future.completeExceptionally(new GeoServerException(e));
-				}
-				
-				return response;
-			}			
-			
-			@Override
-		    public void onThrowable(Throwable t){
-				future.completeExceptionally(t);
-		    }
-			
-		});
-		
-		return future;
-	}	
 	
 	private CompletableFuture<Void> delete(String path) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
@@ -327,8 +296,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private String getWorkspacePath(String workspaceId) {
+		return getWorkspacesPath() + "/" + workspaceId;
+	}
+	
 	private String getWorkspacePath(Workspace workspace) {
-		return getWorkspacesPath() + "/" + workspace.getName();
+		return getWorkspacePath(workspace.getName());
 	}
 
 	private String getWorkspacesPath() {
@@ -339,11 +312,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
 		CompletableFuture<List<Workspace>> future = new CompletableFuture<>();
 
-		get(getWorkspacesPath()).whenComplete((document, t) -> {
+		get(getWorkspacesPath()).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {			
 				try {
+					Document document = optionalDocument.get();
 					List<Workspace> retval = new ArrayList<>();
 				
 					XPath xpath = XPathFactory.newInstance().newXPath();
@@ -363,28 +337,35 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
-	private CompletableFuture<DataStore> getDataStore(Workspace workspace, String dataStoreName) {
-		CompletableFuture<DataStore> future = new CompletableFuture<>();
+	@Override
+	public CompletableFuture<Optional<DataStore>> getDataStore(Workspace workspace, String dataStoreName) {
+		CompletableFuture<Optional<DataStore>> future = new CompletableFuture<>();
 		
-		get(getDataStorePath(workspace, dataStoreName)).whenComplete((document, t) -> {
+		get(getDataStorePath(workspace, dataStoreName)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
-					XPath xpath = XPathFactory.newInstance().newXPath();
-					String name = (String)xpath.evaluate("/dataStore/name/text()", document, XPathConstants.STRING);
-					
-					Map<String, String> connectionParameters = new HashMap<>();
-					NodeList result = (NodeList)xpath.evaluate("/dataStore/connectionParameters/entry", document, XPathConstants.NODESET);
-					for(int i = 0; i < result.getLength(); i++) {
-						Node n = result.item(i);
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();
 						
-						String key = n.getAttributes().getNamedItem("key").getNodeValue();
-						String value = n.getTextContent();
-						connectionParameters.put(key, value);			
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						String name = (String)xpath.evaluate("/dataStore/name/text()", document, XPathConstants.STRING);
+						
+						Map<String, String> connectionParameters = new HashMap<>();
+						NodeList result = (NodeList)xpath.evaluate("/dataStore/connectionParameters/entry", document, XPathConstants.NODESET);
+						for(int i = 0; i < result.getLength(); i++) {
+							Node n = result.item(i);
+							
+							String key = n.getAttributes().getNamedItem("key").getNodeValue();
+							String value = n.getTextContent();
+							connectionParameters.put(key, value);			
+						}
+						
+						future.complete(Optional.of(new DataStore(name, connectionParameters)));
+					} else {
+						future.complete(Optional.empty());
 					}
-					
-					future.complete(new DataStore(name, connectionParameters));
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}
@@ -397,23 +378,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	private String getDataStorePath(Workspace workspace, String dataStoreName) {
 		return getDataStoresPath(workspace) + "/" + dataStoreName;
 	}
+	
+	private <T> T present(Optional<T> optional) {
+		return optional.get();
+	}
 
 	@Override
 	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
 		
-		get(getDataStoresPath(workspace)).whenComplete((document, t) -> {
+		get(getDataStoresPath(workspace)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
+					Document document = optionalDocument.get();
 					List<CompletableFuture<DataStore>> retval = new ArrayList<>();
 					
 					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/dataStores/dataStore/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getDataStore(workspace, n.getTextContent()));
+						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::present));
 					}
 					
 					future.complete(retval);
@@ -468,30 +454,36 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getFeatureTypesPath(workspace, dataStore) + "/" + featureTypeName;
 	}
 	
-	private CompletableFuture<FeatureType> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) {
-		CompletableFuture<FeatureType> future = new CompletableFuture<>();
+	private CompletableFuture<Optional<FeatureType>> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) {
+		CompletableFuture<Optional<FeatureType>> future = new CompletableFuture<>();
 		
-		get(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((document, t) -> {
+		get(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
-					XPath xpath = XPathFactory.newInstance().newXPath();
-					String name = (String)xpath.evaluate("/featureType/name/text()", document, XPathConstants.STRING);
-					String nativeName = (String)xpath.evaluate("/featureType/nativeName/text()", document, XPathConstants.STRING);
-					String title = (String)xpath.evaluate("/featureType/title/text()", document, XPathConstants.STRING);
-					String abstr = (String)xpath.evaluate("/featureType/abstract/text()", document, XPathConstants.STRING);
-					
-					List<Attribute> attributes = new ArrayList<>();
-					NodeList result = (NodeList)xpath.evaluate("/featureType/attributes/attribute", document, XPathConstants.NODESET);
-					for(int i = 0; i < result.getLength(); i++) {
-						Node n = result.item(i);
+					if(optionalDocument.isPresent()) {	
+						Document document = optionalDocument.get();
 						
-						String attributeName = xpath.evaluate("name/text()", n);
-						attributes.add(new Attribute(attributeName));
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						String name = (String)xpath.evaluate("/featureType/name/text()", document, XPathConstants.STRING);
+						String nativeName = (String)xpath.evaluate("/featureType/nativeName/text()", document, XPathConstants.STRING);
+						String title = (String)xpath.evaluate("/featureType/title/text()", document, XPathConstants.STRING);
+						String abstr = (String)xpath.evaluate("/featureType/abstract/text()", document, XPathConstants.STRING);
+						
+						List<Attribute> attributes = new ArrayList<>();
+						NodeList result = (NodeList)xpath.evaluate("/featureType/attributes/attribute", document, XPathConstants.NODESET);
+						for(int i = 0; i < result.getLength(); i++) {
+							Node n = result.item(i);
+							
+							String attributeName = xpath.evaluate("name/text()", n);
+							attributes.add(new Attribute(attributeName));
+						}
+						
+						future.complete(Optional.of(new FeatureType(name, nativeName, title, abstr, Collections.unmodifiableList(attributes))));
+					} else {
+						future.complete(Optional.empty());
 					}
-					
-					future.complete(new FeatureType(name, nativeName, title, abstr, Collections.unmodifiableList(attributes)));					
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}
@@ -505,18 +497,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
 		
-		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((document, t) -> {
+		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
+					Document document = optionalDocument.get();
 					List<CompletableFuture<FeatureType>> retval = new ArrayList<>();
 					
 					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/featureTypes/featureType/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()));
+						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::present));
 					}
 					
 					future.complete(retval);
@@ -607,46 +600,51 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getLayerGroupsPath(workspace) + "/" + layerGroupName;
 	}
 	
-	private CompletableFuture<LayerGroup> getLayerGroup(Workspace workspace, String layerGroupName) {
-		CompletableFuture<LayerGroup> future = new CompletableFuture<>();
+	private CompletableFuture<Optional<LayerGroup>> getLayerGroup(Workspace workspace, String layerGroupName) {
+		CompletableFuture<Optional<LayerGroup>> future = new CompletableFuture<>();
 		
-		get(getLayerGroupPath(workspace, layerGroupName)).whenComplete((document, t) -> {
+		get(getLayerGroupPath(workspace, layerGroupName)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
-					List<LayerRef> layers = new ArrayList<>();
-					
-					XPath xpath = XPathFactory.newInstance().newXPath();
-					NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published", document, XPathConstants.NODESET);
-					for(int i = 0; i < result.getLength(); i++) {
-						Node n = result.item(i);
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();
+						List<LayerRef> layers = new ArrayList<>();
 						
-						
-						String name = (String)xpath.evaluate("name/text()", n, XPathConstants.STRING);
-						String type = (String)xpath.evaluate("@type", n, XPathConstants.STRING);
-						
-						switch(type) {
-							case "layer":
-								layers.add(new LayerRef(name, false));
-								break;
-							case "layerGroup":
-								layers.add(new LayerRef(name, true));
-								break;
-							default:
-								throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published", document, XPathConstants.NODESET);
+						for(int i = 0; i < result.getLength(); i++) {
+							Node n = result.item(i);
+							
+							
+							String name = (String)xpath.evaluate("name/text()", n, XPathConstants.STRING);
+							String type = (String)xpath.evaluate("@type", n, XPathConstants.STRING);
+							
+							switch(type) {
+								case "layer":
+									layers.add(new LayerRef(name, false));
+									break;
+								case "layerGroup":
+									layers.add(new LayerRef(name, true));
+									break;
+								default:
+									throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
+							}
+							
+							
 						}
 						
+						Node titleNode = (Node)xpath.evaluate("/layerGroup/title", document, XPathConstants.NODE);
+						String title = titleNode == null ? null : titleNode.getTextContent();
 						
+						Node abstractNode = (Node)xpath.evaluate("/layerGroup/abstractTxt", document, XPathConstants.NODE);
+						String abstr = abstractNode == null ? null : abstractNode.getTextContent();
+						
+						future.complete(Optional.of(new LayerGroup(layerGroupName, title, abstr, Collections.unmodifiableList(layers))));
+					} else {
+						future.complete(Optional.empty());
 					}
-					
-					Node titleNode = (Node)xpath.evaluate("/layerGroup/title", document, XPathConstants.NODE);
-					String title = titleNode == null ? null : titleNode.getTextContent();
-					
-					Node abstractNode = (Node)xpath.evaluate("/layerGroup/abstractTxt", document, XPathConstants.NODE);
-					String abstr = abstractNode == null ? null : abstractNode.getTextContent();
-					
-					future.complete(new LayerGroup(layerGroupName, title, abstr, Collections.unmodifiableList(layers)));
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}
@@ -664,18 +662,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<LayerGroup>>> future = new CompletableFuture<>();
 		
-		get(getLayerGroupsPath(workspace)).whenComplete((document, t) -> {
+		get(getLayerGroupsPath(workspace)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
-				try {
+				try {		
+					Document document = optionalDocument.get();
 					List<CompletableFuture<LayerGroup>> retval = new ArrayList<>();
 					
 					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/layerGroups/layerGroup/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getLayerGroup(workspace, n.getTextContent()));
+						retval.add(getLayerGroup(workspace, n.getTextContent()).thenApply(this::present));
 					}
 					
 					future.complete(retval);
@@ -780,7 +779,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Optional<ServiceSettings>> getServiceSettings(Workspace workspace, ServiceType serviceType) {
 		CompletableFuture<Optional<ServiceSettings>> future = new CompletableFuture<>();
 		
-		getOptional(getServiceSettingsPath(workspace, serviceType)).whenComplete((optionalDocument, t) -> {
+		get(getServiceSettingsPath(workspace, serviceType)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
@@ -827,11 +826,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<WorkspaceSettings> getWorkspaceSettings(Workspace workspace) {
 		CompletableFuture<WorkspaceSettings> future = new CompletableFuture<>();
 		
-		get(getWorkspaceSettingsPath(workspace)).whenComplete((document, t) -> {
+		get(getWorkspaceSettingsPath(workspace)).whenComplete((optionalDocument, t) -> {
 			if(t != null) {
 				future.completeExceptionally(t);
 			} else {
 				try {
+					Document document = optionalDocument.get();
 					XPath xpath = XPathFactory.newInstance().newXPath();
 					
 					Node addressNode = (Node)xpath.evaluate("settings/contact/address", document, XPathConstants.NODE);
@@ -989,5 +989,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		} catch(Exception e) {
 			return failure(e);
 		}
+	}
+	
+	@Override
+	public CompletableFuture<Optional<Workspace>> getWorkspace(String workspaceId) {
+		CompletableFuture<Optional<Workspace>> future = new CompletableFuture<>();
+		
+		get(getWorkspacePath(workspaceId)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						future.complete(Optional.of(new Workspace(workspaceId)));
+					} else {
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
 	}
 }

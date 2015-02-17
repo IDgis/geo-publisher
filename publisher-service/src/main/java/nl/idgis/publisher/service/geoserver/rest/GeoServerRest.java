@@ -28,12 +28,16 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> deleteWorkspace(Workspace workspace);
 
 	CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace);
+	
+	CompletableFuture<Optional<DataStore>> getDataStore(Workspace workspace, String dataStoreId);
 
 	CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore);
 	
 	CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace);
 
 	CompletableFuture<List<Workspace>> getWorkspaces();
+	
+	CompletableFuture<Optional<Workspace>> getWorkspace(String workspaceId);
 
 	CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceType serviceType, ServiceSettings serviceSettings);
 	

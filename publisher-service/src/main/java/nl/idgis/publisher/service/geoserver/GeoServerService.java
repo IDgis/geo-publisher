@@ -433,47 +433,43 @@ public class GeoServerService extends UntypedActor {
 					String workspaceId = ((EnsureWorkspace)msg).getWorkspaceId();
 					
 					toSelf(
-						rest.getWorkspaces().thenCompose(workspaces -> {
-							for(Workspace workspace : workspaces) {
-								if(workspace.getName().equals(workspaceId)) {
-									log.debug("existing workspace found: {}", workspaceId);
-									
-									return rest.getDataStores(workspace)
-										.thenCompose(f::sequence)
-										.thenCompose(dataStores -> {
-										for(DataStore dataStore : dataStores) {
-											if("publisher-geometry".equals(dataStore.getName())) {
-												log.debug("existing data store found: publisher-geometry");
-												
-												return rest.getFeatureTypes(workspace, dataStore)
-													.thenCompose(f::sequence)
-													.thenCompose(featureTypes ->
-														rest.getLayerGroups(workspace)
-														.thenCompose(f::sequence)
-														.thenApply(layerGroups -> {
-													
-													Map<String, FeatureType> featureTypesMap = new HashMap<>();
-													Map<String, LayerGroup> layerGroupsMap = new HashMap<>();
-													
-													for(FeatureType featureType : featureTypes) {
-														featureTypesMap.put(featureType.getName(), featureType);
-													}
-													
-													for(LayerGroup layerGroup : layerGroups) {
-														layerGroupsMap.put(layerGroup.getName(), layerGroup);
-													}
-													
-													return new EnsuringWorkspace(workspace, dataStore, featureTypesMap, layerGroupsMap);
-												}));
-											}
-										}
+						rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
+							if(optionalWorkspace.isPresent()) {
+								log.debug("existing workspace found: {}", workspaceId);
+								
+								Workspace workspace = optionalWorkspace.get();								
+								return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
+									if(optionalDataStore.isPresent()) {
+										log.debug("existing data store found: publisher-geometry");
 										
-										throw new IllegalStateException("publisher-geometry data store is missing");
-									});
-								}
+										DataStore dataStore = optionalDataStore.get();										
+										return rest.getFeatureTypes(workspace, dataStore)
+											.thenCompose(f::sequence)
+											.thenCompose(featureTypes ->
+												rest.getLayerGroups(workspace)
+												.thenCompose(f::sequence)
+												.thenApply(layerGroups -> {
+											
+											Map<String, FeatureType> featureTypesMap = new HashMap<>();
+											Map<String, LayerGroup> layerGroupsMap = new HashMap<>();
+											
+											for(FeatureType featureType : featureTypes) {
+												featureTypesMap.put(featureType.getName(), featureType);
+											}
+											
+											for(LayerGroup layerGroup : layerGroups) {
+												layerGroupsMap.put(layerGroup.getName(), layerGroup);
+											}
+											
+											return new EnsuringWorkspace(workspace, dataStore, featureTypesMap, layerGroupsMap);
+										}));
+									}
+									
+									throw new IllegalStateException("publisher-geometry data store is missing");
+								});								
 							}
 							
-							Workspace workspace = new Workspace(workspaceId);
+							Workspace workspace = new Workspace(workspaceId);							
 							return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {
 								log.debug("workspace created: {}", workspaceId);
 								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
