@@ -8,6 +8,12 @@ public interface Service {
 	
 	String getName();
 	
+	String getTitle();
+	
+	String getAbstract();
+	
+	List<String> getKeywords();	
+	
 	String getRootId();
 	
 	List<Layer> getLayers();

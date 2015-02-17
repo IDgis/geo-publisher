@@ -336,7 +336,8 @@ public class ServiceManager extends UntypedActor {
 				.where(service.identification.eq(serviceId))
 				.singleResult(
 					service.name,
-					service.title);
+					service.title,
+					service.abstractCol);
 			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
@@ -352,10 +353,17 @@ public class ServiceManager extends UntypedActor {
 										structureTuple.get(serviceStructure.childLayerIdentification),
 										structureTuple.get(serviceStructure.parentLayerIdentification));
 								}
+								
+								// TODO: add keywords
+								
+								Tuple serviceInfoTuple = serviceInfoResult.get();
 				
 								return new DefaultService(
 									serviceId, 
-									serviceInfoResult.get().get(service.name),
+									serviceInfoTuple.get(service.name),
+									serviceInfoTuple.get(service.title),
+									serviceInfoTuple.get(service.abstractCol),
+									null,
 									rootResult.get(), 
 									datasetsResult.list(), 
 									groupsResult.list(), 
