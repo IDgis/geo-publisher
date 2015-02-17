@@ -62,63 +62,81 @@ public class Layers extends Controller {
 	
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
-		Logger.debug ("submit Layer: " + form.field("name").value());
-		Logger.debug ("LayerForm from request: " + form.get());	
-		
-		// validation
-		if (form.field("name").value().length() == 1 ) 
-			form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
-		Logger.debug ("LayerForm styles length: " + form.field("styles").value().length());	
-		
-		if (form.field("styles").value().length() == 0 ) 
-			form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
-		if (form.hasErrors ()) {
-			return renderCreateForm (form);
-		}
-		
-		// parse the list of (style.name, style.id) from the json string in the view form
-		String layerStyleList = form.get().getStyles();
-		final ObjectNode result = Json.newObject ();
-		final JsonNode result2 = Json.parse(layerStyleList);
-		
-		final List<String> styleIds = new ArrayList<> ();
-		for (final JsonNode n: Json.parse (layerStyleList)) {
-			// get only the second element (style.id)
-			styleIds.add (n.get (1).asText ());
-		}
-		Logger.debug ("layerStyleList: " + styleIds.toString ());
-		
-		final LayerForm layerForm = form.get ();
-		final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-				layerForm.abstractText,layerForm.keywords,layerForm.published,layerForm.datasetId);
-		
 		return from (database)
-				.put(layer)
-				.executeFlat (new Function<Response<?>, Promise<Result>> () {
-					@Override
-					public Promise<Result> apply (final Response<?> response) throws Throwable {
-						// Get the id of the layer we just put 
-						String layerId = response.getValue().toString();
-						PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
-						return from (database)
-							.query(putLayerStyles)
+			.list (LayerGroup.class)
+			.list (Layer.class)
+			.executeFlat (new Function2<Page<LayerGroup>, Page<Layer>, Promise<Result>> () {
+	
+				@Override
+				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+					final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
+					Logger.debug ("submit Layer: " + form.field("name").value());
+					Logger.debug ("LayerForm from request: " + form.get());	
+					
+					// validation start
+					if (form.field("name").value().length() == 1 ) 
+						form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
+					for (LayerGroup layerGroup : groups.values()) {
+						if (form.field("name").value().equals(layerGroup.name())){
+							form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.groupexists.error"));
+						}
+					}
+					for (Layer layer : layers.values()) {
+						if (form.field("name").value().equals(layer.name())){
+							form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.layerexists.error"));
+						}
+					}				
+					if (form.field("styles").value().length() == 0 ) 
+						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
+					if (form.hasErrors ()) {
+						return renderCreateForm (form);
+					}
+					// validation end
+					
+					// parse the list of (style.name, style.id) from the json string in the view form
+					String layerStyleList = form.get().getStyles();
+					final ObjectNode result = Json.newObject ();
+					final JsonNode result2 = Json.parse(layerStyleList);
+					
+					final List<String> styleIds = new ArrayList<> ();
+					for (final JsonNode n: Json.parse (layerStyleList)) {
+						// get only the second element (style.id)
+						styleIds.add (n.get (1).asText ());
+					}
+					Logger.debug ("layerStyleList: " + styleIds.toString ());
+					
+					final LayerForm layerForm = form.get ();
+					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
+							layerForm.abstractText,layerForm.keywords,layerForm.published,layerForm.datasetId);
+					
+					return from (database)
+							.put(layer)
 							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
 								public Promise<Result> apply (final Response<?> response) throws Throwable {
-								
-									if (CrudOperation.CREATE.equals (response.getOperation())) {
-										Logger.debug ("Created layer " + layer);
-										flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-									}else{
-										Logger.debug ("Updated layer " + layer);
-										flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
-									}
-									return Promise.pure (redirect (routes.Layers.list ()));
+									// Get the id of the layer we just put 
+									String layerId = response.getValue().toString();
+									PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
+									return from (database)
+										.query(putLayerStyles)
+										.executeFlat (new Function<Response<?>, Promise<Result>> () {
+											@Override
+											public Promise<Result> apply (final Response<?> response) throws Throwable {
+											
+												if (CrudOperation.CREATE.equals (response.getOperation())) {
+													Logger.debug ("Created layer " + layer);
+													flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+												}else{
+													Logger.debug ("Updated layer " + layer);
+													flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+												}
+												return Promise.pure (redirect (routes.Layers.list ()));
+											}
+										});
 								}
 							});
-					}
-				});
+				}
+			});
 	}
 	
 	public static Promise<Result> list () {
