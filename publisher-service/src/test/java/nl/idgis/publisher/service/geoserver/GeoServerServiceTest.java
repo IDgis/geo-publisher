@@ -1,13 +1,11 @@
 package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,19 +14,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -36,12 +24,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -71,6 +54,7 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -126,7 +110,7 @@ public class GeoServerServiceTest {
 		}
 	}
 	
-	static TestServers testServers;
+	static GeoServerTestHelper h;
 	
 	ActorSystem actorSystem;
 	
@@ -134,16 +118,12 @@ public class GeoServerServiceTest {
 	
 	SyncAskHelper sync;
 	
-	DocumentBuilder documentBuilder;
-		
-	XPath xpath;
-	
 	@BeforeClass
 	public static void testServers() throws Exception {
-		testServers = new TestServers();
-		testServers.start();
+		h = new GeoServerTestHelper();
+		h.start();
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"staging_data\"");
@@ -158,12 +138,12 @@ public class GeoServerServiceTest {
 	
 	@AfterClass
 	public static void stopServers() throws Exception {
-		testServers.stop();
+		h.stop();
 	}
 	
 	@After
 	public void cleanGeoServer() throws Exception {
-		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
 		for(Workspace workspace : service.getWorkspaces().get()) {
 			service.deleteWorkspace(workspace).get();
 		}
@@ -172,33 +152,7 @@ public class GeoServerServiceTest {
 	
 	@Before
 	public void xml() throws Exception {
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		documentBuilder = dbf.newDocumentBuilder();
 		
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("wms", "http://www.opengis.net/wms");
-		
-		XPathFactory xf = XPathFactory.newInstance();
-		xpath = xf.newXPath();
-		xpath.setNamespaceContext(new NamespaceContext() {
-
-			@Override
-			public String getNamespaceURI(String prefix) {
-				return namespaces.get(prefix);
-			}
-
-			@Override
-			public String getPrefix(String namespaceURI) {
-				return namespaces.inverse().get(namespaceURI);
-			}
-
-			@Override
-			public Iterator<?> getPrefixes(String namespaceURI) {
-				return Arrays.asList(getPrefix(namespaceURI)).iterator();
-			}
-			
-		});
 	}
 	
 	@Before
@@ -212,13 +166,13 @@ public class GeoServerServiceTest {
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
 		Config geoserverConfig = ConfigFactory.empty()
-			.withValue("url", ConfigValueFactory.fromAnyRef("http://localhost:" + TestServers.JETTY_PORT + "/"))
+			.withValue("url", ConfigValueFactory.fromAnyRef("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/"))
 			.withValue("user", ConfigValueFactory.fromAnyRef("admin"))
 			.withValue("password", ConfigValueFactory.fromAnyRef("geoserver"))
 			.withValue("schema", ConfigValueFactory.fromAnyRef("staging_data"));
 		
 		Config databaseConfig = ConfigFactory.empty()
-			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test"))
+			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test"))
 			.withValue("user", ConfigValueFactory.fromAnyRef("postgres"))
 			.withValue("password", ConfigValueFactory.fromAnyRef("postgres"));
 		
@@ -227,66 +181,6 @@ public class GeoServerServiceTest {
 		sync = new SyncAskHelper(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
-	}
-	
-	private void processNodeList(NodeList nodeList, Set<String> retval) {
-		StringBuilder sb = new StringBuilder();
-		
-		for(int i = 0; i < nodeList.getLength(); i++) {
-			Node node = nodeList.item(i);
-			if(node.getNodeType() == Node.TEXT_NODE) {
-				sb.append(node.getTextContent());
-			} else {
-				processNodeList(node.getChildNodes(), retval);
-			}
-		}
-		
-		String result = sb.toString().trim();
-		if(!result.isEmpty()) {
-			retval.add(result);
-		}
-	}
-	
-	private Set<String> getText(Node node) {
-		return getText(node.getChildNodes());
-	}
-	
-	private Set<String> getText(NodeList nodeList) {
-		Set<String> retval = new HashSet<>();		
-		processNodeList(nodeList, retval);		
-		return retval;
-	}
-	
-	private NodeList getNodeList(String expression, Node node) throws Exception {
-		return (NodeList)xpath.evaluate(expression, node, XPathConstants.NODESET);
-	}
-	
-	private void notExists(String expression, Node node) throws Exception {
-		NodeList nodeList = getNodeList(expression, node);
-		
-		if(nodeList.getLength() != 0) {
-			fail("result");
-		}
-	}
-	
-	private String getText(String expression, Node node) throws Exception {
-		NodeList nodeList = getNodeList(expression, node);
-		
-		if(nodeList.getLength() == 0) {
-			fail("no result");
-		}
-		
-		if(nodeList.getLength() > 1) {
-			fail("multiple results");
-		}
-		
-		return nodeList.item(0).getTextContent();		
-	}
-	
-	private Document getCapabilities(String serviceName, String serviceType, String version) throws SAXException, IOException {
-		return documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/" 
-			+ serviceName + "/" + serviceType.toLowerCase() + "?request=GetCapabilities&service=" 
-				+ serviceType.toUpperCase() + "&version=" + version);		
 	}
 	
 	private void assertSuccessful(Recording recording) throws Exception {
@@ -323,13 +217,13 @@ public class GeoServerServiceTest {
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
-		Document features = documentBuilder.parse("http://localhost:" + TestServers.JETTY_PORT + "/wfs/service?request=GetFeature&service=WFS&version=1.1.0&typeName=layer");			
-		assertTrue(getText(features).contains("Hello, world!"));
+		Document features = h.getFeature("serviceName", "layer");			
+		assertTrue(h.getText(features).contains("Hello, world!"));
 		
-		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
-		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
-		assertEquals("title", getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
-		assertEquals("abstract", getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
+		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
+		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
+		assertEquals("title", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
+		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
 	}
 	
 	@Test
@@ -367,21 +261,21 @@ public class GeoServerServiceTest {
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
-		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
-		Set<String> layerNames = getText(getNodeList("//wms:Layer/wms:Name", capabilities));
+		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
+		List<String> layerNames = h.getText(h.getNodeList("//wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("serviceName:layer" + i)); // TODO: figure out how to remove the workspace from the name
+			assertTrue(layerNames.contains("serviceName:layer" + i)); // TODO: figure out how to remove the workspace prefix from the name
 		}
 		assertTrue(layerNames.contains("group"));
 		
-		layerNames = getText(getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", capabilities));
+		layerNames = h.getText(h.getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
 			assertTrue(layerNames.contains("serviceName:layer" + i));
 		}
 		assertFalse(layerNames.contains("group"));
 		
-		assertEquals("groupTitle", getText("//wms:Layer[wms:Name = 'group']/wms:Title", capabilities));
-		assertEquals("groupAbstract", getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", capabilities));
+		assertEquals("groupTitle", h.getText("//wms:Layer[wms:Name = 'group']/wms:Title", capabilities));
+		assertEquals("groupAbstract", h.getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", capabilities));
 	}
 	
 	@Test
@@ -405,8 +299,8 @@ public class GeoServerServiceTest {
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		sync.ask(recorder, new Clear(), Cleared.class);
 		
-		Document capabilities = getCapabilities("serviceName", "WMS", "1.3.0");
-		assertEquals("layer", getText("//wms:Layer/wms:Name", capabilities));
+		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
+		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 		
 		service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -420,7 +314,53 @@ public class GeoServerServiceTest {
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
-		capabilities = getCapabilities("serviceName", "WMS", "1.3.0");		
-		notExists("//wms:Layer/wms:Name", capabilities);
-	}	
+		capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");		
+		h.notExists("//wms:Layer/wms:Name", capabilities);
+	}
+	
+	@Test
+	public void testGroupInGroup() throws Exception {
+		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer");
+		when(datasetLayer.getTitle()).thenReturn("title");
+		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.getTableName()).thenReturn("myTable");
+		when(datasetLayer.isGroup()).thenReturn(false);
+		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		
+		GroupLayer group0 = mock(GroupLayer.class);
+		when(group0.isGroup()).thenReturn(true);
+		when(group0.asGroup()).thenReturn(group0);
+		when(group0.getName()).thenReturn("group0");
+		when(group0.getTitle()).thenReturn("groupTitle0");
+		when(group0.getAbstract()).thenReturn("groupAbstract0");
+		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		
+		GroupLayer group1 = mock(GroupLayer.class);
+		when(group1.isGroup()).thenReturn(true);
+		when(group1.asGroup()).thenReturn(group1);
+		when(group1.getName()).thenReturn("group1");
+		when(group1.getTitle()).thenReturn("groupTitle1");
+		when(group1.getAbstract()).thenReturn("groupAbstract1");
+		when(group1.getLayers()).thenReturn(Collections.singletonList(group0));
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(group1));
+		
+		sync.ask(serviceManager, new PutService("service", service), Ack.class);
+		
+		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		
+		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");		
+		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
+		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
+		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
+	}
+	
+	
 }

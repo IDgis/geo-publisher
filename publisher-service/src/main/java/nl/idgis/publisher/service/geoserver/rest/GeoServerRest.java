@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.geoserver.rest;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public interface GeoServerRest extends Closeable {
@@ -10,7 +11,11 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
 	
+	CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType);
+	
 	CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup);
+	
+	CompletableFuture<Void> putLayerGroup(Workspace workspace, LayerGroup layerGroup);
 
 	CompletableFuture<Void> postWorkspace(Workspace workspace);
 	
@@ -30,4 +35,11 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<List<Workspace>> getWorkspaces();
 
+	CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceType serviceType, ServiceSettings serviceSettings);
+	
+	CompletableFuture<Optional<ServiceSettings>> getServiceSettings(Workspace workspace, ServiceType serviceType);
+	
+	CompletableFuture<Void> putWorkspaceSettings(Workspace workspace, WorkspaceSettings workspaceSettings);
+
+	CompletableFuture<WorkspaceSettings> getWorkspaceSettings(Workspace workspace);
 }

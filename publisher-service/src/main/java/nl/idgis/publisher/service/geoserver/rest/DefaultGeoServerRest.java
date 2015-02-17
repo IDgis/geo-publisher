@@ -9,20 +9,42 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+
+
+
+
+
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
+
+
+
+
+
+
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+
+
+
+
+import org.xml.sax.SAXException;
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -36,27 +58,62 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private final String serviceLocation;
 	
-	private final DocumentBuilder documentBuilder;
-	
-	private final XPath xpath;
-	
-	private final XMLOutputFactory outputFactory;
-	
 	private final AsyncHttpClient asyncHttpClient;
 	
 	public DefaultGeoServerRest(String serviceLocation, String user, String password) throws Exception {		
 		this.serviceLocation = serviceLocation;
-		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));		
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		documentBuilder = dbf.newDocumentBuilder();
-		
-		xpath = XPathFactory.newInstance().newXPath();
-		
-		outputFactory = XMLOutputFactory.newInstance();
+		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));
 		
 		asyncHttpClient = new AsyncHttpClient();
-	}	
+	}
+	
+	private Document getDocument(Response response) throws IOException, ParserConfigurationException, SAXException {
+		InputStream stream = response.getResponseBodyAsStream();
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+		
+		Document document = documentBuilder.parse(stream);
+		
+		stream.close();
+		
+		return document;
+	}
+	
+	private CompletableFuture<Optional<Document>> getOptional(String path) {
+		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
+		
+		asyncHttpClient.prepareGet(path + ".xml")
+			.addHeader("Authorization", authorization)
+			.execute(new AsyncCompletionHandler<Response>() {
+
+			@Override
+			public Response onCompleted(Response response) throws Exception {
+				try {
+					int responseCode = response.getStatusCode();
+					if(responseCode == HttpURLConnection.HTTP_OK) {
+						future.complete(Optional.of(getDocument(response)));
+					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+						future.complete(Optional.empty());
+					} else {
+						future.completeExceptionally(new GeoServerException(responseCode));
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(new GeoServerException(e));
+				}
+				
+				return response;
+			}			
+			
+			@Override
+		    public void onThrowable(Throwable t){
+				future.completeExceptionally(t);
+		    }
+			
+		});
+		
+		return future;
+	}
 	
 	private CompletableFuture<Document> get(String path) {
 		CompletableFuture<Document> future = new CompletableFuture<>();
@@ -69,13 +126,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			public Response onCompleted(Response response) throws Exception {
 				try {
 					int responseCode = response.getStatusCode();
-					if(responseCode == HttpURLConnection.HTTP_OK) {					
-						InputStream stream = response.getResponseBodyAsStream();
-						Document document = documentBuilder.parse(stream);
-					
-						stream.close();
-						
-						future.complete(document);
+					if(responseCode == HttpURLConnection.HTTP_OK) {
+						future.complete(getDocument(response));
 					} else {
 						future.completeExceptionally(new GeoServerException(responseCode));
 					}
@@ -84,7 +136,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				}
 				
 				return response;
-			}
+			}			
 			
 			@Override
 		    public void onThrowable(Throwable t){
@@ -125,6 +177,38 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private CompletableFuture<Void> put(String path, byte[] document) {
+		CompletableFuture<Void> future = new CompletableFuture<>();
+		
+		asyncHttpClient.preparePut(path)
+			.addHeader("Authorization", authorization)
+			.addHeader("Content-type", "text/xml")
+			.setBody(document)
+			.execute(new AsyncCompletionHandler<Response>() {
+
+				@Override
+				public Response onCompleted(Response response) throws Exception {
+					System.out.println("response: " + response.getResponseBody());
+					
+					int responseCode = response.getStatusCode();
+					if(responseCode != HttpURLConnection.HTTP_OK) {
+						future.completeExceptionally(new GeoServerException(responseCode));
+					} else {
+						future.complete(null);
+					}
+
+					return response;
+				}
+				
+				@Override
+			    public void onThrowable(Throwable t){
+					future.completeExceptionally(new GeoServerException(t));
+			    }
+			});
+		
+		return future;
+	}
+	
 	private CompletableFuture<Void> post(String path, byte[] document) {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
@@ -155,24 +239,83 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private String getServiceSettingsPath(Workspace workspace, ServiceType serviceType) {
+		return serviceLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
+			+ workspace.getName() + "/settings";
+	}
+	
+	@Override
+	public CompletableFuture<Void> putServiceSettings(Workspace workspace, ServiceType serviceType, ServiceSettings serviceSettings) {
+		try {
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);
+			sw.writeStartDocument();
+				sw.writeStartElement(serviceType.name().toLowerCase());
+					sw.writeStartElement("enabled");
+						sw.writeCharacters("true");
+					sw.writeEndElement();
+					
+					sw.writeStartElement("name");
+						sw.writeCharacters(serviceType.name().toUpperCase());
+					sw.writeEndElement();
+					
+					String title = serviceSettings.getTitle();
+					if(title != null) {
+						sw.writeStartElement("title");
+							sw.writeCharacters(title);
+						sw.writeEndElement();
+					}
+					
+					String abstr = serviceSettings.getAbstract();
+					if(abstr != null) {
+						sw.writeStartElement("abstrct");
+							sw.writeCharacters(abstr);
+						sw.writeEndElement();
+					}
+					
+					List<String> keywords = serviceSettings.getKeywords();
+					if(keywords != null) {
+						sw.writeStartElement("keywords");
+						for(String keyword : keywords) {
+							sw.writeStartElement("string");
+								sw.writeCharacters(keyword);
+							sw.writeEndElement();
+						}
+						sw.writeEndElement();
+					}
+				sw.writeEndElement();
+			sw.writeEndDocument();
+			sw.close();
+			
+			os.close();
+			
+			return put(getServiceSettingsPath(workspace, serviceType), os.toByteArray());
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+	
 	@Override
 	public CompletableFuture<Void> postWorkspace(Workspace workspace) {
 		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			
-			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-			streamWriter.writeStartDocument();
-				streamWriter.writeStartElement("workspace");
-					streamWriter.writeStartElement("name");
-						streamWriter.writeCharacters(workspace.getName());
-					streamWriter.writeEndElement();
-				streamWriter.writeEndElement();
-			streamWriter.writeEndDocument();
-			streamWriter.close();
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);
+			sw.writeStartDocument();
+				sw.writeStartElement("workspace");
+					sw.writeStartElement("name");
+						sw.writeCharacters(workspace.getName());
+					sw.writeEndElement();
+				sw.writeEndElement();
+			sw.writeEndDocument();
+			sw.close();
 			
-			outputStream.close();
+			os.close();
 			
-			return post(getWorkspacesPath(), outputStream.toByteArray());
+			return post(getWorkspacesPath(), os.toByteArray());
 		} catch(Exception e) {
 			return failure(e);
 		}
@@ -203,6 +346,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					List<Workspace> retval = new ArrayList<>();
 				
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/workspaces/workspace/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
@@ -227,6 +371,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				future.completeExceptionally(t);
 			} else {
 				try {
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					String name = (String)xpath.evaluate("/dataStore/name/text()", document, XPathConstants.STRING);
 					
 					Map<String, String> connectionParameters = new HashMap<>();
@@ -264,6 +409,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					List<CompletableFuture<DataStore>> retval = new ArrayList<>();
 					
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/dataStores/dataStore/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
@@ -283,27 +429,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> postDataStore(Workspace workspace, DataStore dataStore) {
 		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			
-			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-			streamWriter.writeStartDocument();
-			streamWriter.writeStartElement("dataStore");
-				streamWriter.writeStartElement("name");
-					streamWriter.writeCharacters(dataStore.getName());
-				streamWriter.writeEndElement();
-				streamWriter.writeStartElement("connectionParameters");
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);
+			sw.writeStartDocument();
+			sw.writeStartElement("dataStore");
+				sw.writeStartElement("name");
+					sw.writeCharacters(dataStore.getName());
+				sw.writeEndElement();
+				sw.writeStartElement("connectionParameters");
 					for(Map.Entry<String, String> connectionParameter : dataStore.getConnectionParameters().entrySet()) {
-						streamWriter.writeStartElement(connectionParameter.getKey());
-						streamWriter.writeCharacters(connectionParameter.getValue());
-						streamWriter.writeEndElement();
+						sw.writeStartElement(connectionParameter.getKey());
+						sw.writeCharacters(connectionParameter.getValue());
+						sw.writeEndElement();
 					}
-				streamWriter.writeEndElement();
-			streamWriter.writeEndDocument();
-			streamWriter.close();
+				sw.writeEndElement();
+			sw.writeEndDocument();
+			sw.close();
 			
-			outputStream.close();
+			os.close();
 			
-			return post(getDataStoresPath(workspace), outputStream.toByteArray());			
+			return post(getDataStoresPath(workspace), os.toByteArray());			
 		} catch(Exception e) {
 			return failure(e);
 		}
@@ -311,6 +458,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 	private String getDataStoresPath(Workspace workspace) {
 		return getWorkspacesPath() + "/" + workspace.getName() + "/datastores";
+	}
+	
+	private String getFeatureTypePath(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		return getFeatureTypePath(workspace, dataStore, featureType.getName());
 	}
 	
 	private String getFeatureTypePath(Workspace workspace, DataStore dataStore, String featureTypeName) {
@@ -325,6 +476,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				future.completeExceptionally(t);
 			} else {
 				try {
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					String name = (String)xpath.evaluate("/featureType/name/text()", document, XPathConstants.STRING);
 					String nativeName = (String)xpath.evaluate("/featureType/nativeName/text()", document, XPathConstants.STRING);
 					String title = (String)xpath.evaluate("/featureType/title/text()", document, XPathConstants.STRING);
@@ -360,6 +512,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					List<CompletableFuture<FeatureType>> retval = new ArrayList<>();
 					
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/featureTypes/featureType/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
@@ -377,42 +530,61 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
+	public CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
+		try {
+			return put(getFeatureTypePath(workspace, dataStore, featureType), getFeatureTypeDocument(featureType));
+		} catch(Exception e) {			
+			return failure(e);
+		}
+	}
+
+	private byte[] getFeatureTypeDocument(FeatureType featureType) throws XMLStreamException, IOException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		sw.writeStartDocument();
+		sw.writeStartElement("featureType");
+			sw.writeStartElement("name");
+				sw.writeCharacters(featureType.getName());
+			sw.writeEndElement();
+			
+			String nativeName = featureType.getNativeName();				
+			sw.writeStartElement("nativeName");
+				sw.writeCharacters(nativeName);
+			sw.writeEndElement();				
+			
+			String title = featureType.getTitle();
+			if(title != null) {
+				sw.writeStartElement("title");
+					sw.writeCharacters(title);
+				sw.writeEndElement();
+			}
+			
+			String abstr = featureType.getAbstract();
+			if(abstr != null) {
+				sw.writeStartElement("abstract");
+					sw.writeCharacters(abstr);
+				sw.writeEndElement();
+			}
+			
+			sw.writeStartElement("enabled");
+				sw.writeCharacters("true");
+			sw.writeEndElement();
+			
+		sw.writeEndElement();
+		sw.writeEndDocument();
+		sw.close();
+		
+		os.close();
+		
+		return os.toByteArray();		
+	}
+	
+	@Override
 	public CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			
-			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-			streamWriter.writeStartDocument();
-			streamWriter.writeStartElement("featureType");
-				streamWriter.writeStartElement("name");
-					streamWriter.writeCharacters(featureType.getName());
-				streamWriter.writeEndElement();
-				
-				String nativeName = featureType.getNativeName();				
-				streamWriter.writeStartElement("nativeName");
-					streamWriter.writeCharacters(nativeName);
-				streamWriter.writeEndElement();				
-				
-				String title = featureType.getTitle();
-				if(title != null) {
-					streamWriter.writeStartElement("title");
-						streamWriter.writeCharacters(title);
-					streamWriter.writeEndElement();
-				}
-				
-				String abstr = featureType.getAbstract();
-				if(abstr != null) {
-					streamWriter.writeStartElement("abstract");
-						streamWriter.writeCharacters(abstr);
-					streamWriter.writeEndElement();
-				}
-			streamWriter.writeEndElement();
-			streamWriter.writeEndDocument();
-			streamWriter.close();
-			
-			outputStream.close();
-			
-			return post(getFeatureTypesPath(workspace, dataStore), outputStream.toByteArray());
+			return post(getFeatureTypesPath(workspace, dataStore), getFeatureTypeDocument(featureType));
 		} catch(Exception e) {			
 			return failure(e);
 		}
@@ -427,6 +599,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		asyncHttpClient.close();
 	}
 	
+	private String getLayerGroupPath(Workspace workspace, LayerGroup layerGroup) { 
+		return getLayerGroupPath(workspace, layerGroup.getName());
+	}
+	
 	private String getLayerGroupPath(Workspace workspace, String layerGroupName) {
 		return getLayerGroupsPath(workspace) + "/" + layerGroupName;
 	}
@@ -439,16 +615,36 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				future.completeExceptionally(t);
 			} else {
 				try {
-					List<String> layers = new ArrayList<>();
+					List<LayerRef> layers = new ArrayList<>();
 					
-					NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published[@type='layer']/name/text()", document, XPathConstants.NODESET);
+					XPath xpath = XPathFactory.newInstance().newXPath();
+					NodeList result = (NodeList)xpath.evaluate("/layerGroup/publishables/published", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						layers.add(n.getTextContent());
+						
+						
+						String name = (String)xpath.evaluate("name/text()", n, XPathConstants.STRING);
+						String type = (String)xpath.evaluate("@type", n, XPathConstants.STRING);
+						
+						switch(type) {
+							case "layer":
+								layers.add(new LayerRef(name, false));
+								break;
+							case "layerGroup":
+								layers.add(new LayerRef(name, true));
+								break;
+							default:
+								throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
+						}
+						
+						
 					}
 					
-					String title = (String)xpath.evaluate("/layerGroup/title/text()", document, XPathConstants.STRING);
-					String abstr = (String)xpath.evaluate("/layerGroup/abstractTxt/text()", document, XPathConstants.STRING);
+					Node titleNode = (Node)xpath.evaluate("/layerGroup/title", document, XPathConstants.NODE);
+					String title = titleNode == null ? null : titleNode.getTextContent();
+					
+					Node abstractNode = (Node)xpath.evaluate("/layerGroup/abstractTxt", document, XPathConstants.NODE);
+					String abstr = abstractNode == null ? null : abstractNode.getTextContent();
 					
 					future.complete(new LayerGroup(layerGroupName, title, abstr, Collections.unmodifiableList(layers)));
 				} catch(Exception e) {
@@ -475,6 +671,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					List<CompletableFuture<LayerGroup>> retval = new ArrayList<>();
 					
+					XPath xpath = XPathFactory.newInstance().newXPath();
 					NodeList result = (NodeList)xpath.evaluate("/layerGroups/layerGroup/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
@@ -492,52 +689,71 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup) {
+	public CompletableFuture<Void> putLayerGroup(Workspace workspace, LayerGroup layerGroup) {
 		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			
-			XMLStreamWriter streamWriter = outputFactory.createXMLStreamWriter(outputStream);
-			streamWriter.writeStartDocument();
-			streamWriter.writeStartElement("layerGroup");
-				streamWriter.writeStartElement("name");
-					streamWriter.writeCharacters(layerGroup.getName());
-				streamWriter.writeEndElement();
-				
-				streamWriter.writeStartElement("mode");
-					streamWriter.writeCharacters("NAMED");
-				streamWriter.writeEndElement();
-				
-				String title = layerGroup.getTitle();
-				if(title != null) {
-					streamWriter.writeStartElement("title");
-						streamWriter.writeCharacters(title);
-					streamWriter.writeEndElement();
-				}
-				
-				String abstr = layerGroup.getAbstract();
-				if(abstr != null) {
-					streamWriter.writeStartElement("abstractTxt");
-						streamWriter.writeCharacters(abstr);
-					streamWriter.writeEndElement();
-				}
-				
-				streamWriter.writeStartElement("layers");
-				for(String layer : layerGroup.getLayers()) {
-					streamWriter.writeStartElement("layer");
-						streamWriter.writeCharacters(layer);
-					streamWriter.writeEndElement();
-				}
-				streamWriter.writeEndElement();
-			streamWriter.writeEndElement();
-			streamWriter.writeEndDocument();
-			streamWriter.close();
-			
-			outputStream.close();
-			
-			return post(getLayerGroupsPath(workspace), outputStream.toByteArray());
+			return put(getLayerGroupPath(workspace, layerGroup), getLayerGroupDocument(workspace, layerGroup));
 		} catch(Exception e) {
 			return failure(e);
 		}
+	}
+	
+	@Override
+	public CompletableFuture<Void> postLayerGroup(Workspace workspace, LayerGroup layerGroup) {
+		try {
+			return post(getLayerGroupsPath(workspace), getLayerGroupDocument(workspace, layerGroup));
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+
+	private byte[] getLayerGroupDocument(Workspace workspace, LayerGroup layerGroup) throws FactoryConfigurationError, XMLStreamException, IOException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		sw.writeStartDocument();
+		sw.writeStartElement("layerGroup");
+			sw.writeStartElement("name");
+				sw.writeCharacters(layerGroup.getName());
+			sw.writeEndElement();
+			
+			sw.writeStartElement("mode");
+				sw.writeCharacters("NAMED");
+			sw.writeEndElement();
+			
+			String title = layerGroup.getTitle();
+			if(title != null) {
+				sw.writeStartElement("title");
+					sw.writeCharacters(title);
+				sw.writeEndElement();
+			}
+			
+			String abstr = layerGroup.getAbstract();
+			if(abstr != null) {
+				sw.writeStartElement("abstractTxt");
+					sw.writeCharacters(abstr);
+				sw.writeEndElement();
+			}
+			
+			sw.writeStartElement("publishables");
+			for(LayerRef layerRef : layerGroup.getLayers()) {
+				sw.writeStartElement("published");
+				sw.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
+					sw.writeStartElement("name");
+						// layerGroup references without workspace prefix are not correctly resolved
+						sw.writeCharacters(workspace.getName() + ":" + layerRef.getLayerId());
+					sw.writeEndElement();
+				sw.writeEndElement();
+			}
+			sw.writeEndElement();
+			
+		sw.writeEndElement();
+		sw.writeEndDocument();
+		sw.close();
+		
+		os.close();
+		
+		return os.toByteArray();		
 	}
 
 	@Override
@@ -558,5 +774,220 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> deleteWorkspace(Workspace workspace) { 
 		return delete(getWorkspacePath(workspace) + RECURSE);
+	}
+
+	@Override
+	public CompletableFuture<Optional<ServiceSettings>> getServiceSettings(Workspace workspace, ServiceType serviceType) {
+		CompletableFuture<Optional<ServiceSettings>> future = new CompletableFuture<>();
+		
+		getOptional(getServiceSettingsPath(workspace, serviceType)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();						
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						
+						Node titleNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/title", document, XPathConstants.NODE);
+						String title = titleNode == null ? null : titleNode.getTextContent();
+						
+						Node abstractNode = (Node)xpath.evaluate(serviceType.name().toLowerCase() + "/abstrct", document, XPathConstants.NODE);
+						String abstr = abstractNode == null ? null : abstractNode.getTextContent();
+						
+						NodeList keywordNodes = (NodeList)xpath.evaluate(serviceType.name().toLowerCase() + "/keywords/string", document, XPathConstants.NODESET);
+						List<String> keywords;
+						if(keywordNodes != null && keywordNodes.getLength() > 0) {
+							keywords = new ArrayList<>();
+							for(int i = 0; i < keywordNodes.getLength(); i++) {
+								keywords.add(keywordNodes.item(i).getTextContent());
+							}
+						} else {
+							keywords = null;
+						}
+						
+						future.complete(Optional.of(new ServiceSettings(title, abstr, keywords)));
+					} else {					
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+
+		return future;
+	}
+	
+	private String getWorkspaceSettingsPath(Workspace workspace) {
+		return getWorkspacePath(workspace) + "/settings";
+	}
+	
+	@Override
+	public CompletableFuture<WorkspaceSettings> getWorkspaceSettings(Workspace workspace) {
+		CompletableFuture<WorkspaceSettings> future = new CompletableFuture<>();
+		
+		get(getWorkspaceSettingsPath(workspace)).whenComplete((document, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					XPath xpath = XPathFactory.newInstance().newXPath();
+					
+					Node addressNode = (Node)xpath.evaluate("settings/contact/address", document, XPathConstants.NODE);
+					String address = addressNode == null ? null : addressNode.getTextContent();
+					
+					Node addressCityNode = (Node)xpath.evaluate("settings/contact/addressCity", document, XPathConstants.NODE);
+					String city = addressCityNode == null ? null : addressCityNode.getTextContent();
+					
+					Node addressCountryNode = (Node)xpath.evaluate("settings/contact/addressCountry", document, XPathConstants.NODE);
+					String country = addressCountryNode == null ? null : addressCountryNode.getTextContent();
+					
+					Node addressPostalCodeNode = (Node)xpath.evaluate("settings/contact/addressPostalCode", document, XPathConstants.NODE);
+					String zipcode = addressPostalCodeNode == null ? null : addressPostalCodeNode.getTextContent();
+					
+					Node addressStateNode = (Node)xpath.evaluate("settings/contact/addressState", document, XPathConstants.NODE);
+					String state = addressStateNode == null ? null : addressStateNode.getTextContent();
+					
+					Node addressTypeNode = (Node)xpath.evaluate("settings/contact/addressType", document, XPathConstants.NODE);
+					String addressType = addressTypeNode == null ? null : addressTypeNode.getTextContent();
+					
+					Node contactEmailNode = (Node)xpath.evaluate("settings/contact/contactEmail", document, XPathConstants.NODE);
+					String email = contactEmailNode == null ? null : contactEmailNode.getTextContent();
+					
+					Node contactFacsimileNode = (Node)xpath.evaluate("settings/contact/contactFacsimile", document, XPathConstants.NODE);
+					String fax = contactFacsimileNode == null ? null : contactFacsimileNode.getTextContent();
+					
+					Node contactOrganizationNode = (Node)xpath.evaluate("settings/contact/contactOrganization", document, XPathConstants.NODE);
+					String organization = contactOrganizationNode == null ? null : contactOrganizationNode.getTextContent();
+					
+					Node contactPersonNode = (Node)xpath.evaluate("settings/contact/contactPerson", document, XPathConstants.NODE);
+					String contact = contactPersonNode == null ? null : contactPersonNode.getTextContent();
+					
+					Node contactPositionNode = (Node)xpath.evaluate("settings/contact/contactPosition", document, XPathConstants.NODE);
+					String position = contactPositionNode == null ? null : contactPositionNode.getTextContent();
+					
+					Node contactVoiceNode = (Node)xpath.evaluate("settings/contact/contactVoice", document, XPathConstants.NODE);
+					String telephone = contactVoiceNode == null ? null : contactVoiceNode.getTextContent();
+					
+					future.complete(new WorkspaceSettings(contact, organization, position, addressType, 
+						address, city, state, zipcode, country, telephone, fax, email));					
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+
+	@Override
+	public CompletableFuture<Void> putWorkspaceSettings(Workspace workspace, WorkspaceSettings workspaceSettings) {
+		try {
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);			
+			sw.writeStartDocument();
+			
+			sw.writeStartElement("settings");
+				sw.writeStartElement("contact");
+					sw.writeStartElement("id");						
+						sw.writeCharacters("contact");
+					sw.writeEndElement();
+						
+					String address = workspaceSettings.getAddress();
+					if(address != null) {
+						sw.writeStartElement("address");
+							sw.writeCharacters(address);
+						sw.writeEndElement();
+					}
+					
+					String city = workspaceSettings.getCity();
+					if(city != null) {
+						sw.writeStartElement("addressCity");
+							sw.writeCharacters(city);
+						sw.writeEndElement();
+					}
+					
+					String country = workspaceSettings.getCountry();
+					if(country != null) {
+						sw.writeStartElement("addressCountry");
+							sw.writeCharacters(country);
+						sw.writeEndElement();
+					}
+					
+					String zipcode = workspaceSettings.getZipcode();
+					if(zipcode != null) {
+						sw.writeStartElement("addressPostalCode");
+							sw.writeCharacters(zipcode);
+						sw.writeEndElement();
+					}
+					
+					String state = workspaceSettings.getState();
+					if(state != null) {
+						sw.writeStartElement("addressState");
+							sw.writeCharacters(state);
+						sw.writeEndElement();
+					}
+					
+					String addressType = workspaceSettings.getAddressType();
+					if(addressType != null) {
+						sw.writeStartElement("addressType");
+							sw.writeCharacters(addressType);
+						sw.writeEndElement();
+					}
+					
+					String email = workspaceSettings.getEmail();
+					if(email != null) {
+						sw.writeStartElement("contactEmail");
+							sw.writeCharacters(email);
+						sw.writeEndElement();
+					}
+					
+					String fax = workspaceSettings.getFax();
+					if(fax != null) {
+						sw.writeStartElement("contactFacsimile");
+							sw.writeCharacters(fax);
+						sw.writeEndElement();
+					}
+					
+					String organization = workspaceSettings.getOrganization();
+					if(organization != null) {
+						sw.writeStartElement("contactOrganization");
+							sw.writeCharacters(organization);
+						sw.writeEndElement();
+					}
+					
+					String contact = workspaceSettings.getContact();
+					if(contact != null) {
+						sw.writeStartElement("contactPerson");
+							sw.writeCharacters(contact);
+						sw.writeEndElement();
+					}
+					
+					String position = workspaceSettings.getPosition();
+					if(position != null) {
+						sw.writeStartElement("contactPosition");
+							sw.writeCharacters(position);
+						sw.writeEndElement();
+					}
+					
+					String telephone = workspaceSettings.getTelephone();
+					if(telephone != null) {
+						sw.writeStartElement("contactVoice");
+							sw.writeCharacters(telephone);
+						sw.writeEndElement();
+					}						
+				sw.writeEndElement();
+			sw.writeEndElement();
+			
+			sw.writeEndDocument();
+			sw.close();
+			
+			return put(getWorkspaceSettingsPath(workspace), os.toByteArray());
+		} catch(Exception e) {
+			return failure(e);
+		}
 	}
 }

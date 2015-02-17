@@ -13,9 +13,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import nl.idgis.publisher.service.geoserver.TestServers;
+import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
@@ -28,19 +29,20 @@ import org.h2.server.pg.PgServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.w3c.dom.Document;
 
 import akka.actor.ActorSystem;
 
 public class DefaultGeoServerRestTest {
 	
-	TestServers testServers;
+	GeoServerTestHelper h;
 	
 	FutureUtils f;
 	
 	@Before
 	public void startServers() throws Exception {
-		testServers = new TestServers();
-		testServers.start();
+		h = new GeoServerTestHelper();
+		h.start();
 	} 
 	
 	@Before
@@ -51,13 +53,13 @@ public class DefaultGeoServerRestTest {
 	
 	@After
 	public void stopServers() throws Exception {
-		testServers.stop();
+		h.stop();
 	}
 
 	@Test
 	public void doTest() throws Exception {
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + TestServers.PG_PORT + "/test", "postgres", "postgres");
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"public\"");
@@ -70,7 +72,7 @@ public class DefaultGeoServerRestTest {
 				
 		connection.close();
 		
-		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + TestServers.JETTY_PORT + "/rest/", "admin", "geoserver");
+		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
 		
 		List<Workspace> workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
@@ -109,7 +111,7 @@ public class DefaultGeoServerRestTest {
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
 		assertEquals("localhost", connectionParameters.get("host"));
-		assertEquals("" + TestServers.PG_PORT, connectionParameters.get("port"));
+		assertEquals("" + GeoServerTestHelper.PG_PORT, connectionParameters.get("port"));
 		assertEquals("test", connectionParameters.get("database"));
 		assertEquals("postgres", connectionParameters.get("user"));
 		assertEquals("postgis", connectionParameters.get("dbtype"));
@@ -151,7 +153,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
 		
-		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList("test"));
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
@@ -161,8 +163,54 @@ public class DefaultGeoServerRestTest {
 		assertTrue(itr.hasNext());
 		layerGroup = itr.next();
 		assertEquals("group", layerGroup.getName());
-		assertEquals(Arrays.asList("test"), layerGroup.getLayers());
+		
+		List<LayerRef> layers = layerGroup.getLayers();
+		assertEquals(1, layers.size());
+		LayerRef layerRef = layers.get(0);		
+		assertNotNull(layerRef);
+		assertEquals("test", layerRef.getLayerId());
+		assertEquals(false, layerRef.isGroup());
+		
 		assertFalse(itr.hasNext());
+		
+		assertFalse(service.getServiceSettings(workspace, ServiceType.WMS).get().isPresent());
+		
+		ServiceSettings serviceSettings = new ServiceSettings("MyTitle", "MyAbstract", Arrays.asList("keyword0", "keyword1", "keyword2"));
+		service.putServiceSettings(workspace, ServiceType.WMS, serviceSettings).get();
+		
+		Document capabilities = h.getCapabilities(workspace.getName(), ServiceType.WMS, "1.3.0");
+		assertEquals("MyTitle", h.getText("//wms:Service/wms:Title", capabilities));
+		assertEquals("MyAbstract", h.getText("//wms:Service/wms:Abstract", capabilities));
+		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), h.getText(
+			h.getNodeList("//wms:Service/wms:KeywordList/wms:Keyword", capabilities)));
+		
+		Optional<ServiceSettings> optionalServiceSettings = service.getServiceSettings(workspace, ServiceType.WMS).get();
+		assertTrue(optionalServiceSettings.isPresent());
+		
+		serviceSettings = optionalServiceSettings.get();
+		assertEquals("MyTitle", serviceSettings.getTitle());
+		assertEquals("MyAbstract", serviceSettings.getAbstract());
+		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), serviceSettings.getKeywords());
+		
+		WorkspaceSettings workspaceSettings = new WorkspaceSettings("MyContact", "MyOrganization", 
+			"MyPosition", "MyAddressType", "MyAddress", "MyCity", "MyState", "MyZipcode", 
+			"MyCountry", "MyTelephone", "MyFax", "MyEmail");
+		
+		service.putWorkspaceSettings(workspace, workspaceSettings).get();
+		
+		workspaceSettings = service.getWorkspaceSettings(workspace).get();
+		assertEquals("MyContact", workspaceSettings.getContact()); 
+		assertEquals("MyOrganization", workspaceSettings.getOrganization());
+		assertEquals("MyPosition", workspaceSettings.getPosition());
+		assertEquals("MyAddressType", workspaceSettings.getAddressType());
+		assertEquals("MyAddress", workspaceSettings.getAddress());
+		assertEquals("MyCity", workspaceSettings.getCity());
+		assertEquals("MyState", workspaceSettings.getState());
+		assertEquals("MyZipcode", workspaceSettings.getZipcode());
+		assertEquals("MyCountry", workspaceSettings.getCountry());
+		assertEquals("MyTelephone", workspaceSettings.getTelephone());
+		assertEquals("MyFax", workspaceSettings.getFax());
+		assertEquals("MyEmail", workspaceSettings.getEmail());
 		
 		service.deleteWorkspace(workspace).get();		
 		assertTrue(service.getWorkspaces().get().isEmpty());
