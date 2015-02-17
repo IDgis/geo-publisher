@@ -199,14 +199,14 @@ public class Groups extends Controller {
 						Domain.message("web.application.removing") + " " + 
 						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 						Domain.message("web.application.failed").toLowerCase()
-						+" ("+response.getValue()+")");
+						+" ("+Domain.message("web.application.page.groups.remove.failed")+")");
 				}else{
 					Logger.debug ("Deleted group " + groupId);
 					flash ("success", 
 						Domain.message("web.application.removing") + " " + 
 						Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 						Domain.message("web.application.succeeded").toLowerCase()
-						+" ("+response.getValue()+")");
+						);
 				}
 				return Promise.pure (redirect (routes.Groups.list ()));
 			}

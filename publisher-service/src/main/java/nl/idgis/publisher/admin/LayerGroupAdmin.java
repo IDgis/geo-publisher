@@ -145,7 +145,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		return db.transactional(tx -> 
 			tx.query()
 			.from(genericLayer)
-			.join(service).on(genericLayer.id.eq(service.rootgroupId))
+			.leftJoin(service).on(genericLayer.id.eq(service.rootgroupId))
 			.where(genericLayer.identification.eq(layergroupId)
 					.and(service.id.isNull())
 					)
