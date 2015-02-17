@@ -5,9 +5,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Objects;
 import com.typesafe.config.Config;
@@ -34,17 +36,22 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
+import nl.idgis.publisher.service.geoserver.rest.ServiceSettings;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
+import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class GeoServerService extends UntypedActor {
+	
+	private static final List<ServiceType> SERVICE_TYPES = Arrays.asList(ServiceType.WMS, ServiceType.WFS);
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -423,59 +430,102 @@ public class GeoServerService extends UntypedActor {
 		log.debug("-> provisioning");
 		
 		return new Procedure<Object>() {
+			
+			private CompletableFuture<List<Void>> ensureServiceSettings(Workspace workspace, ServiceSettings ensureServiceSettings, List<ServiceType> serviceTypes) {
+				return f.sequence(serviceTypes.stream()
+					.map(serviceType -> rest.getServiceSettings(workspace, serviceType))
+					.collect(Collectors.toList())).thenCompose(optionalServiceSettings -> {
+						return f.sequence(StreamUtils
+							.zip(
+								serviceTypes.stream(),
+								optionalServiceSettings.stream())
+							.map(entry -> {
+								ServiceType serviceType = entry.getFirst();
+								if(entry.getSecond().isPresent()) {													
+									ServiceSettings serviceSettings = entry.getSecond().get();
+									if(serviceSettings.equals(ensureServiceSettings)) {
+										log.debug("service settings service type {} unchanged", serviceType);														
+										return f.<Void>successful(null);
+									} else {
+										log.debug("service settings service type {} changed", serviceType);														
+										return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
+									}
+								} else {
+									log.debug("service settings for service type {} not found", serviceType);
+									return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
+								}
+							})
+							.collect(Collectors.toList()));
+					});
+			}
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof EnsureWorkspace) {
+					EnsureWorkspace ensureWorkspace = (EnsureWorkspace)msg;
+					
 					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
 					initiator.tell(new Ack(), getSelf());
 					
-					String workspaceId = ((EnsureWorkspace)msg).getWorkspaceId();
+					String workspaceId = ensureWorkspace.getWorkspaceId();
+					
+					ServiceSettings serviceSettings = new ServiceSettings(
+						ensureWorkspace.getTitle(),
+						ensureWorkspace.getAbstract(),
+						ensureWorkspace.getKeywords());
 					
 					toSelf(
 						rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
 							if(optionalWorkspace.isPresent()) {
 								log.debug("existing workspace found: {}", workspaceId);
 								
-								Workspace workspace = optionalWorkspace.get();								
-								return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
-									if(optionalDataStore.isPresent()) {
-										log.debug("existing data store found: publisher-geometry");
-										
-										DataStore dataStore = optionalDataStore.get();										
-										return rest.getFeatureTypes(workspace, dataStore)
-											.thenCompose(f::sequence)
-											.thenCompose(featureTypes ->
-												rest.getLayerGroups(workspace)
-												.thenCompose(f::sequence)
-												.thenApply(layerGroups -> {
-											
-											Map<String, FeatureType> featureTypesMap = new HashMap<>();
-											Map<String, LayerGroup> layerGroupsMap = new HashMap<>();
-											
-											for(FeatureType featureType : featureTypes) {
-												featureTypesMap.put(featureType.getName(), featureType);
+								Workspace workspace = optionalWorkspace.get();
+								
+								return ensureServiceSettings(
+									workspace, 
+									serviceSettings, 
+									SERVICE_TYPES).thenCompose(vServiceSettings -> {							
+										return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
+											if(optionalDataStore.isPresent()) {
+												log.debug("existing data store found: publisher-geometry");
+												
+												DataStore dataStore = optionalDataStore.get();										
+												return rest.getFeatureTypes(workspace, dataStore)
+													.thenCompose(f::sequence)
+													.thenCompose(featureTypes ->
+														rest.getLayerGroups(workspace)
+														.thenCompose(f::sequence)
+														.thenApply(layerGroups -> {
+													
+													Map<String, FeatureType> featureTypesMap = new HashMap<>();
+													Map<String, LayerGroup> layerGroupsMap = new HashMap<>();
+													
+													for(FeatureType featureType : featureTypes) {
+														featureTypesMap.put(featureType.getName(), featureType);
+													}
+													
+													for(LayerGroup layerGroup : layerGroups) {
+														layerGroupsMap.put(layerGroup.getName(), layerGroup);
+													}
+													
+													return new EnsuringWorkspace(workspace, dataStore, featureTypesMap, layerGroupsMap);
+												}));
 											}
 											
-											for(LayerGroup layerGroup : layerGroups) {
-												layerGroupsMap.put(layerGroup.getName(), layerGroup);
-											}
-											
-											return new EnsuringWorkspace(workspace, dataStore, featureTypesMap, layerGroupsMap);
-										}));
-									}
-									
-									throw new IllegalStateException("publisher-geometry data store is missing");
-								});								
+											throw new IllegalStateException("publisher-geometry data store is missing");
+										});
+								});
 							}
 							
 							Workspace workspace = new Workspace(workspaceId);							
 							return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {
-								log.debug("workspace created: {}", workspaceId);
-								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
-								return rest.postDataStore(workspace, dataStore).thenApply(vDataStore -> {									
-									log.debug("data store created: publisher-geometry");									
-									return new EnsuringWorkspace(workspace, dataStore);
+								return ensureServiceSettings(workspace, serviceSettings, SERVICE_TYPES).thenCompose(vServiceSettings -> {
+									log.debug("workspace created: {}", workspaceId);
+									DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
+									return rest.postDataStore(workspace, dataStore).thenApply(vDataStore -> {									
+										log.debug("data store created: publisher-geometry");									
+										return new EnsuringWorkspace(workspace, dataStore);
+									});
 								});
 							});
 						}));					
@@ -504,7 +554,7 @@ public class GeoServerService extends UntypedActor {
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
-	}	
+	}
 	
 	private void handleServiceJob(ServiceJobInfo serviceJob) {
 		log.debug("executing service job: " + serviceJob);
