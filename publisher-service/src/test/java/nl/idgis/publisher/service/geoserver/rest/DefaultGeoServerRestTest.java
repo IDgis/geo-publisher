@@ -28,21 +28,22 @@ import nl.idgis.publisher.utils.Logging;
 import org.h2.server.pg.PgServer;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import org.w3c.dom.Document;
 
 import akka.actor.ActorSystem;
+import akka.event.LoggingAdapter;
 
 public class DefaultGeoServerRestTest {
+	
+	static LoggingAdapter log = Logging.getLogger();
 	
 	static GeoServerTestHelper h;
 	
 	static GeoServerRest service;
 	
-	FutureUtils f;
+	static FutureUtils f;
 	
 	@BeforeClass
 	public static void startServers() throws Exception {
@@ -61,19 +62,15 @@ public class DefaultGeoServerRestTest {
 		stmt.close();
 				
 		connection.close();
-				
-		service = new DefaultGeoServerRest(Logging.getLogger(), "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
-	} 
-	
-	@Before
-	public void async() throws Exception {
+		
 		ActorSystem actorSystem = ActorSystem.create();
 		f = new FutureUtils(actorSystem.dispatcher());
+		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
 	@After
 	public void clean() throws Exception {
-		h.clean();
+		h.clean(f, log);
 	}
 	
 	@AfterClass

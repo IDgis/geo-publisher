@@ -33,6 +33,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
 import nl.idgis.publisher.domain.job.JobState;
@@ -54,6 +55,8 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
 public class GeoServerServiceTest {
@@ -107,9 +110,13 @@ public class GeoServerServiceTest {
 		}
 	}
 	
+	static LoggingAdapter log = Logging.getLogger();
+	
 	static GeoServerTestHelper h;
 	
-	ActorSystem actorSystem;
+	static ActorSystem actorSystem;
+	
+	static FutureUtils f;
 	
 	ActorRef serviceManager, geoServerService, recorder;
 	
@@ -131,6 +138,14 @@ public class GeoServerServiceTest {
 		stmt.close();
 		
 		connection.close();
+		
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		actorSystem = ActorSystem.create("test", akkaConfig);
+		
+		f = new FutureUtils(actorSystem.dispatcher());
 	}
 	
 	@AfterClass
@@ -140,22 +155,12 @@ public class GeoServerServiceTest {
 	
 	@After
 	public void clean() throws Exception {
-		h.clean();
-	}
-	
-	@Before
-	public void xml() throws Exception {
-		
+		h.clean(f, log);
 	}
 	
 	@Before
 	public void actors() throws Exception {
 		
-		Config akkaConfig = ConfigFactory.empty()
-			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
-			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
-		
-		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
 		Config geoserverConfig = ConfigFactory.empty()

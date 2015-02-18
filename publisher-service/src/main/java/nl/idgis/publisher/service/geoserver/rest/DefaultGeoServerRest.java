@@ -38,6 +38,8 @@ import com.ning.http.client.Response;
 
 import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.utils.FutureUtils;
+
 public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final String RECURSE = "?recurse=true";
@@ -50,9 +52,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private final String serviceLocation;
 	
+	private final FutureUtils f;
+	
 	private final AsyncHttpClient asyncHttpClient;
 	
-	public DefaultGeoServerRest(LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {		
+	public DefaultGeoServerRest(FutureUtils f, LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {
+		this.f = f;
 		this.log = log;
 		this.restLocation = serviceLocation + "rest/";
 		this.serviceLocation = serviceLocation;

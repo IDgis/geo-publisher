@@ -105,8 +105,8 @@ public class GeoServerService extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		rest = new DefaultGeoServerRest(log, serviceLocation, user, password);
 		f = new FutureUtils(getContext().dispatcher());
+		rest = new DefaultGeoServerRest(f, log, serviceLocation, user, password);		
 	}
 	
 	@Override
