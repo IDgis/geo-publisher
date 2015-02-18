@@ -19,13 +19,6 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
@@ -287,11 +280,12 @@ public class DefaultGeoServerRestTest {
 		Document sld = styles.get("green");
 		assertNotNull(sld);
 		
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
-		
-		t.transform(new DOMSource(sld), new StreamResult(System.out));
-		
 		assertEquals("#66FF66", h.getText("//sld:CssParameter", sld));
+		
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#00FF00");
+		
+		service.putStyle(new Style("green", sld)).get();
+		
+		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
 	}
 }

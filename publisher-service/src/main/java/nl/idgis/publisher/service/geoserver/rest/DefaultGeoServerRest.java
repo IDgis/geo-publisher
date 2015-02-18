@@ -1091,7 +1091,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> putStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return put(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
+			return put(getStylePath(style.getStyleId()), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return failure(e);
 		}
