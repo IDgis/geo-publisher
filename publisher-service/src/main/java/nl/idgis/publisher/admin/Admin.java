@@ -205,7 +205,7 @@ public class Admin extends AbstractAdmin {
 				});			
 		});
 		
-		final CompletableFuture<Iterable<ActiveTask>> activeDatasetTasks = 
+		final CompletableFuture<List<ActiveTask>> activeDatasetTasks = 
 			loaderJobs.thenCompose(msg -> {
 					final ActiveJobs activeLoaderJobs = (ActiveJobs)msg;
 					

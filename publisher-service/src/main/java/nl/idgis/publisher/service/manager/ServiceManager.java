@@ -40,8 +40,11 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
+
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
+
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
@@ -332,11 +335,26 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.abstractCol,
 					dataset.identification));
 			
-			CompletableFuture<Optional<Tuple>> serviceInfo = tx.query().from(service)
+			CompletableFuture<Optional<Tuple>> serviceInfo = 
+				tx.query().from(service)
+				.leftJoin(constants).on(constants.id.eq(service.constantsId))
 				.where(service.identification.eq(serviceId))
 				.singleResult(
 					service.name,
-					service.title);
+					service.title,
+					service.abstractCol,
+					constants.contact,
+					constants.organization,
+					constants.position,
+					constants.addressType,
+					constants.address,
+					constants.city,
+					constants.state,
+					constants.zipcode,
+					constants.country,
+					constants.telephone,
+					constants.fax,
+					constants.email);
 			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
@@ -352,13 +370,30 @@ public class ServiceManager extends UntypedActor {
 										structureTuple.get(serviceStructure.childLayerIdentification),
 										structureTuple.get(serviceStructure.parentLayerIdentification));
 								}
+								
+								Tuple serviceInfoTuple = serviceInfoResult.get();
 				
 								return new DefaultService(
 									serviceId, 
-									serviceInfoResult.get().get(service.name),
-									rootResult.get(), 
-									datasetsResult.list(), 
-									groupsResult.list(), 
+									serviceInfoTuple.get(service.name),
+									serviceInfoTuple.get(service.title),
+									serviceInfoTuple.get(service.abstractCol),
+									null, // TODO: keywords
+									serviceInfoTuple.get(constants.contact),
+									serviceInfoTuple.get(constants.organization),
+									serviceInfoTuple.get(constants.position),
+									serviceInfoTuple.get(constants.addressType),
+									serviceInfoTuple.get(constants.address),
+									serviceInfoTuple.get(constants.city),
+									serviceInfoTuple.get(constants.state),
+									serviceInfoTuple.get(constants.zipcode),
+									serviceInfoTuple.get(constants.country),
+									serviceInfoTuple.get(constants.telephone),
+									serviceInfoTuple.get(constants.fax),
+									serviceInfoTuple.get(constants.email),
+									rootResult.get(),
+									datasetsResult.list(),
+									groupsResult.list(),
 									structureMap);
 							}))))
 				: f.successful(new NotFound()));

@@ -103,7 +103,25 @@ public class ProvisionService extends UntypedActor {
 	private void handleService(Service service) {
 		log.debug("service info received");
 		
-		getContext().parent().tell(new EnsureWorkspace(service.getName()), getSelf());
+		getContext().parent().tell(
+			new EnsureWorkspace(
+				service.getName(), 
+				service.getTitle(),
+				service.getAbstract(),
+				service.getKeywords(),
+				service.getContact(),
+				service.getOrganization(),
+				service.getPosition(),
+				service.getAddressType(),
+				service.getAddress(),
+				service.getCity(),
+				service.getState(),
+				service.getZipcode(),
+				service.getCountry(),
+				service.getTelephone(),
+				service.getFax(),
+				service.getEmail()),
+			getSelf());
 		getContext().become(layers(service.getLayers()), false);
 	}
 	

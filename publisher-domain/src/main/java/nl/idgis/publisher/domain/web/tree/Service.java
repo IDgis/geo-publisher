@@ -8,6 +8,36 @@ public interface Service {
 	
 	String getName();
 	
+	String getTitle();
+	
+	String getAbstract();
+	
+	String getContact();
+
+	String getOrganization();
+
+	String getPosition();
+
+	String getAddressType();
+
+	String getAddress();
+
+	String getCity();
+
+	String getState();
+
+	String getZipcode();
+
+	String getCountry();
+
+	String getTelephone();
+
+	String getFax();
+
+	String getEmail();
+	
+	List<String> getKeywords();	
+	
 	String getRootId();
 	
 	List<Layer> getLayers();

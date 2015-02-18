@@ -415,11 +415,11 @@ public class FutureUtils {
 	 * @param sequence the futures
 	 * @return a single future with the results
 	 */
-	public <T> CompletableFuture<Iterable<T>> sequence(Iterable<CompletableFuture<T>> sequence) {
+	public <T> CompletableFuture<List<T>> sequence(Iterable<CompletableFuture<T>> sequence) {
 		Iterator<CompletableFuture<T>> i = sequence.iterator();
 		
 		if(i.hasNext()) {
-			CompletableFuture<Iterable<T>> completableFuture = new CompletableFuture<>();
+			CompletableFuture<List<T>> completableFuture = new CompletableFuture<>();
 			
 			i.next().whenComplete(new BiConsumer<T, Throwable>() {
 				

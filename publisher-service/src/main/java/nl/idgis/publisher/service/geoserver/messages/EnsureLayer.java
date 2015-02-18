@@ -6,7 +6,7 @@ public abstract class EnsureLayer implements Serializable {
 
 	private static final long serialVersionUID = -470937118284162135L;
 	
-	private final String layerId, title, abstr;
+	protected final String layerId, title, abstr;
 	
 	protected EnsureLayer(String layerId, String title, String abstr) {
 		this.layerId = layerId;

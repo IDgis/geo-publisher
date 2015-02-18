@@ -21,13 +21,14 @@ import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
-import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
@@ -35,29 +36,16 @@ import akka.actor.ActorSystem;
 
 public class DefaultGeoServerRestTest {
 	
-	GeoServerTestHelper h;
+	static GeoServerTestHelper h;
+	
+	static GeoServerRest service;
 	
 	FutureUtils f;
 	
-	@Before
-	public void startServers() throws Exception {
+	@BeforeClass
+	public static void startServers() throws Exception {
 		h = new GeoServerTestHelper();
 		h.start();
-	} 
-	
-	@Before
-	public void async() throws Exception {
-		ActorSystem actorSystem = ActorSystem.create();
-		f = new FutureUtils(actorSystem.dispatcher());
-	}
-	
-	@After
-	public void stopServers() throws Exception {
-		h.stop();
-	}
-
-	@Test
-	public void doTest() throws Exception {
 		
 		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
 		
@@ -72,7 +60,27 @@ public class DefaultGeoServerRestTest {
 				
 		connection.close();
 		
-		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
+		service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
+	} 
+	
+	@Before
+	public void async() throws Exception {
+		ActorSystem actorSystem = ActorSystem.create();
+		f = new FutureUtils(actorSystem.dispatcher());
+	}
+	
+	@After
+	public void clean() throws Exception {
+		h.clean();
+	}
+	
+	@AfterClass
+	public static void stopServers() throws Exception {
+		h.stop();
+	}
+
+	@Test
+	public void testCreateLayers() throws Exception {
 		
 		List<Workspace> workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
@@ -172,6 +180,13 @@ public class DefaultGeoServerRestTest {
 		assertEquals(false, layerRef.isGroup());
 		
 		assertFalse(itr.hasNext());
+	}
+	
+	@Test
+	public void testServiceSettings() throws Exception {
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
 		
 		assertFalse(service.getServiceSettings(workspace, ServiceType.WMS).get().isPresent());
 		
@@ -191,6 +206,13 @@ public class DefaultGeoServerRestTest {
 		assertEquals("MyTitle", serviceSettings.getTitle());
 		assertEquals("MyAbstract", serviceSettings.getAbstract());
 		assertEquals(Arrays.asList("keyword0", "keyword1", "keyword2"), serviceSettings.getKeywords());
+	}
+	
+	@Test
+	public void testWorkspaceSettings() throws Exception {
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
 		
 		WorkspaceSettings workspaceSettings = new WorkspaceSettings("MyContact", "MyOrganization", 
 			"MyPosition", "MyAddressType", "MyAddress", "MyCity", "MyState", "MyZipcode", 
@@ -216,5 +238,16 @@ public class DefaultGeoServerRestTest {
 		assertTrue(service.getWorkspaces().get().isEmpty());
 		
 		service.close();
+	}
+	
+	@Test
+	public void testServiceSettingsEquals() throws Exception {
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		ServiceSettings serviceSettings = new ServiceSettings("MyTitle", null, null);
+		service.putServiceSettings(workspace, ServiceType.WFS, serviceSettings).get();
+		
+		assertEquals(serviceSettings, service.getServiceSettings(workspace, ServiceType.WFS).get().get());
 	}
 }
