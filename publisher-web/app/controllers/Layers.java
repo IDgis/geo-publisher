@@ -14,6 +14,7 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
+import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -22,6 +23,7 @@ import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.Service;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -46,6 +48,40 @@ public class Layers extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_LAYER#";
 	
+	private static String getConfig(String configKey){
+		return Play.application().configuration().getString(configKey);
+	}
+	
+	private static String makePreviewUrl(String serviceId, String layerId){
+		/*
+		 * https://overijssel.geo-hosting.nl/geoserver/b2/wms?service=WMS&version=1.1.0&request=GetMap&layers=b2:strooizout&styles=&bbox=203383.0,475045.0,248661.0,519851.0&width=512&height=506&srs=EPSG:28992&format=application/openlayers
+		 * https://overijssel.geo-hosting.nl/geoserver/b2/wms?service=WMS&version=1.1.0&request=GetMap&layers=b2:f700bc0e-af86-41fe-ba3c-5edbed328f10&styles=&bbox=203383.0,475045.0,248661.0,519851.0&width=512&height=512&srs=EPSG:28992&format=application/openlayers
+		 */
+
+		StringBuilder url = new StringBuilder();
+		url.append(getConfig("publisher.preview.geoserverUrl"));
+		url.append("/" + serviceId);
+		url.append("/wms?");
+		url.append(getConfig("publisher.preview.serviceRequest"));
+		url.append("&");
+		url.append("layers="  + serviceId + ":"+ layerId);
+		url.append("&");
+		url.append("styles=" + getConfig("publisher.preview.styles"));
+		url.append("&");
+		url.append("bbox=" + getConfig("publisher.preview.bbox"));
+		url.append("&");
+		url.append("width=" + getConfig("publisher.preview.width"));
+		url.append("&");
+		url.append("height=" + getConfig("publisher.preview.height"));
+		url.append("&");
+		url.append("srs=" + getConfig("publisher.preview.srs"));
+		url.append("&");
+		url.append("format=" + getConfig("publisher.preview.format"));
+		
+		return url.toString();
+	}
+	
+	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -56,7 +92,7 @@ public class Layers extends Controller {
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
 						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, ""));
+						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, "", ""));
 					}
 				});
 	}
@@ -202,10 +238,11 @@ public class Layers extends Controller {
 				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
 					return from (database)
 							.get(Dataset.class, layer.datasetId())
-							.execute (new Function<Dataset, Result> () {
+							.query(new GetLayerServices(layer.id()))
+							.executeFlat (new Function2<Dataset, List<String>, Promise<Result>> () {
 								@Override
 								
-							public Result apply (final Dataset dataset) throws Throwable {
+							public Promise<Result> apply (final Dataset dataset, final List<String> services) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
 								if (layerStyles==null){
@@ -222,7 +259,7 @@ public class Layers extends Controller {
 								
 								Logger.debug ("Edit layerForm: " + layerForm);						
 			
-								Logger.debug ("allStyles: " + allStyles.values().size());
+								Logger.debug ("allStyles: #" + allStyles.values().size());
 								Logger.debug ("layerStyles: " + layerStyles.size());
 								
 								// build a json string with list of styles (style.name, style.id) 
@@ -234,9 +271,24 @@ public class Layers extends Controller {
 								}					
 								final String layerStyleListString = Json.stringify (arrayNode);
 								
-								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
+								if (services==null || services.isEmpty()){
+									return Promise.pure(ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, "")));
+								} else {
+									Logger.debug ("Services for layer: " + layer.name() + " # " + services.size());								
+									return from (database)
+										// get the first service in the list for preview
+										.get(Service.class, services.get(0))
+										.execute (new Function<Service, Result> () {
+											@Override												
+											public Result apply (final Service service) throws Throwable {									
+												// build a preview string
+												final String previewUrl = makePreviewUrl(service.name(), layer.name());
+												return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
+												}
+											});
 								}
-							});
+							}
+						});
 				}
 			});
 	}
