@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -14,6 +15,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
@@ -251,6 +256,28 @@ public class DefaultGeoServerRestTest {
 	
 	@Test
 	public void testStyles() throws Exception {
-		service.getStyles().get();		
+		assertFalse(
+			service.getStyles().get().stream()
+				.map(style -> style.getStyleId())			
+				.collect(Collectors.toSet())
+				.contains("green"));
+		
+		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
+		assertNotNull(greenInputStream);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		
+		Style green = new Style("green", db.parse(greenInputStream));
+		service.postStyle(green).get();
+		
+		Map<String, Document> styles = service.getStyles().get().stream()
+			.collect(Collectors.toMap(
+				style -> style.getStyleId(), 
+				style -> style.getSld()));
+		
+		Document sld = styles.get("green");
+		assertNotNull(sld);
 	}
 }

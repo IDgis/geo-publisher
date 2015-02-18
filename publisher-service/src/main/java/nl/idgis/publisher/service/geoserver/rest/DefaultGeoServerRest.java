@@ -15,12 +15,16 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
@@ -29,8 +33,10 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -86,12 +92,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					int responseCode = response.getStatusCode();
 					if(responseCode == HttpURLConnection.HTTP_OK) {
 						InputStream stream = response.getResponseBodyAsStream();
-						
-						DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-						DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
-						
-						Document document = documentBuilder.parse(stream);
-						
+						Document document = parse(stream);
 						stream.close();
 						
 						future.complete(Optional.of(document));
@@ -178,14 +179,18 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
-	private CompletableFuture<Void> post(String path, byte[] document) {		
+	private CompletableFuture<Void> post(String path, byte[] document) {
+		return post(path, document, "text/xml");
+	}
+	
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {		
 		log.debug("posting {}", path);
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePost(path)
 			.addHeader("Authorization", authorization)
-			.addHeader("Content-type", "text/xml")
+			.addHeader("Content-type", contentType)
 			.setBody(document)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -226,11 +231,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				getClass().getResourceAsStream(
 					"default-" + serviceTypeName + "-settings.xml");
 			
-			Objects.requireNonNull(defaultServiceSettings);
+			Objects.requireNonNull(defaultServiceSettings);			
 			
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document document = db.parse(defaultServiceSettings);
+			Document document = parse(defaultServiceSettings);
 			
 			XPath xpath = XPathFactory.newInstance().newXPath();
 					
@@ -257,14 +260,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				}
 			}
 			
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			
-			TransformerFactory tf = TransformerFactory.newInstance();
-			Transformer t = tf.newTransformer();
-			
-			t.transform(new DOMSource(document), new StreamResult(os));
-			
-			return put(getServiceSettingsPath(workspace, serviceType), os.toByteArray());
+			return put(getServiceSettingsPath(workspace, serviceType), serialize(document));
 		} catch(Exception e) {
 			return failure(e);
 		}
@@ -1075,5 +1071,48 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		});
 		
 		return future.thenCompose(f::sequence);
+	}
+	
+	@Override
+	public CompletableFuture<Void> postStyle(Style style) {
+		try {
+			Document sld = style.getSld();
+			
+			String contentType;
+			Element root = sld.getDocumentElement();
+			if(root.getLocalName().equals("StyledLayerDescriptor")) {
+				String version = root.getAttribute("version");
+				if("1.0.0".equals(version)) {
+					contentType = "application/vnd.ogc.sld+xml";
+				} else if("1.1.0".equals(version)) {
+					contentType = "application/vnd.ogc.se+xml";
+				} else {
+					throw new IllegalStateException("expected: StyledLayerDescriptor[@version = '1.0.0' or @version = '1.1.0']");
+				}
+			} else {
+				throw new IllegalStateException("expected: StyledLayerDescriptor");
+			}
+			
+			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), contentType);
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+
+	private byte[] serialize(Document sld) throws TransformerFactoryConfigurationError, TransformerConfigurationException, TransformerException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		t.transform(new DOMSource(sld), new StreamResult(os));
+		
+		return os.toByteArray();		
+	}
+	
+	private Document parse(InputStream is) throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		return db.parse(is);
 	}
 }

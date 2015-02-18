@@ -50,4 +50,6 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Optional<Style>> getStyle(String styleId);
 	
 	CompletableFuture<List<Style>> getStyles();
+	
+	CompletableFuture<Void> postStyle(Style style);
 }
