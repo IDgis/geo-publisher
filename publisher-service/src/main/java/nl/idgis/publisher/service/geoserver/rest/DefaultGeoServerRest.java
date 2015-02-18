@@ -383,7 +383,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getDataStoresPath(workspace) + "/" + dataStoreName;
 	}
 	
-	private <T> T present(Optional<T> optional) {
+	private <T> T optionalPresent(Optional<T> optional) {
 		return optional.get();
 	}
 
@@ -403,7 +403,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/dataStores/dataStore/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::present));
+						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -513,7 +513,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/featureTypes/featureType/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::present));
+						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -675,7 +675,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/layerGroups/layerGroup/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getLayerGroup(workspace, n.getTextContent()).thenApply(this::present));
+						retval.add(getLayerGroup(workspace, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -1064,7 +1064,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList styleNameNodes = (NodeList)xpath.evaluate("styles/style/name", document, XPathConstants.NODESET);
 					for(int i = 0; i < styleNameNodes.getLength(); i++) {
 						Node styleNameNode = styleNameNodes.item(i);
-						retval.add(getStyle(styleNameNode.getTextContent()).thenApply(this::present));
+						retval.add(getStyle(styleNameNode.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
