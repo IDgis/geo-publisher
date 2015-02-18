@@ -67,6 +67,7 @@ public class GeoServerTestHelper {
 		
 		BiMap<String, String> namespaces = HashBiMap.create();
 		namespaces.put("wms", "http://www.opengis.net/wms");
+		namespaces.put("sld", "http://www.opengis.net/sld");
 		
 		XPathFactory xf = XPathFactory.newInstance();
 		xpath = xf.newXPath();

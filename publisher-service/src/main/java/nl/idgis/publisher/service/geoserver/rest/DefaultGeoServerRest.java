@@ -73,10 +73,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Optional<Document>> get(String path) {
-		return get(path, true);
+		return get(path, true, false);
 	}
 	
-	private CompletableFuture<Optional<Document>> get(String path, boolean appendSuffix) {
+	private CompletableFuture<Optional<Document>> get(String path, boolean appendSuffix, boolean namespaceAware) {
 		String url = path + (appendSuffix ? ".xml" : "");
 		log.debug("fetching {}", url);
 		
@@ -92,7 +92,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					int responseCode = response.getStatusCode();
 					if(responseCode == HttpURLConnection.HTTP_OK) {
 						InputStream stream = response.getResponseBodyAsStream();
-						Document document = parse(stream);
+						Document document = parse(stream, namespaceAware);
 						stream.close();
 						
 						future.complete(Optional.of(document));
@@ -147,14 +147,18 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
-	private CompletableFuture<Void> put(String path, byte[] document) {		
+	private CompletableFuture<Void> put(String path, byte[] document) {
+		return put(path, document, "text/xml");
+	}
+	
+	private CompletableFuture<Void> put(String path, byte[] document, String contentType) {		
 		log.debug("put {}", path);
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePut(path)
 			.addHeader("Authorization", authorization)
-			.addHeader("Content-type", "text/xml")
+			.addHeader("Content-type", contentType)
 			.setBody(document)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -1009,7 +1013,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		
 		CompletableFuture<String> fileNameFuture = new CompletableFuture<>();
 		fileNameFuture.thenAccept(fileName -> {
-			get(serviceLocation + "/styles/" + fileName, false).whenComplete((optionalDocument, t) -> {
+			get(serviceLocation + "/styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
 				if(t != null) {
 					future.completeExceptionally(t);
 				} else {
@@ -1077,26 +1081,38 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> postStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			
-			String contentType;
-			Element root = sld.getDocumentElement();
-			if(root.getLocalName().equals("StyledLayerDescriptor")) {
-				String version = root.getAttribute("version");
-				if("1.0.0".equals(version)) {
-					contentType = "application/vnd.ogc.sld+xml";
-				} else if("1.1.0".equals(version)) {
-					contentType = "application/vnd.ogc.se+xml";
-				} else {
-					throw new IllegalStateException("expected: StyledLayerDescriptor[@version = '1.0.0' or @version = '1.1.0']");
-				}
-			} else {
-				throw new IllegalStateException("expected: StyledLayerDescriptor");
-			}
-			
-			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), contentType);
+			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return failure(e);
 		}
+	}
+	
+	@Override
+	public CompletableFuture<Void> putStyle(Style style) {
+		try {
+			Document sld = style.getSld();
+			return put(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+
+	private String getStyleContentType(Document sld) {
+		String contentType;
+		Element root = sld.getDocumentElement();
+		if(root.getLocalName().equals("StyledLayerDescriptor")) {
+			String version = root.getAttribute("version");
+			if("1.0.0".equals(version)) {
+				contentType = "application/vnd.ogc.sld+xml";
+			} else if("1.1.0".equals(version)) {
+				contentType = "application/vnd.ogc.se+xml";
+			} else {
+				throw new IllegalStateException("expected: StyledLayerDescriptor[@version = '1.0.0' or @version = '1.1.0']");
+			}
+		} else {
+			throw new IllegalStateException("expected: StyledLayerDescriptor");
+		}
+		return contentType;
 	}
 
 	private byte[] serialize(Document sld) throws TransformerFactoryConfigurationError, TransformerConfigurationException, TransformerException {
@@ -1111,7 +1127,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private Document parse(InputStream is) throws ParserConfigurationException, SAXException, IOException {
+		return parse(is, false);
+	}
+	
+	private Document parse(InputStream is, boolean namespaceAware) throws ParserConfigurationException, SAXException, IOException {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(namespaceAware);
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		return db.parse(is);
 	}
