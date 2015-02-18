@@ -10,7 +10,9 @@
 				<input type="hidden" value="@grouplayer.getId()" name="structure[]">
 				<div class="row">
 					<div class="col-sm-11 groupTree">
-						@helper.groupStructureItem(grouplayer)
+						<ul class="treelist">
+							@helper.groupStructureItem(grouplayer)
+						</ul>
 					</div>
 					<!-- no delete button -->
 				</div>
@@ -22,7 +24,9 @@
 				<input type="hidden" value="@layer.getId()" name="structure[]">
 				<div class="row">
 					<div class="col-sm-11 groupTree">
-						@helper.groupStructureItem(layer)
+						<ul class="treelist">
+							@helper.groupStructureItem(layer)
+						</ul>
 					</div>
 					<div class="col-sm-1">
 						<div class="pull-right tree-item-delete">
