@@ -102,10 +102,8 @@
 						<a href="@routes.Groups.list()" 
 							class="btn btn-success"> @Domain.message("web.application.button.cancel")
 						</a>
-						<a class="btn btn-success">
-							@Domain.message("web.application.button.preview")
-						</a>
-						<a class="btn btn-success">
+						@helper.preview("")
+						<a class="btn btn-success" disabled="disabled">
 							@Domain.message("web.application.button.tilingproperties")
 						</a>
 					</div>
