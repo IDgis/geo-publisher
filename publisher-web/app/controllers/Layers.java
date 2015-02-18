@@ -217,8 +217,8 @@ public class Layers extends GroupsLayersCommon {
 							.get(Dataset.class, layer.datasetId())
 							.get(Service.class, serviceId)
 							.execute (new Function2<Dataset, Service, Result> () {
-								@Override
-								
+
+							@Override
 							public Result apply (final Dataset dataset, final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);

@@ -6,7 +6,8 @@
 	create: Boolean,
 	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
-	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer
+	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer,
+	previewUrl: java.lang.String
 )
 
 @layout.application( 
@@ -102,7 +103,7 @@
 						<a href="@routes.Groups.list()" 
 							class="btn btn-success"> @Domain.message("web.application.button.cancel")
 						</a>
-						@helper.preview("")
+						@helper.preview(previewUrl)
 						<a class="btn btn-success" disabled="disabled">
 							@Domain.message("web.application.button.tilingproperties")
 						</a>
