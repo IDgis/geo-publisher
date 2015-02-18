@@ -7,6 +7,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QService.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
@@ -27,6 +29,7 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.utils.StreamUtils;
@@ -56,9 +59,26 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		doPut(LayerGroup.class, this::handlePutLayergroup);
 		doDelete(LayerGroup.class, this::handleDeleteLayergroup);
 		
+		doQueryOptional(GetLayerServices.class, this::handleGetLayerServices);
+		
 		doQueryOptional(GetGroupStructure.class, this::handleGetGroupStructure);
 		doQuery(PutGroupStructure.class, this::handlePutGroupStructure);
 
+	}
+
+	private CompletableFuture<Optional<List<String>>> handleGetLayerServices (GetLayerServices getLayerServices) {
+		log.debug ("handleGetLayerServices of layer: " + getLayerServices.layerId());
+		return f.ask(this.serviceManager, new GetServicesWithLayer(getLayerServices.layerId())).thenApply(resp -> {
+			if(resp instanceof NotFound) {
+				return Optional.empty();
+			} else if (resp instanceof Failure){
+				return Optional.empty();
+			} else {
+				TypedIterable<String> services = (TypedIterable<String>)resp;
+				List<String> serviceList = new ArrayList<String>(services.asCollection());
+				return Optional.of(serviceList);
+			}
+		});
 	}
 
 	private CompletableFuture<Optional<GroupLayer>> handleGetGroupStructure (GetGroupStructure getGroupStructure) {

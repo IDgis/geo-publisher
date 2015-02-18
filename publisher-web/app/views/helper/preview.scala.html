@@ -1,0 +1,7 @@
+@(previewUrl: String)
+
+@if(previewUrl!=null && !previewUrl.isEmpty()){
+	<a href="@previewUrl" target="_blank"
+		class="btn btn-info"> @Domain.message("web.application.button.preview")
+	</a>
+}

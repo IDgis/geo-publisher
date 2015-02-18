@@ -2,7 +2,8 @@
  create: Boolean,
  allStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
  layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
- layerStyleListString: java.lang.String)
+ layerStyleListString: java.lang.String,
+ previewUrl: java.lang.String)
 
 
 @import nl.idgis.publisher.domain.web._ 
@@ -117,8 +118,8 @@
 						<a href="@routes.Layers.list()" 
 							class="btn btn-success"> @Domain.message("web.application.button.cancel")
 						</a>
-						<button class="btn btn-success" type="button">@Domain.message("web.application.button.preview")</button>
-						<button class="btn btn-success" type="button">@Domain.message("web.application.button.tilingproperties")</button>
+						@helper.preview(previewUrl)
+						<button class="btn btn-success" type="button" disabled="disabled">@Domain.message("web.application.button.tilingproperties")</button>
 					</div>
 				</div>
 			</form>

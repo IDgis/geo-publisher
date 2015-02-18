@@ -12,8 +12,10 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
+import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -22,6 +24,7 @@ import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.Service;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -42,9 +45,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
-public class Layers extends Controller {
+public class Layers extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_LAYER#";
+	
 	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -56,7 +60,7 @@ public class Layers extends Controller {
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
 						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, ""));
+						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, "", ""));
 					}
 				});
 	}
@@ -152,7 +156,7 @@ public class Layers extends Controller {
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
-					Logger.debug ("Layer list #: " + layers.values().size());
+					Logger.debug ("Layer list : #" + layers.values().size());
 					return ok (list.render (layers));
 				}
 			});
@@ -196,16 +200,26 @@ public class Layers extends Controller {
 			.get (Layer.class, layerId)
 			.list (Style.class)
 			.query(new ListLayerStyles(layerId))
-			.executeFlat (new Function3<Layer, Page<Style>, List<Style>, Promise<Result>> () {
+			.query(new GetLayerServices(layerId))
+			.executeFlat (new Function4<Layer, Page<Style>, List<Style>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> serviceIds) throws Throwable {
+					String serviceId;
+					if (serviceIds==null || serviceIds.isEmpty()){
+						serviceId="";
+					} else {
+						Logger.debug ("Services for layer: " + layer.name() + " # " + serviceIds.size());								
+						// get the first service in the list for preview
+						serviceId=serviceIds.get(0);
+					}
 					return from (database)
 							.get(Dataset.class, layer.datasetId())
-							.execute (new Function<Dataset, Result> () {
-								@Override
-								
-							public Result apply (final Dataset dataset) throws Throwable {
+							.get(Service.class, serviceId)
+							.execute (new Function2<Dataset, Service, Result> () {
+
+							@Override
+							public Result apply (final Dataset dataset, final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
 								if (layerStyles==null){
@@ -221,9 +235,8 @@ public class Layers extends Controller {
 										.fill (layerForm);
 								
 								Logger.debug ("Edit layerForm: " + layerForm);						
-			
-								Logger.debug ("allStyles: " + allStyles.values().size());
-								Logger.debug ("layerStyles: " + layerStyles.size());
+								Logger.debug ("allStyles: #" + allStyles.values().size());
+								Logger.debug ("layerStyles: #" + layerStyles.size());
 								
 								// build a json string with list of styles (style.name, style.id) 
 								final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
@@ -234,9 +247,16 @@ public class Layers extends Controller {
 								}					
 								final String layerStyleListString = Json.stringify (arrayNode);
 								
-								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString));
+								// build a preview string
+								final String previewUrl ;
+								if (service==null){
+									previewUrl = null;
+								} else {
+									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-							});
+								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
+							}
+						});
 				}
 			});
 	}

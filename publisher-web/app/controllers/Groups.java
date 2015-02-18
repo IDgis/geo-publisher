@@ -3,46 +3,40 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
-import controllers.Groups.GroupForm;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function3;
 import models.Domain.Function4;
+import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
-import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
-import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
-import play.libs.F;
 import play.libs.F.Promise;
-import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.groups.list;
 import views.html.groups.form;
+import views.html.groups.list;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
-public class Groups extends Controller {
+public class Groups extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_GROUP#";
 	
@@ -55,7 +49,7 @@ public class Groups extends Controller {
 
 				@Override
 				public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-					return ok (form.render (groupForm, true, groups, layers, null));
+					return ok (form.render (groupForm, true, groups, layers, null, null));
 				}
 			});
 
@@ -166,32 +160,57 @@ public class Groups extends Controller {
 			.query (new GetGroupStructure(groupId))
 			.list (LayerGroup.class)
 			.list (Layer.class)
-			.execute (new Function4<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, Result> () {
+			.query(new GetLayerServices(groupId))
+			.executeFlat (new Function5<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Result apply (final LayerGroup group, final GroupLayer groupLayer, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-					final Form<GroupForm> groupForm = Form
-							.form (GroupForm.class)
-							.fill (new GroupForm (group));
-					
-					Logger.debug ("Edit groupForm: " + groupForm);
-					
-					if(groupLayer==null){
-						Logger.debug ("Group could not be edited: " + groupId);
-						flash ("danger", 
-							Domain.message("web.application.editing") + " " + 
-							Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
-							Domain.message("web.application.failed").toLowerCase()
-							+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
-						return redirect(routes.Groups.list ());
+				public Promise<Result> apply (final LayerGroup group, final GroupLayer groupLayer, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> serviceIds) throws Throwable {
+					String serviceId;
+					if (serviceIds==null || serviceIds.isEmpty()){
+						serviceId="";
+					} else {
+						Logger.debug ("Services for group: " + group.name() + " # " + serviceIds.size());								
+						// get the first service in the list for preview
+						serviceId=serviceIds.get(0);
 					}
-					
-					Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
-					for (nl.idgis.publisher.domain.web.tree.Layer layer : groupLayer.getLayers()) {
-						Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
-					}
+					return from (database)
+							.get(Service.class, serviceId)
+							.execute (new Function<Service, Result> () {
 
-					return ok (form.render (groupForm, false, groups, layers, groupLayer));
+							@Override
+							public Result apply (final Service service) throws Throwable {
+									
+								final Form<GroupForm> groupForm = Form
+										.form (GroupForm.class)
+										.fill (new GroupForm (group));
+								
+								Logger.debug ("Edit groupForm: " + groupForm);
+								
+								if(groupLayer==null){
+									Logger.debug ("Group could not be edited: " + groupId);
+									flash ("danger", 
+										Domain.message("web.application.editing") + " " + 
+										Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
+										Domain.message("web.application.failed").toLowerCase()
+										+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
+									return redirect(routes.Groups.list ());
+								}
+								
+								Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
+								for (nl.idgis.publisher.domain.web.tree.Layer layer : groupLayer.getLayers()) {
+									Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
+								}
+			
+								// build a preview string
+								final String previewUrl ;
+								if (service==null){
+									previewUrl = null;
+								} else {
+									previewUrl = makePreviewUrl(service.name(), group.name());
+								}
+								return ok (form.render (groupForm, false, groups, layers, groupLayer, previewUrl));
+							}
+							});
 				}
 			});
 	}
