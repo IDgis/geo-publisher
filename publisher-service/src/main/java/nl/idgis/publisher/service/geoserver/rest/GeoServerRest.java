@@ -46,4 +46,8 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> putWorkspaceSettings(Workspace workspace, WorkspaceSettings workspaceSettings);
 
 	CompletableFuture<WorkspaceSettings> getWorkspaceSettings(Workspace workspace);
+	
+	CompletableFuture<Optional<Style>> getStyle(String styleId);
+	
+	CompletableFuture<List<CompletableFuture<Style>>> getStyles();
 }

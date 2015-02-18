@@ -23,6 +23,7 @@ import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.Logging;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;
@@ -30,6 +31,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import org.w3c.dom.Document;
 
 import akka.actor.ActorSystem;
@@ -59,8 +61,8 @@ public class DefaultGeoServerRestTest {
 		stmt.close();
 				
 		connection.close();
-		
-		service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
+				
+		service = new DefaultGeoServerRest(Logging.getLogger(), "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	} 
 	
 	@Before
@@ -249,5 +251,10 @@ public class DefaultGeoServerRestTest {
 		service.putServiceSettings(workspace, ServiceType.WFS, serviceSettings).get();
 		
 		assertEquals(serviceSettings, service.getServiceSettings(workspace, ServiceType.WFS).get().get());
+	}
+	
+	@Test
+	public void testStyles() throws Exception {
+		f.sequence(service.getStyles().get()).get();		
 	}
 }

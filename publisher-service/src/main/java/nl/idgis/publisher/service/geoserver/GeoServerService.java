@@ -78,7 +78,7 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	public static Props props(ActorRef serviceManager, Config geoserverConfig, Config databaseConfig) {
-		String serviceLocation = geoserverConfig.getString("url") + "rest/";
+		String serviceLocation = geoserverConfig.getString("url");
 		String user = geoserverConfig.getString("user");
 		String password = geoserverConfig.getString("password");		
 		
@@ -105,7 +105,7 @@ public class GeoServerService extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		rest = new DefaultGeoServerRest(serviceLocation, user, password);
+		rest = new DefaultGeoServerRest(log, serviceLocation, user, password);
 		f = new FutureUtils(getContext().dispatcher());
 	}
 	

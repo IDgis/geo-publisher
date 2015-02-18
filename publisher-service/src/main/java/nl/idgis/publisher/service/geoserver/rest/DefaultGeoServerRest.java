@@ -36,17 +36,25 @@ import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
 
+import akka.event.LoggingAdapter;
+
 public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final String RECURSE = "?recurse=true";
+	
+	private final LoggingAdapter log;
 
 	private final String authorization;
+	
+	private final String restLocation;
 	
 	private final String serviceLocation;
 	
 	private final AsyncHttpClient asyncHttpClient;
 	
-	public DefaultGeoServerRest(String serviceLocation, String user, String password) throws Exception {		
+	public DefaultGeoServerRest(LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {		
+		this.log = log;
+		this.restLocation = serviceLocation + "rest/";
 		this.serviceLocation = serviceLocation;
 		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));
 		
@@ -54,9 +62,16 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Optional<Document>> get(String path) {
+		return get(path, true);
+	}
+	
+	private CompletableFuture<Optional<Document>> get(String path, boolean appendSuffix) {
+		String url = path + (appendSuffix ? ".xml" : "");
+		log.debug("fetching {}", url);
+		
 		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
 		
-		asyncHttpClient.prepareGet(path + ".xml")
+		asyncHttpClient.prepareGet(url)
 			.addHeader("Authorization", authorization)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -78,10 +93,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
 						future.complete(Optional.empty());
 					} else {
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					}
 				} catch(Exception e) {
-					future.completeExceptionally(new GeoServerException(e));
+					future.completeExceptionally(new GeoServerException(path, e));
 				}
 				
 				return response;
@@ -108,7 +123,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();					
 					if(responseCode != HttpURLConnection.HTTP_OK) {	
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -118,7 +133,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 				
 			});
@@ -126,7 +141,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
-	private CompletableFuture<Void> put(String path, byte[] document) {
+	private CompletableFuture<Void> put(String path, byte[] document) {		
+		log.debug("put {}", path);
+		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePut(path)
@@ -139,7 +156,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
 					if(responseCode != HttpURLConnection.HTTP_OK) {
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -149,14 +166,16 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 			});
 		
 		return future;
 	}
 	
-	private CompletableFuture<Void> post(String path, byte[] document) {
+	private CompletableFuture<Void> post(String path, byte[] document) {		
+		log.debug("posting {}", path);
+		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePost(path)
@@ -169,7 +188,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
 					if(responseCode != HttpURLConnection.HTTP_CREATED) {	
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -179,7 +198,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 			});
 		
@@ -187,7 +206,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private String getServiceSettingsPath(Workspace workspace, ServiceType serviceType) {
-		return serviceLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
+		return restLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
 			+ workspace.getName() + "/settings";
 	}
 	
@@ -285,8 +304,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	private String getWorkspacesPath() {
-		return serviceLocation + "workspaces";
-	}	
+		return restLocation + "workspaces";
+	}
 	
 	@Override
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
@@ -966,6 +985,84 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					} else {
 						future.complete(Optional.empty());
 					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+	
+	private String getStylePath(String styleId) {
+		return getStylesPath() + "/" + styleId;
+	}
+
+	private String getStylesPath() {
+		return restLocation + "styles";
+	}
+
+	@Override
+	public CompletableFuture<Optional<Style>> getStyle(String styleId) {
+		CompletableFuture<Optional<Style>> future = new CompletableFuture<>();
+		
+		CompletableFuture<String> fileNameFuture = new CompletableFuture<>();
+		fileNameFuture.thenAccept(fileName -> {
+			get(serviceLocation + "/styles/" + fileName, false).whenComplete((optionalDocument, t) -> {
+				if(t != null) {
+					future.completeExceptionally(t);
+				} else {
+					try {
+						future.complete(Optional.of(new Style(styleId, optionalDocument.get())));
+					} catch(Exception e) {
+						future.completeExceptionally(e);	
+					}
+				}
+			});
+		});
+		
+		get(getStylePath(styleId)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();
+						
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						fileNameFuture.complete((String)xpath.evaluate("style/filename", document, XPathConstants.STRING));						
+					} else {
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+	
+	@Override
+	public CompletableFuture<List<CompletableFuture<Style>>> getStyles() {
+		CompletableFuture<List<CompletableFuture<Style>>> future = new CompletableFuture<>();
+		
+		get(getStylesPath()).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					List<CompletableFuture<Style>> retval = new ArrayList<>();
+					
+					Document document = optionalDocument.get();
+					XPath xpath = XPathFactory.newInstance().newXPath();
+					NodeList styleNameNodes = (NodeList)xpath.evaluate("styles/style/name", document, XPathConstants.NODESET);
+					for(int i = 0; i < styleNameNodes.getLength(); i++) {
+						Node styleNameNode = styleNameNodes.item(i);
+						retval.add(getStyle(styleNameNode.getTextContent()).thenApply(this::present));
+					}
+					
+					future.complete(retval);
 				} catch(Exception e) {
 					future.completeExceptionally(e);
 				}

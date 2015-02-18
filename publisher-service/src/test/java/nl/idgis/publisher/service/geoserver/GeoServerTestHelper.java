@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +36,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.ning.http.util.Base64;
 import com.vividsolutions.jts.geom.Geometry;
+
+import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
@@ -283,8 +286,8 @@ public class GeoServerTestHelper {
 		return documentBuilder.parse(getServiceUrl(serviceName, ServiceType.WFS) + "?request=GetFeature&service=WFS&version=1.1.0&typeName=" + typeName);
 	}	
 	
-	public void clean() throws Exception {	
-		GeoServerRest service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
+	public void clean() throws Exception {
+		GeoServerRest service = new DefaultGeoServerRest(mock(LoggingAdapter.class), "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 		for(Workspace workspace : service.getWorkspaces().get()) {
 			service.deleteWorkspace(workspace).get();
 		}
