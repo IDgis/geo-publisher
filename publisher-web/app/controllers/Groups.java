@@ -3,46 +3,36 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
-import controllers.Groups.GroupForm;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function3;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
-import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
-import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
-import play.libs.F;
 import play.libs.F.Promise;
-import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.groups.list;
 import views.html.groups.form;
+import views.html.groups.list;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
-public class Groups extends Controller {
+public class Groups extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_GROUP#";
 	

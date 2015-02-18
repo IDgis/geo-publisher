@@ -12,6 +12,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.query.GetLayerServices;
@@ -44,42 +45,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
-public class Layers extends Controller {
+public class Layers extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_LAYER#";
-	
-	private static String getConfig(String configKey){
-		return Play.application().configuration().getString(configKey);
-	}
-	
-	private static String makePreviewUrl(String serviceId, String layerId){
-		/*
-		 * https://overijssel.geo-hosting.nl/geoserver/b2/wms?service=WMS&version=1.1.0&request=GetMap&layers=b2:strooizout&styles=&bbox=203383.0,475045.0,248661.0,519851.0&width=512&height=506&srs=EPSG:28992&format=application/openlayers
-		 * https://overijssel.geo-hosting.nl/geoserver/b2/wms?service=WMS&version=1.1.0&request=GetMap&layers=b2:f700bc0e-af86-41fe-ba3c-5edbed328f10&styles=&bbox=203383.0,475045.0,248661.0,519851.0&width=512&height=512&srs=EPSG:28992&format=application/openlayers
-		 */
-
-		StringBuilder url = new StringBuilder();
-		url.append(getConfig("publisher.preview.geoserverUrl"));
-		url.append("/" + serviceId);
-		url.append("/wms?");
-		url.append(getConfig("publisher.preview.serviceRequest"));
-		url.append("&");
-		url.append("layers="  + serviceId + ":"+ layerId);
-		url.append("&");
-		url.append("styles=" + getConfig("publisher.preview.styles"));
-		url.append("&");
-		url.append("bbox=" + getConfig("publisher.preview.bbox"));
-		url.append("&");
-		url.append("width=" + getConfig("publisher.preview.width"));
-		url.append("&");
-		url.append("height=" + getConfig("publisher.preview.height"));
-		url.append("&");
-		url.append("srs=" + getConfig("publisher.preview.srs"));
-		url.append("&");
-		url.append("format=" + getConfig("publisher.preview.format"));
-		
-		return url.toString();
-	}
 	
 	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
@@ -188,7 +156,7 @@ public class Layers extends Controller {
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
-					Logger.debug ("Layer list #: " + layers.values().size());
+					Logger.debug ("Layer list : #" + layers.values().size());
 					return ok (list.render (layers));
 				}
 			});
@@ -232,17 +200,26 @@ public class Layers extends Controller {
 			.get (Layer.class, layerId)
 			.list (Style.class)
 			.query(new ListLayerStyles(layerId))
-			.executeFlat (new Function3<Layer, Page<Style>, List<Style>, Promise<Result>> () {
+			.query(new GetLayerServices(layerId))
+			.executeFlat (new Function4<Layer, Page<Style>, List<Style>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> serviceIds) throws Throwable {
+					String serviceId;
+					if (serviceIds==null || serviceIds.isEmpty()){
+						serviceId="";
+					} else {
+						Logger.debug ("Services for layer: " + layer.name() + " # " + serviceIds.size());								
+						// get the first service in the list for preview
+						serviceId=serviceIds.get(0);
+					}
 					return from (database)
 							.get(Dataset.class, layer.datasetId())
-							.query(new GetLayerServices(layer.id()))
-							.executeFlat (new Function2<Dataset, List<String>, Promise<Result>> () {
+							.get(Service.class, serviceId)
+							.execute (new Function2<Dataset, Service, Result> () {
 								@Override
 								
-							public Promise<Result> apply (final Dataset dataset, final List<String> services) throws Throwable {
+							public Result apply (final Dataset dataset, final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
 								if (layerStyles==null){
@@ -258,9 +235,8 @@ public class Layers extends Controller {
 										.fill (layerForm);
 								
 								Logger.debug ("Edit layerForm: " + layerForm);						
-			
 								Logger.debug ("allStyles: #" + allStyles.values().size());
-								Logger.debug ("layerStyles: " + layerStyles.size());
+								Logger.debug ("layerStyles: #" + layerStyles.size());
 								
 								// build a json string with list of styles (style.name, style.id) 
 								final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
@@ -271,22 +247,14 @@ public class Layers extends Controller {
 								}					
 								final String layerStyleListString = Json.stringify (arrayNode);
 								
-								if (services==null || services.isEmpty()){
-									return Promise.pure(ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, "")));
+								// build a preview string
+								final String previewUrl ;
+								if (service==null){
+									previewUrl = null;
 								} else {
-									Logger.debug ("Services for layer: " + layer.name() + " # " + services.size());								
-									return from (database)
-										// get the first service in the list for preview
-										.get(Service.class, services.get(0))
-										.execute (new Function<Service, Result> () {
-											@Override												
-											public Result apply (final Service service) throws Throwable {									
-												// build a preview string
-												final String previewUrl = makePreviewUrl(service.name(), layer.name());
-												return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
-												}
-											});
+									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
+								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
 							}
 						});
 				}
