@@ -487,11 +487,9 @@ public class GeoServerService extends UntypedActor {
 										log.debug("existing data store found: publisher-geometry");
 										
 										DataStore dataStore = optionalDataStore.get();										
-										return rest.getFeatureTypes(workspace, dataStore)
-											.thenCompose(f::sequence)
+										return rest.getFeatureTypes(workspace, dataStore)											
 											.thenCompose(featureTypes ->
-												rest.getLayerGroups(workspace)
-												.thenCompose(f::sequence)
+												rest.getLayerGroups(workspace)												
 												.thenCompose(layerGroups -> {
 													
 											log.debug("feature types and layer groups retrieved");

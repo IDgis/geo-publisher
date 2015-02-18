@@ -14,7 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
@@ -95,7 +94,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(workspace);
 		assertEquals("testWorkspace", workspace.getName());
 		
-		List<CompletableFuture<DataStore>> dataStores = service.getDataStores(workspace).get();
+		List<DataStore> dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
 		assertTrue(dataStores.isEmpty());
 		
@@ -113,7 +112,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(dataStores);
 		assertEquals(1, dataStores.size());
 		
-		DataStore dataStore = dataStores.get(0).get();
+		DataStore dataStore = dataStores.get(0);
 		assertNotNull(dataStore);
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
@@ -124,7 +123,7 @@ public class DefaultGeoServerRestTest {
 		assertEquals("postgis", connectionParameters.get("dbtype"));
 		assertEquals("public", connectionParameters.get("schema"));
 		
-		List<CompletableFuture<FeatureType>> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
@@ -134,7 +133,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertEquals(1, featureTypes.size());
 		
-		FeatureType featureType = featureTypes.get(0).get();
+		FeatureType featureType = featureTypes.get(0);
 		assertNotNull(featureType);
 		
 		assertEquals("test", featureType.getName());
@@ -156,14 +155,14 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(attribute);
 		assertEquals("the_geom", attribute.getName());
 		
-		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).get();
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
-		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		layerGroups = service.getLayerGroups(workspace).get();
 		assertNotNull(layerGroups);
 		
 		Iterator<LayerGroup> itr = layerGroups.iterator();
@@ -252,6 +251,6 @@ public class DefaultGeoServerRestTest {
 	
 	@Test
 	public void testStyles() throws Exception {
-		f.sequence(service.getStyles().get()).get();		
+		service.getStyles().get();		
 	}
 }

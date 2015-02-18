@@ -114,9 +114,9 @@ public class GeoServerServiceTest {
 	
 	static GeoServerTestHelper h;
 	
-	static ActorSystem actorSystem;
+	ActorSystem actorSystem;
 	
-	static FutureUtils f;
+	FutureUtils f;
 	
 	ActorRef serviceManager, geoServerService, recorder;
 	
@@ -138,14 +138,6 @@ public class GeoServerServiceTest {
 		stmt.close();
 		
 		connection.close();
-		
-		Config akkaConfig = ConfigFactory.empty()
-			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
-			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
-		
-		actorSystem = ActorSystem.create("test", akkaConfig);
-		
-		f = new FutureUtils(actorSystem.dispatcher());
 	}
 	
 	@AfterClass
@@ -160,6 +152,14 @@ public class GeoServerServiceTest {
 	
 	@Before
 	public void actors() throws Exception {
+		
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		actorSystem = ActorSystem.create("test", akkaConfig);
+		
+		f = new FutureUtils(actorSystem.dispatcher());
 		
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		

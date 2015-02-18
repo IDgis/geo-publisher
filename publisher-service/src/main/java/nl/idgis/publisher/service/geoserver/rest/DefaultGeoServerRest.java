@@ -388,7 +388,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) {
+	public CompletableFuture<List<DataStore>> getDataStores(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
 		
 		get(getDataStoresPath(workspace)).whenComplete((optionalDocument, t) -> {
@@ -413,7 +413,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 
 	@Override
@@ -498,7 +498,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
+	public CompletableFuture<List<FeatureType>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
 		
 		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((optionalDocument, t) -> {
@@ -523,7 +523,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 	
 	@Override
@@ -660,7 +660,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace) {
+	public CompletableFuture<List<LayerGroup>> getLayerGroups(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<LayerGroup>>> future = new CompletableFuture<>();
 		
 		get(getLayerGroupsPath(workspace)).whenComplete((optionalDocument, t) -> {
@@ -685,7 +685,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 	
 	@Override
@@ -1049,7 +1049,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<CompletableFuture<Style>>> getStyles() {
+	public CompletableFuture<List<Style>> getStyles() {
 		CompletableFuture<List<CompletableFuture<Style>>> future = new CompletableFuture<>();
 		
 		get(getStylesPath()).whenComplete((optionalDocument, t) -> {
@@ -1074,6 +1074,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 }
