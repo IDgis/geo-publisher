@@ -266,7 +266,7 @@ public class DefaultGeoServerRestTest {
 	public void testStyles() throws Exception {
 		assertFalse(
 			service.getStyles().get().stream()
-				.map(style -> style.getStyleId())			
+				.map(style -> style.getName())			
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
@@ -282,7 +282,7 @@ public class DefaultGeoServerRestTest {
 		
 		Map<String, Document> styles = service.getStyles().get().stream()
 			.collect(Collectors.toMap(
-				style -> style.getStyleId(), 
+				style -> style.getName(), 
 				style -> style.getSld()));
 		
 		Document sld = styles.get("green");

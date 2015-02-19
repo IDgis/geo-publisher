@@ -1077,7 +1077,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> postStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
+			return post(getStylesPath() + "?name=" + style.getName(), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
@@ -1087,7 +1087,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> putStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return put(getStylePath(style.getStyleId()), serialize(sld), getStyleContentType(sld));
+			return put(getStylePath(style.getName()), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return f.failed(e);
 		}

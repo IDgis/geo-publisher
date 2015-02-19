@@ -4,17 +4,17 @@ import org.w3c.dom.Document;
 
 public class Style {
 
-	private final String styleId;
+	private final String name;
 	
 	private final Document sld;
 	
-	public Style(String styleId, Document sld) {
-		this.styleId = styleId;
+	public Style(String name, Document sld) {
+		this.name = name;
 		this.sld = sld;
 	}
 
-	public String getStyleId() {
-		return styleId;
+	public String getName() {
+		return name;
 	}
 
 	public Document getSld() {
@@ -23,6 +23,6 @@ public class Style {
 
 	@Override
 	public String toString() {
-		return "Style [styleId=" + styleId + ", sld=" + sld + "]";
+		return "Style [name=" + name + ", sld=" + sld + "]";
 	}
 }
