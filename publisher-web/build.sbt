@@ -1,6 +1,6 @@
 name := """publisher-web"""
 
-version := "0.0.1-SNAPSHOT"
+version := (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
@@ -22,7 +22,11 @@ libraryDependencies ++= Seq(
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
 
-pipelineStages := Seq(rjs)
+excludeFilter in (Assets, LessKeys.less) := "_*.less"
+
+LessKeys.compress := false
+
+// pipelineStages := Seq(rjs)
 
 resolvers += Resolver.mavenLocal
 
