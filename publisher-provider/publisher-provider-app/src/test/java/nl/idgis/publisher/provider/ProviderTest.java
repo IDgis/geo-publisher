@@ -52,6 +52,8 @@ import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
+import nl.idgis.publisher.recorder.messages.Wait;
+import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -126,13 +128,11 @@ public class ProviderTest {
 		}
 		
 		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
-			for(final String tableName : tableNames) {				
-				assertHasNext("database interaction for: " + tableName)
-				.assertNext(DescribeTable.class, describeTable -> {
+			for(final String tableName : tableNames) {
+				assertNext("describe table for: " + tableName, DescribeTable.class, describeTable -> {
 					assertEquals(tableName, describeTable.getTableName());						
-				})
-				.assertHasNext("database interaction for: " + tableName)
-				.assertNext(PerformCount.class, performCount -> {
+				})				
+				.assertNext("perform count for: " + tableName, PerformCount.class, performCount -> {
 					assertEquals(tableName, performCount.getTableName());
 				});
 			}
@@ -197,7 +197,9 @@ public class ProviderTest {
 		}		
 	}
 	
-	private DatabaseRecording replayRecording() throws Exception {
+	private DatabaseRecording replayRecording(int expectedMessageCount) throws Exception {
+		sync.ask(recorder, new Wait(expectedMessageCount), Waited.class);
+		
 		return new DatabaseRecording(sync.ask(recorder, new GetRecording(), Recording.class));
 	}
 	
@@ -213,10 +215,8 @@ public class ProviderTest {
 	public void testListDatasetInfo() throws Exception {
 		sync.ask(provider, new ListDatasetInfo(metadataType), End.class);
 		
-		replayRecording()
-			.assertHasNext()
-			.assertNext(GetAllMetadata.class)
-			.assertDatabaseInteraction()
+		replayRecording(1)
+			.assertNext(GetAllMetadata.class)			
 			.assertNotHasNext();
 		
 		final String firstTableName = getTable();
@@ -229,8 +229,7 @@ public class ProviderTest {
 		
 		sync.askSender(new NextItem(), End.class);
 		
-		replayRecording()
-			.assertHasNext()
+		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)				
 			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
@@ -246,8 +245,7 @@ public class ProviderTest {
 		
 		sync.askSender(new NextItem(), End.class);		
 		
-		replayRecording()
-			.assertHasNext()
+		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)			
 			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
@@ -269,8 +267,7 @@ public class ProviderTest {
 		
 		sync.askSender(new NextItem(), End.class);
 		
-		replayRecording()
-			.assertHasNext()
+		replayRecording(5)
 			.assertNext(GetAllMetadata.class)
 			.assertDatabaseInteraction(firstTableName, secondTableName)
 			.assertNotHasNext();
@@ -281,12 +278,10 @@ public class ProviderTest {
 		DatasetNotFound notFound = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class);
 		assertEquals("test", notFound.getIdentification());		
 		
-		replayRecording()
-			.assertHasNext()
+		replayRecording(1)
 			.assertNext(GetMetadata.class, msg -> {
 				assertEquals("test", msg.getIdentification());
-			})
-			.assertDatabaseInteraction()
+			})			
 			.assertNotHasNext();
 		
 		sync.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
@@ -296,8 +291,7 @@ public class ProviderTest {
 		UnavailableDatasetInfo unavailableDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class);
 		assertEquals("test", unavailableDatasetInfo.getIdentification());		
 		
-		replayRecording()
-			.assertHasNext()
+		replayRecording(3)
 			.assertNext(GetMetadata.class, msg -> {				
 				assertEquals("test", msg.getIdentification());				
 			})				
