@@ -1,6 +1,6 @@
 name := """publisher-web"""
 
-version := "0.0.1-SNAPSHOT"
+version := (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
@@ -24,7 +24,7 @@ includeFilter in (Assets, LessKeys.less) := "*.less"
 
 excludeFilter in (Assets, LessKeys.less) := "_*.less"
 
-LessKeys.compress := true
+LessKeys.compress := false
 
 // pipelineStages := Seq(rjs)
 
