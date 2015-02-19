@@ -6,8 +6,8 @@ jdk:
   - oraclejdk8
 env:
   global:
-    - secure: "PJra2mzyZk5Nvo3AwWYckFtm5UiIpLj/qhTKsFgT45Z3Q+dDUTyLaS7WiKrRvDAwPXM3OZQ/wDpsyEQ18rTGxoW3j8eEb8zTsh3oRC1UtIA9ycVM+GdzDNLijULd9WRhkxwryGlPkox/zi4wD+oDxzHUJdX2HaIrQztIN+uPhtM="
-    - secure: "BWxUa5+0+KBjW3LMGAg9dl9gs2Tog+xnev+W/reJKNtBNceYi+krEpiD2WISZFWE+HNc3sGkjIC3flL1GNTfEwqKNI9G0oXeNeahgfP7ObKPXCPqIeIU0SqnpFfF+DYHtqq7oK+A0Og/yo7MLZ+fliu8XbcjCq0NINl9UfnpXzs="
+#   - secure: "PJra2mzyZk5Nvo3AwWYckFtm5UiIpLj/qhTKsFgT45Z3Q+dDUTyLaS7WiKrRvDAwPXM3OZQ/wDpsyEQ18rTGxoW3j8eEb8zTsh3oRC1UtIA9ycVM+GdzDNLijULd9WRhkxwryGlPkox/zi4wD+oDxzHUJdX2HaIrQztIN+uPhtM="
+#   - secure: "BWxUa5+0+KBjW3LMGAg9dl9gs2Tog+xnev+W/reJKNtBNceYi+krEpiD2WISZFWE+HNc3sGkjIC3flL1GNTfEwqKNI9G0oXeNeahgfP7ObKPXCPqIeIU0SqnpFfF+DYHtqq7oK+A0Og/yo7MLZ+fliu8XbcjCq0NINl9UfnpXzs="
     - SBT_OPTS="-Dsbt.global.base=/home/travis/build/IDgis/geo-publisher/travis/sbt"
 cache:
   directories:
