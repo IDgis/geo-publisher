@@ -266,7 +266,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			return put(getServiceSettingsPath(workspace, serviceType), serialize(document));
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 	
@@ -290,15 +290,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			return post(getWorkspacesPath(), os.toByteArray());
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
-	}
-
-	private <T> CompletableFuture<T> failure(Exception e) {
-		CompletableFuture<T> future = new CompletableFuture<>();
-		future.completeExceptionally(new GeoServerException(e));
-		return future;
-	}
+	}	
 	
 	private String getWorkspacePath(String workspaceId) {
 		return getWorkspacesPath() + "/" + workspaceId;
@@ -442,7 +436,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			return post(getDataStoresPath(workspace), os.toByteArray());			
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 
@@ -531,7 +525,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		try {
 			return put(getFeatureTypePath(workspace, dataStore, featureType), getFeatureTypeDocument(featureType));
 		} catch(Exception e) {			
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 
@@ -583,7 +577,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		try {
 			return post(getFeatureTypesPath(workspace, dataStore), getFeatureTypeDocument(featureType));
 		} catch(Exception e) {			
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 	
@@ -693,7 +687,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		try {
 			return put(getLayerGroupPath(workspace, layerGroup), getLayerGroupDocument(workspace, layerGroup));
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 	
@@ -702,7 +696,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		try {
 			return post(getLayerGroupsPath(workspace), getLayerGroupDocument(workspace, layerGroup));
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 
@@ -741,7 +735,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
 					sw.writeStartElement("name");
 						// layerGroup references without workspace prefix are not correctly resolved
-						sw.writeCharacters(workspace.getName() + ":" + layerRef.getLayerId());
+						sw.writeCharacters(workspace.getName() + ":" + layerRef.getLayerName());
 					sw.writeEndElement();
 				sw.writeEndElement();
 			}
@@ -972,7 +966,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			return put(getWorkspaceSettingsPath(workspace), os.toByteArray());
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 	
@@ -1013,6 +1007,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		
 		CompletableFuture<String> fileNameFuture = new CompletableFuture<>();
 		fileNameFuture.thenAccept(fileName -> {
+			// we use an alternative end-point here because the one in /rest
+			// wrongly raises 404 in some cases. 
 			get(serviceLocation + "/styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
 				if(t != null) {
 					future.completeExceptionally(t);
@@ -1083,7 +1079,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			Document sld = style.getSld();
 			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 	
@@ -1093,7 +1089,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			Document sld = style.getSld();
 			return put(getStylePath(style.getStyleId()), serialize(sld), getStyleContentType(sld));
 		} catch(Exception e) {
-			return failure(e);
+			return f.failed(e);
 		}
 	}
 
@@ -1135,5 +1131,85 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		dbf.setNamespaceAware(namespaceAware);
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		return db.parse(is);
+	}
+	
+	private String getLayerPath(Workspace workspace, Layer layer) {
+		return getLayerPath(workspace, layer.getName());
+	}
+	
+	private String getLayerPath(Workspace workspace, FeatureType featureType) {
+		return getLayerPath(workspace, featureType.getName());
+	}
+	
+	private String getLayerPath(Workspace workspace, String name) {
+		return restLocation + "layers/" + workspace.getName() + ":" + name;
+	}
+	
+	public CompletableFuture<Layer> getLayer(Workspace workspace, FeatureType featureType) {
+		CompletableFuture<Layer> future = new CompletableFuture<>();
+		
+		get(getLayerPath(workspace, featureType)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					Document document = optionalDocument.get();
+					XPath xpath = XPathFactory.newInstance().newXPath();
+					
+					String defaultStyleName = (String)xpath.evaluate("layer/defaultStyle/name/text()", document, XPathConstants.STRING);
+					StyleRef defaultStyle = new StyleRef(defaultStyleName);
+					
+					List<StyleRef> additionalStyles = new ArrayList<>();
+					NodeList additionalStyleNames = (NodeList)xpath.evaluate("layer/styles/style/name", document, XPathConstants.NODESET);
+					for(int i = 0; i < additionalStyleNames.getLength(); i++) {
+						additionalStyles.add(new StyleRef(additionalStyleNames.item(i).getTextContent()));
+					}
+					
+					future.complete(new Layer(featureType.getName(), defaultStyle, additionalStyles));
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+	
+	public CompletableFuture<Void> putLayer(Workspace workspace, Layer layer) {
+		try {
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);			
+			sw.writeStartDocument();
+			
+			sw.writeStartElement("layer");
+				sw.writeStartElement("name");
+					sw.writeCharacters(layer.getName());
+				sw.writeEndElement();
+				
+				sw.writeStartElement("defaultStyle");
+					sw.writeStartElement("name");
+						sw.writeCharacters(layer.getDefaultStyle().getStyleName());
+					sw.writeEndElement();
+				sw.writeEndElement();
+				
+				sw.writeStartElement("styles");
+				for(StyleRef style : layer.getAdditionalStyles()) {
+					sw.writeStartElement("style");
+						sw.writeStartElement("name");
+							sw.writeCharacters(style.getStyleName());
+						sw.writeEndElement();
+					sw.writeEndElement();
+				}
+				sw.writeEndElement();
+			sw.writeEndElement();
+			
+			sw.writeEndDocument();
+			
+			return put(getLayerPath(workspace, layer), os.toByteArray());
+		} catch(Exception e) {
+			return f.failed(e);
+		}
 	}
 }

@@ -2,17 +2,17 @@ package nl.idgis.publisher.service.geoserver.rest;
 
 public class LayerRef {
 
-	private final String layerId;
+	private final String layerName;
 	
 	private final boolean group;
 	
-	public LayerRef(String layerId, boolean group) {
-		this.layerId = layerId;
+	public LayerRef(String layerName, boolean group) {
+		this.layerName = layerName;
 		this.group = group;
 	}
 	
-	public String getLayerId() {
-		return layerId;
+	public String getLayerName() {
+		return layerName;
 	}
 	
 	public boolean isGroup() {
@@ -24,7 +24,8 @@ public class LayerRef {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (group ? 1231 : 1237);
-		result = prime * result + ((layerId == null) ? 0 : layerId.hashCode());
+		result = prime * result
+				+ ((layerName == null) ? 0 : layerName.hashCode());
 		return result;
 	}
 
@@ -39,16 +40,17 @@ public class LayerRef {
 		LayerRef other = (LayerRef) obj;
 		if (group != other.group)
 			return false;
-		if (layerId == null) {
-			if (other.layerId != null)
+		if (layerName == null) {
+			if (other.layerName != null)
 				return false;
-		} else if (!layerId.equals(other.layerId))
+		} else if (!layerName.equals(other.layerName))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "LayerRef [layerId=" + layerId + ", group=" + group + "]";
+		return "LayerRef [layerName=" + layerName + ", group=" + group + "]";
 	}
+	
 }
