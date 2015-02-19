@@ -1148,6 +1148,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private String getLayerPath(Workspace workspace, String name) {
+		// there isn't a layers end-point in workspaces/ but it
+		// appeared possible to request a layer using ${workspaceName}:${layerName},
+		// the layer index is not usable because of name collisions (same layer name in different workspaces)
+		// but the layer name seems always identical to the feature type name
 		return restLocation + "layers/" + workspace.getName() + ":" + name;
 	}
 	
