@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -10,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +37,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -103,14 +106,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(dataStores);
 		assertTrue(dataStores.isEmpty());
 		
-		Map<String, String> connectionParameters = new HashMap<>();
-		connectionParameters.put("host", "localhost");
-		connectionParameters.put("port", "" + PgServer.DEFAULT_PORT);
-		connectionParameters.put("database", "test");
-		connectionParameters.put("user", "postgres");
-		connectionParameters.put("passwd", "postgres");
-		connectionParameters.put("dbtype", "postgis");
-		connectionParameters.put("schema", "public");
+		Map<String, String> connectionParameters = getConnectionParameters();
 		service.postDataStore(workspace, new DataStore("testDataStore", connectionParameters)).get();
 		
 		dataStores = service.getDataStores(workspace).get();
@@ -179,10 +175,22 @@ public class DefaultGeoServerRestTest {
 		assertEquals(1, layers.size());
 		LayerRef layerRef = layers.get(0);		
 		assertNotNull(layerRef);
-		assertEquals("test", layerRef.getLayerId());
+		assertEquals("test", layerRef.getLayerName());
 		assertEquals(false, layerRef.isGroup());
 		
 		assertFalse(itr.hasNext());
+	}
+
+	private Map<String, String> getConnectionParameters() {
+		Map<String, String> connectionParameters = new HashMap<>();
+		connectionParameters.put("host", "localhost");
+		connectionParameters.put("port", "" + PgServer.DEFAULT_PORT);
+		connectionParameters.put("database", "test");
+		connectionParameters.put("user", "postgres");
+		connectionParameters.put("passwd", "postgres");
+		connectionParameters.put("dbtype", "postgis");
+		connectionParameters.put("schema", "public");
+		return connectionParameters;
 	}
 	
 	@Test
@@ -258,7 +266,7 @@ public class DefaultGeoServerRestTest {
 	public void testStyles() throws Exception {
 		assertFalse(
 			service.getStyles().get().stream()
-				.map(style -> style.getStyleId())			
+				.map(style -> style.getName())			
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
@@ -274,7 +282,7 @@ public class DefaultGeoServerRestTest {
 		
 		Map<String, Document> styles = service.getStyles().get().stream()
 			.collect(Collectors.toMap(
-				style -> style.getStyleId(), 
+				style -> style.getName(), 
 				style -> style.getSld()));
 		
 		Document sld = styles.get("green");
@@ -287,5 +295,46 @@ public class DefaultGeoServerRestTest {
 		service.putStyle(new Style("green", sld)).get();
 		
 		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
+	}
+	
+	@Test
+	public void testLayer() throws Exception {
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("dataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		FeatureType featureType = new FeatureType("test", "test_table", "title", "abstract");
+		service.postFeatureType(workspace, dataStore, featureType).get();
+		
+		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
+		
+		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
+		assertNotNull(greenInputStream);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		
+		Document sld = db.parse(greenInputStream);
+		service.postStyle(new Style("green", sld)).get();
+		
+		NodeList names = h.getNodeList("//sld:Name", sld);
+		for(int i = 0; i < names.getLength(); i++) {
+			names.item(i).setTextContent("red");
+		}		
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");		
+		service.postStyle(new Style("red", sld)).get();
+		
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), null)).get();
+		Layer layer = service.getLayer(workspace, featureType).get();
+		assertEquals("green", layer.getDefaultStyle().getStyleName());
+		assertEquals(Collections.emptyList(), layer.getAdditionalStyles());
+		
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Collections.singletonList(new StyleRef("red")))).get();
+		layer = service.getLayer(workspace, featureType).get();
+		assertEquals("green", layer.getDefaultStyle().getStyleName());
+		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());
 	}
 }
