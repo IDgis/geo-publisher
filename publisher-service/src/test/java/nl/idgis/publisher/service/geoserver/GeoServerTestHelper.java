@@ -12,8 +12,10 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -41,6 +43,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
+import nl.idgis.publisher.service.geoserver.rest.Style;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FileUtils;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -291,6 +294,13 @@ public class GeoServerTestHelper {
 		GeoServerRest service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 		for(Workspace workspace : service.getWorkspaces().get()) {
 			service.deleteWorkspace(workspace).get();
+		}
+		
+		Set<String> defaultStyles = new HashSet<>(Arrays.asList("point", "line", "polygon", "raster"));
+		for(Style style : service.getStyles().get()) {
+			if(!defaultStyles.contains(style.getName())) {
+				service.deleteStyle(style).get();
+			}
 		}
 		service.close();
 	}

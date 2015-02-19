@@ -119,6 +119,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Void> delete(String path) {
+		log.debug("deleting {}", path);
+		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.prepareDelete(path)
@@ -993,6 +995,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private String getStylePath(Style style) {
+		return getStylePath(style.getName());
+	}
+	
 	private String getStylePath(String styleId) {
 		return getStylesPath() + "/" + styleId;
 	}
@@ -1211,5 +1217,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		} catch(Exception e) {
 			return f.failed(e);
 		}
+	}
+
+	@Override
+	public CompletableFuture<Void> deleteStyle(Style style) {
+		return delete(getStylePath(style));
 	}
 }
