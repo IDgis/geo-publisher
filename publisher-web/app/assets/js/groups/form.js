@@ -33,7 +33,7 @@ require ([
 			var el2 = put(el1, "input[type=hidden][name=$][value=$]", structureName, id);
 			var el3 = put(el1, "div.row");
 			var el4 = put(el3, "div.col-sm-11.groupTree");
-			var el5 = put(el4, "ul");
+			var el5 = put(el4, "ul.treelist");
 			var el6 = put(el5, "li");
 			var el7 = put(el6, "a", naam);
 			var el8 = put(el3, "div.col-sm-1");
@@ -57,7 +57,7 @@ require ([
 			var el2 = put(el1, "input[type=hidden][name=$][value=$]", structureName, id);
 			var el3 = put(el1, "div.row");
 			var el4 = put(el3, "div.col-sm-11.groupTree");
-			var el5 = put(el4, "ul");
+			var el5 = put(el4, "ul.treelist");
 			var el6 = put(el5, "li");
 			var el7 = put(el6, "a", naam);
 			var el8 = put(el3, "div.col-sm-1");
