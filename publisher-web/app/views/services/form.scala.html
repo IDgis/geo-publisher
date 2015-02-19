@@ -9,7 +9,10 @@
 	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer
 )
 
-@layout.application( title=Domain.message("web.application.page.services.form.title")){
+@layout.application( 
+	title=Domain.message("web.application.page.services.form.title"),
+	jsMain = routes.Assets.at("js/services/form.js").url
+){
 
 <div class="page-content">
 	@if(create){
@@ -39,40 +42,40 @@
 					<div class="col-lg-8">
 						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.services.form.field.name.placeholder")" value="@serviceForm("name").value" @if(!create){readonly}>
 						@helper.fielderrors(serviceForm("name").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.name.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.name.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.services.form.field.title.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.services.form.field.title.placeholder")" value="@serviceForm("title").value">
 						@helper.fielderrors(serviceForm("title").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.title.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.title.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-alternateTitle">@Domain.message("web.application.page.services.form.field.alttitle.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-alternateTitle" name="alternateTitle" placeholder="@Domain.message("web.application.page.services.form.field.alttitle.placeholder")" value="@serviceForm("alternateTitle").value">
 						@helper.fielderrors(serviceForm("alternateTitle").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.alttitle.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.alttitle.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.services.form.field.abstract.label")</label>
 					<div class="col-lg-8">
 						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.services.form.field.abstract.placeholder")" value="@serviceForm("abstractText").value" rows="4">@serviceForm("abstractText").value</textarea>
 						@helper.fielderrors(serviceForm("abstractText").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.abstract.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.abstract.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
 					<div class="col-lg-8">
 						<textarea class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="@serviceForm("keywords").value" rows="2">@serviceForm("keywords").value</textarea>
 						@helper.fielderrors(serviceForm("keywords").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.keywords.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.keywords.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.services.form.field.publish.label")</label>
@@ -82,8 +85,8 @@
 						</div>
 					
 						@helper.fielderrors(serviceForm("published").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.publish.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.publish.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-rootgroup">@Domain.message("web.application.page.services.form.field.rootgroup.label")</label>
@@ -94,8 +97,8 @@
 						}
 						</select>
 						@helper.fielderrors(serviceForm("rootGroupName").errors)
-						<span class="help-block">@Domain.message("web.application.page.services.form.field.rootgroup.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.rootgroup.help")
 				</div>
 				<div class="form-group">
 				

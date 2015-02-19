@@ -70,6 +70,7 @@
 							@helper.groupStructure(grouplayer, false)
 						</div>
 						
+							<span>Voeg groep toe:</span>
 							<select id="addgroup">
 								<option></option>
 								@for(group <- groups.values) {
@@ -79,6 +80,8 @@
 									}
 								}
 							</select>
+							
+							<span style="margin-left:15px">Voeg laag toe:</span>
 							<select id="addlayer">
 								<option></option>
 								@for(layer <- layers.values) {
