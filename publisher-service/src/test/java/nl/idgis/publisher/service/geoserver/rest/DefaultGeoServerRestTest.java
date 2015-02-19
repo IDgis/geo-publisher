@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -14,7 +15,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
@@ -23,24 +27,27 @@ import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.Logging;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
 import akka.actor.ActorSystem;
+import akka.event.LoggingAdapter;
 
 public class DefaultGeoServerRestTest {
+	
+	static LoggingAdapter log = Logging.getLogger();
 	
 	static GeoServerTestHelper h;
 	
 	static GeoServerRest service;
 	
-	FutureUtils f;
+	static FutureUtils f;
 	
 	@BeforeClass
 	public static void startServers() throws Exception {
@@ -60,18 +67,14 @@ public class DefaultGeoServerRestTest {
 				
 		connection.close();
 		
-		service = new DefaultGeoServerRest("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/rest/", "admin", "geoserver");
-	} 
-	
-	@Before
-	public void async() throws Exception {
 		ActorSystem actorSystem = ActorSystem.create();
 		f = new FutureUtils(actorSystem.dispatcher());
+		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
 	@After
 	public void clean() throws Exception {
-		h.clean();
+		h.clean(f, log);
 	}
 	
 	@AfterClass
@@ -96,7 +99,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(workspace);
 		assertEquals("testWorkspace", workspace.getName());
 		
-		List<CompletableFuture<DataStore>> dataStores = service.getDataStores(workspace).get();
+		List<DataStore> dataStores = service.getDataStores(workspace).get();
 		assertNotNull(dataStores);
 		assertTrue(dataStores.isEmpty());
 		
@@ -114,7 +117,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(dataStores);
 		assertEquals(1, dataStores.size());
 		
-		DataStore dataStore = dataStores.get(0).get();
+		DataStore dataStore = dataStores.get(0);
 		assertNotNull(dataStore);
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
@@ -125,7 +128,7 @@ public class DefaultGeoServerRestTest {
 		assertEquals("postgis", connectionParameters.get("dbtype"));
 		assertEquals("public", connectionParameters.get("schema"));
 		
-		List<CompletableFuture<FeatureType>> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
@@ -135,7 +138,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertEquals(1, featureTypes.size());
 		
-		FeatureType featureType = featureTypes.get(0).get();
+		FeatureType featureType = featureTypes.get(0);
 		assertNotNull(featureType);
 		
 		assertEquals("test", featureType.getName());
@@ -157,14 +160,14 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(attribute);
 		assertEquals("the_geom", attribute.getName());
 		
-		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).get();
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
-		layerGroups = service.getLayerGroups(workspace).thenCompose(f::sequence).get();
+		layerGroups = service.getLayerGroups(workspace).get();
 		assertNotNull(layerGroups);
 		
 		Iterator<LayerGroup> itr = layerGroups.iterator();
@@ -249,5 +252,40 @@ public class DefaultGeoServerRestTest {
 		service.putServiceSettings(workspace, ServiceType.WFS, serviceSettings).get();
 		
 		assertEquals(serviceSettings, service.getServiceSettings(workspace, ServiceType.WFS).get().get());
+	}
+	
+	@Test
+	public void testStyles() throws Exception {
+		assertFalse(
+			service.getStyles().get().stream()
+				.map(style -> style.getStyleId())			
+				.collect(Collectors.toSet())
+				.contains("green"));
+		
+		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
+		assertNotNull(greenInputStream);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		
+		Style green = new Style("green", db.parse(greenInputStream));
+		service.postStyle(green).get();
+		
+		Map<String, Document> styles = service.getStyles().get().stream()
+			.collect(Collectors.toMap(
+				style -> style.getStyleId(), 
+				style -> style.getSld()));
+		
+		Document sld = styles.get("green");
+		assertNotNull(sld);
+		
+		assertEquals("#66FF66", h.getText("//sld:CssParameter", sld));
+		
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#00FF00");
+		
+		service.putStyle(new Style("green", sld)).get();
+		
+		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
 	}
 }

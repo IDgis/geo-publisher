@@ -15,12 +15,16 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
@@ -29,24 +33,39 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.codec.binary.Base64;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Response;
 
+import akka.event.LoggingAdapter;
+
+import nl.idgis.publisher.utils.FutureUtils;
+
 public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final String RECURSE = "?recurse=true";
+	
+	private final LoggingAdapter log;
 
 	private final String authorization;
 	
+	private final String restLocation;
+	
 	private final String serviceLocation;
+	
+	private final FutureUtils f;
 	
 	private final AsyncHttpClient asyncHttpClient;
 	
-	public DefaultGeoServerRest(String serviceLocation, String user, String password) throws Exception {		
+	public DefaultGeoServerRest(FutureUtils f, LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {
+		this.f = f;
+		this.log = log;
+		this.restLocation = serviceLocation + "rest/";
 		this.serviceLocation = serviceLocation;
 		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));
 		
@@ -54,9 +73,16 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Optional<Document>> get(String path) {
+		return get(path, true, false);
+	}
+	
+	private CompletableFuture<Optional<Document>> get(String path, boolean appendSuffix, boolean namespaceAware) {
+		String url = path + (appendSuffix ? ".xml" : "");
+		log.debug("fetching {}", url);
+		
 		CompletableFuture<Optional<Document>> future = new CompletableFuture<>();
 		
-		asyncHttpClient.prepareGet(path + ".xml")
+		asyncHttpClient.prepareGet(url)
 			.addHeader("Authorization", authorization)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -66,22 +92,17 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					int responseCode = response.getStatusCode();
 					if(responseCode == HttpURLConnection.HTTP_OK) {
 						InputStream stream = response.getResponseBodyAsStream();
-						
-						DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-						DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
-						
-						Document document = documentBuilder.parse(stream);
-						
+						Document document = parse(stream, namespaceAware);
 						stream.close();
 						
 						future.complete(Optional.of(document));
 					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
 						future.complete(Optional.empty());
 					} else {
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					}
 				} catch(Exception e) {
-					future.completeExceptionally(new GeoServerException(e));
+					future.completeExceptionally(new GeoServerException(path, e));
 				}
 				
 				return response;
@@ -108,7 +129,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();					
 					if(responseCode != HttpURLConnection.HTTP_OK) {	
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -118,7 +139,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 				
 			});
@@ -127,11 +148,17 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Void> put(String path, byte[] document) {
+		return put(path, document, "text/xml");
+	}
+	
+	private CompletableFuture<Void> put(String path, byte[] document, String contentType) {		
+		log.debug("put {}", path);
+		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePut(path)
 			.addHeader("Authorization", authorization)
-			.addHeader("Content-type", "text/xml")
+			.addHeader("Content-type", contentType)
 			.setBody(document)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -139,7 +166,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
 					if(responseCode != HttpURLConnection.HTTP_OK) {
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -149,7 +176,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 			});
 		
@@ -157,11 +184,17 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Void> post(String path, byte[] document) {
+		return post(path, document, "text/xml");
+	}
+	
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {		
+		log.debug("posting {}", path);
+		
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.preparePost(path)
 			.addHeader("Authorization", authorization)
-			.addHeader("Content-type", "text/xml")
+			.addHeader("Content-type", contentType)
 			.setBody(document)
 			.execute(new AsyncCompletionHandler<Response>() {
 
@@ -169,7 +202,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
 					if(responseCode != HttpURLConnection.HTTP_CREATED) {	
-						future.completeExceptionally(new GeoServerException(responseCode));
+						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
 					}
@@ -179,7 +212,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				@Override
 			    public void onThrowable(Throwable t){
-					future.completeExceptionally(new GeoServerException(t));
+					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 			});
 		
@@ -187,7 +220,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private String getServiceSettingsPath(Workspace workspace, ServiceType serviceType) {
-		return serviceLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
+		return restLocation + "services/" + serviceType.name().toLowerCase() + "/workspaces/" 
 			+ workspace.getName() + "/settings";
 	}
 	
@@ -202,11 +235,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				getClass().getResourceAsStream(
 					"default-" + serviceTypeName + "-settings.xml");
 			
-			Objects.requireNonNull(defaultServiceSettings);
+			Objects.requireNonNull(defaultServiceSettings);			
 			
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document document = db.parse(defaultServiceSettings);
+			Document document = parse(defaultServiceSettings);
 			
 			XPath xpath = XPathFactory.newInstance().newXPath();
 					
@@ -233,14 +264,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				}
 			}
 			
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			
-			TransformerFactory tf = TransformerFactory.newInstance();
-			Transformer t = tf.newTransformer();
-			
-			t.transform(new DOMSource(document), new StreamResult(os));
-			
-			return put(getServiceSettingsPath(workspace, serviceType), os.toByteArray());
+			return put(getServiceSettingsPath(workspace, serviceType), serialize(document));
 		} catch(Exception e) {
 			return failure(e);
 		}
@@ -285,8 +309,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	private String getWorkspacesPath() {
-		return serviceLocation + "workspaces";
-	}	
+		return restLocation + "workspaces";
+	}
 	
 	@Override
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
@@ -359,12 +383,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getDataStoresPath(workspace) + "/" + dataStoreName;
 	}
 	
-	private <T> T present(Optional<T> optional) {
+	private <T> T optionalPresent(Optional<T> optional) {
 		return optional.get();
 	}
 
 	@Override
-	public CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace) {
+	public CompletableFuture<List<DataStore>> getDataStores(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
 		
 		get(getDataStoresPath(workspace)).whenComplete((optionalDocument, t) -> {
@@ -379,7 +403,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/dataStores/dataStore/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::present));
+						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -389,7 +413,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 
 	@Override
@@ -474,7 +498,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
+	public CompletableFuture<List<FeatureType>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
 		
 		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((optionalDocument, t) -> {
@@ -489,7 +513,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/featureTypes/featureType/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::present));
+						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -499,7 +523,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 	
 	@Override
@@ -636,7 +660,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 
 	@Override
-	public CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace) {
+	public CompletableFuture<List<LayerGroup>> getLayerGroups(Workspace workspace) {
 		CompletableFuture<List<CompletableFuture<LayerGroup>>> future = new CompletableFuture<>();
 		
 		get(getLayerGroupsPath(workspace)).whenComplete((optionalDocument, t) -> {
@@ -651,7 +675,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					NodeList result = (NodeList)xpath.evaluate("/layerGroups/layerGroup/name/text()", document, XPathConstants.NODESET);
 					for(int i = 0; i < result.getLength(); i++) {
 						Node n = result.item(i);
-						retval.add(getLayerGroup(workspace, n.getTextContent()).thenApply(this::present));
+						retval.add(getLayerGroup(workspace, n.getTextContent()).thenApply(this::optionalPresent));
 					}
 					
 					future.complete(retval);
@@ -661,7 +685,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 		});
 		
-		return future;
+		return future.thenCompose(f::sequence);
 	}
 	
 	@Override
@@ -973,5 +997,143 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		});
 		
 		return future;
+	}
+	
+	private String getStylePath(String styleId) {
+		return getStylesPath() + "/" + styleId;
+	}
+
+	private String getStylesPath() {
+		return restLocation + "styles";
+	}
+
+	@Override
+	public CompletableFuture<Optional<Style>> getStyle(String styleId) {
+		CompletableFuture<Optional<Style>> future = new CompletableFuture<>();
+		
+		CompletableFuture<String> fileNameFuture = new CompletableFuture<>();
+		fileNameFuture.thenAccept(fileName -> {
+			get(serviceLocation + "/styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
+				if(t != null) {
+					future.completeExceptionally(t);
+				} else {
+					try {
+						future.complete(Optional.of(new Style(styleId, optionalDocument.get())));
+					} catch(Exception e) {
+						future.completeExceptionally(e);	
+					}
+				}
+			});
+		});
+		
+		get(getStylePath(styleId)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						Document document = optionalDocument.get();
+						
+						XPath xpath = XPathFactory.newInstance().newXPath();
+						fileNameFuture.complete((String)xpath.evaluate("style/filename", document, XPathConstants.STRING));						
+					} else {
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+	
+	@Override
+	public CompletableFuture<List<Style>> getStyles() {
+		CompletableFuture<List<CompletableFuture<Style>>> future = new CompletableFuture<>();
+		
+		get(getStylesPath()).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					List<CompletableFuture<Style>> retval = new ArrayList<>();
+					
+					Document document = optionalDocument.get();
+					XPath xpath = XPathFactory.newInstance().newXPath();
+					NodeList styleNameNodes = (NodeList)xpath.evaluate("styles/style/name", document, XPathConstants.NODESET);
+					for(int i = 0; i < styleNameNodes.getLength(); i++) {
+						Node styleNameNode = styleNameNodes.item(i);
+						retval.add(getStyle(styleNameNode.getTextContent()).thenApply(this::optionalPresent));
+					}
+					
+					future.complete(retval);
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future.thenCompose(f::sequence);
+	}
+	
+	@Override
+	public CompletableFuture<Void> postStyle(Style style) {
+		try {
+			Document sld = style.getSld();
+			return post(getStylesPath() + "?name=" + style.getStyleId(), serialize(sld), getStyleContentType(sld));
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+	
+	@Override
+	public CompletableFuture<Void> putStyle(Style style) {
+		try {
+			Document sld = style.getSld();
+			return put(getStylePath(style.getStyleId()), serialize(sld), getStyleContentType(sld));
+		} catch(Exception e) {
+			return failure(e);
+		}
+	}
+
+	private String getStyleContentType(Document sld) {
+		String contentType;
+		Element root = sld.getDocumentElement();
+		if(root.getLocalName().equals("StyledLayerDescriptor")) {
+			String version = root.getAttribute("version");
+			if("1.0.0".equals(version)) {
+				contentType = "application/vnd.ogc.sld+xml";
+			} else if("1.1.0".equals(version)) {
+				contentType = "application/vnd.ogc.se+xml";
+			} else {
+				throw new IllegalStateException("expected: StyledLayerDescriptor[@version = '1.0.0' or @version = '1.1.0']");
+			}
+		} else {
+			throw new IllegalStateException("expected: StyledLayerDescriptor");
+		}
+		return contentType;
+	}
+
+	private byte[] serialize(Document sld) throws TransformerFactoryConfigurationError, TransformerConfigurationException, TransformerException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		t.transform(new DOMSource(sld), new StreamResult(os));
+		
+		return os.toByteArray();		
+	}
+	
+	private Document parse(InputStream is) throws ParserConfigurationException, SAXException, IOException {
+		return parse(is, false);
+	}
+	
+	private Document parse(InputStream is, boolean namespaceAware) throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(namespaceAware);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		return db.parse(is);
 	}
 }

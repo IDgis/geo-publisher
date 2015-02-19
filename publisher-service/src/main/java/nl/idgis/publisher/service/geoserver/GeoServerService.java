@@ -78,7 +78,7 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	public static Props props(ActorRef serviceManager, Config geoserverConfig, Config databaseConfig) {
-		String serviceLocation = geoserverConfig.getString("url") + "rest/";
+		String serviceLocation = geoserverConfig.getString("url");
 		String user = geoserverConfig.getString("user");
 		String password = geoserverConfig.getString("password");		
 		
@@ -105,8 +105,8 @@ public class GeoServerService extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		rest = new DefaultGeoServerRest(serviceLocation, user, password);
 		f = new FutureUtils(getContext().dispatcher());
+		rest = new DefaultGeoServerRest(f, log, serviceLocation, user, password);		
 	}
 	
 	@Override
@@ -487,11 +487,9 @@ public class GeoServerService extends UntypedActor {
 										log.debug("existing data store found: publisher-geometry");
 										
 										DataStore dataStore = optionalDataStore.get();										
-										return rest.getFeatureTypes(workspace, dataStore)
-											.thenCompose(f::sequence)
+										return rest.getFeatureTypes(workspace, dataStore)											
 											.thenCompose(featureTypes ->
-												rest.getLayerGroups(workspace)
-												.thenCompose(f::sequence)
+												rest.getLayerGroups(workspace)												
 												.thenCompose(layerGroups -> {
 													
 											log.debug("feature types and layer groups retrieved");

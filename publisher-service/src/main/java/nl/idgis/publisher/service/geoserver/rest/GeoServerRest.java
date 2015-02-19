@@ -27,13 +27,13 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<Void> deleteWorkspace(Workspace workspace);
 
-	CompletableFuture<List<CompletableFuture<DataStore>>> getDataStores(Workspace workspace);
+	CompletableFuture<List<DataStore>> getDataStores(Workspace workspace);
 	
 	CompletableFuture<Optional<DataStore>> getDataStore(Workspace workspace, String dataStoreId);
 
-	CompletableFuture<List<CompletableFuture<FeatureType>>> getFeatureTypes(Workspace workspace, DataStore dataStore);
+	CompletableFuture<List<FeatureType>> getFeatureTypes(Workspace workspace, DataStore dataStore);
 	
-	CompletableFuture<List<CompletableFuture<LayerGroup>>> getLayerGroups(Workspace workspace);
+	CompletableFuture<List<LayerGroup>> getLayerGroups(Workspace workspace);
 
 	CompletableFuture<List<Workspace>> getWorkspaces();
 	
@@ -46,4 +46,12 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> putWorkspaceSettings(Workspace workspace, WorkspaceSettings workspaceSettings);
 
 	CompletableFuture<WorkspaceSettings> getWorkspaceSettings(Workspace workspace);
+	
+	CompletableFuture<Optional<Style>> getStyle(String styleId);
+	
+	CompletableFuture<List<Style>> getStyles();
+	
+	CompletableFuture<Void> postStyle(Style style);
+	
+	CompletableFuture<Void> putStyle(Style style);
 }
