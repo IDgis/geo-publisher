@@ -1015,7 +1015,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		fileNameFuture.thenAccept(fileName -> {
 			// we use an alternative end-point here because the one in /rest
 			// wrongly raises 404 in some cases. 
-			get(serviceLocation + "/styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
+			get(serviceLocation + "styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
 				if(t != null) {
 					future.completeExceptionally(t);
 				} else {
