@@ -155,6 +155,12 @@ public class DefaultGeoServerRestTest {
 		attribute = attributes.get(2);
 		assertNotNull(attribute);
 		assertEquals("the_geom", attribute.getName());
+		
+		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
+		assertTrue(tiledLayer.isPresent());
+		
+		service.deleteTiledLayer(tiledLayer.get()).get();		
+		assertFalse(service.getTiledLayer(workspace, featureType).get().isPresent());
 	}
 	
 	@Test
@@ -191,6 +197,12 @@ public class DefaultGeoServerRestTest {
 		assertEquals(false, layerRef.isGroup());
 		
 		assertFalse(itr.hasNext());
+		
+		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, layerGroup).get();
+		assertTrue(tiledLayer.isPresent());
+		
+		service.deleteTiledLayer(tiledLayer.get()).get();		
+		assertFalse(service.getTiledLayer(workspace, layerGroup).get().isPresent());
 	}
 
 	private Map<String, String> getConnectionParameters() {
