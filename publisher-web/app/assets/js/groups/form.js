@@ -76,3 +76,7 @@ require ([
 		domConstruct.destroy(itemToDel);
 	});
 });
+
+$(function () {
+	$('[data-toggle="popover"]').popover();
+});
