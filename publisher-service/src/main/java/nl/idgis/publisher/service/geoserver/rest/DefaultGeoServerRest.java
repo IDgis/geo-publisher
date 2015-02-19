@@ -1221,6 +1221,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 	@Override
 	public CompletableFuture<Void> deleteStyle(Style style) {
-		return delete(getStylePath(style));
+		return delete(getStylePath(style) + "?purge=true");
 	}
 }
