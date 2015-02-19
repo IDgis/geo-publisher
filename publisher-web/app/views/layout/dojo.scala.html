@@ -11,4 +11,4 @@ require.on ('error', function (error) {
 </script>
 }
 }
-@doWriteDojo(if(play.api.Mode.Prod == play.api.Play.maybeApplication.map(_.mode).getOrElse(play.api.Mode.Dev)) "js-min" else "js")
+@doWriteDojo("js")
