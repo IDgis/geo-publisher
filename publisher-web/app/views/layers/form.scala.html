@@ -33,40 +33,41 @@
 						<input class="form-control" id="input-dataset" name="datasetName" value="@layerForm("datasetName").value" readonly>
 						<input type="hidden" class="form-control" name="datasetId" value="@layerForm("datasetId").value">
 						@helper.fielderrors(layerForm("datasetName").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.dataset.help")</span>
+						
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.dataset.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.layers.form.field.name.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.layers.form.field.name.placeholder")" value="@layerForm("name").value" @if(!create){readonly}>
 						@helper.fielderrors(layerForm("name").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.name.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.name.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.layers.form.field.title.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.layers.form.field.title.placeholder")" value="@layerForm("title").value">
 						@helper.fielderrors(layerForm("title").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.title.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.title.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.layers.form.field.abstract.label")</label>
 					<div class="col-lg-8">
 						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.layers.form.field.abstract.placeholder")" value="@layerForm("abstractText").value" rows="4">@layerForm("abstractText").value</textarea>
 						@helper.fielderrors(layerForm("abstractText").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.abstract.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.abstract.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.layers.form.field.keywords.label")</label>
 					<div class="col-lg-8">
 						<textarea class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.layers.form.field.keywords.placeholder")" value="@layerForm("keywords").value" rows="2">@layerForm("keywords").value</textarea>
 						@helper.fielderrors(layerForm("keywords").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.keywords.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.keywords.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.layers.form.field.publish.label")</label>
@@ -75,8 +76,8 @@
 							<input type="checkbox" class="form-control" id="input-published" name="published" value="true" @if(layerForm("published").value.equals("true")){checked}>
 						</div>
 						@helper.fielderrors(layerForm("publish").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.publish.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.publish.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.groups.label")</label>
@@ -107,8 +108,8 @@
 							</div>
 						</div>
 						@helper.fielderrors(layerForm("styles").errors)
-						<span class="help-block">@Domain.message("web.application.page.layers.form.field.styles.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.layers.form.field.styles.help")
 				</div>
 				
 				
