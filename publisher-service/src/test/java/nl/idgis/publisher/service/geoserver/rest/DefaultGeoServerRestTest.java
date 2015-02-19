@@ -86,7 +86,7 @@ public class DefaultGeoServerRestTest {
 	}
 
 	@Test
-	public void testCreateLayers() throws Exception {
+	public void testFeatureType() throws Exception {
 		
 		List<Workspace> workspaces = service.getWorkspaces().get();
 		assertNotNull(workspaces);
@@ -155,10 +155,22 @@ public class DefaultGeoServerRestTest {
 		attribute = attributes.get(2);
 		assertNotNull(attribute);
 		assertEquals("the_geom", attribute.getName());
+	}
+	
+	@Test
+	public void testLayerGroup() throws Exception {
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
 		
 		Iterable<LayerGroup> layerGroups = service.getLayerGroups(workspace).get();
 		assertNotNull(layerGroups);
 		assertFalse(layerGroups.iterator().hasNext());
+		 
+		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		service.postFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
