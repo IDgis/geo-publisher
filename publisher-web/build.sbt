@@ -22,7 +22,11 @@ libraryDependencies ++= Seq(
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
 
-pipelineStages := Seq(rjs)
+excludeFilter in (Assets, LessKeys.less) := "_*.less"
+
+LessKeys.compress := true
+
+// pipelineStages := Seq(rjs)
 
 resolvers += Resolver.mavenLocal
 
