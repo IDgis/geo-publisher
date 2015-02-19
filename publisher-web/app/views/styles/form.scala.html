@@ -4,7 +4,10 @@
 
 @styleId = @{styleForm("id").value()}
 
-@layout.application( title=Domain.message("web.application.page.styles.form.title")){
+@layout.application( 
+	title=Domain.message("web.application.page.styles.form.title"),
+	jsMain = routes.Assets.at("js/styles/form.js").url
+){
 
 <div class="page-content">
 	@if(create){
@@ -24,23 +27,23 @@
 					<div class="col-lg-8">
 						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.styles.form.field.name.placeholder")" value="@styleForm("name").value" @if(!create){readonly}>
 						@helper.fielderrors(styleForm("name").errors)
-						<span class="help-block">@Domain.message("web.application.page.styles.form.field.name.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.styles.form.field.name.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
 					<div class="col-sm-8">
 						<textarea class="form-control" id="input-definition" name="definition" rows="20" placeholder="@Domain.message("web.application.page.styles.form.field.definition.placeholder")">@styleForm("definition").value</textarea>
 						@helper.fielderrors(styleForm("definition").errors)
-						<span class="help-block">@Domain.message("web.application.page.styles.form.field.definition.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.styles.form.field.definition.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.browse.label")</label>
-					<div class="col-sm-10">
+					<div class="col-sm-8">
 						<input type="file" style="width: 600px">
-						<span class="help-block"></span>
 					</div>
+					@helper.tooltips("web.application.page.styles.form.field.definition.select")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.layers.label")</label>
