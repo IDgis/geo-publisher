@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import nl.idgis.publisher.domain.EntityType;
+import nl.idgis.publisher.domain.Failure;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
@@ -31,11 +32,13 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.MessageContext;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Status;
+
 import play.Logger;
 import play.i18n.Lang;
 import play.i18n.Messages;
 import play.libs.F;
 import play.libs.F.Promise;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -681,6 +684,9 @@ public class Domain {
 				public Object apply (Object o) throws Throwable {
 					if (o instanceof NotFound) {
 						return null;
+					} else if (o instanceof Failure) {
+						Logger.debug("failure received");						
+						throw new DomainAccessException (((Failure)o).getExceptionId());
 					} else {
 						return o;
 					}
@@ -688,6 +694,11 @@ public class Domain {
 			}).recover (new F.Function<Throwable, Object> () {
 				@Override
 				public Object apply (final Throwable e) throws Throwable {
+					if( e instanceof DomainAccessException ) {						
+						throw e;
+					}
+					
+					Logger.debug("exception while processing response");
 					throw new DomainAccessException (e);
 				}
 			});
@@ -883,6 +894,10 @@ public class Domain {
     
     public static class DomainAccessException extends Exception {
 		private static final long serialVersionUID = 5265653848067852534L;
+		
+		public DomainAccessException (final String externalExceptionId) {
+			super("external exception id: " + externalExceptionId);
+		}
 		
 		public DomainAccessException (final Throwable cause) {
 			super (cause);

@@ -12,6 +12,8 @@ import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.domain.Failure;
+
 import nl.idgis.publisher.admin.messages.Event;
 
 public class EventDispatcher extends UntypedActor {
@@ -55,9 +57,15 @@ public class EventDispatcher extends UntypedActor {
 			
 			origSender.forward(msg, getContext());
 			
-			Event event = new Event(origMsg);
-			for(ActorRef listener : listeners) {
-				listener.tell(event, getSelf());
+			if(origMsg instanceof Failure) {
+				log.debug("failure received");
+			} else {
+				log.debug("dispatching event messages");
+				
+				Event event = new Event(origMsg);
+				for(ActorRef listener : listeners) {
+					listener.tell(event, getSelf());
+				}
 			}
 		}
 		
