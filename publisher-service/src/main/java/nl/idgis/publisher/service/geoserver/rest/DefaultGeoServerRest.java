@@ -1173,6 +1173,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			
 			sw.writeEndDocument();
 			
+			sw.close();
+			
 			return put(getLayerPath(workspace, layer), os.toByteArray());
 		} catch(Exception e) {
 			return f.failed(e);
