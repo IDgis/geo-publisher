@@ -312,55 +312,26 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	@Override
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
-		CompletableFuture<List<Workspace>> future = new CompletableFuture<>();
-
-		get(getWorkspacesPath()).whenComplete((optionalDocument, t) -> {
-			if(t != null) {
-				future.completeExceptionally(t);
-			} else {			
-				try {
-					future.complete(
-						xpath(optionalDocument.get())
-							.stringsMap("/workspaces/workspace/name", Workspace::new));
-				} catch(Exception e) {
-					future.completeExceptionally(e);
-				}
-			}
-		});
-		
-		return future;
+		return get(getWorkspacesPath()).thenApply(optionalDocument ->
+			xpath(optionalDocument.get())
+				.stringsMap("/workspaces/workspace/name", Workspace::new));
 	}
 	
 	@Override
 	public CompletableFuture<Optional<DataStore>> getDataStore(Workspace workspace, String dataStoreName) {
-		CompletableFuture<Optional<DataStore>> future = new CompletableFuture<>();
-		
-		get(getDataStorePath(workspace, dataStoreName)).whenComplete((optionalDocument, t) -> {
-			if(t != null) {
-				future.completeExceptionally(t);
-			} else {
-				try {
-					if(optionalDocument.isPresent()) {
-						XPathHelper dataStore = xpath(optionalDocument.get()).node("dataStore").get();
-						String name = dataStore.string("name").get();
-						
-						Map<String, String> connectionParameters = 
-							dataStore.nodes("connectionParameters/entry").stream()
-								.collect(Collectors.toMap(
-									entry -> entry.string("@key").get(),
-									entry -> entry.string().get()));
-						
-						future.complete(Optional.of(new DataStore(name, connectionParameters)));
-					} else {
-						future.complete(Optional.empty());
-					}
-				} catch(Exception e) {
-					future.completeExceptionally(e);
-				}
-			}
-		});
-		
-		return future;
+		return get(getDataStorePath(workspace, dataStoreName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {
+				XPathHelper dataStore = xpath(document).node("dataStore").get();
+				String name = dataStore.string("name").get();
+				
+				Map<String, String> connectionParameters = 
+					dataStore.nodes("connectionParameters/entry").stream()
+						.collect(Collectors.toMap(
+							entry -> entry.string("@key").get(),
+							entry -> entry.string().get()));
+				
+				return new DataStore(name, connectionParameters);
+			}));		
 	}
 
 	private String getDataStorePath(Workspace workspace, String dataStoreName) {
@@ -373,31 +344,11 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 	@Override
 	public CompletableFuture<List<DataStore>> getDataStores(Workspace workspace) {
-		CompletableFuture<List<CompletableFuture<DataStore>>> future = new CompletableFuture<>();
-		
-		get(getDataStoresPath(workspace)).whenComplete((optionalDocument, t) -> {
-			if(t != null) {
-				future.completeExceptionally(t);
-			} else {
-				try {
-					Document document = optionalDocument.get();
-					List<CompletableFuture<DataStore>> retval = new ArrayList<>();
-					
-					XPath xpath = XPathFactory.newInstance().newXPath();
-					NodeList result = (NodeList)xpath.evaluate("/dataStores/dataStore/name/text()", document, XPathConstants.NODESET);
-					for(int i = 0; i < result.getLength(); i++) {
-						Node n = result.item(i);
-						retval.add(getDataStore(workspace, n.getTextContent()).thenApply(this::optionalPresent));
-					}
-					
-					future.complete(retval);
-				} catch(Exception e) {
-					future.completeExceptionally(e);
-				}
-			}
-		});
-		
-		return future.thenCompose(f::sequence);
+		return get(getDataStoresPath(workspace)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).stringsMap("/dataStores/dataStore/name", 
+					name -> getDataStore(workspace, name)
+						.thenApply(this::optionalPresent))));
 	}
 
 	@Override
@@ -443,71 +394,25 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private CompletableFuture<Optional<FeatureType>> getFeatureType(Workspace workspace, DataStore dataStore, String featureTypeName) {
-		CompletableFuture<Optional<FeatureType>> future = new CompletableFuture<>();
-		
-		get(getFeatureTypePath(workspace, dataStore, featureTypeName)).whenComplete((optionalDocument, t) -> {
-			if(t != null) {
-				future.completeExceptionally(t);
-			} else {
-				try {
-					if(optionalDocument.isPresent()) {	
-						Document document = optionalDocument.get();
-						
-						XPath xpath = XPathFactory.newInstance().newXPath();
-						String name = (String)xpath.evaluate("/featureType/name/text()", document, XPathConstants.STRING);
-						String nativeName = (String)xpath.evaluate("/featureType/nativeName/text()", document, XPathConstants.STRING);
-						String title = (String)xpath.evaluate("/featureType/title/text()", document, XPathConstants.STRING);
-						String abstr = (String)xpath.evaluate("/featureType/abstract/text()", document, XPathConstants.STRING);
-						
-						List<Attribute> attributes = new ArrayList<>();
-						NodeList result = (NodeList)xpath.evaluate("/featureType/attributes/attribute", document, XPathConstants.NODESET);
-						for(int i = 0; i < result.getLength(); i++) {
-							Node n = result.item(i);
-							
-							String attributeName = xpath.evaluate("name/text()", n);
-							attributes.add(new Attribute(attributeName));
-						}
-						
-						future.complete(Optional.of(new FeatureType(name, nativeName, title, abstr, Collections.unmodifiableList(attributes))));
-					} else {
-						future.complete(Optional.empty());
-					}
-				} catch(Exception e) {
-					future.completeExceptionally(e);
-				}
-			}
-		});
-		
-		return future;
+		return get(getFeatureTypePath(workspace, dataStore, featureTypeName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {										
+				XPathHelper featureType = xpath(document).node("featureType").get();
+				return new FeatureType(
+					featureType.string("name").get(),
+					featureType.string("nativeName").get(),
+					featureType.stringOrNull("title"),
+					featureType.stringOrNull("abstract"),
+					Collections.unmodifiableList(
+						featureType.stringsMap("/featureType/attributes/attribute/name", Attribute::new)));
+			}));
 	}
 	
 	@Override
 	public CompletableFuture<List<FeatureType>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
-		CompletableFuture<List<CompletableFuture<FeatureType>>> future = new CompletableFuture<>();
-		
-		get(getFeatureTypesPath(workspace, dataStore)).whenComplete((optionalDocument, t) -> {
-			if(t != null) {
-				future.completeExceptionally(t);
-			} else {
-				try {
-					Document document = optionalDocument.get();
-					List<CompletableFuture<FeatureType>> retval = new ArrayList<>();
-					
-					XPath xpath = XPathFactory.newInstance().newXPath();
-					NodeList result = (NodeList)xpath.evaluate("/featureTypes/featureType/name/text()", document, XPathConstants.NODESET);
-					for(int i = 0; i < result.getLength(); i++) {
-						Node n = result.item(i);
-						retval.add(getFeatureType(workspace, dataStore, n.getTextContent()).thenApply(this::optionalPresent));
-					}
-					
-					future.complete(retval);
-				} catch(Exception e) {
-					future.completeExceptionally(e);
-				}
-			}
-		});
-		
-		return future.thenCompose(f::sequence);
+		return get(getFeatureTypesPath(workspace, dataStore)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).stringsMap("/featureTypes/featureType/name", name ->
+					getFeatureType(workspace, dataStore, name).thenApply(this::optionalPresent))));
 	}
 	
 	@Override

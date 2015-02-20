@@ -362,5 +362,7 @@ public class DefaultGeoServerRestTest {
 		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());
 		
 		service.deleteTiledLayer(workspace, featureType).get();
+		
+		//service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg", "image/png"), 4, 4, 0, 0, 0));
 	}
 }
