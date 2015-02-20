@@ -21,7 +21,6 @@ public class TiledLayer extends Identifiable {
 
 	private final String name;
 	private final Boolean enabled;
-	private final List<String> mimeFormats;
 	private final Integer metaWidth;
 	private final Integer metaHeight;
 	private final Integer expireCache;
@@ -33,7 +32,6 @@ public class TiledLayer extends Identifiable {
 	public TiledLayer(
 			final @JsonProperty("") String id, 
 			final @JsonProperty("") String name, 
-			final @JsonProperty("") List<String> mimeFormats, 
 			final @JsonProperty("") Integer metaWidth,
 			final @JsonProperty("") Integer metaHeight,
 			final @JsonProperty("") Integer expireCache,
@@ -42,7 +40,6 @@ public class TiledLayer extends Identifiable {
 			final @JsonProperty("") Boolean enabled) {
 		super(id);
 		this.name = name;
-		this.mimeFormats = mimeFormats;
 		this.metaWidth = metaWidth;
 		this.enabled = enabled;
 		this.metaHeight = metaHeight;
@@ -54,11 +51,6 @@ public class TiledLayer extends Identifiable {
 	@JsonGetter
 	public String name() {
 		return name;
-	}
-
-	@JsonGetter
-	public List<String> mimeFormats() {
-		return mimeFormats;
 	}
 
 	@JsonGetter

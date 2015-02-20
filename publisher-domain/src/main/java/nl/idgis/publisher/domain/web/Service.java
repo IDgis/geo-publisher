@@ -23,9 +23,7 @@ public class Service extends Identifiable {
 	private final String title;
 	private final String alternateTitle;
 	private final String abstractText;
-	private final List<String> keywords;
 	private final String metadata;
-	private final String watermark;
 	private final Boolean published;
 	private final String genericLayerId;
 	private final String constantsId;
@@ -39,9 +37,7 @@ public class Service extends Identifiable {
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String alternateTitle, 
 			final @JsonProperty("") String abstractText, 
-			final @JsonProperty("") List<String> keywords,
 			final @JsonProperty("") String metadata, 
-			final @JsonProperty("") String watermark,
 			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") String genericLayerId,
 			final @JsonProperty("") String constantsId
@@ -51,9 +47,7 @@ public class Service extends Identifiable {
 		this.title = title;
 		this.alternateTitle = alternateTitle;
 		this.abstractText = abstractText;
-		this.keywords = keywords;
 		this.metadata = metadata;
-		this.watermark = watermark;
 		this.published = published;
 		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
@@ -80,18 +74,8 @@ public class Service extends Identifiable {
 	}
 
 	@JsonGetter
-	public List<String> keywords() {
-		return keywords;
-	}
-
-	@JsonGetter
 	public String metadata() {
 		return metadata;
-	}
-
-	@JsonGetter
-	public String watermark() {
-		return watermark;
 	}
 
 	@JsonGetter
