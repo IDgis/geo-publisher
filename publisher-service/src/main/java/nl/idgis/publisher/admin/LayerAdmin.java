@@ -159,19 +159,21 @@ public class LayerAdmin extends AbstractAdmin {
 										.from(genericLayer)
 										.where(genericLayer.identification.eq(layerId))
 										.singleResult(genericLayer.id)
+										/* update of leaflayer is useful when filter and metadata fields are used
 										.thenCompose(
 											glId -> {
-												log.debug("Updating new leaf_layer with generic_layer id: " + glId.get());
+												log.debug("Updating leaf_layer with generic_layer id: " + glId.get());
 												return tx
 													.update(leafLayer)
 													.where(leafLayer.genericLayerId.eq(glId.get()))
 													.execute()
+										*/
 													.thenApply(
-														l -> new Response<String>(
+														l ->  new Response<String>(
 																CrudOperation.UPDATE,
 																CrudResponse.OK,
 																layerId));
-										});
+//										});
 									});
 						}
 					}));

@@ -51,7 +51,6 @@ public class Tiledlayers extends Controller {
 		
 		final TiledLayerForm tiledlayerForm = form.get ();
 		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name, 
-				tiledlayerForm.getMimeFormats(),
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
 				tiledlayerForm.gutter, tiledlayerForm.enabled   
@@ -172,7 +171,6 @@ public class Tiledlayers extends Controller {
 			this.id = tl.id();
 			this.name = tl.name();
 			this.enabled = tl.enabled();
-			setMimeFormats(tl.mimeFormats());
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
 			this.expireCache = tl.expireCache();

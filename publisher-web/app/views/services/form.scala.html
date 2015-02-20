@@ -4,7 +4,6 @@
 
 @(serviceForm: Form[controllers.Services.ServiceForm], 
 	create: Boolean,
-	categories: Page[Category],
 	groups: Page[LayerGroup],
 	grouplayer: nl.idgis.publisher.domain.web.tree.GroupLayer
 )
@@ -27,16 +26,6 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Services.submitCreateUpdate()" >
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@serviceForm("id").value" >
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-category">category</label>
-					<div class="col-lg-8">
-						<select class="form-control" id="input-category" name="categoryName">
-						@for(category <-categories.values){
-							<option value="@category.id" @if(serviceForm("categoryName").value==category.name){selected}>@category.name</option>
-						}
-						</select>
-					</div>
-				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.name.label")</label>
 					<div class="col-lg-8">
