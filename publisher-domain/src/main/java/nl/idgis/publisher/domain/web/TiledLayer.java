@@ -19,7 +19,6 @@ import com.mysema.query.annotations.QueryProjection;
 public class TiledLayer extends Identifiable {
 	private static final long serialVersionUID = 3748360159816460138L;
 
-	private final String name;
 	private final Boolean enabled;
 	private final Integer metaWidth;
 	private final Integer metaHeight;
@@ -31,7 +30,6 @@ public class TiledLayer extends Identifiable {
 	@QueryProjection
 	public TiledLayer(
 			final @JsonProperty("") String id, 
-			final @JsonProperty("") String name, 
 			final @JsonProperty("") Integer metaWidth,
 			final @JsonProperty("") Integer metaHeight,
 			final @JsonProperty("") Integer expireCache,
@@ -39,18 +37,12 @@ public class TiledLayer extends Identifiable {
 			final @JsonProperty("") Integer gutter,
 			final @JsonProperty("") Boolean enabled) {
 		super(id);
-		this.name = name;
 		this.metaWidth = metaWidth;
 		this.enabled = enabled;
 		this.metaHeight = metaHeight;
 		this.expireCache = expireCache;
 		this.expireClients = expireClients;
 		this.gutter = gutter;
-	}
-
-	@JsonGetter
-	public String name() {
-		return name;
 	}
 
 	@JsonGetter
