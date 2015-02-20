@@ -1225,7 +1225,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						future.complete(
 							Optional.of(
 								new TiledLayer(
-									workspace.getName() + ":" + layerName,
 									layer.strings("/mimeFormats/string"),
 									metaWidth,
 									metaHeight,
@@ -1252,8 +1251,18 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getTiledLayer(workspace, layerGroup.getName());
 	}
 	
-	public CompletableFuture<Void> deleteTiledLayer(TiledLayer tiledLayer) {
+	private CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName) {
 		// the trailing .xml is required, results in a 400 otherwise
-		return delete(getTiledLayerPath(tiledLayer.getName()) + ".xml");
+		return delete(getTiledLayerPath(workspace, layerName) + ".xml");
+	}
+	
+	@Override
+	public CompletableFuture<Void> deleteTiledLayer(Workspace workspace, FeatureType featureType) {
+		return deleteTiledLayer(workspace, featureType.getName());
+	}
+	
+	@Override
+	public CompletableFuture<Void> deleteTiledLayer(Workspace workspace, LayerGroup layerGroup) {
+		return deleteTiledLayer(workspace, layerGroup.getName());
 	}
 }
