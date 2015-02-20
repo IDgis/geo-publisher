@@ -59,7 +59,7 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-					genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.identification))
+					genericLayer.abstractCol, genericLayer.published, dataset.identification))
 			.thenApply(this::toPage);
 	}
 
@@ -74,7 +74,7 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-				genericLayer.abstractCol, leafLayer.keywords, genericLayer.published, dataset.identification));
+				genericLayer.abstractCol, genericLayer.published, dataset.identification));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
@@ -129,7 +129,6 @@ public class LayerAdmin extends AbstractAdmin {
 													return tx
 														.insert(leafLayer)
 														.set(leafLayer.genericLayerId, glId.get())
-														.set(leafLayer.keywords, theLayer.keywords())
 														.set(leafLayer.datasetId, dsId.get())
 														.execute()
 														.thenApply(
@@ -165,7 +164,6 @@ public class LayerAdmin extends AbstractAdmin {
 												log.debug("Updating new leaf_layer with generic_layer id: " + glId.get());
 												return tx
 													.update(leafLayer)
-													.set(leafLayer.keywords, theLayer.keywords())
 													.where(leafLayer.genericLayerId.eq(glId.get()))
 													.execute()
 													.thenApply(
@@ -252,7 +250,7 @@ public class LayerAdmin extends AbstractAdmin {
 					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
 							.and(layerStyle.styleId.eq(style.id)))
-					.list(new QStyle(style.identification, style.name, style.format, style.version, style.definition))
+					.list(new QStyle(style.identification, style.name, style.definition))
 					.thenApply(this::toList);
 		}));
 	}
