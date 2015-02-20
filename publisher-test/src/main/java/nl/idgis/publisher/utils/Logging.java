@@ -16,7 +16,8 @@ public class Logging {
 	private static void println(String level, Object[] args) {
 		String message = args[0].toString();
 		for(int i = 1; i < args.length; i++) {
-			message = message.replaceFirst("\\{\\}", args[i].toString());
+			Object o = args[i];			
+			message = message.replaceFirst("\\{\\}", o == null ? "null" : o.toString());
 		}
 		
 		System.out.println("[" + level + "] [test] " + message);
