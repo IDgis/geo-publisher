@@ -3,6 +3,8 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,7 +22,7 @@ public class Layer extends Identifiable {
 	private final String name;
 	private final String title;
 	private final String abstractText;
-	private final String keywords;
+	private final List<String> keywords;
 	private final Boolean published;
 	private final String datasetId;
 
@@ -32,7 +34,7 @@ public class Layer extends Identifiable {
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
-			final @JsonProperty("") String keywords,
+			final @JsonProperty("") List<String> keywords,
 			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") String datasetId 
 			) {
@@ -61,7 +63,7 @@ public class Layer extends Identifiable {
 	}
 	
 	@JsonGetter
-	public String keywords() {
+	public List<String> keywords() {
 		return keywords;
 	}
 
