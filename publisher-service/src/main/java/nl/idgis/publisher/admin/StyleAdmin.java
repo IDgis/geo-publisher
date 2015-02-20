@@ -38,7 +38,7 @@ public class StyleAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(style)
-			.list(new QStyle(style.identification,style.name,style.format, style.version, style.definition))
+			.list(new QStyle(style.identification,style.name,style.definition))
 			.thenApply(this::toPage);
 	}
 
@@ -49,7 +49,7 @@ public class StyleAdmin extends AbstractAdmin {
 		return 
 			db.query().from(style)
 			.where(style.identification.eq(styleId))
-			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification,style.name,style.format, style.version, style.definition));		
+			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition));		
 	}
 	
 	private CompletableFuture<Response<?>> handlePutStyle(Style theStyle) {
@@ -69,8 +69,6 @@ public class StyleAdmin extends AbstractAdmin {
 					return tx.insert(style)
 					.set(style.identification, UUID.randomUUID().toString())
 					.set(style.name, styleName)
-					.set(style.version, theStyle.version())
-					.set(style.format, theStyle.format())
 					.set(style.definition, theStyle.definition())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName));
@@ -78,8 +76,6 @@ public class StyleAdmin extends AbstractAdmin {
 					// UPDATE
 					log.debug("Updating style with name: " + styleName);
 					return tx.update(style)
-					.set(style.version, theStyle.version())
-					.set(style.format, theStyle.format())
 					.set(style.definition, theStyle.definition())
 					.where(style.identification.eq(styleId))
 					.execute()
