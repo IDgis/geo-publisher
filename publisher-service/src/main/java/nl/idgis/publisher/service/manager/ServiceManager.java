@@ -171,7 +171,7 @@ public class ServiceManager extends UntypedActor {
 				.distinct()
 				.list(serviceStructure.serviceIdentification).thenCompose(child ->
 					tx.query().from(service)
-						.join(genericLayer).on(genericLayer.id.eq(service.rootgroupId))
+						.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 						.where(genericLayer.identification.eq(layerId))
 						.distinct()						
 						.list(service.identification).thenApply(root -> {
@@ -301,7 +301,7 @@ public class ServiceManager extends UntypedActor {
 				.list(serviceStructure.childLayerIdentification, serviceStructure.parentLayerIdentification);
 			
 			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
-				.join(service).on(service.rootgroupId.eq(genericLayer.id))
+				.join(service).on(service.genericLayerId.eq(genericLayer.id))
 				.where(service.identification.eq(serviceId))
 				.singleResult(new QGroupNode(
 					genericLayer.identification, 
@@ -413,7 +413,7 @@ public class ServiceManager extends UntypedActor {
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-					.join(service).on(service.rootgroupId.eq(layerStructure.parentLayerId))						
+					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))						
 					.list(
 						service.identification, 
 						child.id,
