@@ -1015,7 +1015,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		fileNameFuture.thenAccept(fileName -> {
 			// we use an alternative end-point here because the one in /rest
 			// wrongly raises 404 in some cases. 
-			get(serviceLocation + "/styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
+			get(serviceLocation + "styles/" + fileName, false, true).whenComplete((optionalDocument, t) -> {
 				if(t != null) {
 					future.completeExceptionally(t);
 				} else {
@@ -1148,6 +1148,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private String getLayerPath(Workspace workspace, String name) {
+		// there isn't a layers end-point in workspaces/ but it
+		// appeared possible to request a layer using ${workspaceName}:${layerName},
+		// the layer index is not usable because of name collisions (same layer name in different workspaces)
+		// but the layer name seems always identical to the feature type name
 		return restLocation + "layers/" + workspace.getName() + ":" + name;
 	}
 	
@@ -1222,5 +1226,48 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> deleteStyle(Style style) {
 		return delete(getStylePath(style) + "?purge=true");
+	}
+	
+	private String getTiledLayerPath(String tiledLayerName) {
+		return serviceLocation + "gwc/rest/layers/" + tiledLayerName;
+	}
+	
+	private String getTiledLayerPath(Workspace workspace, String layerName) {
+		return getTiledLayerPath(workspace.getName() + ":" + layerName);
+	}
+	
+	private CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, String layerName) {
+		CompletableFuture<Optional<TiledLayer>> future = new CompletableFuture<>();
+		
+		get(getTiledLayerPath(workspace, layerName)).whenComplete((optionalDocument, t) -> {
+			if(t != null) {
+				future.completeExceptionally(t);
+			} else {
+				try {
+					if(optionalDocument.isPresent()) {
+						future.complete(Optional.of(new TiledLayer(workspace.getName() + ":" + layerName)));
+					} else {
+						future.complete(Optional.empty());
+					}
+				} catch(Exception e) {
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		
+		return future;
+	}
+	
+	public CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, FeatureType featureType) {
+		return getTiledLayer(workspace, featureType.getName());
+	}
+	
+	public CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, LayerGroup layerGroup) {
+		return getTiledLayer(workspace, layerGroup.getName());
+	}
+	
+	public CompletableFuture<Void> deleteTiledLayer(TiledLayer tiledLayer) {
+		// the trailing .xml is required, results in a 400 otherwise
+		return delete(getTiledLayerPath(tiledLayer.getName()) + ".xml");
 	}
 }
