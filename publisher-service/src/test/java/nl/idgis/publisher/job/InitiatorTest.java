@@ -180,7 +180,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		insert(service)
 			.set(service.identification, "testService")
 			.set(service.name, "testServiceName")
-			.set(service.rootgroupId, rootId)
+			.set(service.genericLayerId, rootId)
 			.execute();
 	}
 	

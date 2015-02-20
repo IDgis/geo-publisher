@@ -41,6 +41,7 @@ public class TiledLayerAdmin extends AbstractAdmin {
 			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
 			.list(new nl.idgis.publisher.domain.web.QTiledLayer(
 					genericLayer.identification,
+					genericLayer.name,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
@@ -52,15 +53,16 @@ public class TiledLayerAdmin extends AbstractAdmin {
 	}
 
 	
-	private CompletableFuture<Optional<TiledLayer>> handleGetTiledlayer (String genericLayerName) {
-		log.debug ("handleGetTiledlayer: " + genericLayerName);
+	private CompletableFuture<Optional<TiledLayer>> handleGetTiledlayer (String genericLayerId) {
+		log.debug ("handleGetTiledlayer: " + genericLayerId);
 		
 		return 
 			db.query().from(tiledLayer)
 			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
-			.where(genericLayer.name.eq(genericLayerName))
+			.where(genericLayer.identification.eq(genericLayerId))
 			.singleResult(new nl.idgis.publisher.domain.web.QTiledLayer(
 					genericLayer.identification,
+					genericLayer.name,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
