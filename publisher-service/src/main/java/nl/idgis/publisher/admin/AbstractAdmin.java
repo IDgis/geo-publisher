@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -40,6 +41,7 @@ import nl.idgis.publisher.admin.messages.OnQuery;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
+import nl.idgis.publisher.domain.Failure;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetEntity;
@@ -186,27 +188,31 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	}
 	
 	private <T> void toSender(CompletableFuture<T> future) throws Exception {
-		ActorRef sender = getSender(), self = getSelf();		
+		ActorRef sender = getSender();
 		future.whenComplete((resp, t) -> {
 			if(t != null) {
-				StringWriter sw = new StringWriter();
-				t.printStackTrace(new PrintWriter(sw));
-				log.error("failure: {}", sw);
+				log.debug("future completed exceptionally");
+				failure(t, sender);
 			} else {
-				Object result;
-				if(resp instanceof Optional) {
-					Optional<?> opt = ((Optional<?>)resp);
-					if(opt.isPresent()) {
-						result = opt.get();
+				try {
+					Object result;
+					if(resp instanceof Optional) {
+						Optional<?> opt = ((Optional<?>)resp);
+						if(opt.isPresent()) {
+							result = opt.get();
+						} else {
+							result = new NotFound();
+						}
 					} else {
-						result = new NotFound();
+						result = resp;
 					}
-				} else {
-					result = resp;
-				}				
-				
-				log.debug("sending response: {} to {}", resp, sender);
-				sender.tell(result, self);				
+					
+					log.debug("sending response: {} to {}", resp, sender);
+					sender.tell(result, getSelf());
+				} catch(Exception e) {
+					log.debug("exception while sending response");
+					failure(e, sender);
+				}
 			}
 		});
 	}
@@ -215,79 +221,106 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof Event) {
 			handleEvent((Event)msg);
-		} else if(msg instanceof GetEntity) {
-			Class<?> entity = ((GetEntity<?>)msg).cls();
-			
-			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<Optional<Object>>> handler = doGet.get(entity);
-			if(handler == null) {
-				log.debug("get entity not handled: {}", entity);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling get entity: {}", entity);
-				
-				toSender(handler.apply(((GetEntity<?>)msg).id()));
-			}
-		} else if(msg instanceof ListEntity) {
-			Class<?> entity = ((ListEntity<?>)msg).cls();
-			
-			@SuppressWarnings("unchecked")
-			Function<Long, CompletableFuture<?>> handler = doList.get(entity);
-			if(handler == null) {
-				log.debug("list entity not handled: {}", entity);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling list entity: {}", entity);
-				
-				toSender(handler.apply(((ListEntity<?>)msg).page()));
-			}
-		} else if(msg instanceof DeleteEntity) {
-			Class<?> entity = ((DeleteEntity<?>)msg).cls();
-			
-			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<?>> handler = doDelete.get(entity);
-			if(handler == null) {
-				log.debug("delete not handled: {}", entity);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling delete: {}", entity);
-				
-				toSender(handler.apply(((DeleteEntity<?>)msg).id()));
-			}
-		} else if(msg instanceof PutEntity) {
-			Object value = ((PutEntity<?>)msg).value();
-			Class<?> entity = value.getClass();
-			
-			@SuppressWarnings("unchecked")
-			Function<Object, CompletableFuture<?>> handler = doPut.get(entity);
-			if(handler == null) {
-				log.debug("put not handled: {}", entity);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling put: {}", entity);
-				
-				toSender(handler.apply(value));
-			}
 		} else if(msg instanceof DomainQuery) {
-			Class<?> clazz = msg.getClass();
-			
-			@SuppressWarnings("unchecked")
-			Function<DomainQuery<?>, CompletableFuture<?>> handler = doQuery.get(clazz);
-			if(handler == null) {
-				log.debug("query not handled: {}", msg);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling query: {}", msg);
-				
-				toSender(handler.apply((DomainQuery<?>)msg));
+			try {
+				if(msg instanceof GetEntity) {
+					handleGetEntity((GetEntity<?>)msg);
+				} else if(msg instanceof ListEntity) {
+					handleListEntity((ListEntity<?>)msg);
+				} else if(msg instanceof DeleteEntity) {
+					handleDeleteEntity((DeleteEntity<?>)msg);
+				} else if(msg instanceof PutEntity) {
+					handlePutEntity((PutEntity<?>)msg);
+				} else {			
+					handleDomainQuery((DomainQuery<?>)msg);
+				}
+			} catch(Exception e) {
+				log.debug("exception during query handling");
+				failure(e, getSender());
 			}
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void handleDomainQuery(DomainQuery<?> msg) throws Exception {
+		Class<?> clazz = msg.getClass();
+		
+		@SuppressWarnings("unchecked")
+		Function<DomainQuery<?>, CompletableFuture<?>> handler = doQuery.get(clazz);
+		if(handler == null) {
+			log.debug("query not handled: {}", msg);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling query: {}", msg);
+			
+			toSender(handler.apply(msg));
+		}
+	}
+
+	private void handlePutEntity(PutEntity<?> msg) throws Exception {
+		Object value = msg.value();
+		Class<?> entity = value.getClass();
+		
+		@SuppressWarnings("unchecked")
+		Function<Object, CompletableFuture<?>> handler = doPut.get(entity);
+		if(handler == null) {
+			log.debug("put not handled: {}", entity);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling put: {}", entity);
+			
+			toSender(handler.apply(value));
+		}
+	}
+
+	private void handleDeleteEntity(DeleteEntity<?> msg) throws Exception {
+		Class<?> entity = msg.cls();
+		
+		@SuppressWarnings("unchecked")
+		Function<String, CompletableFuture<?>> handler = doDelete.get(entity);
+		if(handler == null) {
+			log.debug("delete not handled: {}", entity);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling delete: {}", entity);
+			
+			toSender(handler.apply(msg.id()));
+		}
+	}
+
+	private void handleListEntity(ListEntity<?> msg) throws Exception {
+		Class<?> entity = msg.cls();
+		
+		@SuppressWarnings("unchecked")
+		Function<Long, CompletableFuture<?>> handler = doList.get(entity);
+		if(handler == null) {
+			log.debug("list entity not handled: {}", entity);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling list entity: {}", entity);
+			
+			toSender(handler.apply(msg.page()));
+		}
+	}
+
+	private void handleGetEntity(GetEntity<?> msg) throws Exception {
+		Class<?> entity = msg.cls();
+		
+		@SuppressWarnings("unchecked")
+		Function<String, CompletableFuture<Optional<Object>>> handler = doGet.get(entity);
+		if(handler == null) {
+			log.debug("get entity not handled: {}", entity);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling get entity: {}", entity);
+			
+			toSender(handler.apply(msg.id()));
 		}
 	}
 	
@@ -428,6 +461,22 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 			log.error("unhandled event: {}", msg);
 			
 			unhandled(msg);
+		}
+	}
+	
+	private void failure(Throwable t, ActorRef sender) {
+		log.debug("sending failure: {} {}", t, sender);
+		
+		try {
+			String exceptionId = UUID.randomUUID().toString();
+			
+			StringWriter sw = new StringWriter();
+			t.printStackTrace(new PrintWriter(sw));
+			
+			log.error("failure: {} {}", exceptionId, sw.toString());
+			sender.tell(new Failure(exceptionId), getSelf());
+		} catch(Exception e) {
+			log.error("sending failure failed: {}", e);
 		}
 	}
 

@@ -14,6 +14,7 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.domain.Failure;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudResponse;
 
@@ -83,6 +84,14 @@ private final LoggingAdapter log = Logging.getLogger(getContext().system(), this
 					}
 					
 					getContext().stop(getSelf());
+				} else if(msg instanceof Failure) {
+					log.debug("failure received");
+					
+					origSender.tell(msg, getSender());
+					
+					for(ActorRef listener : listeners) {							
+						listener.tell(new EventFailed(), getSelf());
+					}
 				} else {
 					log.debug("unhandled: {}", msg);
 					

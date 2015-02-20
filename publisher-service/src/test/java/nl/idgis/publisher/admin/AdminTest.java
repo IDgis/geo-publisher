@@ -3,6 +3,7 @@ package nl.idgis.publisher.admin;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.junit.Before;
@@ -16,6 +17,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
+import nl.idgis.publisher.domain.Failure;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.GetEntity;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
@@ -27,8 +29,10 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.SourceDataset;
 
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -81,9 +85,18 @@ public class AdminTest {
 		public static Props props(ActorRef database) {
 			return Props.create(Do.class, database);
 		}
-
+		
 		@Override
+		@SuppressWarnings("unused")
 		protected void preStartAdmin() {
+			doGet(SourceDataset.class, sourceDatasetId -> f.successful(null));
+			doGet(Dataset.class, datasetId -> {
+				Objects.requireNonNull(null); // raise NPE
+				
+				return f.successful(null); // unreachable
+			});
+			doGet(DataSource.class, dataSourceId -> 
+				f.failed(new IllegalArgumentException(dataSourceId)));
 			doGet(Category.class, categoryId ->
 				f.successful(Optional.of(new Category(categoryId, "name: " + categoryId))));
 			doList(Category.class, page -> {
@@ -217,5 +230,20 @@ public class AdminTest {
 	@Test
 	public void testOptionalQuery() throws Exception {
 		sync.ask(parent, new GetGroupStructure("groupId"), NotFound.class);
+	}
+	
+	@Test
+	public void testCompletedExceptionally() throws Exception {
+		sync.ask(parent, new GetEntity<>(DataSource.class, "dataSourceId"), Failure.class);
+	}
+	
+	@Test
+	public void testException() throws Exception {
+		sync.ask(parent, new GetEntity<>(Dataset.class, "datasetId"), Failure.class);
+	}
+	
+	@Test
+	public void testCompletedWithNull() throws Exception {
+		sync.ask(parent, new GetEntity<>(SourceDataset.class, "sourceDataset"), Failure.class);
 	}
 }
