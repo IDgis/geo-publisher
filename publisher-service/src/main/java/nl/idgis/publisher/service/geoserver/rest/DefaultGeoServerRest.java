@@ -314,7 +314,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<Workspace>> getWorkspaces() {
 		return get(getWorkspacesPath()).thenApply(optionalDocument ->
 			xpath(optionalDocument.get())
-				.stringsMap("/workspaces/workspace/name", Workspace::new));
+				.map("/workspaces/workspace/name", name -> new Workspace(name.string().get())));
 	}
 	
 	@Override
@@ -346,8 +346,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<DataStore>> getDataStores(Workspace workspace) {
 		return get(getDataStoresPath(workspace)).thenCompose(optionalDocument ->
 			f.sequence(
-				xpath(optionalDocument.get()).stringsMap("/dataStores/dataStore/name", 
-					name -> getDataStore(workspace, name)
+				xpath(optionalDocument.get()).map("/dataStores/dataStore/name", 
+					name -> getDataStore(workspace, name.string().get())
 						.thenApply(this::optionalPresent))));
 	}
 
@@ -403,7 +403,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					featureType.stringOrNull("title"),
 					featureType.stringOrNull("abstract"),
 					Collections.unmodifiableList(
-						featureType.stringsMap("/featureType/attributes/attribute/name", Attribute::new)));
+						featureType.map("/featureType/attributes/attribute/name", 
+							name -> new Attribute(name.string().get()))));
 			}));
 	}
 	
@@ -411,8 +412,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<List<FeatureType>> getFeatureTypes(Workspace workspace, DataStore dataStore) {
 		return get(getFeatureTypesPath(workspace, dataStore)).thenCompose(optionalDocument ->
 			f.sequence(
-				xpath(optionalDocument.get()).stringsMap("/featureTypes/featureType/name", name ->
-					getFeatureType(workspace, dataStore, name).thenApply(this::optionalPresent))));
+				xpath(optionalDocument.get()).map("/featureTypes/featureType/name", name ->
+					getFeatureType(workspace, dataStore, name.string().get()).thenApply(this::optionalPresent))));
 	}
 	
 	@Override

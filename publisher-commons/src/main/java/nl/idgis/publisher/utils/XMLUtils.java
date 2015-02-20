@@ -37,7 +37,7 @@ public class XMLUtils {
 			return stringsMap(expression, Function.identity());
 		}
 		
-		public <T> List<T> stringsMap(String expression, Function<? super String, ? extends T> mapper) {
+		private <T> List<T> stringsMap(String expression, Function<? super String, ? extends T> mapper) {
 			return flatMap(expression, node ->
 				node.string()
 					.map(mapper)
