@@ -26,6 +26,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -111,8 +112,8 @@ public class GeoServerService extends UntypedActor {
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ServiceJobInfo) {
-			handleServiceJob((ServiceJobInfo)msg);
+		if(msg instanceof EnsureServiceJobInfo) {
+			handleServiceJob((EnsureServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
 		} else {
@@ -541,7 +542,7 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
-	private void handleServiceJob(ServiceJobInfo serviceJob) {
+	private void handleServiceJob(EnsureServiceJobInfo serviceJob) {
 		log.debug("executing service job: " + serviceJob);
 		
 		ActorRef provisioningService = getContext().actorOf(

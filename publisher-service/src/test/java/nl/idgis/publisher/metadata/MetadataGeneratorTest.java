@@ -5,7 +5,7 @@ import org.junit.Before;
 import akka.actor.ActorRef;
 
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
@@ -34,7 +34,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		sync.ask(jobManager, new CreateImportJob(datasetId), Ack.class);
 		executeJobs(new GetImportJobs());
 		
-		sync.ask(jobManager, new CreateServiceJob(datasetId), Ack.class);
+		sync.ask(jobManager, new CreateEnsureServiceJob(datasetId), Ack.class);
 		executeJobs(new GetServiceJobs());
 		
 		sync.ask(metadataGenerator, new GenerateMetadata(), Ack.class);

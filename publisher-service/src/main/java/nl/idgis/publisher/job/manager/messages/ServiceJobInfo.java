@@ -1,30 +1,13 @@
 package nl.idgis.publisher.job.manager.messages;
 
-import com.mysema.query.annotations.QueryProjection;
-
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobType;
 
-public class ServiceJobInfo extends JobInfo {	
+public abstract class ServiceJobInfo extends JobInfo {
 
-	private static final long serialVersionUID = 2177579863192957269L;
-	
-	private final String serviceId;
+	private static final long serialVersionUID = -6377245672307218086L;
 
-	@QueryProjection
-	public ServiceJobInfo(int id, String serviceId) {
+	public ServiceJobInfo(int id) {
 		super(id, JobType.SERVICE);
-		
-		this.serviceId = serviceId;
 	}
-
-	public String getServiceId() {
-		return serviceId;
-	}
-
-	@Override
-	public String toString() {
-		return "ServiceJobInfo [serviceId=" + serviceId + "]";
-	}
-	
 }

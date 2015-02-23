@@ -11,7 +11,7 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.TypedIterable;
@@ -34,7 +34,7 @@ public class JobCreator extends AbstractAdmin {
 	private void createServiceJob(String serviceId) {
 		log.debug("creating service job: {}", serviceId);
 		
-		jobSystem.tell(new CreateServiceJob(serviceId), getSelf());
+		jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 	}
 	
 	private void createServiceJobs(TypedIterable<?> serviceIds) {
@@ -52,7 +52,7 @@ public class JobCreator extends AbstractAdmin {
 			for(String serviceId : serviceIds) {
 				log.debug("creating service job: {}", serviceId);
 				
-				jobSystem.tell(new CreateServiceJob(serviceId), getSelf());
+				jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 			}
 		});
 	}

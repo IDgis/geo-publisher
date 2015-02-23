@@ -44,7 +44,7 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -211,7 +211,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -255,7 +255,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -292,7 +292,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		sync.ask(recorder, new Clear(), Cleared.class);
@@ -308,7 +308,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -350,7 +350,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
