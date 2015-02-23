@@ -973,7 +973,11 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private String getTiledLayerPath(String tiledLayerName) {
-		return serviceLocation + "gwc/rest/layers/" + tiledLayerName;
+		return getTiledLayersPath() + "/" + tiledLayerName;
+	}
+	
+	private String getTiledLayersPath() {
+		return serviceLocation + "gwc/rest/layers";
 	}
 	
 	private String getTiledLayerPath(Workspace workspace, String layerName) {
@@ -1000,7 +1004,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				
 				return
 					new TiledLayer(
-						layer.strings("/mimeFormats/string"),
+						layer.strings("mimeFormats/string"),
 						metaWidth,
 						metaHeight,
 						layer.integerOrNull("expireCache"),
@@ -1030,5 +1034,119 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> deleteTiledLayer(Workspace workspace, LayerGroup layerGroup) {
 		return deleteTiledLayer(workspace, layerGroup.getName());
+	}
+	
+	@Override
+	public CompletableFuture<List<String>> getTiledLayers(Workspace workspace) {
+		return get(getTiledLayersPath()).thenApply(optionalDocument ->			
+			xpath(optionalDocument.get()).strings("layers/layer/name").stream()
+				.map(name -> name.split(":"))
+				.filter(name -> name[0].equals(workspace.getName()))
+				.map(name -> name[1])
+				.collect(Collectors.toList()));
+	}
+	
+	
+	private byte[] getTiledLayerDocument(String tiledLayerName, TiledLayer tiledLayer) throws IOException, XMLStreamException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		
+		sw.writeStartDocument();
+		
+		sw.writeStartElement("GeoServerLayer");
+			sw.writeStartElement("enabled");
+				sw.writeCharacters("true");
+			sw.writeEndElement();
+			
+			sw.writeStartElement("name");
+				sw.writeCharacters(tiledLayerName);
+			sw.writeEndElement();
+			
+			sw.writeStartElement("mimeFormats");
+			for(String mimeFormat : tiledLayer.getMimeFormats()) {
+				sw.writeStartElement("string");
+					sw.writeCharacters(mimeFormat);
+				sw.writeEndElement();
+			}			
+			sw.writeEndElement();
+			
+			// TODO: change into the appropriate grid subset(s)
+			
+			sw.writeStartElement("gridSubsets");
+				sw.writeStartElement("gridSubset");
+					sw.writeStartElement("gridSetName");
+						sw.writeCharacters("EPSG:4326");
+					sw.writeEndElement();
+				sw.writeEndElement();
+			sw.writeEndElement();
+			
+			sw.writeStartElement("metaWidthHeight");
+				sw.writeStartElement("int");
+					sw.writeCharacters("" + tiledLayer.getMetaWidth());
+				sw.writeEndElement();
+				sw.writeStartElement("int");
+					sw.writeCharacters("" + tiledLayer.getMetaHeight());
+				sw.writeEndElement();
+			sw.writeEndElement();
+			
+			sw.writeStartElement("expireCache");
+				sw.writeCharacters("" + tiledLayer.getExpireCache());
+			sw.writeEndElement();
+			
+			sw.writeStartElement("expireClients");
+				sw.writeCharacters("" + tiledLayer.getExpireClients());
+			sw.writeEndElement();
+			
+			sw.writeStartElement("gutter");
+				sw.writeCharacters("" + tiledLayer.getGutter());
+			sw.writeEndElement();
+		sw.writeEndElement();
+		
+		sw.writeEndDocument();
+		
+		sw.close();		
+		os.close();
+		
+		return os.toByteArray();
+	}
+	
+	private CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
+		try {
+			return put(getTiledLayerPath(workspace, layerName) + ".xml", 
+				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
+		} catch(Exception e) {
+			return f.failed(e);
+		}	
+	}
+	
+	@Override
+	public CompletableFuture<Void> putTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer) {
+		return putTiledLayer(workspace, featureType.getName(), tiledLayer);
+	}
+	
+	@Override
+	public CompletableFuture<Void> putTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer) {
+		return putTiledLayer(workspace, layerGroup.getName(), tiledLayer);
+	}
+	
+	private CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
+		try {
+			return post(getTiledLayerPath(workspace, layerName) + ".xml", 
+				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
+		} catch(Exception e) {
+			return f.failed(e);
+		}	
+	}
+	
+	@Override
+	public CompletableFuture<Void> postTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer) {
+		return postTiledLayer(workspace, featureType.getName(), tiledLayer);
+	}
+	
+	@Override
+	public CompletableFuture<Void> postTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer) {
+		return postTiledLayer(workspace, layerGroup.getName(), tiledLayer);
 	}
 }

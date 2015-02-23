@@ -1,15 +1,17 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
+import nl.idgis.publisher.domain.web.tree.TilingSettings;
+
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 
 public class EnsureFeatureTypeLayer extends EnsureLayer {	
 
-	private static final long serialVersionUID = 4910082363406762765L;
+	private static final long serialVersionUID = 2712860254027704849L;
 	
 	private final String tableName;
 	
-	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, String tableName) {
-		super(layerId, title, abstr);
+	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, String tableName, TilingSettings tilingSettings) {
+		super(layerId, title, abstr, tilingSettings);
 		
 		this.tableName = tableName;
 	}
@@ -24,6 +26,13 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 				tableName,
 				title,
 				abstr);
+	}
+
+	@Override
+	public String toString() {
+		return "EnsureFeatureTypeLayer [tableName=" + tableName + ", layerId="
+				+ layerId + ", title=" + title + ", abstr=" + abstr
+				+ ", tilingSettings=" + tilingSettings + "]";
 	}
 	
 }

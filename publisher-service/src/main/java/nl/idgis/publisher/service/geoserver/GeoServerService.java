@@ -13,8 +13,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.print.attribute.standard.JobStateReasons;
-
 import com.google.common.base.Objects;
 import com.typesafe.config.Config;
 
@@ -26,6 +24,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.web.tree.TilingSettings;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -38,6 +37,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -257,9 +257,10 @@ public class GeoServerService extends UntypedActor {
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
-			Map<String, LayerGroup> layerGroups) {
+			Map<String, LayerGroup> layerGroups,
+			Map<String, TilingSettings> tilingSettings) {
 		
-		return layers(null, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups);
+		return layers(null, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings);
 	}
 	
 	private Procedure<Object> layers(
@@ -270,7 +271,8 @@ public class GeoServerService extends UntypedActor {
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
-			Map<String, LayerGroup> layerGroups) {
+			Map<String, LayerGroup> layerGroups,
+			Map<String, TilingSettings> tilingSettings) {
 		
 		List<LayerRef> groupLayerContent = new ArrayList<>();
 		
@@ -365,13 +367,24 @@ public class GeoServerService extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
+				if(msg instanceof EnsureLayer) {
+					EnsureLayer ensureLayer = (EnsureLayer)msg;
+					
+					Optional<TilingSettings> tilingSettingsOptional = ensureLayer.getTilingSettings();
+					if(tilingSettingsOptional.isPresent()) {
+						log.debug("tiling settings found for layer: {}", ensureLayer.getLayerId());
+						
+						tilingSettings.put(ensureLayer.getLayerId(), tilingSettingsOptional.get());
+					}
+				}
+				
 				if(msg instanceof EnsureGroupLayer) {
 					EnsureGroupLayer ensureLayer = (EnsureGroupLayer)msg;
 					
 					ensured(provisioningService);
 					groupLayerContent.add(new LayerRef(ensureLayer.getLayerId(), true));
 					getContext().become(layers(ensureLayer, initiator, serviceJob, 
-						provisioningService, workspace, dataStore, featureTypes, layerGroups), false);
+						provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
@@ -604,7 +617,8 @@ public class GeoServerService extends UntypedActor {
 					DataStore dataStore = workspaceEnsured.getDataStore();
 					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
-					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups));
+					Map<String, TilingSettings> tilingSettings = new HashMap<>();
+					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings));
 				} else {
 					elseProvisioning(msg, serviceJob, initiator);
 				}

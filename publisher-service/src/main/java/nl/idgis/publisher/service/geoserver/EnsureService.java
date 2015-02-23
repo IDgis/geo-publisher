@@ -69,12 +69,14 @@ public class EnsureService extends UntypedActor {
 					
 					if(itr.hasNext()) {
 						Layer layer = itr.next();
+						
 						if(layer.isGroup()) {
 							getContext().parent().tell(
 								new EnsureGroupLayer(
 									layer.getName(), 
 									layer.getTitle(), 
-									layer.getAbstract()), getSelf());							
+									layer.getAbstract(),
+									layer.getTilingSettings().orElse(null)), getSelf());							
 							getContext().become(layers(layer.asGroup().getLayers(), depth + 1), false);
 						} else {
 							getContext().parent().tell(
@@ -82,7 +84,8 @@ public class EnsureService extends UntypedActor {
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(), 
-									layer.asDataset().getTableName()), getSelf());
+									layer.asDataset().getTableName(),
+									layer.getTilingSettings().orElse(null)), getSelf());
 						}
 					} else {
 						log.debug("unbecome {}", depth);

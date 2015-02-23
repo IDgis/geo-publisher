@@ -65,7 +65,17 @@ public interface GeoServerRest extends Closeable {
 	
 	CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, LayerGroup layerGroup);
 	
+	CompletableFuture<List<String>> getTiledLayers(Workspace workspace);
+	
 	CompletableFuture<Void> deleteTiledLayer(Workspace workspace, FeatureType featureType);
 	
-	CompletableFuture<Void> deleteTiledLayer(Workspace workspace, LayerGroup layerGroup);
+	CompletableFuture<Void> deleteTiledLayer(Workspace workspace, LayerGroup layerGroup);	
+
+	CompletableFuture<Void> putTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer);
+	
+	CompletableFuture<Void> putTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer);
+	
+	CompletableFuture<Void> postTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer);
+	
+	CompletableFuture<Void> postTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer);
 }

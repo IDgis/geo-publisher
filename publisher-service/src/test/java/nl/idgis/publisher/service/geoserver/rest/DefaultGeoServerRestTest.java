@@ -361,8 +361,17 @@ public class DefaultGeoServerRestTest {
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
 		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());
 		
-		service.deleteTiledLayer(workspace, featureType).get();
+		service.deleteTiledLayer(workspace, featureType).get(); // remove default tiled layer
+		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), 4, 4, 0, 0, 0)).get();
 		
-		//service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg", "image/png"), 4, 4, 0, 0, 0));
+		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
+		assertTrue(tiledLayer.isPresent());
+		
+		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());		
+		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
+		
+		service.postWorkspace(new Workspace("anotherWorkspace")).get();
+				
+		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
 	}
 }
