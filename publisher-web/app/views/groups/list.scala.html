@@ -18,10 +18,17 @@
 				data-group-id="@group.id"
 				data-group-name="@group.name">
 				<div class="row">
-					<div class="col-md-10">
+					<div class="col-md-5">
 						<h4 class="list-group-item-heading">
 							<a href="@routes.Groups.edit(group.id)" class="text-warning">@group.name</a>
 						</h4>
+					</div>
+					<div class="col-md-5">
+						@if(group.published){
+							<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
+						}else{
+							<span>@Domain.message("web.application.page.list.notpublished")</span>
+						}
 					</div>
 					<div class="col-md-2">
 						<div class="btn-group pull-right">

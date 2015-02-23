@@ -18,10 +18,17 @@
 				data-service-id="@service.id"
 				data-service-name="@service.name">
 				<div class="row">
-					<div class="col-md-10">
+					<div class="col-md-5">
 						<h4 class="list-group-item-heading">
 							<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 						</h4>
+					</div>
+					<div class="col-md-5">
+						@if(service.published){
+							<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
+						}else{
+							<span>@Domain.message("web.application.page.list.notpublished")</span>
+						}
 					</div>
 					<div class="col-md-2">
 						<div class="btn-group pull-right">
