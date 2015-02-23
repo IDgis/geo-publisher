@@ -40,32 +40,29 @@ public class TiledLayerAdmin extends AbstractAdmin {
 			db.query().from(tiledLayer)
 			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
 			.list(new nl.idgis.publisher.domain.web.QTiledLayer(
-					tiledLayer.identification,
+					genericLayer.identification,
 					genericLayer.name,
-					tiledLayer.mimeFormats,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
 					tiledLayer.gutter,
 					tiledLayer.enabled 
-					
 					))
 			.thenApply(this::toPage);
 	}
 
 	
-	private CompletableFuture<Optional<TiledLayer>> handleGetTiledlayer (String tiledlayerId) {
-		log.debug ("handleGetTiledlayer: " + tiledlayerId);
+	private CompletableFuture<Optional<TiledLayer>> handleGetTiledlayer (String genericLayerId) {
+		log.debug ("handleGetTiledlayer: " + genericLayerId);
 		
 		return 
 			db.query().from(tiledLayer)
 			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
-			.where(tiledLayer.identification.eq(tiledlayerId))
+			.where(genericLayer.identification.eq(genericLayerId))
 			.singleResult(new nl.idgis.publisher.domain.web.QTiledLayer(
-					tiledLayer.identification,
+					genericLayer.identification,
 					genericLayer.name,
-					tiledLayer.mimeFormats,
 					tiledLayer.metaHeight,
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
@@ -76,21 +73,21 @@ public class TiledLayerAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Response<?>> handlePutTiledlayer(TiledLayer theTiledlayer) {
-		String tiledLayerId = theTiledlayer.id();
-		log.debug ("handle update/create tiledlayer: " + tiledLayerId);
+		String genericLayerId = theTiledlayer.id();
+		log.debug ("handle update/create tiledlayer: " + genericLayerId);
 		
 		return db.transactional(tx ->
 			// Check if there is another tiledlayer with the same id
 			tx.query().from(tiledLayer)
-			.where(tiledLayer.identification.eq(tiledLayerId))
-			.singleResult(tiledLayer.identification)
-			.thenCompose(msg -> {
-				if (!msg.isPresent()){
+			.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
+			.where(genericLayer.identification.eq(genericLayerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(glId -> {
+				if (!glId.isPresent()){
 					// INSERT
-					log.debug("Inserting new tiledlayer with id: " + tiledLayerId);
+					log.debug("Inserting new tiledlayer with id: " + genericLayerId);
 					return tx.insert(tiledLayer)
-					.set(tiledLayer.identification, UUID.randomUUID().toString())
-					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
+					.set(tiledLayer.genericLayerId, glId.get())
 					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
 					.set(tiledLayer.metaWidth, theTiledlayer.metaWidth())
 					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
@@ -98,31 +95,39 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
 					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, tiledLayerId));
+					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, genericLayerId));
 				} else {
 					// UPDATE
-					log.debug("Updating tiledlayer with id: " + tiledLayerId);
+					log.debug("Updating tiledlayer with id: " + genericLayerId);
 					return tx.update(tiledLayer)
-					.set(tiledLayer.mimeFormats, theTiledlayer.mimeFormats())
 					.set(tiledLayer.metaHeight, theTiledlayer.metaHeight())
 					.set(tiledLayer.metaWidth, theTiledlayer.metaWidth())
 					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
 					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
 					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
-					.where(tiledLayer.identification.eq(tiledLayerId))
+					.where(tiledLayer.genericLayerId.eq(glId.get()))
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, tiledLayerId));
+					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, genericLayerId));
 				}
 		}));
 	}
 
-	private CompletableFuture<Response<?>> handleDeleteTiledlayer(String tiledlayerId) {
-		log.debug ("handleDeleteTiledlayer: " + tiledlayerId);
-		return db.delete(tiledLayer)
-			.where(tiledLayer.identification.eq(tiledlayerId))
-			.execute()
-			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, tiledlayerId));
+	private CompletableFuture<Response<?>> handleDeleteTiledlayer(String genericLayerId) {
+		log.debug ("handleDeleteTiledlayer: " + genericLayerId);
+		return db.transactional(tx -> 
+				tx.query().from(tiledLayer)
+				.join(genericLayer).on(genericLayer.id.eq(tiledLayer.genericLayerId))
+				.where(genericLayer.identification.eq(genericLayerId))
+				.singleResult(tiledLayer.id)
+				.thenCompose(
+				tlId -> {
+				return tx.delete(tiledLayer)
+					.where(tiledLayer.id.eq(tlId.get()))
+					.execute()
+					.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, genericLayerId));
+		}));
+
 	}
 	
 	

@@ -92,7 +92,7 @@ public class Styles extends Controller {
 					// validation end
 					
 					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name, styleForm.format, styleForm.version,styleForm.definition);
+					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition);
 					
 					return from (database)
 						.put(style)
@@ -223,26 +223,17 @@ public class Styles extends Controller {
 		@Constraints.MinLength (value=1)
 		private String name;
 		@Constraints.Required
-		private String format;
-		@Constraints.Required
-		private String version;
-		@Constraints.Required
 		private String definition;
 		
 		
 		public StyleForm (){
 			super();
 			this.id = ID;
-			this.format = "SLD";
-			this.version = "1.0.0";
-
 		}
 		
 		public StyleForm (final Style style){
 			this.id = style.id();
 			this.name = style.name();
-			this.format = style.format();
-			this.version = style.version();
 			this.definition = style.definition();
 		}
 		
@@ -259,18 +250,6 @@ public class Styles extends Controller {
 		}
 		public void setName(String name) {
 			this.name = name;
-		}
-		public String getFormat() {
-			return format;
-		}
-		public void setFormat(String format) {
-			this.format = format;
-		}
-		public String getVersion() {
-			return version;
-		}
-		public void setVersion(String version) {
-			this.version = version;
 		}
 		public String getDefinition() {
 			return definition;

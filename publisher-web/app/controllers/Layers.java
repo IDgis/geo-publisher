@@ -114,7 +114,7 @@ public class Layers extends GroupsLayersCommon {
 					
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-							layerForm.abstractText,layerForm.keywords,layerForm.published,layerForm.datasetId);
+							layerForm.abstractText,layerForm.published,layerForm.datasetId);
 					
 					return from (database)
 							.put(layer)
@@ -308,7 +308,6 @@ public class Layers extends GroupsLayersCommon {
 			this.name = layer.name();
 			this.title = layer.title();
 			this.abstractText = layer.abstractText();
-			this.keywords = layer.keywords();
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
 

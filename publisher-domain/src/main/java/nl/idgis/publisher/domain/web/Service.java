@@ -3,6 +3,8 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,12 +23,9 @@ public class Service extends Identifiable {
 	private final String title;
 	private final String alternateTitle;
 	private final String abstractText;
-	private final String keywords;
 	private final String metadata;
-	private final String watermark;
 	private final Boolean published;
-	private final String rootGroupId;
-	private final String defaultCategoryId;
+	private final String genericLayerId;
 	private final String constantsId;
 
 	
@@ -38,12 +37,9 @@ public class Service extends Identifiable {
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String alternateTitle, 
 			final @JsonProperty("") String abstractText, 
-			final @JsonProperty("") String keywords,
 			final @JsonProperty("") String metadata, 
-			final @JsonProperty("") String watermark,
 			final @JsonProperty("") Boolean published,
-			final @JsonProperty("") String rootGroupId,
-			final @JsonProperty("") String defaultCategoryId,
+			final @JsonProperty("") String genericLayerId,
 			final @JsonProperty("") String constantsId
 			) {
 		super(id);
@@ -51,12 +47,9 @@ public class Service extends Identifiable {
 		this.title = title;
 		this.alternateTitle = alternateTitle;
 		this.abstractText = abstractText;
-		this.keywords = keywords;
 		this.metadata = metadata;
-		this.watermark = watermark;
 		this.published = published;
-		this.rootGroupId = rootGroupId;
-		this.defaultCategoryId = defaultCategoryId;
+		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
 	}
 
@@ -81,18 +74,8 @@ public class Service extends Identifiable {
 	}
 
 	@JsonGetter
-	public String keywords() {
-		return keywords;
-	}
-
-	@JsonGetter
 	public String metadata() {
 		return metadata;
-	}
-
-	@JsonGetter
-	public String watermark() {
-		return watermark;
 	}
 
 	@JsonGetter
@@ -100,12 +83,8 @@ public class Service extends Identifiable {
 		return published;
 	}
 
-	public String rootGroupId() {
-		return rootGroupId;
-	}
-
-	public String defaultCategoryId() {
-		return defaultCategoryId;
+	public String genericLayerId() {
+		return genericLayerId;
 	}
 
 	public String constantsId() {

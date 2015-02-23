@@ -50,7 +50,7 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
-						return ok (form.render (serviceForm, true, categories, groups, null));
+						return ok (form.render (serviceForm, true, groups, null));
 					}
 				});
 	}
@@ -87,9 +87,9 @@ public class Services extends Controller {
 					// validation end
 					
 					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
-							serviceForm.alternateTitle,serviceForm.abstractText,serviceForm.keywords,
-							serviceForm.metadata,serviceForm.watermark, serviceForm.published,
-							serviceForm.rootGroupName,serviceForm.categoryName, serviceForm.constantsName);
+							serviceForm.alternateTitle,serviceForm.abstractText,
+							serviceForm.metadata, serviceForm.published,
+							serviceForm.rootGroupName,serviceForm.constantsName);
 					Logger.debug ("Update/create service: " + service);
 					
 					return from (database)
@@ -148,23 +148,21 @@ public class Services extends Controller {
 				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
 
 					return from (database)
-						.get(Category.class, service.defaultCategoryId())
-						.get(LayerGroup.class, service.rootGroupId())
-						.query (new GetGroupStructure(service.rootGroupId()))
-						.execute (new Function3<Category, LayerGroup, GroupLayer, Result> () {
+						.get(LayerGroup.class, service.genericLayerId())
+						.query (new GetGroupStructure(service.genericLayerId()))
+						.execute (new Function2<LayerGroup, GroupLayer, Result> () {
 							@Override
-							public Result apply (final Category categorie, final LayerGroup group, final GroupLayer groupLayer) throws Throwable {
+							public Result apply (final LayerGroup group, final GroupLayer groupLayer) throws Throwable {
 
 								ServiceForm  serviceForm = new ServiceForm (service);
 								serviceForm.setRootGroupName(group.name());
-								serviceForm.setCategoryName(categorie.name());
 								Logger.debug ("Edit serviceForm: " + serviceForm);
 								
 								final Form<ServiceForm> formServiceForm = Form
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, categories, groups, groupLayer));
+								return ok (form.render (formServiceForm, false, groups, groupLayer));
 							}
 					});
 				}
@@ -217,12 +215,9 @@ public class Services extends Controller {
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
-			this.keywords = service.keywords();
 			this.metadata = service.metadata();
-			this.watermark = service.watermark();
 			this.published = service.published();
-			this.categoryName =service.defaultCategoryId();
-			this.rootGroupName =service.rootGroupId();
+			this.rootGroupName =service.genericLayerId();
 			this.constantsName =service.constantsId();
 		}
 
