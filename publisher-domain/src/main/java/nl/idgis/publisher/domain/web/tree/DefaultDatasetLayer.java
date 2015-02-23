@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.util.Optional;
+
 public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements DatasetLayer {	
 
 	private static final long serialVersionUID = -1629242928788272524L;
@@ -11,6 +13,11 @@ public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements Datas
 	@Override
 	public String getTableName() {
 		return item.getTableName();
+	}
+	
+	@Override
+	public Optional<TilingSettings> getTilingSettings() {
+		return item.getTilingSettings();
 	}
 
 }

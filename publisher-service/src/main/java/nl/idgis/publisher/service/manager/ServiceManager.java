@@ -251,7 +251,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol,
+					null));
 			
 			CompletableFuture<TypedList<GroupNode>> groups = withGroupStructure.clone()
 				.from(genericLayer)
@@ -264,7 +265,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol,
+					null));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DatasetNode>> datasets = withGroupStructure  
@@ -277,7 +279,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.name));
+					dataset.name,
+					null));
 			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
@@ -323,7 +326,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol,
+					null));
 			
 			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
 				.from(genericLayer)
@@ -336,7 +340,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol,
+					null));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
@@ -349,7 +354,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.identification));
+					dataset.identification,
+					null));
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)

@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 public abstract class AbstractLayer<T extends Item> implements Layer, Item, Serializable {
 	
@@ -57,4 +58,9 @@ public abstract class AbstractLayer<T extends Item> implements Layer, Item, Seri
 	public String getAbstract() {
 		return item.getAbstract();
 	}	
+	
+	@Override
+	public Optional<TilingSettings> getTilingSettings() {
+		return item.getTilingSettings();
+	}
 }
