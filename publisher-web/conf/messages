@@ -98,6 +98,9 @@ web.application.form.errors.header=De {0} kan niet worden opgeslagen
 web.application.form.errors.text=Niet alle ingevulde waarden zijn geldig, de onderstaande gemarkeerde fouten dienen eerst hersteld te worden.
 web.application.form.globalerrors.header=Validatiefouten
 
+web.application.page.list.published=gepubliceerd
+web.application.page.list.notpublished=niet gepubliceerd
+
 # Widgets
 web.application.button.ok=Ok
 web.application.button.validate=Valideren
@@ -347,8 +350,6 @@ web.application.page.layers.name=Laag
 
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
-web.application.page.layers.list.published=gepubliceerd
-web.application.page.layers.list.notpublished=niet gepubliceerd
 web.application.page.layers.list.button.create=Maak een nieuwe laag met een dataset
 
 
