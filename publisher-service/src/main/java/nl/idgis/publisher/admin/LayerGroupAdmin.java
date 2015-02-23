@@ -99,7 +99,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		return 
 			db.query().from(genericLayer)
 			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-			.where(leafLayer.genericLayerId.isNull())
+			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
+			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()))
 			.list(new QLayerGroup(
 					genericLayer.identification,
 					genericLayer.name,
