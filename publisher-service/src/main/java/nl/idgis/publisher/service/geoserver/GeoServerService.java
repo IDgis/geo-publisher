@@ -7,10 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.print.attribute.standard.JobStateReasons;
 
 import com.google.common.base.Objects;
 import com.typesafe.config.Config;
@@ -27,6 +30,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -48,6 +52,8 @@ import nl.idgis.publisher.service.geoserver.rest.LayerRef;
 import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
@@ -113,7 +119,9 @@ public class GeoServerService extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof EnsureServiceJobInfo) {
-			handleServiceJob((EnsureServiceJobInfo)msg);
+			handleEnsureServiceJob((EnsureServiceJobInfo)msg);
+		} else if(msg instanceof VacuumServiceJobInfo) {
+			handleVacuumServiceJob((VacuumServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
 		} else {
@@ -122,10 +130,82 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
+	private static class Vacuumed {}
+	
+	private Procedure<Object> vacuuming(ActorRef initiator, VacuumServiceJobInfo serviceJob) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof ServiceIndex) {
+					log.debug("service index received");
+					
+					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
+					initiator.tell(new Ack(), getSelf());
+					
+					ServiceIndex serviceIndex = (ServiceIndex)msg;					
+					Set<String> serviceNames = serviceIndex.getServiceNames()
+						.stream().collect(Collectors.toSet());
+					Set<String> styleNames = serviceIndex.getStyleNames()
+						.stream().collect(Collectors.toSet());;
+						
+					CompletableFuture<List<String>> deletedWorkspaces = 
+						rest.getWorkspaces().thenCompose(workspaces ->
+							f.sequence(
+								workspaces.stream()
+									.filter(workspace -> !serviceNames.contains(workspace.getName()))									
+									.map(workspace -> rest.deleteWorkspace(workspace)
+										.<String>thenApply(v -> workspace.getName()))
+									.collect(Collectors.toList())));
+					
+					CompletableFuture<List<String>> deletedStyles =
+						rest.getStyles().thenCompose(styles ->
+							f.sequence(
+								styles.stream()
+									.filter(style -> !styleNames.contains(style.getName()))
+									.map(style -> rest.deleteStyle(style)
+										.<String>thenApply(v -> style.getName()))
+									.collect(Collectors.toList())));
+					
+					deletedWorkspaces.thenCompose(workspaces ->
+						deletedStyles.thenApply(styles -> {
+							workspaces.stream().forEach(workspace -> log.debug("workspace deleted: {}", workspace));
+							styles.stream().forEach(style -> log.debug("style deleted: {}", style));
+							
+							return new Vacuumed();
+						})).whenComplete((resp, t) -> {
+							if(t != null) {
+								toSelf(new Failure(t));
+							} else {
+								toSelf(resp);
+							}
+						});
+				} else if(msg instanceof Vacuumed) {
+					log.debug("vacuum completed");
+					
+					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+					
+					getContext().become(receive());
+				} else {
+					elseProvisioning(msg, serviceJob, initiator);
+				}
+			}
+			
+		};
+	}
+	
+	private void handleVacuumServiceJob(VacuumServiceJobInfo serviceJob) {
+		log.debug("executing vacuum service job");
+		
+		serviceManager.tell(new GetServiceIndex(), getSelf());
+		
+		getContext().become(vacuuming(getSender(), serviceJob));
+	}
+
 	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator) {
 		if(msg instanceof ServiceJobInfo) {
 			// this shouldn't happen too often, TODO: rethink job mechanism
-			log.debug("receiving service job while provisioning");
+			log.debug("receiving service job while already provisioning");
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
@@ -415,8 +495,8 @@ public class GeoServerService extends UntypedActor {
 		}
 	};
 	
-	private Procedure<Object> provisioning(ActorRef initiator, ServiceJobInfo serviceJob, ActorRef provisioningService) {
-		log.debug("-> provisioning");
+	private Procedure<Object> ensuring(ActorRef initiator, ServiceJobInfo serviceJob, ActorRef provisioningService) {
+		log.debug("-> ensuring");
 		
 		return new Procedure<Object>() {
 			
@@ -542,15 +622,15 @@ public class GeoServerService extends UntypedActor {
 		}
 	}
 	
-	private void handleServiceJob(EnsureServiceJobInfo serviceJob) {
-		log.debug("executing service job: " + serviceJob);
+	private void handleEnsureServiceJob(EnsureServiceJobInfo serviceJob) {
+		log.debug("executing ensure service job: " + serviceJob);
 		
-		ActorRef provisioningService = getContext().actorOf(
-				ProvisionService.props(), 
-				nameGenerator.getName(ProvisionService.class));
+		ActorRef ensureService = getContext().actorOf(
+				EnsureService.props(), 
+				nameGenerator.getName(EnsureService.class));
 		
-		serviceManager.tell(new GetService(serviceJob.getServiceId()), provisioningService);
+		serviceManager.tell(new GetService(serviceJob.getServiceId()), ensureService);
 		
-		getContext().become(provisioning(getSender(), serviceJob, provisioningService));
+		getContext().become(ensuring(getSender(), serviceJob, ensureService));
 	}
 }

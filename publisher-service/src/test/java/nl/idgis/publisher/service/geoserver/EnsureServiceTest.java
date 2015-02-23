@@ -44,7 +44,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ProvisionServiceTest {
+public class EnsureServiceTest {
 	
 	static class GeoServerServiceMock extends UntypedActor {
 		
@@ -141,9 +141,9 @@ public class ProvisionServiceTest {
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof Service) {
-				ActorRef provisionService = getContext().actorOf(ProvisionService.props(), nameGenerator.getName(ProvisionService.class));
-				provisionService.forward(msg, getContext());
-				getContext().watch(provisionService);
+				ActorRef ensureService = getContext().actorOf(EnsureService.props(), nameGenerator.getName(EnsureService.class));
+				ensureService.forward(msg, getContext());
+				getContext().watch(ensureService);
 				getContext().become(provisioning(getSender()), false);				
 			} else {
 				log.error("unexpected: {}", msg);

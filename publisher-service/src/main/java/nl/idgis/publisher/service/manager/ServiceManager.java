@@ -36,19 +36,20 @@ import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
-
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QStyle.style;
 
 public class ServiceManager extends UntypedActor {
 	
@@ -144,11 +145,26 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetGroupLayer((GetGroupLayer)msg));
 		} else if(msg instanceof GetServicesWithLayer) {
 			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
+		} else if(msg instanceof GetServiceIndex) {
+			toSender(handleGetServiceIndex((GetServiceIndex)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {
+		return db.transactional(tx ->			 
+			tx.query()
+				.from(service)
+				.list(service.name).thenCompose(serviceNames -> 
+					tx.query()
+						.from(style)
+						.list(style.name).thenApply(styleNames -> 
+							new ServiceIndex(
+								serviceNames.list(), 
+								styleNames.list()))));
+	}
+
 	private void toSender(CompletableFuture<? extends Object> future) {
 		ActorRef sender = getSender(), self = getSelf();
 		
