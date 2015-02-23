@@ -4,25 +4,18 @@ import java.util.List;
 
 public class TiledLayer {
 	
-	private final String name;
-	
 	private final List<String> mimeFormats;
 	
 	private final Integer metaWidth, metaHeight, expireCache, expireClients, gutter;
 	
-	public TiledLayer(String name, List<String> mimeFormats, Integer metaWidth, Integer metaHeight, Integer expireCache, Integer expireClients, Integer gutter) {
-		this.name = name;
+	public TiledLayer(List<String> mimeFormats, Integer metaWidth, Integer metaHeight, Integer expireCache, Integer expireClients, Integer gutter) {		
 		this.mimeFormats = mimeFormats;
 		this.metaWidth = metaWidth;
 		this.metaHeight = metaHeight;
 		this.expireCache = expireCache;
 		this.expireClients = expireClients;
 		this.gutter = gutter;
-	}
-
-	public String getName() {
-		return name;
-	}
+	}	
 	
 	public List<String> getMimeFormats() {
 		return mimeFormats;
@@ -50,7 +43,7 @@ public class TiledLayer {
 
 	@Override
 	public String toString() {
-		return "TiledLayer [name=" + name + ", mimeFormats=" + mimeFormats
+		return "TiledLayer [mimeFormats=" + mimeFormats
 				+ ", metaWidth=" + metaWidth + ", metaHeight=" + metaHeight
 				+ ", expireCache=" + expireCache + ", expireClients="
 				+ expireClients + ", gutter=" + gutter + "]";

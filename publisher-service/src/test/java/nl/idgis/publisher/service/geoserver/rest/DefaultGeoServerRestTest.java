@@ -159,7 +159,7 @@ public class DefaultGeoServerRestTest {
 		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
 		assertTrue(tiledLayer.isPresent());
 		
-		service.deleteTiledLayer(tiledLayer.get()).get();		
+		service.deleteTiledLayer(workspace, featureType).get();		
 		assertFalse(service.getTiledLayer(workspace, featureType).get().isPresent());
 	}
 	
@@ -201,7 +201,7 @@ public class DefaultGeoServerRestTest {
 		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, layerGroup).get();
 		assertTrue(tiledLayer.isPresent());
 		
-		service.deleteTiledLayer(tiledLayer.get()).get();		
+		service.deleteTiledLayer(workspace, layerGroup).get();		
 		assertFalse(service.getTiledLayer(workspace, layerGroup).get().isPresent());
 	}
 
@@ -360,5 +360,9 @@ public class DefaultGeoServerRestTest {
 		layer = service.getLayer(workspace, featureType).get();
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
 		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());
+		
+		service.deleteTiledLayer(workspace, featureType).get();
+		
+		//service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg", "image/png"), 4, 4, 0, 0, 0));
 	}
 }
