@@ -106,7 +106,7 @@ public class Styles extends Controller {
 									Logger.debug ("Updated style " + style);
 									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 								}
-								return Promise.pure (redirect (routes.Styles.list ()));
+								return Promise.pure (redirect (routes.Styles.list (null)));
 							}
 					});
 				}
@@ -157,7 +157,7 @@ public class Styles extends Controller {
 	    }
 	}
 	
-	public static Promise<Result> list () {
+	public static Promise<Result> list (final String query) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Styles ");
@@ -167,11 +167,11 @@ public class Styles extends Controller {
 			.execute (new Function<Page<Style>, Result> () {
 				@Override
 				public Result apply (final Page<Style> styles) throws Throwable {
-					return ok (list.render (styles));
+					return ok (list.render (styles, query));
 				}
 			});
 	}
-
+	
 	public static Promise<Result> create () {
 		Logger.debug ("create Style");
 		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
@@ -209,11 +209,11 @@ public class Styles extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Styles.list ());
+				return redirect (routes.Styles.list (null));
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Styles.list ()));
+		return Promise.pure (redirect (routes.Styles.list (null)));
 	}
 	
 	public static class StyleForm {

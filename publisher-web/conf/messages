@@ -438,8 +438,12 @@ web.application.page.groups.form.field.services.label=Zit in de service(s)
 # Styles
 web.application.page.styles.name=Stijl
 
+web.application.page.styles.button.add=Maak een nieuwe stijl ...
+
 web.application.page.styles.list.header=Stijlen
 web.application.page.styles.list.empty=Er zijn geen stijlen gevonden die voldoen aan de criteria.
+web.application.page.styles.list.search.placeholder=Zoek een stijl ...
+web.application.page.styles.list.search.showAll=Toon alle stijlen ...
 
 web.application.page.styles.form.title=Stijl formulier
 web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
