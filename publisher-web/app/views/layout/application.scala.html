@@ -9,6 +9,14 @@
 	}
 }
 
+@navItem(uri: String)(content: Html) = {
+	<li@if(uri.equals (request.path) || (!"/".equals (uri) && request.path.startsWith(uri))){ class="active"}>
+		<a href="@uri">
+			@content
+		</a>
+	</li>	
+}
+
 @html(
 	title = title, 
 	stylesheets = Array(
@@ -88,25 +96,47 @@
 		<nav class="navbar-default navbar-static-side" role="navigation">
 			<div class="sidebar-collapse">
 				<ul class="nav" id="side-menu">
-					<li class="active"><a href="@routes.Dashboard.index()"><span class="glyphicon glyphicon-dashboard"></span> @Domain.message("web.application.layout.sidebar.dashboard")</a></li>
+					@navItem(routes.Dashboard.index().url) {
+						<span class="glyphicon glyphicon-dashboard"></span> @Domain.message("web.application.layout.sidebar.dashboard")
+					}
+					
 					<li style="padding:5px 13px">
 						<span style="font-weight:bold;font-size:15px">
 							Databeheer
 						</span>
 					</li>
-					<li><a href="@routes.Datasets.list()"><span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")</a></li>
-					<li><a href="@routes.DataSources.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.sourcedatasets")</a></li>
+					
+					@navItem(routes.Datasets.list().url) {
+						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")
+					}
+					@navItem(routes.DataSources.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.sourcedatasets")
+					}
 					
 					<li style="padding:5px 13px">
 						<span style="font-weight:bold;font-size:15px">
 							Servicebeheer
 						</span>
 					</li>
-					<li><a href="@routes.Services.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.services") </a></li>
-					<li><a href="@routes.Layers.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.layers") </a></li>
-					<li><a href="@routes.Groups.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.groups") </a></li>
-					<li><a href="@routes.Styles.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.styles") </a></li>
-<!-- 					<li><a href="@routes.Tiledlayers.list()"><span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.tiledlayers") </a></li> -->
+					
+					@navItem(routes.Services.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.services") 
+					}
+					@navItem(routes.Layers.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.layers")
+					}
+					@navItem(routes.Groups.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.groups")
+					}
+					@navItem(routes.Styles.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.styles")
+					}
+					@*
+					@navItem(routes.Tiledlayers.list().url) {
+						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.tiledlayers")
+					}
+					*@
+					
 					<li style="padding:5px 13px">
 						<span style="font-weight:bold;font-size:15px">
 							Logging
@@ -117,7 +147,9 @@
 						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> @Domain.message("web.application.layout.sidebar.log") <span class="caret"></span></a>
 						<ul id="logging-menu" class="collapse nav nav-second-level">
 							@* <li><a href="@routes.Logging.tasks()">@Domain.message("web.application.layout.sidebar.log.tasks")</a></li> *@
-							<li><a href="@routes.Logging.messages()">@Domain.message("web.application.layout.sidebar.log.errors")</a></li>
+							@navItem(routes.Logging.messages().url) {
+								@Domain.message("web.application.layout.sidebar.log.errors")
+							}
 						</ul>
 					</li>
 				</ul>
