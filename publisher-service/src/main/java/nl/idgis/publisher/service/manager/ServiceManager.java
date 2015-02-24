@@ -50,6 +50,7 @@ import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
@@ -438,6 +439,22 @@ public class ServiceManager extends UntypedActor {
 									t.get(tiledLayerMimeformat.mimeformat),
 									Collectors.toList()))));
 			
+			CompletableFuture<Map<Integer, List<String>>> datasetKeywords = withServiceStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					leafLayerKeyword.keyword).thenApply(resp ->
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(leafLayerKeyword.keyword),
+									Collectors.toList()))));					
+			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<Tuple>> datasetTuples = withServiceStructure  
 				.from(leafLayer)
@@ -460,7 +477,10 @@ public class ServiceManager extends UntypedActor {
 					tiledLayer.expireClients,
 					tiledLayer.gutter);
 			
-			CompletableFuture<TypedList<DatasetNode>> datasets = tilingDatasetMimeFormats.thenCompose(tilingMimeFormats -> 
+			CompletableFuture<TypedList<DatasetNode>> datasets =
+				tilingDatasetMimeFormats.thenCompose(tilingMimeFormats ->
+				datasetKeywords.thenCompose(keywords ->
+				
 				datasetTuples.thenApply(resp ->
 					new TypedList<>(DatasetNode.class, 
 						resp.list().stream()
@@ -469,7 +489,8 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),								
-								t.get(tiledLayer.genericLayerId) == null ? null
+								t.get(tiledLayer.genericLayerId) == null 
+									? null
 									: new DefaultTiling(
 										tilingMimeFormats.get(t.get(genericLayer.id)),
 										t.get(tiledLayer.metaWidth),
@@ -477,9 +498,11 @@ public class ServiceManager extends UntypedActor {
 										t.get(tiledLayer.expireCache),
 										t.get(tiledLayer.expireClients),
 										t.get(tiledLayer.gutter)),
-								Collections.emptyList(),
+								keywords.containsKey(t.get(genericLayer.id)) 
+									? keywords.get(t.get(genericLayer.id))									
+									: Collections.emptyList(),
 								t.get(dataset.identification)))
-							.collect(Collectors.toList()))));
+							.collect(Collectors.toList())))));
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)

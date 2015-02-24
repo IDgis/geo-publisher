@@ -10,6 +10,7 @@ import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 import static nl.idgis.publisher.database.QService.service;
@@ -161,9 +162,19 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(tiledLayerMimeformat.mimeformat, "image/jpg")
 			.execute();
 		
-		insert(leafLayer)
+		int leafLayerId = insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId0)
 			.set(leafLayer.datasetId, datasetId)
+			.executeWithKey(leafLayer.id);
+		
+		insert(leafLayerKeyword)
+			.set(leafLayerKeyword.leafLayerId, leafLayerId)
+			.set(leafLayerKeyword.keyword, "keyword0")
+			.execute();
+		
+		insert(leafLayerKeyword)
+			.set(leafLayerKeyword.leafLayerId, leafLayerId)
+			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -221,6 +232,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
 		assertEquals("dataset0", datasetLayer.getTableName());
+		
+		List<String> keywords = datasetLayer.getKeywords();
+		assertEquals(2, keywords.size());
+		assertTrue(keywords.contains("keyword0"));
+		assertTrue(keywords.contains("keyword1"));
 		
 		Optional<Tiling> optionalTiling = datasetLayer.getTiling();
 		assertTrue(optionalTiling.isPresent());		
