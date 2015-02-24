@@ -430,10 +430,11 @@ public class GeoServerServiceTest {
 				.map(style -> style.getName())
 				.collect(Collectors.toSet())
 					.contains("style"));
-		
+				
 		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
 			Arrays.asList("workspace"),
-			Arrays.asList("style"))), Ack.class);
+			// includes the default styles to prevent other tests from running properly
+			Arrays.asList("point", "line", "polygon", "raster", "style"))), Ack.class);
 		
 		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
@@ -452,7 +453,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
 			Collections.emptyList(),
-			Arrays.asList("style"))), Ack.class);
+			Arrays.asList("point", "line", "polygon", "raster", "style"))), Ack.class);
 		
 		sync.ask(recorder, new Clear(), Cleared.class);
 		
@@ -469,7 +470,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
 			Collections.emptyList(),
-			Collections.emptyList())), Ack.class);
+			Arrays.asList("point", "line", "polygon", "raster"))), Ack.class);
 			
 		sync.ask(recorder, new Clear(), Cleared.class);
 		
@@ -478,6 +479,10 @@ public class GeoServerServiceTest {
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
 		assertTrue(rest.getWorkspaces().get().isEmpty());
-		assertTrue(rest.getStyles().get().isEmpty());
+		assertFalse(
+			rest.getStyles().get().stream()
+				.map(style -> style.getName())
+				.collect(Collectors.toSet())
+					.contains("style"));
 	}
 }

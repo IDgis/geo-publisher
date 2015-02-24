@@ -147,7 +147,10 @@ public class GeoServerService extends UntypedActor {
 					Set<String> serviceNames = serviceIndex.getServiceNames()
 						.stream().collect(Collectors.toSet());
 					Set<String> styleNames = serviceIndex.getStyleNames()
-						.stream().collect(Collectors.toSet());;
+						.stream().collect(Collectors.toSet());
+					
+					log.debug("serviceNames: {}", serviceNames);
+					log.debug("styleNames: {}", styleNames);
 						
 					CompletableFuture<List<String>> deletedWorkspaces = 
 						rest.getWorkspaces().thenCompose(workspaces ->
