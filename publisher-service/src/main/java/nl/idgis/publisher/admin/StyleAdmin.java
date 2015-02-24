@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -31,6 +32,7 @@ public class StyleAdmin extends AbstractAdmin {
 		doGet(Style.class, this::handleGetStyle);
 		doPut(Style.class, this::handlePutStyle);
 		doDelete(Style.class, this::handleDeleteStyle);
+		doQuery (ListStyles.class, this::handleListStylesWithQuery);
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {
@@ -40,6 +42,13 @@ public class StyleAdmin extends AbstractAdmin {
 			db.query().from(style)
 			.list(new QStyle(style.identification,style.name,style.definition))
 			.thenApply(this::toPage);
+	}
+	
+	private CompletableFuture<Page<Style>> handleListStylesWithQuery (final ListStyles listStyles) {
+		return 
+				db.query().from(style)
+				.list(new QStyle(style.identification,style.name,style.definition))
+				.thenApply(this::toPage);
 	}
 
 	

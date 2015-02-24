@@ -55,7 +55,7 @@ POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
 GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)
 GET 	/groups/:groupId/delete							controllers.Groups.delete(groupId : String)
 
-GET		/styles											controllers.Styles.list(q: String ?= null)
+GET		/styles											controllers.Styles.list(q: String ?= null, page : Long ?= 1)
 GET 	/styles/-/create								controllers.Styles.create()
 POST 	/styles/-/createupdate							controllers.Styles.submitCreateUpdate()
 GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
