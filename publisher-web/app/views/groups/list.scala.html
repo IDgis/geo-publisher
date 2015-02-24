@@ -1,4 +1,4 @@
-@(groups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LayerGroup])
+@(groups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LayerGroup], query: String, published: java.lang.Boolean)
 
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.groups.list.header") ) {
@@ -6,53 +6,112 @@
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.groups.list.header")</h1>
 	
-	@* List of groups: *@
-	<div class="col-lg-9 ">
-		@if(groups.values.isEmpty) {
-		<div class="alert alert-info">@Domain.message("web.application.page.groups.list.empty")</div>
-		} else {
-		<div class="list-group" id="group-list">
-
-			@for(group <- groups.values) {
-			<div class="list-group-item js-group-item" 
-				data-group-id="@group.id"
-				data-group-name="@group.name">
-				<div class="row">
-					<div class="col-md-5">
-						<h4 class="list-group-item-heading">
-							<a href="@routes.Groups.edit(group.id)" class="text-warning">@group.name</a>
-						</h4>
+	<div class="row">
+	
+		@* Filters and search: *@
+		<div class="col-lg-3 col-lg-push-9">
+			<form class="form-horizontal" role="form" method="GET" action="@routes.Layers.list(null, published)">
+			
+				@* Add layer button: *@
+				<div class="form-group">
+					<div class="col-sm-12">
+						<a href="@routes.Groups.create()" 
+							class="btn btn-success col-sm-12" title="@Domain.message("web.application.button.add")">
+							<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.groups.button.add")
+						</a>
 					</div>
-					<div class="col-md-5">
-						@if(group.published){
-							<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
-						}else{
-							<span>@Domain.message("web.application.page.list.notpublished")</span>
+				</div>
+				
+				@* Search layer input: *@
+				<div class="form-group has-feedback">
+					<div class="col-sm-12">
+						<input 
+							name="q" 
+							type="text" 
+							class="form-control col-sm-12" 
+							placeholder="@Domain.message("web.application.page.groups.list.search.placeholder")"
+							@if(query != null){value="@query"}>
+						<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
+						@if(query != null) {
+							<a href="@routes.Layers.list(null, published)"><small>@Domain.message("web.application.page.groups.list.search.showAll")</small></a>
 						}
 					</div>
-					<div class="col-md-2">
-						<div class="btn-group pull-right">
-							<a href="@routes.Groups.edit(group.id)"
-								class="btn btn-default" title=@Domain.message("web.application.button.edit")>
-								<span class="glyphicon glyphicon-edit"></span>
-							</a> 
-							<a href="@routes.Groups.delete(group.id)" 
-								class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
-								<span class="glyphicon glyphicon-remove"></span>
-							</a>
+				</div>
+				
+				@* Filter on "published": *@
+				<div class="panel-group" id="filters-accordion">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-tags">
+									@Domain.message("web.application.filters.published.title")
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-tags" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(published == null){ class="active"}>
+										<a href="@routes.Layers.list(query, null)">@Domain.message("web.application.filters.published.both")</a>
+									</li>
+									<li@if(published != null && published){ class="active"}>
+										<a href="@routes.Layers.list(query, true)">@Domain.message("web.application.filters.published.published")</a>
+									</li>
+									<li@if(published != null && !published){ class="active"}>
+										<a href="@routes.Layers.list(query, false)">@Domain.message("web.application.filters.published.unpublished")</a>
+									</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				</div>
+								
+			</form>
+		</div>
+		
+		@* List of groups: *@
+		<div class="col-lg-9 col-lg-pull-3">
+			@if(groups.values.isEmpty) {
+			<div class="alert alert-info">@Domain.message("web.application.page.groups.list.empty")</div>
+			} else {
+			<div class="list-group" id="group-list">
+	
+				@for(group <- groups.values) {
+				<div class="list-group-item js-group-item" 
+					data-group-id="@group.id"
+					data-group-name="@group.name">
+					<div class="row">
+						<div class="col-md-5">
+							<h4 class="list-group-item-heading">
+								<a href="@routes.Groups.edit(group.id)" class="text-warning">@group.name</a>
+							</h4>
+						</div>
+						<div class="col-md-5">
+							@if(group.published){
+								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
+							}else{
+								<span>@Domain.message("web.application.page.list.notpublished")</span>
+							}
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@routes.Groups.edit(group.id)"
+									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
+									<span class="glyphicon glyphicon-edit"></span>
+								</a> 
+								<a href="@routes.Groups.delete(group.id)" 
+									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				}
 			</div>
 			}
-		</div>
-		}
-		<div class="btn-group">
-			<a href="@routes.Groups.create()" 
-				class="btn btn-success" title=@Domain.message("web.application.button.add")>
-				<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
-			</a>
-		</div>
+		</div> @* /Groups *@
+		
 	</div>
 </div>
 }

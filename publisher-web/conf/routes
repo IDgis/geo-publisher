@@ -49,7 +49,7 @@ POST 	/layers/-/createupdate							controllers.Layers.submitCreateUpdate()
 GET		/layers/:layerId/edit							controllers.Layers.edit(layerId: String)
 GET 	/layers/:layerId/delete							controllers.Layers.delete(layerId : String)
 
-GET		/groups											controllers.Groups.list()
+GET		/groups											controllers.Groups.list(q: String ?= null, published: java.lang.Boolean ?= null)
 GET 	/groups/-/create								controllers.Groups.create()
 POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
 GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)

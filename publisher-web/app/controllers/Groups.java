@@ -119,7 +119,7 @@ public class Groups extends GroupsLayersCommon {
 												Logger.debug ("Updated group " + group);
 												flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 											}
-											return Promise.pure (redirect (routes.Groups.list ()));
+											return Promise.pure (redirect (routes.Groups.list (null, null)));
 										}
 									});
 							}
@@ -129,7 +129,7 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> list () {
+	public static Promise<Result> list (final String query, final Boolean published) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Groups ");
@@ -139,7 +139,7 @@ public class Groups extends GroupsLayersCommon {
 			.execute (new Function<Page<LayerGroup>, Result> () {
 				@Override
 				public Result apply (final Page<LayerGroup> groups) throws Throwable {
-					return ok (list.render (groups));
+					return ok (list.render (groups, query, published));
 				}
 			});
 	}
@@ -193,7 +193,7 @@ public class Groups extends GroupsLayersCommon {
 										Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 										Domain.message("web.application.failed").toLowerCase()
 										+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
-									return redirect(routes.Groups.list ());
+									return redirect(routes.Groups.list (null, null));
 								}
 								
 								Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
@@ -239,7 +239,7 @@ public class Groups extends GroupsLayersCommon {
 						Domain.message("web.application.succeeded").toLowerCase()
 						);
 				}
-				return Promise.pure (redirect (routes.Groups.list ()));
+				return Promise.pure (redirect (routes.Groups.list (null, null)));
 			}
 		});
 		
