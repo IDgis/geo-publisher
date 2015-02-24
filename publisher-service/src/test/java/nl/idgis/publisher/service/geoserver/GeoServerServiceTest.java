@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -238,6 +239,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -271,6 +273,7 @@ public class GeoServerServiceTest {
 			when(layer.asDataset()).thenReturn(layer);
 			when(layer.getName()).thenReturn("layer" + i);
 			when(layer.getTableName()).thenReturn("myTable");
+			when(layer.getTilingSettings()).thenReturn(Optional.empty());
 			
 			layers.add(layer);
 		}
@@ -282,6 +285,7 @@ public class GeoServerServiceTest {
 		when(groupLayer.getTitle()).thenReturn("groupTitle");
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
 		when(groupLayer.getLayers()).thenReturn(layers);
+		when(groupLayer.getTilingSettings()).thenReturn(Optional.empty());		
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -319,6 +323,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -361,6 +366,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		GroupLayer group0 = mock(GroupLayer.class);
 		when(group0.isGroup()).thenReturn(true);
@@ -369,6 +375,7 @@ public class GeoServerServiceTest {
 		when(group0.getTitle()).thenReturn("groupTitle0");
 		when(group0.getAbstract()).thenReturn("groupAbstract0");
 		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		when(group0.getTilingSettings()).thenReturn(Optional.empty());
 		
 		GroupLayer group1 = mock(GroupLayer.class);
 		when(group1.isGroup()).thenReturn(true);
@@ -377,6 +384,7 @@ public class GeoServerServiceTest {
 		when(group1.getTitle()).thenReturn("groupTitle1");
 		when(group1.getAbstract()).thenReturn("groupAbstract1");
 		when(group1.getLayers()).thenReturn(Collections.singletonList(group0));
+		when(group1.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
