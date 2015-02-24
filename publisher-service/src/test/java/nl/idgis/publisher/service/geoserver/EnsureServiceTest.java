@@ -233,7 +233,7 @@ public class EnsureServiceTest {
 				assertEquals("title0", featureType.getTitle());
 				assertEquals("abstract0", featureType.getAbstract());
 				assertEquals("tableName0", featureType.getTableName());
-				assertTrue(featureType.getTilingSettings().isPresent());
+				assertTrue(featureType.getTiledLayer().isPresent());
 			})
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)

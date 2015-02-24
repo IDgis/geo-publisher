@@ -429,20 +429,34 @@ public class GeoServerService extends UntypedActor {
 						// N.B. post and put are used the other way around in GWC
 						log.debug("configuring tiled layers");
 						futures.add(
-							rest.getTiledLayerNames(workspace).thenApply(tiledLayerNames ->
-								f.sequence(
-									tiledLayerNames.stream()
-										.map(tiledLayerName -> {	
-											if(tiledLayers.containsKey(tiledLayerName)) {
-												log.debug("posting tiled layer {}", tiledLayerName);
-												return rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName));
-											} else {											
-												log.debug("deleting tiled layer {}", tiledLayerName);
-												return rest.deleteTiledLayer(workspace, tiledLayerName);
-											}
-										})
-										.collect(Collectors.toList())))
-								.thenApply(v -> null));
+							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames ->
+								f.sequence(Arrays.asList(
+									f.sequence(
+										tiledLayers.entrySet().stream()
+											.filter(entry -> !tiledLayerNames.contains(entry.getKey()))
+											.map(entry -> {																				
+												String tiledLayerName = entry.getKey();
+												TiledLayer tiledLayer = entry.getValue();
+												
+												log.debug("putting tiled layer {}", tiledLayerName);
+												return rest.putTiledLayer(workspace, tiledLayerName, tiledLayer);
+											})
+											.collect(Collectors.toList())),
+							
+									f.sequence(
+										tiledLayerNames.stream()
+											.map(tiledLayerName -> {	
+												if(tiledLayers.containsKey(tiledLayerName)) {
+													log.debug("posting tiled layer {}", tiledLayerName);
+													return rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName));
+												} else {											
+													log.debug("deleting tiled layer {}", tiledLayerName);
+													return rest.deleteTiledLayer(workspace, tiledLayerName);
+												}
+											})
+											.collect(Collectors.toList()))))
+
+									.thenApply(v -> null)));
 						
 						toSelf(f.sequence(futures).thenApply(v -> new WorkspaceEnsured()));
 					} else {

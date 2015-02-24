@@ -1114,7 +1114,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return os.toByteArray();
 	}
 	
-	private CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
+	@Override
+	public CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
 		try {
 			return put(getTiledLayerPath(workspace, layerName) + ".xml", 
 				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
