@@ -185,11 +185,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private CompletableFuture<Void> post(String path, byte[] document, int expectedResponseCode) {
+		return post(path, document, "text/xml", expectedResponseCode);
+	}
+	
 	private CompletableFuture<Void> post(String path, byte[] document) {
 		return post(path, document, "text/xml");
 	}
 	
-	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {		
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {
+		return post(path, document, contentType, HttpURLConnection.HTTP_CREATED);
+	}
+	
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType, int expectedResponseCode) {		
 		log.debug("posting {}", path);
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
@@ -203,7 +211,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				@Override
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
-					if(responseCode != HttpURLConnection.HTTP_CREATED) {	
+					if(responseCode != expectedResponseCode) {	
 						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
@@ -1137,8 +1145,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
 		try {
-			return post(getTiledLayerPath(workspace, layerName) + ".xml", 
-				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
+			return post(
+				getTiledLayerPath(workspace, layerName) + ".xml", 
+				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer),
+				HttpURLConnection.HTTP_OK);
 		} catch(Exception e) {
 			return f.failed(e);
 		}	
