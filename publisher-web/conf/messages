@@ -112,6 +112,11 @@ web.application.button.add=Toevoegen
 web.application.button.edit=Bewerken
 web.application.button.remove=Verwijderen
 
+# Filtering:
+web.application.filters.published.title=Publicatiestatus
+web.application.filters.published.both=Gepubliceerd en ongepubliceerd
+web.application.filters.published.published=Gepubliceerd
+web.application.filters.published.unpublished=Ongepubliceerd
 
 # Application
 web.application.layout.togglenavigation=Toggle navigation
@@ -354,7 +359,9 @@ web.application.page.layers.name=Laag
 web.application.page.layers.list.header=Lagen
 web.application.page.layers.list.empty=Er zijn geen lagen gevonden die voldoen aan de criteria.
 web.application.page.layers.list.button.create=Maak een nieuwe laag met een dataset
-
+web.application.page.layers.list.search.showAll=Hef filtering op laagnaam op ...
+web.application.page.layers.list.filterpublished.title=Publicatiestatus
+web.application.page.layers.list.search.placeholder=Zoek een laag ...
 
 web.application.page.layers.form.title=Laag formulier
 web.application.page.layers.form.header.new=Nieuwe laag toevoegen
