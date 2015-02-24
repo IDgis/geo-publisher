@@ -305,8 +305,9 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
-								t.get(dataset.name),
-								null))
+								null,
+								Collections.emptyList(),
+								t.get(dataset.name)))
 							.collect(Collectors.toList())));
 			
 			return root.thenCompose(rootResult ->
@@ -467,8 +468,7 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
-								t.get(genericLayer.abstractCol),
-								t.get(dataset.identification),
+								t.get(genericLayer.abstractCol),								
 								t.get(tiledLayer.genericLayerId) == null ? null
 									: new DefaultTiling(
 										tilingMimeFormats.get(t.get(genericLayer.id)),
@@ -476,9 +476,10 @@ public class ServiceManager extends UntypedActor {
 										t.get(tiledLayer.metaHeight),
 										t.get(tiledLayer.expireCache),
 										t.get(tiledLayer.expireClients),
-										t.get(tiledLayer.gutter))))
+										t.get(tiledLayer.gutter)),
+								Collections.emptyList(),
+								t.get(dataset.identification)))
 							.collect(Collectors.toList()))));
-						
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)

@@ -1,5 +1,6 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.util.List;
 import java.util.Optional;
 
 public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements DatasetLayer {
@@ -8,6 +9,11 @@ public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements Datas
 
 	public DefaultDatasetLayer(Dataset dataset) {
 		super(dataset, false);
+	}
+	
+	@Override
+	public List<String> getKeywords() {
+		return item.getKeywords();
 	}
 	
 	@Override
