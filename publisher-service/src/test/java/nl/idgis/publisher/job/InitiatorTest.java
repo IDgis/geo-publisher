@@ -30,16 +30,15 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
+import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
-
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 
@@ -236,7 +235,7 @@ public class InitiatorTest extends AbstractServiceTest {
 
 	@Test
 	public void testServiceJob() throws Exception {		
-		sync.ask(manager, new CreateServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("testService"));
 
 		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
@@ -246,7 +245,7 @@ public class InitiatorTest extends AbstractServiceTest {
 			"initiator");
 		
 		List<?> list = sync.ask(service, new GetReceivedJobs(1), List.class);
-		assertEquals(ServiceJobInfo.class, list.get(0).getClass());
+		assertEquals(EnsureServiceJobInfo.class, list.get(0).getClass());
 	}
 	
 	@Test
@@ -260,23 +259,23 @@ public class InitiatorTest extends AbstractServiceTest {
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("testService"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		sync.ask(manager, new CreateServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("testService"));
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(jobManager), "serviceMock");
 		actorOf(

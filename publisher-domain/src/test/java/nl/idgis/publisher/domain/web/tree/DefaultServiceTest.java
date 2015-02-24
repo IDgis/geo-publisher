@@ -27,16 +27,16 @@ public class DefaultServiceTest {
 	@Test
 	public void testNoGroup() {
 		List<DatasetNode> datasets = Arrays.asList(
-			new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0"),
-			new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1"),
-			new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2"));
+			new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0", null),
+			new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1", null),
+			new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2", null));
 			
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
 		structure.put("leaf1", "group0");
 		structure.put("leaf2", "group0");
 		
-		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
+		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0", null);
 		Service service = new DefaultService(
 			"service0",
 			"service-name0",
@@ -77,16 +77,16 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testGroup() {
-		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0");
+		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0", null);
 		
 		List<GroupNode> groups = Arrays.asList(
 				root,
-				new GroupNode("group1", "name1", "title1", "abstract1"));
+				new GroupNode("group1", "name1", "title1", "abstract1", null));
 		
 		List<DatasetNode> datasets = Arrays.asList(
-				new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0"),
-				new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1"),
-				new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2"));
+				new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0", null),
+				new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1", null),
+				new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2", null));
 				
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");

@@ -49,7 +49,8 @@ import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
-import nl.idgis.publisher.job.manager.messages.CreateServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
+import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
@@ -58,9 +59,10 @@ import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.QHarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.QRemoveJobInfo;
-import nl.idgis.publisher.job.manager.messages.QServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveNotification;
+import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.StoreLog;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
@@ -141,8 +143,10 @@ public class JobManager extends UntypedActor {
 			returnToSender(handleCreateHarvestJob((CreateHarvestJob)msg));			
 		} else if(msg instanceof CreateImportJob) {
 			returnToSender(handleCreateImportJob((CreateImportJob)msg));			
-		} else if(msg instanceof CreateServiceJob) {
-			returnToSender(handleCreateServiceJob((CreateServiceJob)msg));
+		} else if(msg instanceof CreateEnsureServiceJob) {
+			returnToSender(handleCreateEnsureServiceJob((CreateEnsureServiceJob)msg));
+		} else if(msg instanceof CreateVacuumServiceJob) {
+			returnToSender(handleCreateVacuumServiceJob((CreateVacuumServiceJob)msg));		
 		} else if(msg instanceof CreateRemoveJob) {
 			returnToSender(handleCreateRemoveJob((CreateRemoveJob)msg));
 		} else {
@@ -150,6 +154,34 @@ public class JobManager extends UntypedActor {
 		}
 	}
 	
+	private CompletableFuture<Ack> handleCreateVacuumServiceJob(CreateVacuumServiceJob msg) {
+		log.debug("creating vacuum service job");
+		
+		return db.transactional(tx ->
+			tx.query().from(job)
+				.join(serviceJob).on(serviceJob.jobId.eq(job.id))				
+				.where(serviceJob.type.eq("VACUUM"))
+				.where(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(job.id))
+						.where(isFinished(jobState))
+						.notExists())
+				.notExists()
+			
+			.thenCompose(notExists -> {
+				if(notExists) {
+					return createVacuumServiceJob(tx)
+						.thenApply(l -> {
+							log.debug("vacuum service job created");
+							
+							return new Ack();
+						});
+				} else {
+					log.debug("already exist a vacuum service job");
+					return f.successful(new Ack());
+				}
+			}));
+	}
+
 	private CompletableFuture<TypedList<RemoveJobInfo>> handleGetRemoveJobs() {
 		return 
 			db.query().from(removeJob)
@@ -229,16 +261,17 @@ public class JobManager extends UntypedActor {
 				.execute().thenApply(l -> new Ack());
 	}
 	
-	private CompletableFuture<Ack> handleCreateServiceJob(CreateServiceJob msg) {
+	private CompletableFuture<Ack> handleCreateEnsureServiceJob(CreateEnsureServiceJob msg) {
 		final String serviceId = msg.getServiceId();
 		
-		log.debug("creating service job: {}", serviceId);
+		log.debug("creating ensure service job: {}", serviceId);
 		
 		return db.transactional(tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(service).on(service.id.eq(serviceJob.serviceId))
-				.where(service.identification.eq(serviceId))
+				.where(service.identification.eq(serviceId)
+						.and(serviceJob.type.eq("ENSURE")))
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
 						.where(isFinished(jobState))
@@ -247,7 +280,7 @@ public class JobManager extends UntypedActor {
 			
 			.thenCompose(notExists -> {
 				if(notExists) {
-					return createServiceJob(tx, serviceId)
+					return createEnsureServiceJob(tx, serviceId)
 						.thenApply(l -> {
 							log.debug("service job created");
 							
@@ -260,16 +293,31 @@ public class JobManager extends UntypedActor {
 			}));
 	}
 	
-	private CompletableFuture<Long> createServiceJob(final AsyncHelper tx, final String serviceId) {
+	private CompletableFuture<Long> createEnsureServiceJob(final AsyncHelper tx, final String serviceId) {
 		return
 			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
 				tx.insert(serviceJob)
 					.columns(
 						serviceJob.jobId,
+						serviceJob.type,
 						serviceJob.serviceId)
 					.select(new SQLSubQuery().from(service)
 						.where(service.identification.eq(serviceId))
-						.list(jobId, service.id))
+						.list(jobId, "ENSURE", service.id))
+					.execute());
+				
+	}
+	
+	private CompletableFuture<Long> createVacuumServiceJob(final AsyncHelper tx) {
+		return
+			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
+				tx.insert(serviceJob)
+					.columns(
+						serviceJob.jobId,
+						serviceJob.type)
+					.values(
+						jobId, 
+						"VACUUM")
 					.execute());
 				
 	}
@@ -449,13 +497,34 @@ public class JobManager extends UntypedActor {
 		
 		return
 			db.query().from(serviceJob)
-				.join(service).on(service.id.eq(serviceJob.serviceId))				
+				.leftJoin(service).on(service.id.eq(serviceJob.serviceId))				
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(serviceJob.jobId))
 						.notExists())
-				.list(new QServiceJobInfo(
-						serviceJob.jobId, 
-						service.identification));
+				.list(
+					serviceJob.jobId,
+					serviceJob.type,
+					service.identification).thenApply(result -> {
+						List<ServiceJobInfo> retval = new ArrayList<>();
+						
+						for(Tuple t : result) {
+							int jobId = t.get(serviceJob.jobId);
+							String type = t.get(serviceJob.type);
+							
+							switch(type) {
+								case "VACUUM":
+									retval.add(new VacuumServiceJobInfo(jobId));
+									break;
+								case "ENSURE":
+									retval.add(new EnsureServiceJobInfo(jobId, t.get(service.identification)));
+									break;
+								default:
+									throw new IllegalStateException("Unknown service job type encountered: " + type);
+							}
+						}
+						
+						return new TypedList<>(ServiceJobInfo.class, retval);
+					});
 	}
 
 	private CompletableFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {

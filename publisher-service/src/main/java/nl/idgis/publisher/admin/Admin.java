@@ -246,7 +246,7 @@ public class Admin extends AbstractAdmin {
 								
 								activeTasks.add(f.successful(new ActiveTask(
 										"" + job.getId(), 
-										job.getServiceId(), 
+										"", 
 										new Message(JobType.SERVICE, null),
 										null)));
 							}

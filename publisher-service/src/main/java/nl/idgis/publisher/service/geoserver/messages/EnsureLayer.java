@@ -1,6 +1,9 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
 import java.io.Serializable;
+import java.util.Optional;
+
+import nl.idgis.publisher.domain.web.tree.TilingSettings;
 
 public abstract class EnsureLayer implements Serializable {
 
@@ -8,10 +11,13 @@ public abstract class EnsureLayer implements Serializable {
 	
 	protected final String layerId, title, abstr;
 	
-	protected EnsureLayer(String layerId, String title, String abstr) {
+	protected final TilingSettings tilingSettings;
+	
+	protected EnsureLayer(String layerId, String title, String abstr, TilingSettings tilingSettings) {
 		this.layerId = layerId;
 		this.title = title;
 		this.abstr = abstr;
+		this.tilingSettings = tilingSettings;
 	}
 
 	public String getLayerId() {
@@ -25,10 +31,8 @@ public abstract class EnsureLayer implements Serializable {
 	public String getAbstract() {
 		return abstr;
 	}
-
-	@Override
-	public String toString() {
-		return "EnsureLayer [layerId=" + layerId + ", title=" + title
-				+ ", abstr=" + abstr + "]";
-	}
+	
+	public Optional<TilingSettings> getTilingSettings() {
+		return Optional.ofNullable(tilingSettings);
+	}	
 }

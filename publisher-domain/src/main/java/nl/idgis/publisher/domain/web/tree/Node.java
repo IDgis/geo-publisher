@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 public abstract class Node implements Item, Serializable {
 	
@@ -8,11 +9,14 @@ public abstract class Node implements Item, Serializable {
 	
 	protected final String id, name, title, abstr;
 	
-	public Node(String id, String name, String title, String abstr) {
+	protected final TilingSettings tilingSettings;
+	
+	public Node(String id, String name, String title, String abstr, TilingSettings tilingSettings) {
 		this.id = id;
 		this.name = name;
 		this.title = title;
 		this.abstr = abstr;
+		this.tilingSettings = tilingSettings;
 	}
 
 	@Override
@@ -33,5 +37,10 @@ public abstract class Node implements Item, Serializable {
 	@Override
 	public String getAbstract() {
 		return abstr;
+	}
+	
+	@Override
+	public Optional<TilingSettings> getTilingSettings() {
+		return Optional.ofNullable(tilingSettings);
 	}
 }

@@ -2,10 +2,12 @@ package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,7 +18,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -44,7 +51,8 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -53,21 +61,41 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
+import nl.idgis.publisher.service.geoserver.rest.Style;
+import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.SyncAskHelper;
 
 public class GeoServerServiceTest {
 	
+	static class PutServiceIndex implements Serializable {
+		
+		private static final long serialVersionUID = -5881906101843611427L;
+		
+		private final ServiceIndex serviceIndex;
+		
+		public PutServiceIndex(ServiceIndex serviceIndex) {
+			this.serviceIndex = serviceIndex;
+		}
+		
+		public ServiceIndex getServiceIndex() {
+			return serviceIndex;
+		}
+	}
+	
 	static class PutService implements Serializable {
 
 		private static final long serialVersionUID = 7974047966502087805L;
 
-		private String serviceId;
+		private final String serviceId;
 		
-		private Service service;
+		private final Service service;
 		
 		public PutService(String serviceId, Service service) {
 			this.serviceId = serviceId;
@@ -87,6 +115,8 @@ public class GeoServerServiceTest {
 		
 		private Map<String, Service> services = new HashMap<>();
 		
+		private ServiceIndex serviceIndex;
+		
 		public static Props props() {
 			return Props.create(ServiceManagerMock.class);
 		}
@@ -100,11 +130,18 @@ public class GeoServerServiceTest {
 				} else {
 					getSender().tell(new NotFound(), getSelf());
 				}
+			} else if(msg instanceof GetServiceIndex) {
+				if(serviceIndex != null) {
+					getSender().tell(serviceIndex, getSelf());
+				}
 			} else if(msg instanceof PutService) {
 				PutService putService = (PutService)msg;
 				services.put(putService.getServiceId(), putService.getService());
 				getSender().tell(new Ack(), getSelf());
-			} else {
+			} else if(msg instanceof PutServiceIndex) {
+				serviceIndex = ((PutServiceIndex)msg).getServiceIndex();				
+				getSender().tell(new Ack(), getSelf());
+			} else {				
 				unhandled(msg);
 			}
 		}
@@ -202,6 +239,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -211,7 +249,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -235,6 +273,7 @@ public class GeoServerServiceTest {
 			when(layer.asDataset()).thenReturn(layer);
 			when(layer.getName()).thenReturn("layer" + i);
 			when(layer.getTableName()).thenReturn("myTable");
+			when(layer.getTilingSettings()).thenReturn(Optional.empty());
 			
 			layers.add(layer);
 		}
@@ -246,6 +285,7 @@ public class GeoServerServiceTest {
 		when(groupLayer.getTitle()).thenReturn("groupTitle");
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
 		when(groupLayer.getLayers()).thenReturn(layers);
+		when(groupLayer.getTilingSettings()).thenReturn(Optional.empty());		
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -255,7 +295,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -283,6 +323,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -292,7 +333,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		sync.ask(recorder, new Clear(), Cleared.class);
@@ -308,7 +349,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -325,6 +366,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTilingSettings()).thenReturn(Optional.empty());
 		
 		GroupLayer group0 = mock(GroupLayer.class);
 		when(group0.isGroup()).thenReturn(true);
@@ -333,6 +375,7 @@ public class GeoServerServiceTest {
 		when(group0.getTitle()).thenReturn("groupTitle0");
 		when(group0.getAbstract()).thenReturn("groupAbstract0");
 		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		when(group0.getTilingSettings()).thenReturn(Optional.empty());
 		
 		GroupLayer group1 = mock(GroupLayer.class);
 		when(group1.isGroup()).thenReturn(true);
@@ -341,6 +384,7 @@ public class GeoServerServiceTest {
 		when(group1.getTitle()).thenReturn("groupTitle1");
 		when(group1.getAbstract()).thenReturn("groupAbstract1");
 		when(group1.getLayers()).thenReturn(Collections.singletonList(group0));
+		when(group1.getTilingSettings()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -350,7 +394,7 @@ public class GeoServerServiceTest {
 		
 		sync.ask(serviceManager, new PutService("service", service), Ack.class);
 		
-		geoServerService.tell(new ServiceJobInfo(0, "service"), recorder);
+		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		sync.ask(recorder, new Wait(3), Waited.class);
 		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
 		
@@ -360,5 +404,85 @@ public class GeoServerServiceTest {
 		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
 	}
 	
-	
+	@Test
+	public void testVacuum() throws Exception {
+		GeoServerRest rest = h.rest(f, log);
+		
+		rest.postWorkspace(new Workspace("workspace")).get();
+		
+		InputStream green = getClass().getResourceAsStream("rest/green.sld");
+		assertNotNull(green);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document sld = db.parse(green);
+		
+		rest.postStyle(new Style("style", sld)).get();
+		
+		assertTrue(
+			rest.getWorkspaces().get().stream()
+				.map(workspace -> workspace.getName())
+				.collect(Collectors.toSet())
+					.contains("workspace"));		
+		assertTrue(
+			rest.getStyles().get().stream()
+				.map(style -> style.getName())
+				.collect(Collectors.toSet())
+					.contains("style"));
+				
+		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
+			Arrays.asList("workspace"),
+			// includes the default styles to prevent other tests from running properly
+			Arrays.asList("point", "line", "polygon", "raster", "style"))), Ack.class);
+		
+		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		
+		assertTrue(
+			rest.getWorkspaces().get().stream()
+				.map(workspace -> workspace.getName())
+				.collect(Collectors.toSet())
+					.contains("workspace"));			
+		assertTrue(
+			rest.getStyles().get().stream()
+				.map(style -> style.getName())
+				.collect(Collectors.toSet())
+					.contains("style"));
+		
+		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
+			Collections.emptyList(),
+			Arrays.asList("point", "line", "polygon", "raster", "style"))), Ack.class);
+		
+		sync.ask(recorder, new Clear(), Cleared.class);
+		
+		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		
+		assertTrue(rest.getWorkspaces().get().isEmpty());
+		assertTrue(
+			rest.getStyles().get().stream()
+				.map(style -> style.getName())
+				.collect(Collectors.toSet())
+					.contains("style"));
+		
+		sync.ask(serviceManager, new PutServiceIndex(new ServiceIndex(
+			Collections.emptyList(),
+			Arrays.asList("point", "line", "polygon", "raster"))), Ack.class);
+			
+		sync.ask(recorder, new Clear(), Cleared.class);
+		
+		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		sync.ask(recorder, new Wait(3), Waited.class);
+		assertSuccessful(sync.ask(recorder, new GetRecording(), Recording.class));
+		
+		assertTrue(rest.getWorkspaces().get().isEmpty());
+		assertFalse(
+			rest.getStyles().get().stream()
+				.map(style -> style.getName())
+				.collect(Collectors.toSet())
+					.contains("style"));
+	}
 }

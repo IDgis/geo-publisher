@@ -22,12 +22,12 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 
-public class ProvisionService extends UntypedActor {
+public class EnsureService extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	public static Props props() {
-		return Props.create(ProvisionService.class);
+		return Props.create(EnsureService.class);
 	}
 	
 	public void preStart() throws Exception {
@@ -69,12 +69,14 @@ public class ProvisionService extends UntypedActor {
 					
 					if(itr.hasNext()) {
 						Layer layer = itr.next();
+						
 						if(layer.isGroup()) {
 							getContext().parent().tell(
 								new EnsureGroupLayer(
 									layer.getName(), 
 									layer.getTitle(), 
-									layer.getAbstract()), getSelf());							
+									layer.getAbstract(),
+									layer.getTilingSettings().orElse(null)), getSelf());							
 							getContext().become(layers(layer.asGroup().getLayers(), depth + 1), false);
 						} else {
 							getContext().parent().tell(
@@ -82,7 +84,8 @@ public class ProvisionService extends UntypedActor {
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(), 
-									layer.asDataset().getTableName()), getSelf());
+									layer.asDataset().getTableName(),
+									layer.getTilingSettings().orElse(null)), getSelf());
 						}
 					} else {
 						log.debug("unbecome {}", depth);

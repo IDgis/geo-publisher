@@ -1,16 +1,13 @@
 package nl.idgis.publisher.domain.web.tree;
 
-import com.mysema.query.annotations.QueryProjection;
-
 public class DatasetNode extends Node implements Dataset {	
 
 	private static final long serialVersionUID = -1242206465492970518L;
 	
 	private final String tableName;
 	
-	@QueryProjection
-	public DatasetNode(String id, String name, String title, String abstr, String tableName) {
-		super(id, name, title, abstr);
+	public DatasetNode(String id, String name, String title, String abstr, String tableName, TilingSettings tilingSettings) {
+		super(id, name, title, abstr, tilingSettings);
 		
 		this.tableName = tableName;
 	}	
@@ -21,8 +18,9 @@ public class DatasetNode extends Node implements Dataset {
 
 	@Override
 	public String toString() {
-		return "Dataset [tableName=" + tableName
-				+ ", id=" + id + ", name=" + name + ", title=" + title
-				+ ", abstr=" + abstr + "]";
-	}	
+		return "DatasetNode [tableName=" + tableName + ", id=" + id + ", name="
+				+ name + ", title=" + title + ", abstr=" + abstr
+				+ ", tilingSettings=" + tilingSettings + "]";
+	}
+	
 }

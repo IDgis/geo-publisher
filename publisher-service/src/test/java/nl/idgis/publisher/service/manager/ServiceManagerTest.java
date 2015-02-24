@@ -39,7 +39,9 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class ServiceManagerTest extends AbstractServiceTest {
@@ -587,5 +589,61 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 		
 		assertFalse(layersItr.hasNext());
+	}
+	
+	@Test
+	public void testServiceIndex() throws Exception {
+		ServiceIndex serviceIndex = sync.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class);
+		
+		List<String> serviceNames = serviceIndex.getServiceNames();
+		assertNotNull(serviceNames);
+		assertTrue(serviceNames.isEmpty());
+		
+		List<String> styleNames = serviceIndex.getStyleNames();
+		assertNotNull(styleNames);
+		assertTrue(styleNames.isEmpty());
+		
+		int layerId0 = insert(genericLayer)
+			.set(genericLayer.identification, "layer0")
+			.set(genericLayer.name, "layer-name0")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId0)
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "rootgroup")
+			.set(genericLayer.name, "rootgroup-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, layerId0)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+	
+		insert(service)
+			.set(service.identification, "service0")
+			.set(service.name, "serviceName0")
+			.set(service.title, "serviceTitle0")
+			.set(service.abstractCol, "serviceAbstract0")
+			.set(service.genericLayerId, rootId)
+			.execute();
+		
+		serviceIndex = sync.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class);
+		
+		serviceNames = serviceIndex.getServiceNames();
+		assertNotNull(serviceNames);
+		
+		Iterator<String> serviceNameItr = serviceNames.iterator();
+		assertTrue(serviceNameItr.hasNext());		
+		assertEquals("serviceName0", serviceNameItr.next());		
+		assertFalse(serviceNameItr.hasNext());
+		
+		styleNames = serviceIndex.getStyleNames();
+		assertNotNull(styleNames);
+		assertTrue(styleNames.isEmpty());
 	}
 }

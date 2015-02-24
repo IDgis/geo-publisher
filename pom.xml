@@ -133,7 +133,7 @@
 				<artifactId>gs-web-app</artifactId>
 				<scope>test</scope>
 				<type>war</type>
-				<version>2.6.2</version>
+				<version>2.6.1</version> <!-- !! WARNING: 2.6.2 IS BROKEN !! -->
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>

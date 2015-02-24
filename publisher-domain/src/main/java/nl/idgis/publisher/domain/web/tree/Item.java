@@ -1,5 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.util.Optional;
+
 public interface Item {
 
 	String getId();
@@ -8,5 +10,7 @@ public interface Item {
 	
 	String getTitle();
 	
-	String getAbstract();	
+	String getAbstract();
+	
+	Optional<TilingSettings> getTilingSettings();
 }

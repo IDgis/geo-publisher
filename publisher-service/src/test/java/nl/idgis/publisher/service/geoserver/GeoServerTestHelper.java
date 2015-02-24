@@ -288,10 +288,14 @@ public class GeoServerTestHelper {
 	
 	public Document getFeature(String serviceName, String typeName) throws SAXException, IOException {
 		return documentBuilder.parse(getServiceUrl(serviceName, ServiceType.WFS) + "?request=GetFeature&service=WFS&version=1.1.0&typeName=" + typeName);
-	}	
+	}
+	
+	public GeoServerRest rest(FutureUtils f, LoggingAdapter log) throws Exception {
+		return new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+	}
 	
 	public void clean(FutureUtils f, LoggingAdapter log) throws Exception {
-		GeoServerRest service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+		GeoServerRest service = rest(f, log); 
 		for(Workspace workspace : service.getWorkspaces().get()) {
 			service.deleteWorkspace(workspace).get();
 		}

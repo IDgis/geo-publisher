@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLCommonQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -31,24 +33,23 @@ import nl.idgis.publisher.domain.web.tree.DatasetNode;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.GroupNode;
-import nl.idgis.publisher.domain.web.tree.QDatasetNode;
-import nl.idgis.publisher.domain.web.tree.QGroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
-
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QStyle.style;
 
 public class ServiceManager extends UntypedActor {
 	
@@ -144,11 +145,26 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetGroupLayer((GetGroupLayer)msg));
 		} else if(msg instanceof GetServicesWithLayer) {
 			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
+		} else if(msg instanceof GetServiceIndex) {
+			toSender(handleGetServiceIndex((GetServiceIndex)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {
+		return db.transactional(tx ->			 
+			tx.query()
+				.from(service)
+				.list(service.name).thenCompose(serviceNames -> 
+					tx.query()
+						.from(style)
+						.list(style.name).thenApply(styleNames -> 
+							new ServiceIndex(
+								serviceNames.list(), 
+								styleNames.list()))));
+	}
+
 	private void toSender(CompletableFuture<? extends Object> future) {
 		ActorRef sender = getSender(), self = getSelf();
 		
@@ -231,11 +247,18 @@ public class ServiceManager extends UntypedActor {
 					.and(new SQLSubQuery().from(leafLayer)
 						.where(leafLayer.genericLayerId.eq(genericLayer.id))
 						.notExists()))
-				.singleResult(new QGroupNode(
+				.singleResult(
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol).thenApply(resp -> 
+						resp.map(t -> 
+							new GroupNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),
+								null)));
 			
 			CompletableFuture<TypedList<GroupNode>> groups = withGroupStructure.clone()
 				.from(genericLayer)
@@ -244,11 +267,20 @@ public class ServiceManager extends UntypedActor {
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
 					.notExists())	
 				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(new QGroupNode(
+				.list(
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol).thenApply(resp -> 
+						new TypedList<>(GroupNode.class, resp.list().stream()
+							.map(t -> 
+								new GroupNode(
+									t.get(genericLayer.identification),
+									t.get(genericLayer.name),
+									t.get(genericLayer.title),
+									t.get(genericLayer.abstractCol),
+									null))
+							.collect(Collectors.toList())));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DatasetNode>> datasets = withGroupStructure  
@@ -257,11 +289,21 @@ public class ServiceManager extends UntypedActor {
 				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
 				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
 				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(new QDatasetNode(genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
+				.list(
+					genericLayer.identification,
+					genericLayer.name,
+					genericLayer.title,
 					genericLayer.abstractCol,
-					dataset.name));
+					dataset.name).thenApply(resp ->
+						new TypedList<>(DatasetNode.class, resp.list().stream()
+							.map(t -> new DatasetNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),
+								t.get(dataset.name),
+								null))
+							.collect(Collectors.toList())));
 			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
@@ -303,11 +345,18 @@ public class ServiceManager extends UntypedActor {
 			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
 				.join(service).on(service.genericLayerId.eq(genericLayer.id))
 				.where(service.identification.eq(serviceId))
-				.singleResult(new QGroupNode(
+				.singleResult(
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol).thenApply(resp ->
+						resp.map(t ->
+							new GroupNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),
+								null)));
 			
 			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
 				.from(genericLayer)
@@ -316,11 +365,19 @@ public class ServiceManager extends UntypedActor {
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
 					.notExists())	
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(new QGroupNode(
+				.list(
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol));
+					genericLayer.abstractCol).thenApply(resp ->
+						new TypedList<>(GroupNode.class, resp.list().stream()
+							.map(t -> new GroupNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),
+								null))
+							.collect(Collectors.toList())));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
@@ -329,11 +386,23 @@ public class ServiceManager extends UntypedActor {
 				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(new QDatasetNode(genericLayer.identification, 
+				.list(
+					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.identification));
+					dataset.identification).thenApply(resp ->
+						new TypedList<>(DatasetNode.class, 
+							resp.list().stream()
+								.map(t -> new DatasetNode(
+									t.get(genericLayer.identification),
+									t.get(genericLayer.name),
+									t.get(genericLayer.title),
+									t.get(genericLayer.abstractCol),
+									t.get(dataset.identification),
+									null))
+								.collect(Collectors.toList())));
+						
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)
