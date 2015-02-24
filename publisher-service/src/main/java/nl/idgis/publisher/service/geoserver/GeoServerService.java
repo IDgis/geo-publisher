@@ -426,14 +426,18 @@ public class GeoServerService extends UntypedActor {
 							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
 						}						
 									
-						// N.B. post and put are used the other way around in GWC
+						/* We can't use the usual 'ensure' strategy for tiled layers because 
+						 creating layers (feature types / coverages) implicitly creates
+						 a tiled layer that we have to delete when we are done.
+						
+						 N.B. post and put are used the other way around in GWC*/
 						log.debug("configuring tiled layers");
 						futures.add(
 							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames ->
 								f.sequence(Arrays.asList(
 									f.sequence(
 										tiledLayers.entrySet().stream()
-											.filter(entry -> !tiledLayerNames.contains(entry.getKey()))
+											.filter(entry -> !tiledLayerNames.contains(entry.getKey())) // missing tiled layers
 											.map(entry -> {																				
 												String tiledLayerName = entry.getKey();
 												TiledLayer tiledLayer = entry.getValue();
@@ -446,10 +450,10 @@ public class GeoServerService extends UntypedActor {
 									f.sequence(
 										tiledLayerNames.stream()
 											.map(tiledLayerName -> {	
-												if(tiledLayers.containsKey(tiledLayerName)) {
+												if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
 													log.debug("posting tiled layer {}", tiledLayerName);
 													return rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName));
-												} else {											
+												} else { // obsolete tiled layers
 													log.debug("deleting tiled layer {}", tiledLayerName);
 													return rest.deleteTiledLayer(workspace, tiledLayerName);
 												}
