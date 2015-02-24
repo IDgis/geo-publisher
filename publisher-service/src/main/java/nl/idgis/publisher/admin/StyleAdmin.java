@@ -2,10 +2,12 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QStyle.style;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -45,10 +47,33 @@ public class StyleAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Page<Style>> handleListStylesWithQuery (final ListStyles listStyles) {
-		return 
-				db.query().from(style)
-				.list(new QStyle(style.identification,style.name,style.definition))
-				.thenApply(this::toPage);
+		final AsyncSQLQuery baseQuery = db
+			.query()
+			.from(style)
+			.orderBy (style.name.asc ());
+
+		if (listStyles.getQuery () != null) {
+			baseQuery.where (style.name.containsIgnoreCase (listStyles.getQuery ()));
+		}
+		
+		final AsyncSQLQuery listQuery = baseQuery.clone ();
+		
+		singlePage (listQuery, listStyles.getPage ());
+		
+		return baseQuery
+			.count ()
+			.thenCompose ((count) -> {
+				final Page.Builder<Style> builder = new Page.Builder<> ();
+				
+				addPageInfo (builder, listStyles.getPage (), count);
+				
+				return listQuery
+					.list (new QStyle (style.identification, style.name, style.definition))
+					.thenApply ((styles) -> {
+						builder.addAll (styles.list ());
+						return builder.build ();
+					});
+			});
 	}
 
 	

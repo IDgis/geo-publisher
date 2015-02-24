@@ -1,6 +1,11 @@
 @(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String)
 
-@import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.web._
+
+@pageRef(targetPage: Long) = @{	  
+	routes.Styles.list (query, targetPage)		
+}
+ 
 @layout.application( title = Domain.message("web.application.page.styles.list.header") ) {
 
 <div class="page-content">
@@ -75,6 +80,9 @@
 				}
 			</div>
 			}
+			
+			@helper.pagination(styles, pageRef)
+			
 		</div> @* /Style list *@
 		
 	</div> @* Row *@
