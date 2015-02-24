@@ -370,8 +370,16 @@ public class DefaultGeoServerRestTest {
 		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());		
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		
-		service.postWorkspace(new Workspace("anotherWorkspace")).get();
+		Workspace anotherWorkspace = new Workspace("anotherWorkspace");
+		service.postWorkspace(anotherWorkspace).get();
+		
+		DataStore aotherDataStore = new DataStore("dataStore", getConnectionParameters());
+		service.postDataStore(anotherWorkspace, dataStore).get();
+		
+		FeatureType anotherFeatureType = new FeatureType("anotherTest", "test_table", "title", "abstract");
+		service.postFeatureType(anotherWorkspace, aotherDataStore, anotherFeatureType).get();
 				
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
+		assertEquals(Arrays.asList("anotherTest"), service.getTiledLayerNames(anotherWorkspace).get());
 	}
 }
