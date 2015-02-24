@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.TilingSettings;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
@@ -64,6 +66,7 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Style;
+import nl.idgis.publisher.service.geoserver.rest.TiledLayer;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
@@ -260,6 +263,8 @@ public class GeoServerServiceTest {
 		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 		assertEquals("title", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
 		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
+		
+		assertTrue(h.rest(f, log).getTiledLayerNames(new Workspace("serviceName")).get().isEmpty());
 	}
 	
 	@Test
@@ -268,12 +273,20 @@ public class GeoServerServiceTest {
 		
 		List<Layer> layers = new ArrayList<>();
 		for(int i = 0; i < numberOfLayers; i++) {
+			TilingSettings tilingSettings = mock(TilingSettings.class);
+			when(tilingSettings.getMimeFormats()).thenReturn(Arrays.asList("image/png"));
+			when(tilingSettings.getExpireCache()).thenReturn(0);
+			when(tilingSettings.getExpireClients()).thenReturn(0);
+			when(tilingSettings.getMetaHeight()).thenReturn(4);
+			when(tilingSettings.getMetaWidth()).thenReturn(4);
+			when(tilingSettings.getGutter()).thenReturn(0);
+			
 			DatasetLayer layer = mock(DatasetLayer.class);
 			when(layer.isGroup()).thenReturn(false);
 			when(layer.asDataset()).thenReturn(layer);
 			when(layer.getName()).thenReturn("layer" + i);
-			when(layer.getTableName()).thenReturn("myTable");
-			when(layer.getTilingSettings()).thenReturn(Optional.empty());
+			when(layer.getTableName()).thenReturn("myTable");			
+			when(layer.getTilingSettings()).thenReturn(Optional.of(tilingSettings));
 			
 			layers.add(layer);
 		}
@@ -314,6 +327,21 @@ public class GeoServerServiceTest {
 		
 		assertEquals("groupTitle", h.getText("//wms:Layer[wms:Name = 'group']/wms:Title", capabilities));
 		assertEquals("groupAbstract", h.getText("//wms:Layer[wms:Name = 'group']/wms:Abstract", capabilities));
+		
+		GeoServerRest rest = h.rest(f, log);
+		Workspace workspace = new Workspace("serviceName");
+		Set<String> tiledLayers = rest.getTiledLayerNames(workspace).get()
+			.stream().collect(Collectors.toSet());
+		
+		for(int i = 0; i < numberOfLayers; i++) {
+			String tiledLayerName = "layer" + i;
+			assertTrue(tiledLayers.contains(tiledLayerName));
+			
+			Optional<TiledLayer> tiledLayerOptional = rest.getTiledLayer(workspace, tiledLayerName).get();
+			assertTrue(tiledLayerOptional.isPresent());
+			TiledLayer tiledLayer = tiledLayerOptional.get();
+			assertEquals(Arrays.asList("image/png"), tiledLayer.getMimeFormats());
+		}
 	}
 	
 	@Test
@@ -402,6 +430,8 @@ public class GeoServerServiceTest {
 		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
 		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
 		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
+		
+		
 	}
 	
 	@Test
