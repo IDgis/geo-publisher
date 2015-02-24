@@ -76,7 +76,7 @@ public class EnsureService extends UntypedActor {
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(),
-									layer.getTilingSettings().orElse(null)), getSelf());							
+									layer.getTiling().orElse(null)), getSelf());							
 							getContext().become(layers(layer.asGroup().getLayers(), depth + 1), false);
 						} else {
 							getContext().parent().tell(
@@ -85,7 +85,7 @@ public class EnsureService extends UntypedActor {
 									layer.getTitle(), 
 									layer.getAbstract(), 
 									layer.asDataset().getTableName(),
-									layer.getTilingSettings().orElse(null)), getSelf());
+									layer.getTiling().orElse(null)), getSelf());
 						}
 					} else {
 						log.debug("unbecome {}", depth);

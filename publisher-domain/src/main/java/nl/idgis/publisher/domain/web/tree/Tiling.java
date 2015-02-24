@@ -2,7 +2,7 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
 
-public interface TilingSettings {
+public interface Tiling {
 
 	List<String> getMimeFormats();
 

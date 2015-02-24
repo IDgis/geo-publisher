@@ -3,7 +3,7 @@ package nl.idgis.publisher.service.geoserver.messages;
 import java.io.Serializable;
 import java.util.Optional;
 
-import nl.idgis.publisher.domain.web.tree.TilingSettings;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.service.geoserver.rest.TiledLayer;
 
@@ -13,9 +13,9 @@ public abstract class EnsureLayer implements Serializable {
 	
 	protected final String layerId, title, abstr;
 	
-	protected final TilingSettings tilingSettings;
+	protected final Tiling tilingSettings;
 	
-	protected EnsureLayer(String layerId, String title, String abstr, TilingSettings tilingSettings) {
+	protected EnsureLayer(String layerId, String title, String abstr, Tiling tilingSettings) {
 		this.layerId = layerId;
 		this.title = title;
 		this.abstr = abstr;

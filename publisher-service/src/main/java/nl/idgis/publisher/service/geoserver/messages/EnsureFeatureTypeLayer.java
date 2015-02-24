@@ -1,6 +1,6 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
-import nl.idgis.publisher.domain.web.tree.TilingSettings;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 
@@ -10,7 +10,7 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 	
 	private final String tableName;
 	
-	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, String tableName, TilingSettings tilingSettings) {
+	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, String tableName, Tiling tilingSettings) {
 		super(layerId, title, abstr, tilingSettings);
 		
 		this.tableName = tableName;

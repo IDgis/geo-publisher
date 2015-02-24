@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.util.Optional;
 
 public abstract class AbstractLayer<T extends Item> implements Layer, Item, Serializable {
-	
-	private static final long serialVersionUID = -2491245716270367081L;
+
+	private static final long serialVersionUID = 5134964120505946288L;
 
 	private final boolean isGroup;
 	
@@ -60,7 +60,7 @@ public abstract class AbstractLayer<T extends Item> implements Layer, Item, Seri
 	}	
 	
 	@Override
-	public Optional<TilingSettings> getTilingSettings() {
-		return item.getTilingSettings();
+	public Optional<Tiling> getTiling() {
+		return item.getTiling();
 	}
 }

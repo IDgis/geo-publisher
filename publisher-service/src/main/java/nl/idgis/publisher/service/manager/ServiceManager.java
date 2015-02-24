@@ -5,12 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLCommonQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -32,6 +32,7 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetNode;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
+import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.GroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
@@ -50,6 +51,7 @@ import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
 public class ServiceManager extends UntypedActor {
 	
@@ -356,11 +358,12 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
-								null)));
+								null))); // a root group doesn't have (or need) tiling
 			
 			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
 				.from(genericLayer)
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
 				.where(new SQLSubQuery().from(leafLayer)
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
 					.notExists())	
@@ -369,20 +372,34 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol).thenApply(resp ->
+					genericLayer.abstractCol,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter).thenApply(resp ->
 						new TypedList<>(GroupNode.class, resp.list().stream()
 							.map(t -> new GroupNode(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
-								null))
+								t.get(tiledLayer.genericLayerId) == null ? null
+									: new DefaultTiling(
+										Collections.emptyList(), // TODO: mime type
+										t.get(tiledLayer.metaWidth),
+										t.get(tiledLayer.metaHeight),
+										t.get(tiledLayer.expireCache),
+										t.get(tiledLayer.expireClients),
+										t.get(tiledLayer.gutter))))
 							.collect(Collectors.toList())));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
 				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
@@ -391,7 +408,13 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.identification).thenApply(resp ->
+					dataset.identification,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter).thenApply(resp ->
 						new TypedList<>(DatasetNode.class, 
 							resp.list().stream()
 								.map(t -> new DatasetNode(
@@ -400,7 +423,14 @@ public class ServiceManager extends UntypedActor {
 									t.get(genericLayer.title),
 									t.get(genericLayer.abstractCol),
 									t.get(dataset.identification),
-									null))
+									t.get(tiledLayer.genericLayerId) == null ? null
+										: new DefaultTiling(
+											Collections.emptyList(), // TODO: mime type
+											t.get(tiledLayer.metaWidth),
+											t.get(tiledLayer.metaHeight),
+											t.get(tiledLayer.expireCache),
+											t.get(tiledLayer.expireClients),
+											t.get(tiledLayer.gutter))))
 								.collect(Collectors.toList())));
 						
 			

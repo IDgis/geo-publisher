@@ -12,5 +12,5 @@ public interface Item {
 	
 	String getAbstract();
 	
-	Optional<TilingSettings> getTilingSettings();
+	Optional<Tiling> getTiling();
 }
