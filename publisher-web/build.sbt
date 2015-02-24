@@ -10,7 +10,6 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 libraryDependencies ++= Seq(
   javaJdbc,
-  javaEbean,
   cache,
   javaWs,
   "org.webjars" %% "webjars-play" % "2.3.0",  
