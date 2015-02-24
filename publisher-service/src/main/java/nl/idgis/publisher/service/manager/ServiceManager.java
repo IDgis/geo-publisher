@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 public class ServiceManager extends UntypedActor {
 	
@@ -360,7 +362,26 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.abstractCol),
 								null))); // a root group doesn't have (or need) tiling
 			
-			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
+			CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats = withServiceStructure.clone()
+				.from(genericLayer)
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
+			
+			CompletableFuture<TypedList<Tuple>> groupTuples = withServiceStructure.clone()
 				.from(genericLayer)
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
 				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
@@ -369,6 +390,7 @@ public class ServiceManager extends UntypedActor {
 					.notExists())	
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.list(
+					genericLayer.id,
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
@@ -378,25 +400,45 @@ public class ServiceManager extends UntypedActor {
 					tiledLayer.metaHeight,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter).thenApply(resp ->
-						new TypedList<>(GroupNode.class, resp.list().stream()
-							.map(t -> new GroupNode(
-								t.get(genericLayer.identification),
-								t.get(genericLayer.name),
-								t.get(genericLayer.title),
-								t.get(genericLayer.abstractCol),
-								t.get(tiledLayer.genericLayerId) == null ? null
-									: new DefaultTiling(
-										Collections.emptyList(), // TODO: mime type
-										t.get(tiledLayer.metaWidth),
-										t.get(tiledLayer.metaHeight),
-										t.get(tiledLayer.expireCache),
-										t.get(tiledLayer.expireClients),
-										t.get(tiledLayer.gutter))))
-							.collect(Collectors.toList())));
+					tiledLayer.gutter);
+			
+			CompletableFuture<TypedList<GroupNode>> groups = tilingGroupMimeFormats.thenCompose(tilingMimeFormats -> 
+				groupTuples.thenApply(resp ->
+					new TypedList<>(GroupNode.class, resp.list().stream()
+						.map(t -> new GroupNode(
+							t.get(genericLayer.identification),
+							t.get(genericLayer.name),
+							t.get(genericLayer.title),
+							t.get(genericLayer.abstractCol),
+							t.get(tiledLayer.genericLayerId) == null ? null
+								: new DefaultTiling(
+									tilingMimeFormats.get(t.get(genericLayer.id)),
+									t.get(tiledLayer.metaWidth),
+									t.get(tiledLayer.metaHeight),
+									t.get(tiledLayer.expireCache),
+									t.get(tiledLayer.expireClients),
+									t.get(tiledLayer.gutter))))
+						.collect(Collectors.toList()))));
+			
+			CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats = withServiceStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
 			
 			// last query -> .clone() not required
-			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
+			CompletableFuture<TypedList<Tuple>> datasetTuples = withServiceStructure  
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
@@ -404,6 +446,7 @@ public class ServiceManager extends UntypedActor {
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.list(
+					genericLayer.id,
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
@@ -414,24 +457,27 @@ public class ServiceManager extends UntypedActor {
 					tiledLayer.metaHeight,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter).thenApply(resp ->
-						new TypedList<>(DatasetNode.class, 
-							resp.list().stream()
-								.map(t -> new DatasetNode(
-									t.get(genericLayer.identification),
-									t.get(genericLayer.name),
-									t.get(genericLayer.title),
-									t.get(genericLayer.abstractCol),
-									t.get(dataset.identification),
-									t.get(tiledLayer.genericLayerId) == null ? null
-										: new DefaultTiling(
-											Collections.emptyList(), // TODO: mime type
-											t.get(tiledLayer.metaWidth),
-											t.get(tiledLayer.metaHeight),
-											t.get(tiledLayer.expireCache),
-											t.get(tiledLayer.expireClients),
-											t.get(tiledLayer.gutter))))
-								.collect(Collectors.toList())));
+					tiledLayer.gutter);
+			
+			CompletableFuture<TypedList<DatasetNode>> datasets = tilingDatasetMimeFormats.thenCompose(tilingMimeFormats -> 
+				datasetTuples.thenApply(resp ->
+					new TypedList<>(DatasetNode.class, 
+						resp.list().stream()
+							.map(t -> new DatasetNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),
+								t.get(dataset.identification),
+								t.get(tiledLayer.genericLayerId) == null ? null
+									: new DefaultTiling(
+										tilingMimeFormats.get(t.get(genericLayer.id)),
+										t.get(tiledLayer.metaWidth),
+										t.get(tiledLayer.metaHeight),
+										t.get(tiledLayer.expireCache),
+										t.get(tiledLayer.expireClients),
+										t.get(tiledLayer.gutter))))
+							.collect(Collectors.toList()))));
 						
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 

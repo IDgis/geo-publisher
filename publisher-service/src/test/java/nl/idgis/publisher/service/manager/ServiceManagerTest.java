@@ -232,7 +232,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
 		assertEquals(Integer.valueOf(5), tiling.getGutter());
 		
-		// TODO: assert mime type
+		List<String> mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
 		
 		assertFalse(itr.hasNext());
 	}
@@ -322,7 +325,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
 		assertEquals(Integer.valueOf(5), tiling.getGutter());
 		
-		// TODO: assert mime type
+		List<String> mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
 		
 		List<Layer> groupLayers = group.asGroup().getLayers();
 		assertNotNull(groupLayers);
