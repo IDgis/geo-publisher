@@ -984,7 +984,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getTiledLayerPath(workspace.getName() + ":" + layerName);
 	}
 	
-	private CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, String layerName) {
+	@Override
+	public CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, String layerName) {
 		return get(getTiledLayerPath(workspace, layerName)).thenApply(optionalDocument ->
 			optionalDocument.map(document -> {						
 				XPathHelper layer = xpath(optionalDocument.get()).node("GeoServerLayer").get();
@@ -1021,7 +1022,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getTiledLayer(workspace, layerGroup.getName());
 	}
 	
-	private CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName) {
+	@Override
+	public CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName) {
 		// the trailing .xml is required, results in a 400 otherwise
 		return delete(getTiledLayerPath(workspace, layerName) + ".xml");
 	}
@@ -1037,7 +1039,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<String>> getTiledLayers(Workspace workspace) {
+	public CompletableFuture<List<String>> getTiledLayerNames(Workspace workspace) {
 		return get(getTiledLayersPath()).thenApply(optionalDocument ->			
 			xpath(optionalDocument.get()).strings("layers/layer/name").stream()
 				.map(name -> name.split(":"))

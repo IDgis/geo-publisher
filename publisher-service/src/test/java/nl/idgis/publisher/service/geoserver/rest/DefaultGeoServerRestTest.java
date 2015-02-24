@@ -368,10 +368,10 @@ public class DefaultGeoServerRestTest {
 		assertTrue(tiledLayer.isPresent());
 		
 		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());		
-		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
+		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		
 		service.postWorkspace(new Workspace("anotherWorkspace")).get();
 				
-		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
+		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 	}
 }
