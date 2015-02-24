@@ -14,6 +14,7 @@ import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -203,13 +204,23 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(constants.email, "serviceEmail0")
 			.executeWithKey(constants.id);
 		
-		insert(service)
+		int serviceId = insert(service)
 			.set(service.identification, "service0")
 			.set(service.name, "serviceName0")
 			.set(service.title, "serviceTitle0")
 			.set(service.abstractCol, "serviceAbstract0")
 			.set(service.genericLayerId, rootId)
 			.set(service.constantsId, constantsId)
+			.executeWithKey(service.id);
+		
+		insert(serviceKeyword)
+			.set(serviceKeyword.serviceId, serviceId)
+			.set(serviceKeyword.keyword, "keyword2")
+			.execute();
+		
+		insert(serviceKeyword)
+			.set(serviceKeyword.serviceId, serviceId)
+			.set(serviceKeyword.keyword, "keyword3")
 			.execute();
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
@@ -218,6 +229,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("serviceTitle0", service.getTitle());
 		assertEquals("serviceAbstract0", service.getAbstract());
 		assertEquals("serviceContact0", service.getContact());
+		
+		List<String> serviceKeywords = service.getKeywords();
+		assertEquals(2, serviceKeywords.size());
+		assertTrue(serviceKeywords.contains("keyword2"));
+		assertTrue(serviceKeywords.contains("keyword3"));
 		
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);

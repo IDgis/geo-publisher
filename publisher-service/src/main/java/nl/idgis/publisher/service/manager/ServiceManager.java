@@ -46,6 +46,7 @@ import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
@@ -525,46 +526,53 @@ public class ServiceManager extends UntypedActor {
 					constants.fax,
 					constants.email);
 			
+			CompletableFuture<TypedList<String>> serviceKeywords = tx.query().from(service)
+				.join(serviceKeyword).on(serviceKeyword.serviceId.eq(service.id))
+				.where(service.identification.eq(serviceId))
+				.list(serviceKeyword.keyword);
+			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
 				? structure.thenCompose(structureResult ->
 					groups.thenCompose(groupsResult ->	
-						serviceInfo.thenCompose(serviceInfoResult -> 
-							datasets.thenApply(datasetsResult -> {							
-								// LinkedHashMap is used to preserve layer order
-								Map<String, String> structureMap = new LinkedHashMap<>();
-								
-								for(Tuple structureTuple : structureResult) {
-									structureMap.put(
-										structureTuple.get(serviceStructure.childLayerIdentification),
-										structureTuple.get(serviceStructure.parentLayerIdentification));
-								}
-								
-								Tuple serviceInfoTuple = serviceInfoResult.get();
-				
-								return new DefaultService(
-									serviceId, 
-									serviceInfoTuple.get(service.name),
-									serviceInfoTuple.get(service.title),
-									serviceInfoTuple.get(service.abstractCol),
-									null, // TODO: keywords
-									serviceInfoTuple.get(constants.contact),
-									serviceInfoTuple.get(constants.organization),
-									serviceInfoTuple.get(constants.position),
-									serviceInfoTuple.get(constants.addressType),
-									serviceInfoTuple.get(constants.address),
-									serviceInfoTuple.get(constants.city),
-									serviceInfoTuple.get(constants.state),
-									serviceInfoTuple.get(constants.zipcode),
-									serviceInfoTuple.get(constants.country),
-									serviceInfoTuple.get(constants.telephone),
-									serviceInfoTuple.get(constants.fax),
-									serviceInfoTuple.get(constants.email),
-									rootResult.get(),
-									datasetsResult.list(),
-									groupsResult.list(),
-									structureMap);
-							}))))
+					serviceInfo.thenCompose(serviceInfoResult ->
+					serviceKeywords.thenCompose(keywords ->
+					
+						datasets.thenApply(datasetsResult -> {							
+							// LinkedHashMap is used to preserve layer order
+							Map<String, String> structureMap = new LinkedHashMap<>();
+							
+							for(Tuple structureTuple : structureResult) {
+								structureMap.put(
+									structureTuple.get(serviceStructure.childLayerIdentification),
+									structureTuple.get(serviceStructure.parentLayerIdentification));
+							}
+							
+							Tuple serviceInfoTuple = serviceInfoResult.get();
+			
+							return new DefaultService(
+								serviceId, 
+								serviceInfoTuple.get(service.name),
+								serviceInfoTuple.get(service.title),
+								serviceInfoTuple.get(service.abstractCol),
+								keywords.list(),
+								serviceInfoTuple.get(constants.contact),
+								serviceInfoTuple.get(constants.organization),
+								serviceInfoTuple.get(constants.position),
+								serviceInfoTuple.get(constants.addressType),
+								serviceInfoTuple.get(constants.address),
+								serviceInfoTuple.get(constants.city),
+								serviceInfoTuple.get(constants.state),
+								serviceInfoTuple.get(constants.zipcode),
+								serviceInfoTuple.get(constants.country),
+								serviceInfoTuple.get(constants.telephone),
+								serviceInfoTuple.get(constants.fax),
+								serviceInfoTuple.get(constants.email),
+								rootResult.get(),
+								datasetsResult.list(),
+								groupsResult.list(),
+								structureMap);
+						})))))
 				: f.successful(new NotFound()));
 		});
 	}
