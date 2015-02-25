@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.manager;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -80,6 +81,8 @@ public class ServiceManager extends UntypedActor {
 		
 		NumberPath<Integer> layerOrder = createNumber("layer_order", Integer.class);
 		
+		StringPath styleIdentification = createString("style_identification");
+		
 		QServiceStructure(String variable) {
 	        super(QServiceStructure.class, forVariable(variable));
 	        
@@ -89,6 +92,7 @@ public class ServiceManager extends UntypedActor {
 	        add(childLayerId);
 	        add(childLayerIdentification);
 	        add(layerOrder);
+	        add(styleIdentification);
 	    }
 	}
 	
@@ -118,7 +122,7 @@ public class ServiceManager extends UntypedActor {
 	        add(parentLayerIdentification);
 	        add(childLayerId);
 	        add(childLayerIdentification);
-	        add(layerOrder);
+	        add(layerOrder);	        
 	    }
 	}
 	
@@ -322,6 +326,8 @@ public class ServiceManager extends UntypedActor {
 							// LinkedHashMap is used to preserve layer order
 							Map<String, String> structureMap = new LinkedHashMap<>();
 							
+							Map<String, String> styleMap = new HashMap<>();
+							
 							for(Tuple structureTuple : structureResult) {
 								structureMap.put(
 									structureTuple.get(groupStructure.childLayerIdentification),
@@ -332,7 +338,8 @@ public class ServiceManager extends UntypedActor {
 								rootResult.get(), 
 								datasetsResult.list(),
 								groupsResult.list(),
-								structureMap);
+								structureMap,
+								styleMap);
 						})))
 				: f.successful(new NotFound()));
 		});
@@ -349,7 +356,10 @@ public class ServiceManager extends UntypedActor {
 				.from(serviceStructure)
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.orderBy(serviceStructure.layerOrder.asc())
-				.list(serviceStructure.childLayerIdentification, serviceStructure.parentLayerIdentification);
+				.list(
+					serviceStructure.styleIdentification,
+					serviceStructure.childLayerIdentification, 
+					serviceStructure.parentLayerIdentification);
 			
 			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
 				.join(service).on(service.genericLayerId.eq(genericLayer.id))
@@ -565,10 +575,17 @@ public class ServiceManager extends UntypedActor {
 							// LinkedHashMap is used to preserve layer order
 							Map<String, String> structureMap = new LinkedHashMap<>();
 							
+							Map<String, String> styleMap = new HashMap<>();
+							
 							for(Tuple structureTuple : structureResult) {
-								structureMap.put(
-									structureTuple.get(serviceStructure.childLayerIdentification),
-									structureTuple.get(serviceStructure.parentLayerIdentification));
+								String styleId = structureTuple.get(serviceStructure.styleIdentification);
+								String childId = structureTuple.get(serviceStructure.childLayerIdentification);
+								String parentId = structureTuple.get(serviceStructure.parentLayerIdentification); 
+								
+								structureMap.put(childId, parentId);
+								if(styleId != null) {
+									styleMap.put(childId, styleId);
+								}
 							}
 							
 							Tuple serviceInfoTuple = serviceInfoResult.get();
@@ -594,7 +611,8 @@ public class ServiceManager extends UntypedActor {
 								rootResult.get(),
 								datasetsResult.list(),
 								groupsResult.list(),
-								structureMap);
+								structureMap,
+								styleMap);
 						})))))
 				: f.successful(new NotFound()));
 		});
@@ -608,29 +626,34 @@ public class ServiceManager extends UntypedActor {
 			serviceStructure.childLayerIdentification,
 			serviceStructure.parentLayerId,
 			serviceStructure.parentLayerIdentification,
-			serviceStructure.layerOrder).as(
+			serviceStructure.layerOrder,
+			serviceStructure.styleIdentification).as(
 			new SQLSubQuery().unionAll(
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))						
+					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.join(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						service.identification, 
 						child.id,
 						child.identification,
 						parent.id,
 						parent.identification,
-						layerStructure.layerOrder),
+						layerStructure.layerOrder,
+						style.identification),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 					.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
+					.join(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						serviceStructure.serviceIdentification, 
 						child.id,
 						child.identification,
 						parent.id,
 						parent.identification,
-						layerStructure.layerOrder)));
+						layerStructure.layerOrder,
+						style.identification)));
 	}
 }

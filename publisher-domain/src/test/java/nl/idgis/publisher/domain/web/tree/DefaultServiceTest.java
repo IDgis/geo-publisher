@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,8 @@ public class DefaultServiceTest {
 		structure.put("leaf1", "group0");
 		structure.put("leaf2", "group0");
 		
+		Map<String, String> styles = new HashMap<>();
+		
 		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0", null);
 		Service service = new DefaultService(
 			"service0",
@@ -61,7 +64,8 @@ public class DefaultServiceTest {
 			root, 
 			datasets, 
 			Collections.singletonList(root), 
-			structure);
+			structure,
+			styles);
 		assertEquals("group0", service.getRootId());
 		
 		List<LayerRef> layers = service.getLayers();
@@ -94,6 +98,8 @@ public class DefaultServiceTest {
 		structure.put("group1", "group0");
 		structure.put("leaf2", "group1");
 		
+		Map<String, String> styles = new HashMap<>();
+		
 		Service service = new DefaultService(
 			"service0", 
 			"service-name0",
@@ -118,7 +124,8 @@ public class DefaultServiceTest {
 			root, 
 			datasets, 
 			groups, 
-			structure);
+			structure,
+			styles);
 		assertEquals("group0", service.getRootId());
 		
 		List<LayerRef> layers = service.getLayers();

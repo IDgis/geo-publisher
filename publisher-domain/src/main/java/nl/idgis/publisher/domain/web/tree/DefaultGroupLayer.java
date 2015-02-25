@@ -14,15 +14,20 @@ public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLaye
 	
 	private final Map<String, String> structure;
 	
-	public DefaultGroupLayer(Group group, List<DatasetNode> datasets, List<GroupNode> groups, Map<String, String> structure) {
-		this(group, toMap(datasets), toMap(groups), structure);
+	private final Map<String, String> styles;
+	
+	public DefaultGroupLayer(Group group, List<DatasetNode> datasets, List<GroupNode> groups, 
+		Map<String, String> structure, Map<String, String> styles) {
+		this(group, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
-	private DefaultGroupLayer(Group group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, Map<String, String> structure) {
+	private DefaultGroupLayer(Group group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, 
+		Map<String, String> structure, Map<String, String> styles) {		
 		super(group, true);
 		this.datasets = datasets;
 		this.groups = groups;
 		this.structure = structure;
+		this.styles = styles;
 	}
 	
 	private static <T extends Node> Map<String, T> toMap(List<T> list) {
@@ -34,11 +39,11 @@ public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLaye
 	
 	private LayerRef asLayer(String id) {
 		if(datasets.containsKey(id)) {
-			return new DefaultLayerRef(new DefaultDatasetLayer(datasets.get(id)), null);
+			return new DefaultLayerRef(new DefaultDatasetLayer(datasets.get(id)), styles.get(id));
 		}
 		
 		if(groups.containsKey(id)) {
-			return new DefaultLayerRef(new DefaultGroupLayer(groups.get(id), datasets, groups, structure), null);
+			return new DefaultLayerRef(new DefaultGroupLayer(groups.get(id), datasets, groups, structure, styles), null);
 		}
 		
 		throw new IllegalArgumentException("unknown layer id: " + id);

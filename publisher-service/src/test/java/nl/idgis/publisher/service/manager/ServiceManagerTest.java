@@ -181,7 +181,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
-		int styleId = insert(style)
+		int styleId0 = insert(style)
 			.set(style.identification, "style0")
 			.set(style.name, "styleName0")
 			.set(style.definition, "")
@@ -189,10 +189,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
-			.set(layerStyle.styleId, styleId)
+			.set(layerStyle.styleId, styleId0)
 			.execute();
 		
-		styleId = insert(style)
+		int styleId1 = insert(style)
 			.set(style.identification, "style1")
 			.set(style.name, "styleName1")
 			.set(style.definition, "")
@@ -200,7 +200,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
-			.set(layerStyle.styleId, styleId)
+			.set(layerStyle.styleId, styleId1)
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -211,6 +211,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootId)
 			.set(layerStructure.childLayerId, layerId0)
+			.set(layerStructure.styleId, styleId0)
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
@@ -267,7 +268,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(itr.hasNext());
 		
 		LayerRef layerRef = itr.next();
-		assertNotNull(layerRef);
+		assertNotNull(layerRef);		
+		assertEquals("style0", layerRef.getStyle());
 		
 		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
