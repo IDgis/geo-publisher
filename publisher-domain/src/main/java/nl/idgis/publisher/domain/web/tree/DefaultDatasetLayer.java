@@ -25,5 +25,10 @@ public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements Datas
 	public Optional<Tiling> getTiling() {
 		return item.getTiling();
 	}
+	
+	@Override
+	public List<String> getStyles() {
+		return item.getStyles();
+	}
 
 }

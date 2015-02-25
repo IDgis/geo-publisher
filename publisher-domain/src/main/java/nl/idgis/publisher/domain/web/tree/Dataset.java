@@ -7,4 +7,6 @@ public interface Dataset extends Item {
 	List<String> getKeywords();
 	
 	String getTableName();
+	
+	List<String> getStyles();
 }

@@ -54,6 +54,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
@@ -309,7 +310,8 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.abstractCol),
 								null,
 								Collections.emptyList(),
-								t.get(dataset.name)))
+								t.get(dataset.name),
+								Collections.emptyList()))
 							.collect(Collectors.toList())));
 			
 			return root.thenCompose(rootResult ->
@@ -440,6 +442,23 @@ public class ServiceManager extends UntypedActor {
 									t.get(tiledLayerMimeformat.mimeformat),
 									Collectors.toList()))));
 			
+			CompletableFuture<Map<Integer, List<String>>> datasetStyles = withServiceStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+				.join(style).on(style.id.eq(layerStyle.styleId))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					style.identification).thenApply(resp ->
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(style.identification),
+									Collectors.toList()))));
+			
 			CompletableFuture<Map<Integer, List<String>>> datasetKeywords = withServiceStructure.clone()
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
@@ -481,6 +500,7 @@ public class ServiceManager extends UntypedActor {
 			CompletableFuture<TypedList<DatasetNode>> datasets =
 				tilingDatasetMimeFormats.thenCompose(tilingMimeFormats ->
 				datasetKeywords.thenCompose(keywords ->
+				datasetStyles.thenCompose(styles ->
 				
 				datasetTuples.thenApply(resp ->
 					new TypedList<>(DatasetNode.class, 
@@ -502,8 +522,11 @@ public class ServiceManager extends UntypedActor {
 								keywords.containsKey(t.get(genericLayer.id)) 
 									? keywords.get(t.get(genericLayer.id))									
 									: Collections.emptyList(),
-								t.get(dataset.identification)))
-							.collect(Collectors.toList())))));
+								t.get(dataset.identification),
+								styles.containsKey(t.get(genericLayer.id))
+									? styles.get(t.get(genericLayer.id))
+									: Collections.emptyList()))
+							.collect(Collectors.toList()))))));
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)

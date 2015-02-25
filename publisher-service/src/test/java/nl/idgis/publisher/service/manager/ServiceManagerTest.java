@@ -15,6 +15,8 @@ import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
+import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -178,6 +180,28 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
+		int styleId = insert(style)
+			.set(style.identification, "style0")
+			.set(style.name, "styleName0")
+			.set(style.definition, "")
+			.executeWithKey(style.id);
+		
+		insert(layerStyle)
+			.set(layerStyle.layerId, leafLayerId)
+			.set(layerStyle.styleId, styleId)
+			.execute();
+		
+		styleId = insert(style)
+			.set(style.identification, "style1")
+			.set(style.name, "styleName1")
+			.set(style.definition, "")
+			.executeWithKey(style.id);
+		
+		insert(layerStyle)
+			.set(layerStyle.layerId, leafLayerId)
+			.set(layerStyle.styleId, styleId)
+			.execute();
+		
 		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "rootgroup")
 			.set(genericLayer.name, "rootgroup-name")
@@ -268,6 +292,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(mimeFormats.contains("image/png"));
 		assertTrue(mimeFormats.contains("image/jpg"));
 		assertEquals(2, mimeFormats.size());
+		
+		List<String> styles = datasetLayer.getStyles();
+		assertEquals(2, styles.size());
+		assertTrue(styles.contains("style0"));
+		assertTrue(styles.contains("style1"));
 		
 		assertFalse(itr.hasNext());
 	}
