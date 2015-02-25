@@ -3,20 +3,20 @@ package nl.idgis.publisher.domain.web.tree;
 import java.io.Serializable;
 import java.util.Optional;
 
-public abstract class Node implements Item, Serializable {
-	
-	private static final long serialVersionUID = 3164923466251389875L;
-	
+public abstract class Node implements Item, Serializable {		
+
+	private static final long serialVersionUID = 5072400426320074451L;
+
 	protected final String id, name, title, abstr;
 	
-	protected final TilingSettings tilingSettings;
+	protected final Tiling tiling;
 	
-	public Node(String id, String name, String title, String abstr, TilingSettings tilingSettings) {
+	public Node(String id, String name, String title, String abstr, Tiling tiling) {
 		this.id = id;
 		this.name = name;
 		this.title = title;
 		this.abstr = abstr;
-		this.tilingSettings = tilingSettings;
+		this.tiling = tiling;
 	}
 
 	@Override
@@ -40,7 +40,7 @@ public abstract class Node implements Item, Serializable {
 	}
 	
 	@Override
-	public Optional<TilingSettings> getTilingSettings() {
-		return Optional.ofNullable(tilingSettings);
+	public Optional<Tiling> getTiling() {
+		return Optional.ofNullable(tiling);
 	}
 }

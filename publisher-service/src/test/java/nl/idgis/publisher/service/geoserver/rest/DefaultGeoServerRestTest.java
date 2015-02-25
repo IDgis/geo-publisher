@@ -361,17 +361,31 @@ public class DefaultGeoServerRestTest {
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
 		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());
 		
-		service.deleteTiledLayer(workspace, featureType).get(); // remove default tiled layer
-		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), 4, 4, 0, 0, 0)).get();
+		// remove default tiled layer
+		service.deleteTiledLayer(workspace, featureType).get(); 
+		// new tiled layer (in GWC put and post are swapped)
+		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), 4, 4, 0, 0, 0)).get(); 
 		
 		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
 		assertTrue(tiledLayer.isPresent());
 		
 		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());		
-		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
+		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		
-		service.postWorkspace(new Workspace("anotherWorkspace")).get();
+		// update tiled layer
+		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"), 4, 4, 0, 0, 0)).get();
+		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());
+		
+		Workspace anotherWorkspace = new Workspace("anotherWorkspace");
+		service.postWorkspace(anotherWorkspace).get();
+		
+		DataStore anotherDataStore = new DataStore("dataStore", getConnectionParameters());
+		service.postDataStore(anotherWorkspace, dataStore).get();
+		
+		FeatureType anotherFeatureType = new FeatureType("anotherTest", "test_table", "title", "abstract");
+		service.postFeatureType(anotherWorkspace, anotherDataStore, anotherFeatureType).get();
 				
-		assertEquals(Arrays.asList("test"), service.getTiledLayers(workspace).get());
+		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
+		assertEquals(Arrays.asList("anotherTest"), service.getTiledLayerNames(anotherWorkspace).get());
 	}
 }

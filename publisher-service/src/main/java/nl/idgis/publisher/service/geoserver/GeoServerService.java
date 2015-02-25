@@ -24,7 +24,6 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
 import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.domain.web.tree.TilingSettings;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -49,6 +48,7 @@ import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
+import nl.idgis.publisher.service.geoserver.rest.TiledLayer;
 import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -261,7 +261,7 @@ public class GeoServerService extends UntypedActor {
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
 			Map<String, LayerGroup> layerGroups,
-			Map<String, TilingSettings> tilingSettings) {
+			Map<String, TiledLayer> tilingSettings) {
 		
 		return layers(null, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings);
 	}
@@ -275,7 +275,7 @@ public class GeoServerService extends UntypedActor {
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
 			Map<String, LayerGroup> layerGroups,
-			Map<String, TilingSettings> tilingSettings) {
+			Map<String, TiledLayer> tiledLayers) {
 		
 		List<LayerRef> groupLayerContent = new ArrayList<>();
 		
@@ -373,11 +373,11 @@ public class GeoServerService extends UntypedActor {
 				if(msg instanceof EnsureLayer) {
 					EnsureLayer ensureLayer = (EnsureLayer)msg;
 					
-					Optional<TilingSettings> tilingSettingsOptional = ensureLayer.getTilingSettings();
-					if(tilingSettingsOptional.isPresent()) {
+					Optional<TiledLayer> tiledLayerOptional = ensureLayer.getTiledLayer();
+					if(tiledLayerOptional.isPresent()) {
 						log.debug("tiling settings found for layer: {}", ensureLayer.getLayerId());
 						
-						tilingSettings.put(ensureLayer.getLayerId(), tilingSettingsOptional.get());
+						tiledLayers.put(ensureLayer.getLayerId(), tiledLayerOptional.get());
 					}
 				}
 				
@@ -387,7 +387,7 @@ public class GeoServerService extends UntypedActor {
 					ensured(provisioningService);
 					groupLayerContent.add(new LayerRef(ensureLayer.getLayerId(), true));
 					getContext().become(layers(ensureLayer, initiator, serviceJob, 
-						provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings), false);
+						provisioningService, workspace, dataStore, featureTypes, layerGroups, tiledLayers), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
@@ -424,7 +424,43 @@ public class GeoServerService extends UntypedActor {
 						for(LayerGroup layerGroup : layerGroups.values()) {
 							log.debug("deleting layer group {}", layerGroup.getName());
 							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
-						}
+						}						
+									
+						/* We can't use the usual 'ensure' strategy for tiled layers because 
+						 creating layers (feature types / coverages) implicitly creates
+						 a tiled layer that we have to delete when we are done.
+						
+						 N.B. post and put are used the other way around in GWC*/
+						log.debug("configuring tiled layers");
+						futures.add(
+							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames ->
+								f.sequence(Arrays.asList(
+									f.sequence(
+										tiledLayers.entrySet().stream()
+											.filter(entry -> !tiledLayerNames.contains(entry.getKey())) // missing tiled layers
+											.map(entry -> {																				
+												String tiledLayerName = entry.getKey();
+												TiledLayer tiledLayer = entry.getValue();
+												
+												log.debug("putting tiled layer {}", tiledLayerName);
+												return rest.putTiledLayer(workspace, tiledLayerName, tiledLayer);
+											})
+											.collect(Collectors.toList())),
+							
+									f.sequence(
+										tiledLayerNames.stream()
+											.map(tiledLayerName -> {	
+												if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
+													log.debug("posting tiled layer {}", tiledLayerName);
+													return rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName));
+												} else { // obsolete tiled layers
+													log.debug("deleting tiled layer {}", tiledLayerName);
+													return rest.deleteTiledLayer(workspace, tiledLayerName);
+												}
+											})
+											.collect(Collectors.toList()))))
+
+									.thenApply(v -> null)));
 						
 						toSelf(f.sequence(futures).thenApply(v -> new WorkspaceEnsured()));
 					} else {
@@ -620,7 +656,7 @@ public class GeoServerService extends UntypedActor {
 					DataStore dataStore = workspaceEnsured.getDataStore();
 					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
-					Map<String, TilingSettings> tilingSettings = new HashMap<>();
+					Map<String, TiledLayer> tilingSettings = new HashMap<>();
 					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tilingSettings));
 				} else {
 					elseProvisioning(msg, serviceJob, initiator);

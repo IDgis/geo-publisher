@@ -5,12 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLCommonQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -32,6 +33,7 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetNode;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
+import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.GroupNode;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
@@ -44,12 +46,16 @@ import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 public class ServiceManager extends UntypedActor {
 	
@@ -301,8 +307,9 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
-								t.get(dataset.name),
-								null))
+								null,
+								Collections.emptyList(),
+								t.get(dataset.name)))
 							.collect(Collectors.toList())));
 			
 			return root.thenCompose(rootResult ->
@@ -356,53 +363,147 @@ public class ServiceManager extends UntypedActor {
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
-								null)));
+								null))); // a root group doesn't have (or need) tiling
 			
-			CompletableFuture<TypedList<GroupNode>> groups = withServiceStructure.clone()
+			CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats = withServiceStructure.clone()
 				.from(genericLayer)
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
 				.where(new SQLSubQuery().from(leafLayer)
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
 					.notExists())	
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.list(
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol).thenApply(resp ->
-						new TypedList<>(GroupNode.class, resp.list().stream()
-							.map(t -> new GroupNode(
-								t.get(genericLayer.identification),
-								t.get(genericLayer.name),
-								t.get(genericLayer.title),
-								t.get(genericLayer.abstractCol),
-								null))
-							.collect(Collectors.toList())));
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
 			
-			// last query -> .clone() not required
-			CompletableFuture<TypedList<DatasetNode>> datasets = withServiceStructure  
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
+			CompletableFuture<TypedList<Tuple>> groupTuples = withServiceStructure.clone()
+				.from(genericLayer)
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
 				.where(serviceStructure.serviceIdentification.eq(serviceId))
 				.list(
+					genericLayer.id,
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol,
-					dataset.identification).thenApply(resp ->
-						new TypedList<>(DatasetNode.class, 
-							resp.list().stream()
-								.map(t -> new DatasetNode(
-									t.get(genericLayer.identification),
-									t.get(genericLayer.name),
-									t.get(genericLayer.title),
-									t.get(genericLayer.abstractCol),
-									t.get(dataset.identification),
-									null))
-								.collect(Collectors.toList())));
-						
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter);
+			
+			CompletableFuture<TypedList<GroupNode>> groups = tilingGroupMimeFormats.thenCompose(tilingMimeFormats -> 
+				groupTuples.thenApply(resp ->
+					new TypedList<>(GroupNode.class, resp.list().stream()
+						.map(t -> new GroupNode(
+							t.get(genericLayer.identification),
+							t.get(genericLayer.name),
+							t.get(genericLayer.title),
+							t.get(genericLayer.abstractCol),
+							t.get(tiledLayer.genericLayerId) == null ? null
+								: new DefaultTiling(
+									tilingMimeFormats.get(t.get(genericLayer.id)),
+									t.get(tiledLayer.metaWidth),
+									t.get(tiledLayer.metaHeight),
+									t.get(tiledLayer.expireCache),
+									t.get(tiledLayer.expireClients),
+									t.get(tiledLayer.gutter))))
+						.collect(Collectors.toList()))));
+			
+			CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats = withServiceStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
+			
+			CompletableFuture<Map<Integer, List<String>>> datasetKeywords = withServiceStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					leafLayerKeyword.keyword).thenApply(resp ->
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(leafLayerKeyword.keyword),
+									Collectors.toList()))));					
+			
+			// last query -> .clone() not required
+			CompletableFuture<TypedList<Tuple>> datasetTuples = withServiceStructure  
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
+				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
+				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+				.where(serviceStructure.serviceIdentification.eq(serviceId))
+				.list(
+					genericLayer.id,
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol,
+					dataset.identification,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter);
+			
+			CompletableFuture<TypedList<DatasetNode>> datasets =
+				tilingDatasetMimeFormats.thenCompose(tilingMimeFormats ->
+				datasetKeywords.thenCompose(keywords ->
+				
+				datasetTuples.thenApply(resp ->
+					new TypedList<>(DatasetNode.class, 
+						resp.list().stream()
+							.map(t -> new DatasetNode(
+								t.get(genericLayer.identification),
+								t.get(genericLayer.name),
+								t.get(genericLayer.title),
+								t.get(genericLayer.abstractCol),								
+								t.get(tiledLayer.genericLayerId) == null 
+									? null
+									: new DefaultTiling(
+										tilingMimeFormats.get(t.get(genericLayer.id)),
+										t.get(tiledLayer.metaWidth),
+										t.get(tiledLayer.metaHeight),
+										t.get(tiledLayer.expireCache),
+										t.get(tiledLayer.expireClients),
+										t.get(tiledLayer.gutter)),
+								keywords.containsKey(t.get(genericLayer.id)) 
+									? keywords.get(t.get(genericLayer.id))									
+									: Collections.emptyList(),
+								t.get(dataset.identification)))
+							.collect(Collectors.toList())))));
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)
@@ -425,46 +526,53 @@ public class ServiceManager extends UntypedActor {
 					constants.fax,
 					constants.email);
 			
+			CompletableFuture<TypedList<String>> serviceKeywords = tx.query().from(service)
+				.join(serviceKeyword).on(serviceKeyword.serviceId.eq(service.id))
+				.where(service.identification.eq(serviceId))
+				.list(serviceKeyword.keyword);
+			
 			return root.thenCompose(rootResult ->
 				rootResult.isPresent()
 				? structure.thenCompose(structureResult ->
 					groups.thenCompose(groupsResult ->	
-						serviceInfo.thenCompose(serviceInfoResult -> 
-							datasets.thenApply(datasetsResult -> {							
-								// LinkedHashMap is used to preserve layer order
-								Map<String, String> structureMap = new LinkedHashMap<>();
-								
-								for(Tuple structureTuple : structureResult) {
-									structureMap.put(
-										structureTuple.get(serviceStructure.childLayerIdentification),
-										structureTuple.get(serviceStructure.parentLayerIdentification));
-								}
-								
-								Tuple serviceInfoTuple = serviceInfoResult.get();
-				
-								return new DefaultService(
-									serviceId, 
-									serviceInfoTuple.get(service.name),
-									serviceInfoTuple.get(service.title),
-									serviceInfoTuple.get(service.abstractCol),
-									null, // TODO: keywords
-									serviceInfoTuple.get(constants.contact),
-									serviceInfoTuple.get(constants.organization),
-									serviceInfoTuple.get(constants.position),
-									serviceInfoTuple.get(constants.addressType),
-									serviceInfoTuple.get(constants.address),
-									serviceInfoTuple.get(constants.city),
-									serviceInfoTuple.get(constants.state),
-									serviceInfoTuple.get(constants.zipcode),
-									serviceInfoTuple.get(constants.country),
-									serviceInfoTuple.get(constants.telephone),
-									serviceInfoTuple.get(constants.fax),
-									serviceInfoTuple.get(constants.email),
-									rootResult.get(),
-									datasetsResult.list(),
-									groupsResult.list(),
-									structureMap);
-							}))))
+					serviceInfo.thenCompose(serviceInfoResult ->
+					serviceKeywords.thenCompose(keywords ->
+					
+						datasets.thenApply(datasetsResult -> {							
+							// LinkedHashMap is used to preserve layer order
+							Map<String, String> structureMap = new LinkedHashMap<>();
+							
+							for(Tuple structureTuple : structureResult) {
+								structureMap.put(
+									structureTuple.get(serviceStructure.childLayerIdentification),
+									structureTuple.get(serviceStructure.parentLayerIdentification));
+							}
+							
+							Tuple serviceInfoTuple = serviceInfoResult.get();
+			
+							return new DefaultService(
+								serviceId, 
+								serviceInfoTuple.get(service.name),
+								serviceInfoTuple.get(service.title),
+								serviceInfoTuple.get(service.abstractCol),
+								keywords.list(),
+								serviceInfoTuple.get(constants.contact),
+								serviceInfoTuple.get(constants.organization),
+								serviceInfoTuple.get(constants.position),
+								serviceInfoTuple.get(constants.addressType),
+								serviceInfoTuple.get(constants.address),
+								serviceInfoTuple.get(constants.city),
+								serviceInfoTuple.get(constants.state),
+								serviceInfoTuple.get(constants.zipcode),
+								serviceInfoTuple.get(constants.country),
+								serviceInfoTuple.get(constants.telephone),
+								serviceInfoTuple.get(constants.fax),
+								serviceInfoTuple.get(constants.email),
+								rootResult.get(),
+								datasetsResult.list(),
+								groupsResult.list(),
+								structureMap);
+						})))))
 				: f.successful(new NotFound()));
 		});
 	}

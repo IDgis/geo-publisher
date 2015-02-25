@@ -2,7 +2,7 @@ package nl.idgis.publisher.service.geoserver.messages;
 
 import java.util.List;
 
-import nl.idgis.publisher.domain.web.tree.TilingSettings;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
@@ -11,7 +11,7 @@ public class EnsureGroupLayer extends EnsureLayer {
 
 	private static final long serialVersionUID = 7394934345489321332L;
 
-	public EnsureGroupLayer(String layerId, String title, String abstr, TilingSettings tilingSettings) {
+	public EnsureGroupLayer(String layerId, String title, String abstr, Tiling tilingSettings) {
 		super(layerId, title, abstr, tilingSettings);
 	}
 	

@@ -26,7 +26,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
-import nl.idgis.publisher.domain.web.tree.TilingSettings;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.Recorder;
@@ -195,7 +195,7 @@ public class EnsureServiceTest {
 	
 	@Test
 	public void testSingleLayer() throws Exception {
-		TilingSettings tilingSettings = mock(TilingSettings.class);
+		Tiling tilingSettings = mock(Tiling.class);
 		
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer0");
@@ -204,7 +204,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("tableName0");
 		when(datasetLayer.isGroup()).thenReturn(false);
 		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
-		when(datasetLayer.getTilingSettings()).thenReturn(Optional.of(tilingSettings));
+		when(datasetLayer.getTiling()).thenReturn(Optional.of(tilingSettings));
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
@@ -233,7 +233,7 @@ public class EnsureServiceTest {
 				assertEquals("title0", featureType.getTitle());
 				assertEquals("abstract0", featureType.getAbstract());
 				assertEquals("tableName0", featureType.getTableName());
-				assertTrue(featureType.getTilingSettings().isPresent());
+				assertTrue(featureType.getTiledLayer().isPresent());
 			})
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)
@@ -251,7 +251,7 @@ public class EnsureServiceTest {
 			when(layer.asDataset()).thenReturn(layer);
 			when(layer.getName()).thenReturn("layer" + i);
 			when(layer.getTableName()).thenReturn("tableName" + i);
-			when(layer.getTilingSettings()).thenReturn(Optional.empty());
+			when(layer.getTiling()).thenReturn(Optional.empty());
 			
 			layers.add(layer);
 		}
@@ -263,7 +263,7 @@ public class EnsureServiceTest {
 		when(groupLayer.getTitle()).thenReturn("groupTitle0");
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract0");
 		when(groupLayer.getLayers()).thenReturn(layers);
-		when(groupLayer.getTilingSettings()).thenReturn(Optional.empty());
+		when(groupLayer.getTiling()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");

@@ -185,11 +185,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return future;
 	}
 	
+	private CompletableFuture<Void> post(String path, byte[] document, int expectedResponseCode) {
+		return post(path, document, "text/xml", expectedResponseCode);
+	}
+	
 	private CompletableFuture<Void> post(String path, byte[] document) {
 		return post(path, document, "text/xml");
 	}
 	
-	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {		
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType) {
+		return post(path, document, contentType, HttpURLConnection.HTTP_CREATED);
+	}
+	
+	private CompletableFuture<Void> post(String path, byte[] document, String contentType, int expectedResponseCode) {		
 		log.debug("posting {}", path);
 		
 		CompletableFuture<Void> future = new CompletableFuture<>();
@@ -203,7 +211,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				@Override
 				public Response onCompleted(Response response) throws Exception {
 					int responseCode = response.getStatusCode();
-					if(responseCode != HttpURLConnection.HTTP_CREATED) {	
+					if(responseCode != expectedResponseCode) {	
 						future.completeExceptionally(new GeoServerException(path, responseCode));
 					} else {
 						future.complete(null);
@@ -984,7 +992,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getTiledLayerPath(workspace.getName() + ":" + layerName);
 	}
 	
-	private CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, String layerName) {
+	@Override
+	public CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, String layerName) {
 		return get(getTiledLayerPath(workspace, layerName)).thenApply(optionalDocument ->
 			optionalDocument.map(document -> {						
 				XPathHelper layer = xpath(optionalDocument.get()).node("GeoServerLayer").get();
@@ -1021,7 +1030,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getTiledLayer(workspace, layerGroup.getName());
 	}
 	
-	private CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName) {
+	@Override
+	public CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName) {
 		// the trailing .xml is required, results in a 400 otherwise
 		return delete(getTiledLayerPath(workspace, layerName) + ".xml");
 	}
@@ -1037,7 +1047,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<String>> getTiledLayers(Workspace workspace) {
+	public CompletableFuture<List<String>> getTiledLayerNames(Workspace workspace) {
 		return get(getTiledLayersPath()).thenApply(optionalDocument ->			
 			xpath(optionalDocument.get()).strings("layers/layer/name").stream()
 				.map(name -> name.split(":"))
@@ -1112,7 +1122,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return os.toByteArray();
 	}
 	
-	private CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
+	@Override
+	public CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
 		try {
 			return put(getTiledLayerPath(workspace, layerName) + ".xml", 
 				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
@@ -1131,10 +1142,13 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return putTiledLayer(workspace, layerGroup.getName(), tiledLayer);
 	}
 	
-	private CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
+	@Override
+	public CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
 		try {
-			return post(getTiledLayerPath(workspace, layerName) + ".xml", 
-				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer));
+			return post(
+				getTiledLayerPath(workspace, layerName) + ".xml", 
+				getTiledLayerDocument(workspace.getName() + ":" + layerName, tiledLayer),
+				HttpURLConnection.HTTP_OK);
 		} catch(Exception e) {
 			return f.failed(e);
 		}	

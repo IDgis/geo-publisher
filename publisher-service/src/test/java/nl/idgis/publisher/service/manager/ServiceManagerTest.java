@@ -10,7 +10,11 @@ import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -23,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -35,6 +40,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
@@ -138,9 +144,38 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(genericLayer.name, "layer-name0")
 			.executeWithKey(genericLayer.id);
 		
-		insert(leafLayer)
+		int tiledLayerId0 = insert(tiledLayer)
+			.set(tiledLayer.genericLayerId, layerId0)
+			.set(tiledLayer.metaWidth, 4)
+			.set(tiledLayer.metaHeight, 6)
+			.set(tiledLayer.expireCache, 1)
+			.set(tiledLayer.expireClients, 2)
+			.set(tiledLayer.gutter, 5)
+			.executeWithKey(tiledLayer.id);
+		
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledLayerId0)
+			.set(tiledLayerMimeformat.mimeformat, "image/png")
+			.execute();
+		
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledLayerId0)
+			.set(tiledLayerMimeformat.mimeformat, "image/jpg")
+			.execute();
+		
+		int leafLayerId = insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId0)
 			.set(leafLayer.datasetId, datasetId)
+			.executeWithKey(leafLayer.id);
+		
+		insert(leafLayerKeyword)
+			.set(leafLayerKeyword.leafLayerId, leafLayerId)
+			.set(leafLayerKeyword.keyword, "keyword0")
+			.execute();
+		
+		insert(leafLayerKeyword)
+			.set(leafLayerKeyword.leafLayerId, leafLayerId)
+			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -169,13 +204,23 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(constants.email, "serviceEmail0")
 			.executeWithKey(constants.id);
 		
-		insert(service)
+		int serviceId = insert(service)
 			.set(service.identification, "service0")
 			.set(service.name, "serviceName0")
 			.set(service.title, "serviceTitle0")
 			.set(service.abstractCol, "serviceAbstract0")
 			.set(service.genericLayerId, rootId)
 			.set(service.constantsId, constantsId)
+			.executeWithKey(service.id);
+		
+		insert(serviceKeyword)
+			.set(serviceKeyword.serviceId, serviceId)
+			.set(serviceKeyword.keyword, "keyword2")
+			.execute();
+		
+		insert(serviceKeyword)
+			.set(serviceKeyword.serviceId, serviceId)
+			.set(serviceKeyword.keyword, "keyword3")
 			.execute();
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
@@ -184,6 +229,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("serviceTitle0", service.getTitle());
 		assertEquals("serviceAbstract0", service.getAbstract());
 		assertEquals("serviceContact0", service.getContact());
+		
+		List<String> serviceKeywords = service.getKeywords();
+		assertEquals(2, serviceKeywords.size());
+		assertTrue(serviceKeywords.contains("keyword2"));
+		assertTrue(serviceKeywords.contains("keyword3"));
 		
 		List<Layer> layers = service.getLayers();
 		assertNotNull(layers);
@@ -198,6 +248,26 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		DatasetLayer datasetLayer = layer.asDataset();
 		assertEquals("layer0", datasetLayer.getId());
 		assertEquals("dataset0", datasetLayer.getTableName());
+		
+		List<String> keywords = datasetLayer.getKeywords();
+		assertEquals(2, keywords.size());
+		assertTrue(keywords.contains("keyword0"));
+		assertTrue(keywords.contains("keyword1"));
+		
+		Optional<Tiling> optionalTiling = datasetLayer.getTiling();
+		assertTrue(optionalTiling.isPresent());		
+		
+		Tiling tiling = optionalTiling.get();
+		assertEquals(Integer.valueOf(4), tiling.getMetaWidth());
+		assertEquals(Integer.valueOf(6), tiling.getMetaHeight());
+		assertEquals(Integer.valueOf(1), tiling.getExpireCache());
+		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
+		assertEquals(Integer.valueOf(5), tiling.getGutter());
+		
+		List<String> mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
 		
 		assertFalse(itr.hasNext());
 	}
@@ -223,6 +293,25 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(genericLayer.identification, "group")
 			.set(genericLayer.name, "group-name")
 			.executeWithKey(genericLayer.id);
+		
+		int tiledGroupLayerId = insert(tiledLayer)
+			.set(tiledLayer.genericLayerId, groupId)
+			.set(tiledLayer.metaWidth, 4)
+			.set(tiledLayer.metaHeight, 6)
+			.set(tiledLayer.expireCache, 1)
+			.set(tiledLayer.expireClients, 2)
+			.set(tiledLayer.gutter, 5)
+			.executeWithKey(tiledLayer.id);
+		
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledGroupLayerId)
+			.set(tiledLayerMimeformat.mimeformat, "image/png")
+			.execute();
+		
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledGroupLayerId)
+			.set(tiledLayerMimeformat.mimeformat, "image/jpg")
+			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootId)
@@ -254,6 +343,25 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(group);
 		assertTrue(group.isGroup());
 		
+		GroupLayer groupLayer = group.asGroup();
+		assertEquals("group", groupLayer.getId());
+		assertEquals("group-name", groupLayer.getName());
+		
+		Optional<Tiling> optionalTiling = groupLayer.getTiling();
+		assertTrue(optionalTiling.isPresent());
+		
+		Tiling tiling = optionalTiling.get();
+		assertEquals(Integer.valueOf(4), tiling.getMetaWidth());
+		assertEquals(Integer.valueOf(6), tiling.getMetaHeight());
+		assertEquals(Integer.valueOf(1), tiling.getExpireCache());
+		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
+		assertEquals(Integer.valueOf(5), tiling.getGutter());
+		
+		List<String> mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
+		
 		List<Layer> groupLayers = group.asGroup().getLayers();
 		assertNotNull(groupLayers);
 		
@@ -268,7 +376,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(rootItr.hasNext());
 		
-		GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer("group"), GroupLayer.class);
+		groupLayer = sync.ask(serviceManager, new GetGroupLayer("group"), GroupLayer.class);
 		assertEquals("group", groupLayer.getId());
 		assertEquals("group-name", groupLayer.getName());
 		

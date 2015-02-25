@@ -27,9 +27,9 @@ public class DefaultServiceTest {
 	@Test
 	public void testNoGroup() {
 		List<DatasetNode> datasets = Arrays.asList(
-			new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0", null),
-			new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1", null),
-			new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2", null));
+			new DatasetNode("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0"),
+			new DatasetNode("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1"),
+			new DatasetNode("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2"));
 			
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
@@ -84,9 +84,9 @@ public class DefaultServiceTest {
 				new GroupNode("group1", "name1", "title1", "abstract1", null));
 		
 		List<DatasetNode> datasets = Arrays.asList(
-				new DatasetNode("leaf0", "name0", "title0", "abstract0", "myTable0", null),
-				new DatasetNode("leaf1", "name1", "title1", "abstract1", "myTable1", null),
-				new DatasetNode("leaf2", "name2", "title2", "abstract2", "myTable2", null));
+				new DatasetNode("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0"),
+				new DatasetNode("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1"),
+				new DatasetNode("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2"));
 				
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
