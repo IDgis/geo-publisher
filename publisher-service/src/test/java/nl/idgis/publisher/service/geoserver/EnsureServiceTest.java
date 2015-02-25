@@ -24,7 +24,7 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
@@ -214,8 +214,11 @@ public class EnsureServiceTest {
 		when(service.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1", "keyword2"));
 		when(service.getTelephone()).thenReturn("serviceTelephone0");
 		
+		LayerRef datasetLayerRef = mock(LayerRef.class);
+		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		
 		when(service.getRootId()).thenReturn("root");
-		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayer));
+		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
 		
 		sync.ask(geoServerService, service, Ack.class);
 		
@@ -244,7 +247,7 @@ public class EnsureServiceTest {
 	public void testGroup() throws Exception {
 		final int numberOfLayers = 10;
 		
-		List<Layer> layers = new ArrayList<>();
+		List<LayerRef> layers = new ArrayList<>();
 		for(int i = 0; i < numberOfLayers; i++) {
 			DatasetLayer layer = mock(DatasetLayer.class);
 			when(layer.isGroup()).thenReturn(false);
@@ -253,7 +256,10 @@ public class EnsureServiceTest {
 			when(layer.getTableName()).thenReturn("tableName" + i);
 			when(layer.getTiling()).thenReturn(Optional.empty());
 			
-			layers.add(layer);
+			LayerRef layerRef = mock(LayerRef.class);
+			when(layerRef.getLayer()).thenReturn(layer);
+			
+			layers.add(layerRef);
 		}
 		
 		GroupLayer groupLayer = mock(GroupLayer.class);
@@ -265,11 +271,14 @@ public class EnsureServiceTest {
 		when(groupLayer.getLayers()).thenReturn(layers);
 		when(groupLayer.getTiling()).thenReturn(Optional.empty());
 		
+		LayerRef groupLayerRef = mock(LayerRef.class);
+		when(groupLayerRef.getLayer()).thenReturn(groupLayer);
+		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
 		when(service.getName()).thenReturn("serviceName0");
 		when(service.getRootId()).thenReturn("root");
-		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayer));
+		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayerRef));
 		
 		sync.ask(geoServerService, service, Ack.class);
 		sync.ask(recorder, new Wait(5 + numberOfLayers), Waited.class);

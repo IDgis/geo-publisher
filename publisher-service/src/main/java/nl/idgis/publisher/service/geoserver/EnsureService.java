@@ -14,6 +14,7 @@ import akka.japi.Procedure;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
@@ -51,16 +52,16 @@ public class EnsureService extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> layers(List<Layer> layers) {
+	private Procedure<Object> layers(List<LayerRef> layers) {
 		return layers(layers, 0);
 	}
 	
-	private Procedure<Object> layers(List<Layer> layers, int depth) {
+	private Procedure<Object> layers(List<LayerRef> layers, int depth) {
 		log.debug("-> layers {}", depth);
 		
 		return new Procedure<Object>() {
 			
-			Iterator<Layer> itr = layers.iterator();
+			Iterator<LayerRef> itr = layers.iterator();
 
 			@Override
 			public void apply(Object msg) throws Exception {
@@ -68,7 +69,9 @@ public class EnsureService extends UntypedActor {
 					log.debug("ensured (layers)");
 					
 					if(itr.hasNext()) {
-						Layer layer = itr.next();
+						LayerRef layerRef = itr.next();
+						
+						Layer layer = layerRef.getLayer();
 						
 						if(layer.isGroup()) {
 							getContext().parent().tell(

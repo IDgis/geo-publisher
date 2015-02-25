@@ -19,25 +19,27 @@
 			</div>
 	}else{
 	<!-- show items for each group/layer in the root group -->
-		@for(layer <- grouplayer.getLayers()){
-			<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
-				<input type="hidden" value="@layer.getId()" name="structure[]">
-				<div class="row">
-					<div class="col-sm-11 groupTree">
-						<ul class="treelist">
-							@helper.groupStructureItem(layer)
-						</ul>
-					</div>
-					<div class="col-sm-1">
-						<div class="pull-right tree-item-delete">
-							<a href="#" 
-								class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
-								<span class="glyphicon glyphicon-remove"></span>
-							</a>
+		@for(layerRef <- grouplayer.getLayers()){
+			@defining(layerRef.getLayer()) { layer =>
+				<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
+					<input type="hidden" value="@layer.getId()" name="structure[]">
+					<div class="row">
+						<div class="col-sm-11 groupTree">
+							<ul class="treelist">
+								@helper.groupStructureItem(layer)
+							</ul>
+						</div>
+						<div class="col-sm-1">
+							<div class="pull-right tree-item-delete">
+								<a href="#" 
+									class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>
-			</div>
+			}
 		}
 	}
 }

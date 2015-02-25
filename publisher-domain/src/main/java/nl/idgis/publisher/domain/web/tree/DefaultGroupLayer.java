@@ -32,13 +32,13 @@ public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLaye
 				item -> item));
 	}
 	
-	private Layer asLayer(String id) {
+	private LayerRef asLayer(String id) {
 		if(datasets.containsKey(id)) {
-			return new DefaultDatasetLayer(datasets.get(id));
+			return new DefaultLayerRef(new DefaultDatasetLayer(datasets.get(id)), null);
 		}
 		
 		if(groups.containsKey(id)) {
-			return new DefaultGroupLayer(groups.get(id), datasets, groups, structure);
+			return new DefaultLayerRef(new DefaultGroupLayer(groups.get(id), datasets, groups, structure), null);
 		}
 		
 		throw new IllegalArgumentException("unknown layer id: " + id);
@@ -49,7 +49,7 @@ public class DefaultGroupLayer extends AbstractLayer<Group> implements GroupLaye
 	}
 
 	@Override
-	public List<Layer> getLayers() {
+	public List<LayerRef> getLayers() {
 		return structure.entrySet().stream()
 			.filter(this::filterGroup)
 			.map(groupEntry -> asLayer(groupEntry.getKey()))

@@ -9,8 +9,10 @@
 			<li>
 			<a href="@routes.Groups.edit(grouplayer.getId())"><strong>@grouplayer.getName()</strong></a>
 			<ul>
-				@for(layer <- grouplayer.asGroup().getLayers()){
-					@helper.groupStructureItem(layer)
+				@for(layerRef <- grouplayer.asGroup().getLayers()){
+					@defining(layerRef.getLayer()) { layer =>
+						@helper.groupStructureItem(layer)
+					}
 				}
 			</ul>
 			</li>

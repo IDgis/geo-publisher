@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface GroupLayer extends Layer, Group {
 
-	List<Layer> getLayers();
+	List<LayerRef> getLayers();
 }

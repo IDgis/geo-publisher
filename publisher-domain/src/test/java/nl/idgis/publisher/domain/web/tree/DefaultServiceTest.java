@@ -64,10 +64,10 @@ public class DefaultServiceTest {
 			structure);
 		assertEquals("group0", service.getRootId());
 		
-		List<Layer> layers = service.getLayers();
+		List<LayerRef> layers = service.getLayers();
 		assertNotNull(layers);
 		
-		Iterator<Layer> itr = layers.iterator();
+		Iterator<LayerRef> itr = layers.iterator();
 		assertDatasetLayer(itr, "leaf0", "myTable0");
 		assertDatasetLayer(itr, "leaf1", "myTable1");
 		assertDatasetLayer(itr, "leaf2", "myTable2");
@@ -121,27 +121,30 @@ public class DefaultServiceTest {
 			structure);
 		assertEquals("group0", service.getRootId());
 		
-		List<Layer> layers = service.getLayers();
+		List<LayerRef> layers = service.getLayers();
 		assertNotNull(layers);
 		
-		Iterator<Layer> itr = layers.iterator();
+		Iterator<LayerRef> itr = layers.iterator();
 		assertDatasetLayer(itr, "leaf0", "myTable0");
 		assertDatasetLayer(itr, "leaf1", "myTable1");
 		
-		List<Layer> childLayers = assertGroupLayer(itr, "group1").getLayers();
+		List<LayerRef> childLayers = assertGroupLayer(itr, "group1").getLayers();
 		assertNotNull(childLayers);
 		
-		Iterator<Layer> childItr = childLayers.iterator();
+		Iterator<LayerRef> childItr = childLayers.iterator();
 		assertDatasetLayer(childItr, "leaf2", "myTable2");		
 		assertFalse(childItr.hasNext());
 		
 		assertFalse(itr.hasNext());
 	}
 	
-	private GroupLayer assertGroupLayer(Iterator<Layer> itr, String id) {
+	private GroupLayer assertGroupLayer(Iterator<LayerRef> itr, String id) {
 		assertTrue(itr.hasNext());
 		
-		Layer layer = itr.next();
+		LayerRef layerRef = itr.next();
+		assertNotNull(layerRef);
+		
+		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
 		assertEquals(id, layer.getId());
 		assertTrue(layer.isGroup());
@@ -149,10 +152,13 @@ public class DefaultServiceTest {
 		return layer.asGroup();
 	}
 	
-	private void assertDatasetLayer(Iterator<Layer> itr, String id, String tableName) {
+	private void assertDatasetLayer(Iterator<LayerRef> itr, String id, String tableName) {
 		assertTrue(itr.hasNext());
 		
-		Layer layer = itr.next();
+		LayerRef layerRef = itr.next();
+		assertNotNull(layerRef);
+		
+		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
 		assertFalse(layer.isGroup());
 		
