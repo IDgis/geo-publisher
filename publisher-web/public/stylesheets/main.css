@@ -11,6 +11,16 @@
 .tree-item { padding-top:5px;padding-bottom:5px}
 .tree-item-delete { padding-top:5px;padding-bottom:5px}
 
+.navigation-header {padding:5px 13px;}
+.navigation-header-title {font-weight:bold;font-size:15px;}
+#groupLayerStructure {position:relative;}
+.file-upload {width:600px;}
+.label-add-layer {margin-left:15px;}
+
+
+
+
+
 ul.treelist {
 	position:relative;
 	left:-50px;
