@@ -53,7 +53,7 @@ public class Tiledlayers extends Controller {
 		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name, 
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
-				tiledlayerForm.gutter, tiledlayerForm.enabled   
+				tiledlayerForm.gutter
 				);
 		
 		return from (database)
@@ -144,8 +144,6 @@ public class Tiledlayers extends Controller {
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
-		@Constraints.Required
-		private Boolean enabled = false;
 		private Boolean png = false;
 		private Boolean png8 = false;
 		private Boolean jpg = false;
@@ -170,7 +168,6 @@ public class Tiledlayers extends Controller {
 		public TiledLayerForm(final TiledLayer tl){
 			this.id = tl.id();
 			this.name = tl.name();
-			this.enabled = tl.enabled();
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
 			this.expireCache = tl.expireCache();
@@ -192,14 +189,6 @@ public class Tiledlayers extends Controller {
 
 		public void setName(String name) {
 			this.name = name;
-		}
-
-		public Boolean getEnabled() {
-			return enabled;
-		}
-
-		public void setEnabled(Boolean enabled) {
-			this.enabled = enabled;
 		}
 
 		public String getMimeFormats() {
