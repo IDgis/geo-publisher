@@ -633,7 +633,7 @@ public class ServiceManager extends UntypedActor {
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
-					.join(style).on(style.id.eq(layerStructure.styleId))
+					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						service.identification, 
 						child.id,
@@ -646,7 +646,7 @@ public class ServiceManager extends UntypedActor {
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 					.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
-					.join(style).on(style.id.eq(layerStructure.styleId))
+					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						serviceStructure.serviceIdentification, 
 						child.id,
