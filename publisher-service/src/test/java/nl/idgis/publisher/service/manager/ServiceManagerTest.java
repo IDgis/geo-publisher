@@ -39,6 +39,7 @@ import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
@@ -261,21 +262,20 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(serviceKeywords.contains("keyword2"));
 		assertTrue(serviceKeywords.contains("keyword3"));
 		
-		List<LayerRef> layers = service.getLayers();
+		List<LayerRef<?>> layers = service.getLayers();
 		assertNotNull(layers);
 		
-		Iterator<LayerRef> itr = layers.iterator();
+		Iterator<LayerRef<?>> itr = layers.iterator();
 		assertTrue(itr.hasNext());
 		
-		LayerRef layerRef = itr.next();
-		assertNotNull(layerRef);		
-		assertEquals("style0", layerRef.getStyle());
+		LayerRef<?> layerRef = itr.next();
+		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
 		
-		Layer layer = layerRef.getLayer();
-		assertNotNull(layer);
-		assertFalse(layer.isGroup());
+		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
+		assertEquals("style0", datasetLayerRef.getStyle());
 		
-		DatasetLayer datasetLayer = layer.asDataset();
+		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertEquals("layer0", datasetLayer.getId());
 		assertEquals("dataset0", datasetLayer.getTableName());
 		
@@ -368,20 +368,17 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
 		
-		List<LayerRef> rootLayers = service.getLayers();
+		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
 		
-		Iterator<LayerRef> rootItr = rootLayers.iterator();
+		Iterator<LayerRef<?>> rootItr = rootLayers.iterator();
 		assertTrue(rootItr.hasNext());
 		
-		LayerRef groupRef = rootItr.next();
+		LayerRef<?> groupRef = rootItr.next();
 		assertNotNull(groupRef);
+		assertTrue(groupRef.isGroupRef());
 		
-		Layer group = groupRef.getLayer();
-		assertNotNull(group);
-		assertTrue(group.isGroup());
-		
-		GroupLayer groupLayer = group.asGroup();
+		GroupLayer groupLayer = groupRef.asGroupRef().getLayer();
 		assertEquals("group", groupLayer.getId());
 		assertEquals("group-name", groupLayer.getName());
 		
@@ -400,18 +397,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(mimeFormats.contains("image/jpg"));
 		assertEquals(2, mimeFormats.size());
 		
-		List<LayerRef> groupLayers = group.asGroup().getLayers();
+		List<LayerRef<?>> groupLayers = groupLayer.getLayers();
 		assertNotNull(groupLayers);
 		
-		Iterator<LayerRef> groupItr = groupLayers.iterator();
+		Iterator<LayerRef<?>> groupItr = groupLayers.iterator();
 		assertTrue(groupItr.hasNext());
 		
-		LayerRef layerRef = groupItr.next();
+		LayerRef<?> layerRef = groupItr.next();
 		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
 		
-		Layer layer = layerRef.getLayer();
+		DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 		assertNotNull(layer);
-		assertFalse(layer.isGroup());
 		
 		assertFalse(groupItr.hasNext());
 		
@@ -428,8 +425,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(groupItr.hasNext());
 		
 		groupItr.next();
-		assertNotNull(layer);
-		assertFalse(layer.isGroup());
+		assertNotNull(layer);		
 		
 		assertFalse(groupItr.hasNext());
 		
@@ -505,46 +501,47 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
 		
-		List<LayerRef> rootLayers = service.getLayers();
+		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
 		
-		Iterator<LayerRef> rootItr = rootLayers.iterator();
+		Iterator<LayerRef<?>> rootItr = rootLayers.iterator();
 		assertTrue(rootItr.hasNext());
 		
-		LayerRef group0Ref = rootItr.next();
+		LayerRef<?> group0Ref = rootItr.next();		
 		assertNotNull(group0Ref);
+		assertTrue(group0Ref.isGroupRef());
 		
-		Layer group0 = group0Ref.getLayer();
-		assertNotNull(group0);
-		assertTrue(group0.isGroup());
+		GroupLayer group0 = group0Ref.asGroupRef().getLayer();
+		assertNotNull(group0);		
 		assertEquals("group0", group0.getId());
 		
-		List<LayerRef> group0Layers = group0.asGroup().getLayers();
+		List<LayerRef<?>> group0Layers = group0.getLayers();
 		assertNotNull(group0Layers);
 		
-		Iterator<LayerRef> group0Itr = group0Layers.iterator();
+		Iterator<LayerRef<?>> group0Itr = group0Layers.iterator();
 		assertTrue(group0Itr.hasNext());
 		
-		LayerRef group1Ref = group0Itr.next();
+		LayerRef<?> group1Ref = group0Itr.next();
+		assertTrue(group1Ref.isGroupRef());
 		assertNotNull(group1Ref);
 		
-		Layer group1 = group1Ref.getLayer();
+		GroupLayer group1 = group1Ref.asGroupRef().getLayer();
 		assertNotNull(group1);
-		assertTrue(group1.isGroup());
+		
 		assertEquals("group1", group1.getId());
 		
-		List<LayerRef> group1Layers = group1.asGroup().getLayers();		
+		List<LayerRef<?>> group1Layers = group1.getLayers();		
 		assertNotNull(group1Layers);
 		
-		Iterator<LayerRef> group1Itr = group1Layers.iterator();
+		Iterator<LayerRef<?>> group1Itr = group1Layers.iterator();
 		assertTrue(group1Itr.hasNext());
 		
-		LayerRef layerRef = group1Itr.next();
+		LayerRef<?> layerRef = group1Itr.next();
+		assertFalse(layerRef.isGroupRef());
 		assertNotNull(layerRef);
 		
 		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
-		assertFalse(layer.isGroup());
 		
 		assertFalse(group1Itr.hasNext());
 		
@@ -563,13 +560,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		group1Ref = group0Itr.next();
 		assertNotNull(group1Ref);
+		assertTrue(group1Ref.isGroupRef());
 		
-		group1 = group1Ref.getLayer();
-		assertNotNull(group1);
-		assertTrue(group1.isGroup());
+		group1 = group1Ref.asGroupRef().getLayer();
+		assertNotNull(group1);		
 		assertEquals("group1", group1.getId());
 		
-		group1Layers = group1.asGroup().getLayers();		
+		group1Layers = group1.getLayers();		
 		assertNotNull(group1Layers);
 		
 		group1Itr = group1Layers.iterator();
@@ -577,10 +574,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		layerRef = group1Itr.next();
 		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
 		
 		layer = layerRef.getLayer();
 		assertNotNull(layer);
-		assertFalse(layer.isGroup());
 		
 		assertFalse(group1Itr.hasNext());
 		
@@ -653,49 +650,51 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Service service0 = sync.ask(serviceManager, new GetService("service0"), Service.class);
 		
-		List<LayerRef> service0Layers = service0.getLayers();
+		List<LayerRef<?>> service0Layers = service0.getLayers();
 		assertNotNull(service0Layers);
 		
-		Iterator<LayerRef> service0Itr = service0Layers.iterator();
+		Iterator<LayerRef<?>> service0Itr = service0Layers.iterator();
 		assertTrue(service0Itr.hasNext());
 		
-		LayerRef service0LayerRef = service0Itr.next();
+		LayerRef<?> service0LayerRef = service0Itr.next();
 		assertNotNull(service0LayerRef);
+		assertFalse(service0LayerRef.isGroupRef());
 		
-		Layer service0Layer = service0LayerRef.getLayer();
+		DatasetLayer service0Layer = service0LayerRef.asDatasetRef().getLayer();
 		assertNotNull(service0Layer);
-		assertFalse(service0Layer.isGroup());
+		
 		assertEquals("layer", service0Layer.getId());
 		
 		assertFalse(service0Itr.hasNext());
 		
 		Service service1 = sync.ask(serviceManager, new GetService("service1"), Service.class);
 		
-		List<LayerRef> service1Layers = service1.getLayers();
+		List<LayerRef<?>> service1Layers = service1.getLayers();
 		assertNotNull(service1Layers);
 		
-		Iterator<LayerRef> service1Itr = service1Layers.iterator();
+		Iterator<LayerRef<?>> service1Itr = service1Layers.iterator();
 		assertTrue(service1Itr.hasNext());
 		
-		LayerRef groupRef = service1Itr.next();
+		LayerRef<?> groupRef = service1Itr.next();
 		assertNotNull(groupRef);
+		assertTrue(groupRef.isGroupRef());
 		
-		Layer group = groupRef.getLayer();
+		GroupLayer group = groupRef.asGroupRef().getLayer();
 		assertNotNull(group);
-		assertTrue(group.isGroup());
 		
-		List<LayerRef> groupLayers = group.asGroup().getLayers();
+		List<LayerRef<?>> groupLayers = group.getLayers();
 		assertNotNull(groupLayers);
 		
-		Iterator<LayerRef> groupItr = groupLayers.iterator();
+		Iterator<LayerRef<?>> groupItr = groupLayers.iterator();
 		assertTrue(groupItr.hasNext());
 		
-		LayerRef service1LayerRef = groupItr.next();
+		LayerRef<?> service1LayerRef = groupItr.next();
 		assertNotNull(service1LayerRef);
+		assertFalse(service1LayerRef.isGroupRef());
 		
 		Layer service1Layer = service1LayerRef.getLayer();
 		assertNotNull(service1Layer);
-		assertFalse(service1Layer.isGroup());
+		
 		assertEquals("layer", service1Layer.getId());
 		
 		assertFalse(groupItr.hasNext());
@@ -749,14 +748,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
 		assertEquals("rootgroup", service.getRootId());
 		
-		List<LayerRef> layers = service.getLayers();		
+		List<LayerRef<?>> layers = service.getLayers();		
 		assertNotNull(layers);
 		
-		Iterator<LayerRef> layersItr = layers.iterator();
+		Iterator<LayerRef<?>> layersItr = layers.iterator();
 		for(String layerIdentification : layerIdentifications) {
 			assertTrue(layersItr.hasNext());
 			
-			LayerRef layerRef = layersItr.next();
+			LayerRef<?> layerRef = layersItr.next();
 			assertNotNull(layerRef);
 			
 			Layer layer = layerRef.getLayer();

@@ -132,7 +132,7 @@ public class DefaultService implements Service, Serializable {
 	}
 
 	@Override
-	public List<LayerRef> getLayers() {
+	public List<LayerRef<?>> getLayers() {
 		return root.getLayers();
 	}
 }

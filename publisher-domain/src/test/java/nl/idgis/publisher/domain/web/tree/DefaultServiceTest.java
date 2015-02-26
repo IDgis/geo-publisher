@@ -20,7 +20,6 @@ import nl.idgis.publisher.domain.web.tree.DatasetNode;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupNode;
-import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 public class DefaultServiceTest {	
@@ -68,10 +67,10 @@ public class DefaultServiceTest {
 			styles);
 		assertEquals("group0", service.getRootId());
 		
-		List<LayerRef> layers = service.getLayers();
+		List<LayerRef<?>> layers = service.getLayers();
 		assertNotNull(layers);
 		
-		Iterator<LayerRef> itr = layers.iterator();
+		Iterator<LayerRef<?>> itr = layers.iterator();
 		assertDatasetLayer(itr, "leaf0", "myTable0");
 		assertDatasetLayer(itr, "leaf1", "myTable1");
 		assertDatasetLayer(itr, "leaf2", "myTable2");
@@ -128,49 +127,49 @@ public class DefaultServiceTest {
 			styles);
 		assertEquals("group0", service.getRootId());
 		
-		List<LayerRef> layers = service.getLayers();
+		List<LayerRef<?>> layers = service.getLayers();
 		assertNotNull(layers);
 		
-		Iterator<LayerRef> itr = layers.iterator();
+		Iterator<LayerRef<?>> itr = layers.iterator();
 		assertDatasetLayer(itr, "leaf0", "myTable0");
 		assertDatasetLayer(itr, "leaf1", "myTable1");
 		
-		List<LayerRef> childLayers = assertGroupLayer(itr, "group1").getLayers();
+		List<LayerRef<?>> childLayers = assertGroupLayer(itr, "group1").getLayers();
 		assertNotNull(childLayers);
 		
-		Iterator<LayerRef> childItr = childLayers.iterator();
+		Iterator<LayerRef<?>> childItr = childLayers.iterator();
 		assertDatasetLayer(childItr, "leaf2", "myTable2");		
 		assertFalse(childItr.hasNext());
 		
 		assertFalse(itr.hasNext());
 	}
 	
-	private GroupLayer assertGroupLayer(Iterator<LayerRef> itr, String id) {
+	private GroupLayer assertGroupLayer(Iterator<LayerRef<?>> itr, String id) {
 		assertTrue(itr.hasNext());
 		
-		LayerRef layerRef = itr.next();
+		LayerRef<?> layerRef = itr.next();
 		assertNotNull(layerRef);
 		
-		Layer layer = layerRef.getLayer();
-		assertNotNull(layer);
-		assertEquals(id, layer.getId());
-		assertTrue(layer.isGroup());
+		assertTrue(layerRef.isGroupRef());
 		
-		return layer.asGroup();
+		GroupLayer layer = layerRef.asGroupRef().getLayer();
+		assertNotNull(layer);
+		assertEquals(id, layer.getId());		
+		
+		return layer;
 	}
 	
-	private void assertDatasetLayer(Iterator<LayerRef> itr, String id, String tableName) {
+	private void assertDatasetLayer(Iterator<LayerRef<?>> itr, String id, String tableName) {
 		assertTrue(itr.hasNext());
 		
-		LayerRef layerRef = itr.next();
+		LayerRef<?> layerRef = itr.next();
 		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
 		
-		Layer layer = layerRef.getLayer();
+		DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 		assertNotNull(layer);
-		assertFalse(layer.isGroup());
 		
-		DatasetLayer datasetLayer = layer.asDataset();
-		assertEquals(id, datasetLayer.getId());		
-		assertEquals(tableName, datasetLayer.getTableName());
+		assertEquals(id, layer.getId());		
+		assertEquals(tableName, layer.getTableName());
 	}
 }

@@ -47,7 +47,9 @@ import akka.util.Timeout;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
@@ -239,12 +241,12 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
-		when(datasetLayer.getTableName()).thenReturn("myTable");
-		when(datasetLayer.isGroup()).thenReturn(false);
-		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef datasetLayerRef = mock(LayerRef.class);
+		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
+		when(datasetLayerRef.isGroupRef()).thenReturn(false);
+		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
 		
 		Service service = mock(Service.class);
@@ -274,7 +276,7 @@ public class GeoServerServiceTest {
 	public void testGroupLayer() throws Exception {
 		final int numberOfLayers = 10;
 		
-		List<LayerRef> layers = new ArrayList<>();
+		List<LayerRef<?>> layers = new ArrayList<>();
 		for(int i = 0; i < numberOfLayers; i++) {
 			Tiling tilingSettings = mock(Tiling.class);
 			when(tilingSettings.getMimeFormats()).thenReturn(Arrays.asList("image/png"));
@@ -284,29 +286,29 @@ public class GeoServerServiceTest {
 			when(tilingSettings.getMetaWidth()).thenReturn(4);
 			when(tilingSettings.getGutter()).thenReturn(0);
 			
-			DatasetLayer layer = mock(DatasetLayer.class);
-			when(layer.isGroup()).thenReturn(false);
-			when(layer.asDataset()).thenReturn(layer);
+			DatasetLayer layer = mock(DatasetLayer.class);			
 			when(layer.getName()).thenReturn("layer" + i);
 			when(layer.getTableName()).thenReturn("myTable");			
 			when(layer.getTiling()).thenReturn(Optional.of(tilingSettings));
 			
-			LayerRef layerRef = mock(LayerRef.class);
+			DatasetLayerRef layerRef = mock(DatasetLayerRef.class);
+			when(layerRef.isGroupRef()).thenReturn(false);
+			when(layerRef.asDatasetRef()).thenReturn(layerRef);
 			when(layerRef.getLayer()).thenReturn(layer);
 			
 			layers.add(layerRef);
 		}
 		
-		GroupLayer groupLayer = mock(GroupLayer.class);
-		when(groupLayer.isGroup()).thenReturn(true);
-		when(groupLayer.asGroup()).thenReturn(groupLayer);
+		GroupLayer groupLayer = mock(GroupLayer.class);		
 		when(groupLayer.getName()).thenReturn("group");
 		when(groupLayer.getTitle()).thenReturn("groupTitle");
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		when(groupLayer.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef groupLayerRef = mock(LayerRef.class);
+		GroupLayerRef groupLayerRef = mock(GroupLayerRef.class);
+		when(groupLayerRef.isGroupRef()).thenReturn(true);
+		when(groupLayerRef.asGroupRef()).thenReturn(groupLayerRef);
 		when(groupLayerRef.getLayer()).thenReturn(groupLayer);
 		
 		Service service = mock(Service.class);
@@ -357,12 +359,12 @@ public class GeoServerServiceTest {
 	public void testRemoveLayer() throws Exception{
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");		
-		when(datasetLayer.getTableName()).thenReturn("myTable");
-		when(datasetLayer.isGroup()).thenReturn(false);
-		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef datasetLayerRef = mock(LayerRef.class);
+		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
+		when(datasetLayerRef.isGroupRef()).thenReturn(false);
+		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
 		
 		Service service = mock(Service.class);
@@ -403,36 +405,36 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
-		when(datasetLayer.getTableName()).thenReturn("myTable");
-		when(datasetLayer.isGroup()).thenReturn(false);
-		when(datasetLayer.asDataset()).thenReturn(datasetLayer);
+		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef datasetLayerRef = mock(LayerRef.class);
+		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
+		when(datasetLayerRef.isGroupRef()).thenReturn(false);
+		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
 		
-		GroupLayer group0 = mock(GroupLayer.class);
-		when(group0.isGroup()).thenReturn(true);
-		when(group0.asGroup()).thenReturn(group0);
+		GroupLayer group0 = mock(GroupLayer.class);		
 		when(group0.getName()).thenReturn("group0");
 		when(group0.getTitle()).thenReturn("groupTitle0");
 		when(group0.getAbstract()).thenReturn("groupAbstract0");
 		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
 		when(group0.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef group0Ref = mock(LayerRef.class);
+		GroupLayerRef group0Ref = mock(GroupLayerRef.class);
+		when(group0Ref.isGroupRef()).thenReturn(true);
+		when(group0Ref.asGroupRef()).thenReturn(group0Ref);
 		when(group0Ref.getLayer()).thenReturn(group0);
 		
-		GroupLayer group1 = mock(GroupLayer.class);
-		when(group1.isGroup()).thenReturn(true);
-		when(group1.asGroup()).thenReturn(group1);
+		GroupLayer group1 = mock(GroupLayer.class);		
 		when(group1.getName()).thenReturn("group1");
 		when(group1.getTitle()).thenReturn("groupTitle1");
 		when(group1.getAbstract()).thenReturn("groupAbstract1");
 		when(group1.getLayers()).thenReturn(Collections.singletonList(group0Ref));
 		when(group1.getTiling()).thenReturn(Optional.empty());
 		
-		LayerRef group1Ref = mock(LayerRef.class);
+		GroupLayerRef group1Ref = mock(GroupLayerRef.class);
+		when(group1Ref.isGroupRef()).thenReturn(true);
+		when(group1Ref.asGroupRef()).thenReturn(group1Ref);
 		when(group1Ref.getLayer()).thenReturn(group1);
 		
 		Service service = mock(Service.class);

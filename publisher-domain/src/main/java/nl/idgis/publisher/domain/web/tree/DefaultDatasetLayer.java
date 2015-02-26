@@ -1,34 +1,43 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
-import java.util.Optional;
 
-public class DefaultDatasetLayer extends AbstractLayer<Dataset> implements DatasetLayer {
+public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 
 	private static final long serialVersionUID = 873203510940749016L;
-
-	public DefaultDatasetLayer(Dataset dataset) {
-		super(dataset, false);
-	}
 	
+	private final List<String> keywords;
+	
+	private final String tableName;
+	
+	private final List<String> styles;
+
+	public DefaultDatasetLayer(DatasetNode datasetNode) {		
+		super(
+			datasetNode.getId(), 
+			datasetNode.getName(), 
+			datasetNode.getTitle(), 
+			datasetNode.getAbstract(), 
+			datasetNode.getTiling().orElse(null));
+		
+		this.keywords = datasetNode.getKeywords();
+		this.tableName = datasetNode.getTableName();
+		this.styles = datasetNode.getStyles();
+	}
+
 	@Override
 	public List<String> getKeywords() {
-		return item.getKeywords();
+		return keywords;
 	}
-	
+
 	@Override
 	public String getTableName() {
-		return item.getTableName();
+		return tableName;
 	}
-	
-	@Override
-	public Optional<Tiling> getTiling() {
-		return item.getTiling();
-	}
-	
+
 	@Override
 	public List<String> getStyles() {
-		return item.getStyles();
+		return styles;
 	}
 
 }

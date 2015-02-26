@@ -2,7 +2,7 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
 
-public class DatasetNode extends Node implements Dataset {
+public class DatasetNode extends AbstractLayer implements DatasetLayer {
 
 	private static final long serialVersionUID = -908921909727671667L;
 

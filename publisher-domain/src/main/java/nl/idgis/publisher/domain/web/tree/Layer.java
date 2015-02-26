@@ -1,11 +1,17 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.util.Optional;
 
-public interface Layer extends Item {
+public interface Layer  {
 	
-	boolean isGroup();
+	String getId();
 	
-	GroupLayer asGroup();
+	String getName();
 	
-	DatasetLayer asDataset();
+	String getTitle();
+	
+	String getAbstract();
+	
+	Optional<Tiling> getTiling();
+	
 }

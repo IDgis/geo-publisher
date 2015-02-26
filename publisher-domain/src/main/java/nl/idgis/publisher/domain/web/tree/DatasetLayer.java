@@ -1,5 +1,12 @@
 package nl.idgis.publisher.domain.web.tree;
 
-public interface DatasetLayer extends Dataset, Layer {
+import java.util.List;
+
+public interface DatasetLayer extends Layer {
 	
+	List<String> getKeywords();
+	
+	String getTableName();
+	
+	List<String> getStyles();
 }

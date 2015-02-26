@@ -1,32 +1,31 @@
 @import nl.idgis.publisher.domain.web.tree._ 
 
-@(grouplayer: GroupLayer, showRootGroup: Boolean)
+@(groupLayer: GroupLayer, showRootGroup: Boolean)
 
-
-@if(grouplayer != null){
-	@if(showRootGroup){
+@if(groupLayer != null) {
+	@if(showRootGroup) {
 	<!-- show one item with the rootgrop and its structure -->
-			<div value="@grouplayer.getId()" class="list-group-item gp-draggable tree-item">
-				<input type="hidden" value="@grouplayer.getId()" name="structure[]">
+			<div value="@groupLayer.getId()" class="list-group-item gp-draggable tree-item">
+				<input type="hidden" value="@groupLayer.getId()" name="structure[]">
 				<div class="row">
 					<div class="col-sm-11 groupTree">
 						<ul class="treelist">
-							@helper.groupStructureItem(grouplayer)
+							@helper.groupStructureGroup(groupLayer)
 						</ul>
 					</div>
 					<!-- no delete button -->
 				</div>
 			</div>
-	}else{
+	} else {
 	<!-- show items for each group/layer in the root group -->
-		@for(layerRef <- grouplayer.getLayers()){
+		@for(layerRef <- groupLayer.getLayers()) {
 			@defining(layerRef.getLayer()) { layer =>
 				<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
 					<input type="hidden" value="@layer.getId()" name="structure[]">
 					<div class="row">
 						<div class="col-sm-11 groupTree">
 							<ul class="treelist">
-								@helper.groupStructureItem(layer)
+								@helper.groupStructureRef(layerRef)
 							</ul>
 						</div>
 						<div class="col-sm-1">

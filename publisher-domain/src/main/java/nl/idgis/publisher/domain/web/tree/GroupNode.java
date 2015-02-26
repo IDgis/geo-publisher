@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.web.tree;
 
-public class GroupNode extends Node implements Group {
+public class GroupNode extends AbstractLayer {
 
 	private static final long serialVersionUID = 2592638371421634222L;
 

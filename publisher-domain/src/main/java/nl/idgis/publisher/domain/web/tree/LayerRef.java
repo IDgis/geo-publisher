@@ -1,8 +1,12 @@
 package nl.idgis.publisher.domain.web.tree;
 
-public interface LayerRef {
+public interface LayerRef<T extends Layer> {
 	
-	Layer getLayer();
+	T getLayer();
 	
-	String getStyle();
+	boolean isGroupRef();
+	
+	GroupLayerRef asGroupRef();
+	
+	DatasetLayerRef asDatasetRef();
 }
