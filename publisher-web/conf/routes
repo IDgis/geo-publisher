@@ -37,19 +37,19 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 # Service beheer
 # 
 
-GET		/services										controllers.Services.list()
+GET		/services										controllers.Services.list(q: String ?= null, published: java.lang.Boolean ?= null, page: Long ?= 1)
 GET 	/services/-/create								controllers.Services.create()
 POST 	/services/-/createupdate						controllers.Services.submitCreateUpdate()
 GET		/services/:serviceId/edit						controllers.Services.edit(serviceId: String)
 GET 	/services/:serviceId/delete						controllers.Services.delete(serviceId : String)
 
-GET		/layers											controllers.Layers.list(q: String ?= null, published: java.lang.Boolean ?= null)
+GET		/layers											controllers.Layers.list(q: String ?= null, published: java.lang.Boolean ?= null, page: Long ?= 1)
 GET 	/layers/:datasetId/create						controllers.Layers.create(datasetId : String)
 POST 	/layers/-/createupdate							controllers.Layers.submitCreateUpdate()
 GET		/layers/:layerId/edit							controllers.Layers.edit(layerId: String)
 GET 	/layers/:layerId/delete							controllers.Layers.delete(layerId : String)
 
-GET		/groups											controllers.Groups.list(q: String ?= null, published: java.lang.Boolean ?= null)
+GET		/groups											controllers.Groups.list(q: String ?= null, published: java.lang.Boolean ?= null, page: Long ?= 1)
 GET 	/groups/-/create								controllers.Groups.create()
 POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
 GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)

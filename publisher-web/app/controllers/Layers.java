@@ -137,7 +137,7 @@ public class Layers extends GroupsLayersCommon {
 													Logger.debug ("Updated layer " + layer);
 													flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 												}
-												return Promise.pure (redirect (routes.Layers.list (null, null)));
+												return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
 											}
 										});
 								}
@@ -146,7 +146,7 @@ public class Layers extends GroupsLayersCommon {
 			});
 	}
 	
-	public static Promise<Result> list (final String query, final Boolean published) {
+	public static Promise<Result> list (final String query, final Boolean published, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Layers ");
@@ -270,11 +270,11 @@ public class Layers extends GroupsLayersCommon {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Layers.list (null, null));
+				return redirect (routes.Layers.list (null, null, 1));
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Layers.list (null, null)));
+		return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
 	}
 	
 	

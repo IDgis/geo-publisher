@@ -104,14 +104,14 @@ public class Services extends Controller {
 									Logger.debug ("Updated service " + service);
 									flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 								}
-								return Promise.pure (redirect (routes.Services.list ()));
+								return Promise.pure (redirect (routes.Services.list (null, null, 1)));
 							}
 						});
 				}
 			});
 	}
 	
-	public static Promise<Result> list () {
+	public static Promise<Result> list (final String query, final Boolean published, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Services ");
@@ -122,7 +122,7 @@ public class Services extends Controller {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
 					Logger.debug ("List Service: #" + services.values().size());
-					return ok (list.render (services));
+					return ok (list.render (services, query, published));
 				}
 			});
 	}
@@ -178,11 +178,11 @@ public class Services extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Services.list ());
+				return redirect (routes.Services.list (null, null, 1));
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Services.list ()));
+		return Promise.pure (redirect (routes.Services.list (null, null, 1)));
 	}
 	
 	
