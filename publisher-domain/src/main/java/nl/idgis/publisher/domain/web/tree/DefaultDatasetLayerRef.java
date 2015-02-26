@@ -6,7 +6,7 @@ public class DefaultDatasetLayerRef extends AbstractLayerRef<DatasetLayer> imple
 	
 	private final String style;
 
-	public DefaultDatasetLayerRef(DatasetLayer layer, String style) {
+	public DefaultDatasetLayerRef(DefaultDatasetLayer layer, String style) {
 		super(layer);
 		
 		this.style = style;

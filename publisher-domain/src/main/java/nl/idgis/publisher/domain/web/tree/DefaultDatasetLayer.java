@@ -4,27 +4,24 @@ import java.util.List;
 
 public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 
-	private static final long serialVersionUID = 873203510940749016L;
-	
+	private static final long serialVersionUID = 925993401483339658L;
+
 	private final List<String> keywords;
 	
 	private final String tableName;
 	
 	private final List<String> styles;
-
-	public DefaultDatasetLayer(DatasetNode datasetNode) {		
-		super(
-			datasetNode.getId(), 
-			datasetNode.getName(), 
-			datasetNode.getTitle(), 
-			datasetNode.getAbstract(), 
-			datasetNode.getTiling().orElse(null));
+	
+	public DefaultDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, 
+		List<String> keywords, String tableName, List<String> styles) {
 		
-		this.keywords = datasetNode.getKeywords();
-		this.tableName = datasetNode.getTableName();
-		this.styles = datasetNode.getStyles();
-	}
-
+		super(id, name, title, abstr, tiling);
+		
+		this.keywords = keywords;
+		this.tableName = tableName;
+		this.styles = styles;
+	}	
+	
 	@Override
 	public List<String> getKeywords() {
 		return keywords;
@@ -34,10 +31,18 @@ public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 	public String getTableName() {
 		return tableName;
 	}
-
+	
 	@Override
 	public List<String> getStyles() {
 		return styles;
 	}
 
+	@Override
+	public String toString() {
+		return "DefaultDatasetLayer [keywords=" + keywords + ", tableName=" + tableName
+				+ ", styles=" + styles + ", id=" + id + ", name=" + name
+				+ ", title=" + title + ", abstr=" + abstr + ", tiling="
+				+ tiling + "]";
+	}	
+	
 }

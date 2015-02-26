@@ -16,20 +16,20 @@ import java.util.Map;
 import org.junit.Test;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
-import nl.idgis.publisher.domain.web.tree.DatasetNode;
+import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-import nl.idgis.publisher.domain.web.tree.GroupNode;
+import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 public class DefaultServiceTest {	
 	
 	@Test
 	public void testNoGroup() {
-		List<DatasetNode> datasets = Arrays.asList(
-			new DatasetNode("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
-			new DatasetNode("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
-			new DatasetNode("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
+		List<DefaultDatasetLayer> datasets = Arrays.asList(
+			new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
+			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
+			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 			
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");
@@ -38,7 +38,7 @@ public class DefaultServiceTest {
 		
 		Map<String, String> styles = new HashMap<>();
 		
-		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0", null);
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null);
 		Service service = new DefaultService(
 			"service0",
 			"service-name0",
@@ -80,16 +80,16 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testGroup() {
-		GroupNode root = new GroupNode("group0", "name0", "title0", "abstract0", null);
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null);
 		
-		List<GroupNode> groups = Arrays.asList(
+		List<PartialGroupLayer> groups = Arrays.asList(
 				root,
-				new GroupNode("group1", "name1", "title1", "abstract1", null));
+				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null));
 		
-		List<DatasetNode> datasets = Arrays.asList(
-				new DatasetNode("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
-				new DatasetNode("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
-				new DatasetNode("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
+		List<DefaultDatasetLayer> datasets = Arrays.asList(
+				new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
+				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
+				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 				
 		Map<String, String> structure = new LinkedHashMap<>();
 		structure.put("leaf0", "group0");

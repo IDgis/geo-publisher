@@ -1,35 +1,34 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class DefaultGroupLayer extends AbstractLayer implements GroupLayer {	
+public class DefaultGroupLayer implements GroupLayer, Serializable {	
 
-	private static final long serialVersionUID = 4552928977448464315L;
+	private static final long serialVersionUID = -7304745349251033481L;
 
-	private final Map<String, DatasetNode> datasets;
+	private final PartialGroupLayer partialGroupLayer;
+
+	private final Map<String, DefaultDatasetLayer> datasets;
 	
-	private final Map<String, GroupNode> groups;
+	private final Map<String, PartialGroupLayer> groups;
 	
 	private final Map<String, String> structure;
 	
 	private final Map<String, String> styles;
 	
-	public DefaultGroupLayer(GroupNode group, List<DatasetNode> datasets, List<GroupNode> groups, 
+	public DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		Map<String, String> structure, Map<String, String> styles) {
-		this(group, toMap(datasets), toMap(groups), structure, styles);
+		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
-	private DefaultGroupLayer(GroupNode group, Map<String, DatasetNode> datasets, Map<String, GroupNode> groups, 
+	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
 		Map<String, String> structure, Map<String, String> styles) {		
-		super(
-			group.getId(), 
-			group.getName(), 
-			group.getTitle(), 
-			group.getAbstract(), 
-			group.getTiling().orElse(null));
-
+		
+		this.partialGroupLayer = partialGroupLayer;
 		this.datasets = datasets;
 		this.groups = groups;
 		this.structure = structure;
@@ -45,15 +44,13 @@ public class DefaultGroupLayer extends AbstractLayer implements GroupLayer {
 	
 	private LayerRef<?> asLayer(String id) {
 		if(datasets.containsKey(id)) {
-			DatasetNode datasetNode = datasets.get(id);
-			
-			return new DefaultDatasetLayerRef(new DefaultDatasetLayer(datasetNode), styles.get(id));
+			DefaultDatasetLayer datasetNode = datasets.get(id);			
+			return new DefaultDatasetLayerRef(datasetNode, styles.get(id));
 		}
 		
 		if(groups.containsKey(id)) {
-			GroupNode groupNode = groups.get(id);
-			
-			return new DefaultGroupLayerRef(new DefaultGroupLayer(groupNode, datasets, groups, structure, styles));
+			PartialGroupLayer partialGroupLayer = groups.get(id);			
+			return new DefaultGroupLayerRef(new DefaultGroupLayer(partialGroupLayer, datasets, groups, structure, styles));
 		}
 		
 		throw new IllegalArgumentException("unknown layer id: " + id);
@@ -69,5 +66,37 @@ public class DefaultGroupLayer extends AbstractLayer implements GroupLayer {
 			.filter(this::filterGroup)
 			.map(groupEntry -> asLayer(groupEntry.getKey()))
 			.collect(Collectors.toList());
+	}
+
+	@Override
+	public String getId() {
+		return partialGroupLayer.getId();
+	}
+
+	@Override
+	public String getName() {
+		return partialGroupLayer.getName();
+	}
+
+	@Override
+	public String getTitle() {
+		return partialGroupLayer.getTitle();
+	}
+
+	@Override
+	public String getAbstract() {
+		return partialGroupLayer.getAbstract();
+	}
+
+	@Override
+	public Optional<Tiling> getTiling() {
+		return partialGroupLayer.getTiling();
+	}
+
+	@Override
+	public String toString() {
+		return "DefaultGroupLayer [partialGroupLayer=" + partialGroupLayer + ", datasets=" + datasets
+				+ ", groups=" + groups + ", structure=" + structure
+				+ ", styles=" + styles + "]";
 	}	
 }

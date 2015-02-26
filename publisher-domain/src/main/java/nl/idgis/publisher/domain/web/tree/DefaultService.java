@@ -18,7 +18,7 @@ public class DefaultService implements Service, Serializable {
 	public DefaultService(String id, String name, String title, String abstr, List<String> keywords, 
 			String contact, String organization, String position, String addressType, String address, 
 			String city, String state, String zipcode, String country, String telephone, String fax,
-			String email, GroupNode root, List<DatasetNode> datasets, List<GroupNode> groups, 
+			String email, PartialGroupLayer root, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 			Map<String, String> structure, Map<String, String> styles) {
 		
 		this.id = id;

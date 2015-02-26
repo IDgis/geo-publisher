@@ -31,11 +31,11 @@ import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.protocol.messages.Failure;
 
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.tree.DatasetNode;
+import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
-import nl.idgis.publisher.domain.web.tree.GroupNode;
+import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -253,7 +253,7 @@ public class ServiceManager extends UntypedActor {
 				.orderBy(groupStructure.layerOrder.asc())
 				.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
 			
-			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)				
+			CompletableFuture<Optional<PartialGroupLayer>> root = tx.query().from(genericLayer)				
 				.where(genericLayer.identification.eq(groupLayerId)
 					.and(new SQLSubQuery().from(leafLayer)
 						.where(leafLayer.genericLayerId.eq(genericLayer.id))
@@ -264,14 +264,14 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.title, 
 					genericLayer.abstractCol).thenApply(resp -> 
 						resp.map(t -> 
-							new GroupNode(
+							new PartialGroupLayer(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
 								t.get(genericLayer.abstractCol),
 								null)));
 			
-			CompletableFuture<TypedList<GroupNode>> groups = withGroupStructure.clone()
+			CompletableFuture<TypedList<PartialGroupLayer>> groups = withGroupStructure.clone()
 				.from(genericLayer)
 				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
 				.where(new SQLSubQuery().from(leafLayer)
@@ -283,9 +283,9 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.name, 
 					genericLayer.title, 
 					genericLayer.abstractCol).thenApply(resp -> 
-						new TypedList<>(GroupNode.class, resp.list().stream()
+						new TypedList<>(PartialGroupLayer.class, resp.list().stream()
 							.map(t -> 
-								new GroupNode(
+								new PartialGroupLayer(
 									t.get(genericLayer.identification),
 									t.get(genericLayer.name),
 									t.get(genericLayer.title),
@@ -294,7 +294,7 @@ public class ServiceManager extends UntypedActor {
 							.collect(Collectors.toList())));
 			
 			// last query -> .clone() not required
-			CompletableFuture<TypedList<DatasetNode>> datasets = withGroupStructure  
+			CompletableFuture<TypedList<DefaultDatasetLayer>> datasets = withGroupStructure  
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
@@ -306,8 +306,8 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.title,
 					genericLayer.abstractCol,
 					dataset.name).thenApply(resp ->
-						new TypedList<>(DatasetNode.class, resp.list().stream()
-							.map(t -> new DatasetNode(
+						new TypedList<>(DefaultDatasetLayer.class, resp.list().stream()
+							.map(t -> new DefaultDatasetLayer(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
@@ -361,7 +361,7 @@ public class ServiceManager extends UntypedActor {
 					serviceStructure.childLayerIdentification, 
 					serviceStructure.parentLayerIdentification);
 			
-			CompletableFuture<Optional<GroupNode>> root = tx.query().from(genericLayer)
+			CompletableFuture<Optional<PartialGroupLayer>> root = tx.query().from(genericLayer)
 				.join(service).on(service.genericLayerId.eq(genericLayer.id))
 				.where(service.identification.eq(serviceId))
 				.singleResult(
@@ -370,7 +370,7 @@ public class ServiceManager extends UntypedActor {
 					genericLayer.title, 
 					genericLayer.abstractCol).thenApply(resp ->
 						resp.map(t ->
-							new GroupNode(
+							new PartialGroupLayer(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
@@ -417,10 +417,10 @@ public class ServiceManager extends UntypedActor {
 					tiledLayer.expireClients,
 					tiledLayer.gutter);
 			
-			CompletableFuture<TypedList<GroupNode>> groups = tilingGroupMimeFormats.thenCompose(tilingMimeFormats -> 
+			CompletableFuture<TypedList<PartialGroupLayer>> groups = tilingGroupMimeFormats.thenCompose(tilingMimeFormats -> 
 				groupTuples.thenApply(resp ->
-					new TypedList<>(GroupNode.class, resp.list().stream()
-						.map(t -> new GroupNode(
+					new TypedList<>(PartialGroupLayer.class, resp.list().stream()
+						.map(t -> new PartialGroupLayer(
 							t.get(genericLayer.identification),
 							t.get(genericLayer.name),
 							t.get(genericLayer.title),
@@ -507,15 +507,15 @@ public class ServiceManager extends UntypedActor {
 					tiledLayer.expireClients,
 					tiledLayer.gutter);
 			
-			CompletableFuture<TypedList<DatasetNode>> datasets =
+			CompletableFuture<TypedList<DefaultDatasetLayer>> datasets =
 				tilingDatasetMimeFormats.thenCompose(tilingMimeFormats ->
 				datasetKeywords.thenCompose(keywords ->
 				datasetStyles.thenCompose(styles ->
 				
 				datasetTuples.thenApply(resp ->
-					new TypedList<>(DatasetNode.class, 
+					new TypedList<>(DefaultDatasetLayer.class, 
 						resp.list().stream()
-							.map(t -> new DatasetNode(
+							.map(t -> new DefaultDatasetLayer(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
