@@ -66,7 +66,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
-						<div style="position: relative;" class="list-group" id="groupLayerStructure">
+						<div class="list-group" id="groupLayerStructure">
 							@helper.groupStructure(grouplayer, false)
 						</div>
 						
@@ -81,7 +81,7 @@
 								}
 							</select>
 							
-							<span style="margin-left:15px">Voeg laag toe:</span>
+							<span class="label-add-layer">Voeg laag toe:</span>
 							<select id="addlayer">
 								<option></option>
 								@for(layer <- layers.values) {
