@@ -20,7 +20,6 @@ public class TiledLayer extends Identifiable {
 	private static final long serialVersionUID = 3748360159816460138L;
 
 	private final String name;
-	private final Boolean enabled;
 	private final Integer metaWidth;
 	private final Integer metaHeight;
 	private final Integer expireCache;
@@ -36,12 +35,10 @@ public class TiledLayer extends Identifiable {
 			final @JsonProperty("") Integer metaHeight,
 			final @JsonProperty("") Integer expireCache,
 			final @JsonProperty("") Integer expireClients,
-			final @JsonProperty("") Integer gutter,
-			final @JsonProperty("") Boolean enabled) {
+			final @JsonProperty("") Integer gutter) {
 		super(id);
 		this.name = name;
 		this.metaWidth = metaWidth;
-		this.enabled = enabled;
 		this.metaHeight = metaHeight;
 		this.expireCache = expireCache;
 		this.expireClients = expireClients;
@@ -76,11 +73,6 @@ public class TiledLayer extends Identifiable {
 	@JsonGetter
 	public Integer gutter() {
 		return gutter;
-	}
-
-	@JsonGetter
-	public Boolean enabled() {
-		return enabled;
 	}
 
 }

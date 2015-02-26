@@ -46,8 +46,7 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter,
-					tiledLayer.enabled 
+					tiledLayer.gutter
 					))
 			.thenApply(this::toPage);
 	}
@@ -67,8 +66,7 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter,
-					tiledLayer.enabled 
+					tiledLayer.gutter
 					));
 	}
 	
@@ -93,7 +91,6 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
 					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
-					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, genericLayerId));
 				} else {
@@ -105,7 +102,6 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					.set(tiledLayer.expireCache, theTiledlayer.expireCache())
 					.set(tiledLayer.expireClients, theTiledlayer.expireClients())
 					.set(tiledLayer.gutter, theTiledlayer.gutter())
-					.set(tiledLayer.enabled, theTiledlayer.enabled()) 
 					.where(tiledLayer.genericLayerId.eq(glId.get()))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, genericLayerId));
