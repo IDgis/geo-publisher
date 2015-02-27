@@ -1,51 +1,90 @@
-@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style])
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String)
 
-@import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.web._
+
+@pageRef(targetPage: Long) = @{	  
+	routes.Styles.list (query, targetPage)		
+}
+ 
 @layout.application( title = Domain.message("web.application.page.styles.list.header") ) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.styles.list.header")</h1>
 
-	@* List of styles: *@
-	<div class="col-lg-9 ">
-		@if(styles.values.isEmpty) {
-		<div class="alert alert-info">@Domain.message("web.application.page.styles.list.empty")</div>
-		} else {
-		<div class="list-group" id="style-list">
-
-			@for(style <- styles.values) {
-			<div class="list-group-item js-style-item" 
-				data-style-id="@style.id"
-				data-style-name="@style.name">
-				<div class="row">
-					<div class="col-md-10">
-						<h4 class="list-group-item-heading">
-							<a href="@routes.Styles.edit(style.id)" class="text-warning">@style.name</a>
-						</h4>
+	<div class="row">
+	
+		@* Filters and search: *@
+		<div class="col-lg-3 col-lg-push-9">
+			<form class="form-horizontal" role="form" method="GET" action="@routes.Styles.list()">
+			
+				@* Add style button: *@
+				<div class="form-group">
+					<div class="col-sm-12">
+						<a href="@routes.Styles.create()" 
+							class="btn btn-success col-sm-12" title="@Domain.message("web.application.button.add")">
+							<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.styles.button.add")
+						</a>
 					</div>
-					<div class="col-md-2">
-						<div class="btn-group pull-right">
-							<a href="@routes.Styles.edit(style.id)"
-								class="btn btn-default" title=@Domain.message("web.application.button.edit")>
-								<span class="glyphicon glyphicon-edit"></span>
-							</a> 
-							<a href="@routes.Styles.delete(style.id)" 
-								class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
-								<span class="glyphicon glyphicon-remove"></span>
-							</a>
+				</div>
+				
+				@* Search style input: *@
+				<div class="form-group has-feedback">
+					<div class="col-sm-12">
+						<input 
+							name="q" 
+							type="text" 
+							class="form-control col-sm-12" 
+							placeholder="@Domain.message("web.application.page.styles.list.search.placeholder")"
+							@if(query != null){value="@query"}>
+						<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
+						@if(query != null) {
+							<a href="@routes.Styles.list()"><small>@Domain.message("web.application.page.styles.list.search.showAll")</small></a>
+						}
+					</div>
+				</div>
+				
+			</form>
+		</div> @* /Filters *@
+		
+		@* List of styles: *@
+		<div class="col-lg-9 col-lg-pull-3">
+			@if(styles.values.isEmpty) {
+			<div class="alert alert-info">@Domain.message("web.application.page.styles.list.empty")</div>
+			} else {
+			<div class="list-group" id="style-list">
+	
+				@for(style <- styles.values) {
+				<div class="list-group-item js-style-item" 
+					data-style-id="@style.id"
+					data-style-name="@style.name">
+					<div class="row">
+						<div class="col-md-10">
+							<h4 class="list-group-item-heading">
+								<a href="@routes.Styles.edit(style.id)" class="text-warning">@style.name</a>
+							</h4>
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@routes.Styles.edit(style.id)"
+									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
+									<span class="glyphicon glyphicon-edit"></span>
+								</a> 
+								<a href="@routes.Styles.delete(style.id)" 
+									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>
+				}
 			</div>
 			}
-		</div>
-		}
-		<div class="btn-group">
-			<a href="@routes.Styles.create()" 
-				class="btn btn-success" title=@Domain.message("web.application.button.add")>
-				<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
-			</a>
-		</div>
-	</div>
+			
+			@helper.pagination(styles, pageRef)
+			
+		</div> @* /Style list *@
+		
+	</div> @* Row *@
 </div>
 }

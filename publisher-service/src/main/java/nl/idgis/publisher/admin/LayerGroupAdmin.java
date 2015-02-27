@@ -2,9 +2,7 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QService.service;
 
 import java.util.ArrayList;
@@ -12,15 +10,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import com.mysema.query.sql.SQLSubQuery;
-
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
-import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -29,14 +25,15 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
-import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
+import com.mysema.query.sql.SQLSubQuery;
 
 public class LayerGroupAdmin extends AbstractAdmin {
 	
@@ -63,6 +60,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		
 		doQueryOptional(GetGroupStructure.class, this::handleGetGroupStructure);
 		doQuery(PutGroupStructure.class, this::handlePutGroupStructure);
+		
+		doQuery (ListLayerGroups.class, this::handleListLayerGroupsWithQuery);
 
 	}
 
@@ -95,22 +94,56 @@ public class LayerGroupAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {
-		log.debug ("handleListLayergroups");
-		return 
-			db.query().from(genericLayer)
+		return handleListLayerGroupsWithQuery (new ListLayerGroups (null, null, null));
+	}
+
+	private CompletableFuture<Page<LayerGroup>> handleListLayerGroupsWithQuery (final ListLayerGroups listLayerGroups) {
+		final AsyncSQLQuery baseQuery = db
+			.query()
+			.from(genericLayer)
 			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
 			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()))
-			.list(new QLayerGroup(
-					genericLayer.identification,
-					genericLayer.name,
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					genericLayer.published
-				))
-			.thenApply(this::toPage);
-	}
+			.orderBy (genericLayer.name.asc ());
 
+		// Add a filter for the query string:
+		if (listLayerGroups.getQuery () != null) {
+			baseQuery.where (
+					genericLayer.name.containsIgnoreCase (listLayerGroups.getQuery ())
+					.or (genericLayer.title.containsIgnoreCase (listLayerGroups.getQuery()))
+				);
+		}
+		
+		// Add a filter for the published flag:
+		if (listLayerGroups.getPublished () != null) {
+			baseQuery.where (genericLayer.published.eq (listLayerGroups.getPublished ()));
+		}
+		
+		final AsyncSQLQuery listQuery = baseQuery.clone ();
+		
+		singlePage (listQuery, listLayerGroups.getPage ());
+		
+		return baseQuery
+				.count ()
+				.thenCompose ((count) -> {
+					final Page.Builder<LayerGroup> builder = new Page.Builder<> ();
+					
+					addPageInfo (builder, listLayerGroups.getPage (), count);
+					
+					return listQuery
+						.list (new QLayerGroup(
+								genericLayer.identification,
+								genericLayer.name,
+								genericLayer.title, 
+								genericLayer.abstractCol,
+								genericLayer.published
+							))
+						.thenApply ((styles) -> {
+							builder.addAll (styles.list ());
+							return builder.build ();
+						});
+				});
+	}
 	
 	private CompletableFuture<Optional<LayerGroup>> handleGetLayergroup (String layergroupId) {
 		log.debug ("handleGetLayergroup: " + layergroupId);

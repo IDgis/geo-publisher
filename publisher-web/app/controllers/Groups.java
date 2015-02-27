@@ -8,16 +8,15 @@ import java.util.List;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
@@ -119,7 +118,7 @@ public class Groups extends GroupsLayersCommon {
 												Logger.debug ("Updated group " + group);
 												flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 											}
-											return Promise.pure (redirect (routes.Groups.list ()));
+											return Promise.pure (redirect (routes.Groups.list (null, null, 1)));
 										}
 									});
 							}
@@ -129,17 +128,17 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> list () {
+	public static Promise<Result> list (final String query, final Boolean published, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Groups ");
 		
 		return from (database)
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups (page, query, published))
 			.execute (new Function<Page<LayerGroup>, Result> () {
 				@Override
 				public Result apply (final Page<LayerGroup> groups) throws Throwable {
-					return ok (list.render (groups));
+					return ok (list.render (groups, query, published));
 				}
 			});
 	}
@@ -193,7 +192,7 @@ public class Groups extends GroupsLayersCommon {
 										Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 										Domain.message("web.application.failed").toLowerCase()
 										+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
-									return redirect(routes.Groups.list ());
+									return redirect(routes.Groups.list (null, null, 1));
 								}
 								
 								Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
@@ -240,7 +239,7 @@ public class Groups extends GroupsLayersCommon {
 						Domain.message("web.application.succeeded").toLowerCase()
 						);
 				}
-				return Promise.pure (redirect (routes.Groups.list ()));
+				return Promise.pure (redirect (routes.Groups.list (null, null, 1)));
 			}
 		});
 		

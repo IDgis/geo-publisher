@@ -13,6 +13,7 @@ import javax.xml.parsers.SAXParserFactory;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -106,7 +107,7 @@ public class Styles extends Controller {
 									Logger.debug ("Updated style " + style);
 									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 								}
-								return Promise.pure (redirect (routes.Styles.list ()));
+								return Promise.pure (redirect (routes.Styles.list (null, 1)));
 							}
 					});
 				}
@@ -157,21 +158,21 @@ public class Styles extends Controller {
 	    }
 	}
 	
-	public static Promise<Result> list () {
+	public static Promise<Result> list (final String query, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Styles ");
 		
 		return from (database)
-			.list (Style.class)
+			.query (new ListStyles (page, query))
 			.execute (new Function<Page<Style>, Result> () {
 				@Override
 				public Result apply (final Page<Style> styles) throws Throwable {
-					return ok (list.render (styles));
+					return ok (list.render (styles, query));
 				}
 			});
 	}
-
+	
 	public static Promise<Result> create () {
 		Logger.debug ("create Style");
 		final Form<StyleForm> styleForm = Form.form (StyleForm.class).fill (new StyleForm ());
@@ -209,11 +210,11 @@ public class Styles extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Styles.list ());
+				return redirect (routes.Styles.list (null, 1));
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Styles.list ()));
+		return Promise.pure (redirect (routes.Styles.list (null, 1)));
 	}
 	
 	public static class StyleForm {
