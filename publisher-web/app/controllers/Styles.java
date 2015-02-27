@@ -93,7 +93,7 @@ public class Styles extends Controller {
 					// validation end
 					
 					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition);
+					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition, styleForm.styleType);
 					
 					return from (database)
 						.put(style)
@@ -225,6 +225,7 @@ public class Styles extends Controller {
 		private String name;
 		@Constraints.Required
 		private String definition;
+		private String styleType;
 		
 		
 		public StyleForm (){
@@ -236,6 +237,7 @@ public class Styles extends Controller {
 			this.id = style.id();
 			this.name = style.name();
 			this.definition = style.definition();
+			this.styleType = style.styleType();
 		}
 		
 		public String getId() {
@@ -257,6 +259,12 @@ public class Styles extends Controller {
 		}
 		public void setDefinition(String definition) {
 			this.definition = definition;
+		}
+		public String getStyleType() {
+			return styleType;
+		}
+		public void setStyleType(String styleType) {
+			this.styleType = styleType;
 		}
 		
 	}

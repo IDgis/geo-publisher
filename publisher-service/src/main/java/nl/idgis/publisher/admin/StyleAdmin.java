@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -14,8 +13,11 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
+import nl.idgis.publisher.database.AsyncSQLQuery;
 
 public class StyleAdmin extends AbstractAdmin {
 	
@@ -62,7 +64,7 @@ public class StyleAdmin extends AbstractAdmin {
 				addPageInfo (builder, listStyles.getPage (), count);
 				
 				return listQuery
-					.list (new QStyle (style.identification, style.name, style.definition))
+					.list (new QStyle (style.identification, style.name, style.definition, style.styleType))
 					.thenApply ((styles) -> {
 						builder.addAll (styles.list ());
 						return builder.build ();
@@ -77,7 +79,7 @@ public class StyleAdmin extends AbstractAdmin {
 		return 
 			db.query().from(style)
 			.where(style.identification.eq(styleId))
-			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition));		
+			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition,style.styleType));		
 	}
 	
 	private CompletableFuture<Response<?>> handlePutStyle(Style theStyle) {
@@ -98,6 +100,7 @@ public class StyleAdmin extends AbstractAdmin {
 					.set(style.identification, UUID.randomUUID().toString())
 					.set(style.name, styleName)
 					.set(style.definition, theStyle.definition())
+					.set(style.styleType, theStyle.styleType())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName));
 				} else {
@@ -105,6 +108,7 @@ public class StyleAdmin extends AbstractAdmin {
 					log.debug("Updating style with name: " + styleName);
 					return tx.update(style)
 					.set(style.definition, theStyle.definition())
+					.set(style.styleType, theStyle.styleType())
 					.where(style.identification.eq(styleId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, styleName));

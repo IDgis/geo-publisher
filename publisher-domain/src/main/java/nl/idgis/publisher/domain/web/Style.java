@@ -18,16 +18,19 @@ public class Style extends Identifiable {
 	private static final long serialVersionUID = -103047524556298813L;
 	private final String name;
 	private final String definition;
+	private final String styleType;
 
 	@JsonCreator
 	@QueryProjection
 	public Style(
 			final @JsonProperty("") String id, 
 			final @JsonProperty("") String name,
-			final @JsonProperty("") String definition) {
+			final @JsonProperty("") String definition,
+			final @JsonProperty("") String styleType) {
 		super(id);
 		this.name = name;
 		this.definition = definition;
+		this.styleType = styleType;
 	}
 
 	@JsonGetter
@@ -38,5 +41,10 @@ public class Style extends Identifiable {
 	@JsonGetter
 	public String definition() {
 		return definition;
+	}
+	
+	@JsonGetter
+	public String styleType() {
+		return styleType;
 	}
 }
