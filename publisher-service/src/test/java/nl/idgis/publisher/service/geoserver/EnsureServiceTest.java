@@ -45,6 +45,7 @@ import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.utils.SyncAskHelper;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -205,6 +206,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getAbstract()).thenReturn("abstract0");
 		when(datasetLayer.getTableName()).thenReturn("tableName0");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.of(tilingSettings));
+		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
@@ -239,6 +241,11 @@ public class EnsureServiceTest {
 				assertEquals("abstract0", featureType.getAbstract());
 				assertEquals("tableName0", featureType.getTableName());
 				assertTrue(featureType.getTiledLayer().isPresent());
+				
+				List<String> keywords = featureType.getKeywords();
+				assertNotNull(keywords);
+				assertTrue(keywords.contains("keyword0"));
+				assertTrue(keywords.contains("keyword1"));
 			})
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)

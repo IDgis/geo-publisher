@@ -408,6 +408,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					featureType.string("nativeName").get(),
 					featureType.stringOrNull("title"),
 					featureType.stringOrNull("abstract"),
+					featureType.strings("keywords/string"),
 					Collections.unmodifiableList(
 						featureType.map("/featureType/attributes/attribute/name", 
 							name -> new Attribute(name.string().get()))));
@@ -460,6 +461,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					sw.writeCharacters(abstr);
 				sw.writeEndElement();
 			}
+			
+			sw.writeStartElement("keywords");
+			List<String> keywords = featureType.getKeywords();
+			for(String keyword : keywords) {
+				sw.writeStartElement("strings");
+					sw.writeCharacters(keyword);
+				sw.writeEndElement();
+			}
+			sw.writeEndElement();
 			
 			sw.writeStartElement("enabled");
 				sw.writeCharacters("true");

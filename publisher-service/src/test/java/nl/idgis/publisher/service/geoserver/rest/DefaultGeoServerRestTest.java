@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -41,6 +42,7 @@ import org.w3c.dom.NodeList;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
+import akka.util.Timeout;
 
 public class DefaultGeoServerRestTest {
 	
@@ -71,7 +73,7 @@ public class DefaultGeoServerRestTest {
 		connection.close();
 		
 		ActorSystem actorSystem = ActorSystem.create();
-		f = new FutureUtils(actorSystem.dispatcher());
+		f = new FutureUtils(actorSystem.dispatcher(), Timeout.apply(30, TimeUnit.SECONDS));
 		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
@@ -128,7 +130,8 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(featureTypes);
 		assertTrue(featureTypes.isEmpty());
 		
-		service.postFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
+		service.postFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
@@ -139,6 +142,11 @@ public class DefaultGeoServerRestTest {
 		
 		assertEquals("test", featureType.getName());
 		assertEquals("test_table", featureType.getNativeName());
+		
+		List<String> keywords = featureType.getKeywords();
+		assertNotNull(keywords);
+		assertTrue(keywords.contains("keyword0"));
+		assertTrue(keywords.contains("keyword1"));
 		
 		List<Attribute> attributes = featureType.getAttributes();
 		assertNotNull(attributes);
@@ -176,7 +184,8 @@ public class DefaultGeoServerRestTest {
 		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
 		service.postDataStore(workspace, dataStore).get();
 		
-		service.postFeatureType(workspace, dataStore, new FeatureType("test", "test_table", "title", "abstract")).get();
+		service.postFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
 		service.postLayerGroup(workspace, layerGroup).get();
@@ -329,7 +338,8 @@ public class DefaultGeoServerRestTest {
 		DataStore dataStore = new DataStore("dataStore", getConnectionParameters());
 		service.postDataStore(workspace, dataStore).get();
 		
-		FeatureType featureType = new FeatureType("test", "test_table", "title", "abstract");
+		FeatureType featureType = new FeatureType(
+			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"));
 		service.postFeatureType(workspace, dataStore, featureType).get();
 		
 		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
@@ -382,7 +392,8 @@ public class DefaultGeoServerRestTest {
 		DataStore anotherDataStore = new DataStore("dataStore", getConnectionParameters());
 		service.postDataStore(anotherWorkspace, dataStore).get();
 		
-		FeatureType anotherFeatureType = new FeatureType("anotherTest", "test_table", "title", "abstract");
+		FeatureType anotherFeatureType = new FeatureType(
+			"anotherTest", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"));
 		service.postFeatureType(anotherWorkspace, anotherDataStore, anotherFeatureType).get();
 				
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
