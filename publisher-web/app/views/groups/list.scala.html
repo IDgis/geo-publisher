@@ -10,7 +10,7 @@
 	
 		@* Filters and search: *@
 		<div class="col-lg-3 col-lg-push-9">
-			<form class="form-horizontal" role="form" method="GET" action="@routes.Layers.list(null, published)">
+			<form class="form-horizontal" role="form" method="GET" action="@routes.Groups.list(null, published)">
 			
 				@* Add layer button: *@
 				<div class="form-group">
@@ -52,13 +52,13 @@
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
 									<li@if(published == null){ class="active"}>
-										<a href="@routes.Layers.list(query, null)">@Domain.message("web.application.filters.published.both")</a>
+										<a href="@routes.Groups.list(query, null)">@Domain.message("web.application.filters.published.both")</a>
 									</li>
 									<li@if(published != null && published){ class="active"}>
-										<a href="@routes.Layers.list(query, true)">@Domain.message("web.application.filters.published.published")</a>
+										<a href="@routes.Groups.list(query, true)">@Domain.message("web.application.filters.published.published")</a>
 									</li>
 									<li@if(published != null && !published){ class="active"}>
-										<a href="@routes.Layers.list(query, false)">@Domain.message("web.application.filters.published.unpublished")</a>
+										<a href="@routes.Groups.list(query, false)">@Domain.message("web.application.filters.published.unpublished")</a>
 									</li>
 								</ul>
 							</div>
