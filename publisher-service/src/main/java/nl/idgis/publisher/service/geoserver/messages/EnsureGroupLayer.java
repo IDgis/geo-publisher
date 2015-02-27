@@ -6,6 +6,7 @@ import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
+import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
 
 public class EnsureGroupLayer extends EnsureLayer {
 
@@ -15,7 +16,7 @@ public class EnsureGroupLayer extends EnsureLayer {
 		super(layerId, title, abstr, tilingSettings);
 	}
 	
-	public LayerGroup getLayerGroup(List<LayerRef> groupLayerContent) {
+	public LayerGroup getLayerGroup(List<PublishedRef> groupLayerContent) {
 		return new LayerGroup(
 				layerId,
 				title,

@@ -41,6 +41,8 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
+import nl.idgis.publisher.service.geoserver.rest.GroupRef;
+import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
 import nl.idgis.publisher.service.geoserver.rest.ServiceSettings;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
@@ -277,7 +279,7 @@ public class GeoServerService extends UntypedActor {
 			Map<String, LayerGroup> layerGroups,
 			Map<String, TiledLayer> tiledLayers) {
 		
-		List<LayerRef> groupLayerContent = new ArrayList<>();
+		List<PublishedRef> groupLayerContent = new ArrayList<>();
 		
 		log.debug("-> layers {}", groupLayer == null ? "" : null);
 		
@@ -385,14 +387,14 @@ public class GeoServerService extends UntypedActor {
 					EnsureGroupLayer ensureLayer = (EnsureGroupLayer)msg;
 					
 					ensured(provisioningService);
-					groupLayerContent.add(new LayerRef(ensureLayer.getLayerId(), true));
+					groupLayerContent.add(new GroupRef(ensureLayer.getLayerId()));
 					getContext().become(layers(ensureLayer, initiator, serviceJob, 
 						provisioningService, workspace, dataStore, featureTypes, layerGroups, tiledLayers), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					
 					String layerId = ensureLayer.getLayerId();
-					groupLayerContent.add(new LayerRef(layerId, false));
+					groupLayerContent.add(new LayerRef(layerId));
 					if(featureTypes.containsKey(layerId)) {
 						log.debug("existing feature type found: " + layerId);
 						

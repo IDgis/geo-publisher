@@ -1,56 +1,31 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
-public class LayerRef {
+import java.util.Optional;
 
-	private final String layerName;
+public class LayerRef extends PublishedRef {	
 	
-	private final boolean group;
+	private final String styleName;
 	
-	public LayerRef(String layerName, boolean group) {
-		this.layerName = layerName;
-		this.group = group;
+	public LayerRef(String layerName) {
+		this(layerName, null);
 	}
-	
-	public String getLayerName() {
-		return layerName;
+		
+	public LayerRef(String layerName, String styleName) {
+		super(layerName);
+		
+		this.styleName = styleName;
 	}
 	
 	public boolean isGroup() {
-		return group;
+		return false;
 	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (group ? 1231 : 1237);
-		result = prime * result
-				+ ((layerName == null) ? 0 : layerName.hashCode());
-		return result;
+	
+	public LayerRef asLayerRef() {
+		return this;
 	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		LayerRef other = (LayerRef) obj;
-		if (group != other.group)
-			return false;
-		if (layerName == null) {
-			if (other.layerName != null)
-				return false;
-		} else if (!layerName.equals(other.layerName))
-			return false;
-		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "LayerRef [layerName=" + layerName + ", group=" + group + "]";
+	
+	public Optional<String> getStyleName() {
+		return Optional.ofNullable(styleName);
 	}
 	
 }

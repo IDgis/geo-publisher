@@ -187,7 +187,7 @@ public class DefaultGeoServerRestTest {
 		service.postFeatureType(workspace, dataStore, new FeatureType(
 			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
 		
-		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test")));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).get();
@@ -198,9 +198,9 @@ public class DefaultGeoServerRestTest {
 		layerGroup = itr.next();
 		assertEquals("group", layerGroup.getName());
 		
-		List<LayerRef> layers = layerGroup.getLayers();
+		List<PublishedRef> layers = layerGroup.getLayers();
 		assertEquals(1, layers.size());
-		LayerRef layerRef = layers.get(0);		
+		PublishedRef layerRef = layers.get(0);		
 		assertNotNull(layerRef);
 		assertEquals("test", layerRef.getLayerName());
 		assertEquals(false, layerRef.isGroup());

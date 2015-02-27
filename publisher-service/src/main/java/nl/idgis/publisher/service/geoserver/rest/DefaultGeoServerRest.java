@@ -515,7 +515,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			optionalDocument.map(document -> {
 				XPathHelper layerGroup = xpath(document).node("layerGroup").get();						
 				
-				List<LayerRef> layers = layerGroup.map("publishables/published", published -> {							
+				List<PublishedRef> layers = layerGroup.map("publishables/published", published -> {							
 						String name = published.string("name").get();
 						String type = published.string("@type").get();
 						
@@ -523,9 +523,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						
 						switch(type) {
 							case "layer":
-								return new LayerRef(name, false);										
+								return new LayerRef(name);
 							case "layerGroup":
-								return new LayerRef(name, true);
+								return new GroupRef(name);
 							default:
 								throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
 						}
@@ -599,7 +599,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 			
 			sw.writeStartElement("publishables");
-			for(LayerRef layerRef : layerGroup.getLayers()) {
+			for(PublishedRef layerRef : layerGroup.getLayers()) {
 				sw.writeStartElement("published");
 				sw.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
 					sw.writeStartElement("name");
