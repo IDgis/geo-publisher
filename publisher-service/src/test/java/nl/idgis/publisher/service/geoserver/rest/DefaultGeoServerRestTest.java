@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -41,6 +42,7 @@ import org.w3c.dom.NodeList;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
+import akka.util.Timeout;
 
 public class DefaultGeoServerRestTest {
 	
@@ -71,7 +73,7 @@ public class DefaultGeoServerRestTest {
 		connection.close();
 		
 		ActorSystem actorSystem = ActorSystem.create();
-		f = new FutureUtils(actorSystem.dispatcher());
+		f = new FutureUtils(actorSystem.dispatcher(), Timeout.apply(30, TimeUnit.SECONDS));
 		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
