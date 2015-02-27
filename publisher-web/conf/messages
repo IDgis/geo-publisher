@@ -268,6 +268,12 @@ web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer al
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
 
+# General management
+
+web.application.page.constants.form.header.new=Gegevens invullen
+web.application.page.constants.form.field.contact.label=Contact
+web.application.page.constants.form.field.contact.placeholder=Geef contactpersoon op
+
 
 # SourceDatasets
 web.application.page.sourcedatasets.title=Brongegevens

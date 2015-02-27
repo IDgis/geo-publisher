@@ -31,5 +31,6 @@ public class AdminParent extends AbstractAdminParent {
 		createAdminActor(TiledLayerAdmin.props(database), "tiledlayer");
 		createAdminActor(StyleAdmin.props(database), "style");
 		createAdminActor(JobCreator.props(database, serviceManager, jobSystem), "job-creator");
+		createAdminActor(ConstantsAdmin.props(database), "constants");
 	}
 }
