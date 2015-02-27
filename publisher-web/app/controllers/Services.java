@@ -1,38 +1,32 @@
 package controllers;
 
 import static models.Domain.from;
-
-import java.util.UUID;
-
-import controllers.Layers.LayerForm;
-import controllers.Styles.StyleForm;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
-import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
-import play.libs.F;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import actions.DefaultAuthenticator;
-import akka.actor.ActorSelection;
 import views.html.services.form;
 import views.html.services.list;
+import actions.DefaultAuthenticator;
+import akka.actor.ActorSelection;
 
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -117,7 +111,7 @@ public class Services extends Controller {
 		Logger.debug ("list Services ");
 		
 		return from (database)
-			.list (Service.class)
+			.query (new ListServices (page, query, published))
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {

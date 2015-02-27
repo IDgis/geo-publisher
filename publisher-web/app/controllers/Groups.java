@@ -8,16 +8,15 @@ import java.util.List;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
@@ -135,7 +134,7 @@ public class Groups extends GroupsLayersCommon {
 		Logger.debug ("list Groups ");
 		
 		return from (database)
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups (page, query, published))
 			.execute (new Function<Page<LayerGroup>, Result> () {
 				@Override
 				public Result apply (final Page<LayerGroup> groups) throws Throwable {

@@ -3,28 +3,24 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.UUID;
 
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function3;
 import models.Domain.Function4;
-import nl.idgis.publisher.domain.query.ListLayerStyles;
-import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerStyles;
+import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
-import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.Style;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -32,7 +28,6 @@ import play.data.validation.Constraints;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.libs.Json;
-import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.layers.form;
@@ -152,7 +147,7 @@ public class Layers extends GroupsLayersCommon {
 		Logger.debug ("list Layers ");
 		
 		return from (database)
-			.list (Layer.class)
+			.query (new ListLayers (page, query, published))
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
