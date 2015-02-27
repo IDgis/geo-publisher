@@ -1,20 +1,20 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
-import nl.idgis.publisher.domain.query.DeleteLayerStyle;
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
+import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -28,7 +28,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.ConstantImpl;
 
 public class LayerAdmin extends AbstractAdmin {
 	
@@ -49,6 +48,8 @@ public class LayerAdmin extends AbstractAdmin {
 		
 		doQuery(ListLayerStyles.class, this::handleListLayerStyles);
 		doQuery(PutLayerStyles.class, this::handlePutLayerStyles);
+		
+		doQuery (ListLayers.class, this::handleListLayersWithQuery);
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
@@ -62,7 +63,53 @@ public class LayerAdmin extends AbstractAdmin {
 					genericLayer.abstractCol, genericLayer.published, dataset.identification))
 			.thenApply(this::toPage);
 	}
-
+	
+	private CompletableFuture<Page<Layer>> handleListLayersWithQuery (final ListLayers listLayers) {
+		final AsyncSQLQuery baseQuery = db
+				.query()
+				.from(genericLayer)
+				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(dataset).on(leafLayer.datasetId.eq(dataset.id));
+		
+		// Add a filter for the query string:
+		if (listLayers.getQuery () != null) {
+			baseQuery.where (
+					genericLayer.name.containsIgnoreCase (listLayers.getQuery ())
+					.or (genericLayer.title.containsIgnoreCase (listLayers.getQuery()))
+				);
+		}
+		
+		// Add a filter for the published flag:
+		if (listLayers.getPublished () != null) {
+			baseQuery.where (genericLayer.published.eq (listLayers.getPublished ()));
+		}
+		
+		final AsyncSQLQuery listQuery = baseQuery.clone ();
+		
+		singlePage (listQuery, listLayers.getPage ());
+		
+		return baseQuery
+				.count ()
+				.thenCompose ((count) -> {
+					final Page.Builder<Layer> builder = new Page.Builder<> ();
+					
+					addPageInfo (builder, listLayers.getPage (), count);
+					
+					return listQuery
+						.list (new QLayer(
+								genericLayer.identification, 
+								genericLayer.name, 
+								genericLayer.title,
+								genericLayer.abstractCol, 
+								genericLayer.published, 
+								dataset.identification
+							))
+						.thenApply ((styles) -> {
+							builder.addAll (styles.list ());
+							return builder.build ();
+						});
+				});
+	}
 	
 	private CompletableFuture<Optional<Layer>> handleGetLayer (String layerId) {
 		log.debug("handleGetLayer: " + layerId);
