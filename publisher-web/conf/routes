@@ -58,6 +58,8 @@ GET 	/groups/:groupId/delete							controllers.Groups.delete(groupId : String)
 GET		/styles											controllers.Styles.list(q: String ?= null, page : Long ?= 1)
 GET 	/styles/-/create								controllers.Styles.create()
 POST 	/styles/-/createupdate							controllers.Styles.submitCreateUpdate()
+GET		/styles/-/upload-file							controllers.Styles.uploadFileForm()
+POST	/styles/-/upload-file							controllers.Styles.handleFileUpload()
 GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 GET 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 

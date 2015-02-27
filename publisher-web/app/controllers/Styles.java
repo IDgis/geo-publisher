@@ -2,30 +2,24 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.util.UUID;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import models.Domain;
 import models.Domain.Function;
-import models.Domain.Function2;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
-import nl.idgis.publisher.domain.web.Layer;
-import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
 
 import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.InputSource;
 
 import play.Logger;
 import play.Play;
@@ -35,14 +29,15 @@ import play.libs.Akka;
 import play.libs.F;
 import play.libs.F.Promise;
 import play.mvc.Controller;
+import play.mvc.Http.MultipartFormData;
+import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.Security;
-import actions.DefaultAuthenticator;
-import akka.actor.ActorSelection;
-import controllers.Styles.SimpleErrorHandler;
-import controllers.Styles.StyleForm;
 import views.html.styles.form;
 import views.html.styles.list;
+import views.html.styles.uploadFileForm;
+import actions.DefaultAuthenticator;
+import akka.actor.ActorSelection;
 
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -215,6 +210,48 @@ public class Styles extends Controller {
 		});
 		
 		return Promise.pure (redirect (routes.Styles.list (null, 1)));
+	}
+
+	public static Result uploadFileForm () {
+		return ok (uploadFileForm.render (null));
+	}
+	
+	public static Result handleFileUpload () {
+		final MultipartFormData body = request ().body ().asMultipartFormData ();
+		final FilePart uploadFile = body.getFile ("file");
+		
+		if (uploadFile == null) {
+			return ok (uploadFileForm.render (null));
+		}
+		
+		final File file = uploadFile.getFile ();
+		if (file == null) {
+			return ok (uploadFileForm.render (null));
+		}
+
+		try (final Reader reader = new InputStreamReader (new FileInputStream (file), Charset.forName ("UTF-8"))) {
+			final char[] buffer = new char[512];
+			final StringBuilder builder = new StringBuilder ();
+			int n;
+			int controlCount = 0;
+			
+			while ((n = reader.read (buffer)) >= 0) {
+				// Quick and dirty method for detecting whether this is a plain text file: 
+				// if the file contains any control characters (character code < 8) it will be classified as binary. 
+				for (int i = 0; i < n; ++ i) {
+					if (buffer[i] >= 0 && buffer[i] < 8) {
+						++ controlCount;
+					}
+				}
+				if (n > 0) {
+					builder.append (Arrays.copyOf (buffer, n));
+				}
+			}
+			
+			return ok (uploadFileForm.render (controlCount == 0 ? builder.toString () : null));
+		} catch (IOException e) {
+			return ok (uploadFileForm.render (null));
+		}
 	}
 	
 	public static class StyleForm {
