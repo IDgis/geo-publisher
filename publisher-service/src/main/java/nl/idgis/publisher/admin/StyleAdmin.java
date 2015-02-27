@@ -2,7 +2,6 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QStyle.style;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -38,12 +37,7 @@ public class StyleAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {
-		log.debug ("handleListStyles");
-		
-		return 
-			db.query().from(style)
-			.list(new QStyle(style.identification,style.name,style.definition))
-			.thenApply(this::toPage);
+		return handleListStylesWithQuery (new ListStyles (null, null));
 	}
 	
 	private CompletableFuture<Page<Style>> handleListStylesWithQuery (final ListStyles listStyles) {

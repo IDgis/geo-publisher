@@ -94,20 +94,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {
-		log.debug ("handleListLayergroups");
-		return 
-			db.query().from(genericLayer)
-			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
-			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()))
-			.list(new QLayerGroup(
-					genericLayer.identification,
-					genericLayer.name,
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					genericLayer.published
-				))
-			.thenApply(this::toPage);
+		return handleListLayerGroupsWithQuery (new ListLayerGroups (null, null, null));
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayerGroupsWithQuery (final ListLayerGroups listLayerGroups) {
@@ -116,7 +103,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 			.from(genericLayer)
 			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
-			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()));
+			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()))
+			.orderBy (genericLayer.name.asc ());
 
 		// Add a filter for the query string:
 		if (listLayerGroups.getQuery () != null) {

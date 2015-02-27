@@ -45,31 +45,15 @@ public class ServiceAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
-		log.debug ("handleListServices");
-		
-		return 
-			db.query().from(service)
-			.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-			.list(new QService(
-					service.identification,
-					service.name,
-					service.title, 
-					service.alternateTitle, 
-					service.abstractCol,
-					service.metadata,
-					service.published,
-					genericLayer.identification,					
-//					service.constantsId
-					ConstantImpl.create("")					
-				))
-			.thenApply(this::toPage);
+		return handleListServicesWithQuery (new ListServices (null, null, null));
 	}
 
 	private CompletableFuture<Page<Service>> handleListServicesWithQuery (final ListServices listServices) {
 		final AsyncSQLQuery baseQuery = db
 				.query()
 				.from(service)
-				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id));
+				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+				.orderBy (service.name.asc ());
 		
 		// Add a filter for the query string:
 		if (listServices.getQuery () != null) {

@@ -53,15 +53,7 @@ public class LayerAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
-		log.debug("handleListLayers");
-		return db
-			.query()
-			.from(genericLayer)
-			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
-			.list(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-					genericLayer.abstractCol, genericLayer.published, dataset.identification))
-			.thenApply(this::toPage);
+		return handleListLayersWithQuery (new ListLayers (null, null, null));
 	}
 	
 	private CompletableFuture<Page<Layer>> handleListLayersWithQuery (final ListLayers listLayers) {
@@ -69,7 +61,8 @@ public class LayerAdmin extends AbstractAdmin {
 				.query()
 				.from(genericLayer)
 				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.join(dataset).on(leafLayer.datasetId.eq(dataset.id));
+				.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
+				.orderBy (genericLayer.name.asc ());
 		
 		// Add a filter for the query string:
 		if (listLayers.getQuery () != null) {
