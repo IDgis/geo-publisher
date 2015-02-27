@@ -16,4 +16,9 @@ public class GroupRef extends PublishedRef {
 		return this;
 	}
 
+	@Override
+	public String toString() {
+		return "GroupRef [layerName=" + layerName + "]";
+	}
+
 }
