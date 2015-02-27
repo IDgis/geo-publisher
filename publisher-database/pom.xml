@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<artifactId>publisher-database</artifactId>	
@@ -7,7 +8,7 @@
 	<parent>
 		<groupId>nl.idgis.publisher</groupId>
 		<artifactId>publisher</artifactId>
-		<version>0.0.2-SNAPSHOT</version>
+		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
 	<properties>
@@ -17,7 +18,7 @@
 		<database.sql.data>${database.directory}/publisher-data.sql</database.sql.data>
 		<database.url>jdbc:h2:${database.directory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL</database.url>
 		<database.user>sa</database.user>
-		<database.password />		
+		<database.password></database.password>		
 	</properties>
 	
 	<dependencies>
@@ -88,7 +89,7 @@
 						<configuration>
 							<target>
 								<echo>initializing database</echo>
-								<delete dir="${database.directory}" failonerror="false" />
+								<delete dir="${database.directory}" failonerror="false"/>
 								<concat destfile="${database.sql}">
 									<sort>
 										<fileset dir="${basedir}/src/main/resources/nl/idgis/publisher/database">
@@ -103,7 +104,12 @@
 										</fileset>
 									</sort>
 								</concat>
-								<sql driver="${database.driver}" url="${database.url}" userid="${database.user}" password="${database.password}" src="${database.sql}" />
+								<sql 
+									driver="${database.driver}" 
+									url="${database.url}" 
+									userid="${database.user}"
+									password="${database.password}" 
+									src="${database.sql}"/>
 								<echo>finished</echo>
 							</target>
 						</configuration>						
@@ -118,10 +124,10 @@
 							<target>
 								<echo>exporting database properties</echo>
 								<propertyfile file="${database.directory}/publisher.properties">
-									<entry key="database.driver" value="${database.driver}" />
-									<entry key="database.url" value="${database.url}" />
-									<entry key="database.user" value="${database.user}" />
-									<entry key="database.password" value="${database.password}" />
+									<entry key="database.driver" value="${database.driver}"/>
+									<entry key="database.url" value="${database.url}"/>
+									<entry key="database.user" value="${database.user}"/>
+									<entry key="database.password" value="${database.password}"/>
 								</propertyfile>
     							<echo>finished</echo>
 							</target>
