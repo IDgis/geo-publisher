@@ -184,8 +184,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		int styleId0 = insert(style)
 			.set(style.identification, "style0")
-			.set(style.name, "styleName0")
+			.set(style.name, "styleName0")			
 			.set(style.definition, "")
+			.set(style.styleType, "POINT")
 			.executeWithKey(style.id);
 		
 		insert(layerStyle)
@@ -197,6 +198,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(style.identification, "style1")
 			.set(style.name, "styleName1")
 			.set(style.definition, "")
+			.set(style.styleType, "POINT")
 			.executeWithKey(style.id);
 		
 		insert(layerStyle)
