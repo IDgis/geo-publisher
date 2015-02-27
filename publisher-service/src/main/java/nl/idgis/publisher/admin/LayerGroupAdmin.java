@@ -17,8 +17,10 @@ import java.util.stream.Collectors;
 
 import com.mysema.query.sql.SQLSubQuery;
 
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
@@ -28,6 +30,8 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
+import nl.idgis.publisher.domain.web.QStyle;
+import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -63,6 +67,8 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		
 		doQueryOptional(GetGroupStructure.class, this::handleGetGroupStructure);
 		doQuery(PutGroupStructure.class, this::handlePutGroupStructure);
+		
+		doQuery (ListLayerGroups.class, this::handleListLayerGroupsWithQuery);
 
 	}
 
@@ -111,6 +117,52 @@ public class LayerGroupAdmin extends AbstractAdmin {
 			.thenApply(this::toPage);
 	}
 
+	private CompletableFuture<Page<LayerGroup>> handleListLayerGroupsWithQuery (final ListLayerGroups listLayerGroups) {
+		final AsyncSQLQuery baseQuery = db
+			.query()
+			.from(genericLayer)
+			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
+			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()));
+
+		// Add a filter for the query string:
+		if (listLayerGroups.getQuery () != null) {
+			baseQuery.where (
+					genericLayer.name.containsIgnoreCase (listLayerGroups.getQuery ())
+					.or (genericLayer.title.containsIgnoreCase (listLayerGroups.getQuery()))
+				);
+		}
+		
+		// Add a filter for the published flag:
+		if (listLayerGroups.getPublished () != null) {
+			baseQuery.where (genericLayer.published.eq (listLayerGroups.getPublished ()));
+		}
+		
+		final AsyncSQLQuery listQuery = baseQuery.clone ();
+		
+		singlePage (listQuery, listLayerGroups.getPage ());
+		
+		return baseQuery
+				.count ()
+				.thenCompose ((count) -> {
+					final Page.Builder<LayerGroup> builder = new Page.Builder<> ();
+					
+					addPageInfo (builder, listLayerGroups.getPage (), count);
+					
+					return listQuery
+						.list (new QLayerGroup(
+								genericLayer.identification,
+								genericLayer.name,
+								genericLayer.title, 
+								genericLayer.abstractCol,
+								genericLayer.published
+							))
+						.thenApply ((styles) -> {
+							builder.addAll (styles.list ());
+							return builder.build ();
+						});
+				});
+	}
 	
 	private CompletableFuture<Optional<LayerGroup>> handleGetLayergroup (String layergroupId) {
 		log.debug ("handleGetLayergroup: " + layergroupId);

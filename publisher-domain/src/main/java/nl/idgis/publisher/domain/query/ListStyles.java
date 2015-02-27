@@ -1,7 +1,6 @@
 package nl.idgis.publisher.domain.query;
 
 import nl.idgis.publisher.domain.response.Page;
-import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Style;
 
 public class ListStyles implements DomainQuery<Page<Style>> {
