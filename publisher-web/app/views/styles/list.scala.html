@@ -58,10 +58,21 @@
 					data-style-id="@style.id"
 					data-style-name="@style.name">
 					<div class="row">
-						<div class="col-md-10">
+						<div class="col-md-5">
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Styles.edit(style.id)" class="text-warning">@style.name</a>
 							</h4>
+						</div>
+						<div class="col-md-5">
+							@if(style.styleType == StyleType.POINT) {
+								<span>@Domain.message("web.application.page.styles.form.field.type.point")</span>
+							}
+							@if(style.styleType == StyleType.LINE) {
+								<span>@Domain.message("web.application.page.styles.form.field.type.line")</span>
+							}
+							@if(style.styleType == StyleType.POLYGON) {
+								<span>@Domain.message("web.application.page.styles.form.field.type.polygon")</span>
+							}
 						</div>
 						<div class="col-md-2">
 							<div class="btn-group pull-right">
