@@ -31,12 +31,62 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
 public class GetGroupLayerQuery extends AbstractQuery<Object> {
+	
+	private class GroupQuery extends AbstractGroupQuery {
+		
+		@Override
+		protected CompletableFuture<TypedList<Tuple>> groupInfo() {
+			return withGroupStructure.clone()
+				.from(genericLayer)
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
+					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
+				.list(
+					genericLayer.id,
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter);
+		}
+		
+		@Override
+		protected CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
+			return withGroupStructure.clone()
+				.from(genericLayer)
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
+					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
+				.list(
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
+		}
+	}
 	
 	private class DatasetQuery extends AbstractDatasetQuery {
 		
@@ -197,74 +247,9 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
 	}
 	
-	private CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
-		return withGroupStructure.clone()
-			.from(genericLayer)
-			.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-			.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-			.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
-			.where(new SQLSubQuery().from(leafLayer)
-				.where(leafLayer.genericLayerId.eq(genericLayer.id))
-				.notExists())	
-			.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-				.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-			.list(
-				genericLayer.id,
-				tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-					resp.list().stream()
-						.collect(Collectors.groupingBy(t ->
-							t.get(genericLayer.id),
-							Collectors.mapping(t ->
-								t.get(tiledLayerMimeformat.mimeformat),
-								Collectors.toList()))));
-	}
-	
-	private CompletableFuture<TypedList<Tuple>> groupInfo() {
-		return withGroupStructure.clone()
-			.from(genericLayer)
-			.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
-			.where(new SQLSubQuery().from(leafLayer)
-				.where(leafLayer.genericLayerId.eq(genericLayer.id))
-				.notExists())	
-			.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-				.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-			.list(
-				genericLayer.id,
-				genericLayer.identification, 
-				genericLayer.name, 
-				genericLayer.title, 
-				genericLayer.abstractCol,
-				tiledLayer.genericLayerId,
-				tiledLayer.metaWidth,					
-				tiledLayer.metaHeight,
-				tiledLayer.expireCache,
-				tiledLayer.expireClients,
-				tiledLayer.gutter);
-	}
-	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
-		return tilingGroupMimeFormats().thenCompose(tilingMimeFormats -> 
-			groupInfo().thenApply(resp -> 
-				new TypedList<>(PartialGroupLayer.class, resp.list().stream()
-					.map(t -> 
-						new PartialGroupLayer(
-							t.get(genericLayer.identification),
-							t.get(genericLayer.name),
-							t.get(genericLayer.title),
-							t.get(genericLayer.abstractCol),							
-							t.get(tiledLayer.genericLayerId) == null ? null
-								: new DefaultTiling(
-									tilingMimeFormats.get(t.get(genericLayer.id)),
-									t.get(tiledLayer.metaWidth),
-									t.get(tiledLayer.metaHeight),
-									t.get(tiledLayer.expireCache),
-									t.get(tiledLayer.expireClients),
-									t.get(tiledLayer.gutter))))
-					.collect(Collectors.toList()))));
+		return new GroupQuery().result();
 	}
-	
-	
 	
 	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
 		return new DatasetQuery().result();
