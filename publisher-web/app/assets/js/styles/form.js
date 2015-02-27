@@ -28,11 +28,15 @@ require ([
 		var reader = new FileReader (file);
 		
 		reader.onload = function (e) {
-			xhr.post ('/', {
+			xhr.post (jsRoutes.controllers.Styles.handleFileUpload ().url, {
 				handleAs: 'json',
 				data: e.target.result,
 				headers: {
 					'Content-Type': 'text/plain; charset=x-user-defined-binary'
+				}
+			}).then (function (data) {
+				if (data.valid) {
+					styleEditorElement.value = data.textContent;
 				}
 			});
 		};

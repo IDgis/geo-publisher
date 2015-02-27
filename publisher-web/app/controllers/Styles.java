@@ -28,6 +28,8 @@ import play.data.validation.Constraints;
 import play.libs.Akka;
 import play.libs.F;
 import play.libs.F.Promise;
+import play.libs.Json;
+import play.mvc.BodyParser;
 import play.mvc.Controller;
 import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
@@ -38,6 +40,8 @@ import views.html.styles.list;
 import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -216,19 +220,31 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (null));
 	}
 	
+	@BodyParser.Of (value = BodyParser.Raw.class)
 	public static Result handleFileUpload () {
-		final MultipartFormData body = request ().body ().asMultipartFormData ();
-		final FilePart uploadFile = body.getFile ("file");
+		final File file;
+		final boolean jsonResponse;
 		
-		if (uploadFile == null) {
-			return ok (uploadFileForm.render (null));
-		}
-		
-		final File file = uploadFile.getFile ();
-		if (file == null) {
-			return ok (uploadFileForm.render (null));
+		if (request ().getHeader ("Content-Type").toLowerCase ().startsWith ("text/plain")) {
+			file = request ().body ().asRaw () != null ? request ().body ().asRaw ().asFile () : null;
+			jsonResponse = true;
+		} else {
+			final MultipartFormData body = request ().body ().asMultipartFormData ();
+			final FilePart uploadFile = body.getFile ("file");
+			
+			if (uploadFile == null) {
+				return ok (uploadFileForm.render (null));
+			}
+			
+			file = uploadFile.getFile ();
+			jsonResponse = false;
 		}
 
+		if (file == null) {
+			Logger.debug ("No file");
+			return ok (uploadFileForm.render (null));
+		}
+		
 		try (final Reader reader = new InputStreamReader (new FileInputStream (file), Charset.forName ("UTF-8"))) {
 			final char[] buffer = new char[512];
 			final StringBuilder builder = new StringBuilder ();
@@ -247,8 +263,21 @@ public class Styles extends Controller {
 					builder.append (Arrays.copyOf (buffer, n));
 				}
 			}
-			
-			return ok (uploadFileForm.render (controlCount == 0 ? builder.toString () : null));
+		
+			if (jsonResponse) {
+				final ObjectNode node = Json.newObject ();
+				
+				if (controlCount == 0) {
+					node.put ("valid", true);
+					node.put ("textContent", builder.toString ());
+				} else {
+					node.put ("valid", false);
+				}
+				
+				return ok (node);
+			} else {
+				return ok (uploadFileForm.render (controlCount == 0 ? builder.toString () : null));
+			}
 		} catch (IOException e) {
 			return ok (uploadFileForm.render (null));
 		}
