@@ -1,15 +1,14 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QService.service;
+
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import com.mysema.query.types.ConstantImpl;
-
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -18,6 +17,8 @@ import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
+import com.mysema.query.types.ConstantImpl;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
@@ -39,6 +40,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		doGet(Service.class, this::handleGetService);
 		doPut(Service.class, this::handlePutService);
 		doDelete(Service.class, this::handleDeleteService);
+		
+		doQuery (ListServices.class, this::handleListServicesWithQuery);
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
@@ -62,6 +65,53 @@ public class ServiceAdmin extends AbstractAdmin {
 			.thenApply(this::toPage);
 	}
 
+	private CompletableFuture<Page<Service>> handleListServicesWithQuery (final ListServices listServices) {
+		final AsyncSQLQuery baseQuery = db
+				.query()
+				.from(service)
+				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id));
+		
+		// Add a filter for the query string:
+		if (listServices.getQuery () != null) {
+			baseQuery.where (service.name.containsIgnoreCase (listServices.getQuery ())
+					.or (service.title.containsIgnoreCase (listServices.getQuery ()))
+				);
+		}
+		
+		// Add a filter for the published flag:
+		if (listServices.getPublished () != null) {
+			baseQuery.where (service.published.eq (listServices.getPublished ()));
+		}
+		
+		final AsyncSQLQuery listQuery = baseQuery.clone ();
+		
+		singlePage (listQuery, listServices.getPage ());
+		
+		return baseQuery
+				.count ()
+				.thenCompose ((count) -> {
+					final Page.Builder<Service> builder = new Page.Builder<> ();
+					
+					addPageInfo (builder, listServices.getPage (), count);
+					
+					return listQuery
+						.list (new QService(
+								service.identification,
+								service.name,
+								service.title, 
+								service.alternateTitle, 
+								service.abstractCol,
+								service.metadata,
+								service.published,
+								genericLayer.identification,					
+								ConstantImpl.create("")					
+							))
+						.thenApply ((styles) -> {
+							builder.addAll (styles.list ());
+							return builder.build ();
+						});
+				});
+	}
 	
 	private CompletableFuture<Optional<Service>> handleGetService (String serviceId) {
 		log.debug ("handleGetService: " + serviceId);
