@@ -134,6 +134,8 @@ web.application.layout.dropdowntitle.tasks=Taken
 web.application.layout.dropdowntitle.errors=Nieuwe fouten
 
 web.application.layout.sidebar.dashboard=Dashboard
+web.application.layout.sidebar.generalmanagement=Algemeen beheer
+web.application.layout.sidebar.constants=Gegevens
 web.application.layout.sidebar.datamanagement=Databeheer
 web.application.layout.sidebar.datasets=Datasets
 web.application.layout.sidebar.sourcedatasets=Brongegevens

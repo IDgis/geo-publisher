@@ -5,6 +5,11 @@
 # Dashboard
 GET		/												controllers.Dashboard.index()
 
+# General management
+
+GET 	/constants/-/create								controllers.Constants.create()
+
+
 # Datasets
 GET		/datasets										controllers.Datasets.list(page: Long ?= 1)
 GET		/datasets/-/create								controllers.Datasets.createForm()
