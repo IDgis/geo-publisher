@@ -13,7 +13,9 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
@@ -51,16 +53,16 @@ public class EnsureService extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> layers(List<Layer> layers) {
+	private Procedure<Object> layers(List<LayerRef<?>> layers) {
 		return layers(layers, 0);
 	}
 	
-	private Procedure<Object> layers(List<Layer> layers, int depth) {
+	private Procedure<Object> layers(List<LayerRef<?>> layers, int depth) {
 		log.debug("-> layers {}", depth);
 		
 		return new Procedure<Object>() {
 			
-			Iterator<Layer> itr = layers.iterator();
+			Iterator<LayerRef<?>> itr = layers.iterator();
 
 			@Override
 			public void apply(Object msg) throws Exception {
@@ -68,23 +70,27 @@ public class EnsureService extends UntypedActor {
 					log.debug("ensured (layers)");
 					
 					if(itr.hasNext()) {
-						Layer layer = itr.next();
+						LayerRef<?> layerRef = itr.next();
 						
-						if(layer.isGroup()) {
+						if(layerRef.isGroupRef()) {
+							GroupLayer layer = layerRef.asGroupRef().getLayer();
+							
 							getContext().parent().tell(
 								new EnsureGroupLayer(
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(),
 									layer.getTiling().orElse(null)), getSelf());							
-							getContext().become(layers(layer.asGroup().getLayers(), depth + 1), false);
+							getContext().become(layers(layer.getLayers(), depth + 1), false);
 						} else {
+							DatasetLayer layer = layerRef.asDatasetRef().getLayer();
+							
 							getContext().parent().tell(
 								new EnsureFeatureTypeLayer(
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(), 
-									layer.asDataset().getTableName(),
+									layer.getTableName(),
 									layer.getTiling().orElse(null)), getSelf());
 						}
 					} else {

@@ -197,7 +197,8 @@ public class Groups extends GroupsLayersCommon {
 								}
 								
 								Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
-								for (nl.idgis.publisher.domain.web.tree.Layer layer : groupLayer.getLayers()) {
+								for (nl.idgis.publisher.domain.web.tree.LayerRef layerRef : groupLayer.getLayers()) {
+									nl.idgis.publisher.domain.web.tree.Layer layer = layerRef.getLayer();
 									Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
 								}
 			

@@ -2,7 +2,7 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
 
-public interface GroupLayer extends Layer, Group {
+public interface GroupLayer extends Layer {
 
-	List<Layer> getLayers();
+	List<LayerRef<? extends Layer>> getLayers();
 }

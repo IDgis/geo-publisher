@@ -40,5 +40,5 @@ public interface Service {
 	
 	String getRootId();
 	
-	List<Layer> getLayers();
+	List<LayerRef<? extends Layer>> getLayers();
 }

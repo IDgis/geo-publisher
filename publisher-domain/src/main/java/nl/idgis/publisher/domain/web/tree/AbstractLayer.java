@@ -3,64 +3,44 @@ package nl.idgis.publisher.domain.web.tree;
 import java.io.Serializable;
 import java.util.Optional;
 
-public abstract class AbstractLayer<T extends Item> implements Layer, Item, Serializable {
+public abstract class AbstractLayer implements Layer, Serializable {		
 
-	private static final long serialVersionUID = 5134964120505946288L;
+	private static final long serialVersionUID = 5072400426320074451L;
 
-	private final boolean isGroup;
+	protected final String id, name, title, abstr;
 	
-	protected final T item;
+	protected final Tiling tiling;
 	
-	public AbstractLayer(T item, boolean isGroup) {
-		this.item = item;
-		this.isGroup = isGroup;
-	}
-	
-	@Override
-	public final boolean isGroup() {
-		return isGroup;
-	}
-
-	@Override
-	public final GroupLayer asGroup() {
-		if(!isGroup) {
-			throw new UnsupportedOperationException("Not a group");
-		}
-		
-		return (GroupLayer)this;
-	}
-
-	@Override
-	public final DatasetLayer asDataset() {
-		if(isGroup) {
-			throw new UnsupportedOperationException("Not a dataset");
-		}
-		
-		return (DatasetLayer)this;
+	public AbstractLayer(String id, String name, String title, String abstr, Tiling tiling) {
+		this.id = id;
+		this.name = name;
+		this.title = title;
+		this.abstr = abstr;
+		this.tiling = tiling;
 	}
 
 	@Override
 	public String getId() {
-		return item.getId();
+		return id;
 	}
 
 	@Override
 	public String getName() {
-		return item.getName();
+		return name;
 	}
 
 	@Override
 	public String getTitle() {
-		return item.getTitle();
+		return title;
 	}
 
 	@Override
 	public String getAbstract() {
-		return item.getAbstract();
-	}	
+		return abstr;
+	}
 	
 	@Override
 	public Optional<Tiling> getTiling() {
-		return item.getTiling();
+		return Optional.ofNullable(tiling);
 	}
 }
