@@ -420,6 +420,21 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("group", groupLayer.getId());
 		assertEquals("group-name", groupLayer.getName());
 		
+		optionalTiling = groupLayer.getTiling();
+		assertTrue(optionalTiling.isPresent());
+		
+		tiling = optionalTiling.get();
+		assertEquals(Integer.valueOf(4), tiling.getMetaWidth());
+		assertEquals(Integer.valueOf(6), tiling.getMetaHeight());
+		assertEquals(Integer.valueOf(1), tiling.getExpireCache());
+		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
+		assertEquals(Integer.valueOf(5), tiling.getGutter());
+		
+		mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
+		
 		groupLayers = groupLayer.getLayers();
 		assertNotNull(groupLayers);
 		

@@ -20,7 +20,14 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private final Map<String, String> styles;
 	
-	public DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
+	public static DefaultGroupLayer newInstance(String groupId, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
+		Map<String, String> structure, Map<String, String> styles) {
+		
+		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
+		return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets), groupsMap, structure, styles);
+	}
+	
+	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		Map<String, String> structure, Map<String, String> styles) {
 		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}

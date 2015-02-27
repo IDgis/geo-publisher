@@ -253,45 +253,66 @@ public class ServiceManager extends UntypedActor {
 				.orderBy(groupStructure.layerOrder.asc())
 				.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
 			
-			CompletableFuture<Optional<PartialGroupLayer>> root = tx.query().from(genericLayer)				
-				.where(genericLayer.identification.eq(groupLayerId)
-					.and(new SQLSubQuery().from(leafLayer)
+			CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats = withGroupStructure.clone()
+					.from(genericLayer)
+					.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+					.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+					.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+					.where(new SQLSubQuery().from(leafLayer)
 						.where(leafLayer.genericLayerId.eq(genericLayer.id))
-						.notExists()))
-				.singleResult(
+						.notExists())	
+					.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
+						.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
+					.list(
+						genericLayer.id,
+						tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+							resp.list().stream()
+								.collect(Collectors.groupingBy(t ->
+									t.get(genericLayer.id),
+									Collectors.mapping(t ->
+										t.get(tiledLayerMimeformat.mimeformat),
+										Collectors.toList()))));
+			
+			CompletableFuture<TypedList<Tuple>> groupTuples = withGroupStructure.clone()
+				.from(genericLayer)
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
+				.where(new SQLSubQuery().from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(genericLayer.id))
+					.notExists())	
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
+					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
+				.list(
+					genericLayer.id,
 					genericLayer.identification, 
 					genericLayer.name, 
 					genericLayer.title, 
-					genericLayer.abstractCol).thenApply(resp -> 
-						resp.map(t -> 
+					genericLayer.abstractCol,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter);
+			
+			CompletableFuture<TypedList<PartialGroupLayer>> groups = tilingGroupMimeFormats.thenCompose(tilingMimeFormats -> 
+				groupTuples.thenApply(resp -> 
+					new TypedList<>(PartialGroupLayer.class, resp.list().stream()
+						.map(t -> 
 							new PartialGroupLayer(
 								t.get(genericLayer.identification),
 								t.get(genericLayer.name),
 								t.get(genericLayer.title),
-								t.get(genericLayer.abstractCol),
-								null)));
-			
-			CompletableFuture<TypedList<PartialGroupLayer>> groups = withGroupStructure.clone()
-				.from(genericLayer)
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.where(new SQLSubQuery().from(leafLayer)
-					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol).thenApply(resp -> 
-						new TypedList<>(PartialGroupLayer.class, resp.list().stream()
-							.map(t -> 
-								new PartialGroupLayer(
-									t.get(genericLayer.identification),
-									t.get(genericLayer.name),
-									t.get(genericLayer.title),
-									t.get(genericLayer.abstractCol),
-									null))
-							.collect(Collectors.toList())));
+								t.get(genericLayer.abstractCol),							
+								t.get(tiledLayer.genericLayerId) == null ? null
+									: new DefaultTiling(
+										tilingMimeFormats.get(t.get(genericLayer.id)),
+										t.get(tiledLayer.metaWidth),
+										t.get(tiledLayer.metaHeight),
+										t.get(tiledLayer.expireCache),
+										t.get(tiledLayer.expireClients),
+										t.get(tiledLayer.gutter))))
+						.collect(Collectors.toList()))));
 			
 			// last query -> .clone() not required
 			CompletableFuture<TypedList<DefaultDatasetLayer>> datasets = withGroupStructure  
@@ -318,30 +339,29 @@ public class ServiceManager extends UntypedActor {
 								Collections.emptyList()))
 							.collect(Collectors.toList())));
 			
-			return root.thenCompose(rootResult ->
-				rootResult.isPresent()
-				? structure.thenCompose(structureResult ->
-					groups.thenCompose(groupsResult ->										
-						datasets.thenApply(datasetsResult -> {							
-							// LinkedHashMap is used to preserve layer order
-							Map<String, String> structureMap = new LinkedHashMap<>();
-							
-							Map<String, String> styleMap = new HashMap<>();
-							
-							for(Tuple structureTuple : structureResult) {
-								structureMap.put(
-									structureTuple.get(groupStructure.childLayerIdentification),
-									structureTuple.get(groupStructure.parentLayerIdentification));
-							}
-			
-							return new DefaultGroupLayer(
-								rootResult.get(), 
-								datasetsResult.list(),
-								groupsResult.list(),
-								structureMap,
-								styleMap);
-						})))
-				: f.successful(new NotFound()));
+			return groups.thenCompose(groupsResult ->
+				groupsResult.list().isEmpty()
+				? f.successful(new NotFound())
+				: structure.thenCompose(structureResult ->															
+					datasets.thenApply(datasetsResult -> {							
+						// LinkedHashMap is used to preserve layer order
+						Map<String, String> structureMap = new LinkedHashMap<>();
+						
+						Map<String, String> styleMap = new HashMap<>();
+						
+						for(Tuple structureTuple : structureResult) {
+							structureMap.put(
+								structureTuple.get(groupStructure.childLayerIdentification),
+								structureTuple.get(groupStructure.parentLayerIdentification));
+						}
+		
+						return DefaultGroupLayer.newInstance(
+							groupLayerId,
+							datasetsResult.list(),
+							groupsResult.list(),
+							structureMap,
+							styleMap);
+					})));
 		});
 	}
 
@@ -360,22 +380,6 @@ public class ServiceManager extends UntypedActor {
 					serviceStructure.styleIdentification,
 					serviceStructure.childLayerIdentification, 
 					serviceStructure.parentLayerIdentification);
-			
-			CompletableFuture<Optional<PartialGroupLayer>> root = tx.query().from(genericLayer)
-				.join(service).on(service.genericLayerId.eq(genericLayer.id))
-				.where(service.identification.eq(serviceId))
-				.singleResult(
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol).thenApply(resp ->
-						resp.map(t ->
-							new PartialGroupLayer(
-								t.get(genericLayer.identification),
-								t.get(genericLayer.name),
-								t.get(genericLayer.title),
-								t.get(genericLayer.abstractCol),
-								null))); // a root group doesn't have (or need) tiling
 			
 			CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats = withServiceStructure.clone()
 				.from(genericLayer)
@@ -540,12 +544,17 @@ public class ServiceManager extends UntypedActor {
 			
 			CompletableFuture<Optional<Tuple>> serviceInfo = 
 				tx.query().from(service)
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 				.leftJoin(constants).on(constants.id.eq(service.constantsId))
 				.where(service.identification.eq(serviceId))
 				.singleResult(
 					service.name,
 					service.title,
 					service.abstractCol,
+					genericLayer.identification, 
+					genericLayer.name, 
+					genericLayer.title, 
+					genericLayer.abstractCol,
 					constants.contact,
 					constants.organization,
 					constants.position,
@@ -564,13 +573,12 @@ public class ServiceManager extends UntypedActor {
 				.where(service.identification.eq(serviceId))
 				.list(serviceKeyword.keyword);
 			
-			return root.thenCompose(rootResult ->
-				rootResult.isPresent()
-				? structure.thenCompose(structureResult ->
-					groups.thenCompose(groupsResult ->	
-					serviceInfo.thenCompose(serviceInfoResult ->
+			return serviceInfo.thenCompose(serviceInfoResult ->
+				!serviceInfoResult.isPresent()
+				? f.successful(new NotFound())
+				: structure.thenCompose(structureResult ->						
+					groups.thenCompose(groupsResult ->
 					serviceKeywords.thenCompose(keywords ->
-					
 						datasets.thenApply(datasetsResult -> {							
 							// LinkedHashMap is used to preserve layer order
 							Map<String, String> structureMap = new LinkedHashMap<>();
@@ -608,13 +616,17 @@ public class ServiceManager extends UntypedActor {
 								serviceInfoTuple.get(constants.telephone),
 								serviceInfoTuple.get(constants.fax),
 								serviceInfoTuple.get(constants.email),
-								rootResult.get(),
+								new PartialGroupLayer(
+									serviceInfoTuple.get(genericLayer.identification),
+									serviceInfoTuple.get(genericLayer.name),
+									serviceInfoTuple.get(genericLayer.title),
+									serviceInfoTuple.get(genericLayer.abstractCol),
+									null), // a root group doesn't have (or need) tiling
 								datasetsResult.list(),
 								groupsResult.list(),
 								structureMap,
 								styleMap);
-						})))))
-				: f.successful(new NotFound()));
+						})))));
 		});
 	}
 
