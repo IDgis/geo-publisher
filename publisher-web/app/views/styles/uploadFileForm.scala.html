@@ -14,7 +14,7 @@
 ) {
 	<form method="POST" action="@routes.Styles.handleFileUpload()" enctype="multipart/form-data">
 		<input type="file" name="file" class="pull-left">
-		<button type="submit" class="btn btn-default">Uploaden</button>
+		<button type="submit" class="btn btn-default">@Domain.message("web.application.page.styles.form.field.browse.button")</button>
 	</form>
 	
 	@if(content != null) {
