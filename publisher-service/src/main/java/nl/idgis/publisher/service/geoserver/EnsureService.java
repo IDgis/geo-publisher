@@ -90,6 +90,7 @@ public class EnsureService extends UntypedActor {
 									layer.getName(), 
 									layer.getTitle(), 
 									layer.getAbstract(), 
+									layer.getKeywords(),
 									layer.getTableName(),
 									layer.getTiling().orElse(null)), getSelf());
 						}
