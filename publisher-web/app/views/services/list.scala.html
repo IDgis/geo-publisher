@@ -1,5 +1,9 @@
 @(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service], query: String, published: java.lang.Boolean)
 
+@pageRef(targetPage: Long) = @{	  
+	routes.Services.list (query, published, targetPage)		
+}
+
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.services.list.header") ) {
 
@@ -116,6 +120,9 @@
 					<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
 				</a>
 			</div>
+			
+			@helper.pagination(services, pageRef)
+			
 		</div> @* /services*@
 	
 	</div>

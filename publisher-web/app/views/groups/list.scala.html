@@ -1,5 +1,9 @@
 @(groups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LayerGroup], query: String, published: java.lang.Boolean)
 
+@pageRef(targetPage: Long) = @{	  
+	routes.Groups.list (query, published, targetPage)		
+}
+
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.groups.list.header") ) {
 
@@ -110,6 +114,9 @@
 				}
 			</div>
 			}
+			
+			@helper.pagination(groups, pageRef)
+			
 		</div> @* /Groups *@
 		
 	</div>

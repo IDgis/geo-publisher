@@ -1,5 +1,9 @@
 @(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], query: String, published: java.lang.Boolean)
 
+@pageRef(targetPage: Long) = @{	  
+	routes.Layers.list (query, published, targetPage)		
+}
+
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.layers.list.header") ) {
 
@@ -111,6 +115,9 @@
 				}
 			</div>
 			}
+			
+			@helper.pagination(layers, pageRef)
+			
 		</div> @* /LayerList *@
 		
 	</div>
