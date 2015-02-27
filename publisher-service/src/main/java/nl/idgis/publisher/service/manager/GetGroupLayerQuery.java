@@ -3,7 +3,10 @@ package nl.idgis.publisher.service.manager;
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
+import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
@@ -12,7 +15,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,84 @@ import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
 public class GetGroupLayerQuery extends AbstractQuery<Object> {
+	
+	private class DatasetQuery extends AbstractDatasetQuery {
+		
+		@Override
+		protected CompletableFuture<Map<Integer, List<String>>> datasetKeywords() {
+			return withGroupStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id))
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(
+					genericLayer.id,
+					leafLayerKeyword.keyword).thenApply(resp ->
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(leafLayerKeyword.keyword),
+									Collectors.toList()))));
+		}
+		
+		@Override
+		protected CompletableFuture<Map<Integer, List<String>>> datasetStyles() {
+			return withGroupStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+				.join(style).on(style.id.eq(layerStyle.styleId))
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(
+					genericLayer.id,
+					style.identification).thenApply(resp ->
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(style.identification),
+									Collectors.toList()))));
+		}
+		
+		@Override
+		protected CompletableFuture<TypedList<Tuple>> datasetInfo() {
+			return withGroupStructure  
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(
+					genericLayer.identification,
+					genericLayer.name,
+					genericLayer.title,
+					genericLayer.abstractCol,
+					dataset.name);
+		}
+
+		@Override
+		protected CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats() {
+			return withGroupStructure.clone()
+				.from(leafLayer)
+				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
+				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
+				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
+				.list(
+					genericLayer.id,
+					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+						resp.list().stream()
+							.collect(Collectors.groupingBy(t ->
+								t.get(genericLayer.id),
+								Collectors.mapping(t ->
+									t.get(tiledLayerMimeformat.mimeformat),
+									Collectors.toList()))));
+		}
+	}
 	
 	private final static QGroupStructure groupStructure = new QGroupStructure("group_structure");	
 	
@@ -184,30 +264,10 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 					.collect(Collectors.toList()))));
 	}
 	
+	
+	
 	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
-		return withGroupStructure  
-			.from(leafLayer)
-			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-			.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
-			.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-			.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-			.list(
-				genericLayer.identification,
-				genericLayer.name,
-				genericLayer.title,
-				genericLayer.abstractCol,
-				dataset.name).thenApply(resp ->
-					new TypedList<>(DefaultDatasetLayer.class, resp.list().stream()
-						.map(t -> new DefaultDatasetLayer(
-							t.get(genericLayer.identification),
-							t.get(genericLayer.name),
-							t.get(genericLayer.title),
-							t.get(genericLayer.abstractCol),
-							null,
-							Collections.emptyList(),
-							t.get(dataset.name),
-							Collections.emptyList()))
-						.collect(Collectors.toList())));
+		return new DatasetQuery().result();
 	}
 
 	@Override
