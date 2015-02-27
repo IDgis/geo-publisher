@@ -316,6 +316,25 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(genericLayer.name, "layer-name")
 			.executeWithKey(genericLayer.id);
 		
+		int tiledLayerId = insert(tiledLayer)
+			.set(tiledLayer.genericLayerId, layerId)
+			.set(tiledLayer.metaWidth, 4)
+			.set(tiledLayer.metaHeight, 6)
+			.set(tiledLayer.expireCache, 1)
+			.set(tiledLayer.expireClients, 2)
+			.set(tiledLayer.gutter, 5)
+			.executeWithKey(tiledLayer.id);
+			
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledLayerId)
+			.set(tiledLayerMimeformat.mimeformat, "image/png")
+			.execute();
+		
+		insert(tiledLayerMimeformat)
+			.set(tiledLayerMimeformat.tiledLayerId, tiledLayerId)
+			.set(tiledLayerMimeformat.mimeformat, "image/jpg")
+			.execute();
+		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
 			.set(leafLayer.datasetId, datasetId)
@@ -412,6 +431,21 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 		assertNotNull(layer);
 		
+		optionalTiling = layer.getTiling();
+		assertTrue(optionalTiling.isPresent());
+		
+		tiling = optionalTiling.get();
+		assertEquals(Integer.valueOf(4), tiling.getMetaWidth());
+		assertEquals(Integer.valueOf(6), tiling.getMetaHeight());
+		assertEquals(Integer.valueOf(1), tiling.getExpireCache());
+		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
+		assertEquals(Integer.valueOf(5), tiling.getGutter());
+		
+		mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
+		
 		assertFalse(groupItr.hasNext());
 		
 		assertFalse(rootItr.hasNext());
@@ -441,8 +475,27 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		groupItr = groupLayers.iterator();
 		assertTrue(groupItr.hasNext());
 		
-		groupItr.next();
-		assertNotNull(layer);		
+		layerRef = groupItr.next();		
+		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
+		
+		layer = layerRef.asDatasetRef().getLayer();
+		assertNotNull(layer);
+		
+		optionalTiling = layer.getTiling();
+		assertTrue(optionalTiling.isPresent());
+		
+		tiling = optionalTiling.get();
+		assertEquals(Integer.valueOf(4), tiling.getMetaWidth());
+		assertEquals(Integer.valueOf(6), tiling.getMetaHeight());
+		assertEquals(Integer.valueOf(1), tiling.getExpireCache());
+		assertEquals(Integer.valueOf(2), tiling.getExpireClients());
+		assertEquals(Integer.valueOf(5), tiling.getGutter());
+		
+		mimeFormats = tiling.getMimeFormats();		
+		assertTrue(mimeFormats.contains("image/png"));
+		assertTrue(mimeFormats.contains("image/jpg"));
+		assertEquals(2, mimeFormats.size());
 		
 		assertFalse(groupItr.hasNext());
 		

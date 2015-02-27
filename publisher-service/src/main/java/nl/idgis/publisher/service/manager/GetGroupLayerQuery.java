@@ -134,15 +134,23 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			return withGroupStructure  
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
 				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
 				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
 				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
 				.list(
+					genericLayer.id,
 					genericLayer.identification,
 					genericLayer.name,
 					genericLayer.title,
 					genericLayer.abstractCol,
-					dataset.name);
+					dataset.identification,
+					tiledLayer.genericLayerId,
+					tiledLayer.metaWidth,					
+					tiledLayer.metaHeight,
+					tiledLayer.expireCache,
+					tiledLayer.expireClients,
+					tiledLayer.gutter);
 		}
 
 		@Override
