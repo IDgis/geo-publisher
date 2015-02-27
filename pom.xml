@@ -9,6 +9,13 @@
 
 	<packaging>pom</packaging>
 
+	<scm>
+		<connection>scm:git:git@github.com:IDgis/geo-publisher.git</connection>
+		<developerConnection>scm:git:git@github.com:IDgis/geo-publisher.git</developerConnection>
+		<url>https://github.com/IDgis/geo-publisher</url>
+		<tag>HEAD</tag>
+	</scm>
+	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -625,6 +632,21 @@
 					</execution>
 				</executions>
 			</plugin>
+			
+			<!-- Configure the release plugin: -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.5.1</version>
+				
+				<configuration>
+					<goals>install</goals>
+					
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<pushChanges>false</pushChanges>
+				</configuration>
+			</plugin>
+			
 		</plugins>
 	</build>
 </project>
