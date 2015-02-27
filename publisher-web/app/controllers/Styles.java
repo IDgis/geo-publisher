@@ -237,7 +237,7 @@ public class Styles extends Controller {
 			this.id = style.id();
 			this.name = style.name();
 			this.definition = style.definition();
-			this.styleType = style.styleType();
+			this.styleType = style.styleType().name();
 		}
 		
 		public String getId() {

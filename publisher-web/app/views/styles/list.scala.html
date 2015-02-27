@@ -64,13 +64,13 @@
 							</h4>
 						</div>
 						<div class="col-md-5">
-							@if(style.styleType=="point") {
+							@if(style.styleType == StyleType.POINT) {
 								<span>@Domain.message("web.application.page.styles.form.field.type.point")</span>
 							}
-							@if(style.styleType=="line") {
+							@if(style.styleType == StyleType.LINE) {
 								<span>@Domain.message("web.application.page.styles.form.field.type.line")</span>
 							}
-							@if(style.styleType=="polygon") {
+							@if(style.styleType == StyleType.POLYGON) {
 								<span>@Domain.message("web.application.page.styles.form.field.type.polygon")</span>
 							}
 						</div>

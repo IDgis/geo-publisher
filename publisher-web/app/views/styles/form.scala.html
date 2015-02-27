@@ -49,9 +49,9 @@
 					<label class="col-sm-2 control-label" for="input-styleType">@Domain.message("web.application.page.styles.form.field.type.label")</label>
 					<div class="col-sm-8">
 						<select class="form-control" id="input-styleType" name="styleType">
-							<option value="point" @if(styleForm("styleType").value=="point"){selected}>@Domain.message("web.application.page.styles.form.field.type.point")</option>
-							<option value="line" @if(styleForm("styleType").value=="line"){selected}>@Domain.message("web.application.page.styles.form.field.type.line")</option>
-							<option value="polygon" @if(styleForm("styleType").value=="polygon"){selected}>@Domain.message("web.application.page.styles.form.field.type.polygon")</option>
+							<option value="POINT" @if(styleForm("styleType").value == "POINT"){selected}>@Domain.message("web.application.page.styles.form.field.type.point")</option>
+							<option value="LINE" @if(styleForm("styleType").value == "LINE"){selected}>@Domain.message("web.application.page.styles.form.field.type.line")</option>
+							<option value="POLYGON" @if(styleForm("styleType").value == "POLYGON"){selected}>@Domain.message("web.application.page.styles.form.field.type.polygon")</option>
 						</select>
 					</div>
 					@helper.tooltips("web.application.page.styles.form.field.type.select")
