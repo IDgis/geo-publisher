@@ -43,6 +43,7 @@ import com.ning.http.client.Response;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import static nl.idgis.publisher.utils.XMLUtils.xpath;
 
@@ -513,23 +514,34 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	private CompletableFuture<Optional<LayerGroup>> getLayerGroup(Workspace workspace, String layerGroupName) {
 		return get(getLayerGroupPath(workspace, layerGroupName)).thenApply(optionalDocument ->
 			optionalDocument.map(document -> {
-				XPathHelper layerGroup = xpath(document).node("layerGroup").get();						
+				XPathHelper layerGroup = xpath(document).node("layerGroup").get();
 				
-				List<PublishedRef> layers = layerGroup.map("publishables/published", published -> {							
-						String name = published.string("name").get();
-						String type = published.string("@type").get();
-						
-						log.debug("type: {}", type);
-						
-						switch(type) {
-							case "layer":
-								return new LayerRef(name);
-							case "layerGroup":
-								return new GroupRef(name);
-							default:
-								throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
-						}
-					});
+				List<PublishedRef> layers = StreamUtils.zip(
+						layerGroup.nodes("publishables/published").stream(),
+						layerGroup.nodes("styles/style").stream().map(style -> style.string("name")))
+							.map(entry -> {
+							
+							XPathHelper published = entry.getFirst();
+							Optional<String> style = entry.getSecond();
+							
+							String name = published.string("name").get();
+							String type = published.string("@type").get();
+							
+							log.debug("type: {}", type);
+
+							switch(type) {
+								case "layer":
+									if(style.isPresent()) {
+										return new LayerRef(name, style.get());
+									} else {
+										return new LayerRef(name);
+									}
+								case "layerGroup":
+									return new GroupRef(name);
+								default:
+									throw new IllegalArgumentException("unknown published type: " + type + ", name: " + name);
+							}
+					}).collect(Collectors.toList());
 				
 				String title = layerGroup.stringOrNull("title");
 				String abstr = layerGroup.stringOrNull("abstractTxt");
@@ -599,13 +611,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			}
 			
 			sw.writeStartElement("publishables");
-			for(PublishedRef layerRef : layerGroup.getLayers()) {
+			for(PublishedRef publishedRef : layerGroup.getLayers()) {
 				sw.writeStartElement("published");
-				sw.writeAttribute("type", layerRef.isGroup() ? "layerGroup" : "layer");
+				sw.writeAttribute("type", publishedRef.isGroup() ? "layerGroup" : "layer");
 					sw.writeStartElement("name");
 						// layerGroup references without workspace prefix are not correctly resolved
-						sw.writeCharacters(workspace.getName() + ":" + layerRef.getLayerName());
+						sw.writeCharacters(workspace.getName() + ":" + publishedRef.getLayerName());
 					sw.writeEndElement();
+				sw.writeEndElement();
+			}
+			sw.writeEndElement();
+			
+			sw.writeStartElement("styles");
+			for(PublishedRef publishedRef : layerGroup.getLayers()) {
+				sw.writeStartElement("styles");
+					if(!publishedRef.isGroup()) { 
+						Optional<String> styleName = publishedRef.asLayerRef().getStyleName();
+						if(styleName.isPresent()) {
+							sw.writeStartElement("name");
+								sw.writeCharacters(styleName.get());
+							sw.writeEndElement();
+						}
+					}
 				sw.writeEndElement();
 			}
 			sw.writeEndElement();

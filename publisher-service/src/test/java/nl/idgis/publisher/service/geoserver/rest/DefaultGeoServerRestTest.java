@@ -328,6 +328,48 @@ public class DefaultGeoServerRestTest {
 		service.putStyle(new Style("green", sld)).get();
 		
 		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
+		
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");		
+		service.postStyle(new Style("red", sld)).get();
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("dataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", Arrays.asList("test"));		
+		service.postFeatureType(workspace, dataStore, featureType).get();
+		
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Arrays.asList(new StyleRef("red")))).get();
+		
+		Layer layer = service.getLayer(workspace, featureType).get();
+		assertEquals("green", layer.getDefaultStyle().getStyleName());
+		
+		List<StyleRef> additionalStyles = layer.getAdditionalStyles();
+		assertNotNull(additionalStyles);
+		assertEquals(1, additionalStyles.size());
+		assertEquals("red", additionalStyles.get(0).getStyleName());
+		
+		service.postLayerGroup(workspace, new LayerGroup("name", "title", "abstract", Arrays.asList(new LayerRef("test", "red")))).get();
+		
+		LayerGroup layerGroup = service.getLayerGroups(workspace).get().get(0);
+		assertNotNull(layerGroup);
+		
+		List<PublishedRef> layers = layerGroup.getLayers();
+		assertNotNull(layers);
+		assertEquals(1, layers.size());
+		
+		PublishedRef publishedRef = layers.get(0);
+		assertNotNull(publishedRef);
+		assertFalse(publishedRef.isGroup());
+		
+		LayerRef layerRef = publishedRef.asLayerRef();
+		assertEquals("test", layerRef.getLayerName());
+		
+		Optional<String> styleName = layerRef.getStyleName();
+		assertTrue(styleName.isPresent());
+		assertEquals("red", styleName.get());
 	}
 	
 	@Test
