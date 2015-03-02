@@ -80,10 +80,17 @@ define ([
 			xhr.get (url + parameters, {
 				handleAs: 'json'
 			}).then (lang.hitch (this, function (data) {
-				domConstruct.empty (this.node);
-				this.node.innerHTML = data.htmlContent;
+				this._updateNode ('.panel-body', data.body);
+				this._updateNode ('.panel-footer', data.footer);
 				this._bind ();
 			}));
+		},
+		
+		_updateNode: function (selector, content) {
+			var node = query (selector, this.node)[0];
+			
+			domConstruct.empty (node);
+			node.innerHTML = content;
 		},
 		
 		_bind: function () {

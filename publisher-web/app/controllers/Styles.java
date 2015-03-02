@@ -39,6 +39,9 @@ import views.html.styles.form;
 import views.html.styles.list;
 import views.html.styles.uploadFileForm;
 import views.html.styles.stylePager;
+import views.html.styles.stylePagerHeader;
+import views.html.styles.stylePagerBody;
+import views.html.styles.stylePagerFooter;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
@@ -183,7 +186,9 @@ public class Styles extends Controller {
 				public Result apply (final Page<Style> styles) throws Throwable {
 					final ObjectNode result = Json.newObject ();
 					
-					result.put ("htmlContent", stylePager.render (styles, query).toString ());
+					result.put ("header", stylePagerHeader.render (styles, query).toString ());
+					result.put ("body", stylePagerBody.render (styles).toString ());
+					result.put ("footer", stylePagerFooter.render (styles).toString ());
 					
 					return ok (result);
 				}

@@ -1,0 +1,11 @@
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style])
+
+@pageRef(page: Long) = @{
+	routes.Styles.listStylesJson(page, null)
+}
+
+@if(styles.hasMorePages) {
+	<div class="gp-pager-controls js-pager-controls row">
+		@helper.pagination(styles, pageRef)
+	</div>
+}

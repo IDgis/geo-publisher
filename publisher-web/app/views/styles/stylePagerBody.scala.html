@@ -1,0 +1,18 @@
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style])
+
+@if(styles.values.isEmpty) {
+	<div class="alert alert-info" data-pager-url="@routes.Styles.listStylesJson(1, null)">
+		Blabla
+	</div>
+} else {
+	<ul>
+		@for(style <- styles.values) {
+			<li>
+				<a href="#" data-id="@style.id" data-label="@style.name">
+					<span class="glyphicon glyphicon-tag"></span>
+					@style.name
+				</a>
+			</li>
+		}
+	</ul>
+}
