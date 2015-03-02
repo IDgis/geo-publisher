@@ -6,7 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -20,9 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
+import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
@@ -303,15 +300,7 @@ public class DefaultGeoServerRestTest {
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
-		InputStream greenInputStream = getClass().getClassLoader().getResourceAsStream(
-				"nl/idgis/publisher/service/green.sld");
-		assertNotNull(greenInputStream);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
-		Style green = new Style("green", db.parse(greenInputStream));
+		Style green = new Style("green", TestStyle.getGreenSld());
 		service.postStyle(green).get();
 		
 		Map<String, Document> styles = service.getStyles().get().stream()
@@ -387,15 +376,7 @@ public class DefaultGeoServerRestTest {
 		
 		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
 		
-		InputStream greenInputStream = getClass().getClassLoader().getResourceAsStream(
-				"nl/idgis/publisher/service/green.sld");
-		assertNotNull(greenInputStream);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
-		Document sld = db.parse(greenInputStream);
+		Document sld = TestStyle.getGreenSld();
 		service.postStyle(new Style("green", sld)).get();
 		
 		NodeList names = h.getNodeList("//sld:Name", sld);

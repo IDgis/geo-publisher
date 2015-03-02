@@ -37,6 +37,7 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -55,6 +56,7 @@ import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
@@ -602,7 +604,9 @@ public class GeoServerService extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof EnsureWorkspace) {
+				if(msg instanceof EnsureStyle) {
+					ensured(provisioningService);
+				} else if(msg instanceof EnsureWorkspace) {
 					EnsureWorkspace ensureWorkspace = (EnsureWorkspace)msg;
 					
 					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
@@ -684,7 +688,9 @@ public class GeoServerService extends UntypedActor {
 				EnsureService.props(), 
 				nameGenerator.getName(EnsureService.class));
 		
-		serviceManager.tell(new GetService(serviceJob.getServiceId()), ensureService);
+		String serviceId = serviceJob.getServiceId();
+		serviceManager.tell(new GetService(serviceId), ensureService);
+		serviceManager.tell(new GetStyles(serviceId), ensureService);
 		
 		getContext().become(ensuring(getSender(), serviceJob, ensureService));
 	}

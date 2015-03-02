@@ -37,11 +37,15 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.manager.messages.Style;
+import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.utils.SyncAskHelper;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
@@ -51,6 +55,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class EnsureServiceTest {
+	
+	private static class Ensure {
+		
+		private final List<Object> messages;
+		
+		Ensure(Object... messages) {
+			this.messages = Arrays.asList(messages);
+		}
+		
+		public List<Object> getMessages() {
+			return messages;
+		}
+	}
 	
 	static class GeoServerServiceMock extends UntypedActor {
 		
@@ -133,22 +150,29 @@ public class EnsureServiceTest {
 
 				@Override
 				public void apply(Object msg) throws Exception {
-					if(msg instanceof EnsureWorkspace) {
+					if(msg instanceof EnsureStyle) {
+						record(msg);
+						ensured();
+					} else if(msg instanceof EnsureWorkspace) {
 						record(msg);
 						ensured();
 						getContext().become(layers(initiator), false);
 					} else {
 						unexpected(msg);
 					}
-				}				
+				}
 			};
 		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof Service) {
+			if(msg instanceof Ensure) {
 				ActorRef ensureService = getContext().actorOf(EnsureService.props(), nameGenerator.getName(EnsureService.class));
-				ensureService.forward(msg, getContext());
+				
+				Ensure ensure = (Ensure)msg;
+				ensure.getMessages().stream()
+					.forEach(item -> ensureService.tell(item, getSelf()));
+				
 				getContext().watch(ensureService);
 				getContext().become(provisioning(getSender()), false);				
 			} else {
@@ -184,7 +208,7 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.emptyList());
 		
-		sync.ask(geoServerService, service, Ack.class);		
+		sync.ask(geoServerService, new Ensure(service, new End()), Ack.class);		
 		
 		sync.ask(recorder, new Wait(3), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)			
@@ -224,10 +248,20 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
 		
-		sync.ask(geoServerService, service, Ack.class);
+		sync.ask(geoServerService, new Ensure(
+			service, 
+			new Style("style0", TestStyle.getGreenSld()),
+			new Style("style1", TestStyle.getGreenSld()),
+			new End()), Ack.class);
 		
 		sync.ask(recorder, new Wait(4), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
+			.assertNext(EnsureStyle.class, style -> {
+				assertEquals("style0", style.getName());
+			})
+			.assertNext(EnsureStyle.class, style -> {
+				assertEquals("style1", style.getName());
+			})
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("serviceName0", workspace.getWorkspaceId());
 				assertEquals("serviceTitle0", workspace.getTitle());
@@ -289,7 +323,7 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayerRef));
 		
-		sync.ask(geoServerService, service, Ack.class);
+		sync.ask(geoServerService, new Ensure(service, new End()), Ack.class);
 		sync.ask(recorder, new Wait(5 + numberOfLayers), Waited.class);
 		
 		Recording recording = sync.ask(recorder, new GetRecording(), Recording.class)
@@ -309,7 +343,7 @@ public class EnsureServiceTest {
 				assertEquals(featureTypeId, featureType.getLayerId());
 				assertEquals(tableName, featureType.getTableName());
 			});
-		}			
+		}
 			
 		recording
 			.assertNext(FinishEnsure.class)

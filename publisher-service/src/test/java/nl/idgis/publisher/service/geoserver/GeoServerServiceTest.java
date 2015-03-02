@@ -65,6 +65,7 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Style;
@@ -72,7 +73,9 @@ import nl.idgis.publisher.service.geoserver.rest.TiledLayer;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
+import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -139,6 +142,8 @@ public class GeoServerServiceTest {
 				if(serviceIndex != null) {
 					getSender().tell(serviceIndex, getSelf());
 				}
+			} else if(msg instanceof GetStyles) {
+				getSender().tell(new End(), getSelf());
 			} else if(msg instanceof PutService) {
 				PutService putService = (PutService)msg;
 				services.put(putService.getServiceId(), putService.getService());
@@ -462,17 +467,7 @@ public class GeoServerServiceTest {
 		GeoServerRest rest = h.rest(f, log);
 		
 		rest.postWorkspace(new Workspace("workspace")).get();
-		
-		InputStream green = getClass().getClassLoader().getResourceAsStream(
-			"nl/idgis/publisher/service/green.sld");
-		assertNotNull(green);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document sld = db.parse(green);
-		
-		rest.postStyle(new Style("style", sld)).get();
+		rest.postStyle(new Style("style", TestStyle.getGreenSld())).get();
 		
 		assertTrue(
 			rest.getWorkspaces().get().stream()

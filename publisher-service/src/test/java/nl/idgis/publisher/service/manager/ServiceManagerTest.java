@@ -26,7 +26,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -34,8 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -68,6 +65,7 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
@@ -226,20 +224,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
-		InputStream sld = getClass().getClassLoader().getResourceAsStream(
-				"nl/idgis/publisher/service/green.sld");
-		assertNotNull(sld);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();
 		
 		StringWriter sw = new StringWriter();		
-		t.transform(new DOMSource(db.parse(sld)), new StreamResult(sw));
+		t.transform(new DOMSource(TestStyle.getGreenSld()), new StreamResult(sw));
 		
 		String styleDefinition = sw.getBuffer().toString();
 		
