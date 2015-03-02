@@ -34,7 +34,6 @@ define ([
 		this.inputNode = query ('input[type="hidden"], input[type="text"]', this.containerNode)[0];
 		this.addButton = null;
 		
-		this.terms = { };
 		this.values = [ ];
 
 		if (options && options.onChange) {
@@ -84,19 +83,6 @@ define ([
 		 * Syncs the tree containging the selectable values.
 		 */
 		syncTree: function () {
-			var terms = { };
-			query ('a[data-id]', this.treeNode).forEach (function (n) {
-				var id = domAttr.get (n, 'data-id'),
-					label = domAttr.get (n, 'data-label');
-				
-				terms[id] = {
-					label: label,
-					node: n
-				};
-			});
-			
-			this.terms = terms;
-			
 		},
 		
 		_onClickExpander: function (node) {
@@ -209,7 +195,7 @@ define ([
 				}
 			}
 	
-			var labelType = id in this.terms ? 'label-primary' : 'label-danger';
+			var labelType = 'label-primary';
 			
 			put (this.addButton, '- span.term.label.' + labelType + '[data-id=$] $ button[type="button"][aria-hidden="true"].close', id, label, { innerHTML: '&times;' });
 			
