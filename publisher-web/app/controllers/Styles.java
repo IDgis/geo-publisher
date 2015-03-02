@@ -38,6 +38,7 @@ import play.mvc.Security;
 import views.html.styles.form;
 import views.html.styles.list;
 import views.html.styles.uploadFileForm;
+import views.html.styles.stylePager;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
@@ -171,6 +172,24 @@ public class Styles extends Controller {
 				}
 			});
 	}
+	
+	public static Promise<Result> listStylesJson (final long page, final String query) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+			.query (new ListStyles (page, query))
+			.execute (new Function<Page<Style>, Result> () {
+				@Override
+				public Result apply (final Page<Style> styles) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("htmlContent", stylePager.render (styles, query).toString ());
+					
+					return ok (result);
+				}
+			});
+	}
+	
 	
 	public static Promise<Result> create () {
 		Logger.debug ("create Style");
