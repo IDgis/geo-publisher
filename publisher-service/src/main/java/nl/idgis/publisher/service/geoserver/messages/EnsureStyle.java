@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 import org.w3c.dom.Document;
 
+import nl.idgis.publisher.service.geoserver.rest.Style;
+
 public class EnsureStyle implements Serializable {	
 
 	private static final long serialVersionUID = 2867197238385385472L;
@@ -23,6 +25,10 @@ public class EnsureStyle implements Serializable {
 
 	public Document getSld() {
 		return sld;
+	}
+	
+	public Style getStyle() {
+		return new Style(name, sld);
 	}
 
 	@Override

@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -266,12 +267,19 @@ public class GeoServerServiceTest {
 	
 	@Test
 	public void testSingleLayer() throws Exception {
+		String[] styleNames = {"style0", "style1"};
+		
+		for(String styleName : styleNames)  {
+			sync.ask(serviceManager, new PutStyle(styleName, TestStyle.getGreenSld()));
+		}
+		
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getStyleNames()).thenReturn(Arrays.asList(styleNames));
 		
 		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
@@ -297,6 +305,12 @@ public class GeoServerServiceTest {
 		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 		assertEquals("title", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
 		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
+		
+		NodeList styles = h.getNodeList("//wms:Layer/wms:Style/wms:Name", capabilities);
+		assertEquals(styleNames.length, styles.getLength());
+		for(int i = 0; i < styleNames.length; i++) {
+			assertEquals(styleNames[i], styles.item(i).getTextContent());
+		}
 		
 		assertTrue(h.rest(f, log).getTiledLayerNames(new Workspace("serviceName")).get().isEmpty());
 	}

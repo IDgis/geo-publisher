@@ -1,9 +1,11 @@
 package nl.idgis.publisher.service.geoserver;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -112,6 +114,20 @@ public class EnsureService extends UntypedActor {
 						} else {
 							DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 							
+							String defaultStyleName;
+							List<String> additionalStyleNames;
+							
+							List<String> styleNames = layer.getStyleNames();
+							if(styleNames.isEmpty()) {
+								defaultStyleName = null;
+								additionalStyleNames = Collections.emptyList();
+							} else {
+								defaultStyleName = styleNames.get(0);								
+								additionalStyleNames = styleNames.stream()
+									.skip(1)
+									.collect(Collectors.toList());
+							}
+							
 							getContext().parent().tell(
 								new EnsureFeatureTypeLayer(
 									layer.getName(), 
@@ -119,7 +135,9 @@ public class EnsureService extends UntypedActor {
 									layer.getAbstract(), 
 									layer.getKeywords(),
 									layer.getTableName(),
-									layer.getTiling().orElse(null)), getSelf());
+									layer.getTiling().orElse(null),
+									defaultStyleName,
+									additionalStyleNames), getSelf());
 						}
 					} else {
 						log.debug("unbecome {}", depth);
