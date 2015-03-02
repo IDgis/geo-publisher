@@ -463,7 +463,8 @@ public class GeoServerServiceTest {
 		
 		rest.postWorkspace(new Workspace("workspace")).get();
 		
-		InputStream green = getClass().getResourceAsStream("rest/green.sld");
+		InputStream green = getClass().getClassLoader().getResourceAsStream(
+			"nl/idgis/publisher/service/green.sld");
 		assertNotNull(green);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();

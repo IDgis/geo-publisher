@@ -227,7 +227,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		InputStream sld = getClass().getClassLoader().getResourceAsStream(
-				"nl/idgis/publisher/service/geoserver/rest/green.sld");
+				"nl/idgis/publisher/service/green.sld");
 		assertNotNull(sld);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();

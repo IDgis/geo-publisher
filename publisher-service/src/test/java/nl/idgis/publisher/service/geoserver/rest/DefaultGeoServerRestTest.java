@@ -303,7 +303,8 @@ public class DefaultGeoServerRestTest {
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
-		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
+		InputStream greenInputStream = getClass().getClassLoader().getResourceAsStream(
+				"nl/idgis/publisher/service/green.sld");
 		assertNotNull(greenInputStream);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -386,7 +387,8 @@ public class DefaultGeoServerRestTest {
 		
 		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
 		
-		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
+		InputStream greenInputStream = getClass().getClassLoader().getResourceAsStream(
+				"nl/idgis/publisher/service/green.sld");
 		assertNotNull(greenInputStream);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
