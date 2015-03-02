@@ -8,5 +8,5 @@ public interface DatasetLayer extends Layer {
 	
 	String getTableName();
 	
-	List<String> getStyles();
+	List<String> getStyleNames();
 }

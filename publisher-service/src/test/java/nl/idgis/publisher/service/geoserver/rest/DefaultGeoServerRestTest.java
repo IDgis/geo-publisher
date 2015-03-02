@@ -6,7 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -20,9 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
+import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
@@ -187,7 +184,7 @@ public class DefaultGeoServerRestTest {
 		service.postFeatureType(workspace, dataStore, new FeatureType(
 			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
 		
-		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test", false)));
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test")));
 		service.postLayerGroup(workspace, layerGroup).get();
 		
 		layerGroups = service.getLayerGroups(workspace).get();
@@ -198,9 +195,9 @@ public class DefaultGeoServerRestTest {
 		layerGroup = itr.next();
 		assertEquals("group", layerGroup.getName());
 		
-		List<LayerRef> layers = layerGroup.getLayers();
+		List<PublishedRef> layers = layerGroup.getLayers();
 		assertEquals(1, layers.size());
-		LayerRef layerRef = layers.get(0);		
+		PublishedRef layerRef = layers.get(0);		
 		assertNotNull(layerRef);
 		assertEquals("test", layerRef.getLayerName());
 		assertEquals(false, layerRef.isGroup());
@@ -303,14 +300,7 @@ public class DefaultGeoServerRestTest {
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
-		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
-		assertNotNull(greenInputStream);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
-		Style green = new Style("green", db.parse(greenInputStream));
+		Style green = new Style("green", TestStyle.getGreenSld());
 		service.postStyle(green).get();
 		
 		Map<String, Document> styles = service.getStyles().get().stream()
@@ -328,6 +318,48 @@ public class DefaultGeoServerRestTest {
 		service.putStyle(new Style("green", sld)).get();
 		
 		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
+		
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");		
+		service.postStyle(new Style("red", sld)).get();
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("dataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", Arrays.asList("test"));		
+		service.postFeatureType(workspace, dataStore, featureType).get();
+		
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Arrays.asList(new StyleRef("red")))).get();
+		
+		Layer layer = service.getLayer(workspace, featureType).get();
+		assertEquals("green", layer.getDefaultStyle().getStyleName());
+		
+		List<StyleRef> additionalStyles = layer.getAdditionalStyles();
+		assertNotNull(additionalStyles);
+		assertEquals(1, additionalStyles.size());
+		assertEquals("red", additionalStyles.get(0).getStyleName());
+		
+		service.postLayerGroup(workspace, new LayerGroup("name", "title", "abstract", Arrays.asList(new LayerRef("test", "red")))).get();
+		
+		LayerGroup layerGroup = service.getLayerGroups(workspace).get().get(0);
+		assertNotNull(layerGroup);
+		
+		List<PublishedRef> layers = layerGroup.getLayers();
+		assertNotNull(layers);
+		assertEquals(1, layers.size());
+		
+		PublishedRef publishedRef = layers.get(0);
+		assertNotNull(publishedRef);
+		assertFalse(publishedRef.isGroup());
+		
+		LayerRef layerRef = publishedRef.asLayerRef();
+		assertEquals("test", layerRef.getLayerName());
+		
+		Optional<String> styleName = layerRef.getStyleName();
+		assertTrue(styleName.isPresent());
+		assertEquals("red", styleName.get());
 	}
 	
 	@Test
@@ -344,14 +376,7 @@ public class DefaultGeoServerRestTest {
 		
 		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
 		
-		InputStream greenInputStream = getClass().getResourceAsStream("green.sld");
-		assertNotNull(greenInputStream);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		
-		Document sld = db.parse(greenInputStream);
+		Document sld = TestStyle.getGreenSld();
 		service.postStyle(new Style("green", sld)).get();
 		
 		NodeList names = h.getNodeList("//sld:Name", sld);

@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -20,13 +21,23 @@ import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.manager.messages.Style;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.NextItem;
 
 public class EnsureService extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private Service service;
+	
+	private List<Style> styles;
+	
+	private boolean stylesReceived;
 	
 	public static Props props() {
 		return Props.create(EnsureService.class);
@@ -34,14 +45,30 @@ public class EnsureService extends UntypedActor {
 	
 	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
+		
+		styles = new ArrayList<>();
+		stylesReceived = false;
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ReceiveTimeout) {
+		if(msg instanceof ReceiveTimeout) {			
 			handleReceiveTimeout();
 		} else if(msg instanceof Service) {
-			handleService((Service)msg);
+			log.debug("service received");
+			
+			service = (Service)msg;
+			handleContentReceived();
+		} else if(msg instanceof Style) {
+			log.debug("style received");
+			
+			styles.add((Style)msg);
+			getSender().tell(new NextItem(), getSelf());
+		} else if(msg instanceof End) {
+			log.debug("all styles received");
+			
+			stylesReceived = true;			
+			handleContentReceived();
 		} else if(msg instanceof Ensured) {
 			log.debug("ensured (root)");
 			
@@ -52,7 +79,7 @@ public class EnsureService extends UntypedActor {
 			unhandled(msg);
 		}
 	}
-	
+
 	private Procedure<Object> layers(List<LayerRef<?>> layers) {
 		return layers(layers, 0);
 	}
@@ -110,9 +137,47 @@ public class EnsureService extends UntypedActor {
 		};
 	}
 	
-	private void handleService(Service service) {
-		log.debug("service info received");
+	private Procedure<Object> styles(List<Style> styles) {
+		return new Procedure<Object>() {
+			
+			Iterator<Style> itr = styles.iterator();
+			
+			public void apply(Object msg) {
+				if(msg instanceof Ensured) {
+					log.debug("ensured (styles)");
+					
+					if(itr.hasNext()) {
+						Style style = itr.next();
+						getContext().parent().tell(new EnsureStyle(style.getStyleName(), style.getSld()), getSelf());
+					} else {
+						getContext().become(receive());
+						processService();
+					}
+				} else {
+					log.debug("unhandled (styles): {}", msg);
+					
+					unhandled(msg);
+				}
+			}
+		};
+	}
+	
+	private void handleContentReceived() {
+		if(service == null || !stylesReceived) {
+			return;
+		}
 		
+		log.debug("service and style info received");
+		
+		processStyles();
+	}
+
+	private void processStyles() {
+		getSelf().tell(new Ensured(), getSelf());
+		getContext().become(styles(styles));
+	}
+
+	private void processService() {
 		getContext().parent().tell(
 			new EnsureWorkspace(
 				service.getName(), 

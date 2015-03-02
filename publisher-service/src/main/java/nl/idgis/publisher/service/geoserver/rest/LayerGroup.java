@@ -6,9 +6,9 @@ public class LayerGroup {
 
 	private final String name, title, abstr;
 	
-	private final List<LayerRef> layers;
+	private final List<PublishedRef> layers;
 	
-	public LayerGroup(String name, String title, String abstr, List<LayerRef> layers) {
+	public LayerGroup(String name, String title, String abstr, List<PublishedRef> layers) {
 		this.name = name;
 		this.title = title;
 		this.abstr = abstr;
@@ -27,7 +27,7 @@ public class LayerGroup {
 		return abstr;
 	}
 	
-	public List<LayerRef> getLayers() {
+	public List<PublishedRef> getLayers() {
 		return layers;
 	}
 }

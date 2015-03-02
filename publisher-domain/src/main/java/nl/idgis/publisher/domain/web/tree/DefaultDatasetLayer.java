@@ -33,7 +33,7 @@ public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 	}
 	
 	@Override
-	public List<String> getStyles() {
+	public List<String> getStyleNames() {
 		return styles;
 	}
 
