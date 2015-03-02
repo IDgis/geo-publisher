@@ -3,6 +3,7 @@ define ([
 	'dojo/query',
 	'dojo/on',
 	'dojo/dom-attr',
+	'dojo/dom-construct',
 	'dojo/request/xhr',
 	
 	'put-selector/put'
@@ -11,6 +12,7 @@ define ([
 	query,
 	on,
 	domAttr,
+	domConstruct,
 	xhr,
 	
 	put
@@ -21,11 +23,14 @@ define ([
 		
 		var self = this;
 		
-		on (this.node, '*[data-pager-link]:click', function (e) {
+		on (this.node, '.pagination a[href]:click', function (e) {
 			e.preventDefault ();
 			e.stopPropagation ();
 			
-			self._doPage (domAttr.get (this, 'data-pager-link'));
+			var url = domAttr.get (this, 'href');
+			if (!url.contains ('#')) {
+				self._doPage (url);
+			}
 		});
 	}
 	
@@ -34,9 +39,10 @@ define ([
 			console.log ('Paging to: ', url);
 			xhr.get (url, {
 				handleAs: 'json'
-			}).then (function (data) {
-				
-			});
+			}).then (lang.hitch (this, function (data) {
+				domConstruct.empty (this.node);
+				this.node.innerHTML = data.htmlContent;
+			}));
 		}
 	});
 	

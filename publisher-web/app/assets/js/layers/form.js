@@ -5,7 +5,7 @@ require ([
 	'dojo/domReady!'
 ], function (TreeSelect, Pager) {
 	var treeSelect = new TreeSelect ('.gp-tree-select', '.gp-tree-values'),
-		pager = new Pager ('.gp-tree-values');
+		pager = new Pager ('.gp-tree-values .js-pager');
 	
 	
 });

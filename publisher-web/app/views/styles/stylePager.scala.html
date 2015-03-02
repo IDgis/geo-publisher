@@ -4,18 +4,27 @@
 	routes.Styles.listStylesJson(page, query)
 }
 
-<ul>
-	@for(style <- styles.values) {
-		<li>
-			<a href="#" data-id="@style.id" data-label="@style.name">
-				<span class="glyphicon glyphicon-tag"></span>
-				@style.name
-			</a>
-		</li>
-	}
-</ul>
-@if(styles.hasMorePages) {
-	<div class="js-pager-controls">
-		@helper.pagination(styles, pageRef)
+<div class="panel panel-default">
+	<div class="panel-heading">
+		<input type="text">
 	</div>
-}
+	<div class="panel-body">
+		<ul>
+			@for(style <- styles.values) {
+				<li>
+					<a href="#" data-id="@style.id" data-label="@style.name">
+						<span class="glyphicon glyphicon-tag"></span>
+						@style.name
+					</a>
+				</li>
+			}
+		</ul>
+	</div>
+	@if(styles.hasMorePages) {
+		<div class="panel-footer">
+			<div class="gp-pager-controls js-pager-controls row">
+				@helper.pagination(styles, pageRef)
+			</div>
+		</div>
+	}
+</div>

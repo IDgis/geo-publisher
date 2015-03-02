@@ -148,7 +148,7 @@ define ([
 
 			var self = this;
 			this._treeHandles = [
-			    on (query ('body')[0], 'click', function (e) {
+			    on (query ('html')[0], 'click', function (e) {
 					var node = e.target;
 					
 					while (node) {
