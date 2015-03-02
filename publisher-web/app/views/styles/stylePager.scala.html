@@ -1,0 +1,12 @@
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String = null)
+
+<ul>
+	@for(style <- styles.values) {
+		<li>
+			<a href="#" data-id="@style.id" data-label="@style.name">
+				<span class="glyphicon glyphicon-tag"></span>
+				@style.name
+			</a>
+		</li>
+	}
+</ul>

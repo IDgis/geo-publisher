@@ -1,6 +1,6 @@
 @(layerForm: Form[controllers.Layers.LayerForm],
  create: Boolean,
- allStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
+ allStyles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style],
  layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
  layerStyleListString: java.lang.String,
  previewUrl: java.lang.String)
@@ -94,16 +94,7 @@
 						</div>
 						<div class="gp-tree-values dropdown">
 							<div class="dropdown-menu">
-								<ul>
-									@for(style <- allStyles) {
-										<li>
-											<a href="#" data-id="@style.id" data-label="@style.name">
-												<span class="glyphicon glyphicon-tag"></span>
-												@style.name
-											</a>
-										</li>
-									}
-								</ul>
+								@styles.stylePager(allStyles)
 							</div>
 						</div>
 						@helper.fielderrors(layerForm("styles").errors)

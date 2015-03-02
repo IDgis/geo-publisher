@@ -56,7 +56,7 @@ public class Layers extends GroupsLayersCommon {
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
 						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, "", ""));
+						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", ""));
 					}
 				});
 	}
@@ -250,7 +250,7 @@ public class Layers extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyles, layerStyleListString, previewUrl));
 							}
 						});
 				}
