@@ -26,16 +26,30 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import com.mysema.query.sql.SQLSubQuery;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
@@ -47,14 +61,44 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.recorder.AnyRecorder;
+import nl.idgis.publisher.recorder.Recording;
+import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.Cleared;
+import nl.idgis.publisher.recorder.messages.GetRecording;
+import nl.idgis.publisher.recorder.messages.Wait;
+import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
+import nl.idgis.publisher.service.manager.messages.Style;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class ServiceManagerTest extends AbstractServiceTest {
+	
+	public static class StreamRecorder extends AnyRecorder {
+		
+		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		public static Props props() {
+			return Props.create(StreamRecorder.class);
+		}
+		
+		@Override
+		public void onRecord(Object msg, ActorRef sender) {
+			log.debug("onRecord: {} {}", msg, sender);
+			
+			if(msg instanceof Item) {
+				sender.tell(new NextItem(), getSelf());
+			}
+		}
+	}
 	
 	int datasetId;
 		
@@ -182,10 +226,27 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(leafLayerKeyword.keyword, "keyword1")
 			.execute();
 		
+		InputStream sld = getClass().getClassLoader().getResourceAsStream(
+				"nl/idgis/publisher/service/geoserver/rest/green.sld");
+		assertNotNull(sld);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		StringWriter sw = new StringWriter();		
+		t.transform(new DOMSource(db.parse(sld)), new StreamResult(sw));
+		
+		String styleDefinition = sw.getBuffer().toString();
+		
 		int styleId0 = insert(style)
 			.set(style.identification, "style0")
 			.set(style.name, "styleName0")			
-			.set(style.definition, "")
+			.set(style.definition, styleDefinition)
 			.set(style.styleType, "POINT")
 			.executeWithKey(style.id);
 		
@@ -197,7 +258,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		int styleId1 = insert(style)
 			.set(style.identification, "style1")
 			.set(style.name, "styleName1")
-			.set(style.definition, "")
+			.set(style.definition, styleDefinition)
 			.set(style.styleType, "POINT")
 			.executeWithKey(style.id);
 		
@@ -307,6 +368,24 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(styles.contains("style1"));
 		
 		assertFalse(itr.hasNext());
+		
+		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");
+		serviceManager.tell(new GetStyles("service0"), recorder);
+		
+		sync.ask(recorder, new Wait(3), Waited.class);
+		sync.ask(recorder, new GetRecording(), Recording.class)
+			.assertNext(Style.class)
+			.assertNext(Style.class)
+			.assertNext(End.class)
+			.assertNotHasNext();
+		
+		sync.ask(recorder, new Clear(), Cleared.class);		
+		serviceManager.tell(new GetStyles("nonExistingService"), recorder);
+		
+		sync.ask(recorder, new Wait(1), Waited.class);
+		sync.ask(recorder, new GetRecording(), Recording.class)
+			.assertNext(End.class)
+			.assertNotHasNext();
 	}
 	
 	@Test

@@ -3,6 +3,7 @@ package nl.idgis.publisher.service.manager;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
@@ -18,19 +19,40 @@ import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
+import nl.idgis.publisher.service.manager.messages.Style;
+import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class ServiceManager extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final ActorRef database;
 	
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
+	
+	private static class CreateStyleCursor {
+		
+		private final List<Style> styles;
+		
+		CreateStyleCursor(List<Style> styles) {
+			this.styles = styles;
+		}
+		
+		
+		List<Style> getStyles() {
+			return styles;
+		}
+	}
 	
 	public ServiceManager(ActorRef database) {
 		this.database = database;
@@ -56,11 +78,33 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
 		} else if(msg instanceof GetServiceIndex) {
 			toSender(handleGetServiceIndex((GetServiceIndex)msg));
+		} else if(msg instanceof GetStyles) {
+			handleGetStyles((GetStyles)msg);
+		} else if(msg instanceof CreateStyleCursor) {
+			handleCreateStyleCursor((CreateStyleCursor)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private void handleCreateStyleCursor(CreateStyleCursor msg) {
+		ActorRef cursor = getContext().actorOf(
+			ListCursor.props(msg.getStyles().iterator()), 
+			nameGenerator.getName(ListCursor.class));
+		cursor.tell(new NextItem(), getSender());
+	}
+
+	private void handleGetStyles(GetStyles msg) {
+		ActorRef self = getSelf(), sender = getSender();
+		new GetStylesQuery(f, db, msg.getServiceId()).result().whenComplete((result, t) -> {
+			if(t == null) {
+				self.tell(new CreateStyleCursor(result), sender);
+			} else {
+				sender.tell(new Failure(t), self);
+			}
+		});
+	}
+
 	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {
 		return db.transactional(tx ->			 
 			tx.query()
