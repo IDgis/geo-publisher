@@ -2,6 +2,7 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
@@ -11,10 +12,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.PutLayerKeywords;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -28,6 +32,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstructorExpression;
 
 public class LayerAdmin extends AbstractAdmin {
 	
@@ -45,6 +50,9 @@ public class LayerAdmin extends AbstractAdmin {
 		doGet(Layer.class, this::handleGetLayer);
 		doPut(Layer.class, this::handlePutLayer);
 		doDelete(Layer.class, this::handleDeleteLayer);
+		
+		doQuery(ListLayerKeywords.class, this::handleListLayerKeywords);
+		doQuery(PutLayerKeywords.class, this::handlePutLayerKeywords);
 		
 		doQuery(ListLayerStyles.class, this::handleListLayerStyles);
 		doQuery(PutLayerStyles.class, this::handlePutLayerStyles);
@@ -273,6 +281,67 @@ public class LayerAdmin extends AbstractAdmin {
 									});
 							});
 				}));
+	}
+	
+	private CompletableFuture<List<String>> handleListLayerKeywords (final ListLayerKeywords listLayerKeywords) {
+		String layerId = listLayerKeywords.layerId();
+		log.debug("listLayerKeywords layerId: " + layerId);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(layerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+				return tx
+					.query()
+					.from(leafLayer, leafLayerKeyword)
+					.where(leafLayer.genericLayerId.eq(glId.get()).and(leafLayerKeyword.leafLayerId.eq(leafLayer.id)))
+					.list(leafLayerKeyword.keyword).thenApply(resp -> resp.list());
+		}));
+	}
+	
+	private CompletableFuture<Response<?>> handlePutLayerKeywords (final PutLayerKeywords putLayerKeywords) {
+		String layerId = putLayerKeywords.layerId();
+		List<String> layerKeywords =  putLayerKeywords.keywordList();
+		log.debug("handlePutLayerKeywords layerId: " + layerId + ", keywords: " +layerKeywords);
+		return db.transactional(tx -> tx
+			.query()
+			.from(genericLayer)
+			.where(genericLayer.identification.eq(layerId))
+			.singleResult(genericLayer.id)
+			.thenCompose(
+				glId -> {
+				log.debug("genericlayer id: " + glId.get());
+				return tx.query().
+					from(leafLayer)
+					.where(leafLayer.genericLayerId.eq(glId.get()))
+					.singleResult(leafLayer.id)
+					.thenCompose(
+						llId -> {
+							// A. delete the existing keywords of this layer
+							return tx.delete(leafLayerKeyword)
+								.where(leafLayerKeyword.leafLayerId.eq(llId.get()))
+								.execute()
+								.thenCompose(
+									llNr -> {
+										// B. insert items of layerKeywords	
+										
+										return f.sequence(
+												layerKeywords.stream()
+												    .map(name -> 
+												        tx
+												            .insert(leafLayerKeyword)
+												            .set(leafLayerKeyword.leafLayerId,llId.get()) 
+										            		.set(leafLayerKeyword.keyword, name)
+												            .execute())
+												    .collect(Collectors.toList())).thenApply(whatever ->
+												        new Response<String>(CrudOperation.UPDATE,
+												                CrudResponse.OK, layerId));
+									});
+						});
+		}));
 	}
 	
 	private CompletableFuture<List<Style>> handleListLayerStyles (final ListLayerStyles listLayerStyles) {
