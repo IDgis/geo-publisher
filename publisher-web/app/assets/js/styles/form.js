@@ -6,6 +6,7 @@ require ([
 	'dojo/dom',
 	'dojo/on',
 	'dojo/request/xhr',
+	'dojo/json',
 	
 	'put-selector/put',
 
@@ -14,6 +15,7 @@ require ([
 	dom,
 	on,
 	xhr,
+	json,
 	
 	put
 ) {
@@ -24,29 +26,26 @@ require ([
 	};
 	
 	function sendFile (file) {
-		console.log ('Sending file: ', file);
-		var reader = new FileReader (file);
+		if (!window.XMLHttpRequest) {
+			return;
+		}
 		
-		reader.onload = function (e) {
-			xhr.post (jsRoutes.controllers.Styles.handleFileUpload ().url, {
-				handleAs: 'json',
-				data: e.target.result,
-				headers: {
-					'Content-Type': 'text/plain; charset=x-user-defined-binary'
-				}
-			}).then (function (data) {
-				if (data.valid) {
-					styleEditorElement.value = data.textContent;
-				}
-			});
+		var xmlRequest = new XMLHttpRequest ();
+		xmlRequest.open ('POST', jsRoutes.controllers.Styles.handleFileUploadRaw ().url, true);
+		xmlRequest.setRequestHeader ("Content-Type", file.type);
+		xmlRequest.send (file);
+		
+		xmlRequest.onload = function () {
+			var data = json.parse (this.responseText);
+			if (data.valid) {
+				styleEditorElement.value = data.textContent;
+			}
 		};
-		
-		reader.readAsBinaryString (file);
 	}
 	
 	on (styleEditorElement, 'dragenter', function (e) {
-		// Do nothing if the transfer doesn't include files:
-		if (!e.dataTransfer || !e.dataTransfer.types) {
+		// Do nothing if the transfer doesn't include files or if XMLHttpRequest is not supported by the browser:
+		if (!e.dataTransfer || !e.dataTransfer.types || !window.XMLHttpRequest) {
 			return;
 		}
 		var hasFiles = false;
@@ -63,7 +62,7 @@ require ([
 		e.stopPropagation ();
 		e.preventDefault ();
 		
-		var overlay = put (styleEditorElement.parentNode, 'div[style="position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; background-color: red;"]');
+		var overlay = put (styleEditorElement.parentNode, 'div[class="dnd-overlay"]');
 		
 		function endDrag () {
 			put ('!', overlay);
@@ -72,8 +71,6 @@ require ([
 		on (overlay, 'dragenter', function (e) {
 			e.stopPropagation ();
 			e.preventDefault ();
-			
-			console.log ('dragenter overlay', e);
 		});
 		on (overlay, 'dragover', function (e) {
 			e.stopPropagation ();
@@ -83,14 +80,12 @@ require ([
 			e.stopPropagation ();
 			e.preventDefault ();
 			
-			console.log ('leave', e);
 			endDrag ();
 		});
 		on (overlay, 'drop', function (e) {
 			e.preventDefault ();
 			e.stopPropagation ();
 			
-			console.log ('drop', e, e.dataTransfer, e.dataTransfer.files);
 			endDrag ();
 			
 			if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length >= 1) {

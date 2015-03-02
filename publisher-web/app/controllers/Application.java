@@ -16,7 +16,7 @@ public class Application extends Controller {
 				routes.javascript.Datasets.scheduleRefresh (),
 				routes.javascript.Events.events (),
 				routes.javascript.Events.eventsWithTag (),
-				routes.javascript.Styles.handleFileUpload ()
+				routes.javascript.Styles.handleFileUploadRaw ()
 			)
 		).as("text/javascript");
 	}

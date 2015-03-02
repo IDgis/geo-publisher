@@ -220,29 +220,39 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (null));
 	}
 	
-	@BodyParser.Of (value = BodyParser.Raw.class)
-	public static Result handleFileUpload () {
-		final File file;
-		final boolean jsonResponse;
+	public static Result handleFileUploadForm () {
+		final MultipartFormData body = request ().body ().asMultipartFormData ();
+		final FilePart uploadFile = body.getFile ("file");
 		
-		if (request ().getHeader ("Content-Type").toLowerCase ().startsWith ("text/plain")) {
-			file = request ().body ().asRaw () != null ? request ().body ().asRaw ().asFile () : null;
-			jsonResponse = true;
-		} else {
-			final MultipartFormData body = request ().body ().asMultipartFormData ();
-			final FilePart uploadFile = body.getFile ("file");
-			
-			if (uploadFile == null) {
-				return ok (uploadFileForm.render (null));
-			}
-			
-			file = uploadFile.getFile ();
-			jsonResponse = false;
-		}
-
-		if (file == null) {
-			Logger.debug ("No file");
+		if (uploadFile == null) {
 			return ok (uploadFileForm.render (null));
+		}
+		
+		final String content = handleFileUpload (uploadFile.getFile ());
+		
+		return ok (uploadFileForm.render (content));
+	}
+		
+	@BodyParser.Of (value = BodyParser.Raw.class)
+	public static Result handleFileUploadRaw () {
+		final String content = request ().body ().asRaw () != null 
+				? handleFileUpload (request ().body ().asRaw ().asFile ()) 
+				: null;
+				
+		final ObjectNode result = Json.newObject ();
+		if (content == null) {
+			result.put ("valid", false);
+		} else {
+			result.put ("valid", true);
+			result.put ("textContent", content);
+		}
+		
+		return ok (result);
+	}
+	
+	private static String handleFileUpload (final File file) {
+		if (file == null) {
+			return null;
 		}
 		
 		try (final Reader reader = new InputStreamReader (new FileInputStream (file), Charset.forName ("UTF-8"))) {
@@ -263,23 +273,10 @@ public class Styles extends Controller {
 					builder.append (Arrays.copyOf (buffer, n));
 				}
 			}
-		
-			if (jsonResponse) {
-				final ObjectNode node = Json.newObject ();
-				
-				if (controlCount == 0) {
-					node.put ("valid", true);
-					node.put ("textContent", builder.toString ());
-				} else {
-					node.put ("valid", false);
-				}
-				
-				return ok (node);
-			} else {
-				return ok (uploadFileForm.render (controlCount == 0 ? builder.toString () : null));
-			}
+
+			return controlCount == 0 ? builder.toString () : null;
 		} catch (IOException e) {
-			return ok (uploadFileForm.render (null));
+			return null;
 		}
 	}
 	

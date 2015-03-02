@@ -12,7 +12,7 @@
 		routes.Assets.at("js/styles/upload-form.js").url
 	)	
 ) {
-	<form method="POST" action="@routes.Styles.handleFileUpload()" enctype="multipart/form-data">
+	<form method="POST" action="@routes.Styles.handleFileUploadForm()" enctype="multipart/form-data">
 		<input type="file" name="file" class="pull-left">
 		<button type="submit" class="btn btn-default">@Domain.message("web.application.page.styles.form.field.browse.button")</button>
 	</form>
