@@ -12,6 +12,7 @@ import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -48,7 +49,7 @@ public class Layers extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-				.list (Style.class)
+				.query (new ListStyles (1l, null))
 				.execute (new Function<Page<Style>, Result> () {
 
 					@Override
@@ -193,7 +194,7 @@ public class Layers extends GroupsLayersCommon {
 		
 		return from (database)
 			.get (Layer.class, layerId)
-			.list (Style.class)
+			.query (new ListStyles (1l, null))
 			.query(new ListLayerStyles(layerId))
 			.query(new GetLayerServices(layerId))
 			.executeFlat (new Function4<Layer, Page<Style>, List<Style>, List<String>, Promise<Result>> () {
