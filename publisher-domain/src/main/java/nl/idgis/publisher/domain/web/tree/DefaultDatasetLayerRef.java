@@ -18,7 +18,7 @@ public class DefaultDatasetLayerRef extends AbstractLayerRef<DatasetLayer> imple
 	}
 
 	@Override
-	public String getStyle() {
+	public String getStyleName() {
 		return style;
 	}
 	

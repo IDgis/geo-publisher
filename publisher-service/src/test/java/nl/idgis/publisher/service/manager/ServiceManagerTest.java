@@ -275,7 +275,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(layerRef.isGroupRef());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
-		assertEquals("style0", datasetLayerRef.getStyle());
+		assertEquals("style0", datasetLayerRef.getStyleName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertEquals("layer0", datasetLayer.getId());
@@ -301,7 +301,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(mimeFormats.contains("image/jpg"));
 		assertEquals(2, mimeFormats.size());
 		
-		List<String> styles = datasetLayer.getStyles();
+		List<String> styles = datasetLayer.getStyleNames();
 		assertEquals(2, styles.size());
 		assertTrue(styles.contains("style0"));
 		assertTrue(styles.contains("style1"));
