@@ -2,12 +2,10 @@ package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -22,9 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -75,7 +70,8 @@ import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
-import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -119,9 +115,33 @@ public class GeoServerServiceTest {
 		}
 	}
 	
+	static class PutStyle implements Serializable {	
+
+		private static final long serialVersionUID = -8235556377963337675L;
+
+		private final String styleName;
+		
+		private final Document sld;
+		
+		public PutStyle(String styleName, Document sld) {
+			this.styleName = styleName;
+			this.sld = sld;
+		}
+
+		public String getStyleName() {
+			return styleName;
+		}
+
+		public Document getSld() {
+			return sld;
+		}
+	}
+	
 	static class ServiceManagerMock extends UntypedActor {
 		
 		private Map<String, Service> services = new HashMap<>();
+		
+		private List<nl.idgis.publisher.service.manager.messages.Style> styles = new ArrayList<>();
 		
 		private ServiceIndex serviceIndex;
 		
@@ -143,7 +163,7 @@ public class GeoServerServiceTest {
 					getSender().tell(serviceIndex, getSelf());
 				}
 			} else if(msg instanceof GetStyles) {
-				getSender().tell(new End(), getSelf());
+				getContext().actorOf(ListCursor.props(styles.iterator())).tell(new NextItem(), getSender());
 			} else if(msg instanceof PutService) {
 				PutService putService = (PutService)msg;
 				services.put(putService.getServiceId(), putService.getService());
@@ -151,7 +171,11 @@ public class GeoServerServiceTest {
 			} else if(msg instanceof PutServiceIndex) {
 				serviceIndex = ((PutServiceIndex)msg).getServiceIndex();				
 				getSender().tell(new Ack(), getSelf());
-			} else {				
+			} else if(msg instanceof PutStyle) {
+				PutStyle putStyle = (PutStyle)msg;
+				styles.add(new nl.idgis.publisher.service.manager.messages.Style(putStyle.getStyleName(), putStyle.getSld()));
+				getSender().tell(new Ack(), getSelf());
+			} else {
 				unhandled(msg);
 			}
 		}
