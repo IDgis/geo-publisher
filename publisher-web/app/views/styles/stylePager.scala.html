@@ -1,24 +1,32 @@
 @(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String = null)
 
 @pageRef(page: Long) = @{
-	routes.Styles.listStylesJson(page, query)
+	routes.Styles.listStylesJson(page, null)
 }
 
-<div class="panel panel-default">
+<div class="panel panel-default" data-pager-url="@routes.Styles.listStylesJson(if(styles.currentPage<1){ 1 } else { styles.currentPage }, null)">
 	<div class="panel-heading">
-		<input type="text">
+		<div class="form-inline">
+			<input type="text" class="form-control" placeholder="Bla ..." data-pager-parameter="q" @if(query!=null){value="@query"}else{value=""}>
+		</div>
 	</div>
 	<div class="panel-body">
-		<ul>
-			@for(style <- styles.values) {
-				<li>
-					<a href="#" data-id="@style.id" data-label="@style.name">
-						<span class="glyphicon glyphicon-tag"></span>
-						@style.name
-					</a>
-				</li>
-			}
-		</ul>
+		@if(styles.values.isEmpty) {
+			<div class="alert alert-info" data-pager-url="@routes.Styles.listStylesJson(1, null)">
+				Blabla
+			</div>
+		} else {
+			<ul>
+				@for(style <- styles.values) {
+					<li>
+						<a href="#" data-id="@style.id" data-label="@style.name">
+							<span class="glyphicon glyphicon-tag"></span>
+							@style.name
+						</a>
+					</li>
+				}
+			</ul>
+		}
 	</div>
 	@if(styles.hasMorePages) {
 		<div class="panel-footer">
