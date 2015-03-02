@@ -61,10 +61,30 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
 					<div class="col-lg-8">
-						<textarea class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="@serviceForm("keywords").value" rows="2">@serviceForm("keywords").value</textarea>
+						
+						<div class="form-inline">
+							<div class="form-group col-lg-8">
+								<input class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="@serviceForm("keywords").value" style="width:35em;margin-bottom:4px;">
+								<a class="btn btn-default btn-sm" id="add-keyword" style="margin-left:1em;margin-bottom:4px;">
+									<span class="glyphicon glyphicon-plus"></span>
+								</a>
+							</div>
+						</div>
 						@helper.fielderrors(serviceForm("keywords").errors)
 					</div>
 					@helper.tooltips("web.application.page.services.form.field.keywords.help")
+					<div class="col-sm-offset-2 col-lg-8">
+						<div class="keyword-list" id="keyword-list">
+							<!-- 
+							<div class="keyword-item-block" value="Recreatie">
+								<input class="form-control" type="hidden" name="keywords[]" value="Recreatie">
+								<span class="keyword-item label label-primary">Recreatie
+									<button type="button" aria-hidden="true" class="close" value="Recreatie">&times;</button>
+								</span>
+							</div>
+							 -->
+						</div>
+					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.services.form.field.publish.label")</label>
