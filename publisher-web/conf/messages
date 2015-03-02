@@ -478,6 +478,7 @@ web.application.page.styles.form.field.definition.validation.error=Inhoud moet x
 
 web.application.page.styles.form.field.browse.label=Selecteer uit bestand
 web.application.page.styles.form.field.type.label=Type stijl
+web.application.page.styles.form.field.browse.button=Geselecteerde bestand inladen
 web.application.page.styles.form.field.layers.label=Zit in de laag/lagen
 
 web.application.page.styles.form.field.type.point=Punt

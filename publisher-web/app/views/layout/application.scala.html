@@ -1,4 +1,4 @@
-@(title: String, jsMain: String = null)(content: Html)
+@(title: String, jsMain: String = null, cssMain: String = null)(content: Html)
 
 @doFlash(flashType: String) = {
 	@if(flash.containsKey(flashType)) {
@@ -24,7 +24,7 @@
 		routes.Assets.at("stylesheets/layout.css").url,
 		routes.Assets.at("stylesheets/sb-admin.css").url,
 		routes.Assets.at("stylesheets/main.css").url
-	),
+	) ++ (if(cssMain==null) Array[String]() else Array[String](cssMain)),
 	scripts = Array(
 		routes.Application.javascriptRoutes.url,
 		routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js")).url,
