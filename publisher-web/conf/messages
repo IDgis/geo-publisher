@@ -134,6 +134,8 @@ web.application.layout.dropdowntitle.tasks=Taken
 web.application.layout.dropdowntitle.errors=Nieuwe fouten
 
 web.application.layout.sidebar.dashboard=Dashboard
+web.application.layout.sidebar.generalmanagement=Algemeen beheer
+web.application.layout.sidebar.constants=Gegevens
 web.application.layout.sidebar.datamanagement=Databeheer
 web.application.layout.sidebar.datasets=Datasets
 web.application.layout.sidebar.sourcedatasets=Brongegevens
@@ -265,6 +267,60 @@ web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer al
 
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
+
+# General management
+web.application.page.constants.name=Constants
+
+web.application.page.constants.form.title=Gegevens formulier
+web.application.page.constants.form.header.new=Gegevens invullen
+
+web.application.page.constants.form.field.contact.label=Contactpersoon
+web.application.page.constants.form.field.contact.placeholder=Contactpersoon
+web.application.page.constants.form.field.contact.help=Vul de naam van de contactpersoon in
+
+web.application.page.constants.form.field.organization.label=Organisatie
+web.application.page.constants.form.field.organization.placeholder=Organisatie
+web.application.page.constants.form.field.organization.help=Vul de naam van de organisatie in
+
+web.application.page.constants.form.field.position.label=Rol contactpersoon
+web.application.page.constants.form.field.position.placeholder=Rol contactpersoon
+web.application.page.constants.form.field.position.help=Vul de rol van de organisatie in
+
+web.application.page.constants.form.field.addressType.label=Soort adres
+web.application.page.constants.form.field.addressType.placeholder=Soort adres
+web.application.page.constants.form.field.addressType.help=Vul het type adres in
+
+web.application.page.constants.form.field.address.label=Adres
+web.application.page.constants.form.field.address.placeholder=Adres
+web.application.page.constants.form.field.address.help=Vul het adres in
+
+web.application.page.constants.form.field.city.label=Plaats
+web.application.page.constants.form.field.city.placeholder=Plaats
+web.application.page.constants.form.field.city.help=Vul de plaats in
+
+web.application.page.constants.form.field.state.label=Provincie
+web.application.page.constants.form.field.state.placeholder=Provincie
+web.application.page.constants.form.field.state.help=Vul de provincie in
+
+web.application.page.constants.form.field.zipcode.label=Postcode
+web.application.page.constants.form.field.zipcode.placeholder=Postcode
+web.application.page.constants.form.field.zipcode.help=Vul de postcode in
+
+web.application.page.constants.form.field.country.label=Land
+web.application.page.constants.form.field.country.placeholder=Land
+web.application.page.constants.form.field.country.help=Vul het land in
+
+web.application.page.constants.form.field.telephone.label=Telefoon
+web.application.page.constants.form.field.telephone.placeholder=Telefoon
+web.application.page.constants.form.field.telephone.help=Vul het telefoonnummer in
+
+web.application.page.constants.form.field.fax.label=Fax
+web.application.page.constants.form.field.fax.placeholder=Fax
+web.application.page.constants.form.field.fax.help=Vul het faxnummer in
+
+web.application.page.constants.form.field.email.label=E-mail
+web.application.page.constants.form.field.email.placeholder=E-mail
+web.application.page.constants.form.field.email.help=Vul het e-mailadres in
 
 
 # SourceDatasets

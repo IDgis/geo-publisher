@@ -102,6 +102,16 @@
 					
 					<li class="navigation-header">
 						<span class="navigation-header-title">
+							@Domain.message("web.application.layout.sidebar.generalmanagement")
+						</span>
+					</li>
+					
+					@navItem(routes.Constants.edit().url) {
+						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.constants")
+					}
+					
+					<li class="navigation-header">
+						<span class="navigation-header-title">
 							@Domain.message("web.application.layout.sidebar.datamanagement")
 						</span>
 					</li>

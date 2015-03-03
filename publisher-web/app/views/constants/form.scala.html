@@ -1,0 +1,127 @@
+@(constantsForm: Form[controllers.Constants.ConstantsForm])
+
+@import nl.idgis.publisher.domain.web._
+
+@constantsId = @{constantsForm("id").value()}
+
+@layout.application( 
+	title=Domain.message("web.application.page.constants.form.title"),
+	jsMain = routes.Assets.at("js/constants/form.js").url
+){
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.page.constants.form.header.new")</h1>
+
+	<div class="row">
+		<div class="col-lg-12">
+			<form class="form-horizontal" method="post" action="@routes.Constants.submitUpdate()" >
+				<input type="hidden" class="form-control" id="input-id" name="id" value="@constantsForm("id").value" >
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-contact">@Domain.message("web.application.page.constants.form.field.contact.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-contact" name="contact" placeholder="@Domain.message("web.application.page.constants.form.field.contact.placeholder")" value="@constantsForm("contact").value">
+						@helper.fielderrors(constantsForm("contact").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.contact.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-organization">@Domain.message("web.application.page.constants.form.field.organization.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-organization" name="organization" placeholder="@Domain.message("web.application.page.constants.form.field.organization.placeholder")" value="@constantsForm("organization").value">
+						@helper.fielderrors(constantsForm("organization").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.organization.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-position">@Domain.message("web.application.page.constants.form.field.position.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-position" name="position" placeholder="@Domain.message("web.application.page.constants.form.field.position.placeholder")" value="@constantsForm("position").value">
+						@helper.fielderrors(constantsForm("position").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.position.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-addressType">@Domain.message("web.application.page.constants.form.field.addressType.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-addressType" name="addressType" placeholder="@Domain.message("web.application.page.constants.form.field.addressType.placeholder")" value="@constantsForm("addressType").value">
+						@helper.fielderrors(constantsForm("addressType").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.addressType.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-address">@Domain.message("web.application.page.constants.form.field.address.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-address" name="address" placeholder="@Domain.message("web.application.page.constants.form.field.address.placeholder")" value="@constantsForm("address").value">
+						@helper.fielderrors(constantsForm("address").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.address.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-city">@Domain.message("web.application.page.constants.form.field.city.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-city" name="city" placeholder="@Domain.message("web.application.page.constants.form.field.city.placeholder")" value="@constantsForm("city").value">
+						@helper.fielderrors(constantsForm("city").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.city.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-state">@Domain.message("web.application.page.constants.form.field.state.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-state" name="state" placeholder="@Domain.message("web.application.page.constants.form.field.state.placeholder")" value="@constantsForm("state").value">
+						@helper.fielderrors(constantsForm("state").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.state.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-zipcode">@Domain.message("web.application.page.constants.form.field.zipcode.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-zipcode" name="zipcode" placeholder="@Domain.message("web.application.page.constants.form.field.zipcode.placeholder")" value="@constantsForm("zipcode").value">
+						@helper.fielderrors(constantsForm("zipcode").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.zipcode.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-country">@Domain.message("web.application.page.constants.form.field.country.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-country" name="country" placeholder="@Domain.message("web.application.page.constants.form.field.country.placeholder")" value="@constantsForm("country").value">
+						@helper.fielderrors(constantsForm("country").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.country.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-telephone">@Domain.message("web.application.page.constants.form.field.telephone.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-telephone" name="telephone" placeholder="@Domain.message("web.application.page.constants.form.field.telephone.placeholder")" value="@constantsForm("telephone").value">
+						@helper.fielderrors(constantsForm("telephone").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.telephone.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-fax">@Domain.message("web.application.page.constants.form.field.fax.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-fax" name="fax" placeholder="@Domain.message("web.application.page.constants.form.field.fax.placeholder")" value="@constantsForm("fax").value">
+						@helper.fielderrors(constantsForm("fax").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.fax.help")
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-email">@Domain.message("web.application.page.constants.form.field.email.label")</label>
+					<div class="col-lg-8">
+						<input class="form-control" id="input-email" name="email" placeholder="@Domain.message("web.application.page.constants.form.field.email.placeholder")" value="@constantsForm("email").value">
+						@helper.fielderrors(constantsForm("email").errors)
+					</div>
+					@helper.tooltips("web.application.page.constants.form.field.email.help")
+				</div>
+
+				<div class="form-group">
+					<div class="col-sm-offset-2 col-sm-10">
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<a href="@routes.Dashboard.index()" class="btn btn-success" title="Annuleren">@Domain.message("web.application.button.cancel")</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+}
