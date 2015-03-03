@@ -12,6 +12,7 @@ import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
+import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -43,7 +44,7 @@ public class Groups extends GroupsLayersCommon {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
 			.list (LayerGroup.class)
-			.list (Layer.class)
+			.query (new ListLayers (1l, null, null))
 			.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
 
 				@Override
@@ -158,7 +159,7 @@ public class Groups extends GroupsLayersCommon {
 			.get (LayerGroup.class, groupId)
 			.query (new GetGroupStructure(groupId))
 			.list (LayerGroup.class)
-			.list (Layer.class)
+			.query (new ListLayers (1l, null, null))
 			.query(new GetLayerServices(groupId))
 			.executeFlat (new Function5<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, List<String>, Promise<Result>> () {
 

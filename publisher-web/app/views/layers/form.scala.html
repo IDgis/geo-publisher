@@ -1,6 +1,6 @@
 @(layerForm: Form[controllers.Layers.LayerForm],
  create: Boolean,
- allStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
+ allStyles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style],
  layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
  layerStyleListString: java.lang.String,
  previewUrl: java.lang.String)
@@ -91,20 +91,10 @@
 					<div class="controls col-sm-8">
 						<div class="gp-tree-select form-control" id="test-control">
 							<input type="hidden" name="styles" value="@layerStyleListString">
-<!-- 							value="[["stijl1","8c10427c-3b2f-4dd0-b5a4-adec1c5acb79"],["stijl2","b7b5f873-7d2a-4225-a2c0-4b9516627ddc"]]"> -->
 						</div>
 						<div class="gp-tree-values dropdown">
-							<div class="dropdown-menu">
-								<ul>
-									@for(style <- allStyles) {
-										<li>
-											<a href="#" data-id="@style.id" data-label="@style.name">
-												<span class="glyphicon glyphicon-tag"></span>
-												@style.name
-											</a>
-										</li>
-									}
-								</ul>
+							<div class="js-pager">
+								@styles.stylePager(allStyles)
 							</div>
 						</div>
 						@helper.fielderrors(layerForm("styles").errors)

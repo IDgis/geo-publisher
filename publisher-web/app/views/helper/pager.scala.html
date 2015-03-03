@@ -1,0 +1,15 @@
+@(url: String, header: Html, body: Html, footer: Html)
+
+<div class="panel panel-default" data-pager-url="@url">
+	<div class="panel-heading">
+		<div class="form-inline">
+			@header
+		</div>
+	</div>
+	<div class="panel-body">
+		@body
+	</div>
+	<div class="panel-footer">
+		@footer
+	</div>
+</div>

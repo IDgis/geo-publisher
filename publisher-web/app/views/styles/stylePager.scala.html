@@ -1,0 +1,8 @@
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String = null)
+
+@helper.pager(
+	routes.Styles.listStylesJson(if(styles.currentPage<1){ 1 } else { styles.currentPage }, null).url,
+	stylePagerHeader(styles, query),
+	stylePagerBody(styles),
+	stylePagerFooter(styles)
+)

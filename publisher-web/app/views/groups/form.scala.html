@@ -67,27 +67,29 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 					<div class="col-sm-8">
 						<div class="list-group" id="groupLayerStructure">
-							<!-- show items for each group/layer in the root group -->
-							@for(layerRef <- groupLayer.getLayers()) {
-								@defining(layerRef.getLayer()) { layer =>
-									<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
-										<input type="hidden" value="@layer.getId()" name="structure[]">
-										<div class="row">
-											<div class="col-sm-11 groupTree">
-												<ul class="treelist">
-													@helper.groupStructureRef(layerRef)
-												</ul>
-											</div>
-											<div class="col-sm-1">
-												<div class="pull-right tree-item-delete">
-													<a href="#" 
-														class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
-														<span class="glyphicon glyphicon-remove"></span>
-													</a>
+							@if(groupLayer != null) {
+								@* show items for each group/layer in the root group *@
+								@for(layerRef <- groupLayer.getLayers()) {
+									@defining(layerRef.getLayer()) { layer =>
+										<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
+											<input type="hidden" value="@layer.getId()" name="structure[]">
+											<div class="row">
+												<div class="col-sm-11 groupTree">
+													<ul class="treelist">
+														@helper.groupStructureRef(layerRef)
+													</ul>
+												</div>
+												<div class="col-sm-1">
+													<div class="pull-right tree-item-delete">
+														<a href="#" 
+															class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
+															<span class="glyphicon glyphicon-remove"></span>
+														</a>
+													</div>
 												</div>
 											</div>
 										</div>
-									</div>
+									}
 								}
 							}
 						</div>
@@ -103,13 +105,16 @@
 								}
 							</select>
 							
-							<span class="label-add-layer">Voeg laag toe:</span>
-							<select id="addlayer">
-								<option></option>
-								@for(layer <- layers.values) {
-									<option value="@layer.id">@layer.name</option>
-								}
-							</select>
+							<div class="gp-pager-select" id="layers-select">
+								<button type="button" class="btn btn-default js-pager-select-button">
+									<span class="glyphicon glyphicon-plus"></span>
+									Voeg een laag toe ...
+								</button>							
+								<div class="dropdown js-dropdown">
+									@views.html.layers.layerPager(layers, null, null)
+								</div>
+							</div>
+							
 							@helper.fielderrors(groupForm("structure").errors)
 					</div>
 					@helper.tooltips("web.application.page.groups.form.field.structure.help")

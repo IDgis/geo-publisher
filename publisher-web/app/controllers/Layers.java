@@ -12,6 +12,7 @@ import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -32,6 +33,9 @@ import play.mvc.Result;
 import play.mvc.Security;
 import views.html.layers.form;
 import views.html.layers.list;
+import views.html.layers.layerPagerHeader;
+import views.html.layers.layerPagerBody;
+import views.html.layers.layerPagerFooter;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
@@ -48,14 +52,14 @@ public class Layers extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-				.list (Style.class)
+				.query (new ListStyles (1l, null))
 				.execute (new Function<Page<Style>, Result> () {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
 						Logger.debug ("allStyles: " + allStyles.values().size());
 						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles.values(), layerForm.get().styleList, "", ""));
+						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", ""));
 					}
 				});
 	}
@@ -156,6 +160,25 @@ public class Layers extends GroupsLayersCommon {
 				}
 			});
 	}
+	
+	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		return from (database)
+			.query (new ListLayers (page, query, published))
+			.execute (new Function<Page<Layer>, Result> () {
+				@Override
+				public Result apply (final Page<Layer> layers) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("header", layerPagerHeader.render (layers, query, published).toString ());
+					result.put ("body", layerPagerBody.render (layers).toString ());
+					result.put ("footer", layerPagerFooter.render (layers).toString ());
+
+					return ok (result);
+				}
+			});
+	}
 
 	/**
 	 * Create a new layer given a dataset id.
@@ -193,7 +216,7 @@ public class Layers extends GroupsLayersCommon {
 		
 		return from (database)
 			.get (Layer.class, layerId)
-			.list (Style.class)
+			.query (new ListStyles (1l, null))
 			.query(new ListLayerStyles(layerId))
 			.query(new GetLayerServices(layerId))
 			.executeFlat (new Function4<Layer, Page<Style>, List<Style>, List<String>, Promise<Result>> () {
@@ -249,7 +272,7 @@ public class Layers extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles.values(), layerStyles, layerStyleListString, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyles, layerStyleListString, previewUrl));
 							}
 						});
 				}
