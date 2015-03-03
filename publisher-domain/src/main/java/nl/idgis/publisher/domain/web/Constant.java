@@ -15,7 +15,7 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class Constant extends Identifiable {
-	private static final long serialVersionUID = -103047524556298813L;
+	private static final long serialVersionUID = -15140434418790797L;
 	
 	private final String contact;
 	private final String organization;

@@ -1,15 +1,17 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QConstants.constants;
+import static nl.idgis.publisher.database.QStyle.style;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Constant;
+import nl.idgis.publisher.domain.web.QConstant;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -25,17 +27,16 @@ public class ConstantsAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		doGet(Constant.class, this::handleGetConstants);
+		doList(Constant.class, this::handleListConstants);
 		doPut(Constant.class, this::handlePutConstants);
 	}
 
-	private CompletableFuture<Optional<Constant>> handleGetConstants (String constantId) {
-		log.debug ("handleGetConstants");
+	private CompletableFuture<Page<Constant>> handleListConstants () {
+		log.debug ("handleListConstants");
 		
 		return 
 			db.query().from(constants)
-			.where(constants.identification.eq(constantId))
-			.singleResult(new nl.idgis.publisher.domain.web.QConstant(
+			.list(new QConstant(
 					constants.identification,
 					constants.contact,
 					constants.organization,
@@ -48,12 +49,12 @@ public class ConstantsAdmin extends AbstractAdmin {
 					constants.country,
 					constants.telephone,
 					constants.fax,
-					constants.email));		
+					constants.email))
+			.thenApply(this::toPage);
 	}
 	
 	private CompletableFuture<Response<?>> handlePutConstants(Constant theConstants) {
 		String constantId = theConstants.id();
-		String constantContact = theConstants.contact();
 		log.debug ("handle update/create constants: " + constantId);
 		
 		return db.transactional(tx ->
@@ -62,12 +63,12 @@ public class ConstantsAdmin extends AbstractAdmin {
 			.where(constants.identification.eq(constantId))
 			.singleResult(constants.identification)
 			.thenCompose(msg -> {
-				if (!msg.isPresent()){
+				if(!msg.isPresent()) {
 					// INSERT
-					log.debug("Inserting constants with name: " + constantContact);
+					log.debug("Inserting constant with id: " + constantId);
 					return tx.insert(constants)
 					.set(constants.identification, UUID.randomUUID().toString())
-					.set(constants.contact, constantContact)
+					.set(constants.contact, theConstants.contact())
 					.set(constants.organization, theConstants.organization())
 					.set(constants.position, theConstants.position())
 					.set(constants.addressType, theConstants.addressType())
@@ -80,12 +81,13 @@ public class ConstantsAdmin extends AbstractAdmin {
 					.set(constants.fax, theConstants.fax())
 					.set(constants.email, theConstants.email())
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, constantContact));
-				} else {
+					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, constantId));
+				}
+				else {
 					// UPDATE
-					log.debug("Updating constant with name: " + constantContact);
+					log.debug("Updating constant with id: " + constantId);
 					return tx.update(constants)
-					.set(constants.contact, constantContact)
+					.set(constants.contact, theConstants.contact())
 					.set(constants.organization, theConstants.organization())
 					.set(constants.position, theConstants.position())
 					.set(constants.addressType, theConstants.addressType())
@@ -99,7 +101,7 @@ public class ConstantsAdmin extends AbstractAdmin {
 					.set(constants.email, theConstants.email())
 					.where(constants.identification.eq(constantId))
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, constantContact));
+					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, constantId));
 				}
 		}));
 	}
