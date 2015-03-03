@@ -1,3 +1,3 @@
 @(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String = null)
 
-<input type="text" class="form-control" placeholder="Bla ..." data-pager-parameter="q" @if(query!=null){value="@query"}else{value=""}>
+<input type="text" class="form-control" placeholder="@Domain.message("web.application.page.styles.list.search.placeholder")" data-pager-parameter="q" @if(query!=null){value="@query"}else{value=""}>

@@ -2,7 +2,7 @@
 
 @if(styles.values.isEmpty) {
 	<div class="alert alert-info" data-pager-url="@routes.Styles.listStylesJson(1, null)">
-		Blabla
+		@Domain.message("web.application.page.styles.list.empty")
 	</div>
 } else {
 	<ul>
