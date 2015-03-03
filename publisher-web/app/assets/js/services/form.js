@@ -15,7 +15,7 @@ require ([
 	var keywordlist = dom.byId('keyword-list');
 	
 	on(keywordbutton,'click', function(evt) {
-		var keywordinput = dom.byId('input-keywords').value;
+		var keywordinput = dom.byId('input-keyword').value;
 		
 		if(keywordinput !== "") {
 			var el1 = put("div.keyword-item-block[value=$]", keywordinput);
@@ -27,7 +27,7 @@ require ([
 			put(keywordlist, el1);
 		}
 		
-		dom.byId('input-keywords').value = "";
+		dom.byId('input-keyword').value = "";
 	});
 	
 	on(win.doc, ".close:click", function(event) {

@@ -5,7 +5,8 @@
 @(serviceForm: Form[controllers.Services.ServiceForm], 
 	create: Boolean,
 	groups: Page[LayerGroup],
-	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer
+	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer,
+	serviceKeywords: java.util.List[java.lang.String]
 )
 
 @layout.application( 
@@ -59,12 +60,12 @@
 					@helper.tooltips("web.application.page.services.form.field.abstract.help")
 				</div>
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-keywords">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
+					<label class="col-sm-2 control-label" for="input-keyword">@Domain.message("web.application.page.services.form.field.keywords.label")</label>
 					<div class="col-lg-8">
 						
 						<div class="form-inline">
 							<div class="form-group col-lg-8">
-								<input class="form-control" id="input-keywords" name="keywords" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="@serviceForm("keywords").value" style="width:35em;margin-bottom:4px;">
+								<input class="form-control" id="input-keyword" name="keyword" placeholder="@Domain.message("web.application.page.services.form.field.keywords.placeholder")" value="" style="width:35em;margin-bottom:4px;">
 								<a class="btn btn-default btn-sm" id="add-keyword" style="margin-left:1em;margin-bottom:4px;">
 									<span class="glyphicon glyphicon-plus"></span>
 								</a>
@@ -75,14 +76,14 @@
 					@helper.tooltips("web.application.page.services.form.field.keywords.help")
 					<div class="col-sm-offset-2 col-lg-8">
 						<div class="keyword-list" id="keyword-list">
-							<!-- 
-							<div class="keyword-item-block" value="Recreatie">
-								<input class="form-control" type="hidden" name="keywords[]" value="Recreatie">
-								<span class="keyword-item label label-primary">Recreatie
-									<button type="button" aria-hidden="true" class="close" value="Recreatie">&times;</button>
-								</span>
-							</div>
-							 -->
+							@for(keyword <- serviceKeywords) {
+								<div class="keyword-item-block" value=@keyword>
+									<input class="form-control" type="hidden" name="keywords[]" value=@keyword>
+									<span class="keyword-item label label-primary">@keyword
+										<button type="button" aria-hidden="true" class="close" value=@keyword>&times;</button>
+									</span>
+								</div>
+							}
 						</div>
 					</div>
 				</div>
@@ -114,7 +115,8 @@
 					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.structure.label")</label>
 					<div class="col-sm-8">
 						<div class="list-group" id="groupLayerStructure">
-							<!-- show one item with the rootgrop and its structure -->
+							<!-- show one item with the rootgroup and its structure -->
+							@if(groupLayer != null){
 							<div value="@groupLayer.getId()" class="list-group-item gp-draggable tree-item">
 								<input type="hidden" value="@groupLayer.getId()" name="structure[]">
 								<div class="row">
@@ -126,6 +128,7 @@
 									<!-- no delete button -->
 								</div>
 							</div>
+							}
 						</div>
 					</div>
 				</div>

@@ -1,14 +1,23 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.domain.query.ListLayerKeywords;
+import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PutLayerKeywords;
+import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -40,6 +49,9 @@ public class ServiceAdmin extends AbstractAdmin {
 		doGet(Service.class, this::handleGetService);
 		doPut(Service.class, this::handlePutService);
 		doDelete(Service.class, this::handleDeleteService);
+		
+		doQuery(ListServiceKeywords.class, this::handleListServiceKeywords);
+		doQuery(PutServiceKeywords.class, this::handlePutServiceKeywords);
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
 	}
@@ -135,9 +147,11 @@ public class ServiceAdmin extends AbstractAdmin {
 						.singleResult(genericLayer.id)
 						.thenCompose(glId -> {
 							// INSERT
-							log.debug("Inserting new service with name: " + serviceName);
+							String newServiceId = UUID.randomUUID().toString();
+							log.debug("Inserting new service with name: " + serviceName + ", ident: "
+									+ newServiceId);
 							return tx.insert(service)
-								.set(service.identification, UUID.randomUUID().toString())
+								.set(service.identification, newServiceId)
 								.set(service.name, serviceName)
 								.set(service.title, theService.title())
 								.set(service.alternateTitle, theService.alternateTitle())
@@ -146,7 +160,7 @@ public class ServiceAdmin extends AbstractAdmin {
 								.set(service.published, theService.published())
 								.set(service.genericLayerId, glId.isPresent()?glId.get():null)
 								.execute()
-								.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceName));
+								.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
 						});
 				} else {
 					return tx.query().from(genericLayer)
@@ -164,7 +178,7 @@ public class ServiceAdmin extends AbstractAdmin {
 								.set(service.genericLayerId, glId.isPresent()?glId.get():null)
 								.where(service.identification.eq(serviceId))
 								.execute()
-								.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceName));
+								.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
 						});
 				}
 		}));
@@ -178,4 +192,72 @@ public class ServiceAdmin extends AbstractAdmin {
 			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
 	}
 	
+	
+	
+	private CompletableFuture<List<String>> handleListServiceKeywords(ListServiceKeywords listServiceKeywords) {
+		final String serviceId = listServiceKeywords.serviceId();
+		log.debug ("handleListServiceKeywords: " + serviceId);
+		
+		return db.transactional(
+			tx ->
+			tx.query().from(service)
+			.where(service.identification.eq(serviceId))
+			.singleResult(service.id)
+			.thenCompose(
+				svId -> {
+				log.debug("service id: " + svId.get());
+				return tx.query()
+					.from(serviceKeyword)
+					.where(serviceKeyword.serviceId.eq(svId.get()))
+					.list(serviceKeyword.keyword)
+					.thenApply(resp -> resp.list());
+				})
+		);
+	}
+	
+	private CompletableFuture<Response<?>> handlePutServiceKeywords(PutServiceKeywords putServiceKeywords) {
+		final String serviceId = putServiceKeywords.serviceId();
+		final List<String> serviceKeywords = putServiceKeywords.keywordList();
+		
+		log.debug ("handlePutServiceKeywords: " + serviceId);
+		return db.transactional(
+			tx ->
+			tx.query().from(service)
+			.where(service.identification.eq(serviceId))
+			.singleResult(service.id)
+			.thenCompose(
+				svId -> {
+				// A. delete the existing keywords of this service
+				log.debug("service id: " + svId.get());
+				return tx.delete(serviceKeyword)
+					.where(serviceKeyword.serviceId.eq(svId.get()))
+					.execute()
+					.thenCompose(
+						skNr -> {
+						// B. insert items of service keywords	
+						return f.sequence(
+							serviceKeywords.stream()
+							    .map(name -> 
+							    	tx.insert(serviceKeyword)
+						            .set(serviceKeyword.serviceId, svId.get()) 
+				            		.set(serviceKeyword.keyword, name)
+						            .execute())
+							    .collect(Collectors.toList())).thenApply(whatever ->
+							        new Response<String>(CrudOperation.CREATE,
+							                CrudResponse.OK, serviceId));
+						});
+//					.thenCompose(
+//						n -> {
+//						log.debug("delete keywords: #" + n);
+//						return tx
+//							.insert(serviceKeyword)							
+//							.set(serviceKeyword.serviceId, svId.get())
+//							.set(serviceKeyword.keyword, "abcdef")
+//							.execute()
+//							.thenApply(resp -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, serviceId));
+//						});
+				})
+		);		
+		
+	}	
 }
