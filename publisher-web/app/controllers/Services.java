@@ -1,12 +1,20 @@
 package controllers;
 
 import static models.Domain.from;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PutLayerStyles;
+import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -44,7 +52,7 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
-						return ok (form.render (serviceForm, true, groups, null));
+						return ok (form.render (serviceForm, true, groups, null, serviceForm.get().keywords));
 					}
 				});
 	}
@@ -86,19 +94,32 @@ public class Services extends Controller {
 							serviceForm.rootGroupName,serviceForm.constantsName);
 					Logger.debug ("Update/create service: " + service);
 					
+
 					return from (database)
 						.put(service)
 						.executeFlat (new Function<Response<?>, Promise<Result>> () {
 							@Override
 							public Promise<Result> apply (final Response<?> response) throws Throwable {
-								if (CrudOperation.CREATE.equals (response.getOperation())) {
-									Logger.debug ("Created service " + service);
-									flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-								}else{
-									Logger.debug ("Updated service " + service);
-									flash ("success", Domain.message("web.application.page.services.name") + " " + serviceForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
-								}
-								return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+								// Get the id of the service we just put 
+								String serviceId = response.getValue().toString();
+								PutServiceKeywords putServiceKeywords = 
+										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
+								return from (database)
+									.query(putServiceKeywords)
+									.executeFlat (new Function<Response<?>, Promise<Result>> () {
+										@Override
+										public Promise<Result> apply (final Response<?> responseKeywords) throws Throwable {
+										
+											if (CrudOperation.CREATE.equals (responseKeywords.getOperation())) {
+												Logger.debug ("Created service " + responseKeywords.getValue());
+												flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " is " + Domain.message("web.application.added").toLowerCase());
+											}else{
+												Logger.debug ("Updated service " + responseKeywords.getValue());
+												flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " is " + Domain.message("web.application.updated").toLowerCase());
+											}
+											return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+										}
+									});
 							}
 						});
 				}
@@ -136,10 +157,11 @@ public class Services extends Controller {
 			.get (Service.class, serviceId)			
 			.list(Category.class)
 			.list (LayerGroup.class)
-			.executeFlat (new Function3<Service, Page<Category>, Page<LayerGroup>, Promise<Result>> () {
+			.query(new ListServiceKeywords(serviceId))
+			.executeFlat (new Function4<Service, Page<Category>, Page<LayerGroup>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
+				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final List<String> keywords) throws Throwable {
 
 					return from (database)
 						.get(LayerGroup.class, service.genericLayerId())
@@ -150,13 +172,14 @@ public class Services extends Controller {
 
 								ServiceForm  serviceForm = new ServiceForm (service);
 								serviceForm.setRootGroupName(group.name());
+								serviceForm.setKeywords(keywords);
 								Logger.debug ("Edit serviceForm: " + serviceForm);
 								
 								final Form<ServiceForm> formServiceForm = Form
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, groups, groupLayer));
+								return ok (form.render (formServiceForm, false, groups, groupLayer, keywords));
 							}
 					});
 				}
@@ -190,7 +213,7 @@ public class Services extends Controller {
 		private String title;
 		private String alternateTitle;
 		private String abstractText;
-		private String keywords;
+		private List<String> keywords;
 		private String metadata;
 		private String watermark;
 		private Boolean published = false;
@@ -201,6 +224,7 @@ public class Services extends Controller {
 		public ServiceForm (){
 			super();
 			this.id = ID;		
+			this.keywords = new ArrayList<String>();
 		}
 		
 		public ServiceForm (final Service service){
@@ -266,12 +290,12 @@ public class Services extends Controller {
 		}
 
 
-		public String getKeywords() {
+		public List<String> getKeywords() {
 			return keywords;
 		}
 
 
-		public void setKeywords(String keywords) {
+		public void setKeywords(List<String> keywords) {
 			this.keywords = keywords;
 		}
 

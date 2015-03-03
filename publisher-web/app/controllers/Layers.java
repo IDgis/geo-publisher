@@ -9,10 +9,13 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
+import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetLayerServices;
+import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
+import nl.idgis.publisher.domain.query.PutLayerKeywords;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -57,9 +60,10 @@ public class Layers extends GroupsLayersCommon {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
-						Logger.debug ("allStyles: " + allStyles.values().size());
-						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", ""));
+						Logger.debug ("all styles: " + allStyles.values().size());
+						Logger.debug ("layer styles: " + layerForm.get().styles);
+						Logger.debug ("layer keywords: " + layerForm.get().keywords);
+						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", layerForm.get().keywords, ""));
 					}
 				});
 	}
@@ -114,33 +118,37 @@ public class Layers extends GroupsLayersCommon {
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId);
+					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
-							.put(layer)
-							.executeFlat (new Function<Response<?>, Promise<Result>> () {
-								@Override
-								public Promise<Result> apply (final Response<?> response) throws Throwable {
-									// Get the id of the layer we just put 
-									String layerId = response.getValue().toString();
-									PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
-									return from (database)
-										.query(putLayerStyles)
-										.executeFlat (new Function<Response<?>, Promise<Result>> () {
-											@Override
-											public Promise<Result> apply (final Response<?> response) throws Throwable {
-											
-												if (CrudOperation.CREATE.equals (response.getOperation())) {
-													Logger.debug ("Created layer " + layer);
-													flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-												}else{
-													Logger.debug ("Updated layer " + layer);
-													flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
-												}
-												return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
+						.put(layer)
+						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> response) throws Throwable {
+								// Get the id of the layer we just put 
+								String layerId = response.getValue().toString();
+								PutLayerKeywords putLayerKeywords = 
+									new PutLayerKeywords (layerId, layerForm.getKeywords()==null?new ArrayList<String>():layerForm.getKeywords());
+								PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
+								return from (database)
+									.query(putLayerStyles)
+									.query(putLayerKeywords)
+									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
+										@Override
+										public Promise<Result> apply (final Response<?> responseStyles, final Response<?> responseKeywords) throws Throwable {
+										
+											if (CrudOperation.CREATE.equals (responseStyles.getOperation())) {
+												Logger.debug ("Created layer " + layer);
+												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.added").toLowerCase());
+											}else{
+												Logger.debug ("Updated layer " + layer);
+												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.updated").toLowerCase());
 											}
-										});
-								}
-							});
+											return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
+										}
+									});
+							}
+						});
 				}
 			});
 	}
@@ -191,7 +199,7 @@ public class Layers extends GroupsLayersCommon {
 		Logger.debug ("create Layer with dataset id: " + datasetId);
 		
 		LayerForm layerForm = new LayerForm ();
-		// The list of styles for this layer is inititially empty
+		// The list of styles for this layer is initially empty
 		layerForm.setStyleList(new ArrayList<Style>());
 		
 		return from (database)
@@ -218,11 +226,12 @@ public class Layers extends GroupsLayersCommon {
 			.get (Layer.class, layerId)
 			.query (new ListStyles (1l, null))
 			.query(new ListLayerStyles(layerId))
+			.query(new ListLayerKeywords(layerId))
 			.query(new GetLayerServices(layerId))
-			.executeFlat (new Function4<Layer, Page<Style>, List<Style>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function5<Layer, Page<Style>, List<Style>, List<String>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> serviceIds) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> keywords, final List<String> serviceIds) throws Throwable {
 					String serviceId;
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
@@ -240,6 +249,7 @@ public class Layers extends GroupsLayersCommon {
 							public Result apply (final Dataset dataset, final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
+								layerForm.setKeywords(keywords);
 								if (layerStyles==null){
 									layerForm.setStyleList(new ArrayList<Style>());
 								} else {
@@ -265,14 +275,14 @@ public class Layers extends GroupsLayersCommon {
 								}					
 								final String layerStyleListString = Json.stringify (arrayNode);
 								
-								// build a preview string
+								// build a layer preview string
 								final String previewUrl ;
 								if (service==null){
 									previewUrl = null;
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles, layerStyles, layerStyleListString, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyles, layerStyleListString, keywords, previewUrl));
 							}
 						});
 				}
@@ -303,7 +313,7 @@ public class Layers extends GroupsLayersCommon {
 		private String name;
 		private String title;
 		private String abstractText;
-		private String keywords;
+		private List<String> keywords;
 		private Boolean published = false;
 		private String datasetId;
 		private String datasetName;
@@ -319,6 +329,7 @@ public class Layers extends GroupsLayersCommon {
 		public LayerForm(){
 			super();
 			this.id = ID;
+			this.keywords = new ArrayList<String>();
 		}
 		
 		public LayerForm(Layer layer){
@@ -328,7 +339,6 @@ public class Layers extends GroupsLayersCommon {
 			this.abstractText = layer.abstractText();
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
-
 		}
 
 		public String getId() {
@@ -363,12 +373,16 @@ public class Layers extends GroupsLayersCommon {
 			this.abstractText = abstractText;
 		}
 
-		public String getKeywords() {
+		public List<String> getKeywords() {
 			return keywords;
 		}
 
-		public void setKeywords(String keywords) {
-			this.keywords = keywords;
+		public void setKeywords(List<String> keywords) {
+			if (keywords==null){
+				this.keywords = new ArrayList<String>();
+			}else{
+				this.keywords = keywords;
+			}
 		}
 
 		public Boolean getPublished() {
