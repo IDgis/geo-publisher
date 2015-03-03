@@ -8,16 +8,27 @@ public class SourceDatasetInfo implements Serializable {
 
 	private static final long serialVersionUID = 1483600283295264723L;
 	
+	public enum Type {
+		VECTOR,
+		UNAVAILABLE
+	}
+	
 	private String dataSourceId, dataSourceName;
 	private final String id, name;
 	private final String categoryId, categoryName;
 	private Long count;
+	private Type type;
 
 	@QueryProjection
 	public SourceDatasetInfo(String id, String name, String dataSourceId,
 			String dataSourceName, String categoryId, String categoryName,
-			Long count) {
+			Long count, final String type) {
 		super();
+		
+		if (type == null) {
+			throw new NullPointerException ("type cannot be null");
+		}
+		
 		this.id = id;
 		this.name = name;
 		this.dataSourceId = dataSourceId;
@@ -25,6 +36,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.categoryId = categoryId;
 		this.categoryName = categoryName;
 		this.count = count;
+		this.type = Type.valueOf (type);
 	}
 
 	public String getDataSourceId() {
@@ -54,6 +66,9 @@ public class SourceDatasetInfo implements Serializable {
 	public Long getCount() {
 		return count;
 	}
-	
-	
+
+	public Type getType () {
+		return type;
+	}
+
 }

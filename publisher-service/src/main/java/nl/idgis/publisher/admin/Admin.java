@@ -15,19 +15,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.common.collect.Iterables;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.Order;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
-
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.QSourceDataset;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
@@ -40,7 +31,6 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.projections.QColumn;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
@@ -64,7 +54,6 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
-
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -72,6 +61,14 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
+import com.google.common.collect.Iterables;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.Order;
 
 public class Admin extends AbstractAdmin {
 	
@@ -297,6 +294,9 @@ public class Admin extends AbstractAdmin {
 			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
 		}		
 
+		final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion ("sdv2");
+		final QSourceDataset sourceDataset2 = new QSourceDataset ("sd2");
+		
 		return baseQuery
 			.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.groupBy(sourceDataset.identification)
@@ -306,9 +306,22 @@ public class Admin extends AbstractAdmin {
 			.groupBy(category.identification)
 			.groupBy(category.name)
 			.singleResult(
-				new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name,
-					dataSource.identification, dataSource.name, category.identification, category.name,
-					dataset.count())).thenApply(sourceDatasetInfoOptional -> 
+				new QSourceDatasetInfo(
+						sourceDataset.identification, 
+						sourceDatasetVersion.name,
+						dataSource.identification, 
+						dataSource.name, 
+						category.identification, 
+						category.name,
+						dataset.count(), 
+						new SQLSubQuery ()
+							.from (sourceDatasetVersion2)
+							.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
+							.where (sourceDataset2.identification.eq (sourceDataset.identification))
+							.orderBy (sourceDatasetVersion2.createTime.desc ())
+							.limit (1)
+							.unique (sourceDatasetVersion2.type)
+					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
 								sourceDatasetInfo.getId(), 
@@ -413,6 +426,9 @@ public class Admin extends AbstractAdmin {
 			Long page = msg.getPage();
 			singlePage(listQuery, page);
 			
+			final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion ("sdv2");
+			final QSourceDataset sourceDataset2 = new QSourceDataset ("sd2");
+			
 			return f
 				.collect(listQuery					
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
@@ -422,7 +438,15 @@ public class Admin extends AbstractAdmin {
 					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
 						dataSource.identification, dataSource.name,
 						category.identification,category.name,
-						dataset.count())))
+						dataset.count(), 
+						new SQLSubQuery ()
+							.from (sourceDatasetVersion2)
+							.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
+							.where (sourceDataset2.identification.eq (sourceDataset.identification))
+							.orderBy (sourceDatasetVersion2.createTime.desc ())
+							.limit (1)
+							.unique (sourceDatasetVersion2.type)
+					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
 					
