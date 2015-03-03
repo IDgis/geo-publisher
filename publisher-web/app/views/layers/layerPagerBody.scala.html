@@ -1,7 +1,20 @@
 @(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
 
-<ul>
+<div class="list-group">
 	@for(layer <- layers.values) {
-		<li>@layer.name, @layer.published</li>
+		<a href="#" class="list-group-item" data-id="@layer.id" data-label="@layer.name">
+			<div class="row">
+				<div class="col-lg-6">
+					@layer.name
+				</div>
+				<div class="col-lg-6">
+					@if(layer.published){
+						<strong>@Domain.message("web.application.page.list.published")</strong>
+					}else{
+						@Domain.message("web.application.page.list.notpublished")
+					}
+				</div>
+			</div>
+		</a>
 	}
-</ul>
+</div>
