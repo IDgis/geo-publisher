@@ -105,14 +105,6 @@
 								}
 							</select>
 							
-							<span class="label-add-layer">Voeg laag toe:</span>
-							<select id="addlayer">
-								<option></option>
-								@for(layer <- layers.values) {
-									<option value="@layer.id">@layer.name</option>
-								}
-							</select>
-
 							<div class="gp-pager-select" id="layers-select">
 								<button type="button" class="btn btn-default js-pager-select-button">
 									<span class="glyphicon glyphicon-plus"></span>
