@@ -254,7 +254,7 @@ public class EnsureServiceTest {
 			new Style("style1", TestStyle.getGreenSld()),
 			new End()), Ack.class);
 		
-		sync.ask(recorder, new Wait(4), Waited.class);
+		sync.ask(recorder, new Wait(6), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
 			.assertNext(EnsureStyle.class, style -> {
 				assertEquals("style0", style.getName());
