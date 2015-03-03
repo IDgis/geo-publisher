@@ -34,7 +34,7 @@ define ([
 			e.stopPropagation ();
 			
 			var url = domAttr.get (this, 'href');
-			if (!url.contains ('#')) {
+			if (url.indexOf ('#') < 0) {
 				self._doPage (url);
 			}
 		});
@@ -66,7 +66,7 @@ define ([
 					value = node.value;
 
 				if (lang.trim (value) != '') {
-					if (parameters.length == 0 && !url.contains ('?')) {
+					if (parameters.length == 0 && url.indexOf ('?') < 0) {
 						parameters += '?';
 					} else {
 						parameters += '&';
