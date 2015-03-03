@@ -138,3 +138,31 @@ footer {
 			}
 		}
 	}
+	
+/* Pager select: */
+
+	.gp-pager-select {
+		.dropdown {
+			position: absolute;
+			display: none;
+			z-index: 1000;
+			width: 600px;
+			
+			&.open {
+				display: block;
+			}
+			
+			.panel-body {
+				height: 400px;
+				overflow: auto;
+			}
+			
+			.panel-footer .gp-pager-controls {
+				margin: 0 auto;
+				
+				.pagination {
+					margin: 0;
+				}
+			}
+		}
+	}

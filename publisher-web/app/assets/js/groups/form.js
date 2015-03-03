@@ -10,6 +10,7 @@ require ([
 	'put-selector/put',
 	
 	'publisher/Pager',
+	'publisher/Select',
 	
 	'dojo/NodeList-traverse',
 	
@@ -25,7 +26,8 @@ require ([
 	
 	put,
 
-	Pager
+	Pager,
+	Select
 ) {
 	var main = dom.byId('groupLayerStructure');
 	
@@ -60,11 +62,8 @@ require ([
 		}
 	});
 	
-	on(lagen,'change', function(evt) {
-		var selectIndex = evt.currentTarget.options.selectedIndex;
-		
-		var id = evt.currentTarget[selectIndex].value;
-		var naam = evt.currentTarget[selectIndex].innerHTML;
+	function addLayer (id, label) {
+		var naam = label;
 		var structureName="structure[]";
 		
 		if(naam !== "") {
@@ -82,7 +81,7 @@ require ([
 			
 			put(main, el1);
 		}
-	});
+	}
 	
 	on(win.doc, ".delete-el:click", function(event) {
 		var idItem = domattr.get(this, 'value');
@@ -91,7 +90,13 @@ require ([
 		domConstruct.destroy(itemToDel);
 	});
 	
-	new Pager ('#layers-pager');
+	new Select ('#layers-select', {
+		onSelect: function (item) {
+			console.log ('Selected: ', item.id, item.label);
+			addLayer (item.id, item.label);
+		}
+	});
+	new Pager ('#layers-select .js-dropdown');
 });
 
 $(function () {
