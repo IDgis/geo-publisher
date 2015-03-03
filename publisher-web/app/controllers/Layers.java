@@ -60,9 +60,10 @@ public class Layers extends GroupsLayersCommon {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
-						Logger.debug ("allStyles: " + allStyles.values().size());
-						Logger.debug ("layerStyles: " + layerForm.get().styles);
-						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", null, ""));
+						Logger.debug ("all styles: " + allStyles.values().size());
+						Logger.debug ("layer styles: " + layerForm.get().styles);
+						Logger.debug ("layer keywords: " + layerForm.get().keywords);
+						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", layerForm.get().keywords, ""));
 					}
 				});
 	}
@@ -138,10 +139,10 @@ public class Layers extends GroupsLayersCommon {
 										
 											if (CrudOperation.CREATE.equals (responseStyles.getOperation())) {
 												Logger.debug ("Created layer " + layer);
-												flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.added").toLowerCase());
 											}else{
 												Logger.debug ("Updated layer " + layer);
-												flash ("success", Domain.message("web.application.page.layers.name") + " " + layerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.updated").toLowerCase());
 											}
 											return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
 										}
@@ -328,6 +329,7 @@ public class Layers extends GroupsLayersCommon {
 		public LayerForm(){
 			super();
 			this.id = ID;
+			this.keywords = new ArrayList<String>();
 		}
 		
 		public LayerForm(Layer layer){
@@ -337,7 +339,6 @@ public class Layers extends GroupsLayersCommon {
 			this.abstractText = layer.abstractText();
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
-			this.keywords = new ArrayList<String>();
 		}
 
 		public String getId() {

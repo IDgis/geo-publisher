@@ -337,7 +337,7 @@ public class LayerAdmin extends AbstractAdmin {
 										            		.set(leafLayerKeyword.keyword, name)
 												            .execute())
 												    .collect(Collectors.toList())).thenApply(whatever ->
-												        new Response<String>(CrudOperation.UPDATE,
+												        new Response<String>(CrudOperation.CREATE,
 												                CrudResponse.OK, layerId));
 									});
 						});
