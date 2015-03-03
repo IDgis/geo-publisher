@@ -33,6 +33,9 @@ import play.mvc.Result;
 import play.mvc.Security;
 import views.html.layers.form;
 import views.html.layers.list;
+import views.html.layers.layerPagerHeader;
+import views.html.layers.layerPagerBody;
+import views.html.layers.layerPagerFooter;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
@@ -154,6 +157,25 @@ public class Layers extends GroupsLayersCommon {
 				public Result apply (final Page<Layer> layers) throws Throwable {
 					Logger.debug ("Layer list : #" + layers.values().size());
 					return ok (list.render (layers, query, published));
+				}
+			});
+	}
+	
+	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		return from (database)
+			.query (new ListLayers (page, query, published))
+			.execute (new Function<Page<Layer>, Result> () {
+				@Override
+				public Result apply (final Page<Layer> layers) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("header", layerPagerHeader.render (layers, query, published).toString ());
+					result.put ("body", layerPagerBody.render (layers).toString ());
+					result.put ("footer", layerPagerFooter.render (layers).toString ());
+
+					return ok (result);
 				}
 			});
 	}
