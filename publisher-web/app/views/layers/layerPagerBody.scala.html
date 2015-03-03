@@ -1,1 +1,7 @@
 @(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
+
+<ul>
+	@for(layer <- layers.values) {
+		<li>@layer.name, @layer.published</li>
+	}
+</ul>

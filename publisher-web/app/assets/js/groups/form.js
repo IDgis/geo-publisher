@@ -6,12 +6,27 @@ require ([
 	'dojo/dom-attr',
 	'dojo/dom-construct',
 	'listorder/listorder',
+	
 	'put-selector/put',
+	
+	'publisher/Pager',
 	
 	'dojo/NodeList-traverse',
 	
 	'dojo/domReady!'
-], function (dom, on, win, query, domattr, domConstruct, OrderedList, put) {
+], function (
+	dom, 
+	on, 
+	win, 
+	query, 
+	domattr, 
+	domConstruct, 
+	OrderedList,
+	
+	put,
+
+	Pager
+) {
 	var main = dom.byId('groupLayerStructure');
 	
 	if(dom.byId ('groupLayerStructure')) {
@@ -75,6 +90,8 @@ require ([
 		
 		domConstruct.destroy(itemToDel);
 	});
+	
+	new Pager ('#layers-pager');
 });
 
 $(function () {

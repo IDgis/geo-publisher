@@ -112,6 +112,11 @@
 									<option value="@layer.id">@layer.name</option>
 								}
 							</select>
+							
+							<div id="layers-pager">
+								@views.html.layers.layerPager(layers, null, null)
+							</div>
+							
 							@helper.fielderrors(groupForm("structure").errors)
 					</div>
 					@helper.tooltips("web.application.page.groups.form.field.structure.help")
