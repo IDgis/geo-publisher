@@ -41,6 +41,8 @@ define ([
 				id: id,
 				label: label
 			});
+			
+			self.close ();
 		});
 	}
 	
@@ -50,6 +52,7 @@ define ([
 		},
 		
 		close: function () {
+			query ('.dropdown', this.node).removeClass ('open');
 		},
 		
 		onSelect: function (item) {

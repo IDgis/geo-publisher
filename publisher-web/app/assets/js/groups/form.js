@@ -92,7 +92,6 @@ require ([
 	
 	new Select ('#layers-select', {
 		onSelect: function (item) {
-			console.log ('Selected: ', item.id, item.label);
 			addLayer (item.id, item.label);
 		}
 	});
