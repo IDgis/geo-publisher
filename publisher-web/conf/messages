@@ -342,6 +342,10 @@ web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
 web.application.page.sourcedatasets.list.datasetcoupledparam=Er is {0} dataset gekoppeld.
 web.application.page.sourcedatasets.list.datasetscoupled=datasets gekoppeld.
 web.application.page.sourcedatasets.list.datasetscoupledparam=Er zijn {0} datasets gekoppeld.
+web.application.page.sourcedatasets.list.errorsTitle=Fouten
+web.application.page.sourcedatasets.list.errorsBoth=Met en zonder fouten
+web.application.page.sourcedatasets.list.errorsWith=Met fouten
+web.application.page.sourcedatasets.list.errorsWithout=Zonder fouten
 
 
 # DataSources

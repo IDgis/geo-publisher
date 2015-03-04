@@ -2,9 +2,7 @@ package controllers;
 
 import static models.Domain.from;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import models.Domain.Function;
@@ -33,16 +31,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 
-	public static Promise<Result> list (final String search, final long page) {
-		return listByDataSourceAndCategory (null, null, search, page);
+	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
+		return listByDataSourceAndCategory (null, null, search, withErrors, page);
 	}
 	
-	public static Promise<Result> listByDataSource (final String dataSourceId, final String search, final long page) {
-		return listByDataSourceAndCategory (dataSourceId, null, search, page);
+	public static Promise<Result> listByDataSource (final String dataSourceId, final String search, final Boolean withErrors, final long page) {
+		return listByDataSourceAndCategory (dataSourceId, null, search, withErrors, page);
 	}
 	
-	public static Promise<Result> listByCategory (final String categoryId, final String search, final long page) {
-		return listByDataSourceAndCategory (null, categoryId, search, page);
+	public static Promise<Result> listByCategory (final String categoryId, final String search, final Boolean withErrors, final long page) {
+		return listByDataSourceAndCategory (null, categoryId, search, withErrors, page);
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
@@ -76,15 +74,11 @@ public class DataSources extends Controller {
 			});
 	}
 	
-	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final String search, final long page) {
-			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, search, page);
+	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, final String categoryId, final String search, final Boolean withErrors, final long page) {
+			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, search, withErrors, page);
 	}
 	
-	public static Promise<Result> search (final String search, final long page) {
-		return listByDataSourceAndCategoryAndSearchString (null, null, search, page);
-	}
-	
-	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, final String categoryId, final String search, final long page) {
+	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, final String categoryId, final String search, final Boolean withErrors, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -107,7 +101,7 @@ public class DataSources extends Controller {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {
 									
-									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search));
+									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search, withErrors));
 								}
 								
 							});

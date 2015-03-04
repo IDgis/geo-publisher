@@ -3,71 +3,77 @@
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentDataSource: nl.idgis.publisher.domain.web.DataSource,
 	currentCategory: nl.idgis.publisher.domain.web.Category,
-	search: String)
+	search: String,
+	withErrors: java.lang.Boolean
+)
 
 @import nl.idgis.publisher.domain._
 @import nl.idgis.publisher.domain.web._
 
 @dataSourceLink(ds: DataSource, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ds.id)"@if(cls != null){ class="@cls"}>@ds.name</a>
+		<a href="@routes.DataSources.listByDataSource(ds.id, search, withErrors)"@if(cls != null){ class="@cls"}>@ds.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@ds.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id, search, withErrors)"@if(cls != null){ class="@cls"}>@ds.name</a>
 	}
 }
 
 @dataSourceRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSource(ref.id, search, withErrors)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id, search, withErrors)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	}
 }
 
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.list()">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.list(search, withErrors)">@Domain.message("web.application.page.datasources.all")</a>
 	} else {
-		<a href="@routes.DataSources.listByCategory(currentCategory.id)">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.listByCategory(currentCategory.id, search, withErrors)">@Domain.message("web.application.page.datasources.all")</a>
 	}
 }
 
 @categoryLink(cat: Category, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors)"@if(cls != null){ class="@cls"}>@cat.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors)"@if(cls != null){ class="@cls"}>@cat.name</a>
 	}
 }
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id, search, withErrors)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id, search, withErrors)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	}
 }
 
 @allCategoriesLink() = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.list()">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.list(search, withErrors)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSource(currentDataSource.id)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id, search, withErrors)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	}
 }
 
-@pageRef(targetPage: Long) = @{	  
+@pageRefWithErrors(errors: java.lang.Boolean, targetPage: Long = 1) = @{
 	if(currentCategory == null)
 		if(currentDataSource == null)
-			routes.DataSources.list(search, targetPage)
+			routes.DataSources.list(search, errors, targetPage)
 		else
-			routes.DataSources.listByDataSource(currentDataSource.id, search, targetPage) 
+			routes.DataSources.listByDataSource(currentDataSource.id, search, errors, targetPage) 
 	else
 		if(currentDataSource == null)
-			routes.DataSources.listByCategory(currentCategory.id, search, targetPage)
+			routes.DataSources.listByCategory(currentCategory.id, search, errors, targetPage)
 		else
-			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, targetPage)
+			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, errors, targetPage)
+}
+
+@pageRef(targetPage: Long = 1) = @{
+	pageRefWithErrors(withErrors, targetPage)	  
 }
 
 @layout.application(
@@ -81,11 +87,14 @@
 		
 			@* Filters: *@
 			<div class="col-lg-3 col-lg-push-9">
-				<form class="form-horizontal" role="form" method="GET" action="@routes.DataSources.search("searchingstill")">
+				<form class="form-horizontal" role="form" method="GET" action="@pageRef()">
 					@* Search source_dataset input: *@
 					<div class="form-group has-feedback">
 						<div class="col-sm-12">
-							<input type="text" class="form-control col-sm-12" id="searchString" name="searchString" placeholder=@Domain.message("web.application.page.sourcedatasets.list.search.placeholder")>
+							<input type="text" class="form-control col-sm-12" id="searchString" name="q" placeholder="@Domain.message("web.application.page.sourcedatasets.list.search.placeholder")"@if(search != null){ value="@search"}>
+							@if(withErrors != null) {
+								<input type="hidden" name="withErrors" value="@withErrors">
+							}
 							<button class="btn btn-link form-control-feedback" type="submit"><span class="glyphicon glyphicon-search"></span></button>
 						</div>
 					</div>
@@ -114,6 +123,25 @@
 						</div>
 					</div>
 			
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-errors">
+									@Domain.message("web.application.page.sourcedatasets.list.errorsTitle")
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-errors" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(withErrors == null){ class="active"}><a href="@pageRefWithErrors(null).url">@Domain.message("web.application.page.sourcedatasets.list.errorsBoth")</a></li>
+									<li@if(withErrors != null && !withErrors){ class="active"}><a href="@pageRefWithErrors(false).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWithout")</a></li>
+									<li@if(withErrors != null && withErrors){ class="active"}><a href="@pageRefWithErrors(true).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWith")</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
 					<div class="panel panel-default">
 						<div class="panel-heading">
 							<h4 class="panel-title">
