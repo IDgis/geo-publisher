@@ -62,12 +62,4 @@ alter table publisher.leaf_layer_keyword alter column keyword set not null;
 alter table publisher.service_keyword alter column service_id set not null;
 alter table publisher.service_keyword alter column keyword set not null;
 
---
--- add 1 entry in table constants and fill id into service.constants_id
---
-
-INSERT INTO publisher.constants (identification, contact, organization, "position", address_type, address, city, state, zipcode, country, telephone, fax, email)
-  VALUES ('acb380a5-5270-4284-8fd1-b24f62809fe3','', '', '', '', '', '', '', '', '', '', '', '' );
-UPDATE publisher.service SET constants_id = ( SELECT id FROM publisher.constants LIMIT 1);
-
 insert into publisher.version(id) values(38);
