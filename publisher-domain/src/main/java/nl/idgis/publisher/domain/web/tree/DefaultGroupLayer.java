@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DefaultGroupLayer implements GroupLayer, Serializable {	
@@ -24,7 +25,11 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		Map<String, String> structure, Map<String, String> styles) {
 		
 		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
-		return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets), groupsMap, structure, styles);
+		if(groupsMap.containsKey(groupId)) {
+			return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets), groupsMap, structure, styles);
+		} else {
+			throw new IllegalArgumentException("groupId not in groups list: " + groupId);
+		}
 	}
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
@@ -42,11 +47,11 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		this.styles = styles;
 	}
 	
-	private static <T extends AbstractLayer> Map<String, T> toMap(List<T> list) {
-		return list.stream()
+	private static <T extends AbstractLayer> Map<String, T> toMap(List<T> layers) {
+		return layers.stream()
 			.collect(Collectors.toMap(
-				item -> item.getId(), 
-				item -> item));
+				layer -> layer.getId(),
+				Function.identity()));
 	}
 	
 	private LayerRef<?> asLayer(String id) {

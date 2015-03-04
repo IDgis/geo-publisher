@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,10 @@ import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 
+import akka.event.LoggingAdapter;
+
+import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 
@@ -17,9 +22,9 @@ import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<PartialGroupLayer>> {
 	
-	protected abstract CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats();
-	
-	protected abstract CompletableFuture<TypedList<Tuple>> groupInfo();
+	AbstractGroupQuery(LoggingAdapter log) {
+		super(log);
+	}
 
 	@Override
 	CompletableFuture<TypedList<PartialGroupLayer>> result() {
@@ -41,5 +46,37 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 								t.get(tiledLayer.gutter))))
 					.collect(Collectors.toList()))));
 	}
+	
+	private CompletableFuture<TypedList<Tuple>> groupInfo() {
+		return groups()
+			.list(
+				genericLayer.id,
+				genericLayer.identification, 
+				genericLayer.name, 
+				genericLayer.title, 
+				genericLayer.abstractCol,
+				tiledLayer.genericLayerId,
+				tiledLayer.metaWidth,					
+				tiledLayer.metaHeight,
+				tiledLayer.expireCache,
+				tiledLayer.expireClients,
+				tiledLayer.gutter);
+	}
+	
+	private CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
+		return groups()
+			.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+			.list(
+				genericLayer.id,
+				tiledLayerMimeformat.mimeformat).thenApply(resp -> 
+					resp.list().stream()
+						.collect(Collectors.groupingBy(t ->
+							t.get(genericLayer.id),
+							Collectors.mapping(t ->
+								t.get(tiledLayerMimeformat.mimeformat),
+								Collectors.toList()))));
+	}
+
+	protected abstract AsyncSQLQuery groups();
 
 }

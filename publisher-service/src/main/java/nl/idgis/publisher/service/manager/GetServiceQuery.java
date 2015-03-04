@@ -23,7 +23,10 @@ import java.util.stream.Collectors;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
@@ -37,55 +40,29 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	
 	private class GroupQuery extends AbstractGroupQuery {
 
+		GroupQuery(LoggingAdapter log) {
+			super(log);
+		}
+
 		@Override
-		protected CompletableFuture<TypedList<Tuple>> groupInfo() {
+		protected AsyncSQLQuery groups() {
 			return withServiceStructure.clone()
 				.from(genericLayer)
 				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))				
 				.where(new SQLSubQuery().from(leafLayer)
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
 					.notExists())	
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					tiledLayer.genericLayerId,
-					tiledLayer.metaWidth,					
-					tiledLayer.metaHeight,
-					tiledLayer.expireCache,
-					tiledLayer.expireClients,
-					tiledLayer.gutter);
-		}
-		
-		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
-			return withServiceStructure.clone()
-				.from(genericLayer)
-				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
-				.where(new SQLSubQuery().from(leafLayer)
-					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(tiledLayerMimeformat.mimeformat),
-									Collectors.toList()))));
-		}
-		
+				.where(serviceStructure.serviceIdentification.eq(serviceId));
+		}		
 	}
 	
 	private class DatasetQuery extends AbstractDatasetQuery {
+		
+		DatasetQuery(LoggingAdapter log) {
+			super(log);
+		}
+
 		@Override
 		protected CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats() {
 			return withServiceStructure.clone()
@@ -172,8 +149,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	
 	private final String serviceId;
 
-	GetServiceQuery(FutureUtils f, AsyncHelper tx, String serviceId) {
-		super(f, tx);
+	GetServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String serviceId) {		
+		super(log, f, tx);
 		
 		this.serviceId = serviceId;
 	}
@@ -190,7 +167,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
-		return new GroupQuery().result();
+		return new GroupQuery(log).result();
 	}
 	
 	private CompletableFuture<TypedList<String>> keywords() {
@@ -228,7 +205,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	}
 	
 	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
-		return new DatasetQuery().result();
+		return new DatasetQuery(log).result();
 	}
 	
 	@Override

@@ -24,6 +24,8 @@ import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
@@ -39,57 +41,33 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	
 	private class GroupQuery extends AbstractGroupQuery {
 		
-		@Override
-		protected CompletableFuture<TypedList<Tuple>> groupInfo() {
-			return withGroupStructure.clone()
-				.from(genericLayer)
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
-				.where(new SQLSubQuery().from(leafLayer)
-					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-				.list(
-					genericLayer.id,
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					tiledLayer.genericLayerId,
-					tiledLayer.metaWidth,					
-					tiledLayer.metaHeight,
-					tiledLayer.expireCache,
-					tiledLayer.expireClients,
-					tiledLayer.gutter);
+		GroupQuery(LoggingAdapter log) {
+			super(log);
 		}
 		
 		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
+		protected AsyncSQLQuery groups() {
 			return withGroupStructure.clone()
-				.from(genericLayer)
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.from(genericLayer)				
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 				.where(new SQLSubQuery().from(leafLayer)
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-				.list(
-					genericLayer.id,
-					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(tiledLayerMimeformat.mimeformat),
-									Collectors.toList()))));
+					.notExists())
+				.where(new SQLSubQuery().from(groupStructure) 
+					.where(groupStructure.childLayerId.eq(genericLayer.id))
+					.where(groupStructure.groupLayerIdentification.eq(groupLayerId)) 
+					.exists() // requested group children
+						.or(genericLayer.identification.eq(groupLayerId))); // requested group itself
 		}
+		
 	}
 	
 	private class DatasetQuery extends AbstractDatasetQuery {
 		
+		DatasetQuery(LoggingAdapter log) {
+			super(log);
+		}
+
 		@Override
 		protected CompletableFuture<Map<Integer, List<String>>> datasetKeywords() {
 			return withGroupStructure.clone()
@@ -211,7 +189,9 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	private final AsyncSQLQuery withGroupStructure;
 	
 	@SuppressWarnings("unchecked")
-	GetGroupLayerQuery(FutureUtils f, AsyncHelper tx, String groupLayerId) {
+	GetGroupLayerQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String groupLayerId) {
+		super(log);
+		
 		this.f = f;
 		this.groupLayerId = groupLayerId;
 		
@@ -256,11 +236,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
-		return new GroupQuery().result();
+		return new GroupQuery(log).result();
 	}
 	
 	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
-		return new DatasetQuery().result();
+		return new DatasetQuery(log).result();
 	}
 
 	@Override
@@ -279,6 +259,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 							structureTuple.get(groupStructure.childLayerIdentification),
 							structureTuple.get(groupStructure.parentLayerIdentification));
 					}
+					
+					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);
 	
 					return DefaultGroupLayer.newInstance(
 						groupLayerId,

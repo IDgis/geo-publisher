@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -958,5 +959,78 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		styleNames = serviceIndex.getStyleNames();
 		assertNotNull(styleNames);
 		assertTrue(styleNames.isEmpty());
+	}
+	
+	@Test
+	public void testComplexGroupStructure() throws Exception {
+		insert(genericLayer)
+			.columns(
+				genericLayer.id,
+				genericLayer.name,
+				genericLayer.title,
+				genericLayer.abstractCol,
+				genericLayer.published,
+				genericLayer.identification)
+			.values(1, "Aantal_koop-_en_huurwoningen_per_buurt", "", "", false, "fd12e3ef-5ae6-4fed-acbc-0dfad83c8936").addBatch()
+			.values(2, "koop-_en_huurwoningen_per_buurt", "titel", "", false, "81567e62-9e32-47ec-8c92-eae119e81957").addBatch()				
+			.values(11, "ondergroep1", "", "", false, "6fc6a513-c625-4902-a30f-c637a5a311b8").addBatch()
+			.values(12, "ondergroep2", "", "", false, "bb0eed56-85be-4817-8495-2810a53abf89").addBatch()
+			.values(16, "bovenstegroep", "", "", false, "6a132ba4-ee31-49f3-9ed1-304a021f85a8").addBatch()
+			.values(14, "bovengroep2", "", "", false, "4da7fd70-c2b2-4513-9917-e3ed417cce87").addBatch()
+			.values(17, "supergroep", "", "", false, "c9d91350-73fc-4cf4-91e6-d3c5b51276f4").addBatch()				
+			.execute();
+		
+		insert(layerStructure)
+			.columns(
+				layerStructure.parentLayerId,
+				layerStructure.childLayerId,
+				layerStructure.layerOrder,
+				layerStructure.styleId) 
+			.values(11, 2, 0, null).addBatch()
+			.values(12, 1, 0, null).addBatch()
+			.values(16, 14, 0, null).addBatch()
+			.values(14, 11, 0, null).addBatch()
+			.values(14, 12, 1, null).addBatch()
+			.values(17, 16, 0, null).addBatch()		
+			.execute();
+
+		insert(leafLayer)
+			.columns(
+				leafLayer.id,
+				leafLayer.metadata,
+				leafLayer.filter,
+				leafLayer.genericLayerId,
+				leafLayer.datasetId)
+			.values(1, null, null, 1, datasetId).addBatch()
+			.values(2, null, null, 2, datasetId).addBatch()
+			.execute();
+		
+		for(String identification : Arrays.asList(
+				"6fc6a513-c625-4902-a30f-c637a5a311b8",
+				"bb0eed56-85be-4817-8495-2810a53abf89",
+				"6a132ba4-ee31-49f3-9ed1-304a021f85a8",
+				"4da7fd70-c2b2-4513-9917-e3ed417cce87",
+				"c9d91350-73fc-4cf4-91e6-d3c5b51276f4")) {
+			
+			GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer(identification), GroupLayer.class);
+			assertValidGroupLayer(identification, groupLayer);
+		}
+	}
+	
+	private void assertValidGroupLayer(String identification, GroupLayer groupLayer) {
+		List<LayerRef<?>> layers = groupLayer.getLayers();
+		assertNotNull(layers);
+		
+		for(LayerRef<?> layerRef : layers) {
+			if(layerRef.isGroupRef()) {
+				GroupLayer layer = layerRef.asGroupRef().getLayer();
+				assertNotNull(layer);
+				
+				assertValidGroupLayer(identification, layer);
+			} else {
+				DatasetLayer layer = layerRef.asDatasetRef().getLayer();
+				assertNotNull(layer);
+			}
+		}
 	}
 }

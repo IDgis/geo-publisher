@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 
@@ -26,6 +28,10 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 	protected abstract CompletableFuture<Map<Integer, List<String>>> datasetStyles();
 	
 	protected abstract CompletableFuture<TypedList<Tuple>> datasetInfo();
+	
+	AbstractDatasetQuery(LoggingAdapter log) {
+		super(log);
+	}
 
 	@Override
 	protected CompletableFuture<TypedList<DefaultDatasetLayer>> result() {
