@@ -1,12 +1,20 @@
 package nl.idgis.publisher.utils;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.xml.stream.XMLEventFactory;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -133,5 +141,74 @@ public class XMLUtils {
 	
 	public static XPathHelper xpath(Document document) {
 		return new XPathHelper(XPathFactory.newInstance().newXPath(), document);
+	}
+	
+	public static boolean equalsIgnoreWhitespace(Document a, Document b) throws XMLStreamException {
+		XMLInputFactory xif = XMLInputFactory.newInstance();
+		XMLEventFactory xef = XMLEventFactory.newInstance();
+		
+		return equals(xif, xef, a, b,
+			Optional.of(event ->			
+				event.isCharacters() 
+					? xef.createCharacters(event.asCharacters().getData().trim())
+					: event),
+				
+			Optional.of(event -> 
+				!event.isCharacters() 
+					|| !event.asCharacters().getData().isEmpty()));
+	}
+	
+	public static boolean equals(Document a, Document b) throws XMLStreamException {
+		XMLInputFactory xif = XMLInputFactory.newInstance();
+		XMLEventFactory xef = XMLEventFactory.newInstance();
+		
+		return equals(xif, xef, a, b, Optional.empty(), Optional.empty());
+	}
+	
+	private static <T> List<T> mapFilter(List<T> input, Optional<Function<? super T, ? extends T>> mapper, Optional<Predicate<? super T>> filter) {
+		return input.stream()
+			.map(mapper.orElse(Function.identity()))
+			.filter(filter.orElse(item -> true))			
+			.collect(Collectors.toList());
+	}
+	
+	private static boolean equals(XMLInputFactory xif, XMLEventFactory xef, Document a, Document b, 
+			Optional<Function<? super XMLEvent, ? extends XMLEvent>> mapper, 
+			Optional<Predicate<? super XMLEvent>> filter) throws XMLStreamException {
+		
+		List<XMLEvent> listA = toEventList(xif, xef, a);
+		List<XMLEvent> listB = toEventList(xif, xef, b);
+		
+		return mapFilter(listA, mapper, filter)
+			.equals(mapFilter(listB, mapper, filter));
+	}
+	
+	public static List<XMLEvent> toEventList(Document document) throws XMLStreamException {
+		XMLInputFactory xif = XMLInputFactory.newInstance();
+		XMLEventFactory xef = XMLEventFactory.newInstance();
+		
+		return toEventList(xif, xef, document);
+	}
+
+	private static List<XMLEvent> toEventList(XMLInputFactory xif, XMLEventFactory xef, Document document) throws XMLStreamException {
+		StringBuilder sb = new StringBuilder();
+		List<XMLEvent> events = new ArrayList<>();		
+		XMLEventReader xer = xif.createXMLEventReader(new DOMSource(document));		
+		
+		while(xer.hasNext()){
+			XMLEvent event = xer.nextEvent();
+			if(event.isCharacters()) { // merge subsequent characters events
+				sb.append(event.asCharacters().getData());
+			} else {
+				if(sb.length() > 0) {
+					events.add(xef.createCharacters(sb.toString()));
+					sb.setLength(0);
+				}
+				
+				events.add(event);				
+			}
+		}
+		
+		return events;
 	}
 }

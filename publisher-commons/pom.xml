@@ -60,6 +60,10 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>													
 		</dependency>
+		<dependency>
+		    <groupId>org.codehaus.woodstox</groupId>
+		    <artifactId>woodstox-core-lgpl</artifactId>		    
+		</dependency>
     </dependencies>
     
 </project>
