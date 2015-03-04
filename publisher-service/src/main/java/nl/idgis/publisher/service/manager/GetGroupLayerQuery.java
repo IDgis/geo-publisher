@@ -44,54 +44,22 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		GroupQuery(LoggingAdapter log) {
 			super(log);
 		}
-
-		@Override
-		protected CompletableFuture<TypedList<Tuple>> groupInfo() {
-			return withGroupStructure.clone()
-				.from(genericLayer)
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // = optional
-				.where(new SQLSubQuery().from(leafLayer)
-					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-				.list(
-					genericLayer.id,
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					tiledLayer.genericLayerId,
-					tiledLayer.metaWidth,					
-					tiledLayer.metaHeight,
-					tiledLayer.expireCache,
-					tiledLayer.expireClients,
-					tiledLayer.gutter);
-		}
 		
 		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
+		protected AsyncSQLQuery groups() {
 			return withGroupStructure.clone()
-				.from(genericLayer)
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+				.from(genericLayer)				
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 				.where(new SQLSubQuery().from(leafLayer)
 					.where(leafLayer.genericLayerId.eq(genericLayer.id))
-					.notExists())	
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId)
-					.or(groupStructure.childLayerIdentification.eq(groupLayerId))) // requested root group
-				.list(
-					genericLayer.id,
-					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(tiledLayerMimeformat.mimeformat),
-									Collectors.toList()))));
+					.notExists())
+				.where(new SQLSubQuery().from(groupStructure) 
+					.where(groupStructure.childLayerId.eq(genericLayer.id))
+					.where(groupStructure.groupLayerIdentification.eq(groupLayerId)) 
+					.exists() // requested group children
+						.or(genericLayer.identification.eq(groupLayerId))); // requested group itself
 		}
+		
 	}
 	
 	private class DatasetQuery extends AbstractDatasetQuery {
