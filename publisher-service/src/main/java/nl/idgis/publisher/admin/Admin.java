@@ -458,7 +458,7 @@ public class Admin extends AbstractAdmin {
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
 						);
 						
-						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount(), sourceDatasetInfo.getType ()));
 					}
 					
 					addPageInfo(pageBuilder, page, count);

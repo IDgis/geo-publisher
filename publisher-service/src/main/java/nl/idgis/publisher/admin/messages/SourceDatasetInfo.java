@@ -2,22 +2,19 @@ package nl.idgis.publisher.admin.messages;
 
 import java.io.Serializable;
 
+import nl.idgis.publisher.domain.SourceDatasetType;
+
 import com.mysema.query.annotations.QueryProjection;
 
 public class SourceDatasetInfo implements Serializable {
 
 	private static final long serialVersionUID = 1483600283295264723L;
 	
-	public enum Type {
-		VECTOR,
-		UNAVAILABLE
-	}
-	
 	private String dataSourceId, dataSourceName;
 	private final String id, name;
 	private final String categoryId, categoryName;
 	private Long count;
-	private Type type;
+	private SourceDatasetType type;
 
 	@QueryProjection
 	public SourceDatasetInfo(String id, String name, String dataSourceId,
@@ -36,7 +33,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.categoryId = categoryId;
 		this.categoryName = categoryName;
 		this.count = count;
-		this.type = Type.valueOf (type);
+		this.type = SourceDatasetType.valueOf (type);
 	}
 
 	public String getDataSourceId() {
@@ -67,7 +64,7 @@ public class SourceDatasetInfo implements Serializable {
 		return count;
 	}
 
-	public Type getType () {
+	public SourceDatasetType getType () {
 		return type;
 	}
 
