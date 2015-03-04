@@ -34,7 +34,9 @@ ALTER TABLE publisher.layer_structure ADD CONSTRAINT layer_structure_parent_laye
 -- fixes
 --
 alter table publisher.tiled_layer drop column enabled;
-alter table publisher.style add column style_type varchar(20) not null;
+alter table publisher.style add column style_type varchar(20) default 'POINT'; 
+update publisher.style set style_type = 'POINT';
+alter table publisher.style alter column style_type set not null;
 --
 -- constraints
 --
