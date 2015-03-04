@@ -33,7 +33,8 @@ require ([
 	put
 ) {
 	
-	var dataSourceSelect = dom.byId('input-datasource'),
+	var columnList = dom.byId('column-list'),
+		dataSourceSelect = dom.byId('input-datasource'),
 		categorySelect = dom.byId('input-category'),
 		datasetSelect = dom.byId('input-source-dataset'),
 		idInput = dom.byId ('input-id'),
@@ -129,7 +130,7 @@ require ([
 				}).length;
 	}
 	
-	on(buttonSelectAllColumns, 'click', function(event) {
+	on(columnList, '#button-select-all-columns:click', function(event) {
 		selectAllColumns();
 	});
 	
@@ -142,11 +143,9 @@ require ([
 				}).length;
 	}
 	
-	on(buttonSelectNoColumns, 'click', function(event) {
+	on(columnList, '#button-select-no-columns:click', function(event) {
 		selectNoColumns();
 	});
-	
-	var columnList = dom.byId('column-list');
 	
 	function updateColumnCount() {
 		query('#tab-columns span.badge')[0].innerHTML =
@@ -795,7 +794,7 @@ require ([
 					}
 				});
 				
-				if (operatorProperties[operator].arity > 1) {
+				if (operator && operatorProperties[operator].arity > 1) {
 					exp.inputs.push ({
 						type: 'value',
 						value: value || '',
