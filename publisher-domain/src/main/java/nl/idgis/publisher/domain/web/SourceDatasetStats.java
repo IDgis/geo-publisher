@@ -2,9 +2,6 @@ package nl.idgis.publisher.domain.web;
 
 import java.sql.Timestamp;
 
-import nl.idgis.publisher.domain.service.DatasetLog;
-import nl.idgis.publisher.domain.service.DatasetLogType;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,22 +13,19 @@ public class SourceDatasetStats extends Entity {
 	private final SourceDataset 	sourceDataset;
 	private final long				datasetCount;
 	
-	private final DatasetLogType	lastLogType;
-	private final DatasetLog<?>		lastLogParameters;
+	private final Message			lastLogMessage;
 	private final Timestamp			lastLogTime;
 	
 	@JsonCreator
 	public SourceDatasetStats (
 			final @JsonProperty("sourceDataset") SourceDataset sourceDataset, 
 			final @JsonProperty("datasetCount") long datasetCount,
-			final @JsonProperty("lastLogType") DatasetLogType lastLogType,
-			final @JsonProperty("lastLogParameters") DatasetLog<?> lastLogParameters,
+			final @JsonProperty("lastLogMessage") Message lastLogMessage,
 			final @JsonProperty("lastLogTime") Timestamp lastLogTime) {
 		
 		this.sourceDataset = sourceDataset;
 		this.datasetCount = datasetCount;
-		this.lastLogType = lastLogType;
-		this.lastLogParameters = lastLogParameters;
+		this.lastLogMessage = lastLogMessage;
 		this.lastLogTime = lastLogTime;
 	}
 
@@ -46,13 +40,8 @@ public class SourceDatasetStats extends Entity {
 	}
 	
 	@JsonGetter
-	public DatasetLogType lastLogType () {
-		return this.lastLogType;
-	}
-	
-	@JsonGetter
-	public DatasetLog<?> lastLogParameters () {
-		return this.lastLogParameters;
+	public Message lastLogMessage () {
+		return this.lastLogMessage;
 	}
 	
 	@JsonGetter

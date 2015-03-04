@@ -493,8 +493,9 @@ public class Admin extends AbstractAdmin {
 						pageBuilder.add (new SourceDatasetStats (
 								sourceDataset, 
 								sourceDatasetInfo.getCount(),
-								sourceDatasetInfo.getLastLogType (),
-								sourceDatasetInfo.getLastLogParameters (),
+								sourceDatasetInfo.getLastLogType () == null 
+									? null
+									: new Message (sourceDatasetInfo.getLastLogType (), sourceDatasetInfo.getLastLogParameters ()),
 								sourceDatasetInfo.getLastLogTime ()
 							));
 					}

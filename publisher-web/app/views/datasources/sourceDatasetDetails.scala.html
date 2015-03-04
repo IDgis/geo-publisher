@@ -3,9 +3,9 @@
 @import nl.idgis.publisher.domain._
 @import nl.idgis.publisher.domain.web._
 
-@if(dataset.lastLogType != null) {
+@if(dataset.lastLogMessage != null) {
 	<p class="text-danger">
-		<span class="glyphicon glyphicon-exclamation-sign"></span> @dataset.lastLogType
+		<span class="glyphicon glyphicon-exclamation-sign"></span> @Domain.message(dataset.lastLogMessage)
 	</p>
 }
 
