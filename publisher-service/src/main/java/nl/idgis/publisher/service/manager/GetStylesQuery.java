@@ -5,7 +5,6 @@ import org.xml.sax.InputSource;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
 import java.io.StringReader;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -13,11 +12,12 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import com.mysema.query.sql.SQLSubQuery;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.utils.FutureUtils;
-
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
@@ -26,8 +26,8 @@ public class GetStylesQuery extends AbstractServiceQuery<List<Style>> {
 	
 	private final String serviceId;
 
-	GetStylesQuery(FutureUtils f, AsyncHelper tx, String serviceId) {
-		super(f, tx);
+	GetStylesQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String serviceId) {
+		super(log, f, tx);
 		
 		this.serviceId = serviceId;
 	}

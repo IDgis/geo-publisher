@@ -10,6 +10,8 @@ import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
@@ -57,7 +59,9 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 	protected final AsyncSQLQuery withServiceStructure;
 	
 	@SuppressWarnings("unchecked")
-	protected AbstractServiceQuery(FutureUtils f, AsyncHelper tx) {
+	protected AbstractServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx) {
+		super(log);
+		
 		this.f = f;
 		this.tx = tx;
 		

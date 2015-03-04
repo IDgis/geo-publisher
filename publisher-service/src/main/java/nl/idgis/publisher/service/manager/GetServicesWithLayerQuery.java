@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 
 import nl.idgis.publisher.utils.FutureUtils;
@@ -16,8 +18,8 @@ public class GetServicesWithLayerQuery extends AbstractServiceQuery<TypedIterabl
 	
 	private final String layerId;
 
-	GetServicesWithLayerQuery(FutureUtils f, AsyncHelper tx, String layerId) {
-		super(f, tx);
+	GetServicesWithLayerQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String layerId) {
+		super(log, f, tx);
 		
 		this.layerId = layerId;
 	}

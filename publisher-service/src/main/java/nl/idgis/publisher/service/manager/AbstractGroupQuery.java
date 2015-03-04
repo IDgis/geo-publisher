@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 
@@ -20,6 +22,10 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 	protected abstract CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats();
 	
 	protected abstract CompletableFuture<TypedList<Tuple>> groupInfo();
+	
+	AbstractGroupQuery(LoggingAdapter log) {
+		super(log);
+	}
 
 	@Override
 	CompletableFuture<TypedList<PartialGroupLayer>> result() {

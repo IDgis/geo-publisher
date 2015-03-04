@@ -96,7 +96,7 @@ public class ServiceManager extends UntypedActor {
 
 	private void handleGetStyles(GetStyles msg) {
 		ActorRef self = getSelf(), sender = getSender();
-		new GetStylesQuery(f, db, msg.getServiceId()).result().whenComplete((result, t) -> {
+		new GetStylesQuery(log, f, db, msg.getServiceId()).result().whenComplete((result, t) -> {
 			if(t == null) {
 				self.tell(new CreateStyleCursor(result), sender);
 			} else {
@@ -131,14 +131,14 @@ public class ServiceManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<TypedIterable<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
-		return db.transactional(tx -> new GetServicesWithLayerQuery(f, tx, msg.getLayerId()).result());
+		return db.transactional(tx -> new GetServicesWithLayerQuery(log, f, tx, msg.getLayerId()).result());
 	}
 	
 	private CompletableFuture<Object> handleGetGroupLayer(GetGroupLayer msg) {
-		return db.transactional(tx -> new GetGroupLayerQuery(f, tx, msg.getGroupLayerId()).result()); 
+		return db.transactional(tx -> new GetGroupLayerQuery(log, f, tx, msg.getGroupLayerId()).result()); 
 	}
 
 	private CompletableFuture<Object> handleGetService(GetService msg) {
-		return db.transactional(tx -> new GetServiceQuery(f, tx, msg.getServiceId()).result());
+		return db.transactional(tx -> new GetServiceQuery(log, f, tx, msg.getServiceId()).result());
 	}	
 }

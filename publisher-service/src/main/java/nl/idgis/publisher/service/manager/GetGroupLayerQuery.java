@@ -24,6 +24,8 @@ import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
+import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
@@ -39,6 +41,10 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	
 	private class GroupQuery extends AbstractGroupQuery {
 		
+		GroupQuery(LoggingAdapter log) {
+			super(log);
+		}
+
 		@Override
 		protected CompletableFuture<TypedList<Tuple>> groupInfo() {
 			return withGroupStructure.clone()
@@ -90,6 +96,10 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	
 	private class DatasetQuery extends AbstractDatasetQuery {
 		
+		DatasetQuery(LoggingAdapter log) {
+			super(log);
+		}
+
 		@Override
 		protected CompletableFuture<Map<Integer, List<String>>> datasetKeywords() {
 			return withGroupStructure.clone()
@@ -211,7 +221,9 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	private final AsyncSQLQuery withGroupStructure;
 	
 	@SuppressWarnings("unchecked")
-	GetGroupLayerQuery(FutureUtils f, AsyncHelper tx, String groupLayerId) {
+	GetGroupLayerQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String groupLayerId) {
+		super(log);
+		
 		this.f = f;
 		this.groupLayerId = groupLayerId;
 		
@@ -256,11 +268,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
-		return new GroupQuery().result();
+		return new GroupQuery(log).result();
 	}
 	
 	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
-		return new DatasetQuery().result();
+		return new DatasetQuery(log).result();
 	}
 
 	@Override
@@ -279,6 +291,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 							structureTuple.get(groupStructure.childLayerIdentification),
 							structureTuple.get(groupStructure.parentLayerIdentification));
 					}
+					
+					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);
 	
 					return DefaultGroupLayer.newInstance(
 						groupLayerId,
