@@ -7,9 +7,13 @@
     </layout>
   </appender>
   
-  <!--
+  <!-- 
   <logger name="nl.idgis.publisher.service.geoserver.GeoServerService" level="debug"/>
-   -->
+  -->
+  
+  <!--
+  <logger name="nl.idgis.publisher.service.manager.ServiceManager" level="debug"/>
+  -->  
   
   <root level="info">
     <appender-ref ref="STDOUT" />
