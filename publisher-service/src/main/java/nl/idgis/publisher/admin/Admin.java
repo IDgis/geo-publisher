@@ -333,7 +333,9 @@ public class Admin extends AbstractAdmin {
 								new EntityRef(
 									EntityType.DATA_SOURCE, 
 									sourceDatasetInfo.getDataSourceId(), 
-									sourceDatasetInfo.getDataSourceName()))));	
+									sourceDatasetInfo.getDataSourceName()),
+								sourceDatasetInfo.getType ()
+							)));	
 	}
 
 	
@@ -455,10 +457,11 @@ public class Admin extends AbstractAdmin {
 							sourceDatasetInfo.getId(), 
 							sourceDatasetInfo.getName(),
 							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
-							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
+							sourceDatasetInfo.getType ()
 						);
 						
-						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount(), sourceDatasetInfo.getType ()));
+						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
 					}
 					
 					addPageInfo(pageBuilder, page, count);

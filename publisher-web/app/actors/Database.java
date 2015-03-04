@@ -109,19 +109,19 @@ public class Database extends UntypedActor {
 		final Page.Builder<SourceDatasetStats> builder = new Page.Builder<> ();
 		
 		if (message.categoryId () == null || "cat-1".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-1", "SourceDataset: sds-1", new EntityRef (EntityType.CATEGORY, "cat-1", "Category: cat-1"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 1, SourceDatasetType.VECTOR));
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-1", "SourceDataset: sds-1", new EntityRef (EntityType.CATEGORY, "cat-1", "Category: cat-1"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1"), SourceDatasetType.VECTOR), 1));
 		}
 		if (message.categoryId () == null || "cat-2".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-2", "SourceDataset: sds-2", new EntityRef (EntityType.CATEGORY, "cat-2", "Category: cat-2"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 10, SourceDatasetType.VECTOR));
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-2", "SourceDataset: sds-2", new EntityRef (EntityType.CATEGORY, "cat-2", "Category: cat-2"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1"), SourceDatasetType.VECTOR), 10));
 		}
 		if (message.categoryId () == null || "cat-3".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-3", "SourceDataset: sds-3", new EntityRef (EntityType.CATEGORY, "cat-3", "Category: cat-3"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 0, SourceDatasetType.VECTOR));
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-3", "SourceDataset: sds-3", new EntityRef (EntityType.CATEGORY, "cat-3", "Category: cat-3"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1"), SourceDatasetType.VECTOR), 0));
 		}
 		if (message.categoryId () == null || "cat-4".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-4", "SourceDataset: sds-4", new EntityRef (EntityType.CATEGORY, "cat-4", "Category: cat-4"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 4, SourceDatasetType.VECTOR));
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-4", "SourceDataset: sds-4", new EntityRef (EntityType.CATEGORY, "cat-4", "Category: cat-4"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1"), SourceDatasetType.VECTOR), 4));
 		}
 		if (message.categoryId () == null || "cat-5".equals (message.categoryId ())) {
-			builder.add (new SourceDatasetStats (new SourceDataset ("sds-5", "SourceDataset: sds-5", new EntityRef (EntityType.CATEGORY, "cat-5", "Category: cat-5"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1")), 42, SourceDatasetType.VECTOR));
+			builder.add (new SourceDatasetStats (new SourceDataset ("sds-5", "SourceDataset: sds-5", new EntityRef (EntityType.CATEGORY, "cat-5", "Category: cat-5"), new EntityRef (EntityType.DATA_SOURCE, "ds-1", "DataSource: ds-1"), SourceDatasetType.VECTOR), 42));
 		}
 		
 		sender ().tell (builder.build (), self ());
