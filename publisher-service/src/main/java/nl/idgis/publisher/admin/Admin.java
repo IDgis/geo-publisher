@@ -14,12 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDataset;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
+import nl.idgis.publisher.database.QSourceDatasetVersionLog;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -68,7 +70,9 @@ import akka.event.LoggingAdapter;
 
 import com.google.common.collect.Iterables;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.Expression;
 import com.mysema.query.types.Order;
+import com.mysema.query.types.query.SimpleSubQuery;
 
 public class Admin extends AbstractAdmin {
 	
@@ -320,7 +324,10 @@ public class Admin extends AbstractAdmin {
 							.where (sourceDataset2.identification.eq (sourceDataset.identification))
 							.orderBy (sourceDatasetVersion2.createTime.desc ())
 							.limit (1)
-							.unique (sourceDatasetVersion2.type)
+							.unique (sourceDatasetVersion2.type),
+						selectLastLog ("type", sourceDataset, l -> l.type),
+						selectLastLog ("parameters", sourceDataset, l -> l.content),
+						selectLastLog ("time", sourceDataset, l -> l.createTime)
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -395,6 +402,21 @@ public class Admin extends AbstractAdmin {
 			new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), Response.class)
 			.thenApply(resp -> (Response<?>)resp);
 	}
+
+	private <RT> SimpleSubQuery<RT> selectLastLog (final String prefix, final QSourceDataset sourceDataset, final Function<QSourceDatasetVersionLog, Expression<RT>> resultExpressionBuilder) {
+		final QSourceDataset sd = new QSourceDataset (prefix + "_sd");
+		final QSourceDatasetVersion sdv = new QSourceDatasetVersion (prefix + "_sdv");
+		final QSourceDatasetVersionLog sdvl = new QSourceDatasetVersionLog (prefix + "_sdvl");
+		
+		return new SQLSubQuery ()
+			.from (sdv)
+			.join (sd).on (sd.id.eq (sdv.sourceDatasetId))
+			.leftJoin (sdvl).on (sdv.id.eq (sdvl.sourceDatasetVersionId))
+			.where (sd.identification.eq (sourceDataset.identification))
+			.orderBy (sdvl.createTime.desc ())
+			.limit (1)
+			.unique (resultExpressionBuilder.apply (sdvl));
+	}
 	
 	private CompletableFuture<Page<SourceDatasetStats>> handleListSourceDatasets(ListSourceDatasets msg) {
 		return db.transactional(tx -> {
@@ -437,9 +459,13 @@ public class Admin extends AbstractAdmin {
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)		
 					.orderBy(sourceDatasetVersion.name.trim().asc())
-					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
-						dataSource.identification, dataSource.name,
-						category.identification,category.name,
+					.list(new QSourceDatasetInfo(
+						sourceDataset.identification, 
+						sourceDatasetVersion.name, 
+						dataSource.identification, 
+						dataSource.name,
+						category.identification,
+						category.name,
 						dataset.count(), 
 						new SQLSubQuery ()
 							.from (sourceDatasetVersion2)
@@ -447,7 +473,10 @@ public class Admin extends AbstractAdmin {
 							.where (sourceDataset2.identification.eq (sourceDataset.identification))
 							.orderBy (sourceDatasetVersion2.createTime.desc ())
 							.limit (1)
-							.unique (sourceDatasetVersion2.type)
+							.unique (sourceDatasetVersion2.type),
+						selectLastLog ("type", sourceDataset, l -> l.type),
+						selectLastLog ("parameters", sourceDataset, l -> l.content),
+						selectLastLog ("time", sourceDataset, l -> l.createTime)
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -461,7 +490,13 @@ public class Admin extends AbstractAdmin {
 							sourceDatasetInfo.getType ()
 						);
 						
-						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+						pageBuilder.add (new SourceDatasetStats (
+								sourceDataset, 
+								sourceDatasetInfo.getCount(),
+								sourceDatasetInfo.getLastLogType (),
+								sourceDatasetInfo.getLastLogParameters (),
+								sourceDatasetInfo.getLastLogTime ()
+							));
 					}
 					
 					addPageInfo(pageBuilder, page, count);

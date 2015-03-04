@@ -3,18 +3,22 @@
 @import nl.idgis.publisher.domain._
 @import nl.idgis.publisher.domain.web._
 
-@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE) {
-	<p>
-		@if(dataset.datasetCount == 0) {
-			<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.nodatasetcoupled")
-		} else {
-			@if(dataset.datasetCount == 1) {
-				<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereis") <strong>1</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupled")
-				@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupledparam", 1L) *@
-			} else {
-				<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereare") <strong>@dataset.datasetCount</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupled")
-				@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupledparam", dataset.datasetCount)*@
-			}
-		}
+@if(dataset.lastLogType != null) {
+	<p class="text-danger">
+		<span class="glyphicon glyphicon-exclamation-sign"></span> @dataset.lastLogType
 	</p>
 }
+
+<p>
+	@if(dataset.datasetCount == 0) {
+		<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.nodatasetcoupled")
+	} else {
+		@if(dataset.datasetCount == 1) {
+			<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereis") <strong>1</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupled")
+			@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetcoupledparam", 1L) *@
+		} else {
+			<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.thereare") <strong>@dataset.datasetCount</strong> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupled")
+			@*<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.page.sourcedatasets.list.datasetscoupledparam", dataset.datasetCount)*@
+		}
+	}
+</p>
