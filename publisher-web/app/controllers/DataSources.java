@@ -48,7 +48,7 @@ public class DataSources extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
-			.query(new ListSourceDatasets (dataSourceId, categoryId))
+			.query(new ListSourceDatasets (dataSourceId, categoryId, null, null, null))
 			.execute(new Function<Page<SourceDatasetStats>, Result>() {
 
 				@Override
@@ -96,7 +96,7 @@ public class DataSources extends Controller {
 				public Promise<Result> apply (final Page<DataSource> dataSources, final Page<Category> categories, final DataSource currentDataSource, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListSourceDatasets (currentDataSource, currentCategory, search, page))
+							.query (new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, page))
 							.execute (new Function<Page<SourceDatasetStats>, Result> () {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {
@@ -116,7 +116,7 @@ public class DataSources extends Controller {
 	 * If empty select all sourcedatasets.
 	 * @return
 	 */
-	public static Promise<Result> download(final String search) {
+	public static Promise<Result> download(final String search, final Boolean withErrors) {
 		final String encoding = "iso-8859-1";
 		final String filename = "sourcedatasets.csv";
 
@@ -125,7 +125,7 @@ public class DataSources extends Controller {
 		String currentDataSource = null; 
 		String currentCategory = null;
 		return from (database)
-			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, null))
+			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null))
 			.execute (new Function<Page<SourceDatasetStats>, Result> () {
 				@Override
 				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {

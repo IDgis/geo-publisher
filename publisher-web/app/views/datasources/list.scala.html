@@ -178,7 +178,7 @@
 						<div class="col-md-10">@helper.pagination(sourceDatasets, pageRef)</div>
 						<div class="col-md-2 text-right">
 							<a class="btn btn-info"
-								href="@routes.DataSources.download(search)"
+								href="@routes.DataSources.download(search,withErrors)"
 								title="@Domain.message("web.application.page.sourcedatasets.list.button.download")">
 								Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span> </a>
 						</div>

@@ -12,42 +12,20 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	private final String dataSourceId;
 	private final String categoryId;
 	private final String searchString;
+	private final Boolean withErrors;
 	private final Long page;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category) {
-		this(dataSource, category, null, null);
-	}
-	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString) {
-		this(dataSource, category, searchString, null);
-	}
-	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, final Long page) {
-		this(dataSource, category, null, page);
-	}
-	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Long page) {
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Long page) {
 		this(dataSource == null ? null : dataSource.id (), 
-			category == null ? null : category.id (), searchString, page);
+			category == null ? null : category.id (), searchString, withErrors, page);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId) {
-		this(dataSourceId, categoryId, null, null);
-	}
-	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString) {
-		this(dataSourceId, categoryId, searchString, null);
-	}
-	
-	public ListSourceDatasets (String dataSourceId, String categoryId, final Long page) {
-		this(dataSourceId, categoryId, null, page);
-	}
-	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Long page) {
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Long page) {
 		this.dataSourceId = dataSourceId;
 		this.categoryId = categoryId;
 		this.searchString = searchString;
 		this.page = page;
+		this.withErrors = withErrors;
 	}
 	
 	public String dataSourceId () {
@@ -64,5 +42,9 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 
 	public Long getPage () {
 		return this.page;
+	}
+
+	public Boolean getWithErrors () {
+		return withErrors;
 	}
 }
