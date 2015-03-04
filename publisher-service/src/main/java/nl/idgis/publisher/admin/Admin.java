@@ -14,21 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-
-import com.google.common.collect.Iterables;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.Order;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import java.util.function.Function;
 
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
-
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.QSourceDataset;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
+import nl.idgis.publisher.database.QSourceDatasetVersionLog;
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -40,7 +33,6 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.projections.QColumn;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
@@ -64,7 +56,6 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
-
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -72,6 +63,17 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
+import com.google.common.collect.Iterables;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.ExpressionUtils;
+import com.mysema.query.types.Order;
+import com.mysema.query.types.query.SimpleSubQuery;
 
 public class Admin extends AbstractAdmin {
 	
@@ -297,6 +299,9 @@ public class Admin extends AbstractAdmin {
 			baseQuery.where(sourceDataset.identification.eq(sourceDatasetId));
 		}		
 
+		final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion ("sdv2");
+		final QSourceDataset sourceDataset2 = new QSourceDataset ("sd2");
+		
 		return baseQuery
 			.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.groupBy(sourceDataset.identification)
@@ -306,9 +311,25 @@ public class Admin extends AbstractAdmin {
 			.groupBy(category.identification)
 			.groupBy(category.name)
 			.singleResult(
-				new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name,
-					dataSource.identification, dataSource.name, category.identification, category.name,
-					dataset.count())).thenApply(sourceDatasetInfoOptional -> 
+				new QSourceDatasetInfo(
+						sourceDataset.identification, 
+						sourceDatasetVersion.name,
+						dataSource.identification, 
+						dataSource.name, 
+						category.identification, 
+						category.name,
+						dataset.count(), 
+						new SQLSubQuery ()
+							.from (sourceDatasetVersion2)
+							.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
+							.where (sourceDataset2.identification.eq (sourceDataset.identification))
+							.orderBy (sourceDatasetVersion2.createTime.desc ())
+							.limit (1)
+							.unique (sourceDatasetVersion2.type),
+						selectLastLog ("type", sourceDataset, l -> l.type),
+						selectLastLog ("parameters", sourceDataset, l -> l.content),
+						selectLastLog ("time", sourceDataset, l -> l.createTime)
+					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
 								sourceDatasetInfo.getId(), 
@@ -320,7 +341,9 @@ public class Admin extends AbstractAdmin {
 								new EntityRef(
 									EntityType.DATA_SOURCE, 
 									sourceDatasetInfo.getDataSourceId(), 
-									sourceDatasetInfo.getDataSourceName()))));	
+									sourceDatasetInfo.getDataSourceName()),
+								sourceDatasetInfo.getType ()
+							)));	
 	}
 
 	
@@ -380,6 +403,38 @@ public class Admin extends AbstractAdmin {
 			new StoreNotificationResult (Integer.parseInt (query.notificationId ()), query.result ()), Response.class)
 			.thenApply(resp -> (Response<?>)resp);
 	}
+
+	private <RT> SimpleSubQuery<RT> selectLastLog (final String prefix, final QSourceDataset sourceDataset, final Function<QSourceDatasetVersionLog, Expression<RT>> resultExpressionBuilder) {
+		final QSourceDataset sd = new QSourceDataset (prefix + "_sd");
+		final QSourceDatasetVersion sdv = new QSourceDatasetVersion (prefix + "_sdv");
+		final QSourceDatasetVersionLog sdvl = new QSourceDatasetVersionLog (prefix + "_sdvl");
+		
+		return new SQLSubQuery ()
+			.from (sdv)
+			.join (sd).on (sd.id.eq (sdv.sourceDatasetId))
+			.leftJoin (sdvl).on (sdv.id.eq (sdvl.sourceDatasetVersionId))
+			.where (sd.identification.eq (sourceDataset.identification))
+			.orderBy (sdvl.createTime.desc ())
+			.limit (1)
+			.unique (resultExpressionBuilder.apply (sdvl));
+	}
+	
+	private <RT> SimpleSubQuery<RT> selectLastVersion (
+			final String prefix, 
+			final QSourceDataset sourceDataset, 
+			final Function<QSourceDatasetVersion, Expression<RT>> resultExpressionBuilder) {
+		
+		final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion (prefix + "_sdv");
+		final QSourceDataset sourceDataset2 = new QSourceDataset (prefix + "_sd");
+		
+		return new SQLSubQuery ()
+			.from (sourceDatasetVersion2)
+			.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
+			.where (sourceDataset2.identification.eq (sourceDataset.identification))
+			.orderBy (sourceDatasetVersion2.createTime.desc ())
+			.limit (1)
+			.unique (resultExpressionBuilder.apply (sourceDatasetVersion2));
+	}
 	
 	private CompletableFuture<Page<SourceDatasetStats>> handleListSourceDatasets(ListSourceDatasets msg) {
 		return db.transactional(tx -> {
@@ -406,6 +461,18 @@ public class Admin extends AbstractAdmin {
 			if (!(searchStr == null || searchStr.isEmpty())){
 				baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
 			}
+			
+			if (msg.getWithErrors () != null) {
+				if (msg.getWithErrors ()) {
+					baseQuery.where (ExpressionUtils.eqConst (
+							selectLastVersion ("db_type", sourceDataset, v -> v.type), 
+							"UNAVAILABLE"));
+				} else {
+					baseQuery.where (ExpressionUtils.neConst (
+							selectLastVersion ("db_type", sourceDataset, v -> v.type), 
+							"UNAVAILABLE"));
+				}
+			}
 				
 			AsyncSQLQuery listQuery = baseQuery.clone()					
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
@@ -419,10 +486,19 @@ public class Admin extends AbstractAdmin {
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)		
 					.orderBy(sourceDatasetVersion.name.trim().asc())
-					.list(new QSourceDatasetInfo(sourceDataset.identification, sourceDatasetVersion.name, 
-						dataSource.identification, dataSource.name,
-						category.identification,category.name,
-						dataset.count())))
+					.list(new QSourceDatasetInfo(
+						sourceDataset.identification, 
+						sourceDatasetVersion.name, 
+						dataSource.identification, 
+						dataSource.name,
+						category.identification,
+						category.name,
+						dataset.count(), 
+						selectLastVersion ("db_type", sourceDataset, v -> v.type),
+						selectLastLog ("type", sourceDataset, l -> l.type),
+						selectLastLog ("parameters", sourceDataset, l -> l.content),
+						selectLastLog ("time", sourceDataset, l -> l.createTime)
+					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
 					
@@ -431,10 +507,18 @@ public class Admin extends AbstractAdmin {
 							sourceDatasetInfo.getId(), 
 							sourceDatasetInfo.getName(),
 							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
-							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName())
+							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
+							sourceDatasetInfo.getType ()
 						);
 						
-						pageBuilder.add (new SourceDatasetStats (sourceDataset, sourceDatasetInfo.getCount()));
+						pageBuilder.add (new SourceDatasetStats (
+								sourceDataset, 
+								sourceDatasetInfo.getCount(),
+								sourceDatasetInfo.getLastLogType () == null 
+									? null
+									: new Message (sourceDatasetInfo.getLastLogType (), sourceDatasetInfo.getLastLogParameters ()),
+								sourceDatasetInfo.getLastLogTime ()
+							));
 					}
 					
 					addPageInfo(pageBuilder, page, count);
