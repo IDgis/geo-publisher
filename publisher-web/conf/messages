@@ -47,6 +47,12 @@ nl.idgis.publisher.domain.web.DatasetServiceStatusType.VERIFY_FAILED=Fout bij zo
 nl.idgis.publisher.domain.web.DatasetServiceStatusType.ADDED=Laag toegevoegd
 nl.idgis.publisher.domain.web.DatasetServiceStatusType.ADD_FAILED=Fout bij toevoegen laag
 
+nl.idgis.publisher.domain.service.DatasetLogType.TABLE_NOT_FOUND.properties=tableName
+nl.idgis.publisher.domain.service.DatasetLogType.TABLE_NOT_FOUND=Tabel niet gevonden: {0}
+nl.idgis.publisher.domain.service.DatasetLogType.METADATA_PARSING_ERROR.properties=field,error
+nl.idgis.publisher.domain.service.DatasetLogType.METADATA_PARSING_ERROR=Fout bij het verwerken van de metadata: {0} {1}
+nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_TABLE=Onbekende tabel
+
 # --------------
 # Web applicatie 
 # --------------
