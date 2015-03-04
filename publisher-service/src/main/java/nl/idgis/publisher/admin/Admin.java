@@ -71,6 +71,7 @@ import akka.event.LoggingAdapter;
 import com.google.common.collect.Iterables;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
+import com.mysema.query.types.ExpressionUtils;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.query.SimpleSubQuery;
 
@@ -418,6 +419,23 @@ public class Admin extends AbstractAdmin {
 			.unique (resultExpressionBuilder.apply (sdvl));
 	}
 	
+	private <RT> SimpleSubQuery<RT> selectLastVersion (
+			final String prefix, 
+			final QSourceDataset sourceDataset, 
+			final Function<QSourceDatasetVersion, Expression<RT>> resultExpressionBuilder) {
+		
+		final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion (prefix + "_sdv");
+		final QSourceDataset sourceDataset2 = new QSourceDataset (prefix + "_sd");
+		
+		return new SQLSubQuery ()
+			.from (sourceDatasetVersion2)
+			.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
+			.where (sourceDataset2.identification.eq (sourceDataset.identification))
+			.orderBy (sourceDatasetVersion2.createTime.desc ())
+			.limit (1)
+			.unique (resultExpressionBuilder.apply (sourceDatasetVersion2));
+	}
+	
 	private CompletableFuture<Page<SourceDatasetStats>> handleListSourceDatasets(ListSourceDatasets msg) {
 		return db.transactional(tx -> {
 			AsyncSQLQuery baseQuery = tx.query().from(sourceDataset)
@@ -443,15 +461,24 @@ public class Admin extends AbstractAdmin {
 			if (!(searchStr == null || searchStr.isEmpty())){
 				baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
 			}
+			
+			if (msg.getWithErrors () != null) {
+				if (msg.getWithErrors ()) {
+					baseQuery.where (ExpressionUtils.eqConst (
+							selectLastVersion ("db_type", sourceDataset, v -> v.type), 
+							"UNAVAILABLE"));
+				} else {
+					baseQuery.where (ExpressionUtils.neConst (
+							selectLastVersion ("db_type", sourceDataset, v -> v.type), 
+							"UNAVAILABLE"));
+				}
+			}
 				
 			AsyncSQLQuery listQuery = baseQuery.clone()					
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 			
 			Long page = msg.getPage();
 			singlePage(listQuery, page);
-			
-			final QSourceDatasetVersion sourceDatasetVersion2 = new QSourceDatasetVersion ("sdv2");
-			final QSourceDataset sourceDataset2 = new QSourceDataset ("sd2");
 			
 			return f
 				.collect(listQuery					
@@ -467,13 +494,7 @@ public class Admin extends AbstractAdmin {
 						category.identification,
 						category.name,
 						dataset.count(), 
-						new SQLSubQuery ()
-							.from (sourceDatasetVersion2)
-							.join (sourceDataset2).on (sourceDataset2.id.eq (sourceDatasetVersion2.sourceDatasetId))
-							.where (sourceDataset2.identification.eq (sourceDataset.identification))
-							.orderBy (sourceDatasetVersion2.createTime.desc ())
-							.limit (1)
-							.unique (sourceDatasetVersion2.type),
+						selectLastVersion ("db_type", sourceDataset, v -> v.type),
 						selectLastLog ("type", sourceDataset, l -> l.type),
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
 						selectLastLog ("time", sourceDataset, l -> l.createTime)
