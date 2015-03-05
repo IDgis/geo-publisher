@@ -5,7 +5,9 @@
 }
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = Domain.message("web.application.page.layers.list.header") ) {
+@layout.application( title = Domain.message("web.application.page.layers.list.header"),
+	jsMain = routes.Assets.at("js/layers/list.js").url 
+) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.layers.list.header")</h1>
@@ -84,7 +86,11 @@
 				@for(layer <- layers.values) {
 				<div class="list-group-item js-layer-item" 
 					data-layer-id="@layer.id"
-					data-layer-name="@layer.name">
+					data-layer-name="@layer.name"
+					
+					data-warning-title="@layer.name"
+					data-warning-delete-link="@routes.Layers.delete(layer.id)"
+					data-warning-delete-body="@Domain.message("web.application.page.layers.list.delete.warning.body")">
 					<div class="row">
 						<div class="col-md-5">
 							<h4 class="list-group-item-heading">
@@ -104,8 +110,8 @@
 									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a href="@routes.Layers.delete(layer.id)" 
-									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+								<a data-toggle="modal" data-target="#deleteWarning" 
+									class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
 									<span class="glyphicon glyphicon-remove"></span>
 								</a>
 							</div>
@@ -116,6 +122,7 @@
 			</div>
 			}
 			
+			@helper.deleteWarning()
 			@helper.pagination(layers, pageRef)
 			
 		</div> @* /LayerList *@

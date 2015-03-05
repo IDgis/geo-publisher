@@ -5,7 +5,9 @@
 }
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = Domain.message("web.application.page.services.list.header") ) {
+@layout.application( title = Domain.message("web.application.page.services.list.header"),
+	jsMain = routes.Assets.at("js/services/list.js").url 
+) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.services.list.header")</h1>
@@ -83,7 +85,11 @@
 				@for(service <- services.values) {
 				<div class="list-group-item js-service-item" 
 					data-service-id="@service.id"
-					data-service-name="@service.name">
+					data-service-name="@service.name"
+					
+					data-warning-title="@service.name"
+					data-warning-delete-link="@routes.Services.delete(service.id)"
+					data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
 					<div class="row">
 						<div class="col-md-5">
 							<h4 class="list-group-item-heading">
@@ -103,8 +109,8 @@
 									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a href="@routes.Services.delete(service.id)" 
-									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+								<a data-toggle="modal" data-target="#deleteWarning" 
+									class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
 									<span class="glyphicon glyphicon-remove"></span>
 								</a>
 							</div>
@@ -121,6 +127,7 @@
 				</a>
 			</div>
 			
+			@helper.deleteWarning()
 			@helper.pagination(services, pageRef)
 			
 		</div> @* /services*@

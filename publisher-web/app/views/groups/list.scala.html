@@ -5,7 +5,9 @@
 }
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = Domain.message("web.application.page.groups.list.header") ) {
+@layout.application( title = Domain.message("web.application.page.groups.list.header"),
+	jsMain = routes.Assets.at("js/groups/list.js").url 
+) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.groups.list.header")</h1>
@@ -83,7 +85,11 @@
 				@for(group <- groups.values) {
 				<div class="list-group-item js-group-item" 
 					data-group-id="@group.id"
-					data-group-name="@group.name">
+					data-group-name="@group.name"
+					
+					data-warning-title="@group.name"
+					data-warning-delete-link="@routes.Groups.delete(group.id)"
+					data-warning-delete-body="@Domain.message("web.application.page.groups.list.delete.warning.body")">
 					<div class="row">
 						<div class="col-md-5">
 							<h4 class="list-group-item-heading">
@@ -103,8 +109,8 @@
 									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a href="@routes.Groups.delete(group.id)" 
-									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+								<a data-toggle="modal" data-target="#deleteWarning"
+									class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
 									<span class="glyphicon glyphicon-remove"></span>
 								</a>
 							</div>
@@ -115,6 +121,7 @@
 			</div>
 			}
 			
+			@helper.deleteWarning()
 			@helper.pagination(groups, pageRef)
 			
 		</div> @* /Groups *@
