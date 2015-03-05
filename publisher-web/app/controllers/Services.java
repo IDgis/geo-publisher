@@ -10,7 +10,9 @@ import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
+import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
@@ -19,6 +21,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
@@ -48,11 +51,12 @@ public class Services extends Controller {
 		return from (database)
 				.list (Category.class)
 				.list (LayerGroup.class)
-				.execute (new Function2<Page<Category>, Page<LayerGroup>, Result> () {
+				.query (new ListLayers (1l, null, null))
+				.execute (new Function3<Page<Category>, Page<LayerGroup>,  Page<Layer>, Result> () {
 
 					@Override
-					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
-						return ok (form.render (serviceForm, true, groups, null, serviceForm.get().keywords));
+					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+						return ok (form.render (serviceForm, true, groups, layers, null, serviceForm.get().keywords));
 					}
 				});
 	}
@@ -157,11 +161,12 @@ public class Services extends Controller {
 			.get (Service.class, serviceId)			
 			.list(Category.class)
 			.list (LayerGroup.class)
+			.query (new ListLayers (1l, null, null))
 			.query(new ListServiceKeywords(serviceId))
-			.executeFlat (new Function4<Service, Page<Category>, Page<LayerGroup>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function5<Service, Page<Category>, Page<LayerGroup>,  Page<Layer>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final List<String> keywords) throws Throwable {
+				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> keywords) throws Throwable {
 
 					return from (database)
 						.get(LayerGroup.class, service.genericLayerId())
@@ -179,7 +184,7 @@ public class Services extends Controller {
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, groups, groupLayer, keywords));
+								return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
 							}
 					});
 				}

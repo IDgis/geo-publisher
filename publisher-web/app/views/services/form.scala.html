@@ -5,6 +5,7 @@
 @(serviceForm: Form[controllers.Services.ServiceForm], 
 	create: Boolean,
 	groups: Page[LayerGroup],
+	layers: Page[nl.idgis.publisher.domain.web.Layer],
 	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer,
 	serviceKeywords: java.util.List[java.lang.String]
 )
@@ -98,40 +99,64 @@
 					</div>
 					@helper.tooltips("web.application.page.services.form.field.publish.help")
 				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-rootgroup">@Domain.message("web.application.page.services.form.field.rootgroup.label")</label>
-					<div class="col-lg-8">
-						<select class="form-control" id="input-rootgroup" name="rootGroupName" >
-						@for(group <- groups.values){
-							<option value="@group.id" @if(serviceForm("rootGroupName").value==group.name){selected}>@group.name</option>
-						}
-						</select>
-						@helper.fielderrors(serviceForm("rootGroupName").errors)
-					</div>
-					@helper.tooltips("web.application.page.services.form.field.rootgroup.help")
-				</div>
-				<div class="form-group">
 				
-					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.services.form.field.structure.label")</label>
+				<div class="form-group">
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.structure.label")</label>
 					<div class="col-sm-8">
 						<div class="list-group" id="groupLayerStructure">
-							<!-- show one item with the rootgroup and its structure -->
-							@if(groupLayer != null){
-							<div value="@groupLayer.getId()" class="list-group-item gp-draggable tree-item">
-								<input type="hidden" value="@groupLayer.getId()" name="structure[]">
-								<div class="row">
-									<div class="col-sm-11 groupTree">
-										<ul class="treelist">
-											@helper.groupStructureGroup(groupLayer)
-										</ul>
-									</div>
-									<!-- no delete button -->
-								</div>
-							</div>
+							@if(groupLayer != null) {
+								@* show items for each group/layer in the root group *@
+								@for(layerRef <- groupLayer.getLayers()) {
+									@defining(layerRef.getLayer()) { layer =>
+										<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
+											<input type="hidden" value="@layer.getId()" name="structure[]">
+											<div class="row">
+												<div class="col-sm-11 groupTree">
+													<ul class="treelist">
+														@helper.groupStructureRef(layerRef)
+													</ul>
+												</div>
+												<div class="col-sm-1">
+													<div class="pull-right tree-item-delete">
+														<a href="#" 
+															class="btn btn-default btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
+															<span class="glyphicon glyphicon-remove"></span>
+														</a>
+													</div>
+												</div>
+											</div>
+										</div>
+									}
+								}
 							}
 						</div>
+						
+							<span>Voeg groep toe:</span>
+							<select id="addgroup">
+								<option></option>
+								@for(group <- groups.values) {
+									<!-- do not show this group in the selectbox  -->
+									@if(serviceForm("id").value!=group.id){
+										<option value="@group.id">@group.name</option>
+									}
+								}
+							</select>
+							
+							<div class="gp-pager-select" id="layers-select">
+								<button type="button" class="btn btn-default js-pager-select-button">
+									<span class="glyphicon glyphicon-plus"></span>
+									Voeg een laag toe ...
+								</button>							
+								<div class="dropdown js-dropdown">
+									@views.html.layers.layerPager(layers, null, null)
+								</div>
+							</div>
+							
+							@helper.fielderrors(serviceForm("structure").errors)
 					</div>
+					@helper.tooltips("web.application.page.services.form.field.structure.help")
 				</div>
+				
 				
 <!-- 			
 				<div class="form-group">
