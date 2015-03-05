@@ -142,43 +142,73 @@ public class ServiceAdmin extends AbstractAdmin {
 			.singleResult(service.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
-					return tx.query().from(genericLayer)
-						.where(genericLayer.identification.eq(theService.genericLayerId()))
-						.singleResult(genericLayer.id)
-						.thenCompose(glId -> {
-							// INSERT
-							String newServiceId = UUID.randomUUID().toString();
-							log.debug("Inserting new service with name: " + serviceName + ", ident: "
-									+ newServiceId);
-							return tx.insert(service)
-								.set(service.identification, newServiceId)
-								.set(service.name, serviceName)
-								.set(service.title, theService.title())
-								.set(service.alternateTitle, theService.alternateTitle())
-								.set(service.abstractCol, theService.abstractText())
-								.set(service.metadata, theService.metadata())
-								.set(service.published, theService.published())
-								.set(service.genericLayerId, glId.isPresent()?glId.get():null)
-								.execute()
-								.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
+					// INSERT generic Layer (rootgroup)
+					String newGenericLayerId = UUID.randomUUID().toString();
+					return tx.insert(genericLayer)
+						.set(genericLayer.identification, newGenericLayerId)
+						.set(genericLayer.name, serviceName)
+						.set(genericLayer.title, theService.title())
+						.set(genericLayer.abstractCol, theService.abstractText())
+						.set(genericLayer.published, theService.published())
+						.execute()
+						.thenCompose(n -> {
+							return tx.query().from(genericLayer)
+								.where(genericLayer.identification.eq(newGenericLayerId))
+								.singleResult(genericLayer.id)
+								.thenCompose(glId -> {
+									if (glId.isPresent()){
+										// INSERT service
+										String newServiceId = UUID.randomUUID().toString();
+										log.debug("Inserting new service with name: " + serviceName + ", ident: "
+												+ newServiceId);
+										return tx.insert(service)
+											.set(service.identification, newServiceId)
+											.set(service.name, serviceName)
+											.set(service.title, theService.title())
+											.set(service.alternateTitle, theService.alternateTitle())
+											.set(service.abstractCol, theService.abstractText())
+											.set(service.metadata, theService.metadata())
+											.set(service.published, theService.published())
+											.set(service.genericLayerId, glId.get())
+											.execute()
+											.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
+									} else {
+										//ERROR
+										return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, serviceName));
+									}
+								});
 						});
 				} else {
 					return tx.query().from(genericLayer)
 						.where(genericLayer.identification.eq(theService.genericLayerId()))
 						.singleResult(genericLayer.id)
 						.thenCompose(glId -> {
-							// UPDATE
-							log.debug("Updating service with name: " + serviceName);
-							return tx.update(service)
-								.set(service.title, theService.title())
-								.set(service.alternateTitle, theService.alternateTitle())
-								.set(service.abstractCol, theService.abstractText())
-								.set(service.metadata, theService.metadata())
-								.set(service.published, theService.published())
-								.set(service.genericLayerId, glId.isPresent()?glId.get():null)
-								.where(service.identification.eq(serviceId))
-								.execute()
-								.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
+							if (glId.isPresent()){
+								// UPDATE generic Layer (rootgroup)
+								return tx.update(genericLayer)
+									.set(genericLayer.name, serviceName)
+									.set(genericLayer.title, theService.title())
+									.set(genericLayer.abstractCol, theService.abstractText())
+									.set(genericLayer.published, theService.published())
+									.where(genericLayer.id.eq(glId.get()))
+									.execute()
+									.thenCompose(n -> {
+										// UPDATE service
+										log.debug("Updating service with name: " + serviceName);
+										return tx.update(service)
+											.set(service.title, theService.title())
+											.set(service.alternateTitle, theService.alternateTitle())
+											.set(service.abstractCol, theService.abstractText())
+											.set(service.metadata, theService.metadata())
+											.set(service.published, theService.published())
+											.where(service.identification.eq(serviceId))
+											.execute()
+											.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
+									});
+							} else {
+								//ERROR
+								return f.successful(new Response<String>(CrudOperation.UPDATE, CrudResponse.NOK, serviceName));
+							}
 						});
 				}
 		}));
