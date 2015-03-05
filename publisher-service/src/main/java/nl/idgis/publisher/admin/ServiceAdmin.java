@@ -168,6 +168,7 @@ public class ServiceAdmin extends AbstractAdmin {
 														+ newServiceId);
 												return tx.insert(service)
 													.set(service.identification, newServiceId)
+													.set(service.name, serviceName)
 													.set(service.alternateTitle, theService.alternateTitle())
 													.set(service.metadata, theService.metadata())
 													.set(service.genericLayerId, glId.get())
@@ -199,6 +200,7 @@ public class ServiceAdmin extends AbstractAdmin {
 										// UPDATE service
 										log.debug("Updating service with name: " + serviceName);
 										return tx.update(service)
+											.set(service.name, serviceName)
 											.set(service.alternateTitle, theService.alternateTitle())
 											.set(service.metadata, theService.metadata())
 											.where(service.identification.eq(serviceId))

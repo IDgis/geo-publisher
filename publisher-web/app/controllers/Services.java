@@ -77,7 +77,7 @@ public class Services extends Controller {
 					Logger.debug ("submit Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
-					if (form.field("name").value().length() == 1 ) 
+					if (form.field("name").value().length() <= 3 ) 
 						form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
 					if (form.field("id").value().equals(ID)){
 						for (Service service : services.values()) {
@@ -85,9 +85,6 @@ public class Services extends Controller {
 								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
 							}
 						}
-					}
-					if (serviceForm.rootGroupId == null || serviceForm.rootGroupId.isEmpty()){
-						form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.error"));
 					}
 					if (serviceForm.structure == null || serviceForm.structure.isEmpty()){
 						form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.error"));
@@ -226,7 +223,8 @@ public class Services extends Controller {
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
-		@Constraints.MinLength (1)
+//		@Constraints.MinLength (3)
+//		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String name;
 		private String title;
 		private String alternateTitle;
