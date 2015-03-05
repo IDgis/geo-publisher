@@ -16,7 +16,8 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.2.0",
   "org.webjars" % "dojo" % "1.10.0",
   "nl.idgis.publisher" % "publisher-domain" % "0.0.1-SNAPSHOT",
-  "com.typesafe.akka" %% "akka-remote" % "2.3.3"
+  "com.typesafe.akka" %% "akka-remote" % "2.3.3",
+  "org.pegdown" % "pegdown" % "1.5.0"
 )
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
