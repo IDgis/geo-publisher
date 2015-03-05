@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 
 import java.util.List;
@@ -65,6 +66,7 @@ public class ServiceAdmin extends AbstractAdmin {
 				.query()
 				.from(service)
 				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+				.leftJoin(constants).on(service.constantsId.eq(constants.id))
 				.orderBy (service.name.asc ());
 		
 		// Add a filter for the query string:
@@ -100,7 +102,7 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.metadata,
 								service.published,
 								genericLayer.identification,					
-								ConstantImpl.create("")					
+								constants.identification					
 							))
 						.thenApply ((styles) -> {
 							builder.addAll (styles.list ());
@@ -115,6 +117,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		return 
 			db.query().from(service)
 			.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+			.leftJoin(constants).on(service.constantsId.eq(constants.id))
 			.where(service.identification.eq(serviceId))
 			.singleResult(new QService(
 					service.identification,
@@ -125,8 +128,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.metadata,
 					service.published,
 					genericLayer.identification,					
-//					service.constantsId
-					ConstantImpl.create("")					
+					constants.identification
 			));		
 	}
 	
@@ -156,27 +158,32 @@ public class ServiceAdmin extends AbstractAdmin {
 								.where(genericLayer.identification.eq(newGenericLayerId))
 								.singleResult(genericLayer.id)
 								.thenCompose(glId -> {
-									if (glId.isPresent()){
-										// INSERT service
-										String newServiceId = UUID.randomUUID().toString();
-										log.debug("Inserting new service with name: " + serviceName + ", ident: "
-												+ newServiceId);
-										return tx.insert(service)
-											.set(service.identification, newServiceId)
-											.set(service.name, serviceName)
-											.set(service.title, theService.title())
-											.set(service.alternateTitle, theService.alternateTitle())
-											.set(service.abstractCol, theService.abstractText())
-											.set(service.metadata, theService.metadata())
-											.set(service.published, theService.published())
-											.set(service.genericLayerId, glId.get())
-											.execute()
-											.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
-									} else {
-										//ERROR
-										return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, serviceName));
-									}
-								});
+									return tx.query().from(constants)
+										.singleResult(constants.id)
+										.thenCompose(cId -> {
+											if (glId.isPresent()){
+												// INSERT service
+												String newServiceId = UUID.randomUUID().toString();
+												log.debug("Inserting new service with name: " + serviceName + ", ident: "
+														+ newServiceId);
+												return tx.insert(service)
+													.set(service.identification, newServiceId)
+													.set(service.name, serviceName)
+													.set(service.title, theService.title())
+													.set(service.alternateTitle, theService.alternateTitle())
+													.set(service.abstractCol, theService.abstractText())
+													.set(service.metadata, theService.metadata())
+													.set(service.published, theService.published())
+													.set(service.genericLayerId, glId.get())
+													.set(service.constantsId, cId.get())
+													.execute()
+													.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
+											} else {
+												//ERROR
+												return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, serviceName));
+											}
+										});
+							});
 						});
 				} else {
 					return tx.query().from(genericLayer)
