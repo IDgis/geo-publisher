@@ -95,12 +95,12 @@ public class ServiceAdmin extends AbstractAdmin {
 					return listQuery
 						.list (new QService(
 								service.identification,
-								service.name,
-								service.title, 
+								genericLayer.name,
+								genericLayer.title, 
 								service.alternateTitle, 
-								service.abstractCol,
+								genericLayer.abstractCol,
 								service.metadata,
-								service.published,
+								genericLayer.published,
 								genericLayer.identification,					
 								constants.identification					
 							))
@@ -121,12 +121,12 @@ public class ServiceAdmin extends AbstractAdmin {
 			.where(service.identification.eq(serviceId))
 			.singleResult(new QService(
 					service.identification,
-					service.name,
-					service.title, 
+					genericLayer.name,
+					genericLayer.title, 
 					service.alternateTitle, 
-					service.abstractCol,
+					genericLayer.abstractCol,
 					service.metadata,
-					service.published,
+					genericLayer.published,
 					genericLayer.identification,					
 					constants.identification
 			));		
@@ -168,12 +168,8 @@ public class ServiceAdmin extends AbstractAdmin {
 														+ newServiceId);
 												return tx.insert(service)
 													.set(service.identification, newServiceId)
-													.set(service.name, serviceName)
-													.set(service.title, theService.title())
 													.set(service.alternateTitle, theService.alternateTitle())
-													.set(service.abstractCol, theService.abstractText())
 													.set(service.metadata, theService.metadata())
-													.set(service.published, theService.published())
 													.set(service.genericLayerId, glId.get())
 													.set(service.constantsId, cId.get())
 													.execute()
@@ -203,11 +199,8 @@ public class ServiceAdmin extends AbstractAdmin {
 										// UPDATE service
 										log.debug("Updating service with name: " + serviceName);
 										return tx.update(service)
-											.set(service.title, theService.title())
 											.set(service.alternateTitle, theService.alternateTitle())
-											.set(service.abstractCol, theService.abstractText())
 											.set(service.metadata, theService.metadata())
-											.set(service.published, theService.published())
 											.where(service.identification.eq(serviceId))
 											.execute()
 											.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
