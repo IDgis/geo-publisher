@@ -473,7 +473,7 @@ web.application.page.layers.form.field.styles.default=Default stijl
 web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen
 web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 1 stijl worden toegevoegd
 
-web.application.page.layers.list.delete.warning.body=Weet u het zeker?
+web.application.page.layers.list.delete.warning.body=Weet u het zeker? Deze laag is aan de dataset {0} gekoppeld.
 
 # Groups
 web.application.page.groups.name=Groep

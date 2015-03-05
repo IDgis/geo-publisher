@@ -3,6 +3,7 @@ define ([
 ], function (dom) {
 	
 	function DeleteWarning (element) {
+		var deletePreModalTitle = element.dataset.warningPreTitle;
 		var deleteLink = element.dataset.warningDeleteLink;
 		var deleteModalTitle = element.dataset.warningTitle;
 		var deleteModalBody = element.dataset.warningDeleteBody;
@@ -11,7 +12,7 @@ define ([
 		modalForm.action = deleteLink;
 		
 		var modalTitle = dom.byId('modal-title');
-		modalTitle.innerHTML = deleteModalTitle;
+		modalTitle.innerHTML = deletePreModalTitle + ": " + deleteModalTitle;
 		
 		var modalBody = dom.byId('modal-body');
 		modalBody.innerHTML = deleteModalBody;
