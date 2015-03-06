@@ -177,12 +177,15 @@ require ([
     	});
     }
     
-    on (dom.byId ('help-doc-link'), 'click', function (e) {
+    function onClickDocumentLink (e) {
     	e.preventDefault ();
     	e.stopPropagation ();
     	
     	var docPath = domAttr.get (this, 'data-doc-path');
     	
     	displayDocument (docPath);
-    });
+    }
+    
+    on (dom.byId ('help-doc-link'), 'click', onClickDocumentLink);
+    query ('#doc-modal .modal-body').on ('a[data-doc-path]:click', onClickDocumentLink);
 });
