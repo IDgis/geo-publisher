@@ -61,6 +61,7 @@ public class AdminTest {
 
 		@Override
 		protected void preStartAdmin() {
+			onDelete(DataSource.class, () -> recorder.tell("delete", getSelf()));
 			onPut(Category.class, category -> recorder.tell(category, getSelf()));			
 			onDelete(Category.class, categoryId -> {
 				recorder.tell(categoryId, getSelf());
@@ -89,6 +90,8 @@ public class AdminTest {
 		@Override
 		@SuppressWarnings("unused")
 		protected void preStartAdmin() {
+			doDelete(DataSource.class,  dataSourceId -> 
+				f.successful(new Response<>(CrudOperation.DELETE, CrudResponse.OK, dataSourceId)));
 			doGet(SourceDataset.class, sourceDatasetId -> f.successful(null));
 			doGet(Dataset.class, datasetId -> {
 				Objects.requireNonNull(null); // raise NPE
@@ -191,6 +194,15 @@ public class AdminTest {
 			.assertNext(Category.class, category -> {
 				assertEquals("categoryId", category.id());
 				assertEquals("category-name", category.name());
+			})
+			.assertNotHasNext();
+		sync.ask(recorder, new Clear(), Cleared.class);		
+		
+		sync.ask(parent, new DeleteEntity<>(DataSource.class, "dataSourceId"), Response.class);
+		sync.ask(recorder, new Wait(1), Waited.class);
+		sync.ask(recorder, new GetRecording(), Recording.class)
+			.assertNext(String.class, categoryId -> {
+				assertEquals("delete", categoryId);
 			})
 			.assertNotHasNext();
 		sync.ask(recorder, new Clear(), Cleared.class);

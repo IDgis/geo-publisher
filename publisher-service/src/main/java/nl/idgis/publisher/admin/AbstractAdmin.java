@@ -148,6 +148,10 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 		getContext().parent().tell(new DoDelete(entity), getSelf());
 	}
 	
+	protected <T extends Identifiable> void onDelete(Class<? super T> entity, Runnable after) {
+		this.<T, Void>onDelete(entity, id -> f.successful(null), v -> after.run());
+	}
+	
 	protected <T extends Identifiable, U> void onDelete(Class<? super T> entity, Function<String, CompletableFuture<U>> before, Consumer<U> after) {
 		onDeleteBefore.put(entity, before);
 		onDeleteAfter.put(entity, after);
