@@ -1,17 +1,12 @@
 package controllers;
 
-import static org.pegdown.FastEncoder.encode;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Locale;
 
-import org.parboiled.common.StringUtils;
 import org.pegdown.LinkRenderer;
 import org.pegdown.PegDownProcessor;
 import org.pegdown.ast.AutoLinkNode;
@@ -72,7 +67,7 @@ public class Docs extends Controller {
 		
 		final PegDownProcessor processor = new PegDownProcessor ();
 		
-		return ok (processor.markdownToHtml (buffer.toString (), new DefaultLinkRenderer (lang, file))).as ("text/html");
+		return ok (processor.markdownToHtml (buffer.toString (), new DefaultLinkRenderer (file))).as ("text/html");
 	}
 
 	public static Action<AnyContent> at (final String path, final String file) {
@@ -83,11 +78,9 @@ public class Docs extends Controller {
 	 * Link renderer that turns all links into absolute links.
 	 */
 	private static class DefaultLinkRenderer extends LinkRenderer {
-		private final Lang lang;
 		private final String currentPath;
 		
-		public DefaultLinkRenderer (final Lang lang, final String currentPath) {
-			this.lang = lang;
+		public DefaultLinkRenderer (final String currentPath) {
 			this.currentPath = currentPath;
 		}
 		
