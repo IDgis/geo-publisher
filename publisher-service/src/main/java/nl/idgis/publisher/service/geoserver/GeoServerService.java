@@ -63,6 +63,7 @@ import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
+import nl.idgis.publisher.utils.XMLUtils;
 
 public class GeoServerService extends UntypedActor {
 	
@@ -700,9 +701,25 @@ public class GeoServerService extends UntypedActor {
 					toSelf(
 						rest.getStyle(ensureStyle.getName()).thenCompose(style -> {
 							if(style.isPresent()) {
-								// TODO: compare sld							
-								return f.successful(new StyleEnsured());
+								log.debug("style already present");
+								
+								try {
+									if(XMLUtils.equalsIgnoreWhitespace(
+										style.get().getSld(),
+										ensureStyle.getSld())) {										
+										log.debug("style unchanged");										
+										return f.successful(new StyleEnsured());										
+									} else {
+										log.debug("style changed");
+										return rest.putStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
+									}
+								} catch(Exception e) {
+									log.error("failed to compare sld documents", e);
+									return f.failed(e);
+								}
 							} else {
+								log.debug("style missing");
+								
 								return rest.postStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
 							}
 						}));
