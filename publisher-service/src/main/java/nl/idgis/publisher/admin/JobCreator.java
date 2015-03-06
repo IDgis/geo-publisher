@@ -9,6 +9,7 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.Style;
 
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
@@ -29,6 +30,10 @@ public class JobCreator extends AbstractAdmin {
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobSystem) {
 		return Props.create(JobCreator.class, database, serviceManager, jobSystem);
+	}
+	
+	public void createVacuumServiceJob() {
+		
 	}
 	
 	private void createServiceJob(String serviceId) {
@@ -65,6 +70,9 @@ public class JobCreator extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
+		onDelete(Style.class, this::createVacuumServiceJob);
+		
+		onDelete(Service.class, this::createVacuumServiceJob);
 		onPut(Service.class, service -> createServiceJob(service.id()));
 		
 		onPut(Layer.class, layer -> createServiceJobsForLayer(layer.id()));
