@@ -189,7 +189,7 @@ require ([
     }
    
     function hashChange (value) {
-    	if (value.startsWith ('!doc!')) {
+    	if (value.length >= 5 && value.substring (0, 5) == '!doc!') {
     		displayDocument (value.substring (5));
     	} else {
     		jQuery ('#doc-modal').modal ('hide');
@@ -201,7 +201,7 @@ require ([
     topic.subscribe ('/dojo/hashchange', hashChange);
     jQuery ('#doc-modal').on ('hidden.bs.modal', function (e) {
     	var hashValue = hash ();
-    	if (hashValue && hashValue.startsWith ('!doc!')) {
+    	if (hashValue && hashValue.length >= 5 && hashValue.substring (0, 5) == '!doc!') {
     		hash ('');
     	}
     });
