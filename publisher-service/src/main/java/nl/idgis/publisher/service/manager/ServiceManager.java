@@ -19,13 +19,14 @@ import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class ServiceManager extends UntypedActor {
@@ -78,6 +79,8 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
 		} else if(msg instanceof GetServiceIndex) {
 			toSender(handleGetServiceIndex((GetServiceIndex)msg));
+		} else if(msg instanceof GetServicesWithStyle) {
+			toSender(handleGetServicesWithStyle((GetServicesWithStyle)msg));
 		} else if(msg instanceof GetStyles) {
 			handleGetStyles((GetStyles)msg);
 		} else if(msg instanceof CreateStyleCursor) {
@@ -87,6 +90,10 @@ public class ServiceManager extends UntypedActor {
 		}
 	}
 	
+	private CompletableFuture<TypedList<String>> handleGetServicesWithStyle(GetServicesWithStyle msg) {
+		return db.transactional(tx -> new GetServicesWithStyleQuery(log, f, tx, msg.getStyleId()).result());
+	}
+
 	private void handleCreateStyleCursor(CreateStyleCursor msg) {
 		ActorRef cursor = getContext().actorOf(
 			ListCursor.props(msg.getStyles().iterator()), 
@@ -130,7 +137,7 @@ public class ServiceManager extends UntypedActor {
 		});
 	}
 	
-	private CompletableFuture<TypedIterable<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
+	private CompletableFuture<TypedList<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
 		return db.transactional(tx -> new GetServicesWithLayerQuery(log, f, tx, msg.getLayerId()).result());
 	}
 	

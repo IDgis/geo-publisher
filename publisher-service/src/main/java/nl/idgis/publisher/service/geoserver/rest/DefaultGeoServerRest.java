@@ -44,6 +44,7 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
+
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import static nl.idgis.publisher.utils.XMLUtils.xpath;
 
@@ -985,19 +986,25 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					sw.writeCharacters(layer.getName());
 				sw.writeEndElement();
 				
-				sw.writeStartElement("defaultStyle");
-					sw.writeStartElement("name");
-						sw.writeCharacters(layer.getDefaultStyle().getStyleName());
+				String defaultStyleName = layer.getDefaultStyle().getStyleName();
+				if(defaultStyleName != null) {				
+					sw.writeStartElement("defaultStyle");
+						sw.writeStartElement("name");
+							sw.writeCharacters(defaultStyleName);
+						sw.writeEndElement();
 					sw.writeEndElement();
-				sw.writeEndElement();
+				}
 				
 				sw.writeStartElement("styles");
 				for(StyleRef style : layer.getAdditionalStyles()) {
-					sw.writeStartElement("style");
-						sw.writeStartElement("name");
-							sw.writeCharacters(style.getStyleName());
+					String styleName = style.getStyleName();					
+					if(styleName != null) {
+						sw.writeStartElement("style");
+							sw.writeStartElement("name");
+								sw.writeCharacters(styleName);
+							sw.writeEndElement();
 						sw.writeEndElement();
-					sw.writeEndElement();
+					}
 				}
 				sw.writeEndElement();
 			sw.writeEndElement();

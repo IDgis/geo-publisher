@@ -440,6 +440,13 @@
 				<artifactId>jackson-databind</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
+			
+			<!-- Woodstox dependencies: -->
+			<dependency>
+			    <groupId>org.codehaus.woodstox</groupId>
+			    <artifactId>woodstox-core-lgpl</artifactId>
+			    <version>4.1.5</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 

@@ -2,12 +2,10 @@ package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,15 +21,13 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -75,7 +71,8 @@ import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
-import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.SyncAskHelper;
@@ -119,9 +116,33 @@ public class GeoServerServiceTest {
 		}
 	}
 	
+	static class PutStyle implements Serializable {	
+
+		private static final long serialVersionUID = -8235556377963337675L;
+
+		private final String styleName;
+		
+		private final Document sld;
+		
+		public PutStyle(String styleName, Document sld) {
+			this.styleName = styleName;
+			this.sld = sld;
+		}
+
+		public String getStyleName() {
+			return styleName;
+		}
+
+		public Document getSld() {
+			return sld;
+		}
+	}
+	
 	static class ServiceManagerMock extends UntypedActor {
 		
 		private Map<String, Service> services = new HashMap<>();
+		
+		private List<nl.idgis.publisher.service.manager.messages.Style> styles = new ArrayList<>();
 		
 		private ServiceIndex serviceIndex;
 		
@@ -143,7 +164,7 @@ public class GeoServerServiceTest {
 					getSender().tell(serviceIndex, getSelf());
 				}
 			} else if(msg instanceof GetStyles) {
-				getSender().tell(new End(), getSelf());
+				getContext().actorOf(ListCursor.props(styles.iterator())).tell(new NextItem(), getSender());
 			} else if(msg instanceof PutService) {
 				PutService putService = (PutService)msg;
 				services.put(putService.getServiceId(), putService.getService());
@@ -151,7 +172,11 @@ public class GeoServerServiceTest {
 			} else if(msg instanceof PutServiceIndex) {
 				serviceIndex = ((PutServiceIndex)msg).getServiceIndex();				
 				getSender().tell(new Ack(), getSelf());
-			} else {				
+			} else if(msg instanceof PutStyle) {
+				PutStyle putStyle = (PutStyle)msg;
+				styles.add(new nl.idgis.publisher.service.manager.messages.Style(putStyle.getStyleName(), putStyle.getSld()));
+				getSender().tell(new Ack(), getSelf());
+			} else {
 				unhandled(msg);
 			}
 		}
@@ -242,12 +267,19 @@ public class GeoServerServiceTest {
 	
 	@Test
 	public void testSingleLayer() throws Exception {
+		String[] styleNames = {"style0", "style1"};
+		
+		for(String styleName : styleNames)  {
+			sync.ask(serviceManager, new PutStyle(styleName, TestStyle.getGreenSld()));
+		}
+		
 		DatasetLayer datasetLayer = mock(DatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getStyleNames()).thenReturn(Arrays.asList(styleNames));
 		
 		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
@@ -273,6 +305,12 @@ public class GeoServerServiceTest {
 		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 		assertEquals("title", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
 		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
+		
+		NodeList styles = h.getNodeList("//wms:Layer/wms:Style/wms:Name", capabilities);
+		assertEquals(styleNames.length, styles.getLength());
+		for(int i = 0; i < styleNames.length; i++) {
+			assertEquals(styleNames[i], styles.item(i).getTextContent());
+		}
 		
 		assertTrue(h.rest(f, log).getTiledLayerNames(new Workspace("serviceName")).get().isEmpty());
 	}

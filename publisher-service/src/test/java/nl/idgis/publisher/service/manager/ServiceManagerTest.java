@@ -574,8 +574,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(services.contains(String.class));
 		
 		Iterator<String> servicesItr = services.cast(String.class).iterator();
-		assertTrue(servicesItr.hasNext());
-		assertEquals("service0", servicesItr.next());
 		assertFalse(servicesItr.hasNext());
 		
 		services = sync.ask(serviceManager, new GetServicesWithLayer("group"), TypedIterable.class);
