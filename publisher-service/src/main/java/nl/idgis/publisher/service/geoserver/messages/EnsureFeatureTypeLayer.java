@@ -11,23 +11,24 @@ import nl.idgis.publisher.service.geoserver.rest.StyleRef;
 
 public class EnsureFeatureTypeLayer extends EnsureLayer {
 
-	private static final long serialVersionUID = 9083018890281059932L;
+	private static final long serialVersionUID = 3034150832260095127L;
 
 	private final String tableName;
 	
 	private final List<String> keywords;
 	
-	private final String defaultStyleName;
+	private final String defaultStyleName, groupStyleName;
 	
 	private final List<String> additionalStyleNames;
 	
 	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, String tableName, 
-			Tiling tilingSettings, String defaultStyleName, List<String> additionalStyleNames) {
+			Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames) {
 		super(layerId, title, abstr, tilingSettings);
 		
 		this.tableName = tableName;
 		this.keywords = keywords;
 		this.defaultStyleName = defaultStyleName;
+		this.groupStyleName = groupStyleName;
 		this.additionalStyleNames = additionalStyleNames;
 	}
 	
@@ -41,6 +42,10 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 	
 	public String getDefaultStyleName() {
 		return defaultStyleName;
+	}
+	
+	public String getGroupStyleName() {
+		return groupStyleName;
 	}
 	
 	public List<String> getAdditionalStyleNames() {
@@ -68,8 +73,10 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 	@Override
 	public String toString() {
 		return "EnsureFeatureTypeLayer [tableName=" + tableName + ", keywords="
-				+ keywords + ", layerId=" + layerId + ", title=" + title
-				+ ", abstr=" + abstr + ", tilingSettings=" + tilingSettings
-				+ "]";
-	}	
+				+ keywords + ", defaultStyleName=" + defaultStyleName
+				+ ", groupStyleName=" + groupStyleName
+				+ ", additionalStyleNames=" + additionalStyleNames
+				+ ", layerId=" + layerId + ", title=" + title + ", abstr="
+				+ abstr + ", tilingSettings=" + tilingSettings + "]";
+	}		
 }

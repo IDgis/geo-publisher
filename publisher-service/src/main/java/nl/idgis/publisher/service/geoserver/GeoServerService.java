@@ -454,7 +454,13 @@ public class GeoServerService extends UntypedActor {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;					
 					String layerId = ensureLayer.getLayerId();
 					
-					groupLayerContent.add(new LayerRef(layerId));
+					String groupStyleName = ensureLayer.getGroupStyleName();
+					if(groupStyleName == null) {					
+						groupLayerContent.add(new LayerRef(layerId));
+					} else {
+						groupLayerContent.add(new LayerRef(layerId, groupStyleName));
+					}
+					
 					if(featureTypes.containsKey(layerId)) {
 						log.debug("existing feature type found: {}", layerId);
 						

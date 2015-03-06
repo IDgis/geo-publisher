@@ -17,6 +17,7 @@ import akka.japi.Procedure;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
@@ -112,7 +113,8 @@ public class EnsureService extends UntypedActor {
 									layer.getTiling().orElse(null)), getSelf());							
 							getContext().become(layers(layer.getLayers(), depth + 1), false);
 						} else {
-							DatasetLayer layer = layerRef.asDatasetRef().getLayer();
+							DatasetLayerRef datasetRef = layerRef.asDatasetRef();
+							DatasetLayer layer = datasetRef.getLayer();
 							
 							String defaultStyleName;
 							List<String> additionalStyleNames;
@@ -137,6 +139,7 @@ public class EnsureService extends UntypedActor {
 									layer.getTableName(),
 									layer.getTiling().orElse(null),
 									defaultStyleName,
+									datasetRef.getStyleName(),
 									additionalStyleNames), getSelf());
 						}
 					} else {
