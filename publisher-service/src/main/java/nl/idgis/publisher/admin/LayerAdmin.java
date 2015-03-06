@@ -103,7 +103,8 @@ public class LayerAdmin extends AbstractAdmin {
 								genericLayer.title,
 								genericLayer.abstractCol, 
 								genericLayer.published, 
-								dataset.identification
+								dataset.identification,
+								dataset.name
 							))
 						.thenApply ((styles) -> {
 							builder.addAll (styles.list ());
@@ -122,7 +123,7 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-				genericLayer.abstractCol, genericLayer.published, dataset.identification));
+				genericLayer.abstractCol, genericLayer.published, dataset.identification, dataset.name));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {

@@ -273,6 +273,8 @@ web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer al
 
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
+web.application.page.datasets.list.delete.warning.body=Weet u het zeker? De onderliggende data en filters zullen worden verwijderd.
+
 
 # General management
 web.application.page.constants.name=Constants
@@ -421,6 +423,8 @@ web.application.page.services.form.field.watermarkposition7.option=Linksonder
 web.application.page.services.form.field.watermarkposition8.option=Onder gecentreerd
 web.application.page.services.form.field.watermarkposition9.option=Rechtsonder
 
+web.application.page.services.list.delete.warning.body=Weet u het zeker? De WMS zal verwijderd worden.
+
 
 
 # Layers
@@ -469,6 +473,8 @@ web.application.page.layers.form.field.styles.default=Default stijl
 web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen
 web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 1 stijl worden toegevoegd
 
+web.application.page.layers.list.delete.warning.body=Weet u het zeker? Deze laag is aan de dataset {0} gekoppeld.
+
 # Groups
 web.application.page.groups.name=Groep
 web.application.page.groups.remove.failed=Groep is al verwijderd of is een hoofdgoep in een service
@@ -515,6 +521,7 @@ web.application.page.groups.form.field.addlayer.button=Toevoegen laag
 web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)
 
+web.application.page.groups.list.delete.warning.body=Weet u het zeker? De lagen en groepen binnen deze groep blijven bestaan.
 
 # Styles
 web.application.page.styles.name=Stijl
@@ -552,6 +559,7 @@ web.application.page.styles.form.field.type.point=Punt
 web.application.page.styles.form.field.type.line=Lijn
 web.application.page.styles.form.field.type.polygon=Vlak
 
+web.application.page.styles.list.delete.warning.body=Weet u het zeker?
 
 
 # Tiledlayers

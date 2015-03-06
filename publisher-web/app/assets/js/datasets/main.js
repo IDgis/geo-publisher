@@ -2,11 +2,13 @@
 require ([
     'dojo/_base/array',
     'dojo/on',
+    'dojo/_base/window',
     'dojo/query',
     'dojo/dom',
     'dojo/dom-attr',
     'dojo/dom-class',
     'dojo/dom-style',
+    'delete-warning/delete-warning',
 
     'dojo/topic',
     
@@ -19,11 +21,13 @@ require ([
 ], function (
 	array,
 	on,
+	win,
 	query,
 	dom,
 	domAttr,
 	domClass,
 	domStyle,
+	DeleteWarning,
 	topic,
 	xhr
 ) {
@@ -115,5 +119,11 @@ require ([
 		});
 		
 		previousProgress = taskProgress;
+	});
+	
+	on(win.doc, ".deleteButton:click", function(event) {
+		var itemToDel = query(this).parents(".list-group-item")[0];
+		
+		var deleteWarning = new DeleteWarning (itemToDel);
 	});
 });

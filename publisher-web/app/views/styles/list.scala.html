@@ -6,7 +6,9 @@
 	routes.Styles.list (query, targetPage)		
 }
  
-@layout.application( title = Domain.message("web.application.page.styles.list.header") ) {
+@layout.application( title = Domain.message("web.application.page.styles.list.header"),
+	jsMain = routes.Assets.at("js/styles/list.js").url 
+) {
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.styles.list.header")</h1>
@@ -56,7 +58,12 @@
 				@for(style <- styles.values) {
 				<div class="list-group-item js-style-item" 
 					data-style-id="@style.id"
-					data-style-name="@style.name">
+					data-style-name="@style.name"
+					
+					data-warning-pre-title="@Domain.message("web.application.removing")"
+					data-warning-title="@style.name"
+					data-warning-delete-link="@routes.Styles.delete(style.id)"
+					data-warning-delete-body="@Domain.message("web.application.page.styles.list.delete.warning.body")">
 					<div class="row">
 						<div class="col-md-5">
 							<h4 class="list-group-item-heading">
@@ -80,8 +87,8 @@
 									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a href="@routes.Styles.delete(style.id)" 
-									class="btn btn-warning" title=@Domain.message("web.application.button.remove")>
+								<a data-toggle="modal" data-target="#deleteWarning"
+									class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
 									<span class="glyphicon glyphicon-remove"></span>
 								</a>
 							</div>
@@ -92,6 +99,7 @@
 			</div>
 			}
 			
+			@helper.deleteWarning()
 			@helper.pagination(styles, pageRef)
 			
 		</div> @* /Style list *@
