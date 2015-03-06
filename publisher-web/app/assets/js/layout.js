@@ -8,6 +8,7 @@ require ([
     'dojo/topic',
     'dojo/request/xhr',
     'dojo/on',
+    'dojo/hash',
     
     'put-selector/put',
     
@@ -21,6 +22,7 @@ require ([
 	topic,
 	xhr,
 	on,
+	hash,
 	
 	put
 ) {
@@ -183,9 +185,28 @@ require ([
     	
     	var docPath = domAttr.get (this, 'data-doc-path');
     	
-    	displayDocument (docPath);
+    	hash ('!doc!' + docPath);
+    }
+   
+    function hashChange (value) {
+    	if (value.startsWith ('!doc!')) {
+    		displayDocument (value.substring (5));
+    	} else {
+    		jQuery ('#doc-modal').modal ('hide');
+    	}
     }
     
     on (dom.byId ('help-doc-link'), 'click', onClickDocumentLink);
     query ('#doc-modal .modal-body').on ('a[data-doc-path]:click', onClickDocumentLink);
+    topic.subscribe ('/dojo/hashchange', hashChange);
+    jQuery ('#doc-modal').on ('hidden.bs.modal', function (e) {
+    	var hashValue = hash ();
+    	if (hashValue && hashValue.startsWith ('!doc!')) {
+    		hash ('');
+    	}
+    });
+    
+    setTimeout (function () {
+    	hashChange (hash ());
+    }, 0);
 });
