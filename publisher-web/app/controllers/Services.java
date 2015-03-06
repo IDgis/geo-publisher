@@ -10,15 +10,20 @@ import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
+import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
@@ -48,11 +53,12 @@ public class Services extends Controller {
 		return from (database)
 				.list (Category.class)
 				.list (LayerGroup.class)
-				.execute (new Function2<Page<Category>, Page<LayerGroup>, Result> () {
+				.query (new ListLayers (1l, null, null))
+				.execute (new Function3<Page<Category>, Page<LayerGroup>,  Page<Layer>, Result> () {
 
 					@Override
-					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups) throws Throwable {
-						return ok (form.render (serviceForm, true, groups, null, serviceForm.get().keywords));
+					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+						return ok (form.render (serviceForm, true, groups, layers, null, serviceForm.get().keywords));
 					}
 				});
 	}
@@ -71,7 +77,7 @@ public class Services extends Controller {
 					Logger.debug ("submit Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
-					if (form.field("name").value().length() == 1 ) 
+					if (form.field("name").value().length() <= 3 ) 
 						form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
 					if (form.field("id").value().equals(ID)){
 						for (Service service : services.values()) {
@@ -80,9 +86,10 @@ public class Services extends Controller {
 							}
 						}
 					}
-					if (form.field("rootGroupName").value()==null || form.field("rootGroupName").value().isEmpty()){
-						form.reject("rootGroupName", Domain.message("web.application.page.services.form.field.rootgroup.validation.error"));
+					if (serviceForm.structure == null || serviceForm.structure.isEmpty()){
+						form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.error"));
 					}
+					
 					if (form.hasErrors ()) {
 						return renderCreateForm (form);
 					}
@@ -91,32 +98,40 @@ public class Services extends Controller {
 					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
 							serviceForm.metadata, serviceForm.published,
-							serviceForm.rootGroupName,serviceForm.constantsName);
+							serviceForm.rootGroupId,serviceForm.constantsId);
 					Logger.debug ("Update/create service: " + service);
 					
+					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
+					Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
 
 					return from (database)
 						.put(service)
 						.executeFlat (new Function<Response<?>, Promise<Result>> () {
 							@Override
-							public Promise<Result> apply (final Response<?> response) throws Throwable {
+							public Promise<Result> apply (final Response<?> responseService) throws Throwable {
+								String msg;
+								if (CrudOperation.CREATE.equals (responseService.getOperation())) {
+									msg = Domain.message("web.application.added").toLowerCase();
+								}else{
+									msg = Domain.message("web.application.updated").toLowerCase();
+								}									
+								if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
+									flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+								}else{
+									flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+									return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+								}
 								// Get the id of the service we just put 
-								String serviceId = response.getValue().toString();
+								String serviceId = responseService.getValue().toString();
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
+								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceForm.rootGroupId, layerIds);
 								return from (database)
 									.query(putServiceKeywords)
-									.executeFlat (new Function<Response<?>, Promise<Result>> () {
+									.query(putGroupStructure)
+									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
 										@Override
-										public Promise<Result> apply (final Response<?> responseKeywords) throws Throwable {
-										
-											if (CrudOperation.CREATE.equals (responseKeywords.getOperation())) {
-												Logger.debug ("Created service " + responseKeywords.getValue());
-												flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " is " + Domain.message("web.application.added").toLowerCase());
-											}else{
-												Logger.debug ("Updated service " + responseKeywords.getValue());
-												flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " is " + Domain.message("web.application.updated").toLowerCase());
-											}
+										public Promise<Result> apply (final Response<?> responseKeywords, final Response<?> responseStructure) throws Throwable {
 											return Promise.pure (redirect (routes.Services.list (null, null, 1)));
 										}
 									});
@@ -157,11 +172,12 @@ public class Services extends Controller {
 			.get (Service.class, serviceId)			
 			.list(Category.class)
 			.list (LayerGroup.class)
+			.query (new ListLayers (1l, null, null))
 			.query(new ListServiceKeywords(serviceId))
-			.executeFlat (new Function4<Service, Page<Category>, Page<LayerGroup>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function5<Service, Page<Category>, Page<LayerGroup>,  Page<Layer>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final List<String> keywords) throws Throwable {
+				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> keywords) throws Throwable {
 
 					return from (database)
 						.get(LayerGroup.class, service.genericLayerId())
@@ -171,7 +187,6 @@ public class Services extends Controller {
 							public Result apply (final LayerGroup group, final GroupLayer groupLayer) throws Throwable {
 
 								ServiceForm  serviceForm = new ServiceForm (service);
-								serviceForm.setRootGroupName(group.name());
 								serviceForm.setKeywords(keywords);
 								Logger.debug ("Edit serviceForm: " + serviceForm);
 								
@@ -179,7 +194,7 @@ public class Services extends Controller {
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, groups, groupLayer, keywords));
+								return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
 							}
 					});
 				}
@@ -208,7 +223,8 @@ public class Services extends Controller {
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
-		@Constraints.MinLength (1)
+//		@Constraints.MinLength (3)
+//		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String name;
 		private String title;
 		private String alternateTitle;
@@ -217,10 +233,13 @@ public class Services extends Controller {
 		private String metadata;
 		private String watermark;
 		private Boolean published = false;
-		private String categoryName = "";
-		private String rootGroupName = "";
-		private String constantsName = "";
-		
+		private String rootGroupId = "";
+		private String constantsId = "";
+		/**
+		 * List of id's of layers/groups in this service
+		 */
+		private List<String> structure;
+
 		public ServiceForm (){
 			super();
 			this.id = ID;		
@@ -235,8 +254,8 @@ public class Services extends Controller {
 			this.abstractText = service.abstractText();
 			this.metadata = service.metadata();
 			this.published = service.published();
-			this.rootGroupName =service.genericLayerId();
-			this.constantsName =service.constantsId();
+			this.rootGroupId =service.genericLayerId();
+			this.constantsId =service.constantsId();
 		}
 
 
@@ -310,6 +329,22 @@ public class Services extends Controller {
 		}
 
 
+		public String getRootGroupId() {
+			return rootGroupId;
+		}
+
+		public void setRootGroupId(String rootGroupId) {
+			this.rootGroupId = rootGroupId;
+		}
+
+		public String getConstantsId() {
+			return constantsId;
+		}
+
+		public void setConstantsId(String constantsId) {
+			this.constantsId = constantsId;
+		}
+
 		public String getWatermark() {
 			return watermark;
 		}
@@ -326,38 +361,22 @@ public class Services extends Controller {
 		public void setPublished(Boolean published) {
 			this.published = published;
 		}
-
-		public String getCategoryName() {
-			return categoryName;
+		
+		public List<String> getStructure() {
+			return structure;
 		}
 
-		public void setCategoryName(String categoryName) {
-			this.categoryName = categoryName;
-		}
-
-		public String getRootGroupName() {
-			return rootGroupName;
-		}
-
-		public void setRootGroupName(String rootGroupName) {
-			this.rootGroupName = rootGroupName;
-		}
-
-		public String getConstantsName() {
-			return constantsName;
-		}
-
-		public void setConstantsName(String constantsName) {
-			this.constantsName = constantsName;
+		public void setStructure(List<String> structure) {
+			this.structure = structure;
 		}
 		
 		@Override
 		public String toString() {
 			return "ServiceForm [id=" + id + ", name=" + name + ", title=" + title + ", alternateTitle="
 					+ alternateTitle + ", abstractText=" + abstractText + ", keywords=" + keywords + ", metadata="
-					+ metadata + ", watermark=" + watermark + ", published=" + published + ", categoryName=" + categoryName
-					+ ", rootGroupName=" + rootGroupName + ", constantsName=" + constantsName + "]";
+					+ metadata + ", watermark=" + watermark + ", published=" + published + ", rootGroupId="
+					+ rootGroupId + ", constantsId=" + constantsId + ", structure=" + structure + "]";
 		}
-
+		
 	}
 }

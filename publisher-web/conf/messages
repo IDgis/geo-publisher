@@ -400,7 +400,8 @@ web.application.page.services.form.field.structure.label=Structuur
 
 web.application.page.services.form.field.rootgroup.label=Groep
 web.application.page.services.form.field.rootgroup.help=Geef de hoofdgroep
-web.application.page.services.form.field.rootgroup.validation.error=Er moet een hoofdgroep zijn ingevuld
+web.application.page.services.form.field.structure.validation.error=Er moet minimaal 1 laag of groep zijn toegevoegd
+
 
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
 
