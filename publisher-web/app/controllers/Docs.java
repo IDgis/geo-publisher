@@ -1,13 +1,25 @@
 package controllers;
 
+import static org.pegdown.FastEncoder.encode;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Locale;
 
+import org.parboiled.common.StringUtils;
+import org.pegdown.LinkRenderer;
 import org.pegdown.PegDownProcessor;
+import org.pegdown.ast.AutoLinkNode;
+import org.pegdown.ast.ExpImageNode;
+import org.pegdown.ast.ExpLinkNode;
+import org.pegdown.ast.RefImageNode;
+import org.pegdown.ast.RefLinkNode;
+import org.pegdown.ast.WikiLinkNode;
 
 import play.Logger;
 import play.Play;
@@ -33,7 +45,7 @@ public class Docs extends Controller {
 	public static Result markdown (final String path, final String file) {
 		final Lang lang = getLang ();
 		
-		final String fullPath = path + "/" + lang.code () + "/" + file;
+		final String fullPath = path + "/" + lang.language () + "/" + file;
 		final InputStream stream = Play.application().resourceAsStream (fullPath);
 		if (stream == null) {
 			Logger.debug ("Document not found: " + fullPath);
@@ -60,10 +72,97 @@ public class Docs extends Controller {
 		
 		final PegDownProcessor processor = new PegDownProcessor ();
 		
-		return ok (processor.markdownToHtml (buffer.toString ())).as ("text/html");
+		return ok (processor.markdownToHtml (buffer.toString (), new DefaultLinkRenderer (lang, file))).as ("text/html");
 	}
 
 	public static Action<AnyContent> at (final String path, final String file) {
-		return controllers.Assets.at (path, file, false);
+		return controllers.Assets.at (path, getLang ().language () + "/" + file, false);
+	}
+	
+	/**
+	 * Link renderer that turns all links into absolute links.
+	 */
+	private static class DefaultLinkRenderer extends LinkRenderer {
+		private final Lang lang;
+		private final String currentPath;
+		
+		public DefaultLinkRenderer (final Lang lang, final String currentPath) {
+			this.lang = lang;
+			this.currentPath = currentPath;
+		}
+		
+		private final String route (final String href) {
+			if (href.endsWith (".md")) {
+				return routes.Docs.markdown (href).url ();
+			} else {
+				return routes.Docs.at (href).url ();
+			}
+		}
+		
+		private String modifyHref (final String href) {
+			// Don't modify hrefs that specify a protocol:
+			if (href.indexOf ("://") >= 0) {
+				return href;
+			}
+			
+			// Absolute URL's are routed through the markdown controller:
+			if (href.startsWith ("/")) {
+				return route (href.substring (1));
+			}
+			
+			// Relative URL's use the current path:
+			if (currentPath.endsWith ("/")) {
+				return route (currentPath + href);
+			}
+			
+			int offset = currentPath.lastIndexOf ('/');
+			if (offset >= 0) {
+				return route (currentPath.substring (0, offset + 1) + href);
+			}
+			
+			return route (href);
+		}
+		
+		private Rendering modifyRendering (final Rendering rendering) {
+			final Rendering newRendering = new Rendering (modifyHref (rendering.href), rendering.text);
+			
+			for (final Attribute attribute: rendering.attributes) {
+				newRendering.withAttribute (attribute);
+			}
+			
+			newRendering.withAttribute ("data-doc-path", newRendering.href);
+			
+			return newRendering;
+		}
+		
+		@Override
+	    public Rendering render (final AutoLinkNode node) {
+			return modifyRendering (super.render (node));
+	    }
+
+		@Override
+	    public Rendering render (final ExpLinkNode node, final String text) {
+			return modifyRendering (super.render (node, text));
+	    }
+
+		@Override
+	    public Rendering render (final ExpImageNode node, final String text) {
+			return modifyRendering (super.render (node, text));
+	    }
+
+		@Override
+	    public Rendering render (final RefLinkNode node, final String url, final String title, final String text) {
+			return modifyRendering (super.render (node, url, title, text));
+	    }
+
+		@Override
+	    public Rendering render (final RefImageNode node, final String url, final String title, final String alt) {
+			return modifyRendering (super.render (node, url, title, alt));
+	    }
+
+		@Override
+	    public Rendering render (final WikiLinkNode node) {
+			return modifyRendering (super.render (node));
+	    }
 	}
 }

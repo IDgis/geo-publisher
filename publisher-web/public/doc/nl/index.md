@@ -1,4 +1,6 @@
 Help index
 ==========
 
-[Dashboard](/dashboard.md)
+![Logo](logo.png)
+
+[Dashboard](dashboard.md)
