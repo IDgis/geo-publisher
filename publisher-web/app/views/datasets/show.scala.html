@@ -10,7 +10,8 @@
 }
 
 @layout.application(
-	title = Domain.message("web.application.page.datasets.show.title") + " - " + dataset.name
+	title = Domain.message("web.application.page.datasets.show.title") + " - " + dataset.name,
+	docPath = "datasets/show"
 ) {
 	<div class="page-content">
 		<h1 class="page-header">@Domain.message("web.application.page.datasets.show.title") @dataset.name</h1>

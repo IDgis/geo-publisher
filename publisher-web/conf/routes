@@ -93,5 +93,7 @@ POST	/user/authenticate								controllers.User.authenticate()
 
 # Map static resources from the /public folder to the /assets URL path
 GET		/javascriptRoutes  								controllers.Application.javascriptRoutes
+GET		/doc/$file<.+\.md$>								controllers.Docs.markdown(path="/public/doc", file)
+GET		/doc/*file										controllers.Docs.at(path="/public/doc", file)
 GET     /assets/*file               					controllers.Assets.at(path="/public", file)
 GET		/lib/*file										controllers.WebJarAssets.at(file)

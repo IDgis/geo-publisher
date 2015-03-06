@@ -3,9 +3,12 @@ require ([
     'dojo/dom',
     'dojo/dom-class',
     'dojo/dom-construct',
+    'dojo/dom-attr',
     'dojo/query',
     'dojo/topic',
     'dojo/request/xhr',
+    'dojo/on',
+    'dojo/hash',
     
     'put-selector/put',
     
@@ -14,9 +17,12 @@ require ([
 	dom,
 	domClass,
 	domConstruct,
+	domAttr,
 	query,
 	topic,
 	xhr,
+	on,
+	hash,
 	
 	put
 ) {
@@ -152,4 +158,55 @@ require ([
     topic.subscribe ('publisher/issues', function (issues) {
     	updateEventDropdown (issuesDropdown, issues);
     });
+    
+    // =========================================================================
+    // Help document viewer:
+    // =========================================================================
+    function displayDocument (path) {
+    	xhr.get (path, {
+    		handleAs: 'html'
+    	}).then (function (data) {
+    		query ('#doc-modal .modal-body')[0].innerHTML = data;
+
+    		// Display the first heading of the document as the title of the modal:
+    		var heading = query ('#doc-modal .modal-body h1')[0];
+    		if (heading) {
+    			query ('#doc-modal h4')[0].innerHTML = heading.innerHTML;
+    			put ('!', heading);
+    		}
+    		
+        	jQuery ('#doc-modal').modal ('show');
+    	});
+    }
+    
+    function onClickDocumentLink (e) {
+    	e.preventDefault ();
+    	e.stopPropagation ();
+    	
+    	var docPath = domAttr.get (this, 'data-doc-path');
+    	
+    	hash ('!doc!' + docPath);
+    }
+   
+    function hashChange (value) {
+    	if (value.length >= 5 && value.substring (0, 5) == '!doc!') {
+    		displayDocument (value.substring (5));
+    	} else {
+    		jQuery ('#doc-modal').modal ('hide');
+    	}
+    }
+    
+    on (dom.byId ('help-doc-link'), 'click', onClickDocumentLink);
+    query ('#doc-modal .modal-body').on ('a[data-doc-path]:click', onClickDocumentLink);
+    topic.subscribe ('/dojo/hashchange', hashChange);
+    jQuery ('#doc-modal').on ('hidden.bs.modal', function (e) {
+    	var hashValue = hash ();
+    	if (hashValue && hashValue.length >= 5 && hashValue.substring (0, 5) == '!doc!') {
+    		hash ('');
+    	}
+    });
+    
+    setTimeout (function () {
+    	hashChange (hash ());
+    }, 0);
 });

@@ -78,7 +78,8 @@
 
 @layout.application(
 	title = Domain.message("web.application.page.sourcedatasets.title"),
-	jsMain = routes.Assets.at("js/datasources/main.js").url
+	jsMain = routes.Assets.at("js/datasources/main.js").url,
+	docPath = "datasources/list"
 ) {
 	<div class="page-content">
 		<h1 class="page-header">@Domain.message("web.application.page.sourcedatasets.title")</h1>

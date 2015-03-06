@@ -8,7 +8,11 @@
 @import nl.idgis.publisher.domain.web.MessageContext
 
 
-@layout.application(title = Domain.message("web.application.title"), jsMain = routes.Assets.at("js/dashboard/main.js").url) {
+@layout.application(
+	title = Domain.message("web.application.title"), 
+	jsMain = routes.Assets.at("js/dashboard/main.js").url,
+	docPath = "dashboard"
+) {
 
 	<div class="jumbotron">
 		<div class="row">
