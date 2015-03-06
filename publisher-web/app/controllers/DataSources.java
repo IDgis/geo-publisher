@@ -140,4 +140,8 @@ public class DataSources extends Controller {
 				}
 			});
 	}
+	
+	public static Promise<Result> refreshDatasources () {
+		return Promise.pure (ok ());
+	}
 }

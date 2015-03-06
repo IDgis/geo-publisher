@@ -3,13 +3,15 @@ require ([
     'dojo/dom-class',
     'dojo/topic',
     'dojo/on',
+    'dojo/request/xhr',
     
 	'dojo/domReady!'
 ], function (
 	query,
 	domClass,
 	topic,
-	on
+	on,
+	xhr
 ) {
 	
 	var refreshButtons = query ('.js-datasource-refresh'),
@@ -44,7 +46,13 @@ require ([
 		if (domClass.contains (this, 'disabled')) {
 			return;
 		}
-		
-		domClass.add (this, 'disabled');
+	
+		xhr.post (jsRoutes.controllers.DataSources.refreshDatasources ().url, {
+			handleAs: 'json'
+		}).then (function () {
+			topic.publish ('publisher/notification', 'info', 'Verversen van brongegevens is ingepland');
+		}, function () {
+			topic.publish ('publisher/notification', 'danger', 'Verversen van brongegevens kon niet worden ingepland');
+		});
 	});
 });
