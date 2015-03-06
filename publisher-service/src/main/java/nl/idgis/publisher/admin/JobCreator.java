@@ -15,6 +15,7 @@ import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class JobCreator extends AbstractAdmin {
@@ -48,18 +49,18 @@ public class JobCreator extends AbstractAdmin {
 		}
 	}
 	
+	private void createServiceJobsForStyle(String styleId) {
+		log.debug("creating service jobs for style: {}", styleId);
+		
+		f.ask(serviceManager, new GetServicesWithStyle(styleId), TypedIterable.class)
+			.thenAccept(this::createServiceJobs);
+	}
+	
 	private void createServiceJobsForLayer(String layerId) {
 		log.debug("creating service jobs for layer: {}", layerId);
 		
-		f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class).thenAccept(resp -> {			
-			TypedIterable<String> serviceIds = ((TypedIterable<?>)resp).cast(String.class);
-			
-			for(String serviceId : serviceIds) {
-				log.debug("creating service job: {}", serviceId);
-				
-				jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
-			}
-		});
+		f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class)
+			.thenAccept(this::createServiceJobs);
 	}
 	
 	private CompletableFuture<Boolean> createImportJob(String datasetId) {
@@ -70,7 +71,8 @@ public class JobCreator extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		onDelete(Style.class, this::createVacuumServiceJob);
+		onDelete(Style.class, this::createVacuumServiceJob);		
+		onPut(Style.class, style -> createServiceJobsForStyle(style.id()));
 		
 		onDelete(Service.class, this::createVacuumServiceJob);
 		onPut(Service.class, service -> createServiceJob(service.id()));
@@ -87,5 +89,5 @@ public class JobCreator extends AbstractAdmin {
 			this::createServiceJobs);
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
-	}
+	}	
 }
