@@ -6,7 +6,8 @@
 
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),
-	jsMain = routes.Assets.at("js/services/list.js").url 
+	jsMain = routes.Assets.at("js/services/list.js").url, 
+	docPath = "services/list"
 ) {
 
 <div class="page-content">
