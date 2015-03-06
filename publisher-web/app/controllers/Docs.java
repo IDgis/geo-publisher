@@ -5,10 +5,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Locale;
 
 import org.pegdown.PegDownProcessor;
 
+import play.Logger;
 import play.Play;
+import play.api.i18n.Lang;
 import play.api.mvc.Action;
 import play.api.mvc.AnyContent;
 import play.mvc.Controller;
@@ -16,9 +19,24 @@ import play.mvc.Result;
 
 public class Docs extends Controller {
 
+    private static Lang getLang(){
+        Lang lang = null;
+        if(play.mvc.Http.Context.current.get() != null) {
+            lang = play.mvc.Http.Context.current().lang();
+        } else {
+            Locale defaultLocale = Locale.getDefault();
+            lang = new Lang(defaultLocale.getLanguage(), defaultLocale.getCountry());
+        }
+        return lang;
+    }
+    
 	public static Result markdown (final String path, final String file) {
-		final InputStream stream = Play.application().resourceAsStream (path + "/" + file);
+		final Lang lang = getLang ();
+		
+		final String fullPath = path + "/" + lang.code () + "/" + file;
+		final InputStream stream = Play.application().resourceAsStream (fullPath);
 		if (stream == null) {
+			Logger.debug ("Document not found: " + fullPath);
 			return notFound ();
 		}
 		
