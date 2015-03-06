@@ -1,1 +1,4 @@
-Hello, World!
+Help index
+==========
+
+[Dashboard](/dashboard.md)
