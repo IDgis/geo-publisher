@@ -31,6 +31,7 @@ import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
+import play.data.validation.ValidationError;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
@@ -51,13 +52,12 @@ public class Services extends Controller {
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-				.list (Category.class)
 				.list (LayerGroup.class)
 				.query (new ListLayers (1l, null, null))
-				.execute (new Function3<Page<Category>, Page<LayerGroup>,  Page<Layer>, Result> () {
+				.execute (new Function2<Page<LayerGroup>,  Page<Layer>, Result> () {
 
 					@Override
-					public Result apply (final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 						return ok (form.render (serviceForm, true, groups, layers, null, serviceForm.get().keywords));
 					}
 				});
@@ -77,8 +77,8 @@ public class Services extends Controller {
 					Logger.debug ("submit Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
-					if (form.field("name").value().length() <= 3 ) 
-						form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1"));
+					if (form.field("name").value().length() <= 1 )
+						form.reject(new ValidationError ("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1")));
 					if (form.field("id").value().equals(ID)){
 						for (Service service : services.values()) {
 							if (form.field("name").value().equals(service.name())){
@@ -170,14 +170,13 @@ public class Services extends Controller {
 		
 		return from (database)
 			.get (Service.class, serviceId)			
-			.list(Category.class)
 			.list (LayerGroup.class)
 			.query (new ListLayers (1l, null, null))
 			.query(new ListServiceKeywords(serviceId))
-			.executeFlat (new Function5<Service, Page<Category>, Page<LayerGroup>,  Page<Layer>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function4<Service, Page<LayerGroup>,  Page<Layer>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<Category> categories, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> keywords) throws Throwable {
+				public Promise<Result> apply (final Service service, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> keywords) throws Throwable {
 
 					return from (database)
 						.get(LayerGroup.class, service.genericLayerId())
@@ -222,7 +221,7 @@ public class Services extends Controller {
 
 		@Constraints.Required
 		private String id;
-		@Constraints.Required
+//		@Constraints.Required
 //		@Constraints.MinLength (3)
 //		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
 		private String name;
