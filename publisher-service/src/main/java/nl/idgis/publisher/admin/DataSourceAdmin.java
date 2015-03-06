@@ -7,20 +7,16 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
 
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
-
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.DataSourceStatusType;
 import nl.idgis.publisher.domain.web.Status;
-
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
+import akka.actor.ActorRef;
+import akka.actor.Props;
 
 public class DataSourceAdmin extends AbstractAdmin {
 	
@@ -83,5 +79,4 @@ public class DataSourceAdmin extends AbstractAdmin {
 				queryResult.map(dataSourceInfo -> 
 					toDataSource(dataSourceInfo, activeDataSources))));
 	}
-
 }

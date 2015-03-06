@@ -37,6 +37,7 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListIssues;
@@ -163,7 +164,7 @@ public class Admin extends AbstractAdmin {
 		
 		return handleListIssues (new ListIssues (LogLevel.WARNING.andUp ()));
 	}
-
+	
 	private CompletableFuture<Page<ActiveTask>> handleListDashboardActiveTasks() {
 		log.debug ("handleDashboardActiveTaskList");
 		
