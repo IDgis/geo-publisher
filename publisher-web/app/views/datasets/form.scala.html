@@ -14,7 +14,8 @@
 
 @layout.application(
 	title = Domain.message("web.application.page.datasets.form.title"),
-	jsMain = routes.Assets.at("js/datasets/form.js").url
+	jsMain = routes.Assets.at("js/datasets/form.js").url,
+	docPath = "datasets/form"
 ) {
 	<div class="page-content">
 	@if(createDataset){
