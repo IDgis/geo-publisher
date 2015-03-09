@@ -170,6 +170,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		
 		NumberPath<Integer> layerOrder = createNumber("layer_order", Integer.class);
 		
+		StringPath styleIdentification = createString("style_identification");
+		
 		QGroupStructure(String variable) {
 	        super(QGroupStructure.class, forVariable(variable));
 	        
@@ -178,7 +180,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	        add(parentLayerIdentification);
 	        add(childLayerId);
 	        add(childLayerIdentification);
-	        add(layerOrder);	        
+	        add(layerOrder);	   
+	        add(styleIdentification);
 	    }
 	}
 	
@@ -201,30 +204,35 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.childLayerIdentification,
 			groupStructure.parentLayerId,
 			groupStructure.parentLayerIdentification,
-			groupStructure.layerOrder).as(
+			groupStructure.layerOrder,
+			groupStructure.styleIdentification).as(
 			new SQLSubQuery().unionAll(
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-					.join(genericLayer).on(genericLayer.id.eq(layerStructure.parentLayerId))						
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.parentLayerId))
+					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						genericLayer.identification, 
 						child.id,
 						child.identification,
 						parent.id,
 						parent.identification,
-						layerStructure.layerOrder),
+						layerStructure.layerOrder,
+						style.identification),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 					.join(groupStructure).on(groupStructure.childLayerId.eq(layerStructure.parentLayerId))
+					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						groupStructure.groupLayerIdentification, 
 						child.id,
 						child.identification,
 						parent.id,
 						parent.identification,
-						layerStructure.layerOrder)));
+						layerStructure.layerOrder,
+						style.identification)));
 	}
 	
 	private CompletableFuture<TypedList<Tuple>> structure() {
@@ -255,6 +263,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 					Map<String, String> styleMap = new HashMap<>();
 					
 					for(Tuple structureTuple : structure) {
+						String styleId = structureTuple.get(groupStructure.styleIdentification);
 						String childId = structureTuple.get(groupStructure.childLayerIdentification);
 						String parentId = structureTuple.get(groupStructure.parentLayerIdentification); 
 						
@@ -262,7 +271,10 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 							throw new IllegalStateException("cycle detected, layer: " + childId);
 						}
 						
-						structureMap.put(childId, parentId);						
+						structureMap.put(childId, parentId);
+						if(styleId != null) {
+							styleMap.put(childId, styleId);
+						}
 					}
 					
 					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);
