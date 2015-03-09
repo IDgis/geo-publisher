@@ -173,7 +173,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	private CompletableFuture<TypedList<String>> keywords() {
 		return tx.query().from(service)
 			.join(serviceKeyword).on(serviceKeyword.serviceId.eq(service.id))
-			.where(service.identification.eq(serviceId))
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.where(genericLayer.identification.eq(serviceId))
 			.list(serviceKeyword.keyword);
 	}
 	
@@ -181,11 +182,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 		return tx.query().from(service)
 			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 			.leftJoin(constants).on(constants.id.eq(service.constantsId))
-			.where(service.identification.eq(serviceId))
+			.where(genericLayer.identification.eq(serviceId))
 			.singleResult(
-				service.name,
-				service.title,
-				service.abstractCol,
 				genericLayer.identification, 
 				genericLayer.name, 
 				genericLayer.title, 
@@ -236,9 +234,9 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	
 					return new DefaultService(
 						serviceId, 
-						serviceInfoTuple.get(service.name),
-						serviceInfoTuple.get(service.title),
-						serviceInfoTuple.get(service.abstractCol),
+						serviceInfoTuple.get(genericLayer.name),
+						serviceInfoTuple.get(genericLayer.title),
+						serviceInfoTuple.get(genericLayer.abstractCol),
 						keywords.list(),
 						serviceInfoTuple.get(constants.contact),
 						serviceInfoTuple.get(constants.organization),

@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service.manager;
 
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
@@ -11,10 +12,8 @@ import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
@@ -78,9 +77,10 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
-						service.identification, 
+						genericLayer.identification, 
 						child.id,
 						child.identification,
 						parent.id,

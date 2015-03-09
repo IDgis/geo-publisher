@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
@@ -30,12 +31,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.messages.Failure;
-
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.JobState;
@@ -44,7 +43,6 @@ import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
-
 import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
@@ -69,7 +67,6 @@ import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -270,7 +267,8 @@ public class JobManager extends UntypedActor {
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(service).on(service.id.eq(serviceJob.serviceId))
-				.where(service.identification.eq(serviceId)
+				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+				.where(genericLayer.identification.eq(serviceId)
 						.and(serviceJob.type.eq("ENSURE")))
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(job.id))
@@ -302,7 +300,8 @@ public class JobManager extends UntypedActor {
 						serviceJob.type,
 						serviceJob.serviceId)
 					.select(new SQLSubQuery().from(service)
-						.where(service.identification.eq(serviceId))
+						.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+						.where(genericLayer.identification.eq(serviceId))
 						.list(jobId, "ENSURE", service.id))
 					.execute());
 				
@@ -497,14 +496,15 @@ public class JobManager extends UntypedActor {
 		
 		return
 			db.query().from(serviceJob)
-				.leftJoin(service).on(service.id.eq(serviceJob.serviceId))				
+				.leftJoin(service).on(service.id.eq(serviceJob.serviceId))		
+				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 				.where(new SQLSubQuery().from(jobState)
 						.where(jobState.jobId.eq(serviceJob.jobId))
 						.notExists())
 				.list(
 					serviceJob.jobId,
 					serviceJob.type,
-					service.identification).thenApply(result -> {
+					genericLayer.identification).thenApply(result -> {
 						List<ServiceJobInfo> retval = new ArrayList<>();
 						
 						for(Tuple t : result) {
@@ -516,7 +516,7 @@ public class JobManager extends UntypedActor {
 									retval.add(new VacuumServiceJobInfo(jobId));
 									break;
 								case "ENSURE":
-									retval.add(new EnsureServiceJobInfo(jobId, t.get(service.identification)));
+									retval.add(new EnsureServiceJobInfo(jobId, t.get(genericLayer.identification)));
 									break;
 								default:
 									throw new IllegalStateException("Unknown service job type encountered: " + type);

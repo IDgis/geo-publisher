@@ -260,6 +260,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "rootgroup")
 			.set(genericLayer.name, "rootgroup-name")
+			.set(genericLayer.title, "serviceTitle0")
+			.set(genericLayer.abstractCol, "serviceAbstract0")
 			.executeWithKey(genericLayer.id);
 		
 		insert(layerStructure)
@@ -285,10 +287,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.executeWithKey(constants.id);
 		
 		int serviceId = insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "serviceName0")
-			.set(service.title, "serviceTitle0")
-			.set(service.abstractCol, "serviceAbstract0")
 			.set(service.genericLayerId, rootId)
 			.set(service.constantsId, constantsId)
 			.executeWithKey(service.id);
@@ -303,9 +301,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(serviceKeyword.keyword, "keyword3")
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);		
+		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);		
 		assertEquals("rootgroup", service.getRootId());
-		assertEquals("serviceName0", service.getName());
+		assertEquals("rootgroup-name", service.getName());
 		assertEquals("serviceTitle0", service.getTitle());
 		assertEquals("serviceAbstract0", service.getAbstract());
 		assertEquals("serviceContact0", service.getContact());
@@ -360,7 +358,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(itr.hasNext());
 		
 		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");
-		serviceManager.tell(new GetStyles("service0"), recorder);
+		serviceManager.tell(new GetStyles("rootgroup"), recorder);
 		
 		sync.ask(recorder, new Wait(3), Waited.class);
 		sync.ask(recorder, new GetRecording(), Recording.class)
@@ -451,12 +449,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "service-name0")
 			.set(service.genericLayerId, rootId) 
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
 		
 		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
@@ -631,12 +627,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "service-name0")
 			.set(service.genericLayerId, rootId) 
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
 		
 		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
@@ -774,18 +768,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "service-name0")
 			.set(service.genericLayerId, root0Id) 
 			.execute();
 		
 		insert(service)
-			.set(service.identification, "service1")
-			.set(service.name, "service-name1")
 			.set(service.genericLayerId, root1Id) 
 			.execute();
 		
-		Service service0 = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		Service service0 = sync.ask(serviceManager, new GetService("rootgroup0"), Service.class);
 		
 		List<LayerRef<?>> service0Layers = service0.getLayers();
 		assertNotNull(service0Layers);
@@ -804,7 +794,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(service0Itr.hasNext());
 		
-		Service service1 = sync.ask(serviceManager, new GetService("service1"), Service.class);
+		Service service1 = sync.ask(serviceManager, new GetService("rootgroup1"), Service.class);
 		
 		List<LayerRef<?>> service1Layers = service1.getLayers();
 		assertNotNull(service1Layers);
@@ -877,12 +867,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 		
 		insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "service-name0")
 			.set(service.genericLayerId, rootId) 
 			.execute();
 
-		Service service = sync.ask(serviceManager, new GetService("service0"), Service.class);
+		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
 		assertEquals("rootgroup", service.getRootId());
 		
 		List<LayerRef<?>> layers = service.getLayers();		
@@ -928,6 +916,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "rootgroup")
 			.set(genericLayer.name, "rootgroup-name")
+			.set(genericLayer.title, "serviceTitle0")
+			.set(genericLayer.abstractCol, "serviceAbstract0")
 			.executeWithKey(genericLayer.id);
 		
 		insert(layerStructure)
@@ -937,10 +927,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 	
 		insert(service)
-			.set(service.identification, "service0")
-			.set(service.name, "serviceName0")
-			.set(service.title, "serviceTitle0")
-			.set(service.abstractCol, "serviceAbstract0")
 			.set(service.genericLayerId, rootId)
 			.execute();
 		
@@ -951,7 +937,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Iterator<String> serviceNameItr = serviceNames.iterator();
 		assertTrue(serviceNameItr.hasNext());		
-		assertEquals("serviceName0", serviceNameItr.next());		
+		assertEquals("rootgroup-name", serviceNameItr.next());		
 		assertFalse(serviceNameItr.hasNext());
 		
 		styleNames = serviceIndex.getStyleNames();

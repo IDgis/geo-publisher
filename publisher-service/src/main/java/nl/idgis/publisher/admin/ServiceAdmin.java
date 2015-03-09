@@ -67,18 +67,18 @@ public class ServiceAdmin extends AbstractAdmin {
 				.from(service)
 				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 				.leftJoin(constants).on(service.constantsId.eq(constants.id))
-				.orderBy (service.name.asc ());
+				.orderBy (genericLayer.name.asc ());
 		
 		// Add a filter for the query string:
 		if (listServices.getQuery () != null) {
-			baseQuery.where (service.name.containsIgnoreCase (listServices.getQuery ())
-					.or (service.title.containsIgnoreCase (listServices.getQuery ()))
+			baseQuery.where (genericLayer.name.containsIgnoreCase (listServices.getQuery ())
+					.or (genericLayer.title.containsIgnoreCase (listServices.getQuery ()))
 				);
 		}
 		
 		// Add a filter for the published flag:
 		if (listServices.getPublished () != null) {
-			baseQuery.where (service.published.eq (listServices.getPublished ()));
+			baseQuery.where (genericLayer.published.eq (listServices.getPublished ()));
 		}
 		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();
@@ -94,7 +94,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					
 					return listQuery
 						.list (new QService(
-								service.identification,
+								genericLayer.identification,
 								genericLayer.name,
 								genericLayer.title, 
 								service.alternateTitle, 
@@ -118,9 +118,9 @@ public class ServiceAdmin extends AbstractAdmin {
 			db.query().from(service)
 			.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 			.leftJoin(constants).on(service.constantsId.eq(constants.id))
-			.where(service.identification.eq(serviceId))
+			.where(genericLayer.identification.eq(serviceId))
 			.singleResult(new QService(
-					service.identification,
+					genericLayer.identification,
 					genericLayer.name,
 					genericLayer.title, 
 					service.alternateTitle, 
@@ -140,8 +140,9 @@ public class ServiceAdmin extends AbstractAdmin {
 		return db.transactional(tx ->
 			// Check if there is another service with the same id
 			tx.query().from(service)
-			.where(service.identification.eq(serviceId))
-			.singleResult(service.identification)
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.where(genericLayer.identification.eq(serviceId))
+			.singleResult(genericLayer.identification)
 			.thenCompose(msg -> {
 				if (!msg.isPresent()){
 					// INSERT generic Layer (rootgroup)
@@ -167,8 +168,6 @@ public class ServiceAdmin extends AbstractAdmin {
 												log.debug("Inserting new service with name: " + serviceName + ", ident: "
 														+ newServiceId);
 												return tx.insert(service)
-													.set(service.identification, newServiceId)
-													.set(service.name, serviceName)
 													.set(service.alternateTitle, theService.alternateTitle())
 													.set(service.metadata, theService.metadata())
 													.set(service.genericLayerId, glId.get())
@@ -200,10 +199,9 @@ public class ServiceAdmin extends AbstractAdmin {
 										// UPDATE service
 										log.debug("Updating service with name: " + serviceName);
 										return tx.update(service)
-											.set(service.name, serviceName)
 											.set(service.alternateTitle, theService.alternateTitle())
 											.set(service.metadata, theService.metadata())
-											.where(service.identification.eq(serviceId))
+											.where(service.genericLayerId.eq(glId.get()))
 											.execute()
 											.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
 									});
@@ -218,10 +216,22 @@ public class ServiceAdmin extends AbstractAdmin {
 
 	private CompletableFuture<Response<?>> handleDeleteService(String serviceId) {
 		log.debug ("handleDeleteService: " + serviceId);
-		return db.delete(service)
-			.where(service.identification.eq(serviceId))
-			.execute()
-			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
+		return db.transactional(
+				tx ->
+				tx.query().from(service)
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.where(genericLayer.identification.eq(serviceId))
+				.singleResult(service.id)
+				.thenCompose(
+					svId -> {
+					log.debug("service id: " + svId.get());
+					return tx.delete(service)
+						.where(service.id.eq(svId.get()))
+						.execute()
+						.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
+					})
+				);
+
 	}
 	
 	
@@ -233,7 +243,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		return db.transactional(
 			tx ->
 			tx.query().from(service)
-			.where(service.identification.eq(serviceId))
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.where(genericLayer.identification.eq(serviceId))
 			.singleResult(service.id)
 			.thenCompose(
 				svId -> {
@@ -255,7 +266,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		return db.transactional(
 			tx ->
 			tx.query().from(service)
-			.where(service.identification.eq(serviceId))
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.where(genericLayer.identification.eq(serviceId))
 			.singleResult(service.id)
 			.thenCompose(
 				svId -> {

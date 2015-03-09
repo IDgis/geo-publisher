@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.manager;
 
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
@@ -11,9 +12,7 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -116,7 +115,8 @@ public class ServiceManager extends UntypedActor {
 		return db.transactional(tx ->			 
 			tx.query()
 				.from(service)
-				.list(service.name).thenCompose(serviceNames -> 
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.list(genericLayer.name).thenCompose(serviceNames -> 
 					tx.query()
 						.from(style)
 						.list(style.name).thenApply(styleNames -> 
