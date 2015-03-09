@@ -5,6 +5,7 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
@@ -12,7 +13,10 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.AsyncTransactionRef;
+
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -142,10 +146,20 @@ public class ServiceManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Object> handleGetGroupLayer(GetGroupLayer msg) {
-		return db.transactional(tx -> new GetGroupLayerQuery(log, f, tx, msg.getGroupLayerId()).result()); 
+		Optional<AsyncTransactionRef> transactionRef = msg.getTransactionRef();
+		if(transactionRef.isPresent()) {
+			return new GetGroupLayerQuery(log, f, db.bind(transactionRef.get()), msg.getGroupLayerId()).result();
+		} else {
+			return db.transactional(tx -> new GetGroupLayerQuery(log, f, tx, msg.getGroupLayerId()).result());
+		}
 	}
 
 	private CompletableFuture<Object> handleGetService(GetService msg) {
-		return db.transactional(tx -> new GetServiceQuery(log, f, tx, msg.getServiceId()).result());
+		Optional<AsyncTransactionRef> transactionRef = msg.getTransactionRef();
+		if(transactionRef.isPresent()) {
+			return new GetServiceQuery(log, f, db.bind(transactionRef.get()), msg.getServiceId()).result();
+		} else {
+			return db.transactional(tx -> new GetServiceQuery(log, f, tx, msg.getServiceId()).result());
+		}
 	}	
 }
