@@ -177,8 +177,8 @@ public class InitiatorTest extends AbstractServiceTest {
 			.executeWithKey(genericLayer.id);
 		
 		insert(service)
-			.set(service.identification, "testService")
-			.set(service.name, "testServiceName")
+//			.set(service.identification, "testService")
+//			.set(service.name, "testServiceName")
 			.set(service.genericLayerId, rootId)
 			.execute();
 	}
@@ -235,7 +235,7 @@ public class InitiatorTest extends AbstractServiceTest {
 
 	@Test
 	public void testServiceJob() throws Exception {		
-		sync.ask(manager, new CreateEnsureServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("root"));
 
 		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
@@ -259,23 +259,23 @@ public class InitiatorTest extends AbstractServiceTest {
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("root"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("root"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("root"));
 		sync.ask(service, new GetReceivedJobs(1), List.class);
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		sync.ask(manager, new CreateEnsureServiceJob("testService"));
+		sync.ask(manager, new CreateEnsureServiceJob("root"));
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(jobManager), "serviceMock");
 		actorOf(
