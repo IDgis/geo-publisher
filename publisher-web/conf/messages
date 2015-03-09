@@ -447,7 +447,7 @@ web.application.page.layers.form.field.dataset.help=Dataset die bij de laag hoor
 web.application.page.layers.form.field.name.label=Naam
 web.application.page.layers.form.field.name.placeholder=Naam
 web.application.page.layers.form.field.name.help=De naam voor de laag
-web.application.page.layers.form.field.name.validation.error=Naam moet langer zijn dan {0} karakters
+web.application.page.layers.form.field.name.validation.error=Naam moet bestaan uit tenminste één van de volgende karakters: a-z, 0-9, - en _.
 web.application.page.layers.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
 web.application.page.layers.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
 

@@ -1,9 +1,7 @@
 @(layerForm: Form[controllers.Layers.LayerForm],
  create: Boolean,
  allStyles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style],
- layerStyles: java.util.List[nl.idgis.publisher.domain.web.Style],
  layerStyleListString: java.lang.String,
- layerKeywords: java.util.List[java.lang.String],
  previewUrl: java.lang.String)
 
 
@@ -79,11 +77,11 @@
 					@helper.tooltips("web.application.page.layers.form.field.keywords.help")
 					<div class="col-sm-offset-2 col-lg-8">
 						<div class="keyword-list" id="keyword-list">
-							@for(keyword <- layerKeywords) {
-								<div class="keyword-item-block" value=@keyword>
-									<input class="form-control" type="hidden" name="keywords[]" value=@keyword>
-									<span class="keyword-item label label-primary">@keyword
-										<button type="button" aria-hidden="true" class="close" value=@keyword>&times;</button>
+							@helper.repeat(layerForm("keywords"), min = 0) { keywordField =>
+								<div class="keyword-item-block" value="@keywordField.value">
+									<input class="form-control" type="hidden" name="keywords[]" value="@keywordField.value">
+									<span class="keyword-item label label-primary">@keywordField.value
+										<button type="button" aria-hidden="true" class="close" value="@keywordField.value">&times;</button>
 									</span>
 								</div>
 							}
