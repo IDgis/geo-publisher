@@ -577,7 +577,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		servicesItr = services.cast(String.class).iterator();
 		assertTrue(servicesItr.hasNext());
-		assertEquals("service0", servicesItr.next());
+		assertEquals("rootgroup", servicesItr.next());
 		assertFalse(servicesItr.hasNext());
 	}
 	

@@ -495,7 +495,7 @@ public class JobManager extends UntypedActor {
 		log.debug("fetching service jobs");
 		
 		return
-			db.query().from(serviceJob)
+			db.query().from(serviceJob, service)
 				.leftJoin(service).on(service.id.eq(serviceJob.serviceId))		
 				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 				.where(new SQLSubQuery().from(jobState)
