@@ -27,7 +27,7 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper implements Transact
 	public CompletableFuture<AsyncTransactionHelper> transaction() {
 		CompletableFuture<AsyncTransactionHelper> future = new CompletableFuture<>();
 		
-		f.ask(actor, new StartTransaction())
+		f.ask(actorRef, new StartTransaction())
 			.whenComplete((msg, t) -> {
 				if(t == null) {				
 					if(msg instanceof TransactionCreated) {
@@ -47,5 +47,14 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper implements Transact
 			});
 		
 		return future;
+	}
+
+	@Override
+	public AsyncTransactionRef getTransactionRef() {
+		throw new IllegalStateException("not a transaction");
+	}
+	
+	public AsyncHelper bind(AsyncTransactionRef transactionRef) {
+		return new AsyncTransactionHelper(transactionRef.getActorRef(), f, log);
 	}
 }
