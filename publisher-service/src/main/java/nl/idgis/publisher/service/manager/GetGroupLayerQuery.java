@@ -255,9 +255,14 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 					Map<String, String> styleMap = new HashMap<>();
 					
 					for(Tuple structureTuple : structure) {
-						structureMap.put(
-							structureTuple.get(groupStructure.childLayerIdentification),
-							structureTuple.get(groupStructure.parentLayerIdentification));
+						String childId = structureTuple.get(groupStructure.childLayerIdentification);
+						String parentId = structureTuple.get(groupStructure.parentLayerIdentification); 
+						
+						if(structureMap.containsKey(childId)) {
+							throw new IllegalStateException("cycle detected, layer: " + childId);
+						}
+						
+						structureMap.put(childId, parentId);						
 					}
 					
 					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);

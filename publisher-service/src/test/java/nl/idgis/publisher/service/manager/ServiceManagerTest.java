@@ -59,6 +59,7 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.Clear;
@@ -1016,5 +1017,69 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				assertNotNull(layer);
 			}
 		}
+	}
+	
+	@Test
+	public void testCycle() throws Exception {
+		insert(genericLayer)
+			.columns(
+				genericLayer.id,
+				genericLayer.name,
+				genericLayer.title,
+				genericLayer.abstractCol,
+				genericLayer.published,
+				genericLayer.identification)
+			.values(0, "service", "title0", "abstract0", false, "service").addBatch()
+			.values(1, "group0", "title1", "abstract1", false, "group0").addBatch()
+			.values(2, "group1", "title2", "abstract2", false, "group1").addBatch()
+			.values(3, "leaf0", "title3", "abstract3", false, "leaf0").addBatch()
+			.values(4, "leaf1", "title4", "abstract4", false, "leaf1").addBatch()
+			.execute();
+		
+		insert(leafLayer)
+			.columns(
+				leafLayer.id,
+				leafLayer.genericLayerId,
+				leafLayer.datasetId)
+			.values(0, 3, datasetId).addBatch()
+			.values(1, 4, datasetId).addBatch()
+			.execute();
+		
+		insert(layerStructure)
+			.columns(
+				layerStructure.parentLayerId,
+				layerStructure.childLayerId,
+				layerStructure.layerOrder)
+			.values(0, 1, 0).addBatch()
+			.values(0, 2, 0).addBatch()
+			.values(1, 2, 0).addBatch()
+			.values(1, 3, 0).addBatch()
+			.values(2, 4, 0).addBatch()
+			.execute();
+		
+		insert(service)
+			.columns(
+				service.id,				
+				service.genericLayerId)
+			.values(0, 0)
+			.execute();
+			
+		Failure failure = sync.ask(serviceManager, new GetService("service"), Failure.class);
+		Throwable cause = failure.getCause();
+		assertNotNull(cause);
+		
+		String message = cause.getMessage();
+		assertNotNull(message);
+		assertTrue(message.contains("cycle"));
+		assertTrue(message.contains("group1"));
+		
+		failure = sync.ask(serviceManager, new GetGroupLayer("service"), Failure.class);
+		cause = failure.getCause();
+		assertNotNull(cause);
+		
+		message = cause.getMessage();
+		assertNotNull(message);
+		assertTrue(message.contains("cycle"));
+		assertTrue(message.contains("group1"));
 	}
 }
