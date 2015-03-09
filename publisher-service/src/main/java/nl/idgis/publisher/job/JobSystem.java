@@ -1,6 +1,8 @@
 package nl.idgis.publisher.job;
 
-import java.util.Arrays;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.job.creator.Creator;
@@ -22,11 +24,10 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-public class JobSystem extends UntypedActor {
-	
-	private final static FiniteDuration CREATE_JOB_INTERVAL = FiniteDuration.create(10, TimeUnit.SECONDS);
+public class JobSystem extends UntypedActor {	
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -35,6 +36,28 @@ public class JobSystem extends UntypedActor {
 	private ActorRef jobManager, jobCreator;
 	
 	private FutureUtils f;
+	
+	private Map<CreateJobs, FiniteDuration> createJobsIntervals;
+	
+	private static class ScheduleCreateJobs implements Serializable {
+		
+		private static final long serialVersionUID = 2468417795794834230L;
+		
+		private final CreateJobs createJobs;
+
+		ScheduleCreateJobs(CreateJobs createJobs) {
+			this.createJobs = createJobs;
+		}
+		
+		public CreateJobs getCreateJobs() {
+			return createJobs;
+		}
+
+		@Override
+		public String toString() {
+			return "ScheduleCreateJobs [createJobs=" + createJobs + "]";
+		}
+	}
 	
 	public JobSystem(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
 		this.database = database;
@@ -61,15 +84,14 @@ public class JobSystem extends UntypedActor {
 					.create(jobManager), 
 				"initiator");
 		
-		jobCreator = getContext().actorOf(Creator.props(jobManager, database), "creator");		
-
-		for(CreateJobs msg : Arrays.asList(
-			
-				new CreateHarvestJobs(), 
-				new CreateImportJobs())) {
-			
-			getSelf().tell(msg, getSelf());
-		}
+		jobCreator = getContext().actorOf(Creator.props(jobManager, database), "creator");
+		
+		createJobsIntervals = new HashMap<>();
+		createJobsIntervals.put(new CreateHarvestJobs(), Duration.apply(15, TimeUnit.MINUTES));
+		createJobsIntervals.put(new CreateImportJobs(), Duration.apply(10, TimeUnit.SECONDS));
+		
+		createJobsIntervals.keySet().stream()
+			.forEach(msg -> getSelf().tell(msg, getSelf()));
 		
 		f = new FutureUtils(getContext().dispatcher());
 	}
@@ -79,6 +101,7 @@ public class JobSystem extends UntypedActor {
 		if(msg instanceof JobManagerRequest) {
 			jobManager.forward(msg, getContext());
 		} else if(msg instanceof CreateJobs) {
+			ActorRef self = getSelf();
 			f.ask(jobCreator, msg).whenComplete((resp, t) -> {
 				if(t != null) {
 					log.error("couldn't create jobs: {}, {}", t, msg);
@@ -89,10 +112,17 @@ public class JobSystem extends UntypedActor {
 						log.debug("jobs created: {}", msg);
 					}
 				}
-				
-				getContext().system().scheduler().scheduleOnce(CREATE_JOB_INTERVAL, getSelf(), 
-						msg, getContext().dispatcher(), getSelf());
+								
+				self.tell(new ScheduleCreateJobs((CreateJobs)msg), self);
 			});
+		} else if(msg instanceof ScheduleCreateJobs) {
+			CreateJobs createJobs = ((ScheduleCreateJobs)msg).getCreateJobs();
+			FiniteDuration interval = createJobsIntervals.get(createJobs);
+			
+			log.debug("scheduling create jobs: {}, interval: {}", createJobs, interval);
+			
+			getContext().system().scheduler().scheduleOnce(interval, getSelf(), 
+				createJobs, getContext().dispatcher(), getSelf());
 		} else {
 			unhandled(msg);
 		}
