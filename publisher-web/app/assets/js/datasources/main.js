@@ -20,15 +20,24 @@ require ([
 		currentHarvesting = false;
 
 	topic.subscribe ('publisher/active-tasks', function (tasks) {
-		var isHarvesting = false;
+		var isHarvesting = false,
+			identifications = { };
 		
 		for (var i = 0; i < tasks.list.length; ++ i) {
 			var task = tasks.list[i];
 			if (task.message.type == 'HARVEST') {
 				isHarvesting = true;
+				identifications[task.message.properties.identification] = true;
 				break;
 			}
 		}
+
+		refreshButtons.forEach (function (button) {
+			var id = domAttr.get (button, 'data-datasource-id');
+			if (id) {
+				domClass[id in identifications ? 'add' : 'remove'] (button, 'spinning');
+			}
+		});
 		
 		if (isHarvesting === currentHarvesting) {
 			return;
