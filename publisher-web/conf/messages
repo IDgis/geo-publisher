@@ -348,7 +348,7 @@ web.application.page.sourcedatasets.list.errorsTitle=Fouten
 web.application.page.sourcedatasets.list.errorsBoth=Met en zonder fouten
 web.application.page.sourcedatasets.list.errorsWith=Met fouten
 web.application.page.sourcedatasets.list.errorsWithout=Zonder fouten
-
+web.application.page.sourcedatasets.list.button.refresh=Brongegevens verversen
 
 # DataSources
 web.application.page.datasources.title=Gegevensbronnen

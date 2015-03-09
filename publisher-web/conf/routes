@@ -30,10 +30,12 @@ POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setN
 
 # Datasources
 GET		/datasources/download							controllers.DataSources.download(searchString: String ?="", withErrors: java.lang.Boolean ?= null)
+POST	/datasources/refresh							controllers.DataSources.refreshDatasources()
 # http://localhost:9000/datasources/searching?searchString=gevonden
 GET		/datasources									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
+POST	/datasources/:datasourceId/refresh				controllers.DataSources.refreshDatasource(datasourceId: String)
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 

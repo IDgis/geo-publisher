@@ -7,6 +7,7 @@ import java.util.List;
 
 import models.Domain.Function;
 import models.Domain.Function4;
+import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
@@ -139,5 +140,30 @@ public class DataSources extends Controller {
 					return ok(sb.toString(), encoding);
 				}
 			});
+	}
+	
+	public static Promise<Result> refreshDatasources () {
+		return refreshDatasource (null);
+	}
+	
+	public static Promise<Result> refreshDatasource (final String datasourceId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from (database)
+		 	.query (new HarvestDatasources (datasourceId))
+		 	.execute (new Function<Boolean, Result> () {
+				@Override
+				public Result apply (final Boolean result) throws Throwable {
+					final ObjectNode response = Json.newObject ();
+					
+					response.put ("success", result);
+					
+					if (result) {
+						return ok (response);
+					} else {
+						return internalServerError (response);
+					}
+				}
+		 	});
 	}
 }
