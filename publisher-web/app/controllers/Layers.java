@@ -305,7 +305,7 @@ public class Layers extends GroupsLayersCommon {
 		private String id;
 		
 		@Constraints.Required (message = "bla")
-		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "bla")
+		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
 		private String name;
 		
 		private String title;
