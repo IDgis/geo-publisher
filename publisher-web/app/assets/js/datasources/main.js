@@ -49,13 +49,15 @@ require ([
 			return;
 		}
 		
-		var datasourceId = domAttr.get (this, 'data-datasource-id');
+		var datasourceId = domAttr.get (this, 'data-datasource-id'),
+			url;
 		if (datasourceId) {
-			console.log ('Refreshing datasource: ', datasourceId);
-			return;
+			url = jsRoutes.controllers.DataSources.refreshDatasource (datasourceId).url;
+		} else {
+			url = jsRoutes.controllers.DataSources.refreshDatasources ().url;
 		}
 	
-		xhr.post (jsRoutes.controllers.DataSources.refreshDatasources ().url, {
+		xhr.post (url, {
 			handleAs: 'json'
 		}).then (function () {
 			topic.publish ('publisher/notification', 'info', 'Verversen van brongegevens is ingepland');

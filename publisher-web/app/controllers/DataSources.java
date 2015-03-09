@@ -143,10 +143,14 @@ public class DataSources extends Controller {
 	}
 	
 	public static Promise<Result> refreshDatasources () {
+		return refreshDatasource (null);
+	}
+	
+	public static Promise<Result> refreshDatasource (final String datasourceId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from (database)
-		 	.query (new HarvestDatasources ())
+		 	.query (new HarvestDatasources (datasourceId))
 		 	.execute (new Function<Boolean, Result> () {
 				@Override
 				public Result apply (final Boolean result) throws Throwable {
