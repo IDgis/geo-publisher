@@ -2,6 +2,8 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -105,14 +107,14 @@ public class JobCreator extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Boolean> handleHarvestDatasources (final HarvestDatasources message) {
-		final ActorRef self = self ();
-		
 		return
 				db.query().from(dataSource)
 				.orderBy(dataSource.identification.asc())
 				.list(new QDataSourceInfo(dataSource.identification, dataSource.name))
 				.thenCompose(dataSourceInfos -> 
-					activeDataSources().thenApply(activeDataSources -> {
+					activeDataSources().thenCompose(activeDataSources -> {
+						final List<CompletableFuture<Ack>> futures = new ArrayList<> (1);
+						
 						for (final DataSourceInfo dataSourceInfo: dataSourceInfos) {
 							if (!activeDataSources.contains (dataSourceInfo.getId ())) {
 								continue;
@@ -122,10 +124,10 @@ public class JobCreator extends AbstractAdmin {
 								continue;
 							}
 
-							jobSystem.tell (new CreateHarvestJob (dataSourceInfo.getId ()), self);
+							futures.add (f.ask (jobSystem, new CreateHarvestJob (dataSourceInfo.getId ()), Ack.class));
 						}
-						
-						return true;
+
+						return CompletableFuture.allOf (futures.toArray (new CompletableFuture[futures.size ()])).thenApply ((a) -> true);
 					}));
 	}
 }
