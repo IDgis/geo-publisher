@@ -1,6 +1,7 @@
 require ([
     'dojo/query',
     'dojo/dom-class',
+    'dojo/dom-attr',
     'dojo/topic',
     'dojo/on',
     'dojo/request/xhr',
@@ -9,6 +10,7 @@ require ([
 ], function (
 	query,
 	domClass,
+	domAttr,
 	topic,
 	on,
 	xhr
@@ -44,6 +46,12 @@ require ([
 		e.stopPropagation ();
 		
 		if (domClass.contains (this, 'disabled')) {
+			return;
+		}
+		
+		var datasourceId = domAttr.get (this, 'data-datasource-id');
+		if (datasourceId) {
+			console.log ('Refreshing datasource: ', datasourceId);
 			return;
 		}
 	
