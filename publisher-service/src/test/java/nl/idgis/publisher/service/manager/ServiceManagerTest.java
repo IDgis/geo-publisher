@@ -357,8 +357,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		List<String> styles = datasetLayer.getStyleNames();
 		assertEquals(2, styles.size());
-		assertTrue(styles.contains("style0"));
-		assertTrue(styles.contains("style1"));
+		assertTrue(styles.contains("styleName0"));
+		assertTrue(styles.contains("styleName1"));
 		
 		assertFalse(itr.hasNext());
 		
