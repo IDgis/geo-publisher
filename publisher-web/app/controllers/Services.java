@@ -317,7 +317,7 @@ public class Services extends Controller {
 		Logger.debug ("delete Service " + serviceId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Service.class, serviceId)
+		return from(database).delete(Service.class, serviceId)
 		.execute(new Function<Response<?>, Result>() {
 			
 			@Override
@@ -325,8 +325,6 @@ public class Services extends Controller {
 				return redirect (routes.Services.list (null, null, 1));
 			}
 		});
-		
-		return Promise.pure (redirect (routes.Services.list (null, null, 1)));
 	}
 	
 	
