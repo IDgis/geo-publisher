@@ -28,11 +28,11 @@ public class GetServicesWithStyleQuery extends AbstractServiceQuery<TypedList<St
 	@Override
 	CompletableFuture<TypedList<String>> result() {
 		return withServiceStructure.from(service)
+				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 			.where(new SQLSubQuery().from(serviceStructure)
 				.join(leafLayer).on(leafLayer.genericLayerId.eq(serviceStructure.childLayerId))
 				.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
-				.join(style).on(style.id.eq(layerStyle.styleId))
-				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+				.join(style).on(style.id.eq(layerStyle.styleId))				
 				.where(serviceStructure.serviceIdentification.eq(genericLayer.identification)
 					.and(style.identification.eq(styleId)))
 				.exists())
