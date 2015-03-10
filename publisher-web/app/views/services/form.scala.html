@@ -27,7 +27,7 @@
 
 	<div class="row">
 		<div class="col-lg-12">
-			<form class="form-horizontal" method="post" action="@routes.Services.submitCreateUpdate()" >
+			<form class="form-horizontal" method="post" @if(create){action="@routes.Services.submitCreate()"}else{action="@routes.Services.submitUpdate(serviceForm("rootGroupId").value)"} >
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@serviceForm("id").value" >
 				<input type="hidden" class="form-control" id="input-rootGroupId" name="rootGroupId" value="@serviceForm("rootGroupId").value" >
 				<div class="form-group">

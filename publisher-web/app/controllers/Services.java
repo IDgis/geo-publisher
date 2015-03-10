@@ -49,7 +49,7 @@ public class Services extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_SERVICE#";
 	
-	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
+	private static Promise<Result> renderForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer, final Boolean create) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
 				.list (LayerGroup.class)
@@ -58,13 +58,21 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						return ok (form.render (serviceForm, true, groups, layers, null, serviceForm.get().keywords));
+						return ok (form.render (serviceForm, create, groups, layers, groupLayer, serviceForm.get().keywords));
 					}
 				});
 	}
 	
+	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
+		return renderForm(serviceForm, null, true);
+	}
 	
-	public static Promise<Result> submitCreateUpdate () {
+	private static Promise<Result> renderEditForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer) {
+		return renderForm(serviceForm, groupLayer, false);
+	}
+	
+	
+	public static Promise<Result> submitCreate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
 			.list (Service.class)
@@ -73,21 +81,17 @@ public class Services extends Controller {
 				@Override
 				public Promise<Result> apply (final Page<Service> services) throws Throwable {
 					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
-					final ServiceForm serviceForm = form.get ();
-					Logger.debug ("submit Service: " + form.field("name").value());
+					Logger.debug ("CREATE Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
 					if (form.field("name").value().length() <= 1 )
 						form.reject(new ValidationError ("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1")));
-					if (form.field("id").value().equals(ID)){
+					if(form.field("id").value().equals(ID)){
 						for (Service service : services.values()) {
 							if (form.field("name").value().equals(service.name())){
 								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
 							}
 						}
-					}
-					if (serviceForm.structure == null || serviceForm.structure.isEmpty()){
-						form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.error"));
 					}
 					
 					if (form.hasErrors ()) {
@@ -95,6 +99,7 @@ public class Services extends Controller {
 					}
 					// validation end
 					
+					final ServiceForm serviceForm = form.get ();
 					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
 							serviceForm.metadata, serviceForm.published,
@@ -110,17 +115,6 @@ public class Services extends Controller {
 							@Override
 							public Promise<Result> apply (final Response<?> responseService) throws Throwable {
 								String msg;
-								if (CrudOperation.CREATE.equals (responseService.getOperation())) {
-									msg = Domain.message("web.application.added").toLowerCase();
-								}else{
-									msg = Domain.message("web.application.updated").toLowerCase();
-								}									
-								if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
-									flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
-								}else{
-									flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
-									return Promise.pure (redirect (routes.Services.list (null, null, 1)));
-								}
 								// Get the id of the service we just put 
 								String serviceId = responseService.getValue().toString();
 								Logger.debug("serviceId: " + serviceId);
@@ -133,7 +127,127 @@ public class Services extends Controller {
 									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
 										@Override
 										public Promise<Result> apply (final Response<?> responseKeywords, final Response<?> responseStructure) throws Throwable {
-											return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+											// Check if the structure is valid i.e. does not contain cycles
+											return from (database)
+													.query (new GetGroupStructure(serviceId))
+													.executeFlat (new Function<GroupLayer, Promise<Result>> () {
+														@Override
+														public Promise<Result>  apply (final GroupLayer groupLayer) throws Throwable {
+															serviceForm.id = serviceId;
+															serviceForm.rootGroupId = serviceId;
+															final Form<ServiceForm> formServiceForm = Form
+																	.form (ServiceForm.class)
+																	.fill (serviceForm);
+															Logger.debug ("groupLayer: " + groupLayer);
+															if (groupLayer==null){
+																// CYCLE!!
+																formServiceForm.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.cycle"));
+															}
+															if (formServiceForm.hasErrors ()) {
+																
+																return renderCreateForm (formServiceForm);
+															} else {
+																String msg;
+																if (CrudOperation.CREATE.equals (responseService.getOperation())) {
+																	msg = Domain.message("web.application.added").toLowerCase();
+																}else{
+																	msg = Domain.message("web.application.updated").toLowerCase();
+																}									
+																if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
+																	flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+																}else{
+																	flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+																}
+																return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+															}
+														}
+												});
+										}
+									});
+							}
+						});
+				}
+			});
+	}
+	
+	public static Promise<Result> submitUpdate (final String serviceIdentification) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		return from (database)
+			.list (Service.class)
+			.query (new GetGroupStructure(serviceIdentification))
+			.executeFlat (new Function2<Page<Service>, GroupLayer, Promise<Result>> () {
+	
+				@Override
+				public Promise<Result> apply (final Page<Service> services, final GroupLayer groupLayer) throws Throwable {
+					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
+					Logger.debug ("UPDATE Service: " + form.field("name").value() + " ID: " + serviceIdentification);
+					Logger.debug ("Form: "+ form);
+					// validation start
+					if (form.field("name").value().length() <= 1 )
+						form.reject(new ValidationError ("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1")));
+					if (form.hasErrors ()) {
+						return renderEditForm (form, groupLayer);
+					}
+					// validation end
+					
+					final ServiceForm serviceForm = form.get ();
+					final Service service = new Service(serviceIdentification, serviceForm.name, serviceForm.title, 
+							serviceForm.alternateTitle,serviceForm.abstractText,
+							serviceForm.metadata, serviceForm.published,
+							serviceIdentification,serviceForm.constantsId);
+					Logger.debug ("Update service: " + service);
+					
+					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
+					Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
+
+					return from (database)
+						.put(service)
+						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> responseService) throws Throwable {
+								String msg;
+								// Get the id of the service we just put 
+								String serviceId = responseService.getValue().toString();
+								Logger.debug("serviceId: " + serviceId);
+								PutServiceKeywords putServiceKeywords = 
+										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
+								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds);
+								return from (database)
+									.query(putServiceKeywords)
+									.query(putGroupStructure)
+									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
+										@Override
+										public Promise<Result> apply (final Response<?> responseKeywords, final Response<?> responseStructure) throws Throwable {
+											// Check if the structure is valid i.e. does not contain cycles
+											return from (database)
+													.query (new GetGroupStructure(serviceId))
+													.executeFlat (new Function<GroupLayer, Promise<Result>> () {
+														@Override
+														public Promise<Result>  apply (final GroupLayer groupLayer) throws Throwable {
+
+															Logger.debug ("groupLayer: " + groupLayer);
+															if (groupLayer==null){
+																// CYCLE!!
+																form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.cycle"));
+															}
+															if (form.hasErrors ()) {
+																return renderEditForm (form, groupLayer);
+															} else {
+																String msg;
+																if (CrudOperation.CREATE.equals (responseService.getOperation())) {
+																	msg = Domain.message("web.application.added").toLowerCase();
+																}else{
+																	msg = Domain.message("web.application.updated").toLowerCase();
+																}									
+																if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
+																	flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+																}else{
+																	flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+																}
+																return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+															}
+														}
+												});
 										}
 									});
 							}
@@ -171,30 +285,28 @@ public class Services extends Controller {
 		
 		return from (database)
 			.get (Service.class, serviceId)			
-			.list (LayerGroup.class)
-			.query (new ListLayers (1l, null, null))
 			.query(new ListServiceKeywords(serviceId))
-			.executeFlat (new Function4<Service, Page<LayerGroup>,  Page<Layer>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function2<Service, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<LayerGroup> groups, final Page<Layer> layers, final List<String> keywords) throws Throwable {
+				public Promise<Result> apply (final Service service, final List<String> keywords) throws Throwable {
 
 					return from (database)
-						.get(LayerGroup.class, service.genericLayerId())
 						.query (new GetGroupStructure(service.genericLayerId()))
-						.execute (new Function2<LayerGroup, GroupLayer, Result> () {
+						.executeFlat (new Function<GroupLayer, Promise<Result>> () {
 							@Override
-							public Result apply (final LayerGroup group, final GroupLayer groupLayer) throws Throwable {
+							public Promise<Result> apply (final GroupLayer groupLayer) throws Throwable {
 
 								ServiceForm  serviceForm = new ServiceForm (service);
 								serviceForm.setKeywords(keywords);
 								Logger.debug ("Edit serviceForm: " + serviceForm);
-								
+								Logger.debug ("groupLayer: " + groupLayer);
 								final Form<ServiceForm> formServiceForm = Form
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-								return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
+//								return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
+								return renderEditForm (formServiceForm, groupLayer);
 							}
 					});
 				}
