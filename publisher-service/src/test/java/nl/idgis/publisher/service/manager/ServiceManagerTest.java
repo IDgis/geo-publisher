@@ -75,6 +75,7 @@ import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
@@ -379,6 +380,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		sync.ask(recorder, new GetRecording(), Recording.class)
 			.assertNext(End.class)
 			.assertNotHasNext();
+		
+		TypedIterable<?> services = sync.ask(serviceManager, new GetServicesWithStyle("style0"), TypedIterable.class);
+		assertTrue(services.contains(String.class));
+		
+		Iterator<String> servicesItr = services.cast(String.class).iterator();
+		assertTrue(servicesItr.hasNext());
+		assertEquals("rootgroup", servicesItr.next());
+		assertFalse(servicesItr.hasNext());
 	}
 	
 	@Test
