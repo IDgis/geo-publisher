@@ -57,12 +57,12 @@ public class EventDispatcher extends UntypedActor {
 			
 			origSender.forward(msg, getContext());
 			
-			if(origMsg instanceof Failure) {
+			if(msg instanceof Failure) {
 				log.debug("failure received");
 			} else {
 				log.debug("dispatching event messages");
 				
-				Event event = new Event(origMsg);
+				Event event = new Event(origMsg, msg);
 				for(ActorRef listener : listeners) {
 					listener.tell(event, getSelf());
 				}

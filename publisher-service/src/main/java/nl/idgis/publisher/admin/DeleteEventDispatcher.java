@@ -71,7 +71,7 @@ private final LoggingAdapter log = Logging.getLogger(getContext().system(), this
 					Response<?> response = (Response<?>)msg;
 					if(response.getOperationResponse().equals(CrudResponse.OK)) {
 						log.debug("ok");
-						listenerResponse = new EventCompleted();
+						listenerResponse = new EventCompleted<>(response.getValue());
 					} else {
 						log.debug("nok");
 						listenerResponse = new EventFailed();
