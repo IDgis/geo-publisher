@@ -60,10 +60,7 @@ public class Layers extends GroupsLayersCommon {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
-						Logger.debug ("all styles: " + allStyles.values().size());
-						Logger.debug ("layer styles: " + layerForm.get().styles);
-						Logger.debug ("layer keywords: " + layerForm.get().keywords);
-						return ok (form.render (layerForm, true, allStyles, layerForm.get().styleList, "", layerForm.get().keywords, ""));
+						return ok (form.render (layerForm, true, allStyles, "", ""));
 					}
 				});
 	}
@@ -78,13 +75,9 @@ public class Layers extends GroupsLayersCommon {
 				@Override
 				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 					final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
-					Logger.debug ("submit Layer: " + form.field("name").value());
-					Logger.debug ("LayerForm from request: " + form.get());	
 					
 					// validation start
-					if (form.field("name").value().length() == 1 ) 
-						form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.error", "1"));
-					if (form.field("id").value().equals(ID)){
+					if (form.field("id").value().equals(ID) && form.field ("name").valueOr (null) != null){
 						for (LayerGroup layerGroup : groups.values()) {
 							if (form.field("name").value().equals(layerGroup.name())){
 								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.groupexists.error"));
@@ -282,7 +275,7 @@ public class Layers extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles, layerStyles, layerStyleListString, keywords, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, previewUrl));
 							}
 						});
 				}
@@ -310,7 +303,11 @@ public class Layers extends GroupsLayersCommon {
 		
 		@Constraints.Required
 		private String id;
+		
+		@Constraints.Required (message = "bla")
+		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
 		private String name;
+		
 		private String title;
 		private String abstractText;
 		private List<String> keywords;
