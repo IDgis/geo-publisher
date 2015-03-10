@@ -123,9 +123,10 @@ public class Services extends Controller {
 								}
 								// Get the id of the service we just put 
 								String serviceId = responseService.getValue().toString();
+								Logger.debug("serviceId: " + serviceId);
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceForm.rootGroupId, layerIds);
+								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds);
 								return from (database)
 									.query(putServiceKeywords)
 									.query(putGroupStructure)

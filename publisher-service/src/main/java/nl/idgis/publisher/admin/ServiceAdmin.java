@@ -164,16 +164,15 @@ public class ServiceAdmin extends AbstractAdmin {
 										.thenCompose(cId -> {
 											if (glId.isPresent()){
 												// INSERT service
-												String newServiceId = UUID.randomUUID().toString();
 												log.debug("Inserting new service with name: " + serviceName + ", ident: "
-														+ newServiceId);
+														+ newGenericLayerId);
 												return tx.insert(service)
 													.set(service.alternateTitle, theService.alternateTitle())
 													.set(service.metadata, theService.metadata())
 													.set(service.genericLayerId, glId.get())
 													.set(service.constantsId, cId.get())
 													.execute()
-													.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newServiceId));
+													.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newGenericLayerId));
 											} else {
 												//ERROR
 												return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, serviceName));
