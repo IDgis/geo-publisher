@@ -9,20 +9,24 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+
 import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
+import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.utils.TypedIterable;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -42,34 +46,36 @@ public class JobCreator extends AbstractAdmin {
 		return Props.create(JobCreator.class, database, serviceManager, jobSystem, harvester);
 	}
 	
-	public void createVacuumServiceJob() {
+	private void createVacuumServiceJob() {
+		log.debug("creating vacuum service job");
 		
+		jobSystem.tell(new CreateVacuumServiceJob(), getSelf());
 	}
 	
-	private void createServiceJob(String serviceId) {
+	private void createEnsureServiceJob(String serviceId) {
 		log.debug("creating service job: {}", serviceId);
 		
 		jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 	}
 	
-	private void createServiceJobs(TypedIterable<?> serviceIds) {
+	private void createEnsureServiceJobs(TypedIterable<?> serviceIds) {
 		for(String serviceId : serviceIds.cast(String.class)) {
-			createServiceJob(serviceId);
+			createEnsureServiceJob(serviceId);
 		}
 	}
 	
-	private void createServiceJobsForStyle(String styleId) {
+	private void createEnsureServiceJobsForStyle(String styleId) {
 		log.debug("creating service jobs for style: {}", styleId);
 		
 		f.ask(serviceManager, new GetServicesWithStyle(styleId), TypedIterable.class)
-			.thenAccept(this::createServiceJobs);
+			.thenAccept(this::createEnsureServiceJobs);
 	}
 	
-	private void createServiceJobsForLayer(String layerId) {
+	private void createEnsureServiceJobsForLayer(String layerId) {
 		log.debug("creating service jobs for layer: {}", layerId);
 		
 		f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class)
-			.thenAccept(this::createServiceJobs);
+			.thenAccept(this::createEnsureServiceJobs);
 	}
 	
 	private CompletableFuture<Boolean> createImportJob(String datasetId) {
@@ -81,21 +87,21 @@ public class JobCreator extends AbstractAdmin {
 	@Override
 	protected void preStartAdmin() {
 		onDelete(Style.class, this::createVacuumServiceJob);		
-		onPut(Style.class, (style, styleId) -> createServiceJobsForStyle(styleId));
+		onPut(Style.class, (style, styleId) -> createEnsureServiceJobsForStyle(styleId));
 		
 		onDelete(Service.class, this::createVacuumServiceJob);
-		onPut(Service.class, (service, serviceId) -> createServiceJob(serviceId));
+		onPut(Service.class, (service, serviceId) -> createEnsureServiceJob(serviceId));
 		
-		onPut(Layer.class, (layer, layerId) -> createServiceJobsForLayer(layerId));
-		onPut(LayerGroup.class, (layer, layerId) -> createServiceJobsForLayer(layerId));
+		onPut(Layer.class, (layer, layerId) -> createEnsureServiceJobsForLayer(layerId));
+		onPut(LayerGroup.class, (layer, layerId) -> createEnsureServiceJobsForLayer(layerId));
 		
 		onDelete(Layer.class, 
 			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			(services, layerId) -> createServiceJobs(services));
+			(services, layerId) -> createEnsureServiceJobs(services));
 		
 		onDelete(LayerGroup.class, 
 			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			(services, layerId) -> createServiceJobs(services));
+			(services, layerId) -> createEnsureServiceJobs(services));
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);
