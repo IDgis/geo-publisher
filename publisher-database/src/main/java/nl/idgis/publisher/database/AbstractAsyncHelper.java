@@ -11,33 +11,33 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 
 	protected final LoggingAdapter log;
 	
-	protected final ActorRef actor;
+	protected final ActorRef actorRef;
 	
 	protected final FutureUtils f;
 	
-	AbstractAsyncHelper(ActorRef action, FutureUtils f, LoggingAdapter log) {
-		this.actor = action;
+	AbstractAsyncHelper(ActorRef actorRef, FutureUtils f, LoggingAdapter log) {
+		this.actorRef = actorRef;
 		this.f = f;		
 		this.log = log;
 	}
 	
 	@Override
 	public final AsyncSQLQuery query() {
-		return new AsyncSQLQuery(actor, f);
+		return new AsyncSQLQuery(actorRef, f);
 	}
 
 	@Override
 	public final AsyncSQLInsertClause insert(RelationalPath<?> entity) {
-		return new AsyncSQLInsertClause(actor, f, entity);
+		return new AsyncSQLInsertClause(actorRef, f, entity);
 	}
 	
 	@Override
 	public final AsyncSQLUpdateClause update(RelationalPath<?> entity) {
-		return new AsyncSQLUpdateClause(actor, f, entity);
+		return new AsyncSQLUpdateClause(actorRef, f, entity);
 	}
 	
 	@Override
 	public final AsyncSQLDeleteClause delete(RelationalPath<?> entity) {
-		return new AsyncSQLDeleteClause(actor, f, entity);
+		return new AsyncSQLDeleteClause(actorRef, f, entity);
 	}
 }

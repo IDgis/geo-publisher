@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
@@ -59,6 +62,7 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.Clear;
@@ -77,6 +81,7 @@ import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class ServiceManagerTest extends AbstractServiceTest {
@@ -1015,6 +1020,152 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 				assertNotNull(layer);
 			}
+		}
+	}
+	
+	@Test
+	public void testCycle() throws Exception {
+		insert(genericLayer)
+			.columns(
+				genericLayer.id,
+				genericLayer.name,
+				genericLayer.title,
+				genericLayer.abstractCol,
+				genericLayer.published,
+				genericLayer.identification)
+			.values(0, "service", "title0", "abstract0", false, "service").addBatch()
+			.values(1, "group0", "title1", "abstract1", false, "group0").addBatch()
+			.values(2, "group1", "title2", "abstract2", false, "group1").addBatch()
+			.values(3, "leaf0", "title3", "abstract3", false, "leaf0").addBatch()
+			.values(4, "leaf1", "title4", "abstract4", false, "leaf1").addBatch()
+			.execute();
+		
+		insert(leafLayer)
+			.columns(
+				leafLayer.id,
+				leafLayer.genericLayerId,
+				leafLayer.datasetId)
+			.values(0, 3, datasetId).addBatch()
+			.values(1, 4, datasetId).addBatch()
+			.execute();
+		
+		insert(layerStructure)
+			.columns(
+				layerStructure.parentLayerId,
+				layerStructure.childLayerId,
+				layerStructure.layerOrder)
+			.values(0, 1, 0).addBatch()
+			.values(0, 2, 0).addBatch()
+			.values(1, 2, 0).addBatch()
+			.values(1, 3, 0).addBatch()
+			.values(2, 4, 0).addBatch()
+			.execute();
+		
+		insert(service)
+			.columns(
+				service.id,				
+				service.genericLayerId)
+			.values(0, 0)
+			.execute();
+			
+		Failure failure = sync.ask(serviceManager, new GetService("service"), Failure.class);
+		Throwable cause = failure.getCause();
+		assertNotNull(cause);
+		
+		String message = cause.getMessage();
+		assertNotNull(message);
+		assertTrue(message.contains("cycle"));
+		assertTrue(message.contains("group1"));
+		
+		failure = sync.ask(serviceManager, new GetGroupLayer("service"), Failure.class);
+		cause = failure.getCause();
+		assertNotNull(cause);
+		
+		message = cause.getMessage();
+		assertNotNull(message);
+		assertTrue(message.contains("cycle"));
+		assertTrue(message.contains("group1"));
+	}
+	
+	@Test
+	public void testPreventCycle() throws Throwable {
+		LoggingAdapter log = nl.idgis.publisher.utils.Logging.getLogger();
+		FutureUtils f = new FutureUtils(system.dispatcher());
+		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);		
+		
+		try {
+			db.transactional(tx ->
+				tx.insert(genericLayer)
+					.set(genericLayer.identification, "layer")
+					.set(genericLayer.name, "layer-name")
+					.executeWithKey(genericLayer.id).thenCompose(layerId ->
+				
+				tx.insert(leafLayer)
+					.set(leafLayer.genericLayerId, layerId)
+					.set(leafLayer.datasetId, datasetId)
+					.execute().thenCompose(leafLayer ->
+					
+				tx.insert(genericLayer)
+					.set(genericLayer.identification, "root")
+					.set(genericLayer.name, "root-name")
+					.executeWithKey(genericLayer.id).thenCompose(rootId ->
+					
+				tx.insert(genericLayer)
+					.set(genericLayer.identification, "group-a")
+					.set(genericLayer.name, "group-name-a")
+					.executeWithKey(genericLayer.id).thenCompose(groupAId ->
+					
+				tx.insert(genericLayer)
+					.set(genericLayer.identification, "group-b")
+					.set(genericLayer.name, "group-name-b")
+					.executeWithKey(genericLayer.id).thenCompose(groupBId ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, groupAId)
+					.set(layerStructure.childLayerId, layerId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(layerGroupA ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, groupBId)
+					.set(layerStructure.childLayerId, layerId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(layerGroupB ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, rootId)
+					.set(layerStructure.childLayerId, groupAId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(groupARoot ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, rootId)
+					.set(layerStructure.childLayerId, groupBId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(groupBRoot ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, groupAId)
+					.set(layerStructure.childLayerId, groupBId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(groupAGroupB ->
+					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, groupBId)
+					.set(layerStructure.childLayerId, groupAId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(groupBGroupA ->
+					
+				f.ask(
+					serviceManager, 
+					new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), // TODO: use the same transaction
+					GroupLayer.class).thenApply(groupLayer -> 
+					
+				"final result"))))))))))))).get();
+			
+			fail("transaction succeeded");
+		} catch(Exception e) {
+			log.debug("exception: {}", e);
 		}
 	}
 }

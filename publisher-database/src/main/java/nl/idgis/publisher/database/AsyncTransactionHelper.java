@@ -14,12 +14,12 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 public final class AsyncTransactionHelper extends AbstractAsyncHelper implements Transaction<AsyncHelper> {  
 	
-	AsyncTransactionHelper(ActorRef transaction, FutureUtils f, LoggingAdapter log) {		
-		super(transaction, f, log);
+	AsyncTransactionHelper(ActorRef actorRef, FutureUtils f, LoggingAdapter log) {		
+		super(actorRef, f, log);
 	}
 	
 	public CompletableFuture<Ack> commit() {
-		return f.ask(actor, new Commit())
+		return f.ask(actorRef, new Commit())
 			.thenApply(msg -> {
 				if(msg instanceof Ack) {
 					log.debug("committed");
@@ -38,7 +38,7 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper implements
 	}
 	
 	public CompletableFuture<Ack> rollback() {
-		return f.ask(actor, new Rollback())
+		return f.ask(actorRef, new Rollback())
 			.thenApply(msg -> {
 				if(msg instanceof Ack) {
 					log.debug("rolled back");
@@ -59,5 +59,10 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper implements
 	@Override
 	public <U> CompletableFuture<U> apply(Function<AsyncHelper, CompletableFuture<U>> handler) {
 		return handler.apply(this);
+	}
+
+	@Override
+	public AsyncTransactionRef getTransactionRef() {
+		return new AsyncTransactionRef(actorRef);
 	}
 }

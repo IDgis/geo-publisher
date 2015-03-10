@@ -224,6 +224,10 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 						String childId = structureTuple.get(serviceStructure.childLayerIdentification);
 						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification); 
 						
+						if(structureMap.containsKey(childId)) {
+							throw new IllegalStateException("cycle detected, layer: " + childId);
+						}
+						
 						structureMap.put(childId, parentId);
 						if(styleId != null) {
 							styleMap.put(childId, styleId);

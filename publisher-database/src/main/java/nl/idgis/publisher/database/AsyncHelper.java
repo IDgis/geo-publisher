@@ -10,5 +10,7 @@ public interface AsyncHelper {
 	
 	AsyncSQLUpdateClause update(RelationalPath<?> entity);
 
-	AsyncSQLDeleteClause delete(RelationalPath<?> entity);	
+	AsyncSQLDeleteClause delete(RelationalPath<?> entity);
+	
+	AsyncTransactionRef getTransactionRef();
 }
