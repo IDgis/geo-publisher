@@ -45,7 +45,8 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 
 GET		/services										controllers.Services.list(q: String ?= null, published: java.lang.Boolean ?= null, page: Long ?= 1)
 GET 	/services/-/create								controllers.Services.create()
-POST 	/services/-/createupdate						controllers.Services.submitCreateUpdate()
+POST 	/services/-/create								controllers.Services.submitCreate()
+POST 	/services/:serviceId/update						controllers.Services.submitUpdate(serviceId: String)
 GET		/services/:serviceId/edit						controllers.Services.edit(serviceId: String)
 POST 	/services/:serviceId/delete						controllers.Services.delete(serviceId : String)
 
