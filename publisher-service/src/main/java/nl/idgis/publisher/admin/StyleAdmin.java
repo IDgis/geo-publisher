@@ -1,11 +1,13 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -13,11 +15,8 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
-
-import nl.idgis.publisher.database.AsyncSQLQuery;
 
 public class StyleAdmin extends AbstractAdmin {
 	
@@ -46,6 +45,7 @@ public class StyleAdmin extends AbstractAdmin {
 		final AsyncSQLQuery baseQuery = db
 			.query()
 			.from(style)
+			.leftJoin(layerStyle).on(style.id.eq(layerStyle.styleId)).distinct()
 			.orderBy (style.name.asc ());
 
 		if (listStyles.getQuery () != null) {
@@ -64,7 +64,7 @@ public class StyleAdmin extends AbstractAdmin {
 				addPageInfo (builder, listStyles.getPage (), count);
 				
 				return listQuery
-					.list (new QStyle (style.identification, style.name, style.definition, style.styleType))
+					.list (new QStyle (style.identification, style.name, style.definition, style.styleType, layerStyle.styleId.isNotNull()))
 					.thenApply ((styles) -> {
 						builder.addAll (styles.list ());
 						return builder.build ();
@@ -78,8 +78,9 @@ public class StyleAdmin extends AbstractAdmin {
 		
 		return 
 			db.query().from(style)
+			.leftJoin(layerStyle).on(style.id.eq(layerStyle.styleId)).distinct()
 			.where(style.identification.eq(styleId))
-			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition,style.styleType));		
+			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition,style.styleType, layerStyle.styleId.isNotNull()));		
 	}
 	
 	private CompletableFuture<Response<?>> handlePutStyle(Style theStyle) {

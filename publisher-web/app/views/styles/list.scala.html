@@ -88,10 +88,17 @@
 									class="btn btn-default" title=@Domain.message("web.application.button.edit")>
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a data-toggle="modal" data-target="#deleteWarning"
-									class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
-									<span class="glyphicon glyphicon-remove"></span>
-								</a>
+								@if(style.inUse) {
+									<a data-toggle="modal" data-target="#deleteWarning"
+										class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove") disabled>
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								} else {
+									<a data-toggle="modal" data-target="#deleteWarning"
+										class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								}
 							</div>
 						</div>
 					</div>
