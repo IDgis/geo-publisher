@@ -89,13 +89,13 @@
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
 								@if(style.inUse) {
-									<a data-toggle="modal" data-target="#deleteWarning"
-										class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove") disabled>
+									<a data-toggle="modal" data-target="#js-delete-warning"
+										class="btn btn-warning js-delete-button" title=@Domain.message("web.application.button.remove") disabled>
 										<span class="glyphicon glyphicon-remove"></span>
 									</a>
 								} else {
-									<a data-toggle="modal" data-target="#deleteWarning"
-										class="btn btn-warning deleteButton" title=@Domain.message("web.application.button.remove")>
+									<a data-toggle="modal" data-target="#js-delete-warning"
+										class="btn btn-warning js-delete-button" title=@Domain.message("web.application.button.remove")>
 										<span class="glyphicon glyphicon-remove"></span>
 									</a>
 								}
