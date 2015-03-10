@@ -32,6 +32,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstantImpl;
 import com.mysema.query.types.ConstructorExpression;
 
 public class LayerAdmin extends AbstractAdmin {
@@ -362,7 +363,7 @@ public class LayerAdmin extends AbstractAdmin {
 					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
 							.and(layerStyle.styleId.eq(style.id)))
-					.list(new QStyle(style.identification, style.name, style.definition,style.styleType))
+					.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 					.thenApply(this::toList);
 		}));
 	}

@@ -37,11 +37,10 @@ import play.mvc.Result;
 import play.mvc.Security;
 import views.html.styles.form;
 import views.html.styles.list;
-import views.html.styles.uploadFileForm;
-import views.html.styles.stylePager;
-import views.html.styles.stylePagerHeader;
 import views.html.styles.stylePagerBody;
 import views.html.styles.stylePagerFooter;
+import views.html.styles.stylePagerHeader;
+import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
@@ -96,7 +95,7 @@ public class Styles extends Controller {
 					// validation end
 					
 					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition, styleForm.styleType);
+					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
@@ -105,10 +104,10 @@ public class Styles extends Controller {
 							public Promise<Result> apply (final Response<?> response) throws Throwable {
 								if (CrudOperation.CREATE.equals (response.getOperation())) {
 									Logger.debug ("Created style " + style);
-									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " " + Domain.message("web.application.added").toLowerCase());
 								}else{
 									Logger.debug ("Updated style " + style);
-									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " " + Domain.message("web.application.updated").toLowerCase());
 								}
 								return Promise.pure (redirect (routes.Styles.list (null, 1)));
 							}
@@ -313,6 +312,7 @@ public class Styles extends Controller {
 		@Constraints.Required
 		private String definition;
 		private String styleType;
+		private Boolean inUse;
 		
 		
 		public StyleForm (){
@@ -325,6 +325,7 @@ public class Styles extends Controller {
 			this.name = style.name();
 			this.definition = style.definition();
 			this.styleType = style.styleType().name();
+			this.inUse = style.inUse();
 		}
 		
 		public String getId() {
@@ -352,6 +353,12 @@ public class Styles extends Controller {
 		}
 		public void setStyleType(String styleType) {
 			this.styleType = styleType;
+		}
+		public Boolean getInUse() {
+			return inUse;
+		}
+		public void setInUse(Boolean inUse) {
+			this.inUse = inUse;
 		}
 		
 	}
