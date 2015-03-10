@@ -419,10 +419,12 @@ public class GeoServerService extends UntypedActor {
 			}
 			
 			void putLayer(EnsureFeatureTypeLayer ensureLayer) {
-				log.debug("putting layer");
+				Layer layer = ensureLayer.getLayer();
+				
+				log.debug("putting layer: {}", layer);
 				
 				toSelf(
-					rest.putLayer(workspace, ensureLayer.getLayer()).thenApply(v -> {
+					rest.putLayer(workspace, layer).thenApply(v -> {
 						log.debug("layer updated");
 						
 						return new LayerEnsured();

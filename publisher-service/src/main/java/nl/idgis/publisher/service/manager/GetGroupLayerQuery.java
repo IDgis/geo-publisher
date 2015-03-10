@@ -98,12 +98,12 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
 				.list(
 					genericLayer.id,
-					style.identification).thenApply(resp ->
+					style.name).thenApply(resp ->
 						resp.list().stream()
 							.collect(Collectors.groupingBy(t ->
 								t.get(genericLayer.id),
 								Collectors.mapping(t ->
-									t.get(style.identification),
+									t.get(style.name),
 									Collectors.toList()))));
 		}
 		
