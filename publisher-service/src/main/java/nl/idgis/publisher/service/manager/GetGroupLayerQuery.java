@@ -206,7 +206,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.parentLayerIdentification,
 			groupStructure.layerOrder,
 			groupStructure.styleIdentification).as(
-			new SQLSubQuery().unionAll(
+			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))

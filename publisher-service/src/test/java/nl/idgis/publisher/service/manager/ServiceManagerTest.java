@@ -1150,12 +1150,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					.set(layerStructure.layerOrder, 0)
 					.execute().thenCompose(groupAGroupB ->
 					
+				tx.insert(layerStructure)
+					.set(layerStructure.parentLayerId, groupBId)
+					.set(layerStructure.childLayerId, groupAId)
+					.set(layerStructure.layerOrder, 0)
+					.execute().thenCompose(groupBGroupA ->
+					
 				f.ask(
 					serviceManager, 
-					new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), 
+					new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), // TODO: use the same transaction
 					GroupLayer.class).thenApply(groupLayer -> 
 					
-				"final result")))))))))))).get();
+				"final result"))))))))))))).get();
 			
 			fail("transaction succeeded");
 		} catch(Exception e) {
