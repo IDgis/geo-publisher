@@ -62,17 +62,17 @@ public class AdminTest {
 		@Override
 		protected void preStartAdmin() {
 			onDelete(DataSource.class, () -> recorder.tell("delete", getSelf()));
-			onPut(Category.class, category -> recorder.tell(category, getSelf()));			
+			onPut(Category.class, (category, categoryId) -> recorder.tell(category, getSelf()));			
 			onDelete(Category.class, categoryId -> {
 				recorder.tell(categoryId, getSelf());
 				
 				return f.successful(new Category(categoryId, "category-name"));
-			}, category -> recorder.tell(category, getSelf()));
+			}, (category, responseValue) -> recorder.tell(category, getSelf()));
 			onDelete(Dataset.class, datasetId -> {
 				recorder.tell(datasetId, getSelf());
 				
 				return f.successful(datasetId);
-			}, datasetId -> recorder.tell(datasetId, getSelf()));
+			}, (datasetId, responseValue) -> recorder.tell(datasetId, getSelf()));
 			onQuery(RefreshDataset.class, refreshDataset -> recorder.tell(refreshDataset, getSelf()));			
 		}
 	}

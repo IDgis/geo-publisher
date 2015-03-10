@@ -81,21 +81,21 @@ public class JobCreator extends AbstractAdmin {
 	@Override
 	protected void preStartAdmin() {
 		onDelete(Style.class, this::createVacuumServiceJob);		
-		onPut(Style.class, style -> createServiceJobsForStyle(style.id()));
+		onPut(Style.class, (style, styleId) -> createServiceJobsForStyle(styleId));
 		
 		onDelete(Service.class, this::createVacuumServiceJob);
-		onPut(Service.class, service -> createServiceJob(service.id()));
+		onPut(Service.class, (service, serviceId) -> createServiceJob(serviceId));
 		
-		onPut(Layer.class, layer -> createServiceJobsForLayer(layer.id()));
-		onPut(LayerGroup.class, layer -> createServiceJobsForLayer(layer.id()));
+		onPut(Layer.class, (layer, layerId) -> createServiceJobsForLayer(layerId));
+		onPut(LayerGroup.class, (layer, layerId) -> createServiceJobsForLayer(layerId));
 		
 		onDelete(Layer.class, 
 			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			this::createServiceJobs);
+			(services, layerId) -> createServiceJobs(services));
 		
 		onDelete(LayerGroup.class, 
 			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			this::createServiceJobs);
+			(services, layerId) -> createServiceJobs(services));
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);

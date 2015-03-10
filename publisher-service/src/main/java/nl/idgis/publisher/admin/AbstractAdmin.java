@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,6 +31,7 @@ import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
 import nl.idgis.publisher.admin.messages.DoPut;
 import nl.idgis.publisher.admin.messages.DoQuery;
+import nl.idgis.publisher.admin.messages.DeleteEvent;
 import nl.idgis.publisher.admin.messages.Event;
 import nl.idgis.publisher.admin.messages.EventCompleted;
 import nl.idgis.publisher.admin.messages.EventFailed;
@@ -72,7 +74,10 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	protected Map<Class, Function> doQuery, doList, doGet, doDelete, doPut, onDeleteBefore;
 		
 	@SuppressWarnings("rawtypes")
-	protected Map<Class, Consumer> onQuery, onDeleteAfter, onPut; 
+	protected Map<Class, Consumer> onQuery;
+	
+	@SuppressWarnings("rawtypes")
+	protected Map<Class, BiConsumer> onDeleteAfter, onPut;
 	
 	public AbstractAdmin(ActorRef database) {
 		this.database = database;
@@ -149,10 +154,14 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	}
 	
 	protected <T extends Identifiable> void onDelete(Class<? super T> entity, Runnable after) {
-		this.<T, Void>onDelete(entity, id -> f.successful(null), v -> after.run());
+		this.<T, Void>onDelete(entity, id -> f.successful(null), (v, responseValue) -> after.run());
 	}
 	
-	protected <T extends Identifiable, U> void onDelete(Class<? super T> entity, Function<String, CompletableFuture<U>> before, Consumer<U> after) {
+	protected <T extends Identifiable> void onDelete(Class<? super T> entity, Consumer<String> after) {
+		this.<T, Void>onDelete(entity, id -> f.successful(null), (v, responseValue) -> after.accept(responseValue));
+	}
+	
+	protected <T extends Identifiable, U> void onDelete(Class<? super T> entity, Function<String, CompletableFuture<U>> before, BiConsumer<U, String> after) {
 		onDeleteBefore.put(entity, before);
 		onDeleteAfter.put(entity, after);
 		getContext().parent().tell(new OnDelete(entity), getSelf());
@@ -163,7 +172,7 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 		getContext().parent().tell(new DoPut(entity), getSelf());
 	}
 	
-	protected <T extends Identifiable> void onPut(Class<? super T> entity, Consumer<T> func) {
+	protected <T extends Identifiable> void onPut(Class<? super T> entity, BiConsumer<T, String> func) {
 		onPut.put(entity, func);
 		getContext().parent().tell(new OnPut(entity), getSelf());
 	}
@@ -225,6 +234,8 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof Event) {
 			handleEvent((Event)msg);
+		} else if(msg instanceof DeleteEvent) {
+			handleDeleteEvent((DeleteEvent)msg);
 		} else if(msg instanceof DomainQuery) {
 			try {
 				if(msg instanceof GetEntity) {
@@ -244,6 +255,31 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 			}
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void handleDeleteEvent(DeleteEvent msg) {
+		Class<?> entity = msg.getMessage().cls();
+		
+		@SuppressWarnings("unchecked")
+		Function<String, CompletableFuture<Object>> beforeHandler = onDeleteBefore.get(entity);
+		if(beforeHandler == null) {
+			log.debug("delete event not handled: {}", entity);
+			
+			unhandled(msg);
+		} else {
+			log.debug("handling delete event: {} from {}", entity, getSender());
+			
+			beforeHandler.apply(msg.getMessage().id()).whenComplete((result, t) -> {
+				if(t != null) {
+					result = t;
+				}
+				
+				getSelf().tell(new BeforeCompleted(result), getSelf());
+			});
+			
+			getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
+			getContext().become(beforeDelete(getSender(), entity));
 		}
 	}
 
@@ -354,7 +390,7 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 				} else if(msg instanceof EventCompleted && getSender().equals(sender)) {
 					log.debug("event completed");
 					
-					onDeleteAfter.get(entity).accept(beforeResult);
+					onDeleteAfter.get(entity).accept(beforeResult, ((EventCompleted<?>)msg).getValue());
 					
 					finish();
 				} else if(msg instanceof EventFailed && getSender().equals(sender)) {
@@ -408,36 +444,13 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	private void handleEvent(Event msg) throws Exception {
 		log.debug("event received: {}", msg);
 		
-		Object eventMsg = ((Event)msg).getMessage();
-		if(eventMsg instanceof DeleteEntity) {
-			Class<?> entity = ((DeleteEntity<?>)eventMsg).cls();
-			
-			@SuppressWarnings("unchecked")
-			Function<String, CompletableFuture<Object>> beforeHandler = onDeleteBefore.get(entity);
-			if(beforeHandler == null) {
-				log.debug("delete event not handled: {}", entity);
-				
-				unhandled(msg);
-			} else {
-				log.debug("handling delete event: {} from {}", entity, getSender());
-				
-				beforeHandler.apply(((DeleteEntity<?>)eventMsg).id()).whenComplete((result, t) -> {
-					if(t != null) {
-						result = t;
-					}
-					
-					getSelf().tell(new BeforeCompleted(result), getSelf());
-				});
-				
-				getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
-				getContext().become(beforeDelete(getSender(), entity));
-			}
-		} else if(eventMsg instanceof PutEntity) {
-			Object value = ((PutEntity<?>)eventMsg).value();
+		Object request = msg.getRequest();
+		if(request instanceof PutEntity) {
+			Object value = ((PutEntity<?>)request).value();
 			Class<?> entity = value.getClass();
 			
 			@SuppressWarnings("unchecked")
-			Consumer<Object> handler = onPut.get(entity);
+			BiConsumer<Object, String> handler = onPut.get(entity);
 			if(handler == null) {
 				log.debug("put event not handled: {}", entity);
 				
@@ -445,21 +458,21 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 			} else {
 				log.debug("handling put: {}", entity);
 				
-				handler.accept(value);
+				handler.accept(value, (String)((Response<?>)msg.getResponse()).getValue());
 			}
-		} else if(eventMsg instanceof DomainQuery) {
-			Class<?> clazz = eventMsg.getClass();
+		} else if(request instanceof DomainQuery) {
+			Class<?> clazz = request.getClass();
 			
 			@SuppressWarnings("unchecked")
 			Consumer<DomainQuery<?>> handler = onQuery.get(clazz);
 			if(handler == null) {
-				log.debug("query not handled: {}", eventMsg);
+				log.debug("query not handled: {}", request);
 				
 				unhandled(msg);
 			} else {
-				log.debug("handling query: {}", eventMsg);
+				log.debug("handling query: {}", request);
 				
-				handler.accept((DomainQuery<?>)eventMsg);
+				handler.accept((DomainQuery<?>)request);
 			}
 		} else {
 			log.error("unhandled event: {}", msg);
