@@ -18,7 +18,9 @@ public class GroupsLayersCommon extends Controller {
 		 */
 
 		StringBuilder url = new StringBuilder();
-		url.append(getConfig("publisher.preview.geoserverUrl"));
+		url.append("http://");
+		url.append(getConfig("publisher.preview.geoserverDomain"));
+		url.append("/geoserver");
 		url.append("/" + serviceId);
 		url.append("/wms?");
 		url.append(getConfig("publisher.preview.serviceRequest"));
