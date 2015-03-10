@@ -121,7 +121,9 @@ require ([
 		previousProgress = taskProgress;
 	});
 	
-	on(win.doc, ".deleteButton:click", function(event) {
+	on(win.doc, ".js-delete-button:click", function(event) {
+		event.preventDefault();
+		event.stopPropagation();
 		var itemToDel = query(this).parents(".list-group-item")[0];
 		
 		var deleteWarning = new DeleteWarning (itemToDel);
