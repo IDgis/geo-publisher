@@ -227,7 +227,7 @@ public class Styles extends Controller {
 		Logger.debug ("delete Style " + styleId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Style.class, styleId)
+		return from(database).delete(Style.class, styleId)
 		.execute(new Function<Response<?>, Result>() {
 			
 			@Override
@@ -235,8 +235,6 @@ public class Styles extends Controller {
 				return redirect (routes.Styles.list (null, 1));
 			}
 		});
-		
-		return Promise.pure (redirect (routes.Styles.list (null, 1)));
 	}
 
 	public static Result uploadFileForm () {

@@ -221,10 +221,10 @@ public class Groups extends GroupsLayersCommon {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database).delete(LayerGroup.class, groupId)
-		.executeFlat(new Function<Response<?>, Promise<Result>>() {
+		.execute(new Function<Response<?>, Result>() {
 			
 			@Override
-			public Promise<Result> apply(Response<?> response) throws Throwable {
+			public Result apply(Response<?> response) throws Throwable {
 				if (response.getOperationResponse().equals(CrudResponse.NOK)) {
 					Logger.debug ("Group could not be deleted: " + groupId);
 					flash ("danger", 
@@ -240,7 +240,7 @@ public class Groups extends GroupsLayersCommon {
 						Domain.message("web.application.succeeded").toLowerCase()
 						);
 				}
-				return Promise.pure (redirect (routes.Groups.list (null, null, 1)));
+				return redirect (routes.Groups.list (null, null, 1));
 			}
 		});
 		

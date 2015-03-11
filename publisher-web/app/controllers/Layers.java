@@ -286,7 +286,7 @@ public class Layers extends GroupsLayersCommon {
 		Logger.debug ("delete Layer " + layerId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Layer.class, layerId)
+		return from(database).delete(Layer.class, layerId)
 		.execute(new Function<Response<?>, Result>() {
 			
 			@Override
@@ -295,7 +295,6 @@ public class Layers extends GroupsLayersCommon {
 			}
 		});
 		
-		return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
 	}
 	
 	
