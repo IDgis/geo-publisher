@@ -17,7 +17,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.xml.namespace.QName;
+import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
@@ -28,6 +36,7 @@ import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
+import nl.idgis.publisher.utils.XMLUtils;
 
 import org.h2.server.pg.PgServer;
 import org.junit.After;
@@ -292,6 +301,47 @@ public class DefaultGeoServerRestTest {
 		assertEquals(serviceSettings, service.getServiceSettings(workspace, ServiceType.WFS).get().get());
 	}
 	
+	private Predicate<XMLEvent> isStartElement(QName name) {
+		return event ->
+			event.isStartElement() 
+				&& event.asStartElement().getName().equals(name);
+	}
+	
+	private Predicate<XMLEvent> isEndElement(QName name) {
+		return event ->
+			event.isEndElement() 
+				&& event.asEndElement().getName().equals(name);
+	}
+	
+	private Predicate<XMLEvent> isInRange(Predicate<XMLEvent> first, Predicate<XMLEvent> last) {
+		return new Predicate<XMLEvent>() {
+			
+			int inRange = 0;
+
+			@Override
+			public boolean test(XMLEvent event) {
+				if(first.test(event)) {
+					inRange++;
+					
+					return false;
+				} 
+				
+				if(last.test(event)) {
+					inRange--;
+					
+					return false;
+				}
+				
+				return inRange == 0;
+			}
+			
+		};
+	}
+	
+	private Predicate<XMLEvent> isInElement(QName name) {
+		return isInRange(isStartElement(name), isEndElement(name));
+	}
+	
 	@Test
 	public void testStyles() throws Exception {
 		assertFalse(
@@ -310,6 +360,20 @@ public class DefaultGeoServerRestTest {
 		
 		Document sld = styles.get("green");
 		assertNotNull(sld);
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		System.out.println("geoserver:");
+		t.transform(new DOMSource(sld), new StreamResult(System.out));
+		System.out.println();
+		
+		System.out.println("source:");
+		t.transform(new DOMSource(green.getSld()), new StreamResult(System.out));
+		System.out.println();
+		
+		assertTrue(XMLUtils.equalsIgnoreWhitespace(sld, green.getSld(), 
+			stream -> stream.filter(isInElement(new QName("http://www.opengis.net/sld", "Name")))));
 		
 		assertEquals("#66FF66", h.getText("//sld:CssParameter", sld));
 		
