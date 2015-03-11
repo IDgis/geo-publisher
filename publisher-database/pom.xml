@@ -89,14 +89,14 @@
 							<target>
 								<echo>initializing database</echo>
 								<delete dir="${database.directory}" failonerror="false" />
-								<concat destfile="${database.sql}">
+								<concat destfile="${database.sql}" fixlastline="true">
 									<sort>
 										<fileset dir="${basedir}/src/main/resources/nl/idgis/publisher/database">
 											<include name="*.sql" />
 										</fileset>
 									</sort>
 								</concat>
-								<concat destfile="${database.sql.data}">
+								<concat destfile="${database.sql.data}" fixlastline="true">
 									<sort>
 										<fileset dir="${basedir}/src/main/resources/nl/idgis/publisher/database/data">
 											<include name="*.sql" />
