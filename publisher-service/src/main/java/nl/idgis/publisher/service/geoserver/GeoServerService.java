@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -19,11 +20,14 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -195,13 +199,20 @@ public class GeoServerService extends UntypedActor {
 						});
 				} else if(msg instanceof Vacuumed) {
 					log.debug("vacuum completed");
-					
-					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
-					
-					getContext().become(receive());
+					vacuumed(JobState.SUCCEEDED);
+				} else if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while vacuuming");
+					vacuumed(JobState.FAILED);
 				} else {
 					elseProvisioning(msg, serviceJob, initiator);
 				}
+			}
+
+			private void vacuumed(JobState result) {
+				initiator.tell(new UpdateJobState(result), getSelf());
+				
+				getContext().setReceiveTimeout(Duration.Inf());
+				getContext().become(receive());
 			}
 			
 		};
@@ -212,6 +223,7 @@ public class GeoServerService extends UntypedActor {
 		
 		serviceManager.tell(new GetServiceIndex(), getSelf());
 		
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 		getContext().become(vacuuming(getSender(), serviceJob));
 	}
 
@@ -225,18 +237,18 @@ public class GeoServerService extends UntypedActor {
 		} else if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
 			
-			failure(initiator);
+			ensureFailure(initiator);
 		} else if(msg instanceof Terminated) {
 			log.error("child actor terminated prematurely: {}", ((Terminated)msg).getActor());
 			
-			failure(initiator);
+			ensureFailure(initiator);
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
 		}
 	}
 
-	private void failure(ActorRef initiator) {
+	private void ensureFailure(ActorRef initiator) {
 		// TODO: add logging
 		initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
 		getContext().become(receive());
