@@ -223,11 +223,18 @@ public class ServiceAdmin extends AbstractAdmin {
 				.singleResult(service.id)
 				.thenCompose(
 					svId -> {
-					log.debug("service id: " + svId.get());
+					log.debug("delete service id: " + svId.get());
 					return tx.delete(service)
 						.where(service.id.eq(svId.get()))
 						.execute()
-						.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
+						.thenCompose(
+							n -> {
+							log.debug("delete generic layer id: " + serviceId);
+							return tx.delete(genericLayer)
+								.where(genericLayer.identification.eq(serviceId))
+								.execute()
+								.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
+							});
 					})
 				);
 
