@@ -2,6 +2,7 @@ package nl.idgis.publisher.utils;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -12,6 +13,7 @@ import java.util.stream.Stream;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.dom.DOMSource;
@@ -172,6 +174,46 @@ public class XMLUtils {
 			.collect(Collectors.toList());
 	}
 	
+	private static boolean equals(List<XMLEvent> a, List<XMLEvent> b) {
+		Iterator<XMLEvent> aItr = a.iterator();
+		Iterator<XMLEvent> bItr = b.iterator();
+		
+		while(aItr.hasNext() && bItr.hasNext()) {
+			XMLEvent aItem = aItr.next();			
+			XMLEvent bItem = bItr.next();
+			
+			int aEventType = aItem.getEventType();
+			int bEventType = bItem.getEventType();
+			
+			if(aEventType != bEventType) {
+				return false;
+			}
+			
+			switch(aEventType) {
+				case XMLStreamConstants.START_ELEMENT:
+					if(!aItem.asStartElement().getName().equals(bItem.asStartElement().getName())) {
+						return false;
+					}
+					
+					break;
+				case XMLStreamConstants.END_ELEMENT:
+					if(!aItem.asEndElement().getName().equals(bItem.asEndElement().getName())) {
+						return false;
+					}
+					
+					break;
+				case XMLStreamConstants.CHARACTERS:
+					if(!aItem.asCharacters().getData().equals(bItem.asCharacters().getData())) {
+						return false;
+					}
+					
+					break;
+			}
+		}
+		
+		return aItr.hasNext() == bItr.hasNext();
+	}
+	
 	private static boolean equals(XMLInputFactory xif, XMLEventFactory xef, Document a, Document b, 
 			Optional<Function<? super XMLEvent, ? extends XMLEvent>> mapper, 
 			Optional<Predicate<? super XMLEvent>> filter) throws XMLStreamException {
@@ -179,8 +221,9 @@ public class XMLUtils {
 		List<XMLEvent> listA = toEventList(xif, xef, a);
 		List<XMLEvent> listB = toEventList(xif, xef, b);
 		
-		return mapFilter(listA, mapper, filter)
-			.equals(mapFilter(listB, mapper, filter));
+		return equals(
+			mapFilter(listA, mapper, filter),
+			mapFilter(listB, mapper, filter));
 	}
 	
 	public static List<XMLEvent> toEventList(Document document) throws XMLStreamException {

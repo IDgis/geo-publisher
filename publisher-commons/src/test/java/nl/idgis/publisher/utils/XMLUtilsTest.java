@@ -57,13 +57,15 @@ public class XMLUtilsTest {
 		Document document = createTestDocument();
 		assertTrue(XMLUtils.equals(document, document));
 		
-		Document anotherDocument = createTestDocument();
-		assertTrue(XMLUtils.equals(document, anotherDocument));
+		Document anotherRootElementName = createTestDocument();
+		assertTrue(XMLUtils.equals(document, anotherRootElementName));
 		
-		Node root = anotherDocument.getFirstChild();
-		root.appendChild(anotherDocument.createElementNS("test", "third"));
+		anotherRootElementName.renameNode(anotherRootElementName.getFirstChild(), "test", "anotherRoot");
+		assertFalse(XMLUtils.equals(document, anotherRootElementName));
 		
-		assertFalse(XMLUtils.equals(document, anotherDocument));
+		Document additionalElement = createTestDocument();
+		additionalElement.getFirstChild().appendChild(additionalElement.createElementNS("test", "third"));
+		assertFalse(XMLUtils.equals(document, additionalElement));
 	}
 	
 	@Test
