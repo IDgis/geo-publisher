@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "org.webjars" %% "webjars-play" % "2.3.0",  
   "org.webjars" % "bootstrap" % "3.2.0",
   "org.webjars" % "dojo" % "1.10.0",
-  "nl.idgis.publisher" % "publisher-domain" % "0.1.1-SNAPSHOT",
+  "nl.idgis.publisher" % "publisher-domain" % (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head,
   "com.typesafe.akka" %% "akka-remote" % "2.3.3",
   "org.pegdown" % "pegdown" % "1.5.0"
 )
