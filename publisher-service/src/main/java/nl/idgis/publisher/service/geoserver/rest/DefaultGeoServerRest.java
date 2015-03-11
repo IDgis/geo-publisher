@@ -5,8 +5,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -44,13 +47,19 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
-
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import static nl.idgis.publisher.utils.XMLUtils.xpath;
 
 public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final String RECURSE = "?recurse=true";
+	
+	private static final Set<String> DEFAULT_STYLE_NAMES = Collections.unmodifiableSet(
+		new HashSet<>(Arrays.asList(
+			"line",
+			"point",
+			"polygon",
+			"raster")));
 	
 	private final LoggingAdapter log;
 
@@ -1021,7 +1030,14 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 	@Override
 	public CompletableFuture<Void> deleteStyle(Style style) {
-		return delete(getStylePath(style) + "?purge=true");
+		String styleName = style.getName();
+		if(DEFAULT_STYLE_NAMES.contains(styleName)) {
+			// GeoServer doesn't seem to like removal of a default style
+			log.debug("ignoring delete request for default style: {}", styleName);
+			return f.successful(null);
+		} else {
+			return delete(getStylePath(style) + "?purge=true");
+		}
 	}
 	
 	private String getTiledLayerPath(String tiledLayerName) {

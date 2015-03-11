@@ -59,7 +59,7 @@ public interface GeoServerRest extends Closeable {
 	
 	CompletableFuture<Void> putLayer(Workspace workspace, Layer layer);
 	
-	CompletableFuture<Void> deleteStyle(Style layer);
+	CompletableFuture<Void> deleteStyle(Style style);
 	
 	CompletableFuture<Optional<TiledLayer>> getTiledLayer(Workspace workspace, FeatureType featureType);
 	
