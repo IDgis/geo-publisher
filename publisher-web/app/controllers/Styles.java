@@ -95,21 +95,27 @@ public class Styles extends Controller {
 					// validation end
 					
 					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition, styleForm.styleType, styleForm.inUse);
+					final Style style = new Style(styleForm.id, styleForm.name, styleForm.oldName, styleForm.definition, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
-						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+						.execute (new Function<Response<?>, Result> () {
 							@Override
-							public Promise<Result> apply (final Response<?> response) throws Throwable {
+							public Result apply (final Response<?> response) throws Throwable {
+								String msg;
 								if (CrudOperation.CREATE.equals (response.getOperation())) {
 									Logger.debug ("Created style " + style);
-									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " " + Domain.message("web.application.added").toLowerCase());
+									msg = Domain.message("web.application.page.styles.form.field.name.create", styleForm.getName ());
 								}else{
 									Logger.debug ("Updated style " + style);
-									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " " + Domain.message("web.application.updated").toLowerCase());
+									msg = Domain.message("web.application.page.styles.form.field.name.update", styleForm.getName ());
 								}
-								return Promise.pure (redirect (routes.Styles.list (null, 1)));
+								if (response.getValue().toString().equals(Style.NAME_EXISTS)){
+									flash("danger", Domain.message("web.application.page.styles.form.field.name.exists", styleForm.getName ()));
+								} else {
+									flash("success", msg);
+								}
+								return redirect (routes.Styles.list (null, 1));
 							}
 					});
 				}
@@ -307,6 +313,7 @@ public class Styles extends Controller {
 		@Constraints.Required
 		@Constraints.MinLength (value=1)
 		private String name;
+		private String oldName;
 		@Constraints.Required
 		private String definition;
 		private String styleType;
@@ -321,6 +328,7 @@ public class Styles extends Controller {
 		public StyleForm (final Style style){
 			this.id = style.id();
 			this.name = style.name();
+			this.setOldName(style.oldName());
 			this.definition = style.definition();
 			this.styleType = style.styleType().name();
 			this.inUse = style.inUse();
@@ -340,18 +348,28 @@ public class Styles extends Controller {
 		public void setName(String name) {
 			this.name = name;
 		}
+		
+		public String getOldName() {
+			return oldName;
+		}
+		public void setOldName(String oldName) {
+			this.oldName = oldName;
+		}
+
 		public String getDefinition() {
 			return definition;
 		}
 		public void setDefinition(String definition) {
 			this.definition = definition;
 		}
+		
 		public String getStyleType() {
 			return styleType;
 		}
 		public void setStyleType(String styleType) {
 			this.styleType = styleType;
 		}
+		
 		public Boolean getInUse() {
 			return inUse;
 		}

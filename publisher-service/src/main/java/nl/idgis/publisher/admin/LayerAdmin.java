@@ -363,7 +363,7 @@ public class LayerAdmin extends AbstractAdmin {
 					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
 							.and(layerStyle.styleId.eq(style.id)))
-					.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+					.list(new QStyle(style.identification, style.name, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 					.thenApply(this::toList);
 		}));
 	}
