@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>nl.idgis.publisher</groupId>
 	<artifactId>publisher</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0</version>
 
 	<packaging>pom</packaging>
 
@@ -13,7 +12,7 @@
 		<connection>scm:git:git@github.com:IDgis/geo-publisher.git</connection>
 		<developerConnection>scm:git:git@github.com:IDgis/geo-publisher.git</developerConnection>
 		<url>https://github.com/IDgis/geo-publisher</url>
-		<tag>HEAD</tag>
+		<tag>publisher-0.1.0</tag>
 	</scm>
 	
 	<properties>
@@ -579,7 +578,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore/>
+										<ignore />
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -598,7 +597,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore></ignore>
+										<ignore />
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
