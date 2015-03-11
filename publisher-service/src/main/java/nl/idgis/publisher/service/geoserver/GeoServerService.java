@@ -19,6 +19,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -131,6 +132,8 @@ public class GeoServerService extends UntypedActor {
 			handleVacuumServiceJob((VacuumServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
+		} else if(msg instanceof Terminated) {
+			log.debug("child actor terminated: {}", ((Terminated)msg).getActor());
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
@@ -222,13 +225,21 @@ public class GeoServerService extends UntypedActor {
 		} else if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
 			
-			// TODO: add logging
-			initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
-			getContext().become(receive());
+			failure(initiator);
+		} else if(msg instanceof Terminated) {
+			log.error("child actor terminated prematurely: {}", ((Terminated)msg).getActor());
+			
+			failure(initiator);
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
 		}
+	}
+
+	private void failure(ActorRef initiator) {
+		// TODO: add logging
+		initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+		getContext().become(receive());
 	}
 	
 	private void toSelf(Object msg) {
@@ -818,6 +829,8 @@ public class GeoServerService extends UntypedActor {
 		ActorRef ensureService = getContext().actorOf(
 				EnsureService.props(), 
 				nameGenerator.getName(EnsureService.class));
+		
+		getContext().watch(ensureService);
 		
 		String serviceId = serviceJob.getServiceId();
 		serviceManager.tell(new GetService(serviceId), ensureService);
