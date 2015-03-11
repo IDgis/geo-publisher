@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -146,32 +146,34 @@ public class XMLUtils {
 	}
 	
 	public static boolean equalsIgnoreWhitespace(Document a, Document b) throws XMLStreamException {
+		return equalsIgnoreWhitespace(a, b, UnaryOperator.identity());
+	}
+	
+	public static boolean equalsIgnoreWhitespace(Document a, Document b, UnaryOperator<Stream<XMLEvent>> operations) throws XMLStreamException {
 		XMLInputFactory xif = XMLInputFactory.newInstance();
 		XMLEventFactory xef = XMLEventFactory.newInstance();
 		
-		return equals(xif, xef, a, b,
-			Optional.of(event ->			
-				event.isCharacters() 
-					? xef.createCharacters(event.asCharacters().getData().trim())
-					: event),
-				
-			Optional.of(event -> 
-				!event.isCharacters() 
-					|| !event.asCharacters().getData().isEmpty()));
+		return equals(xif, xef, a, b, stream ->
+			operations.apply(
+				stream
+					.map(event ->			
+						event.isCharacters() 
+							? xef.createCharacters(event.asCharacters().getData().trim())
+							: event)
+					.filter(event -> 
+						!event.isCharacters() 
+							|| !event.asCharacters().getData().isEmpty())));
 	}
 	
 	public static boolean equals(Document a, Document b) throws XMLStreamException {
 		XMLInputFactory xif = XMLInputFactory.newInstance();
 		XMLEventFactory xef = XMLEventFactory.newInstance();
 		
-		return equals(xif, xef, a, b, Optional.empty(), Optional.empty());
+		return equals(xif, xef, a, b, UnaryOperator.identity());
 	}
 	
-	private static <T> List<T> mapFilter(List<T> input, Optional<Function<? super T, ? extends T>> mapper, Optional<Predicate<? super T>> filter) {
-		return input.stream()
-			.map(mapper.orElse(Function.identity()))
-			.filter(filter.orElse(item -> true))			
-			.collect(Collectors.toList());
+	private static <T, U> List<U> applyOperations(List<T> input, Function<Stream<T>, Stream<U>> operations) {
+		return operations.apply(input.stream()).collect(Collectors.toList());
 	}
 	
 	private static boolean equals(List<XMLEvent> a, List<XMLEvent> b) {
@@ -215,15 +217,14 @@ public class XMLUtils {
 	}
 	
 	private static boolean equals(XMLInputFactory xif, XMLEventFactory xef, Document a, Document b, 
-			Optional<Function<? super XMLEvent, ? extends XMLEvent>> mapper, 
-			Optional<Predicate<? super XMLEvent>> filter) throws XMLStreamException {
+			UnaryOperator<Stream<XMLEvent>> operations) throws XMLStreamException {
 		
 		List<XMLEvent> listA = toEventList(xif, xef, a);
 		List<XMLEvent> listB = toEventList(xif, xef, b);
 		
 		return equals(
-			mapFilter(listA, mapper, filter),
-			mapFilter(listB, mapper, filter));
+			applyOperations(listA, operations),
+			applyOperations(listB, operations));
 	}
 	
 	public static List<XMLEvent> toEventList(Document document) throws XMLStreamException {
