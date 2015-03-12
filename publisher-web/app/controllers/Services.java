@@ -84,8 +84,6 @@ public class Services extends Controller {
 					Logger.debug ("CREATE Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					// validation start
-					if (form.field("name").value().length() <= 1 )
-						form.reject(new ValidationError ("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1")));
 					if(form.field("id").value().equals(ID)){
 						for (Service service : services.values()) {
 							if (form.field("name").value().equals(service.name())){
@@ -183,8 +181,6 @@ public class Services extends Controller {
 					Logger.debug ("UPDATE Service: " + form.field("name").value() + " ID: " + serviceIdentification);
 					Logger.debug ("Form: "+ form);
 					// validation start
-					if (form.field("name").value().length() <= 1 )
-						form.reject(new ValidationError ("name", Domain.message("web.application.page.services.form.field.name.validation.error", "1")));
 					if (form.hasErrors ()) {
 						return renderEditForm (form, groupLayer);
 					}
