@@ -1099,7 +1099,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	@Test
 	public void testPreventCycle() throws Throwable {
 		LoggingAdapter log = nl.idgis.publisher.utils.Logging.getLogger();
-		FutureUtils f = new FutureUtils(system.dispatcher());
+		FutureUtils f = new FutureUtils(system);
 		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);		
 		
 		try {

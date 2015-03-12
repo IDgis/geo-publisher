@@ -91,7 +91,7 @@ public class ServiceApp extends UntypedActor {
 		databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, f, log);
 		
 		db.query().from(version)

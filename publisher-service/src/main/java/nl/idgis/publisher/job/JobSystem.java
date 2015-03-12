@@ -93,7 +93,7 @@ public class JobSystem extends UntypedActor {
 		createJobsIntervals.keySet().stream()
 			.forEach(msg -> getSelf().tell(msg, getSelf()));
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

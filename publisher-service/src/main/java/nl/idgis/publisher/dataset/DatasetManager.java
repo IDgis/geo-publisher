@@ -26,8 +26,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
-import scala.concurrent.ExecutionContext;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.projections.QColumn;
@@ -75,9 +73,8 @@ public class DatasetManager extends UntypedActor {
 		log.debug("start");
 		
 		Timeout timeout = Timeout.apply(15000);
-		ExecutionContext executionContext = getContext().dispatcher();
 
-		f = new FutureUtils(executionContext, timeout);
+		f = new FutureUtils(getContext(), timeout);
 		db = new AsyncDatabaseHelper(database, f, log);		
 	}
 

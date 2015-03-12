@@ -12,6 +12,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
 import akka.dispatch.OnComplete;
 import akka.pattern.Patterns;
@@ -45,37 +46,37 @@ import scala.concurrent.Future;
  */
 public class FutureUtils {
 	
-	private final ExecutionContext executionContext;
+	private final ActorRefFactory actorRefFactory;
 	
 	private final Timeout timeout;
 	
 	/**
 	 * Construct a new FutureUtils object with a default ask timeout of 15 seconds.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 */
-	public FutureUtils(ExecutionContext executionContext) {
-		this(executionContext, 15000);
+	public FutureUtils(ActorRefFactory actorRefFactory) {
+		this(actorRefFactory, 15000);
 	}
 	
 	/**
 	 * Construct a new FutureUtils object.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 * @param timeout the ask timeout in milliseconds
 	 */
-	public FutureUtils(ExecutionContext executionContext, long timeout) {
-		this(executionContext, Timeout.longToTimeout(timeout));
+	public FutureUtils(ActorRefFactory actorRefFactory, long timeout) {
+		this(actorRefFactory, Timeout.longToTimeout(timeout));
 	}
 	
 	/**
 	 * Construct a new FutureUtils object.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 * @param timeout the ask timeout
 	 */
-	public FutureUtils(ExecutionContext executionContext, Timeout timeout) {
-		this.executionContext = executionContext;
+	public FutureUtils(ActorRefFactory actorRefFactory, Timeout timeout) {
+		this.actorRefFactory = actorRefFactory;
 		this.timeout = timeout;
 	}
 	
@@ -520,7 +521,7 @@ public class FutureUtils {
 				}
 			}
 			
-		}, executionContext);
+		}, actorRefFactory.dispatcher());
 		
 		return completableFuture;
 	}

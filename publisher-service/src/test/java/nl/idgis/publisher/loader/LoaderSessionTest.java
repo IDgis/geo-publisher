@@ -94,7 +94,7 @@ public class LoaderSessionTest {
 
 		loaderSession = actorSystem.actorOf(LoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));
 		
-		f = new FutureUtils(actorSystem.dispatcher());
+		f = new FutureUtils(actorSystem);
 	}
 	
 	@Test

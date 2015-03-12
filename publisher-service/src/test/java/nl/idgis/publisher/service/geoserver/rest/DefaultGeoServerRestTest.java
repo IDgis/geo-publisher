@@ -70,7 +70,7 @@ public class DefaultGeoServerRestTest {
 		connection.close();
 		
 		ActorSystem actorSystem = ActorSystem.create();
-		f = new FutureUtils(actorSystem.dispatcher(), Timeout.apply(30, TimeUnit.SECONDS));
+		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	

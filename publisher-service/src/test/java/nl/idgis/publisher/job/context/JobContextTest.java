@@ -53,7 +53,7 @@ public class JobContextTest {
 				.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
 		
 		actorSystem = ActorSystem.create("test", akkaConfig);
-		f = new FutureUtils(actorSystem.dispatcher());
+		f = new FutureUtils(actorSystem);
 		
 		jobManager = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
 		

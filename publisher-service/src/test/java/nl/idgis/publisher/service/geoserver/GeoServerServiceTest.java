@@ -231,7 +231,7 @@ public class GeoServerServiceTest {
 		
 		actorSystem = ActorSystem.create("test", akkaConfig);
 		
-		f = new FutureUtils(actorSystem.dispatcher(), Timeout.apply(30, TimeUnit.SECONDS));
+		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
