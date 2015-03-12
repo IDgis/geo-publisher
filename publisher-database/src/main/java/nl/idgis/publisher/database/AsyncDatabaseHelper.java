@@ -1,5 +1,6 @@
 package nl.idgis.publisher.database;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -54,7 +55,19 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper implements Transact
 		throw new IllegalStateException("not a transaction");
 	}
 	
-	public AsyncHelper bind(AsyncTransactionRef transactionRef) {
+	private AsyncHelper bind(AsyncTransactionRef transactionRef) {
 		return new AsyncTransactionHelper(transactionRef.getActorRef(), f, log);
+	}
+	
+	public <T> CompletableFuture<T> transactional(Optional<AsyncTransactionRef> transactionRef, Function<AsyncHelper, CompletableFuture<T>> func) {
+		if(transactionRef.isPresent()) {
+			return func.apply(bind(transactionRef.get()));
+		} else {
+			return transactional(tx -> func.apply(tx));
+		}
+	}
+	
+	public <T extends AsyncTransactional, U> CompletableFuture<U> transactional(T msg, Function<AsyncHelper, CompletableFuture<U>> func) {
+		return transactional(msg.getTransactionRef(), func);
 	}
 }

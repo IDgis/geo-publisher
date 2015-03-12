@@ -4,10 +4,11 @@ import java.io.Serializable;
 import java.util.Optional;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
+import nl.idgis.publisher.database.AsyncTransactional;
 
-public class GetService implements Serializable {
+public class GetService implements Serializable, AsyncTransactional {	
 	
-	private static final long serialVersionUID = 4824877824266904173L;
+	private static final long serialVersionUID = 7541065168553854852L;
 
 	private final AsyncTransactionRef transactionRef;
 	
@@ -22,6 +23,7 @@ public class GetService implements Serializable {
 		this.serviceId = serviceId;
 	}
 	
+	@Override
 	public Optional<AsyncTransactionRef> getTransactionRef() {
 		return Optional.ofNullable(transactionRef);
 	}
