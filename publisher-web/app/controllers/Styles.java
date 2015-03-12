@@ -75,9 +75,6 @@ public class Styles extends Controller {
 					Logger.debug ("submit Style: " + form.field("name").value());
 					
 					// validation start
-					if (form.field("name").value().length() == 1 ) {
-						form.reject("name", Domain.message("web.application.page.styles.form.field.name.validation.error", "1"));
-					}
 					if (form.field("id").value().equals(ID)){
 						for (Style style : styles.values()) {
 							if (form.field("name").value().equals(style.name())){
@@ -304,8 +301,9 @@ public class Styles extends Controller {
 	public static class StyleForm {
 		@Constraints.Required
 		private String id;
-		@Constraints.Required
-		@Constraints.MinLength (value=1)
+		@Constraints.Required (message = "test")
+		@Constraints.MinLength (value = 3, message = "web.application.page.styles.form.field.name.validation.length")
+		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.styles.form.field.name.validation.error")
 		private String name;
 		@Constraints.Required
 		private String definition;
