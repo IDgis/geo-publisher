@@ -1,8 +1,8 @@
 package nl.idgis.publisher.job.manager.messages;
 
-public class GetServiceJobs extends CreateJob {
-
-	private static final long serialVersionUID = 4138715330405225453L;
+public class GetServiceJobs extends GetJobs {
+	
+	private static final long serialVersionUID = -776342184449762171L;
 
 	@Override
 	public String toString() {
