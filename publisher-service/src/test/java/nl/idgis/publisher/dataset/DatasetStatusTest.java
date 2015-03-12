@@ -34,29 +34,29 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		insertDataSource();
 	
 		testDataset = createVectorDataset();
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset));
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset)).get();
 		
 		testTable = testDataset.getTable();
-		sync.ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), ""));
+		f.ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), "")).get();
 	}	
 
 	@Test
 	public void testImported() throws Exception {
 		// initially a dataset is not imported		
 		assertFalse(
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
+				DatasetStatusInfo.class).get()
 			
 			.isImported());		
 		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));
+		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		
 		// import job created, still not imported
 		assertFalse(
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class)
+				DatasetStatusInfo.class).get()
 			
 			.isImported());
 		
@@ -64,28 +64,28 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// import job executed -> imported
 		assertTrue(
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"),
-				DatasetStatusInfo.class)
+				DatasetStatusInfo.class).get()
 				
 			.isImported());
 		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));
+		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		
 		// a new import job created, but dataset is still imported
 		assertTrue(
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"),
-				DatasetStatusInfo.class)
+				DatasetStatusInfo.class).get()
 				
 			.isImported());
 		
 		executeJobs(new GetImportJobs());
 		
 		assertTrue(
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"),
-				DatasetStatusInfo.class)
+				DatasetStatusInfo.class).get()
 				
 			.isImported());
 	}
@@ -95,21 +95,21 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		// not yet imported, changes are calculated between currently configured 
 		// dataset and last imported configuration		
 		DatasetStatusInfo status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertFalse(status.isColumnsChanged());
 		assertFalse(status.isSourceDatasetChanged());
 		assertFalse(status.isFilterConditionChanged());
 		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));		
+		f.ask(jobManager, new CreateImportJob("testDataset")).get();		
 		
 		// import job created, still not imported
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertFalse(status.isColumnsChanged());
 		assertFalse(status.isSourceDatasetChanged());
@@ -119,9 +119,9 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// import job executed -> imported, but still not changes
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertFalse(status.isColumnsChanged());
 		assertFalse(status.isSourceDatasetChanged());
@@ -129,62 +129,62 @@ public class DatasetStatusTest extends AbstractServiceTest {
 			
 		// remove second column
 		List<Column> newColumns = Arrays.asList(testTable.getColumns().get(0));
-		sync.ask(database, new UpdateDataset(
+		f.ask(database, new UpdateDataset(
 			"testDataset",
 			"My Test Dataset",
 			"testSourceDataset",
-			newColumns, ""));
+			newColumns, "")).get();
 		
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertTrue(status.isColumnsChanged());
 		assertFalse(status.isSourceDatasetChanged());
 		assertFalse(status.isFilterConditionChanged());
 
 		// change source dataset 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset")));
-		sync.ask(database, new UpdateDataset(
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset"))).get();
+		f.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
-				newColumns, ""));
+				newColumns, "")).get();
 		
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertTrue(status.isColumnsChanged());
 		assertTrue(status.isSourceDatasetChanged());
 		assertFalse(status.isFilterConditionChanged());
 		
 		// change filter condition 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset")));
-		sync.ask(database, new UpdateDataset(
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset"))).get();
+		f.ask(database, new UpdateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
-				newColumns, "fakeFilterCondition"));
+				newColumns, "fakeFilterCondition")).get();
 		
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertTrue(status.isColumnsChanged());
 		assertTrue(status.isSourceDatasetChanged());
 		assertTrue(status.isFilterConditionChanged());
 		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));		
+		f.ask(jobManager, new CreateImportJob("testDataset")).get();		
 		
 		// import job created, no changes yet
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertTrue(status.isColumnsChanged());
 		assertTrue(status.isSourceDatasetChanged());
@@ -194,9 +194,9 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// dataset updated
 		status = 
-			sync.ask(database, 
+			f.ask(database, 
 				new GetDatasetStatus("testDataset"), 
-				DatasetStatusInfo.class);
+				DatasetStatusInfo.class).get();
 		
 		assertFalse(status.isColumnsChanged());
 		assertFalse(status.isSourceDatasetChanged());

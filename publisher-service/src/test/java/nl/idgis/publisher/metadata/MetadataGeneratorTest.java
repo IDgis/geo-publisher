@@ -31,12 +31,12 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		
 		insertDataset(datasetId);
 		
-		sync.ask(jobManager, new CreateImportJob(datasetId), Ack.class);
+		f.ask(jobManager, new CreateImportJob(datasetId), Ack.class).get();
 		executeJobs(new GetImportJobs());
 		
-		sync.ask(jobManager, new CreateEnsureServiceJob(datasetId), Ack.class);
+		f.ask(jobManager, new CreateEnsureServiceJob(datasetId), Ack.class).get();
 		executeJobs(new GetServiceJobs());
 		
-		sync.ask(metadataGenerator, new GenerateMetadata(), Ack.class);
+		f.ask(metadataGenerator, new GenerateMetadata(), Ack.class).get();
 	}
 }

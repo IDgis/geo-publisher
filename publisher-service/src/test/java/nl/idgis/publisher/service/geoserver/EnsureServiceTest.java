@@ -46,7 +46,7 @@ import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -184,7 +184,7 @@ public class EnsureServiceTest {
 	
 	ActorRef recorder, geoServerService;
 	
-	SyncAskHelper sync;
+	FutureUtils f;
 	
 	@Before
 	public void setUp() {
@@ -197,7 +197,7 @@ public class EnsureServiceTest {
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");		
 		geoServerService = actorSystem.actorOf(GeoServerServiceMock.props(recorder), "service-mock");
 		
-		sync = new SyncAskHelper(actorSystem);
+		f = new FutureUtils(actorSystem);
 	}
 
 	@Test
@@ -208,10 +208,10 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.emptyList());
 		
-		sync.ask(geoServerService, new Ensure(service, new End()), Ack.class);		
+		f.ask(geoServerService, new Ensure(service, new End()), Ack.class).get();		
 		
-		sync.ask(recorder, new Wait(3), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)			
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()			
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("serviceName0", workspace.getWorkspaceId());
 			})			
@@ -248,14 +248,14 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
 		
-		sync.ask(geoServerService, new Ensure(
+		f.ask(geoServerService, new Ensure(
 			service, 
 			new Style("style0", TestStyle.getGreenSld()),
 			new Style("style1", TestStyle.getGreenSld()),
-			new End()), Ack.class);
+			new End()), Ack.class).get();
 		
-		sync.ask(recorder, new Wait(6), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(recorder, new Wait(6), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(EnsureStyle.class, style -> {
 				assertEquals("style0", style.getName());
 			})
@@ -323,10 +323,10 @@ public class EnsureServiceTest {
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayerRef));
 		
-		sync.ask(geoServerService, new Ensure(service, new End()), Ack.class);
-		sync.ask(recorder, new Wait(5 + numberOfLayers), Waited.class);
+		f.ask(geoServerService, new Ensure(service, new End()), Ack.class).get();
+		f.ask(recorder, new Wait(5 + numberOfLayers), Waited.class).get();
 		
-		Recording recording = sync.ask(recorder, new GetRecording(), Recording.class)
+		Recording recording = f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(EnsureWorkspace.class, workspace -> {
 				assertEquals("serviceName0", workspace.getWorkspaceId());
 			})

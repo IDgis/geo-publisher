@@ -40,7 +40,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testRegisterNewUnavailableDataset() throws Exception {
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createUnavailableDataset()), Registered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createUnavailableDataset()), Registered.class).get();
 		
 		assertTrue(query().from(sourceDatasetVersion).exists());
 		assertTrue(query().from(sourceDatasetVersionLog).exists());
@@ -50,7 +50,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	public void testRegisterUpdateUnavailableDataset() throws Exception {
 		UnavailableDataset dataset = createUnavailableDataset();
 		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
 		
 		assertTrue(query().from(sourceDatasetVersion).exists());
 		
@@ -62,7 +62,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.getRevisionDate(), 
 			logs);
 		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 		
 		logs = new HashSet<>();
 		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog("my_table")));
@@ -73,12 +73,12 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.getRevisionDate(), 
 			logs);
 		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class).get();
 	}
 
 	@Test
 	public void testRegisterNewVectorDataset() throws Exception { 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset()), Registered.class);		
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset()), Registered.class).get();		
 		
 		assertTrue(
 			query().from(category)
@@ -101,18 +101,18 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	public void testRegisterUpdateVectorDataset() throws Exception {
 		// fill database with other source datasets
 		for(int i = 0; i < 100; i++) {
-			sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("otherSourceDataset" + i)), Registered.class);
+			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("otherSourceDataset" + i)), Registered.class).get();
 		}
 		
 		VectorDataset dataset = createVectorDataset();		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);		
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();		
 		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		VectorDataset updatedDataset = createVectorDataset();
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class);		
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class).get();		
 		
 		assertEquals(2,
 				query().from(sourceDatasetVersion)
@@ -150,9 +150,9 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				dataset.getRevisionDate(), 
 				dataset.getLogs());
 		
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
 		
 		// verifies that the dataset manager is able to retrieve datasets without a categoryId 
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class);
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 	}
 }

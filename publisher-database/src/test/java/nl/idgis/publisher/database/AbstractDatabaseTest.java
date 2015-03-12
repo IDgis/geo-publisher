@@ -30,8 +30,8 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
-import nl.idgis.publisher.utils.SyncAskHelper;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -61,8 +61,8 @@ public abstract class AbstractDatabaseTest {
 	
 	protected ActorRef database;
 	
-	protected SyncAskHelper sync;
-	
+	protected FutureUtils f;
+		
 	@Before
 	public void database() throws Exception {
 		File dbDir;
@@ -108,9 +108,9 @@ public abstract class AbstractDatabaseTest {
 			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
 		
 		system = ActorSystem.create("test", akkaConfig);
-		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
+		f = new FutureUtils(system);
 		
-		sync = new SyncAskHelper(system);
+		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 	}
 	
 	protected ActorRef actorOf(Props props, String name) {

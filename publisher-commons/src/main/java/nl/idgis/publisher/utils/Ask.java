@@ -22,31 +22,11 @@ public final class Ask extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Promise<Response> promise;
+	private final Promise<AskResponse<Object>> promise;
 	
 	private final Timeout timeout;
-		
-	public static class Response {
-		
-		private final ActorRef sender;
-		
-		private final Object message;
-		
-		public Response(ActorRef sender, Object message) {
-			this.sender = sender;
-			this.message = message;
-		}
-		
-		public ActorRef getSender() {
-			return sender;
-		}
-		
-		public Object getMessage() {
-			return message;
-		}
-	}
 	
-	public Ask(Promise<Response> promise, Timeout timeout) {
+	public Ask(Promise<AskResponse<Object>> promise, Timeout timeout) {
 		this.promise = promise;
 		this.timeout = timeout;
 	}
@@ -59,38 +39,38 @@ public final class Ask extends UntypedActor {
 		return ask(refFactory, actorRef, message, new Timeout(timeoutMillis, TimeUnit.MILLISECONDS));
 	}
 	
-	public static Future<Response> askResponse(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, Timeout timeout) {
-		Promise<Response> promise = Futures.promise();
+	public static Future<AskResponse<Object>> askWithSender(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, Timeout timeout) {
+		Promise<AskResponse<Object>> promise = Futures.promise();
 		
 		actorSelection.tell(message, refFactory.actorOf(Props.create(Ask.class, promise, timeout)));
 		
 		return promise.future();
 	}
 	
-	public static Future<Response> askResponse(ActorRefFactory refFactory, ActorRef actorRef, Object message, Timeout timeout) {
-		Promise<Response> promise = Futures.promise();
+	public static Future<AskResponse<Object>> askWithSender(ActorRefFactory refFactory, ActorRef actorRef, Object message, Timeout timeout) {
+		Promise<AskResponse<Object>> promise = Futures.promise();
 		
 		actorRef.tell(message, refFactory.actorOf(Props.create(Ask.class, promise, timeout)));
 		
 		return promise.future();
 	}
 	
-	private static Future<Object> getMessage(ActorRefFactory refFactory, Future<Response> response) {
-		return response.map(new Mapper<Response, Object>() {
+	private static Future<Object> getMessage(ActorRefFactory refFactory, Future<AskResponse<Object>> response) {
+		return response.map(new Mapper<AskResponse<Object>, Object>() {
 			
 			@Override
-			public Object apply(Response response) {
+			public Object apply(AskResponse<Object> response) {
 				return response.getMessage();
 			}
 		}, refFactory.dispatcher());
 	}
 	
 	public static Future<Object> ask(ActorRefFactory refFactory, ActorSelection actorSelection, Object message, Timeout timeout)  {
-		return getMessage(refFactory, askResponse(refFactory, actorSelection, message, timeout));
+		return getMessage(refFactory, askWithSender(refFactory, actorSelection, message, timeout));
 	}
 	
 	public static Future<Object> ask(ActorRefFactory refFactory, ActorRef actorRef, Object message, Timeout timeout)  {
-		return getMessage(refFactory, askResponse(refFactory, actorRef, message, timeout));
+		return getMessage(refFactory, askWithSender(refFactory, actorRef, message, timeout));
 	}
 	
 	@Override
@@ -107,7 +87,7 @@ public final class Ask extends UntypedActor {
 		} else {
 			log.debug("answer received");
 			
-			promise.success(new Response(getSender(), msg));
+			promise.success(new AskResponse<>(msg, getSender()));
 		}
 		
 		getContext().stop(self());

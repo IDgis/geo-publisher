@@ -525,4 +525,30 @@ public class FutureUtils {
 		
 		return completableFuture;
 	}
+	
+	/**
+	 * Converts a {@link CompletableFuture} with an {@link AskResponse} to another {@link CompletableFuture} 
+	 * with another {@link AskResponse} by performing a type cast. In case the cast fails the resulting future 
+	 * completes with {@link WrongResultException}.
+	 * 
+	 * @param future the future to cast
+	 * @param targetClass the class to cast to
+	 * @return the {@link CompletableFuture} for the casted result
+	 */
+	public <U, T extends U> CompletableFuture<AskResponse<T>> castWithSender(CompletableFuture<AskResponse<U>> future, Class<T> targetClass) {
+		return future.thenCompose(u -> {
+			U msg = u.getMessage();
+			return targetClass.isInstance(msg) 
+				? successful(new AskResponse<>(targetClass.cast(msg), u.getSender())) 
+				: failed(new WrongResultException(msg, targetClass));
+		});
+	}
+	
+	public <T> CompletableFuture<AskResponse<Object>> askWithSender(ActorRef actor, Object message) {
+		return toCompletableFuture(Ask.askWithSender(actorRefFactory, actor, message, timeout));
+	}
+	
+	public <T> CompletableFuture<AskResponse<T>> askWithSender(ActorRef actor, Object message, Class<T> targetClass) {
+		return castWithSender(askWithSender(actor, message), targetClass);
+	}
 }

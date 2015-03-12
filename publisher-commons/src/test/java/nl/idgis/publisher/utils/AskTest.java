@@ -8,8 +8,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import nl.idgis.publisher.utils.Ask.Response;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,7 +65,7 @@ public class AskTest {
 	
 	@Test
 	public void testAskResponse() throws Exception {
-		Response response = Await.result(Ask.askResponse(actorSystem, incrementer, 3, timeout), duration);
+		AskResponse<Object> response = Await.result(Ask.askWithSender(actorSystem, incrementer, 3, timeout), duration);
 		assertEquals(incrementer, response.getSender());
 		assertEquals(4, (int)response.getMessage());
 	}
