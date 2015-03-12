@@ -58,7 +58,7 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						return ok (form.render (serviceForm, create, groups, layers, groupLayer, serviceForm.get().keywords));
+						return ok (form.render (serviceForm, create, groups, layers, groupLayer, new ArrayList<String>()));
 					}
 				});
 	}
@@ -332,10 +332,11 @@ public class Services extends Controller {
 
 		@Constraints.Required
 		private String id;
-//		@Constraints.Required
-//		@Constraints.MinLength (3)
-//		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
+		@Constraints.Required (message = "test")
+		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
+		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.services.form.field.name.validation.error")
 		private String name;
+
 		private String title;
 		private String alternateTitle;
 		private String abstractText;
