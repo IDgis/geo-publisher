@@ -29,17 +29,17 @@ public class CreatorTest extends AbstractServiceTest {
 	public void testHarvestJob() throws Exception {
 		insertDataSource();
 		
-		assertFalse(sync.ask(jobManager, new GetHarvestJobs(), TypedList.class).iterator().hasNext());
-		sync.ask(creator, new CreateHarvestJobs(), Ack.class);
-		assertTrue(sync.ask(jobManager, new GetHarvestJobs(), TypedList.class).iterator().hasNext());
+		assertFalse(f.ask(jobManager, new GetHarvestJobs(), TypedList.class).get().iterator().hasNext());
+		f.ask(creator, new CreateHarvestJobs(), Ack.class).get();
+		assertTrue(f.ask(jobManager, new GetHarvestJobs(), TypedList.class).get().iterator().hasNext());
 	}
 	
 	@Test
 	public void testImportJob() throws Exception {
 		insertDataset();
 				
-		assertFalse(sync.ask(jobManager, new GetImportJobs(), TypedList.class).iterator().hasNext());
-		sync.ask(creator, new CreateImportJobs(), Ack.class);		
-		assertTrue(sync.ask(jobManager, new GetImportJobs(), TypedList.class).iterator().hasNext());
+		assertFalse(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
+		f.ask(creator, new CreateImportJobs(), Ack.class).get();		
+		assertTrue(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
 	}
 }

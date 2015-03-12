@@ -97,7 +97,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		log.debug("creating database pool");
 		connectionPool = new BoneCP(boneCpConfig);
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 		
 		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), f), log);
 	}

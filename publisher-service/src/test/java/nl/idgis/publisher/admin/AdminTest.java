@@ -41,7 +41,7 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class AdminTest {
 	
@@ -145,7 +145,7 @@ public class AdminTest {
 	
 	ActorRef recorder, parent;
 	
-	SyncAskHelper sync;
+	FutureUtils f;
 	
 	@Before
 	public void actorSystem() throws Exception {
@@ -158,24 +158,24 @@ public class AdminTest {
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
 		parent = actorSystem.actorOf(Parent.props(null, recorder), "parent");
 		
-		sync = new SyncAskHelper(actorSystem);
+		f = new FutureUtils(actorSystem);
 	}
 	
 	@Test
 	public void testGet() throws Exception {
-		sync.ask(parent, new GetEntity<>(Category.class, "testCategory"), Category.class);
+		f.ask(parent, new GetEntity<>(Category.class, "testCategory"), Category.class).get();
 	}
 	
 	@Test
 	public void testList() throws Exception {
-		sync.ask(parent, new ListEntity<>(Category.class, 0), Page.class);
+		f.ask(parent, new ListEntity<>(Category.class, 0), Page.class).get();
 	}
 	
 	@Test
 	public void testPut() throws Exception {
-		sync.ask(parent, new PutEntity<>(new Category("id", "name")), Response.class);
-		sync.ask(recorder, new Wait(1), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(parent, new PutEntity<>(new Category("id", "name")), Response.class).get();
+		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(Category.class, category -> {
 				assertEquals("id", category.id());
 				assertEquals("name", category.name());
@@ -185,9 +185,9 @@ public class AdminTest {
 	
 	@Test
 	public void testDeleteOk() throws Exception {		
-		sync.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class);
-		sync.ask(recorder, new Wait(2), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class).get();
+		f.ask(recorder, new Wait(2), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(String.class, categoryId -> {
 				assertEquals("categoryId", categoryId);
 			})
@@ -196,24 +196,24 @@ public class AdminTest {
 				assertEquals("category-name", category.name());
 			})
 			.assertNotHasNext();
-		sync.ask(recorder, new Clear(), Cleared.class);		
+		f.ask(recorder, new Clear(), Cleared.class).get();		
 		
-		sync.ask(parent, new DeleteEntity<>(DataSource.class, "dataSourceId"), Response.class);
-		sync.ask(recorder, new Wait(1), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(parent, new DeleteEntity<>(DataSource.class, "dataSourceId"), Response.class).get();
+		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(String.class, categoryId -> {
 				assertEquals("delete", categoryId);
 			})
 			.assertNotHasNext();
-		sync.ask(recorder, new Clear(), Cleared.class);
+		f.ask(recorder, new Clear(), Cleared.class).get();
 	}
 	
 	@Test
 	public void testDeleteNok() throws Exception {
-		sync.ask(parent, new DeleteEntity<>(Dataset.class, "datasetId"), Response.class);
-		sync.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class);
-		sync.ask(recorder, new Wait(3), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(parent, new DeleteEntity<>(Dataset.class, "datasetId"), Response.class).get();
+		f.ask(parent, new DeleteEntity<>(Category.class, "categoryId"), Response.class).get();
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(String.class, datasetId -> {
 				assertEquals("datasetId", datasetId);
 			})
@@ -225,14 +225,14 @@ public class AdminTest {
 				assertEquals("category-name", category.name());
 			})
 			.assertNotHasNext();
-		sync.ask(recorder, new Clear(), Cleared.class);
+		f.ask(recorder, new Clear(), Cleared.class).get();
 	}
 	
 	@Test
 	public void testQuery() throws Exception {
-		sync.ask(parent, new RefreshDataset("datasetId"));
-		sync.ask(recorder, new Wait(1), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(parent, new RefreshDataset("datasetId")).get();
+		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(RefreshDataset.class, refreshDataset -> {
 				assertEquals("datasetId", refreshDataset.getDatasetId());
 			})
@@ -241,21 +241,21 @@ public class AdminTest {
 	
 	@Test
 	public void testOptionalQuery() throws Exception {
-		sync.ask(parent, new GetGroupStructure("groupId"), NotFound.class);
+		f.ask(parent, new GetGroupStructure("groupId"), NotFound.class).get();
 	}
 	
 	@Test
 	public void testCompletedExceptionally() throws Exception {
-		sync.ask(parent, new GetEntity<>(DataSource.class, "dataSourceId"), Failure.class);
+		f.ask(parent, new GetEntity<>(DataSource.class, "dataSourceId"), Failure.class).get();
 	}
 	
 	@Test
 	public void testException() throws Exception {
-		sync.ask(parent, new GetEntity<>(Dataset.class, "datasetId"), Failure.class);
+		f.ask(parent, new GetEntity<>(Dataset.class, "datasetId"), Failure.class).get();
 	}
 	
 	@Test
 	public void testCompletedWithNull() throws Exception {
-		sync.ask(parent, new GetEntity<>(SourceDataset.class, "sourceDataset"), Failure.class);
+		f.ask(parent, new GetEntity<>(SourceDataset.class, "sourceDataset"), Failure.class).get();
 	}
 }

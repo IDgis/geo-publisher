@@ -60,10 +60,10 @@ public class JobManagerTest extends AbstractServiceTest {
 		insertDataset();
 		
 		assertFalse(query().from(removeJob).exists());		
-		sync.ask(jobManager, new CreateRemoveJob("testDataset"), Ack.class);
+		f.ask(jobManager, new CreateRemoveJob("testDataset"), Ack.class).get();
 		assertTrue(query().from(removeJob).exists());
 		
-		TypedList<?> list = sync.ask(jobManager, new GetRemoveJobs(), TypedList.class);
+		TypedList<?> list = f.ask(jobManager, new GetRemoveJobs(), TypedList.class).get();
 		assertTrue(list.contains(RemoveJobInfo.class));
 		
 		Iterator<RemoveJobInfo> itr = list.cast(RemoveJobInfo.class).iterator();
@@ -77,14 +77,14 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		insertDataSource();	
 		
-		Object result = sync.ask(jobManager, new CreateHarvestJob("testDataSource"));
+		Object result = f.ask(jobManager, new CreateHarvestJob("testDataSource")).get();
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
 		assertNotNull(t);
 		assertEquals("HARVEST", t.get(job.type));
 		
-		TypedIterable<?> jobs = sync.ask(jobManager, new GetHarvestJobs(), TypedIterable.class);		
+		TypedIterable<?> jobs = f.ask(jobManager, new GetHarvestJobs(), TypedIterable.class).get();		
 		assertTrue(jobs.contains(HarvestJobInfo.class));
 		
 		Iterator<HarvestJobInfo> jobsItr = jobs.cast(HarvestJobInfo.class).iterator();
@@ -152,7 +152,7 @@ public class JobManagerTest extends AbstractServiceTest {
 				.execute();
 		}
 		
-		Object result = sync.ask(database, new GetDatasetStatus());
+		Object result = f.ask(database, new GetDatasetStatus()).get();
 		assertTrue(result instanceof TypedIterable);
 		
 		TypedIterable<?> typedIterable = (TypedIterable<?>)result;
@@ -169,7 +169,7 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		assertFalse(i.hasNext());
 		
-		result = sync.ask(jobManager, new CreateImportJob("testDataset"));
+		result = f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		assertTrue(result instanceof Ack);
 		
 		Tuple t = query().from(job).singleResult(job.all());
@@ -187,7 +187,7 @@ public class JobManagerTest extends AbstractServiceTest {
 		assertEquals("test0", t.get(importJobColumn.name));
 		assertEquals("GEOMETRY", t.get(importJobColumn.dataType));
 		
-		TypedIterable<?> importJobsInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);
+		TypedIterable<?> importJobsInfos = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();
 		assertTrue(importJobsInfos.contains(ImportJobInfo.class));
 		
 		Iterator<ImportJobInfo> importJobsItr = importJobsInfos.cast(ImportJobInfo.class).iterator();
@@ -202,7 +202,7 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		assertColumns(importJobInfo.getColumns());
 		
-		result = sync.ask(database, new GetDatasetStatus());
+		result = f.ask(database, new GetDatasetStatus()).get();
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>)result;
@@ -217,10 +217,10 @@ public class JobManagerTest extends AbstractServiceTest {
 		assertFalse(datasetStatus.isSourceDatasetColumnsChanged());
 		assertFalse(i.hasNext());
 		
-		result = sync.ask(jobManager, new UpdateState(importJobInfo, JobState.SUCCEEDED));
+		result = f.ask(jobManager, new UpdateState(importJobInfo, JobState.SUCCEEDED)).get();
 		assertTrue(result instanceof Ack);
 		
-		result = sync.ask(database, new GetDatasetStatus());
+		result = f.ask(database, new GetDatasetStatus()).get();
 		assertTrue(result instanceof TypedIterable);
 		
 		typedIterable = (TypedIterable<?>) result;
@@ -250,10 +250,10 @@ public class JobManagerTest extends AbstractServiceTest {
 	@Test
 	public void testVacuumServiceJob() throws Exception {
 		assertFalse(query().from(serviceJob).where(serviceJob.type.eq("VACUUM")).exists());
-		sync.ask(jobManager, new CreateVacuumServiceJob(), Ack.class);
+		f.ask(jobManager, new CreateVacuumServiceJob(), Ack.class).get();
 		assertTrue(query().from(serviceJob).where(serviceJob.type.eq("VACUUM")).exists());
 		
-		TypedList<?> serviceJobs = sync.ask(jobManager, new GetServiceJobs(), TypedList.class);
+		TypedList<?> serviceJobs = f.ask(jobManager, new GetServiceJobs(), TypedList.class).get();
 		assertTrue(serviceJobs.contains(ServiceJobInfo.class));
 		
 		Iterator<ServiceJobInfo> itr = serviceJobs.cast(ServiceJobInfo.class).iterator();

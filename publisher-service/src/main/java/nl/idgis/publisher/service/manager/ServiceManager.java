@@ -5,7 +5,6 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
@@ -15,7 +14,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-import nl.idgis.publisher.database.AsyncTransactionRef;
 
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
@@ -68,7 +66,7 @@ public class ServiceManager extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, f, log);
 	}
 
@@ -106,13 +104,14 @@ public class ServiceManager extends UntypedActor {
 
 	private void handleGetStyles(GetStyles msg) {
 		ActorRef self = getSelf(), sender = getSender();
-		new GetStylesQuery(log, f, db, msg.getServiceId()).result().whenComplete((result, t) -> {
-			if(t == null) {
-				self.tell(new CreateStyleCursor(result), sender);
-			} else {
-				sender.tell(new Failure(t), self);
-			}
-		});
+		db.transactional(msg, tx -> 
+			new GetStylesQuery(log, f, tx, msg.getServiceId()).result()).whenComplete((result, t) -> {
+				if(t == null) {
+					self.tell(new CreateStyleCursor(result), sender);
+				} else {
+					sender.tell(new Failure(t), self);
+				}
+			});
 	}
 
 	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {
@@ -146,20 +145,10 @@ public class ServiceManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Object> handleGetGroupLayer(GetGroupLayer msg) {
-		Optional<AsyncTransactionRef> transactionRef = msg.getTransactionRef();
-		if(transactionRef.isPresent()) {
-			return new GetGroupLayerQuery(log, f, db.bind(transactionRef.get()), msg.getGroupLayerId()).result();
-		} else {
-			return db.transactional(tx -> new GetGroupLayerQuery(log, f, tx, msg.getGroupLayerId()).result());
-		}
+		return db.transactional(msg, tx -> new GetGroupLayerQuery(log, f, tx, msg.getGroupLayerId()).result());		
 	}
 
 	private CompletableFuture<Object> handleGetService(GetService msg) {
-		Optional<AsyncTransactionRef> transactionRef = msg.getTransactionRef();
-		if(transactionRef.isPresent()) {
-			return new GetServiceQuery(log, f, db.bind(transactionRef.get()), msg.getServiceId()).result();
-		} else {
-			return db.transactional(tx -> new GetServiceQuery(log, f, tx, msg.getServiceId()).result());
-		}
-	}	
+		return db.transactional(msg, tx -> new GetServiceQuery(log, f, tx, msg.getServiceId()).result());
+	}
 }

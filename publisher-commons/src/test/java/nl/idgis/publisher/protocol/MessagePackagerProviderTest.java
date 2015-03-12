@@ -5,7 +5,7 @@ import nl.idgis.publisher.protocol.messages.Envelope;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Message;
 import nl.idgis.publisher.protocol.messages.StopPackager;
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import org.junit.Before;
 import org.junit.After;
@@ -142,7 +142,7 @@ public class MessagePackagerProviderTest {
 
 	ActorRef messagePackagerProvider, messageTarget, watcher;
 	
-	SyncAskHelper sync;
+	FutureUtils f;
 
 	@Before
 	public void actorSystem() {
@@ -153,7 +153,7 @@ public class MessagePackagerProviderTest {
 		messageTarget = system.actorOf(Props.create(MessageTarget.class), "message-target");
 		messagePackagerProvider = system.actorOf(MessagePackagerProvider.props(messageTarget, "/path"), "message-packager-provider");
 		
-		sync = new SyncAskHelper(system);
+		f = new FutureUtils(system);
 	}
 	
 	@After
@@ -163,27 +163,27 @@ public class MessagePackagerProviderTest {
 	
 	@Test
 	public void testGetMessagePackager() throws Exception {
-		sync.ask(messagePackagerProvider, new GetMessagePackager("test"), ActorRef.class);		
+		f.ask(messagePackagerProvider, new GetMessagePackager("test"), ActorRef.class).get();		
 	}
 	
 	@Test
 	public void testStopPackager() throws Exception {
-		ActorRef packager = sync.ask(messagePackagerProvider, new GetMessagePackager("test", false), ActorRef.class);
-		sync.ask(watcher, new Watch(packager), Ack.class);
-		sync.ask(messagePackagerProvider, new StopPackager("test"), Ack.class);
+		ActorRef packager = f.ask(messagePackagerProvider, new GetMessagePackager("test", false), ActorRef.class).get();
+		f.ask(watcher, new Watch(packager), Ack.class).get();
+		f.ask(messagePackagerProvider, new StopPackager("test"), Ack.class).get();
 		assertEquals(
 				packager,
-				sync.ask(watcher, new GetTerminated(), TerminatedReceived.class).actor());
+				f.ask(watcher, new GetTerminated(), TerminatedReceived.class).get().actor());
 	}
 	
 	@Test
 	public void testPersistentStopPackager() throws Exception {
-		ActorRef packager = sync.ask(messagePackagerProvider, new GetMessagePackager("test", true), ActorRef.class);		
-		sync.ask(messagePackagerProvider, new StopPackager("test"), Ack.class);		
+		ActorRef packager = f.ask(messagePackagerProvider, new GetMessagePackager("test", true), ActorRef.class).get();		
+		f.ask(messagePackagerProvider, new StopPackager("test"), Ack.class).get();
 		
 		packager.tell("Hello world!", ActorRef.noSender());
 		
-		Message message = sync.ask(messageTarget, new GetMessage(), Message.class);		
+		Message message = f.ask(messageTarget, new GetMessage(), Message.class).get();		
 		assertEquals("test", message.getTargetName());
 		
 		assertTrue(message instanceof Envelope);

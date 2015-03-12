@@ -31,7 +31,7 @@ public class Admin extends UntypedActor {
 		app = getContext().actorSelection("/user/app");
 		monitor = getContext().actorSelection("/user/monitor");
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

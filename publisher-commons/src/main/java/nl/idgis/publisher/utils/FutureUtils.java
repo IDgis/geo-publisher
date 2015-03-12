@@ -12,6 +12,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
 import akka.dispatch.OnComplete;
 import akka.pattern.Patterns;
@@ -45,37 +46,37 @@ import scala.concurrent.Future;
  */
 public class FutureUtils {
 	
-	private final ExecutionContext executionContext;
+	private final ActorRefFactory actorRefFactory;
 	
 	private final Timeout timeout;
 	
 	/**
 	 * Construct a new FutureUtils object with a default ask timeout of 15 seconds.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 */
-	public FutureUtils(ExecutionContext executionContext) {
-		this(executionContext, 15000);
+	public FutureUtils(ActorRefFactory actorRefFactory) {
+		this(actorRefFactory, 15000);
 	}
 	
 	/**
 	 * Construct a new FutureUtils object.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 * @param timeout the ask timeout in milliseconds
 	 */
-	public FutureUtils(ExecutionContext executionContext, long timeout) {
-		this(executionContext, Timeout.longToTimeout(timeout));
+	public FutureUtils(ActorRefFactory actorRefFactory, long timeout) {
+		this(actorRefFactory, Timeout.longToTimeout(timeout));
 	}
 	
 	/**
 	 * Construct a new FutureUtils object.
 	 * 
-	 * @param executionContext the {@link ExecutionContext} to schedule event handlers on
+	 * @param actorRefFactory the {@link ActorRefFactory} to use
 	 * @param timeout the ask timeout
 	 */
-	public FutureUtils(ExecutionContext executionContext, Timeout timeout) {
-		this.executionContext = executionContext;
+	public FutureUtils(ActorRefFactory actorRefFactory, Timeout timeout) {
+		this.actorRefFactory = actorRefFactory;
 		this.timeout = timeout;
 	}
 	
@@ -520,8 +521,34 @@ public class FutureUtils {
 				}
 			}
 			
-		}, executionContext);
+		}, actorRefFactory.dispatcher());
 		
 		return completableFuture;
+	}
+	
+	/**
+	 * Converts a {@link CompletableFuture} with an {@link AskResponse} to another {@link CompletableFuture} 
+	 * with another {@link AskResponse} by performing a type cast. In case the cast fails the resulting future 
+	 * completes with {@link WrongResultException}.
+	 * 
+	 * @param future the future to cast
+	 * @param targetClass the class to cast to
+	 * @return the {@link CompletableFuture} for the casted result
+	 */
+	public <U, T extends U> CompletableFuture<AskResponse<T>> castWithSender(CompletableFuture<AskResponse<U>> future, Class<T> targetClass) {
+		return future.thenCompose(u -> {
+			U msg = u.getMessage();
+			return targetClass.isInstance(msg) 
+				? successful(new AskResponse<>(targetClass.cast(msg), u.getSender())) 
+				: failed(new WrongResultException(msg, targetClass));
+		});
+	}
+	
+	public <T> CompletableFuture<AskResponse<Object>> askWithSender(ActorRef actor, Object message) {
+		return toCompletableFuture(Ask.askWithSender(actorRefFactory, actor, message, timeout));
+	}
+	
+	public <T> CompletableFuture<AskResponse<T>> askWithSender(ActorRef actor, Object message, Class<T> targetClass) {
+		return castWithSender(askWithSender(actor, message), targetClass);
 	}
 }

@@ -307,7 +307,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(serviceKeyword.keyword, "keyword3")
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);		
+		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();		
 		assertEquals("rootgroup", service.getRootId());
 		assertEquals("rootgroup-name", service.getName());
 		assertEquals("serviceTitle0", service.getTitle());
@@ -366,22 +366,22 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");
 		serviceManager.tell(new GetStyles("rootgroup"), recorder);
 		
-		sync.ask(recorder, new Wait(3), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(Style.class)
 			.assertNext(Style.class)
 			.assertNext(End.class)
 			.assertNotHasNext();
 		
-		sync.ask(recorder, new Clear(), Cleared.class);		
+		f.ask(recorder, new Clear(), Cleared.class).get();		
 		serviceManager.tell(new GetStyles("nonExistingService"), recorder);
 		
-		sync.ask(recorder, new Wait(1), Waited.class);
-		sync.ask(recorder, new GetRecording(), Recording.class)
+		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(End.class)
 			.assertNotHasNext();
 		
-		TypedIterable<?> services = sync.ask(serviceManager, new GetServicesWithStyle("style0"), TypedIterable.class);
+		TypedIterable<?> services = f.ask(serviceManager, new GetServicesWithStyle("style0"), TypedIterable.class).get();
 		assertTrue(services.contains(String.class));
 		
 		Iterator<String> servicesItr = services.cast(String.class).iterator();
@@ -466,7 +466,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId) 
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
+		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
 		
 		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
@@ -529,7 +529,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(rootItr.hasNext());
 		
-		groupLayer = sync.ask(serviceManager, new GetGroupLayer("group"), GroupLayer.class);
+		groupLayer = f.ask(serviceManager, new GetGroupLayer("group"), GroupLayer.class).get();
 		assertEquals("group", groupLayer.getId());
 		assertEquals("group-name", groupLayer.getName());
 		
@@ -580,13 +580,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(rootItr.hasNext());
 		
-		TypedIterable<?> services = sync.ask(serviceManager, new GetServicesWithLayer("rootgroup"), TypedIterable.class);
+		TypedIterable<?> services = f.ask(serviceManager, new GetServicesWithLayer("rootgroup"), TypedIterable.class).get();
 		assertTrue(services.contains(String.class));
 		
 		Iterator<String> servicesItr = services.cast(String.class).iterator();
 		assertFalse(servicesItr.hasNext());
 		
-		services = sync.ask(serviceManager, new GetServicesWithLayer("group"), TypedIterable.class);
+		services = f.ask(serviceManager, new GetServicesWithLayer("group"), TypedIterable.class).get();
 		assertTrue(services.contains(String.class));
 		
 		servicesItr = services.cast(String.class).iterator();
@@ -644,7 +644,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId) 
 			.execute();
 		
-		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
+		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
 		
 		List<LayerRef<?>> rootLayers = service.getLayers();
 		assertNotNull(rootLayers);
@@ -694,7 +694,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(rootItr.hasNext());
 		
-		GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer("group0"), GroupLayer.class);
+		GroupLayer groupLayer = f.ask(serviceManager, new GetGroupLayer("group0"), GroupLayer.class).get();
 		assertEquals("group0", groupLayer.getId());
 		
 		group0Layers = groupLayer.getLayers();
@@ -733,7 +733,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testNotFound() throws Exception {
-		sync.ask(serviceManager, new GetService("service0"), NotFound.class);
+		f.ask(serviceManager, new GetService("service0"), NotFound.class).get();
 	}
 	
 	@Test
@@ -789,7 +789,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, root1Id) 
 			.execute();
 		
-		Service service0 = sync.ask(serviceManager, new GetService("rootgroup0"), Service.class);
+		Service service0 = f.ask(serviceManager, new GetService("rootgroup0"), Service.class).get();
 		
 		List<LayerRef<?>> service0Layers = service0.getLayers();
 		assertNotNull(service0Layers);
@@ -808,7 +808,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(service0Itr.hasNext());
 		
-		Service service1 = sync.ask(serviceManager, new GetService("rootgroup1"), Service.class);
+		Service service1 = f.ask(serviceManager, new GetService("rootgroup1"), Service.class).get();
 		
 		List<LayerRef<?>> service1Layers = service1.getLayers();
 		assertNotNull(service1Layers);
@@ -884,7 +884,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId) 
 			.execute();
 
-		Service service = sync.ask(serviceManager, new GetService("rootgroup"), Service.class);
+		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
 		assertEquals("rootgroup", service.getRootId());
 		
 		List<LayerRef<?>> layers = service.getLayers();		
@@ -907,7 +907,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testServiceIndex() throws Exception {
-		ServiceIndex serviceIndex = sync.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class);
+		ServiceIndex serviceIndex = f.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class).get();
 		
 		List<String> serviceNames = serviceIndex.getServiceNames();
 		assertNotNull(serviceNames);
@@ -944,7 +944,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId)
 			.execute();
 		
-		serviceIndex = sync.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class);
+		serviceIndex = f.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class).get();
 		
 		serviceNames = serviceIndex.getServiceNames();
 		assertNotNull(serviceNames);
@@ -1010,7 +1010,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				"4da7fd70-c2b2-4513-9917-e3ed417cce87",
 				"c9d91350-73fc-4cf4-91e6-d3c5b51276f4")) {
 			
-			GroupLayer groupLayer = sync.ask(serviceManager, new GetGroupLayer(identification), GroupLayer.class);
+			GroupLayer groupLayer = f.ask(serviceManager, new GetGroupLayer(identification), GroupLayer.class).get();
 			assertValidGroupLayer(identification, groupLayer);
 		}
 	}
@@ -1077,7 +1077,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.values(0, 0)
 			.execute();
 			
-		Failure failure = sync.ask(serviceManager, new GetService("service"), Failure.class);
+		Failure failure = f.ask(serviceManager, new GetService("service"), Failure.class).get();
 		Throwable cause = failure.getCause();
 		assertNotNull(cause);
 		
@@ -1086,7 +1086,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(message.contains("cycle"));
 		assertTrue(message.contains("group1"));
 		
-		failure = sync.ask(serviceManager, new GetGroupLayer("service"), Failure.class);
+		failure = f.ask(serviceManager, new GetGroupLayer("service"), Failure.class).get();
 		cause = failure.getCause();
 		assertNotNull(cause);
 		
@@ -1099,7 +1099,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	@Test
 	public void testPreventCycle() throws Throwable {
 		LoggingAdapter log = nl.idgis.publisher.utils.Logging.getLogger();
-		FutureUtils f = new FutureUtils(system.dispatcher());
+		FutureUtils f = new FutureUtils(system);
 		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);		
 		
 		try {

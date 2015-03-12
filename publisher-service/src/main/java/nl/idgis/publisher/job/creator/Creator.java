@@ -46,7 +46,7 @@ public class Creator extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, f, log);
 	}
 

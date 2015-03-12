@@ -39,7 +39,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	public final void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

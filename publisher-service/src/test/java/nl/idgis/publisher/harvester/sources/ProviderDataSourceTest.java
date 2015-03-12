@@ -58,7 +58,8 @@ import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.AskResponse;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class ProviderDataSourceTest {
 	
@@ -68,7 +69,7 @@ public class ProviderDataSourceTest {
 	
 	ActorRef recorder, provider, providerDataSource;
 	
-	SyncAskHelper sync;
+	FutureUtils f;
 	
 	@BeforeClass
 	public static void initStatics() throws Exception {
@@ -98,7 +99,7 @@ public class ProviderDataSourceTest {
 		provider = actorSystem.actorOf(ProviderMock.props(recorder), "providerMock");		
 		providerDataSource = actorSystem.actorOf(ProviderDataSource.props(provider), "providerDataSource");
 		
-		sync = new SyncAskHelper(actorSystem);
+		f = new FutureUtils(actorSystem);
 	}
 	
 	@After
@@ -108,11 +109,12 @@ public class ProviderDataSourceTest {
 	
 	@Test
 	public void testListDatasets() throws Exception {
-		sync.ask(providerDataSource, new ListDatasets(), End.class);		
+		f.ask(providerDataSource, new ListDatasets(), End.class).get();		
 		
-		sync.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class);
+		f.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class).get();
 		
-		VectorDataset dataset = sync.ask(providerDataSource, new ListDatasets(), VectorDataset.class);
+		AskResponse<VectorDataset> datasetWithSender = f.askWithSender(providerDataSource, new ListDatasets(), VectorDataset.class).get();
+		VectorDataset dataset = datasetWithSender.getMessage(); 
 		
 		Table table = dataset.getTable();
 		assertNotNull(table);
@@ -133,13 +135,13 @@ public class ProviderDataSourceTest {
 		
 		assertFalse(columnsItr.hasNext());
 		
-		sync.askSender(new NextItem(), End.class);
+		f.ask(datasetWithSender.getSender(), new NextItem(), End.class).get();
 	}
 	
 	@Test
 	public void testGetDatasetMetadata() throws Exception {
-		sync.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class);		
-		sync.ask(providerDataSource, new GetDatasetMetadata("vectorDataset"), MetadataDocument.class);		
+		f.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class).get();		
+		f.ask(providerDataSource, new GetDatasetMetadata("vectorDataset"), MetadataDocument.class).get();		
 	}
 	
 	public static class DatasetReceiver extends UntypedActor {
@@ -192,7 +194,7 @@ public class ProviderDataSourceTest {
 			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
 		}
 		
-		sync.ask(provider, new PutDataset(vectorDatasetInfo, records), Ack.class);
+		f.ask(provider, new PutDataset(vectorDatasetInfo, records), Ack.class).get();
 		
 		ActorRef sessionInitiator = actorSystem.actorOf(Collector.props(), "session-initiator");		
 		
@@ -200,10 +202,10 @@ public class ProviderDataSourceTest {
 		ActorRef recordsCollector = actorSystem.actorOf(Collector.props(), "records-collector");		
 		providerDataSource.tell(new GetDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(recordsCollector, startImportCollector)), sessionInitiator);
 		
-		StartImport startImport = sync.ask(startImportCollector, new GetMessage(), StartImport.class);
+		StartImport startImport = f.ask(startImportCollector, new GetMessage(), StartImport.class).get();
 		assertEquals(startImport.getInitiator(), sessionInitiator);
 		
-		List<?> returnedRecords = sync.ask(recordsCollector, new GetMessage(), List.class);
+		List<?> returnedRecords = f.ask(recordsCollector, new GetMessage(), List.class).get();
 		assertEquals(42, returnedRecords.size());
 	}
 }

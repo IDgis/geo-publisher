@@ -69,7 +69,7 @@ public class Harvester extends UntypedActor {
 		
 		sessions = HashBiMap.create();
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

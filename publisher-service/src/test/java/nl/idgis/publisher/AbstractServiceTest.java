@@ -23,6 +23,7 @@ import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.service.manager.ServiceManager;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public abstract class AbstractServiceTest extends AbstractDatabaseTest {
@@ -49,10 +50,10 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	}
 	
 	protected void executeJobs(JobManagerRequest request) throws Exception {
-		TypedIterable<?> iterable = sync.ask(jobManager, request, TypedIterable.class);
+		TypedIterable<?> iterable = f.ask(jobManager, request, TypedIterable.class).get();
 		assertTrue(iterable.contains(JobInfo.class));
 		for(JobInfo job : iterable.cast(JobInfo.class)) {
-			sync.ask(jobManager, new UpdateState(job, JobState.SUCCEEDED));
+			f.ask(jobManager, new UpdateState(job, JobState.SUCCEEDED)).get();
 		}
 	}
 	
@@ -64,14 +65,14 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		insertDataSource();
 		
 		VectorDataset testDataset = createVectorDataset();
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset));
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset)).get();
 		
 		Table testTable = testDataset.getTable();
-		sync.ask(database, new CreateDataset(
+		f.ask(database, new CreateDataset(
 				datasetId, 
 				"My Test Dataset", 
 				testDataset.getId(), 
 				testTable.getColumns(), 
-				"{ \"expression\": null }"));
+				"{ \"expression\": null }")).get();
 	}
 }

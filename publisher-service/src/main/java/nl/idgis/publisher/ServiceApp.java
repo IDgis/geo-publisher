@@ -91,7 +91,7 @@ public class ServiceApp extends UntypedActor {
 		databaseConfig = config.getConfig("database");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, f, log);
 		
 		db.query().from(version)
@@ -175,7 +175,7 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		final ActorRef service = getContext().actorOf(GeoServerService.props(serviceManager, geoserverConfig, databaseConfig), "service");
+		final ActorRef service = getContext().actorOf(GeoServerService.props(database, serviceManager, geoserverConfig, databaseConfig), "service");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
 		

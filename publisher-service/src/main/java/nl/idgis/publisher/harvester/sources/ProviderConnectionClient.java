@@ -36,7 +36,7 @@ public class ProviderConnectionClient extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 	
 	@Override

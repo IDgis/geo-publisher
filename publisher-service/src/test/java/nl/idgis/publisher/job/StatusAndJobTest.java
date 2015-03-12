@@ -45,7 +45,7 @@ public class StatusAndJobTest extends AbstractServiceTest {
 			.set(dataSource.name, "My Test DataSource")
 			.execute();
 		
-		Object result = sync.ask(database, new GetDataSourceStatus());
+		Object result = f.ask(database, new GetDataSourceStatus()).get();
 		assertEquals(TypedList.class, result.getClass());
 		
 		TypedList<?> typedList = (TypedList<?>)result;
@@ -64,12 +64,12 @@ public class StatusAndJobTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = sync.ask(jobManager, new CreateHarvestJob("testDataSource"));
+		result = f.ask(jobManager, new CreateHarvestJob("testDataSource")).get();
 		assertEquals(Ack.class, result.getClass());
 		
 		executeJobs(new GetHarvestJobs());
 		
-		result = sync.ask(database, new GetDataSourceStatus());
+		result = f.ask(database, new GetDataSourceStatus()).get();
 		assertEquals(TypedList.class, result.getClass());
 		
 		typedList = (TypedList<?>)result;
@@ -93,19 +93,19 @@ public class StatusAndJobTest extends AbstractServiceTest {
 			.execute();
 		
 		VectorDataset dataset = createVectorDataset();
-		Object result = sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset));
+		Object result = f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset)).get();
 		assertEquals(Registered.class, result.getClass());
 		
 		Table table = dataset.getTable();
 		List<Column> columns = Arrays.asList(table.getColumns().get(0));
-		result = sync.ask(database, new CreateDataset(
+		result = f.ask(database, new CreateDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				dataset.getId(),
 				columns,
-				"{ \"expression\": null }"));
+				"{ \"expression\": null }")).get();
 		
-		result = sync.ask(database, new GetDatasetStatus());
+		result = f.ask(database, new GetDatasetStatus()).get();
 		assertEquals(TypedList.class, result.getClass());
 		
 		TypedList<?> typedList = (TypedList<?>)result;
@@ -122,7 +122,7 @@ public class StatusAndJobTest extends AbstractServiceTest {
 		
 		assertFalse(itr.hasNext());
 		
-		result = sync.ask(database, new GetDatasetStatus("testDataset"));
+		result = f.ask(database, new GetDatasetStatus("testDataset")).get();
 		assertEquals(DatasetStatusInfo.class, result.getClass());
 		
 		status = (DatasetStatusInfo)result;
@@ -130,13 +130,13 @@ public class StatusAndJobTest extends AbstractServiceTest {
 		assertNotNull(status);
 		
 		for(int i = 0; i < 10; i++) {
-			result = sync.ask(jobManager, new CreateImportJob("testDataset"));
+			result = f.ask(jobManager, new CreateImportJob("testDataset")).get();
 			assertEquals(Ack.class, result.getClass());
 		
 			executeJobs(new GetImportJobs());
 		}
 		
-		result = sync.ask(database, new GetDatasetStatus());
+		result = f.ask(database, new GetDatasetStatus()).get();
 		assertEquals(TypedList.class, result.getClass());
 		
 		typedList = (TypedList<?>)result;

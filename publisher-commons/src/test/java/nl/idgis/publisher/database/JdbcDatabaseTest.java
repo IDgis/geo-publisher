@@ -177,7 +177,7 @@ public class JdbcDatabaseTest {
 		
 		database = actorSystem.actorOf(TestDatabase.props(config, "test", POOL_SIZE));
 		
-		f = new FutureUtils(actorSystem.dispatcher());
+		f = new FutureUtils(actorSystem);
 	}
 	
 	@After

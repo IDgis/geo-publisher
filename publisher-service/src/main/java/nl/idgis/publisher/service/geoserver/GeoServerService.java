@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -19,10 +20,16 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
+
+import scala.concurrent.duration.Duration;
+
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -60,6 +67,7 @@ import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
+import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
@@ -73,7 +81,7 @@ public class GeoServerService extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef serviceManager;
+	private final ActorRef database, serviceManager;
 	
 	private final String serviceLocation, user, password;
 	
@@ -82,8 +90,11 @@ public class GeoServerService extends UntypedActor {
 	private GeoServerRest rest;
 	
 	private FutureUtils f;
+	
+	private AsyncDatabaseHelper db;
 
-	public GeoServerService(ActorRef serviceManager, String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
+	public GeoServerService(ActorRef database, ActorRef serviceManager, String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
+		this.database = database;
 		this.serviceManager = serviceManager;
 		this.serviceLocation = serviceLocation;
 		this.user = user;
@@ -91,7 +102,7 @@ public class GeoServerService extends UntypedActor {
 		this.connectionParameters = Collections.unmodifiableMap(connectionParameters);
 	}
 	
-	public static Props props(ActorRef serviceManager, Config geoserverConfig, Config databaseConfig) {
+	public static Props props(ActorRef database, ActorRef serviceManager, Config geoserverConfig, Config databaseConfig) {
 		String serviceLocation = geoserverConfig.getString("url");
 		String user = geoserverConfig.getString("user");
 		String password = geoserverConfig.getString("password");		
@@ -114,12 +125,13 @@ public class GeoServerService extends UntypedActor {
 		connectionParameters.put("passwd", databaseConfig.getString("password"));
 		connectionParameters.put("schema", geoserverConfig.getString("schema"));
 		
-		return Props.create(GeoServerService.class, serviceManager, serviceLocation, user, password, connectionParameters);
+		return Props.create(GeoServerService.class, database, serviceManager, serviceLocation, user, password, connectionParameters);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
+		db = new AsyncDatabaseHelper(database, f, log);
 		rest = new DefaultGeoServerRest(f, log, serviceLocation, user, password);		
 	}
 	
@@ -131,6 +143,8 @@ public class GeoServerService extends UntypedActor {
 			handleVacuumServiceJob((VacuumServiceJobInfo)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
+		} else if(msg instanceof Terminated) {
+			log.debug("child actor terminated: {}", ((Terminated)msg).getActor());
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
@@ -192,13 +206,20 @@ public class GeoServerService extends UntypedActor {
 						});
 				} else if(msg instanceof Vacuumed) {
 					log.debug("vacuum completed");
-					
-					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
-					
-					getContext().become(receive());
+					vacuumed(JobState.SUCCEEDED);
+				} else if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while vacuuming");
+					vacuumed(JobState.FAILED);
 				} else {
 					elseProvisioning(msg, serviceJob, initiator);
 				}
+			}
+
+			private void vacuumed(JobState result) {
+				initiator.tell(new UpdateJobState(result), getSelf());
+				
+				getContext().setReceiveTimeout(Duration.Inf());
+				getContext().become(receive());
 			}
 			
 		};
@@ -209,6 +230,7 @@ public class GeoServerService extends UntypedActor {
 		
 		serviceManager.tell(new GetServiceIndex(), getSelf());
 		
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 		getContext().become(vacuuming(getSender(), serviceJob));
 	}
 
@@ -222,13 +244,21 @@ public class GeoServerService extends UntypedActor {
 		} else if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
 			
-			// TODO: add logging
-			initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
-			getContext().become(receive());
+			ensureFailure(initiator);
+		} else if(msg instanceof Terminated) {
+			log.error("child actor terminated prematurely: {}", ((Terminated)msg).getActor());
+			
+			ensureFailure(initiator);
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
 		}
+	}
+
+	private void ensureFailure(ActorRef initiator) {
+		// TODO: add logging
+		initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+		getContext().become(receive());
 	}
 	
 	private void toSelf(Object msg) {
@@ -819,9 +849,16 @@ public class GeoServerService extends UntypedActor {
 				EnsureService.props(), 
 				nameGenerator.getName(EnsureService.class));
 		
+		getContext().watch(ensureService);
+		
 		String serviceId = serviceJob.getServiceId();
-		serviceManager.tell(new GetService(serviceId), ensureService);
-		serviceManager.tell(new GetStyles(serviceId), ensureService);
+		
+		db.<List<AskResponse<Object>>>transactional(tx ->			
+			f.askWithSender(serviceManager, new GetService(tx.getTransactionRef(), serviceId)).thenCompose(service ->
+			f.askWithSender(serviceManager, new GetStyles(tx.getTransactionRef(), serviceId)).thenApply(styles -> 
+				Arrays.asList(service, styles)))).thenAccept(results ->
+					results.stream().forEach(result ->
+						ensureService.tell(result.getMessage(), result.getSender())));
 		
 		getContext().become(ensuring(getSender(), serviceJob, ensureService));
 	}

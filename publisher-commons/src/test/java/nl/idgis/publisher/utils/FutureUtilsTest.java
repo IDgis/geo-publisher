@@ -34,7 +34,7 @@ public class FutureUtilsTest {
 	public void setUp() {
 		
 		ActorSystem system = ActorSystem.create();
-		f = new FutureUtils(system.dispatcher());
+		f = new FutureUtils(system);
 		
 		testPromise = Futures.promise();
 	}

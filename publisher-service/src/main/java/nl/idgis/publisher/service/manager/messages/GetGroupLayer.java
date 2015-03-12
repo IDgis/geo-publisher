@@ -4,10 +4,11 @@ import java.io.Serializable;
 import java.util.Optional;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
+import nl.idgis.publisher.database.AsyncTransactional;
 
-public class GetGroupLayer implements Serializable {
+public class GetGroupLayer implements Serializable, AsyncTransactional {
 	
-	private static final long serialVersionUID = 1741129277383747405L;
+	private static final long serialVersionUID = -8813198397459281097L;
 
 	private final AsyncTransactionRef transactionRef;
 	
@@ -22,6 +23,7 @@ public class GetGroupLayer implements Serializable {
 		this.groupLayerId = groupLayerId;
 	}
 	
+	@Override
 	public Optional<AsyncTransactionRef> getTransactionRef() {
 		return Optional.ofNullable(transactionRef);
 	}

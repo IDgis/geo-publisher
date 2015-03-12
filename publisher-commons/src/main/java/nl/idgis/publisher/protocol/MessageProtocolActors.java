@@ -54,7 +54,7 @@ public abstract class MessageProtocolActors extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

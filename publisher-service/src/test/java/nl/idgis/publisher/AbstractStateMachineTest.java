@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -74,7 +74,7 @@ public class AbstractStateMachineTest {
 	
 	ActorRef dummy, echo;
 	
-	SyncAskHelper sync;
+	FutureUtils f;
 	
 	@Before
 	public void actorSystem() {
@@ -82,7 +82,7 @@ public class AbstractStateMachineTest {
 		
 		dummy = system.actorOf(Props.create(DummyActor.class));
 		
-		sync = new SyncAskHelper(system, Timeout.apply(2, TimeUnit.SECONDS));
+		f = new FutureUtils(system, Timeout.apply(2, TimeUnit.SECONDS));
 	}
 	
 	@After
@@ -93,6 +93,6 @@ public class AbstractStateMachineTest {
 	@Test
 	public void testTimeout() throws Exception {
 		ActorRef test = system.actorOf(Props.create(TestActor.class, dummy));
-		assertEquals("asking dummy", sync.ask(test, "test"));
+		assertEquals("asking dummy", f.ask(test, "test").get());
 	}
 }

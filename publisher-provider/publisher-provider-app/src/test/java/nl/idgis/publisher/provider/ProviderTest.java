@@ -56,7 +56,8 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.utils.SyncAskHelper;
+import nl.idgis.publisher.utils.AskResponse;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -74,7 +75,7 @@ public class ProviderTest {
 	
 	private ActorSelection metadata, database;
 	
-	private SyncAskHelper sync;
+	private FutureUtils f;
 	
 	private MetadataDocument metadataDocument;
 	
@@ -106,7 +107,7 @@ public class ProviderTest {
 		metadata = ActorSelection.apply(provider, "metadata");
 		database = ActorSelection.apply(provider, "database");
 		
-		sync = new SyncAskHelper(actorSystem);
+		f = new FutureUtils(actorSystem);
 	}
 	
 	@Before
@@ -198,13 +199,13 @@ public class ProviderTest {
 	}
 	
 	private DatabaseRecording replayRecording(int expectedMessageCount) throws Exception {
-		sync.ask(recorder, new Wait(expectedMessageCount), Waited.class);
+		f.ask(recorder, new Wait(expectedMessageCount), Waited.class).get();
 		
-		return new DatabaseRecording(sync.ask(recorder, new GetRecording(), Recording.class));
+		return new DatabaseRecording(f.ask(recorder, new GetRecording(), Recording.class).get());
 	}
 	
 	private void clearRecording() throws Exception {
-		sync.ask(recorder, new Clear(), Cleared.class);
+		f.ask(recorder, new Clear(), Cleared.class).get();
 	}
 	
 	private String getTable() throws Exception {
@@ -213,37 +214,41 @@ public class ProviderTest {
 
 	@Test
 	public void testListDatasetInfo() throws Exception {
-		sync.ask(provider, new ListDatasetInfo(metadataType), End.class);
+		f.ask(provider, new ListDatasetInfo(metadataType), End.class).get();
 		
 		replayRecording(1)
 			.assertNext(GetAllMetadata.class)			
 			.assertNotHasNext();
 		
 		final String firstTableName = getTable();
-		sync.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class);
+		f.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class);
+		AskResponse<UnavailableDatasetInfo> unavailableDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class).get();
+		
+		UnavailableDatasetInfo unavailableDatasetInfo = unavailableDatasetInfoWithSender.getMessage(); 
 		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
-		sync.askSender(new NextItem(), End.class);
+		f.ask(unavailableDatasetInfoWithSender.getSender(), new NextItem(), End.class);
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)				
 			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
 		
-		sync.ask(database, new PutTable(firstTableName, tableInfo, tableContent), Ack.class);
+		f.ask(database, new PutTable(firstTableName, tableInfo, tableContent), Ack.class).get();
 		
 		clearRecording();
 		
-		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
+		AskResponse<VectorDatasetInfo> vectorDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class).get();
+		
+		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoWithSender.getMessage();
 		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
-		sync.askSender(new NextItem(), End.class);		
+		f.ask(vectorDatasetInfoWithSender.getSender(), new NextItem(), End.class);		
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)			
@@ -255,17 +260,20 @@ public class ProviderTest {
 		
 		assertEquals("test_schema.test_table", secondTableName);
 		
-		sync.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class);
+		f.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
-		DatasetInfo datasetInfo = sync.ask(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class);
+		AskResponse<? extends DatasetInfo> datasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class).get();
+		
+		DatasetInfo datasetInfo = datasetInfoWithSender.getMessage();
 		assertEquals("first", datasetInfo.getIdentification());
 		
-		datasetInfo = sync.askSender(new NextItem(), UnavailableDatasetInfo.class);
+		datasetInfoWithSender = f.askWithSender(datasetInfoWithSender.getSender(), new NextItem(), UnavailableDatasetInfo.class).get();
+		datasetInfo = datasetInfoWithSender.getMessage();
 		assertEquals("second", datasetInfo.getIdentification());
 		
-		sync.askSender(new NextItem(), End.class);
+		f.ask(datasetInfoWithSender.getSender(), new NextItem(), End.class);
 		
 		replayRecording(5)
 			.assertNext(GetAllMetadata.class)
@@ -275,7 +283,7 @@ public class ProviderTest {
 	
 	@Test
 	public void testGetDatasetInfo() throws Exception {
-		DatasetNotFound notFound = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class);
+		DatasetNotFound notFound = f.ask(provider, new GetDatasetInfo(metadataType, "test"), DatasetNotFound.class).get();
 		assertEquals("test", notFound.getIdentification());		
 		
 		replayRecording(1)
@@ -284,11 +292,11 @@ public class ProviderTest {
 			})			
 			.assertNotHasNext();
 		
-		sync.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		f.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class);
+		UnavailableDatasetInfo unavailableDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class).get();
 		assertEquals("test", unavailableDatasetInfo.getIdentification());		
 		
 		replayRecording(3)
@@ -298,9 +306,9 @@ public class ProviderTest {
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
 		
-		sync.ask(database, new PutTable(getTable(), tableInfo, tableContent), Ack.class);
+		f.ask(database, new PutTable(getTable(), tableInfo, tableContent), Ack.class).get();
 		
-		VectorDatasetInfo vectorDatasetInfo = sync.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class);
+		VectorDatasetInfo vectorDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class).get();
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
@@ -309,30 +317,32 @@ public class ProviderTest {
 	@Test
 	public void testGetVectorDataset() throws Exception {
 		GetVectorDataset getVectorDataset = new GetVectorDataset("test", Arrays.asList("id", "title"), 10);
-		DatasetNotFound notFound = sync.ask(provider, getVectorDataset, DatasetNotFound.class);
+		DatasetNotFound notFound = f.ask(provider, getVectorDataset, DatasetNotFound.class).get();
 		assertEquals("test", notFound.getIdentification());
 		
-		sync.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class);
+		f.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
 		
-		DatasetNotAvailable notAvailable = sync.ask(provider, getVectorDataset, DatasetNotAvailable.class);
+		DatasetNotAvailable notAvailable = f.ask(provider, getVectorDataset, DatasetNotAvailable.class).get();
 		assertEquals("test", notAvailable.getIdentification());
 		
 		final String tableName = getTable();		
-		sync.ask(database, new PutTable(tableName, tableInfo, tableContent), Ack.class);
+		f.ask(database, new PutTable(tableName, tableInfo, tableContent), Ack.class).get();
 		
-		Records resultRecords = sync.ask(provider, getVectorDataset, Records.class);
+		AskResponse<Records> resultRecordsWithSender = f.askWithSender(provider, getVectorDataset, Records.class).get();
+		Records resultRecords = resultRecordsWithSender.getMessage();
 		for(int i = 0; i < 4; i++) {			
 			assertEquals(10, resultRecords.getRecords().size());
-			resultRecords = sync.askSender(new NextItem(), Records.class);
+			resultRecordsWithSender = f.askWithSender(resultRecordsWithSender.getSender(), new NextItem(), Records.class).get();
+			resultRecords = resultRecordsWithSender.getMessage();
 		}
 		
 		assertEquals(2, resultRecords.getRecords().size());
-		sync.askSender(new NextItem(), End.class);
+		f.ask(resultRecordsWithSender.getSender(), new NextItem(), End.class);
 	}
 	
 	@Test
 	public void testEchoRequest() throws Exception {
-		assertEquals("Hello, world!", sync.ask(provider, new EchoRequest("Hello, world!"), EchoResponse.class).getPayload());
+		assertEquals("Hello, world!", f.ask(provider, new EchoRequest("Hello, world!"), EchoResponse.class).get().getPayload());
 	}
 	
 }

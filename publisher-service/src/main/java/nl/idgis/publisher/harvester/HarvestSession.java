@@ -55,7 +55,7 @@ public class HarvestSession extends UntypedActor {
 	public final void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 		
-		f = new FutureUtils(getContext().dispatcher());
+		f = new FutureUtils(getContext());
 	}
 
 	@Override

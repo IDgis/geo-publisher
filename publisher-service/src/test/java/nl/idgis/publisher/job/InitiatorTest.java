@@ -192,7 +192,7 @@ public class InitiatorTest extends AbstractServiceTest {
 	
 	@Test
 	public void testHarvestJob() throws Exception {
-		sync.ask(manager, new CreateHarvestJob("testDataSource"));
+		f.ask(manager, new CreateHarvestJob("testDataSource")).get();
 		
 		ActorRef harvester = actorOf(JobReceiver.props(jobManager), "harvesterMock");
 		actorOf(
@@ -201,14 +201,14 @@ public class InitiatorTest extends AbstractServiceTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = sync.ask(harvester, new GetReceivedJobs(1), List.class);
+		List<?> list = f.ask(harvester, new GetReceivedJobs(1), List.class).get();
 		assertEquals(HarvestJobInfo.class, list.get(0).getClass());
 	}
 	
 	@Test
 	public void testImportJob() throws Exception {
-		sync.ask(manager, new CreateImportJob("testDataset0"));
-		sync.ask(manager, new CreateImportJob("testDataset1"));
+		f.ask(manager, new CreateImportJob("testDataset0")).get();
+		f.ask(manager, new CreateImportJob("testDataset1")).get();
 		
 		ActorRef loader = actorOf(JobReceiver.props(jobManager), "loaderMock");
 		actorOf(
@@ -217,7 +217,7 @@ public class InitiatorTest extends AbstractServiceTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = sync.ask(loader, new GetReceivedJobs(2), List.class);
+		List<?> list = f.ask(loader, new GetReceivedJobs(2), List.class).get();
 		
 		Object job0 = list.get(0);
 		Object job1 = list.get(1);
@@ -235,7 +235,7 @@ public class InitiatorTest extends AbstractServiceTest {
 
 	@Test
 	public void testServiceJob() throws Exception {		
-		sync.ask(manager, new CreateEnsureServiceJob("root"));
+		f.ask(manager, new CreateEnsureServiceJob("root")).get();
 
 		ActorRef service = actorOf(JobReceiver.props(jobManager), "serviceMock");
 		actorOf(
@@ -244,7 +244,7 @@ public class InitiatorTest extends AbstractServiceTest {
 				.create(manager), 
 			"initiator");
 		
-		List<?> list = sync.ask(service, new GetReceivedJobs(1), List.class);
+		List<?> list = f.ask(service, new GetReceivedJobs(1), List.class).get();
 		assertEquals(EnsureServiceJobInfo.class, list.get(0).getClass());
 	}
 	
@@ -259,23 +259,23 @@ public class InitiatorTest extends AbstractServiceTest {
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("root"));
-		sync.ask(service, new GetReceivedJobs(1), List.class);
+		f.ask(manager, new CreateEnsureServiceJob("root")).get();
+		f.ask(service, new GetReceivedJobs(1), List.class).get();
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("root"));
-		sync.ask(service, new GetReceivedJobs(1), List.class);
+		f.ask(manager, new CreateEnsureServiceJob("root")).get();
+		f.ask(service, new GetReceivedJobs(1), List.class).get();
 		
 		Thread.sleep(100);
 		
-		sync.ask(manager, new CreateEnsureServiceJob("root"));
-		sync.ask(service, new GetReceivedJobs(1), List.class);
+		f.ask(manager, new CreateEnsureServiceJob("root")).get();
+		f.ask(service, new GetReceivedJobs(1), List.class).get();
 	}
 	
 	@Test
 	public void testTimeout() throws Exception {
-		sync.ask(manager, new CreateEnsureServiceJob("root"));
+		f.ask(manager, new CreateEnsureServiceJob("root")).get();
 		
 		ActorRef service = actorOf(BrokenJobReceiver.props(jobManager), "serviceMock");
 		actorOf(
@@ -287,6 +287,6 @@ public class InitiatorTest extends AbstractServiceTest {
 						Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");
 		
-		sync.ask(service, new GetReceivedJobs(1), List.class);
+		f.ask(service, new GetReceivedJobs(1), List.class).get();
 	}
 }

@@ -46,14 +46,14 @@ public class NotificationTest extends AbstractServiceTest {
 			.execute();
 		
 		VectorDataset dataset = createVectorDataset();
-		sync.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset));
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset)).get();
 		
 		Table table = dataset.getTable();
-		sync.ask(database, new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), ""));
+		f.ask(database, new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), "")).get();
 		
-		sync.ask(jobManager, new CreateImportJob("testDataset"));
+		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		
-		TypedIterable<?> jobInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);		
+		TypedIterable<?> jobInfos = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();		
 		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
 		Iterator<ImportJobInfo> jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
@@ -69,7 +69,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertNotNull(notifications);
 		assertTrue(notifications.isEmpty());
 		
-		sync.ask(jobManager, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		f.ask(jobManager, new AddNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED)).get();
 		
 		Tuple notificationTuple =  
 			query().from(notification)
@@ -78,7 +78,7 @@ public class NotificationTest extends AbstractServiceTest {
 		assertNotNull(notificationTuple);
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name(), notificationTuple.get(notification.type));
 		
-		jobInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);		
+		jobInfos = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();		
 		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
 		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
@@ -97,10 +97,10 @@ public class NotificationTest extends AbstractServiceTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertNull(n.getResult());
 		
-		sync.ask(database, new AddNotificationResult(
+		f.ask(database, new AddNotificationResult(
 				jobInfo, 
 				ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
-				ConfirmNotificationResult.OK));
+				ConfirmNotificationResult.OK)).get();
 		
 		Tuple notificationResultTuple = 
 				query().from(notificationResult)				
@@ -119,7 +119,7 @@ public class NotificationTest extends AbstractServiceTest {
 				.leftJoin(notificationResult).on(notificationResult.notificationId.eq(notification.id))
 				.singleResult(notificationResult.result));
 		
-		jobInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);		
+		jobInfos = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();		
 		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
 		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
@@ -137,14 +137,14 @@ public class NotificationTest extends AbstractServiceTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, n.getType());
 		assertEquals(ConfirmNotificationResult.OK, n.getResult());
 		
-		sync.ask(jobManager, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED));
+		f.ask(jobManager, new RemoveNotification(jobInfo, ImportNotificationType.SOURCE_COLUMNS_CHANGED)).get();
 		
 		assertFalse(
 			query().from(notification)
 				.where(notification.type.eq(ImportNotificationType.SOURCE_COLUMNS_CHANGED.name()))
 				.exists());
 		
-		jobInfos = sync.ask(jobManager, new GetImportJobs(), TypedIterable.class);		
+		jobInfos = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();		
 		assertTrue(jobInfos.contains(ImportJobInfo.class));		
 		
 		jobInfoItr = jobInfos.cast(ImportJobInfo.class).iterator();		
