@@ -40,6 +40,11 @@ import akka.actor.UntypedActor;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
+import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.messages.Rollback;
+import nl.idgis.publisher.database.messages.StartTransaction;
+import nl.idgis.publisher.database.messages.TransactionCreated;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
@@ -135,6 +140,41 @@ public class GeoServerServiceTest {
 		public Document getSld() {
 			return sld;
 		}
+	}
+	
+	static class TransactionMock extends UntypedActor {
+		
+		public static Props props() {
+			return Props.create(TransactionMock.class);
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			if(msg instanceof Commit || msg instanceof Rollback) {
+				getSender().tell(new Ack(), getSelf());
+				getContext().stop(getSelf());
+			} else {
+				unhandled(msg);
+			}
+		}
+	}
+	
+	static class DatabaseMock extends UntypedActor {
+		
+		public static Props props() {
+			return Props.create(DatabaseMock.class);
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			if(msg instanceof StartTransaction) {
+				getSender().tell(new TransactionCreated(
+					getContext().actorOf(TransactionMock.props())), getSelf());
+			} else {
+				unhandled(msg);
+			}
+		}
+		
 	}
 	
 	static class ServiceManagerMock extends UntypedActor {
@@ -243,7 +283,9 @@ public class GeoServerServiceTest {
 			.withValue("user", ConfigValueFactory.fromAnyRef("postgres"))
 			.withValue("password", ConfigValueFactory.fromAnyRef("postgres"));
 		
-		geoServerService = actorSystem.actorOf(GeoServerService.props(serviceManager, geoserverConfig, databaseConfig));
+		ActorRef database = actorSystem.actorOf(DatabaseMock.props());
+		
+		geoServerService = actorSystem.actorOf(GeoServerService.props(database, serviceManager, geoserverConfig, databaseConfig));
 		
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
 	}
