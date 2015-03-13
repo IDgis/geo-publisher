@@ -46,7 +46,8 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter
+					tiledLayer.gutter,
+					null  // mimeformats
 					))
 			.thenApply(this::toPage);
 	}
@@ -66,7 +67,8 @@ public class TiledLayerAdmin extends AbstractAdmin {
 					tiledLayer.metaWidth,
 					tiledLayer.expireCache,
 					tiledLayer.expireClients,
-					tiledLayer.gutter
+					tiledLayer.gutter,
+					null  // mimeformats
 					));
 	}
 	

@@ -4,10 +4,12 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetLayerServices;
@@ -25,6 +27,7 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.TiledLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -45,6 +48,8 @@ import akka.actor.ActorSelection;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import controllers.Tiledlayers.TiledLayerForm;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Layers extends GroupsLayersCommon {
@@ -110,7 +115,8 @@ public class Layers extends GroupsLayersCommon {
 					
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName);
+							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
+							layerForm.getTiledLayer(), layerForm.getMimeFormats());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
@@ -218,13 +224,11 @@ public class Layers extends GroupsLayersCommon {
 		return from (database)
 			.get (Layer.class, layerId)
 			.query (new ListStyles (1l, null))
-			.query(new ListLayerStyles(layerId))
-			.query(new ListLayerKeywords(layerId))
 			.query(new GetLayerServices(layerId))
-			.executeFlat (new Function5<Layer, Page<Style>, List<Style>, List<String>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function3<Layer, Page<Style>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> keywords, final List<String> serviceIds) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds) throws Throwable {
 					String serviceId;
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
@@ -242,12 +246,12 @@ public class Layers extends GroupsLayersCommon {
 							public Result apply (final Dataset dataset, final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
-								layerForm.setKeywords(keywords);
-								if (layerStyles==null){
-									layerForm.setStyleList(new ArrayList<Style>());
-								} else {
-									layerForm.setStyleList(layerStyles);						
-								}
+								layerForm.setKeywords(layer.getKeywords());
+								
+								// TODO get styles from layerStyles = layer.getStyles()
+								List<Style> layerStyles = new ArrayList<Style>();
+								layerForm.setStyleList(layerStyles);
+									
 								layerForm.setDatasetId(dataset.id());
 								layerForm.setDatasetName(dataset.name());
 								
@@ -298,8 +302,10 @@ public class Layers extends GroupsLayersCommon {
 	}
 	
 	
-	public static class LayerForm {
+	public static class LayerForm extends TiledLayerForm{
 		
+
+
 		@Constraints.Required
 		private String id;
 		
@@ -323,6 +329,7 @@ public class Layers extends GroupsLayersCommon {
 		 */
 		private String styles;
 
+
 		public LayerForm(){
 			super();
 			this.id = ID;
@@ -337,6 +344,8 @@ public class Layers extends GroupsLayersCommon {
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
+			this.keywords = layer. getKeywords();
+			this.setTiledLayer(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 		}
 
 		public String getId() {

@@ -4,6 +4,7 @@
 package nl.idgis.publisher.domain.web;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
@@ -17,14 +18,19 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class Layer extends Identifiable {
-	private static final long serialVersionUID = -6332996024596175388L;
 
+	private static final long serialVersionUID = 8939482151862501678L;
+	
 	private final String name;
 	private final String title;
 	private final String abstractText;
 	private final Boolean published;
 	private final String datasetId;
 	private final String datasetName;
+	
+	private final TiledLayer tiledLayer;
+	
+	private final List<String> keywords;
 
 	
 	@JsonCreator
@@ -36,7 +42,9 @@ public class Layer extends Identifiable {
 			final @JsonProperty("") String abstractText,
 			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") String datasetId,
-			final @JsonProperty("") String datasetName
+			final @JsonProperty("") String datasetName,
+			final @JsonProperty("") TiledLayer tiledLayer,
+			final @JsonProperty("") List<String> keywords
 			) {
 		super(id);
 		this.name = name;
@@ -45,6 +53,8 @@ public class Layer extends Identifiable {
 		this.published = published;
 		this.datasetId = datasetId;
 		this.datasetName = datasetName;
+		this.tiledLayer = tiledLayer;
+		this.keywords = keywords;
 	}
 
 	@JsonGetter
@@ -74,6 +84,14 @@ public class Layer extends Identifiable {
 	@JsonGetter
 	public String datasetName() {
 		return datasetName;
+	}
+	
+	public Optional<TiledLayer> tiledLayer() {
+		return Optional.ofNullable(tiledLayer);
+	}
+	
+	public List<String> getKeywords() {
+		return keywords;
 	}
 
 

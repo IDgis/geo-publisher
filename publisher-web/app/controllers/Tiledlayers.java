@@ -2,6 +2,8 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import models.Domain;
@@ -50,10 +52,10 @@ public class Tiledlayers extends Controller {
 		}
 		
 		final TiledLayerForm tiledlayerForm = form.get ();
-		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name, 
+		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name,
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
-				tiledlayerForm.gutter
+				tiledlayerForm.gutter, tiledlayerForm.getMimeFormats()
 				);
 		
 		return from (database)
@@ -107,7 +109,7 @@ public class Tiledlayers extends Controller {
 				public Result apply (final TiledLayer tiledlayer) throws Throwable {
 					final Form<TiledLayerForm> tiledlayerForm = Form
 							.form (TiledLayerForm.class)
-							.fill (new TiledLayerForm (tiledlayer));
+							.fill (new TiledLayerForm (tiledlayer, tiledlayerId));
 					
 					Logger.debug ("Edit tiledlayerForm: " + tiledlayerForm);						
 
@@ -135,39 +137,46 @@ public class Tiledlayers extends Controller {
 	
 	public static class TiledLayerForm {
 		
+		private static final Integer META_WIDTH_DEFAULT = 4;
+
+		private static final Integer META_HEIGTH_DEFAULT = 4;
+
+		private static final Integer EXPIRE_CACHE_DEFAULT = 0;
+
+		private static final Integer EXPIER_CLIENTS_DEFAULT = 0;
+
+		private static final Integer GUTTER_DEFAULT = 0;
+
 		private static final String GIF = "#gif#";
 		private static final String JPG = "#jpg#";
 		private static final String PNG8 = "#png8#";
 		private static final String PNG = "#png#";
+		
 		@Constraints.Required
 		private String id;
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
+		private Boolean enabled = false;
+		private TiledLayer tiledLayer;
 		private Boolean png = false;
 		private Boolean png8 = false;
 		private Boolean jpg = false;
 		private Boolean gif = false;
-		@Constraints.Required
-		private Integer metaWidth = 4;
-		@Constraints.Required
-		private Integer metaHeight = 4;
-		@Constraints.Required
-		private Integer expireCache = 0;
-		@Constraints.Required
-		private Integer expireClients = 0;
-		@Constraints.Required
-		private Integer gutter = 0;
+		private Integer metaWidth = META_WIDTH_DEFAULT;
+		private Integer metaHeight = META_HEIGTH_DEFAULT;
+		private Integer expireCache = EXPIRE_CACHE_DEFAULT;
+		private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
+		private Integer gutter = GUTTER_DEFAULT;
+
 		
 		public TiledLayerForm(){
 			super();
 			this.id = UUID.randomUUID().toString();
-			this.name = "name";
 		}
 
-		public TiledLayerForm(final TiledLayer tl){
-			this.id = tl.id();
-			this.name = tl.name();
+		public TiledLayerForm(final TiledLayer tl, final String tiledLayerId){
+			this.id = tiledLayerId;
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
 			this.expireCache = tl.expireCache();
@@ -191,21 +200,61 @@ public class Tiledlayers extends Controller {
 			this.name = name;
 		}
 
-		public String getMimeFormats() {
-			StringBuilder mimeFormats = new StringBuilder();
-			if (getPng()) mimeFormats.append(PNG);
-			if (getPng8()) mimeFormats.append(PNG8);
-			if (getJpg()) mimeFormats.append(JPG);
-			if (getGif()) mimeFormats.append(GIF);
-			return mimeFormats.toString();
+		public TiledLayer getTiledLayer() {
+			return new TiledLayer(getId(), getName(), getMetaWidth(), getMetaHeight(), getExpireCache(), getExpireClients(), getGutter(), getMimeFormats() );
 		}
 
-		public void setMimeFormats(String mimeFormats) {
+		public void setTiledLayer(TiledLayer tiledLayer) {
+			this.tiledLayer = tiledLayer;
+			if (tiledLayer == null){
+				this.enabled = false;
+				this.metaWidth = META_WIDTH_DEFAULT;
+				this.metaHeight = META_HEIGTH_DEFAULT;
+				this.expireCache = EXPIRE_CACHE_DEFAULT;
+				this.expireClients = EXPIER_CLIENTS_DEFAULT;
+				this.gutter = GUTTER_DEFAULT;
+				setMimeFormats(null);
+			} else {
+				this.enabled = true;
+				this.metaWidth = tiledLayer.metaWidth();
+				this.metaHeight = tiledLayer.metaHeight();
+				this.expireCache = tiledLayer.expireCache();
+				this.expireClients = tiledLayer.expireClients();
+				this.gutter = tiledLayer.gutter();
+				setMimeFormats(tiledLayer.mimeformats());
+			}
+		}
+
+		public Boolean getEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(Boolean enabled) {
+			this.enabled = enabled;
+		}
+
+
+		public List<String> getMimeFormats() {
+			List<String> mimeFormats = new ArrayList<String>();
+			if (getPng()) mimeFormats.add(PNG);
+			if (getPng8()) mimeFormats.add(PNG8);
+			if (getJpg()) mimeFormats.add(JPG);
+			if (getGif()) mimeFormats.add(GIF);
+			return mimeFormats;
+		}
+
+		public void setMimeFormats(List<String> mimeFormats) {
+			setPng(false);
+			setPng8(false);
+			setJpg(false);
+			setGif(false);
 			if (mimeFormats==null) return;
-			if (mimeFormats.indexOf(PNG) > -1) setPng(true);
-			if (mimeFormats.indexOf(PNG8) > -1) setPng8(true);
-			if (mimeFormats.indexOf(JPG) > -1) setJpg(true);
-			if (mimeFormats.indexOf(GIF) > -1) setGif(true);
+			for (String string : mimeFormats) {
+				if (string.equals(PNG)) setPng(true);
+				if (string.equals(PNG8)) setPng8(true);
+				if (string.equals(JPG)) setJpg(true);
+				if (string.equals(GIF)) setGif(true);
+			}
 		}
 
 		public Boolean getPng() {
@@ -279,6 +328,7 @@ public class Tiledlayers extends Controller {
 		public void setGutter(Integer gutter) {
 			this.gutter = gutter;
 		}
+
 		
 	}
 }
