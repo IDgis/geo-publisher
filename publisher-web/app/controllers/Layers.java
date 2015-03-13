@@ -102,21 +102,19 @@ public class Layers extends GroupsLayersCommon {
 					// validation end
 					
 					// parse the list of (style.name, style.id) from the json string in the view form
-					String layerStyleList = form.get().getStyles();
-					final ObjectNode result = Json.newObject ();
-					final JsonNode result2 = Json.parse(layerStyleList);
-					
 					final List<String> styleIds = new ArrayList<> ();
-					for (final JsonNode n: Json.parse (layerStyleList)) {
-						// get only the second element (style.id)
-						styleIds.add (n.get (1).asText ());
+					List<Style> layerStyleList = form.get().getStyles();
+					for (Style style : layerStyleList) {
+						styleIds.add (style.definition());
+						
 					}
-					Logger.debug ("layerStyleList: " + styleIds.toString ());
+					
+						Logger.debug ("layerStyleList: " + styleIds.toString ());
 					
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
-							layerForm.getTiledLayer(), layerForm.getMimeFormats());
+							layerForm.getTiledLayer(), layerForm.getKeywords(), layerForm.getStyles());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
@@ -216,7 +214,7 @@ public class Layers extends GroupsLayersCommon {
 					}
 				});
 	}
-	
+
 	public static Promise<Result> edit (final String layerId) {
 		Logger.debug ("edit Layer: " + layerId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -248,8 +246,12 @@ public class Layers extends GroupsLayersCommon {
 								LayerForm layerForm = new LayerForm (layer);
 								layerForm.setKeywords(layer.getKeywords());
 								
-								// TODO get styles from layerStyles = layer.getStyles()
-								List<Style> layerStyles = new ArrayList<Style>();
+								List<Style> layerStyles ;
+								if (layer.styles() == null){ 
+									layerStyles = new ArrayList<Style>();
+								} else {
+									layerStyles = layer.styles(); 
+								}
 								layerForm.setStyleList(layerStyles);
 									
 								layerForm.setDatasetId(dataset.id());
@@ -327,7 +329,7 @@ public class Layers extends GroupsLayersCommon {
 		/**
 		 * String that contains all styles of this layer in json format 
 		 */
-		private String styles;
+		private List<Style> styles;
 
 
 		public LayerForm(){
@@ -345,6 +347,7 @@ public class Layers extends GroupsLayersCommon {
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
 			this.keywords = layer. getKeywords();
+			this.styles = layer.styles();
 			this.setTiledLayer(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 		}
 
@@ -408,11 +411,11 @@ public class Layers extends GroupsLayersCommon {
 			this.styleList = styleList;
 		}
 
-		public String getStyles() {
+		public List<Style> getStyles() {
 			return styles;
 		}
 
-		public void setStyles(String styles) {
+		public void setStyles(List<Style> styles) {
 			this.styles = styles;
 		}
 

@@ -115,7 +115,7 @@ public class LayerAdmin extends AbstractAdmin {
 						genericLayer.abstractCol, 
 						genericLayer.published, 
 						dataset.identification,
-						dataset.name,null,null
+						dataset.name,null,null, null
 					))
 					.thenApply ((layers) -> {
 						builder.addAll (layers.list ());
@@ -140,7 +140,7 @@ public class LayerAdmin extends AbstractAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layerId))
-			.singleResult(layerColumns).thenCompose(optionalLayer -> {
+			.singleResult(layerColumns.toArray (new Path<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
 					Tuple layer = optionalLayer.get();					
 					return tx.query()
@@ -159,27 +159,36 @@ public class LayerAdmin extends AbstractAdmin {
 								mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 							}
 							
-							return mimeformatsQuery.thenApply(mimeFormats ->							
-								Optional.of(new Layer(
-									layer.get(genericLayer.identification),
-									layer.get(genericLayer.name),
-									layer.get(genericLayer.title),
-									layer.get(genericLayer.abstractCol),
-									layer.get(genericLayer.published),
-									layer.get(dataset.identification),
-									layer.get(dataset.name),
-										hasTiledLayer
-											? null
-											: new TiledLayer(
-												layer.get(genericLayer.identification),
-												layer.get(genericLayer.name),
-												layer.get(tiledLayer.metaWidth),
-												layer.get(tiledLayer.metaHeight),
-												layer.get(tiledLayer.expireCache),
-												layer.get(tiledLayer.expireClients),
-												layer.get(tiledLayer.gutter),
-												mimeFormats.list()),
-									keywords.list())));
+							
+							return mimeformatsQuery.thenCompose(mimeFormats ->									
+									tx.query()
+									.from(genericLayer)
+									.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+									.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+									.join(style).on(layerStyle.styleId.eq(style.id))
+									.where(genericLayer.identification.eq(layerId))
+									.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+									.thenApply(styles ->
+										Optional.of(new Layer(
+											layer.get(genericLayer.identification),
+											layer.get(genericLayer.name),
+											layer.get(genericLayer.title),
+											layer.get(genericLayer.abstractCol),
+											layer.get(genericLayer.published),
+											layer.get(dataset.identification),
+											layer.get(dataset.name),
+												hasTiledLayer
+													? null
+													: new TiledLayer(
+														layer.get(genericLayer.identification),
+														layer.get(genericLayer.name),
+														layer.get(tiledLayer.metaWidth),
+														layer.get(tiledLayer.metaHeight),
+														layer.get(tiledLayer.expireCache),
+														layer.get(tiledLayer.expireClients),
+														layer.get(tiledLayer.gutter),
+														mimeFormats.list()),
+											keywords.list(), styles.list() ))));
 						});
 				} else {
 					return f.successful(Optional.empty());

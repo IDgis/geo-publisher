@@ -31,6 +31,7 @@ public class Layer extends Identifiable {
 	private final TiledLayer tiledLayer;
 	
 	private final List<String> keywords;
+	private final List<Style> styles;
 
 	
 	@JsonCreator
@@ -44,7 +45,8 @@ public class Layer extends Identifiable {
 			final @JsonProperty("") String datasetId,
 			final @JsonProperty("") String datasetName,
 			final @JsonProperty("") TiledLayer tiledLayer,
-			final @JsonProperty("") List<String> keywords
+			final @JsonProperty("") List<String> keywords,
+			final @JsonProperty("") List<Style> styles
 			) {
 		super(id);
 		this.name = name;
@@ -55,6 +57,7 @@ public class Layer extends Identifiable {
 		this.datasetName = datasetName;
 		this.tiledLayer = tiledLayer;
 		this.keywords = keywords;
+		this.styles = styles;
 	}
 
 	@JsonGetter
@@ -92,6 +95,10 @@ public class Layer extends Identifiable {
 	
 	public List<String> getKeywords() {
 		return keywords;
+	}
+
+	public List<Style> styles() {
+		return styles;
 	}
 
 
