@@ -108,17 +108,29 @@ public class LayerAdmin extends AbstractAdmin {
 				addPageInfo (builder, listLayers.getPage (), count);
 				
 				return listQuery
-					.list (new QLayer(
-						genericLayer.identification, 
-						genericLayer.name, 
-						genericLayer.title,
-						genericLayer.abstractCol, 
-						genericLayer.published, 
-						dataset.identification,
-						dataset.name,null,null, null
-					))
+					.list (
+							genericLayer.identification,
+							genericLayer.name,
+							genericLayer.title,
+							genericLayer.abstractCol,
+							genericLayer.published,
+							dataset.identification,
+							dataset.name
+
+							)
 					.thenApply ((layers) -> {
-						builder.addAll (layers.list ());
+						for (Tuple layer : layers.list()) {
+							builder.add(new Layer(
+									layer.get(genericLayer.identification),
+									layer.get(genericLayer.name),
+									layer.get(genericLayer.title),
+									layer.get(genericLayer.abstractCol),
+									layer.get(genericLayer.published),
+									layer.get(dataset.identification),
+									layer.get(dataset.name),null,null,null));
+						}
+						
+						
 						return builder.build ();
 					});
 			});
@@ -158,7 +170,6 @@ public class LayerAdmin extends AbstractAdmin {
 							} else {
 								mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 							}
-							
 							
 							return mimeformatsQuery.thenCompose(mimeFormats ->									
 									tx.query()
