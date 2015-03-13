@@ -66,12 +66,9 @@ public class Groups extends GroupsLayersCommon {
 				@Override
 				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
 					final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
-					final GroupForm groupForm = form.get ();
 					Logger.debug ("submit Group: " + form.field("name").value());
 					
 					// validation start
-					if (form.field("name").value().length() == 1 ) 
-						form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.length.error", "1"));
 					if (form.field("id").value().equals(ID)){
 						for (LayerGroup layerGroup : groups.values()) {
 							if (form.field("name").value().equals(layerGroup.name())){
@@ -84,7 +81,7 @@ public class Groups extends GroupsLayersCommon {
 							}
 						}
 					}
-					if (groupForm.structure == null){
+					if (form.field("structure").value() == null){
 						form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
 					}
 					
@@ -93,6 +90,7 @@ public class Groups extends GroupsLayersCommon {
 					}
 					// validation end
 					
+					final GroupForm groupForm = form.get ();
 					final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
 					Logger.debug ("Group structure list: " + layerIds);
 					
@@ -251,6 +249,9 @@ public class Groups extends GroupsLayersCommon {
 
 		@Constraints.Required
 		private String id;
+		@Constraints.Required (message = "test")
+		@Constraints.MinLength (value = 3, message = "web.application.page.groups.form.field.name.validation.length")
+		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.groups.form.field.name.validation.error")
 		private String name;
 		private String title;
 		private String abstractText;
