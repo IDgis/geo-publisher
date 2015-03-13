@@ -1,9 +1,9 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 
@@ -14,10 +14,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
-import nl.idgis.publisher.domain.query.PutLayerKeywords;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -25,10 +23,11 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
+
+import com.mysema.query.sql.SQLSubQuery;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
-
-import com.mysema.query.types.ConstantImpl;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
@@ -215,28 +214,37 @@ public class ServiceAdmin extends AbstractAdmin {
 
 	private CompletableFuture<Response<?>> handleDeleteService(String serviceId) {
 		log.debug ("handleDeleteService: " + serviceId);
-		return db.transactional(
-				tx ->
+		return db.transactional(tx ->
 				tx.query().from(service)
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 				.where(genericLayer.identification.eq(serviceId))
 				.singleResult(service.id)
-				.thenCompose(
-					svId -> {
-					log.debug("delete service id: " + svId.get());
-					return tx.delete(service)
-						.where(service.id.eq(svId.get()))
+				.thenCompose(svId -> {
+					log.debug("delete jobs for service id: {}", svId.get());
+					return tx.delete(job)
+						.where(new SQLSubQuery().from(serviceJob)
+								.where(serviceJob.serviceId.eq(svId.get())
+									.and(job.id.eq(serviceJob.jobId)))
+								.exists())
 						.execute()
-						.thenCompose(
-							n -> {
-							log.debug("delete generic layer id: " + serviceId);
-							return tx.delete(genericLayer)
-								.where(genericLayer.identification.eq(serviceId))
+						.thenCompose(jobs -> {
+							log.debug("delete service id: {}", svId.get());
+							return tx.delete(service)
+								.where(service.id.eq(svId.get()))
 								.execute()
-								.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, serviceId));
+								.thenCompose(n -> {
+									log.debug("delete generic layer id: {}", serviceId);
+									return tx.delete(genericLayer)
+										.where(genericLayer.identification.eq(serviceId))
+										.execute()
+										.thenApply(l -> 
+											new Response<String>(
+												CrudOperation.DELETE, 
+												CrudResponse.OK, 
+												serviceId));
+									});
 							});
-					})
-				);
+					}));
 
 	}
 	
