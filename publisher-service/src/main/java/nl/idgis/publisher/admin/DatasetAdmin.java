@@ -3,24 +3,30 @@ package nl.idgis.publisher.admin;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QJobLog.jobLog;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import nl.idgis.publisher.database.AsyncSQLDeleteClause;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DatasetInfo;
-import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
@@ -38,6 +44,7 @@ import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -341,8 +348,77 @@ public class DatasetAdmin extends AbstractAdmin {
 		});		
 	}
 	
+	private CompletableFuture<Response<?>> deleteHelper (final AsyncSQLDeleteClause ... deleteClauses) {
+		if (deleteClauses.length == 0) {
+			throw new IllegalArgumentException ("At least one delete clause should be provided");
+		}
+		
+		return deleteClauses[0]
+			.execute ()
+			.thenCompose (deleteCount -> {
+				final List<AsyncSQLDeleteClause> tail = Arrays.asList (deleteClauses).subList (1, deleteClauses.length);
+				
+				return deleteHelper (deleteCount, tail);
+			});
+	}
+	
+	private CompletableFuture<Response<?>> deleteHelper (final long count, final List<AsyncSQLDeleteClause> deleteClauses) {
+		if (deleteClauses.isEmpty ()) {
+			return CompletableFuture.completedFuture (new Response<Long>(CrudOperation.DELETE, count == 0 ? CrudResponse.NOK : CrudResponse.OK, count));
+		}
+		
+		return deleteClauses
+			.get (0)
+			.execute ()
+			.thenCompose (deleteCount -> deleteHelper (deleteCount, deleteClauses.subList (1, deleteClauses.size ())));
+	}
+	
 	private CompletableFuture<Response<?>> handleDeleteDataset(String id) {
-		return f.ask(database, new DeleteDataset(id), Response.class).thenApply(resp -> resp);
+		return db
+			.transactional (tx -> {
+				
+				final AsyncSQLDeleteClause deleteJobLog = tx
+						.delete (jobLog)
+						.where (new SQLSubQuery ()
+							.from (importJob)
+							.join (dataset).on (importJob.datasetId.eq (dataset.id))
+							.join (jobState).on (jobState.jobId.eq (importJob.jobId))
+							.where (importJob.jobId.eq (jobState.jobId).and (dataset.identification.eq (id)))
+							.exists ()
+						);
+				
+				final AsyncSQLDeleteClause deleteJobState = tx
+					.delete (jobState)
+					.where (new SQLSubQuery ()
+						.from (importJob)
+						.join (dataset).on (importJob.datasetId.eq (dataset.id))
+						.where (importJob.jobId.eq (jobState.jobId).and (dataset.identification.eq (id)))
+						.exists ()
+					);
+				
+				final AsyncSQLDeleteClause deleteJob = tx
+					.delete (job)
+					.where (new SQLSubQuery ()
+						.from (importJob)
+						.join (dataset).on (importJob.datasetId.eq (dataset.id))
+						.where (importJob.jobId.eq (job.id).and (dataset.identification.eq (id)))
+						.exists ()
+					);
+				
+				final AsyncSQLDeleteClause deleteDatasetColumn = tx
+					.delete (datasetColumn)
+					.where (new SQLSubQuery ()
+						.from (dataset)
+						.where (dataset.identification.eq (id).and (dataset.id.eq (datasetColumn.datasetId)))
+						.exists()
+					);
+				
+				final AsyncSQLDeleteClause deleteDataset = tx
+					.delete (dataset)
+					.where (dataset.identification.eq (id));
+				
+				return deleteHelper (deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteDataset);
+			});
 	}
 	
 	private CompletableFuture<Response<?>> handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
