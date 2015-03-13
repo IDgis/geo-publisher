@@ -34,7 +34,6 @@ import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
-import nl.idgis.publisher.database.messages.DeleteDataset;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
@@ -80,7 +79,6 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.utils.TypedList;
-
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -164,8 +162,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeGetDatasetInfo((GetDatasetInfo)query);
 		} else if(query instanceof UpdateDataset) {						
 			return executeUpdatedataset((UpdateDataset)query);
-		} else if(query instanceof DeleteDataset) {
-			return executeDeleteDataset((DeleteDataset)query);
 		} else if(query instanceof GetDataSourceStatus) {
 			return executeGetDataSourceStatus();
 		} else if(query instanceof GetJobLog) {
@@ -438,27 +434,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
 	}
 	
-	private Object executeDeleteDataset(DeleteDataset dds) {
-		Long nrOfDatasetColumnsDeleted = delete(datasetColumn)
-				.where(
-					new SQLSubQuery().from(dataset)
-					.where(dataset.identification.eq(dds.getId())
-					.and(dataset.id.eq(datasetColumn.datasetId))).exists())
-				.execute();
-		log.debug("nrOfDatasetColumnsDeleted: " + nrOfDatasetColumnsDeleted);
-		
-		Long nrOfDatasetsDeleted = delete(dataset)
-			.where(dataset.identification.eq(dds.getId()))
-			.execute();
-		log.debug("nrOfDatasetsDeleted: " + nrOfDatasetsDeleted);
-		
-		if (nrOfDatasetsDeleted > 0 || nrOfDatasetColumnsDeleted >= 0){
-			return new Response<Long>(CrudOperation.DELETE, CrudResponse.OK, nrOfDatasetColumnsDeleted);
-		} else {
-			return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, dds.getId());
-		}
-	}
-
 	private Object executeUpdatedataset(UpdateDataset uds) {
 		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
 		String datasetIdent = uds.getDatasetIdentification();
