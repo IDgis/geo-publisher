@@ -348,7 +348,7 @@ public class DatasetAdmin extends AbstractAdmin {
 		});		
 	}
 	
-	private CompletableFuture<Response<?>> deleteHelper (final AsyncSQLDeleteClause ... deleteClauses) {
+	private CompletableFuture<Response<?>> deleteHelper (final String key, final AsyncSQLDeleteClause ... deleteClauses) {
 		if (deleteClauses.length == 0) {
 			throw new IllegalArgumentException ("At least one delete clause should be provided");
 		}
@@ -358,19 +358,19 @@ public class DatasetAdmin extends AbstractAdmin {
 			.thenCompose (deleteCount -> {
 				final List<AsyncSQLDeleteClause> tail = Arrays.asList (deleteClauses).subList (1, deleteClauses.length);
 				
-				return deleteHelper (deleteCount, tail);
+				return deleteHelper (key, deleteCount, tail);
 			});
 	}
 	
-	private CompletableFuture<Response<?>> deleteHelper (final long count, final List<AsyncSQLDeleteClause> deleteClauses) {
+	private CompletableFuture<Response<?>> deleteHelper (final String key, final long count, final List<AsyncSQLDeleteClause> deleteClauses) {
 		if (deleteClauses.isEmpty ()) {
-			return CompletableFuture.completedFuture (new Response<Long>(CrudOperation.DELETE, count == 0 ? CrudResponse.NOK : CrudResponse.OK, count));
+			return CompletableFuture.completedFuture (new Response<String>(CrudOperation.DELETE, count == 0 ? CrudResponse.NOK : CrudResponse.OK, key));
 		}
 		
 		return deleteClauses
 			.get (0)
 			.execute ()
-			.thenCompose (deleteCount -> deleteHelper (deleteCount, deleteClauses.subList (1, deleteClauses.size ())));
+			.thenCompose (deleteCount -> deleteHelper (key, deleteCount, deleteClauses.subList (1, deleteClauses.size ())));
 	}
 	
 	private CompletableFuture<Response<?>> handleDeleteDataset(String id) {
@@ -417,7 +417,7 @@ public class DatasetAdmin extends AbstractAdmin {
 					.delete (dataset)
 					.where (dataset.identification.eq (id));
 				
-				return deleteHelper (deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteDataset);
+				return deleteHelper (id, deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteDataset);
 			});
 	}
 	

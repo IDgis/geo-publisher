@@ -49,9 +49,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
@@ -60,7 +58,6 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
-
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
@@ -74,6 +71,7 @@ import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
@@ -388,6 +386,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(servicesItr.hasNext());
 		assertEquals("rootgroup", servicesItr.next());
 		assertFalse(servicesItr.hasNext());
+		
+		services = f.ask(serviceManager, new GetServicesWithDataset("dataset0"), TypedIterable.class).get();
+		assertTrue(services.contains(String.class));
+		
+		servicesItr = services.cast(String.class).iterator();
+		assertTrue(servicesItr.hasNext());
+		assertEquals("rootgroup", servicesItr.next());
+		assertFalse(servicesItr.hasNext());
 	}
 	
 	@Test
@@ -587,6 +593,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(servicesItr.hasNext());
 		
 		services = f.ask(serviceManager, new GetServicesWithLayer("group"), TypedIterable.class).get();
+		assertTrue(services.contains(String.class));
+		
+		servicesItr = services.cast(String.class).iterator();
+		assertTrue(servicesItr.hasNext());
+		assertEquals("rootgroup", servicesItr.next());
+		assertFalse(servicesItr.hasNext());
+		
+		services = f.ask(serviceManager, new GetServicesWithDataset("dataset0"), TypedIterable.class).get();
 		assertTrue(services.contains(String.class));
 		
 		servicesItr = services.cast(String.class).iterator();
