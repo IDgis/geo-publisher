@@ -172,34 +172,34 @@ public class LayerAdmin extends AbstractAdmin {
 							}
 							
 							return mimeformatsQuery.thenCompose(mimeFormats ->									
-									tx.query()
-									.from(genericLayer)
-									.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-									.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
-									.join(style).on(layerStyle.styleId.eq(style.id))
-									.where(genericLayer.identification.eq(layerId))
-									.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
-									.thenApply(styles ->
-										Optional.of(new Layer(
-											layer.get(genericLayer.identification),
-											layer.get(genericLayer.name),
-											layer.get(genericLayer.title),
-											layer.get(genericLayer.abstractCol),
-											layer.get(genericLayer.published),
-											layer.get(dataset.identification),
-											layer.get(dataset.name),
-												hasTiledLayer
-													? null
-													: new TiledLayer(
-														layer.get(genericLayer.identification),
-														layer.get(genericLayer.name),
-														layer.get(tiledLayer.metaWidth),
-														layer.get(tiledLayer.metaHeight),
-														layer.get(tiledLayer.expireCache),
-														layer.get(tiledLayer.expireClients),
-														layer.get(tiledLayer.gutter),
-														mimeFormats.list()),
-											keywords.list(), styles.list() ))));
+								tx.query()
+								.from(genericLayer)
+								.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+								.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+								.join(style).on(layerStyle.styleId.eq(style.id))
+								.where(genericLayer.identification.eq(layerId))
+								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+								.thenApply(styles ->
+									Optional.of(new Layer(
+										layer.get(genericLayer.identification),
+										layer.get(genericLayer.name),
+										layer.get(genericLayer.title),
+										layer.get(genericLayer.abstractCol),
+										layer.get(genericLayer.published),
+										layer.get(dataset.identification),
+										layer.get(dataset.name),
+											hasTiledLayer
+												? null
+												: new TiledLayer(
+													layer.get(genericLayer.identification),
+													layer.get(genericLayer.name),
+													layer.get(tiledLayer.metaWidth),
+													layer.get(tiledLayer.metaHeight),
+													layer.get(tiledLayer.expireCache),
+													layer.get(tiledLayer.expireClients),
+													layer.get(tiledLayer.gutter),
+													mimeFormats.list()),
+										keywords.list(), styles.list() ))));
 						});
 				} else {
 					return f.successful(Optional.empty());
@@ -261,12 +261,41 @@ public class LayerAdmin extends AbstractAdmin {
 														.set(leafLayer.genericLayerId, glId.get())
 														.set(leafLayer.datasetId, dsId.get())
 														.execute()
-														.thenApply(
-															l -> new Response<String>(
-																CrudOperation.CREATE,
-																CrudResponse.OK,
-																newLayerId));
-													});
+														.thenCompose(
+															n -> {
+																if (theLayer.tiledLayer().isPresent()){
+																	log.debug("Insert tiledlayer ");
+																	return tx
+																		.insert(tiledLayer)
+																		.set(tiledLayer.metaWidth, theLayer.tiledLayer().get().metaWidth())
+																		.set(tiledLayer.metaHeight, theLayer.tiledLayer().get().metaHeight())
+																		.set(tiledLayer.expireCache, theLayer.tiledLayer().get().expireCache())
+																		.set(tiledLayer.expireClients, theLayer.tiledLayer().get().expireClients())
+																		.set(tiledLayer.gutter, theLayer.tiledLayer().get().gutter())
+																		.set(tiledLayer.id, glId.get())
+																		.executeWithKey(tiledLayer.id)
+																		.thenCompose(
+																			tlId -> {
+																				log.debug("Insert mimeformats ");
+																				return f.sequence(
+																					theLayer.tiledLayer().get().mimeformats().stream()
+																					    .map(name -> 
+																					        tx
+																				            .insert(tiledLayerMimeformat)
+																				            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
+																		            		.set(tiledLayerMimeformat.mimeformat, name)
+																				            .execute())
+																					    .collect(Collectors.toList())).thenApply(whatever ->
+																					        new Response<String>(CrudOperation.CREATE,
+																			                CrudResponse.OK, newLayerId));
+																		});
+																} else {
+																	return f.successful( 
+																		new Response<String>(CrudOperation.CREATE,
+															            CrudResponse.OK, newLayerId));
+																}
+																});
+														});
 											});
 									});
 					} else {
