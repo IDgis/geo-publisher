@@ -236,12 +236,11 @@ public class Layers extends GroupsLayersCommon {
 						serviceId=serviceIds.get(0);
 					}
 					return from (database)
-							.get(Dataset.class, layer.datasetId())
 							.get(Service.class, serviceId)
-							.execute (new Function2<Dataset, Service, Result> () {
+							.execute (new Function<Service, Result> () {
 
 							@Override
-							public Result apply (final Dataset dataset, final Service service) throws Throwable {
+							public Result apply (final Service service) throws Throwable {
 									
 								LayerForm layerForm = new LayerForm (layer);
 								layerForm.setKeywords(layer.getKeywords());
@@ -254,9 +253,6 @@ public class Layers extends GroupsLayersCommon {
 								}
 								layerForm.setStyleList(layerStyles);
 									
-								layerForm.setDatasetId(dataset.id());
-								layerForm.setDatasetName(dataset.name());
-								
 								final Form<LayerForm> formLayerForm = Form
 										.form (LayerForm.class)
 										.fill (layerForm);
@@ -331,6 +327,8 @@ public class Layers extends GroupsLayersCommon {
 		 */
 		private List<Style> styles;
 
+		private Boolean enabled = false;
+
 
 		public LayerForm(){
 			super();
@@ -339,6 +337,7 @@ public class Layers extends GroupsLayersCommon {
 		}
 		
 		public LayerForm(Layer layer){
+			this();
 			this.id = layer.id();
 			this.name = layer.name();
 			this.title = layer.title();
@@ -435,14 +434,21 @@ public class Layers extends GroupsLayersCommon {
 			this.datasetId = datasetId;
 		}
 
-		@Override
-		public String toString() {
-			
-			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
-					+ ", keywords=" + keywords + ", published=" + published + ", styleList=" + styleList + ", styles="
-					+ styles + "]";
+		public Boolean getEnabled() {
+			return enabled;
 		}
 
+		public void setEnabled(Boolean enabled) {
+			this.enabled = enabled;
+		}
+		
+		@Override
+		public String toString() {
+			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
+					+ ", keywords=" + keywords + ", published=" + published + ", datasetId=" + datasetId
+					+ ", datasetName=" + datasetName + ", styleList=" + styleList + ", styles=" + styles
+					+ ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
+		}
 		
 	}
 }

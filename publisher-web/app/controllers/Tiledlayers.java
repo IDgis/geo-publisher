@@ -157,7 +157,6 @@ public class Tiledlayers extends Controller {
 		@Constraints.Required
 		@Constraints.MinLength (1)
 		private String name;
-		private Boolean enabled = false;
 		private TiledLayer tiledLayer;
 		private Boolean png = false;
 		private Boolean png8 = false;
@@ -176,6 +175,7 @@ public class Tiledlayers extends Controller {
 		}
 
 		public TiledLayerForm(final TiledLayer tl, final String tiledLayerId){
+			this();
 			this.id = tiledLayerId;
 			this.metaWidth = tl.metaWidth();
 			this.metaHeight = tl.metaHeight();
@@ -207,7 +207,6 @@ public class Tiledlayers extends Controller {
 		public void setTiledLayer(TiledLayer tiledLayer) {
 			this.tiledLayer = tiledLayer;
 			if (tiledLayer == null){
-				this.enabled = false;
 				this.metaWidth = META_WIDTH_DEFAULT;
 				this.metaHeight = META_HEIGTH_DEFAULT;
 				this.expireCache = EXPIRE_CACHE_DEFAULT;
@@ -215,22 +214,13 @@ public class Tiledlayers extends Controller {
 				this.gutter = GUTTER_DEFAULT;
 				setMimeFormats(null);
 			} else {
-				this.enabled = true;
-				this.metaWidth = tiledLayer.metaWidth();
-				this.metaHeight = tiledLayer.metaHeight();
-				this.expireCache = tiledLayer.expireCache();
-				this.expireClients = tiledLayer.expireClients();
-				this.gutter = tiledLayer.gutter();
+				this.metaWidth = tiledLayer.metaWidth() == null ? META_WIDTH_DEFAULT : tiledLayer.metaWidth();
+				this.metaHeight = tiledLayer.metaHeight() == null ? META_HEIGTH_DEFAULT : tiledLayer.metaHeight();
+				this.expireCache = tiledLayer.expireCache() == null ? EXPIRE_CACHE_DEFAULT : tiledLayer.expireCache();
+				this.expireClients = tiledLayer.expireClients() == null ? EXPIER_CLIENTS_DEFAULT : tiledLayer.expireClients();
+				this.gutter = tiledLayer.gutter() == null ? GUTTER_DEFAULT : tiledLayer.gutter();
 				setMimeFormats(tiledLayer.mimeformats());
 			}
-		}
-
-		public Boolean getEnabled() {
-			return enabled;
-		}
-
-		public void setEnabled(Boolean enabled) {
-			this.enabled = enabled;
 		}
 
 
@@ -327,6 +317,14 @@ public class Tiledlayers extends Controller {
 
 		public void setGutter(Integer gutter) {
 			this.gutter = gutter;
+		}
+
+		@Override
+		public String toString() {
+			return "TiledLayerForm [id=" + id + ", name=" + name + ", tiledLayer="
+					+ tiledLayer + ", png=" + png + ", png8=" + png8 + ", jpg=" + jpg + ", gif=" + gif + ", metaWidth="
+					+ metaWidth + ", metaHeight=" + metaHeight + ", expireCache=" + expireCache + ", expireClients="
+					+ expireClients + ", gutter=" + gutter + "]";
 		}
 
 		

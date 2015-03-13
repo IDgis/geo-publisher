@@ -1,6 +1,7 @@
 require ([
 	'dojo/dom',
 	'dojo/on',
+	'dojo/dom-style',
 	'dojo/_base/window',
 	'dojo/query',
 	'dojo/dom-attr',
@@ -11,11 +12,19 @@ require ([
 	
 	'dojo/NodeList-traverse',
 	'dojo/domReady!'
-], function (dom, on, win, query, domattr, domConstruct, TreeSelect, Pager, put) {
+], function (dom, on, domStyle, win, query, domattr, domConstruct, TreeSelect, Pager, put) {
 	var treeSelect = new TreeSelect ('.gp-tree-select', '.gp-tree-values'),
 		pager = new Pager ('.gp-tree-values .js-pager');
 	var keywordbutton = dom.byId('add-keyword');
 	var keywordlist = dom.byId('keyword-list');
+	var inputEnable = dom.byId('input-enable');
+	var jsTiledForm = dom.byId('js-tiled-form');
+	
+	if (inputEnable.checked) {
+		domStyle.set(jsTiledForm, "display", "block");
+	} else {
+		domStyle.set(jsTiledForm, "display", "none");
+	}
 	
 	on(keywordbutton,'click', function(evt) {
 		var keywordinput = dom.byId('input-keyword').value;
@@ -35,11 +44,18 @@ require ([
 	
 	on(win.doc, ".close:click", function(event) {
 		
-		
 		var valueItem = domattr.get(this, 'value');
 		
 		var itemToDel = query(this).parents(".keyword-item-block")[0];
 		domConstruct.destroy(itemToDel);
+	});
+	
+	on(inputEnable, 'click', function(evt) {
+		if (inputEnable.checked) {
+			domStyle.set(jsTiledForm, "display", "block");
+		} else {
+			domStyle.set(jsTiledForm, "display", "none");
+		}
 	});
 });
 
