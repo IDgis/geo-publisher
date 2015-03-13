@@ -9,24 +9,23 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
-
 import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.RefreshDataset;
+import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
-
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.utils.TypedIterable;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -102,6 +101,10 @@ public class JobCreator extends AbstractAdmin {
 		onDelete(LayerGroup.class, 
 			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
 			(services, layerId) -> createEnsureServiceJobs(services));
+		
+		onDelete (Dataset.class,
+			datasetId -> f.ask (serviceManager, new GetServicesWithDataset (datasetId), TypedIterable.class),
+			(services, datasetId) -> createEnsureServiceJobs (services));
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);

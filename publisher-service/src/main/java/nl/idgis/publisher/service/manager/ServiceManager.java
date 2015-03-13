@@ -12,13 +12,12 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
@@ -78,6 +77,8 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetGroupLayer((GetGroupLayer)msg));
 		} else if(msg instanceof GetServicesWithLayer) {
 			toSender(handleGetServicesWithLayer((GetServicesWithLayer)msg));
+		} else if (msg instanceof GetServicesWithDataset) {
+			toSender (handleGetServicesWithDataset ((GetServicesWithDataset) msg));
 		} else if(msg instanceof GetServiceIndex) {
 			toSender(handleGetServiceIndex((GetServiceIndex)msg));
 		} else if(msg instanceof GetServicesWithStyle) {
@@ -142,6 +143,10 @@ public class ServiceManager extends UntypedActor {
 	
 	private CompletableFuture<TypedList<String>> handleGetServicesWithLayer(GetServicesWithLayer msg) {
 		return db.transactional(tx -> new GetServicesWithLayerQuery(log, f, tx, msg.getLayerId()).result());
+	}
+	
+	private CompletableFuture<TypedList<String>> handleGetServicesWithDataset (final GetServicesWithDataset msg) {
+		return db.transactional (tx -> new GetServicesWithDatasetQuery (log, f, tx, msg.getDatasetId ()).result ());
 	}
 	
 	private CompletableFuture<Object> handleGetGroupLayer(GetGroupLayer msg) {

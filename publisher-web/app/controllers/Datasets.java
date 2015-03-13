@@ -165,18 +165,20 @@ public class Datasets extends Controller {
 		System.out.println("delete dataset " + datasetId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
-		from(database).delete(Dataset.class, datasetId)
-			.execute(new Function<Response<?>, Result>() {
-
+		return from (database)
+			.delete (Dataset.class, datasetId)
+			.execute (new Function<Response<?>, Result> () {
 				@Override
-				public Result apply(Response<?> a) throws Throwable {
-					// TODO Auto-generated method stub
-					System.out.println("apply delete: " + a);
-					return null;
+				public Result apply (final Response<?> response) throws Throwable {
+					if (CrudResponse.OK.equals (response.getOperationResponse ())) {
+						flash ("success", "De dataset is verwijderd");
+					} else {
+						flash ("danger", "De dataset kon niet worden verwijderd");
+					}
+					
+					return redirect (routes.Datasets.list (1));
 				}
 			});
- 
-		return list(1);
 	}
 
 	private static DomainQuery<Page<SourceDatasetStats>> listSourceDatasets (final String dataSourceId, final String categoryId) {

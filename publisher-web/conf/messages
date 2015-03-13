@@ -273,7 +273,7 @@ web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer al
 
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
-web.application.page.datasets.list.delete.warning.body=Weet u zeker dat u deze dataset wilt verwijderen? De onderliggende data en filters zullen worden verwijderd.
+web.application.page.datasets.list.delete.warning.body=Weet u zeker dat u deze dataset wilt verwijderen? Gekoppelde lagen worden ook verwijderd, tevens worden de onderliggende data en filters verwijderd.
 
 
 # General management
