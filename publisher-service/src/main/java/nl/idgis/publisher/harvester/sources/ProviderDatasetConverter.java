@@ -62,6 +62,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 			
 			String identification = datasetInfo.getIdentification();
 			String title = datasetInfo.getTitle();
+			String alternateTitle = datasetInfo.getAlternateTitle();
 			String categoryId = datasetInfo.getCategoryId();			
 			Date revisionDate = datasetInfo.getRevisionDate();
 			Set<Log> logs = datasetInfo.getLogs();
@@ -78,11 +79,11 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, categoryId, revisionDate, logs, table);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, table);
 			} else { 
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, categoryId, revisionDate, logs);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

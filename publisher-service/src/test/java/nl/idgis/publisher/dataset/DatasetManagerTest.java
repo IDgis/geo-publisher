@@ -57,7 +57,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		Set<Log> logs = new HashSet<>(dataset.getLogs());
 		dataset = new UnavailableDataset(
 			dataset.getId(), 
-			dataset.getName(), 
+			dataset.getName(),
+			dataset.getAlternateTitle(),
 			dataset.getCategoryId(), 
 			dataset.getRevisionDate(), 
 			logs);
@@ -69,6 +70,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		dataset = new UnavailableDataset(
 			dataset.getId(),
 			dataset.getName(),
+			dataset.getAlternateTitle(),
 			dataset.getCategoryId(), 
 			dataset.getRevisionDate(), 
 			logs);
@@ -145,7 +147,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		UnavailableDataset dataset = createUnavailableDataset();
 		dataset = new UnavailableDataset(
 				dataset.getId(), 
-				dataset.getName(), 
+				dataset.getName(),
+				dataset.getAlternateTitle(),
 				null, //categoryId removed 
 				dataset.getRevisionDate(), 
 				dataset.getLogs());

@@ -20,6 +20,8 @@ public abstract class DatasetInfo extends Item {
 	
 	protected final String title;
 	
+	protected final String alternateTitle;
+	
 	protected final String categoryId;
 	
 	protected final Date revisionDate;
@@ -28,9 +30,10 @@ public abstract class DatasetInfo extends Item {
 	
 	protected final Set<Log> logs;
 			
-	DatasetInfo(String identification, String title, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
+	DatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
 		this.identification = identification;
 		this.title = title;		
+		this.alternateTitle = alternateTitle;
 		this.categoryId = categoryId;
 		this.revisionDate = revisionDate;
 		this.attachments = attachments;
@@ -51,7 +54,15 @@ public abstract class DatasetInfo extends Item {
 	 */
 	public String getTitle() {
 		return title;
-	}	
+	}
+	
+	/**
+	 * 
+	 * @return the dataset alternate title
+	 */
+	public String getAlternateTitle() {
+		return alternateTitle;
+	}
 	
 	/**
 	 * 

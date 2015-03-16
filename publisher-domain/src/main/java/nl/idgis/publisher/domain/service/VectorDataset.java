@@ -11,8 +11,8 @@ public final class VectorDataset extends Dataset {
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String categoryId, Date revisionDate, Set<Log> logs, Table table) {
-		super(id, name, categoryId, revisionDate, logs);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, Table table) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs);
 		
 		this.table = table;
 	}
@@ -49,7 +49,10 @@ public final class VectorDataset extends Dataset {
 	@Override
 	public String toString() {
 		return "VectorDataset [table=" + table + ", id=" + id + ", name="
-				+ name + ", categoryId=" + categoryId + ", revisionDate="
-				+ revisionDate + ", logs=" + logs + "]";
+				+ name + ", alternateTitle=" + alternateTitle + ", categoryId="
+				+ categoryId + ", revisionDate=" + revisionDate + ", logs="
+				+ logs + "]";
 	}
+
+	
 }

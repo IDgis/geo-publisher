@@ -10,7 +10,7 @@ public abstract class Dataset implements Serializable {
 	
 	private static final long serialVersionUID = 8178725904348962956L;
 
-	protected final String id, name;
+	protected final String id, name, alternateTitle;
 	
 	protected final String categoryId;
 	
@@ -18,9 +18,10 @@ public abstract class Dataset implements Serializable {
 	
 	protected final Set<Log> logs;
 	
-	Dataset(String id, String name, String categoryId, Date revisionDate, Set<Log> logs) {
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs) {
 		this.id = id;
 		this.name = name;
+		this.alternateTitle = alternateTitle;
 		this.categoryId = categoryId;
 		this.revisionDate = revisionDate;
 		this.logs = logs;
@@ -32,6 +33,10 @@ public abstract class Dataset implements Serializable {
 	
 	public String getName() {
 		return name;
+	}
+	
+	public String getAlternateTitle() {
+		return alternateTitle;
 	}
 
 	public String getCategoryId() {
@@ -51,9 +56,12 @@ public abstract class Dataset implements Serializable {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((alternateTitle == null) ? 0 : alternateTitle.hashCode());
+		result = prime * result
 				+ ((categoryId == null) ? 0 : categoryId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((logs == null) ? 0 : logs.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((revisionDate == null) ? 0 : revisionDate.hashCode());
 		return result;
@@ -68,6 +76,11 @@ public abstract class Dataset implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Dataset other = (Dataset) obj;
+		if (alternateTitle == null) {
+			if (other.alternateTitle != null)
+				return false;
+		} else if (!alternateTitle.equals(other.alternateTitle))
+			return false;
 		if (categoryId == null) {
 			if (other.categoryId != null)
 				return false;
@@ -83,12 +96,17 @@ public abstract class Dataset implements Serializable {
 				return false;
 		} else if (!logs.equals(other.logs))
 			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
 		if (revisionDate == null) {
 			if (other.revisionDate != null)
 				return false;
 		} else if (!revisionDate.equals(other.revisionDate))
 			return false;
 		return true;
-	}	
+	}
 
 }

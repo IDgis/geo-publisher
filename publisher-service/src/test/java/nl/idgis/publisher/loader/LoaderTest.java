@@ -360,6 +360,7 @@ public class LoaderTest extends AbstractServiceTest {
 		VectorDataset updatedDataset = new VectorDataset(
 				testDataset.getId(),
 				testDataset.getName(),
+				testDataset.getAlternateTitle(),
 				testDataset.getCategoryId(),				
 				testDataset.getRevisionDate(),
 				Collections.<Log>emptySet(),

@@ -121,12 +121,12 @@ public class DatasetInfoBuilder extends UntypedActor {
 	}
 	
 	private void sendUnavailable() {
-		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs));		
+		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs));		
 	}
 	
 	private void sendResponse() {
 		if(tableInfo != null && numberOfRecords != null) {
-			tellTarget(new VectorDatasetInfo(identification, reportedTitle, categoryId, revisionDate, attachments, logs, tableName, tableInfo, numberOfRecords));
+			tellTarget(new VectorDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, tableName, tableInfo, numberOfRecords));
 		}
 	}
 	

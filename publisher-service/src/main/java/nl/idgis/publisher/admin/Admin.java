@@ -307,6 +307,7 @@ public class Admin extends AbstractAdmin {
 			.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.groupBy(sourceDataset.identification)
 			.groupBy(sourceDatasetVersion.name)
+			.groupBy(sourceDatasetVersion.alternateTitle)
 			.groupBy(dataSource.identification)
 			.groupBy(dataSource.name)
 			.groupBy(category.identification)
@@ -315,6 +316,7 @@ public class Admin extends AbstractAdmin {
 				new QSourceDatasetInfo(
 						sourceDataset.identification, 
 						sourceDatasetVersion.name,
+						sourceDatasetVersion.alternateTitle,
 						dataSource.identification, 
 						dataSource.name, 
 						category.identification, 
@@ -334,7 +336,8 @@ public class Admin extends AbstractAdmin {
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
 								sourceDatasetInfo.getId(), 
-								sourceDatasetInfo.getName(), 
+								sourceDatasetInfo.getName(),
+								sourceDatasetInfo.getAlternateTitle(),
 								new EntityRef(
 									EntityType.CATEGORY, 
 									sourceDatasetInfo.getCategoryId(), 
@@ -485,11 +488,13 @@ public class Admin extends AbstractAdmin {
 				.collect(listQuery					
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
-					.groupBy(category.identification).groupBy(category.name)		
+					.groupBy(category.identification).groupBy(category.name)
+					.groupBy(sourceDatasetVersion.alternateTitle)
 					.orderBy(sourceDatasetVersion.name.trim().asc())
 					.list(new QSourceDatasetInfo(
 						sourceDataset.identification, 
-						sourceDatasetVersion.name, 
+						sourceDatasetVersion.name,
+						sourceDatasetVersion.alternateTitle,
 						dataSource.identification, 
 						dataSource.name,
 						category.identification,
@@ -507,6 +512,7 @@ public class Admin extends AbstractAdmin {
 						SourceDataset sourceDataset = new SourceDataset (
 							sourceDatasetInfo.getId(), 
 							sourceDatasetInfo.getName(),
+							sourceDatasetInfo.getAlternateTitle(),
 							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
 							sourceDatasetInfo.getType ()
