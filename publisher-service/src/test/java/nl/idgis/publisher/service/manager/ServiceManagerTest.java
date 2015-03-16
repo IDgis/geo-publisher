@@ -274,7 +274,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.styleId, styleId0)
 			.set(layerStructure.layerOrder, 0)
 			.execute();
-		delete(constants);
+		
+		delete(constants).execute();
+		
 		int constantsId = insert(constants)
 			.set(constants.contact, "serviceContact0")
 			.set(constants.organization, "serviceOrganization0")
