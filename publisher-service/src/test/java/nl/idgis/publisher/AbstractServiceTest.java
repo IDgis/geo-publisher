@@ -1,6 +1,12 @@
 package nl.idgis.publisher;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import java.util.UUID;
 
 import org.junit.Before;
 
@@ -10,12 +16,12 @@ import nl.idgis.publisher.database.AbstractDatabaseTest;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.dataset.DatasetManager;
 
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
@@ -68,11 +74,39 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset)).get();
 		
 		Table testTable = testDataset.getTable();
-		f.ask(database, new CreateDataset(
+		createDataset(
 				datasetId, 
 				"My Test Dataset", 
 				testDataset.getId(), 
 				testTable.getColumns(), 
-				"{ \"expression\": null }")).get();
+				"{ \"expression\": null }");
+	}
+	
+	protected void createDataset(String datasetIdentification, String datasetName, 
+		String sourceDatasetIdentification, List<Column> columnList, String filterConditions) {
+		
+		int sourceDatasetId = 
+			query().from(sourceDataset)
+			.where(sourceDataset.identification.eq(sourceDatasetIdentification))
+			.singleResult(sourceDataset.id);
+		
+		int datasetId = insert(dataset)
+			.set(dataset.identification, datasetIdentification)
+			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.fileUuid, UUID.randomUUID().toString())
+			.set(dataset.name, datasetName)
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.filterConditions, filterConditions)
+			.executeWithKey(dataset.id);
+		
+		int index = 0;
+		for(Column column : columnList) {
+			insert(datasetColumn)
+				.set(datasetColumn.datasetId, datasetId)
+				.set(datasetColumn.index, index++)
+				.set(datasetColumn.name, column.getName())
+				.set(datasetColumn.dataType, column.getDataType().toString())
+				.execute();
+		}
 	}
 }

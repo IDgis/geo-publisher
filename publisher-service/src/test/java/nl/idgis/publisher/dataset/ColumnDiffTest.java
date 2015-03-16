@@ -7,7 +7,6 @@ import java.util.List;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.UpdateDataset;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
@@ -52,12 +51,12 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		testColumns = testTable.getColumns();
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testSourceDataset)).get();
 		
-		f.ask(database, new CreateDataset(
+		createDataset(
 			"testDataset", 
 			"My Test Dataset", 
 			testSourceDataset.getId(),			
 			testTable.getColumns(), 
-			"")).get();
+			"");
 	}
 
 	@Test

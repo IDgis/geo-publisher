@@ -7,7 +7,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.UpdateDataset;
@@ -37,7 +36,7 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset)).get();
 		
 		testTable = testDataset.getTable();
-		f.ask(database, new CreateDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), "")).get();
+		createDataset("testDataset", "My Test Dataset", testDataset.getId(), testTable.getColumns(), "");
 	}	
 
 	@Test

@@ -19,13 +19,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLDeleteClause;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DatasetInfo;
 import nl.idgis.publisher.database.messages.GetDatasetInfo;
 import nl.idgis.publisher.database.messages.GetNotifications;
@@ -33,6 +35,7 @@ import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.database.messages.UpdateDataset;
+
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -43,6 +46,7 @@ import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
@@ -55,6 +59,9 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.Status;
+
+import nl.idgis.publisher.utils.StreamUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -424,13 +431,49 @@ public class DatasetAdmin extends AbstractAdmin {
 	private CompletableFuture<Response<?>> handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
 		log.debug ("handle create dataset: " + putDataset.id());
 		
-		return f.ask(database, new CreateDataset(
-			putDataset.id(), 
-			putDataset.getDatasetName(),
-			putDataset.getSourceDatasetIdentification(), 
-			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions())),
-			Response.class).thenApply(resp -> resp);
+		String datasetIdent = putDataset.id();
+		
+		return db.transactional(tx ->
+			tx.query().from(sourceDataset)
+				.where(sourceDataset.identification.eq(putDataset.getSourceDatasetIdentification()))
+				.singleResult(sourceDataset.id).thenCompose(sourceDatasetId -> {
+					if(sourceDatasetId.isPresent()) {
+						try {
+							return tx.insert(dataset)
+								.set(dataset.identification, datasetIdent)
+								.set(dataset.uuid, UUID.randomUUID().toString())
+								.set(dataset.fileUuid, UUID.randomUUID().toString())
+								.set(dataset.name, putDataset.getDatasetName())
+								.set(dataset.sourceDatasetId, sourceDatasetId.get())
+								.set(dataset.filterConditions, 
+									objectMapper.writeValueAsString(putDataset.getFilterConditions()))
+								.executeWithKey(dataset.id).thenCompose(datasetId ->
+									insertDatasetColumns(tx, datasetId, putDataset.getColumnList()).thenApply(v ->
+										new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent)));
+						} catch(Exception e) {
+							return f.failed(e);
+						}
+					} else {
+						log.error("sourceDataset not found: " + putDataset.getSourceDatasetIdentification());
+						return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+					}
+				}));
+	}
+
+	private CompletableFuture<List<Long>> insertDatasetColumns(AsyncHelper tx, Integer datasetId, List<Column> columns) {
+		return f.sequence(
+			StreamUtils.index(columns.stream())
+				.map(indexedColumn -> {
+					Column column = indexedColumn.getValue();
+					
+					return tx.insert(datasetColumn)
+						.set(datasetColumn.datasetId, datasetId)
+						.set(datasetColumn.index, indexedColumn.getIndex())
+						.set(datasetColumn.name, column.getName())
+						.set(datasetColumn.dataType, column.getDataType().toString())
+						.execute();
+				})
+				.collect(Collectors.toList()));
 	}
 
 	private CompletableFuture<Response<?>> handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {

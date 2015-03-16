@@ -33,7 +33,6 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecord;
@@ -348,12 +347,12 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Registered.class).get();
 		
-		f.ask(database, new CreateDataset(
+		createDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				testDataset.getId(), 
 				testColumns, 
-				"{ \"expression\": null }")).get();
+				"{ \"expression\": null }");
 				
 		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		executeJobs(new GetImportJobs());

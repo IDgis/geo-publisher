@@ -15,7 +15,6 @@ import java.util.List;
 import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
-import nl.idgis.publisher.database.messages.CreateDataset;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
@@ -49,7 +48,7 @@ public class NotificationTest extends AbstractServiceTest {
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset)).get();
 		
 		Table table = dataset.getTable();
-		f.ask(database, new CreateDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), "")).get();
+		createDataset("testDataset", "My Test Dataset", dataset.getId(), table.getColumns(), "");
 		
 		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		

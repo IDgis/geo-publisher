@@ -26,11 +26,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
@@ -156,8 +154,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeGetCategoryListInfo();					
 		} else if(query instanceof GetDataSourceInfo) {
 			return executeGetDataSourceInfo();
-		} else if(query instanceof CreateDataset) {
-			return executeCreateDataset((CreateDataset)query);
 		} else if(query instanceof GetDatasetInfo) {			
 			return executeGetDatasetInfo((GetDatasetInfo)query);
 		} else if(query instanceof UpdateDataset) {						
@@ -520,39 +516,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return createDatasetInfo (lastTuple, notifications);
 		}
 	}
-	
-	private Object executeCreateDataset(CreateDataset cds) {
-		String sourceDatasetIdent = cds.getSourceDatasetIdentification();
-		String datasetIdent = cds.getDatasetIdentification();
-		String datasetName = cds.getDatasetName();
-		final String filterConditions = cds.getFilterConditions ();
-		log.debug("create dataset " + datasetIdent);
-
-		Integer sourceDatasetId = query().from(sourceDataset)
-				.where(sourceDataset.identification.eq(sourceDatasetIdent))
-				.singleResult(sourceDataset.id);
-			if(sourceDatasetId == null) {
-				log.error("sourceDataset not found: " + sourceDatasetIdent);
-				return new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent);
-			} else {
-				insert(dataset)
-					.set(dataset.identification, datasetIdent)
-					.set(dataset.uuid, UUID.randomUUID().toString())
-					.set(dataset.fileUuid, UUID.randomUUID().toString())
-					.set(dataset.name, datasetName)
-					.set(dataset.sourceDatasetId, sourceDatasetId)
-					.set(dataset.filterConditions, filterConditions)
-					.execute();
-				
-				Integer datasetId = getDatasetId(datasetIdent);
-				
-				insertDatasetColumns(datasetId, cds.getColumnList());
-				
-				log.debug("dataset inserted");
-				
-				return new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent);
-			}
-	}	
 
 	private Object executeGetDataSourceInfo() {
 		return

@@ -6,7 +6,6 @@ import java.util.List;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.CreateDataset;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
@@ -98,12 +97,12 @@ public class StatusAndJobTest extends AbstractServiceTest {
 		
 		Table table = dataset.getTable();
 		List<Column> columns = Arrays.asList(table.getColumns().get(0));
-		result = f.ask(database, new CreateDataset(
+		createDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				dataset.getId(),
 				columns,
-				"{ \"expression\": null }")).get();
+				"{ \"expression\": null }");
 		
 		result = f.ask(database, new GetDatasetStatus()).get();
 		assertEquals(TypedList.class, result.getClass());
