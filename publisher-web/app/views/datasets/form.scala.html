@@ -97,34 +97,7 @@
 								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.help")
 							)
 							
-							@if(createDataset){
-								<div class="form-group has-feedback@if(!datasetForm("id").errors.isEmpty){ has-error}">
-									<label class="control-label col-sm-3" for="input-id">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.label")</label>
-								    <div class="controls col-sm-9">
-											<input type="text" class="form-control" id="input-id" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholder") name="@datasetForm("id").name" value="@datasetForm("id").value">
-											<span class="glyphicon glyphicon-refresh form-control-feedback rotating"></span>
-											@if(!datasetForm("id").errors.isEmpty) {
-										        <div class="help-block">
-										        	<ul class="list-unstyled">
-										        		@for(error <- datasetForm("id").errors) {
-										        			<li>@Messages(error.message, error.arguments: _*)</li>
-										        		}
-										        	</ul>
-										        </div>
-										    }
-									    <span class="help-block">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.help")</span>
-									</div>
-								</div>
-							}else{
-								<div class="form-group has-feedback">
-									<label class="control-label col-sm-3" for="input-id-readonly">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.label")</label>
-								    <div class="controls col-sm-9">
-										<input type="text" class="form-control" id="input-id-readonly" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholder") name="@{datasetForm("id").name + "XX"}" value="@datasetForm("id").value" readonly>
-										<input type="hidden" class="form-control" id="input-id" placeholder=@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.placeholderhidden") name="@datasetForm("id").name" value="@datasetForm("id").value">
-									    <span class="help-block">@Domain.message("web.application.page.datasets.form.tab.general.field.tablename.help")</span>
-									</div>
-								</div>
-							}
+							<input type="hidden" class="form-control" id="input-id" name="@datasetForm("id").name" value="@datasetForm("id").value">
 						</div>						
 					</div>
 				</div>

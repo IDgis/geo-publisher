@@ -7,9 +7,6 @@ import java.util.List;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
-import nl.idgis.publisher.database.messages.CreateDataset;
-import nl.idgis.publisher.database.messages.UpdateDataset;
-
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Updated;
 
@@ -52,12 +49,12 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		testColumns = testTable.getColumns();
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testSourceDataset)).get();
 		
-		f.ask(database, new CreateDataset(
+		createDataset(
 			"testDataset", 
 			"My Test Dataset", 
 			testSourceDataset.getId(),			
 			testTable.getColumns(), 
-			"")).get();
+			"");
 	}
 
 	@Test
@@ -72,13 +69,12 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// no changes yet
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		f.ask(database,
-			new UpdateDataset(
+		updateDataset(
 				"testDataset", 
 				"My Test Dataset", 
 				"testVectorDataset", 
 				Arrays.asList(testColumns.get(0)), // removes second column 
-				"")).get();
+				"");
 		
 		List<Tuple> tuples = 
 				query().from(datasetColumnDiff)
@@ -103,15 +99,14 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
 		Column newColumn = new Column("my_new_column", Type.GEOMETRY);		
-		f.ask(database, 
-				new UpdateDataset(
+		updateDataset(
 					"testDataset", 
 					"My Test Dataset", 
 					"testVectorDataset", 
 					Arrays.asList(
 						testColumns.get(0),
 						newColumn), // add new column
-					"")).get();
+					"");
 		
 		tuples = 
 			query().from(datasetColumnDiff)

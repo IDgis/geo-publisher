@@ -13,6 +13,7 @@ import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
+
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
@@ -36,6 +37,7 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -54,6 +56,7 @@ import views.html.datasets.show;
 import views.html.datasets.status;
 import actions.DefaultAuthenticator;
 import actors.Database;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -61,6 +64,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
+	private final static String ID="#CREATE_DATASET#";
 
 	public static Promise<Result> list (long page) {
 		return listByCategoryAndMessages(null, false, page);
@@ -296,7 +300,7 @@ public class Datasets extends Controller {
 						}
 
 						final PutDataset putDataset = new PutDataset (CrudOperation.CREATE,
-								dataset.getId (), 
+								ID, 
 								dataset.getName (), 
 								sourceDataset.id (), 
 								columns,
@@ -383,6 +387,8 @@ public class Datasets extends Controller {
 		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).bindFromRequest ();
 		
 		if (datasetForm.hasErrors ()) {
+			Logger.debug("errors: {}", datasetForm.errors());
+			
 			return renderEditForm (datasetForm);
 		}
 		
@@ -438,7 +444,7 @@ public class Datasets extends Controller {
 									
 									flash ("success", "Dataset " + dataset.getName () + " is aangepast.");
 									
-									return Promise.pure (redirect (routes.Datasets.list (0)));
+									return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
 								}
 							});
 					}
@@ -544,9 +550,7 @@ public class Datasets extends Controller {
 		@Constraints.Required
 		private Map<String, String> columns;
 
-		@Constraints.Required
-		@Constraints.MinLength (3)
-		@Constraints.Pattern ("^[a-zA-Z_][0-9a-zA-Z_]+$")
+		@Constraints.Required		
 		private String id;
 
 		@Constraints.Required
