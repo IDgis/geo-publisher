@@ -221,7 +221,6 @@ web.application.page.datasets.list.alert.nodatasets=Er zijn geen datasets gevond
 web.application.page.datasets.show.title=Dataset
 web.application.page.datasets.show.heading=Overzicht
 web.application.page.datasets.show.field.datasetname=Naam
-web.application.page.datasets.show.field.datasetid=Tabelnaam
 web.application.page.datasets.show.field.sourcedatasetname=Brondataset
 web.application.page.datasets.show.field.datasetstatus=Status
 web.application.page.datasets.show.field.datasetcategorie=Categorie
@@ -260,11 +259,6 @@ web.application.page.datasets.form.tab.general.field.categoryid.help=De categori
 web.application.page.datasets.form.tab.general.field.sourcedatasetid.option=Selecteer een dataset ...
 web.application.page.datasets.form.tab.general.field.sourcedatasetid.label=Dataset
 web.application.page.datasets.form.tab.general.field.sourcedatasetid.help=De dataset uit de brongegevens waar deze dataset op is gebaseerd.
-
-web.application.page.datasets.form.tab.general.field.tablename.label=Tabelnaam
-web.application.page.datasets.form.tab.general.field.tablename.placeholder=Tabelnaam ....
-web.application.page.datasets.form.tab.general.field.tablename.placeholderhidden=Tabelnaam hidden....
-web.application.page.datasets.form.tab.general.field.tablename.help=De naam van de tabel die wordt gebruikt om deze dataset op te slaan.
 
 web.application.page.datasets.form.tab.columns.label=Geselecteerde kolommen
 web.application.page.datasets.form.tab.columns.alert=Selecteer tenminste één kolom.

@@ -36,8 +36,7 @@ require ([
 	var columnList = dom.byId('column-list'),
 		dataSourceSelect = dom.byId('input-datasource'),
 		categorySelect = dom.byId('input-category'),
-		datasetSelect = dom.byId('input-source-dataset'),
-		idInput = dom.byId ('input-id'),
+		datasetSelect = dom.byId('input-source-dataset'),		
 		buttonSelectAllColumns = dom.byId ('button-select-all-columns'),
 		buttonSelectNoColumns = dom.byId ('button-select-no-columns'),
 		dataSource = dataSourceSelect.value,
@@ -164,75 +163,6 @@ require ([
 	});
 	
 	updateColumnCount ();
-	
-	// =========================================================================
-	
-	var currentId = null,
-		updateIdTimeout = null,
-		updateIdPromise = null;
-	
-	function updateId () {
-		var id = idInput.value;
-		
-		// Do nothing if the value didn't change:
-		if (id === currentId) {
-			return;
-		}
-		currentId = id;
-
-		// Clear the current timeout:
-		if (updateIdTimeout) {
-			clearTimeout (updateIdTimeout);
-			updateIdTimeout = null;
-		}
-		
-		updateIdTimeout = setTimeout (function () {
-			updateIdTimeout = null;
-			
-			var iconNode = query ('span.glyphicon', idInput.parentNode)[0];
-			
-			iconNode && domClass.remove (iconNode, ['glyphicon-remove', 'glyphicon-ok', 'rotating', 'glyphicon-warning-sign']);
-			domClass.remove (idInput.parentNode.parentNode, ['has-error', 'has-success', 'has-warning']);
-			
-			if (currentId.length < 3) {
-				iconNode && domClass.add (iconNode, 'glyphicon-warning-sign');
-				domClass.add (idInput.parentNode.parentNode, 'has-warning');
-				return;
-			}
-			
-			iconNode && domClass.add (iconNode, ['glyphicon-refresh', 'rotating']);
-	
-			if (updateIdPromise) {
-				updateIdPromise.cancel ();
-			}
-			
-			updateIdPromise = xhr.get (jsRoutes.controllers.Datasets.getDatasetJson (currentId).url, {
-				handleAs: 'json'
-			}).then (function (data) {
-				updateIdPromise = null;
-				iconNode && domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
-				
-				if (!data.status || data.status != 'notfound') {
-					iconNode && domClass.add (iconNode, 'glyphicon-remove');
-					domClass.add (idInput.parentNode.parentNode, 'has-error');
-				} else {
-					iconNode && domClass.add (iconNode, 'glyphicon-ok');
-					domClass.add (idInput.parentNode.parentNode, 'has-success');
-				}
-			}, function () {
-				updateIdPromise = null;
-				iconNode && domClass.remove (iconNode, ['glyphicon-refresh', 'rotating']);
-				iconNode && domClass.add (iconNode, 'glyphicon-remove');
-				domClass.add (idInput.parentNode.parentNode, 'has-error');
-			});
-		}, 300);
-	}
-	
-	on (idInput, 'keyup,change', updateId);
-	
-	if (domAttr.get (idInput, 'type') != 'hidden') {
-		updateId ();
-	}
 	
 	// =========================================================================
 	// Associating data with DOM nodes:

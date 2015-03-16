@@ -430,7 +430,7 @@ public class DatasetAdmin extends AbstractAdmin {
 	private CompletableFuture<Response<?>> handleCreateDataset(PutDataset putDataset) throws JsonProcessingException {
 		log.debug ("handle create dataset: " + putDataset.id());
 		
-		String datasetIdent = putDataset.id();
+		String datasetIdent = UUID.randomUUID().toString();
 		
 		return db.transactional(tx ->
 			tx.query().from(sourceDataset)
