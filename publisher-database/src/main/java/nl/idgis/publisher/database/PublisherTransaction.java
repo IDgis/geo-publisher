@@ -4,7 +4,6 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
-import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QJob.job;
@@ -56,7 +55,6 @@ import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
-import nl.idgis.publisher.database.messages.UpdateDataset;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.MessageTypeUtils;
@@ -112,18 +110,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		return Props.create(PublisherTransaction.class, config, connection);
 	}
 	
-	private void insertDatasetColumns(int datasetId, List<Column> columns) {
-		int i = 0;
-		for(Column column : columns) {			
-			insert(datasetColumn)
-				.set(datasetColumn.datasetId, datasetId)
-				.set(datasetColumn.index, i++)
-				.set(datasetColumn.name, column.getName())
-				.set(datasetColumn.dataType, column.getDataType().toString())
-				.execute();
-		}
-	}
-	
 	private <T extends Comparable<? super T>> SQLQuery applyListParams(SQLQuery query, ListQuery listQuery, ComparableExpressionBase<T> orderBy) {
 		Order order = listQuery.getOrder();
 		Long limit = listQuery.getLimit();
@@ -156,8 +142,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeGetDataSourceInfo();
 		} else if(query instanceof GetDatasetInfo) {			
 			return executeGetDatasetInfo((GetDatasetInfo)query);
-		} else if(query instanceof UpdateDataset) {						
-			return executeUpdatedataset((UpdateDataset)query);
 		} else if(query instanceof GetDataSourceStatus) {
 			return executeGetDataSourceStatus();
 		} else if(query instanceof GetJobLog) {
@@ -298,12 +282,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}	
 
-	private Integer getDatasetId(String datasetIdentification) {
-		return query().from(dataset)
-			.where(dataset.identification.eq(datasetIdentification))
-			.singleResult(dataset.id);
-	}	
-
 	private Object executeGetJobLog(GetJobLog query) throws Exception {
 		final SQLQuery baseQuery = query().from(jobLog)
 				.join(jobState).on(jobState.id.eq(jobLog.jobStateId))
@@ -428,37 +406,6 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private BooleanExpression isFinished(QJobState jobState) {
 		return jobState.state.isNull().or(jobState.state.in(enumsToStrings(JobState.getFinished())));
-	}
-	
-	private Object executeUpdatedataset(UpdateDataset uds) {
-		String sourceDatasetIdent = uds.getSourceDatasetIdentification();
-		String datasetIdent = uds.getDatasetIdentification();
-		String datasetName = uds.getDatasetName();
-		final String filterConditions = uds.getFilterConditions ();
-		log.debug("update dataset" + datasetIdent);
-		
-		Integer sourceDatasetId = query().from(sourceDataset)
-				.where(sourceDataset.identification.eq(sourceDatasetIdent))
-				.singleResult(sourceDataset.id);
-
-		update(dataset)
-			.set(dataset.name, datasetName)
-			.set(dataset.sourceDatasetId, sourceDatasetId)
-			.set(dataset.filterConditions, filterConditions)
-			.where(dataset.identification.eq(datasetIdent))
-			.execute();
-			
-		Integer datasetId = getDatasetId(datasetIdent);
-		
-		delete(datasetColumn)
-			.where(datasetColumn.datasetId.eq(datasetId))
-			.execute();
-		
-		insertDatasetColumns(datasetId, uds.getColumnList());
-		
-		log.debug("dataset updated");
-		
-		return new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, datasetIdent);
 	}
 
 	private Object executeGetDatasetInfo(GetDatasetInfo gds) {

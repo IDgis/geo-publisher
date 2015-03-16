@@ -9,7 +9,6 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.UpdateDataset;
 
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 
@@ -128,11 +127,11 @@ public class DatasetStatusTest extends AbstractServiceTest {
 			
 		// remove second column
 		List<Column> newColumns = Arrays.asList(testTable.getColumns().get(0));
-		f.ask(database, new UpdateDataset(
+		updateDataset(
 			"testDataset",
 			"My Test Dataset",
-			"testSourceDataset",
-			newColumns, "")).get();
+			testDataset.getId(),
+			newColumns, "");
 		
 		status = 
 			f.ask(database, 
@@ -145,11 +144,11 @@ public class DatasetStatusTest extends AbstractServiceTest {
 
 		// change source dataset 
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset"))).get();
-		f.ask(database, new UpdateDataset(
+		updateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
-				newColumns, "")).get();
+				newColumns, "");
 		
 		status = 
 			f.ask(database, 
@@ -162,11 +161,11 @@ public class DatasetStatusTest extends AbstractServiceTest {
 		
 		// change filter condition 
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("newSourceDataset"))).get();
-		f.ask(database, new UpdateDataset(
+		updateDataset(
 				"testDataset",
 				"My Test Dataset",
 				"newSourceDataset",
-				newColumns, "fakeFilterCondition")).get();
+				newColumns, "fakeFilterCondition");
 		
 		status = 
 			f.ask(database, 

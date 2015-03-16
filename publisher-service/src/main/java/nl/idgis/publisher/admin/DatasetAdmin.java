@@ -34,7 +34,6 @@ import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoredNotification;
-import nl.idgis.publisher.database.messages.UpdateDataset;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -477,13 +476,44 @@ public class DatasetAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleUpdateDataset(PutDataset putDataset) throws JsonProcessingException {
-		return f.ask(database, new UpdateDataset(
-			putDataset.id(), 
-			putDataset.getDatasetName(),
-			putDataset.getSourceDatasetIdentification(), 
-			putDataset.getColumnList(),
-			objectMapper.writeValueAsString (putDataset.getFilterConditions ())),
-			Response.class).thenApply(resp -> resp);
+		String datasetIdent = putDataset.id();
+		
+		return db.transactional(tx ->
+			tx.query().from(sourceDataset)
+			.where(sourceDataset.identification.eq(putDataset.getSourceDatasetIdentification()))
+			.singleResult(sourceDataset.id).thenCompose(sourceDatasetId -> {
+				if(sourceDatasetId.isPresent()) {
+					try {
+						return tx.update(dataset)							
+							.set(dataset.uuid, UUID.randomUUID().toString())
+							.set(dataset.fileUuid, UUID.randomUUID().toString())
+							.set(dataset.name, putDataset.getDatasetName())
+							.set(dataset.sourceDatasetId, sourceDatasetId.get())
+							.set(dataset.filterConditions, 
+								objectMapper.writeValueAsString(putDataset.getFilterConditions()))
+							.where(dataset.identification.eq(datasetIdent))
+							.execute().thenCompose(updateDataset ->
+								tx.query().from(dataset)
+								.where(dataset.identification.eq(datasetIdent))
+								.singleResult(dataset.id).thenCompose(datasetId -> {
+									if(datasetId.isPresent()) {									
+										return tx.delete(datasetColumn)
+										.where(datasetColumn.datasetId.eq(datasetId.get()))
+										.execute().thenCompose(deleteDatasetColumn ->
+											insertDatasetColumns(tx, datasetId.get(), putDataset.getColumnList()).thenApply(v ->
+												new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent)));
+									} else {
+										return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+									}
+								}));
+					} catch(Exception e) {
+						return f.failed(e);
+					}
+				} else {
+					log.error("sourceDataset not found: " + putDataset.getSourceDatasetIdentification());
+					return f.successful(new Response<String>(CrudOperation.CREATE, CrudResponse.NOK, datasetIdent));
+				}
+			}));
 	}
 
 }

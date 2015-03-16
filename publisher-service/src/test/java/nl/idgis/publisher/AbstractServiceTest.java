@@ -29,7 +29,6 @@ import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.service.manager.ServiceManager;
-import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public abstract class AbstractServiceTest extends AbstractDatabaseTest {
@@ -80,6 +79,43 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 				testDataset.getId(), 
 				testTable.getColumns(), 
 				"{ \"expression\": null }");
+	}
+	
+	protected void updateDataset(String datasetIdentification, String datasetName, 
+			String sourceDatasetIdentification, List<Column> columnList, String filterConditions) {
+		
+		int sourceDatasetId = 
+			query().from(sourceDataset)
+			.where(sourceDataset.identification.eq(sourceDatasetIdentification))
+			.singleResult(sourceDataset.id);
+		
+		int datasetId = 
+			query().from(dataset)
+			.where(dataset.identification.eq(datasetIdentification))
+			.singleResult(dataset.id);
+		
+		update(dataset)			
+			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.fileUuid, UUID.randomUUID().toString())
+			.set(dataset.name, datasetName)
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.filterConditions, filterConditions)
+			.where(dataset.id.eq(datasetId))
+			.execute();
+		
+		delete(datasetColumn)
+			.where(datasetColumn.datasetId.eq(datasetId))
+			.execute();
+		
+		int index = 0;
+		for(Column column : columnList) {
+			insert(datasetColumn)
+				.set(datasetColumn.datasetId, datasetId)
+				.set(datasetColumn.index, index++)
+				.set(datasetColumn.name, column.getName())
+				.set(datasetColumn.dataType, column.getDataType().toString())
+				.execute();
+		}
 	}
 	
 	protected void createDataset(String datasetIdentification, String datasetName, 
