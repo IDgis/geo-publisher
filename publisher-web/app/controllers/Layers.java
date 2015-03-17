@@ -54,7 +54,6 @@ public class Layers extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_LAYER#";
 	
-	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -307,7 +306,6 @@ public class Layers extends GroupsLayersCommon {
 	
 	public static class LayerForm extends TiledLayerForm{
 		
-		
 		private String title;
 		private String abstractText;
 		private List<String> keywords;
@@ -327,7 +325,7 @@ public class Layers extends GroupsLayersCommon {
 		
 		public LayerForm(){
 			super();
-//			this.id = ID;
+			this.id = ID;
 			this.keywords = new ArrayList<String>();
 		}
 		
