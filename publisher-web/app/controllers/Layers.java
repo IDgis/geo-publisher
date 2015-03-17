@@ -49,8 +49,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import controllers.Tiledlayers.TiledLayerForm;
-
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Layers extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
@@ -119,7 +117,7 @@ public class Layers extends GroupsLayersCommon {
 					Logger.debug ("layerStyleList: " + styleIds.toString ());
 					
 					final LayerForm layerForm = form.get ();
-					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
+					final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
 							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
@@ -307,16 +305,8 @@ public class Layers extends GroupsLayersCommon {
 		
 	}
 	
-	
 	public static class LayerForm extends TiledLayerForm{
 		
-		@Constraints.Required
-		private String id;
-		
-//		@Constraints.Required (message = "test")
-		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
-		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
-		private String name;
 		
 		private String title;
 		private String abstractText;
@@ -337,12 +327,12 @@ public class Layers extends GroupsLayersCommon {
 		
 		public LayerForm(){
 			super();
-			this.id = ID;
+//			this.id = ID;
 			this.keywords = new ArrayList<String>();
 		}
 		
 		public LayerForm(Layer layer){
-			this();
+			super(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 			this.id = layer.id();
 			this.name = layer.name();
 			this.title = layer.title();
@@ -352,7 +342,6 @@ public class Layers extends GroupsLayersCommon {
 			this.datasetName = layer.datasetName();
 			this.keywords = layer.getKeywords();
 			this.styleList = layer.styles();
-			this.setTiledLayer(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 			this.enabled = layer.tiledLayer().isPresent();
 		}
 
@@ -416,6 +405,14 @@ public class Layers extends GroupsLayersCommon {
 			this.styleList = styleList;
 		}
 
+		@Constraints.Required
+		private String id;
+		
+//		@Constraints.Required (message = "test")
+		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
+		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
+		private String name;
+
 		public String getStyles() {
 			return styles;
 		}
@@ -450,7 +447,7 @@ public class Layers extends GroupsLayersCommon {
 
 		@Override
 		public String toString() {
-			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
+			return "LayerForm [id=" + getId() + ", name=" + getName() + ", title=" + title + ", abstractText=" + abstractText
 					+ ", keywords=" + keywords + ", published=" + published + ", datasetId=" + datasetId
 					+ ", datasetName=" + datasetName + ", styleList=" + styles + ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
 		}
