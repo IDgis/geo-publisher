@@ -255,6 +255,12 @@ public class DefaultGeoServerRestTest {
 		Workspace workspace = new Workspace("workspace");
 		service.postWorkspace(workspace).get();
 		
+		ServiceSettings serviceSettings = new ServiceSettings("MyTitle", "MyAbstract", Arrays.asList("keyword0", "keyword1", "keyword2"));
+		service.putServiceSettings(workspace, ServiceType.WMS, serviceSettings).get();
+		
+		Document capabilities = h.getCapabilities(workspace.getName(), ServiceType.WMS, "1.3.0");
+		assertEquals("MyTitle", h.getText("//wms:Service/wms:Title", capabilities));
+		
 		WorkspaceSettings workspaceSettings = new WorkspaceSettings("MyContact", "MyOrganization", 
 			"MyPosition", "MyAddressType", "MyAddress", "MyCity", "MyState", "MyZipcode", 
 			"MyCountry", "MyTelephone", "MyFax", "MyEmail");
@@ -274,6 +280,10 @@ public class DefaultGeoServerRestTest {
 		assertEquals("MyTelephone", workspaceSettings.getTelephone());
 		assertEquals("MyFax", workspaceSettings.getFax());
 		assertEquals("MyEmail", workspaceSettings.getEmail());
+		
+		capabilities = h.getCapabilities(workspace.getName(), ServiceType.WMS, "1.3.0");
+		
+		assertEquals("MyTelephone", h.getText("//wms:Service/wms:ContactInformation/wms:ContactVoiceTelephone", capabilities));
 		
 		service.deleteWorkspace(workspace).get();		
 		assertTrue(service.getWorkspaces().get().isEmpty());
