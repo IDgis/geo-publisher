@@ -62,6 +62,7 @@ public class DataSources extends Controller {
 						ObjectNode jsonSourceDataset = Json.newObject();
 						jsonSourceDataset.put("id", sourceDataset.id());
 						jsonSourceDataset.put("name", sourceDataset.name());
+						jsonSourceDataset.put("alternateTitle", sourceDataset.alternateTitle());
 						jsonSourceDataset.put("count", sourceDatasetStats.datasetCount());						
 						
 						jsonSourceDatasets.add(jsonSourceDataset);

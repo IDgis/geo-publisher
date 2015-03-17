@@ -94,9 +94,14 @@ require ([
 				for(var i = 0; i < data.sourceDatasets.length; i++) {
 					var dataset = data.sourceDatasets[i];
 					
+					var caption = dataset.name;
+					if(dataset.alternateTitle) {
+						caption += " / " + dataset.alternateTitle;
+					}
+					
 					domConstruct.create('option', lang.mixin ({
 						value: dataset.id,
-						innerHTML: dataset.name
+						innerHTML: caption
 					}, dataset.id == previousValue ? { selected: 'selected' } : { }), datasetSelect);	
 				}
 				
