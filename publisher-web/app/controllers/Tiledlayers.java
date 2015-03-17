@@ -147,17 +147,17 @@ public class Tiledlayers extends Controller {
 
 		private static final Integer GUTTER_DEFAULT = 0;
 
-		private static final String GIF = "#gif#";
-		private static final String JPG = "#jpg#";
-		private static final String PNG8 = "#png8#";
-		private static final String PNG = "#png#";
+		private static final String GIF  = "image/gif";
+		private static final String JPG  = "image/jpeg";
+		private static final String PNG8 = "image/png; mode=8bit";
+		private static final String PNG  = "image/png";
 		
 		private String id;
 		private TiledLayer tiledLayer;
-		private Boolean png = false;
+		private Boolean png  = false;
 		private Boolean png8 = false;
-		private Boolean jpg = false;
-		private Boolean gif = false;
+		private Boolean jpg  = false;
+		private Boolean gif  = false;
 		private Integer metaWidth = META_WIDTH_DEFAULT;
 		private Integer metaHeight = META_HEIGTH_DEFAULT;
 		private Integer expireCache = EXPIRE_CACHE_DEFAULT;
