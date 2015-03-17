@@ -1,13 +1,9 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
@@ -29,11 +25,8 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.QLayerGroup;
-import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -47,10 +40,9 @@ import akka.actor.Props;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.ConstantImpl;
 import com.mysema.query.types.Path;
 
-public class LayerGroupAdmin extends AbstractAdmin {
+public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
 	private final ActorRef serviceManager;
 	
@@ -245,33 +237,77 @@ public class LayerGroupAdmin extends AbstractAdmin {
 		
 		return db.transactional(tx ->
 			// Check if there is another layergroup with the same id
-			tx.query().from(genericLayer)
-			.where(genericLayer.identification.eq(layergroupId))
-			.singleResult(genericLayer.identification)
-			.thenCompose(msg -> {
-				if (!msg.isPresent()){
-					// INSERT
-					log.debug("Inserting new layergroup with name: " + layergroupName);
-					String identification = UUID.randomUUID().toString();
-					return tx.insert(genericLayer)
-					.set(genericLayer.identification, identification)
-					.set(genericLayer.name, layergroupName)
-					.set(genericLayer.title, theLayergroup.title())
-					.set(genericLayer.abstractCol, theLayergroup.abstractText())
-					.set(genericLayer.published, theLayergroup.published())
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, identification));
-				} else {
-					// UPDATE
-					log.debug("Updating layergroup with name: " + layergroupName + ", id:" + layergroupId);
-					return tx.update(genericLayer)
+			tx.query()
+				.from(genericLayer)
+				.where(genericLayer.identification.eq(layergroupId))
+				.singleResult(genericLayer.id)
+				.thenCompose(glId -> {
+					if (!glId.isPresent()){
+						// INSERT
+						log.debug("Inserting new layergroup with name: " + layergroupName);
+						String newGroupId = UUID.randomUUID().toString();
+						return tx.insert(genericLayer)
+							.set(genericLayer.identification, newGroupId)
+							.set(genericLayer.name, layergroupName)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
 							.set(genericLayer.published, theLayergroup.published())
-					.where(genericLayer.identification.eq(layergroupId))
-					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, layergroupId));
-				}
+							.execute()
+							.thenCompose(
+								n -> {
+									log.debug("Inserted generic_layer: #" + n);
+									return tx
+										.query()
+										.from(genericLayer)
+										.where(genericLayer.identification.eq(newGroupId))
+										.singleResult(genericLayer.id)
+										.thenCompose(
+											glId2 -> {
+												if (theLayergroup.tiledLayer().isPresent()){
+													log.debug("Insert tiledlayer ");
+													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId2.get(), log)
+														.thenApply(whatever ->
+													       	new Response<String>(CrudOperation.CREATE,
+													              CrudResponse.OK, newGroupId));
+												} else {
+													return f.successful( 
+														new Response<String>(CrudOperation.CREATE,
+																CrudResponse.OK, newGroupId));
+												}
+											});
+								});
+					} else {
+						// UPDATE
+						log.debug("Updating layergroup with name: " + layergroupName + ", id:" + layergroupId);
+						return tx.update(genericLayer)
+							.set(genericLayer.title, theLayergroup.title())
+							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.published, theLayergroup.published())
+							.where(genericLayer.identification.eq(layergroupId))
+							.execute()
+							.thenCompose(
+								gl -> {
+									log.debug("updated generic_layer: #" + gl);
+										return tx
+											.delete(tiledLayer)
+											.where(tiledLayer.genericLayerId.eq(glId.get()))
+											.execute()
+											.thenCompose(
+												tlIdOld -> {
+												log.debug("Deleted tiledlayer glId: " + glId.get());
+												if (theLayergroup.tiledLayer().isPresent()){
+													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId.get(), log)
+													    .thenApply(whatever ->
+													        new Response<String>(CrudOperation.UPDATE,
+											                CrudResponse.OK, layergroupId));
+												} else {
+													return f.successful( 
+														new Response<String>(CrudOperation.UPDATE,
+											            CrudResponse.OK, layergroupId));
+												}
+										});
+								});
+					}
 		}));
 	}
 

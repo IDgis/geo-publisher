@@ -37,7 +37,8 @@ public class LayerGroupCommonAdmin extends AbstractAdmin {
 			.executeWithKey(tiledLayer.id)
 			.thenCompose(
 				tlId -> {
-					log.debug("Insert mimeformats ");
+					log.debug("Inserted tilelayer id: " + tlId);
+					log.debug("Insert mimeformats: " + theTiledLayer.mimeformats());
 					return f.sequence(
 						theTiledLayer.mimeformats().stream()
 						    .map(name -> 
