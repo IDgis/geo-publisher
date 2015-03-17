@@ -3,6 +3,7 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -17,8 +18,9 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class TiledLayer extends Identifiable {
-	private static final long serialVersionUID = 3748360159816460138L;
 
+	private static final long serialVersionUID = -2829845147879657871L;
+	
 	private final String name;
 	private final Integer metaWidth;
 	private final Integer metaHeight;
@@ -26,16 +28,19 @@ public class TiledLayer extends Identifiable {
 	private final Integer expireClients;
 	private final Integer gutter;
 	
+	private final List<String> mimeformats;
+	
 	@JsonCreator
 	@QueryProjection
 	public TiledLayer(
-			final @JsonProperty("") String id, 
+			final @JsonProperty("") String id,
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") Integer metaWidth,
 			final @JsonProperty("") Integer metaHeight,
 			final @JsonProperty("") Integer expireCache,
 			final @JsonProperty("") Integer expireClients,
-			final @JsonProperty("") Integer gutter) {
+			final @JsonProperty("") Integer gutter,
+			 List<String> mimeformats) {
 		super(id);
 		this.name = name;
 		this.metaWidth = metaWidth;
@@ -43,7 +48,8 @@ public class TiledLayer extends Identifiable {
 		this.expireCache = expireCache;
 		this.expireClients = expireClients;
 		this.gutter = gutter;
-	}
+		this.mimeformats = mimeformats;
+	}	
 
 	@JsonGetter
 	public String name() {
@@ -73,6 +79,10 @@ public class TiledLayer extends Identifiable {
 	@JsonGetter
 	public Integer gutter() {
 		return gutter;
+	}
+	
+	public List<String> mimeformats() {
+		return mimeformats;
 	}
 
 }

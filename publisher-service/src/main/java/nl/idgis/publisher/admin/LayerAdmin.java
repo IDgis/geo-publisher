@@ -6,14 +6,21 @@ import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 import static nl.idgis.publisher.database.QStyle.style;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
@@ -26,14 +33,20 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.QLayer;
+import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.LoggingAdapter;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.ConstantImpl;
 import com.mysema.query.types.ConstructorExpression;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.Path;
 
 public class LayerAdmin extends AbstractAdmin {
 	
@@ -71,6 +84,7 @@ public class LayerAdmin extends AbstractAdmin {
 				.from(genericLayer)
 				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 				.orderBy (genericLayer.name.asc ());
 		
 		// Add a filter for the query string:
@@ -91,40 +105,126 @@ public class LayerAdmin extends AbstractAdmin {
 		singlePage (listQuery, listLayers.getPage ());
 		
 		return baseQuery
-				.count ()
-				.thenCompose ((count) -> {
-					final Page.Builder<Layer> builder = new Page.Builder<> ();
-					
-					addPageInfo (builder, listLayers.getPage (), count);
-					
-					return listQuery
-						.list (new QLayer(
-								genericLayer.identification, 
-								genericLayer.name, 
-								genericLayer.title,
-								genericLayer.abstractCol, 
-								genericLayer.published, 
-								dataset.identification,
-								dataset.name
-							))
-						.thenApply ((styles) -> {
-							builder.addAll (styles.list ());
-							return builder.build ();
-						});
-				});
+			.count ()
+			.thenCompose ((count) -> {
+				final Page.Builder<Layer> builder = new Page.Builder<> ();
+				
+				addPageInfo (builder, listLayers.getPage (), count);
+				
+				return listQuery
+					.list (
+							genericLayer.identification,
+							genericLayer.name,
+							genericLayer.title,
+							genericLayer.abstractCol,
+							genericLayer.published,
+							dataset.identification,
+							dataset.name,
+							tiledLayer.genericLayerId
+							)
+					.thenApply ((layers) -> {
+						for (Tuple layer : layers.list()) {
+							boolean hasTiledLayer = layer.get(tiledLayer.genericLayerId) != null;
+							log.debug("Layer: " + layer.get(genericLayer.name) + ", tiling = " + hasTiledLayer);
+							builder.add(new Layer(
+									layer.get(genericLayer.identification),
+									layer.get(genericLayer.name),
+									layer.get(genericLayer.title),
+									layer.get(genericLayer.abstractCol),
+									layer.get(genericLayer.published),
+									layer.get(dataset.identification),
+									layer.get(dataset.name),
+									(hasTiledLayer
+										? new TiledLayer(
+											layer.get(genericLayer.identification),
+											layer.get(genericLayer.name),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											null)
+										: null),
+									null, null));
+						}
+						return builder.build ();
+					});
+			});
 	}
 	
 	private CompletableFuture<Optional<Layer>> handleGetLayer (String layerId) {
 		log.debug("handleGetLayer: " + layerId);
+		
+		List<Path<?>> layerColumns = new ArrayList<>();
+		layerColumns.addAll(Arrays.asList(genericLayer.all()));
+		layerColumns.addAll(Arrays.asList(tiledLayer.all()));
+		layerColumns.addAll(Arrays.asList(leafLayer.all()));
+		layerColumns.addAll(Arrays.asList(dataset.all()));
 
-		return db
-			.query()
+		return db.transactional(tx -> 
+			tx.query()
 			.from(genericLayer)
 			.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
+			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layerId))
-			.singleResult(new QLayer(genericLayer.identification, genericLayer.name, genericLayer.title,
-				genericLayer.abstractCol, genericLayer.published, dataset.identification, dataset.name));
+			.singleResult(layerColumns.toArray (new Path<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
+				if(optionalLayer.isPresent()) {
+					Tuple layer = optionalLayer.get();					
+					log.debug("generic layer id: " + layer.get(genericLayer.id));
+					return tx.query()
+						.from(leafLayerKeyword)
+						.where(leafLayerKeyword.leafLayerId.eq(layer.get(leafLayer.id)))
+						.list(leafLayerKeyword.keyword).thenCompose(keywords -> {
+							log.debug("tiled layer   id: " + layer.get(tiledLayer.id));
+							boolean hasTiledLayer = layer.get(tiledLayer.genericLayerId) != null;
+							log.debug("tiled layer glId: " + layer.get(tiledLayer.genericLayerId) + " = " + hasTiledLayer);
+							
+							CompletableFuture<TypedList<String>> mimeformatsQuery;
+							if(hasTiledLayer) {
+								mimeformatsQuery = tx.query()
+								.from(tiledLayerMimeformat)
+								.where(tiledLayerMimeformat.tiledLayerId.eq(layer.get(tiledLayer.id)))
+								.list(tiledLayerMimeformat.mimeformat);
+							} else {
+								mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
+							}
+							
+							return mimeformatsQuery.thenCompose(mimeFormats ->									
+								tx.query()
+								.from(genericLayer)
+								.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
+								.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+								.join(style).on(layerStyle.styleId.eq(style.id))
+								.where(genericLayer.identification.eq(layerId))
+								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+								.thenApply(styles ->
+									Optional.of(new Layer(
+										layer.get(genericLayer.identification),
+										layer.get(genericLayer.name),
+										layer.get(genericLayer.title),
+										layer.get(genericLayer.abstractCol),
+										layer.get(genericLayer.published),
+										layer.get(dataset.identification),
+										layer.get(dataset.name),
+											(hasTiledLayer
+												? new TiledLayer(
+													layer.get(genericLayer.identification),
+													layer.get(genericLayer.name),
+													layer.get(tiledLayer.metaWidth),
+													layer.get(tiledLayer.metaHeight),
+													layer.get(tiledLayer.expireCache),
+													layer.get(tiledLayer.expireClients),
+													layer.get(tiledLayer.gutter),
+													mimeFormats.list())
+												: null)
+										,
+										keywords.list(), styles.list() ))));
+						});
+				} else {
+					return f.successful(Optional.empty());
+				}
+			}));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
@@ -181,12 +281,21 @@ public class LayerAdmin extends AbstractAdmin {
 														.set(leafLayer.genericLayerId, glId.get())
 														.set(leafLayer.datasetId, dsId.get())
 														.execute()
-														.thenApply(
-															l -> new Response<String>(
-																CrudOperation.CREATE,
-																CrudResponse.OK,
-																newLayerId));
-													});
+														.thenCompose(
+															n -> {
+																if (theLayer.tiledLayer().isPresent()){
+																	log.debug("Insert tiledlayer ");
+																	return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+																			.thenApply(whatever ->
+																	        	new Response<String>(CrudOperation.CREATE,
+																	                CrudResponse.OK, newLayerId));
+																} else {
+																	return f.successful( 
+																		new Response<String>(CrudOperation.CREATE,
+															            CrudResponse.OK, newLayerId));
+																}
+															});
+														});
 											});
 									});
 					} else {
@@ -209,24 +318,56 @@ public class LayerAdmin extends AbstractAdmin {
 										.from(genericLayer)
 										.where(genericLayer.identification.eq(layerId))
 										.singleResult(genericLayer.id)
-										/* update of leaflayer is useful when filter and metadata fields are used
 										.thenCompose(
 											glId -> {
-												log.debug("Updating leaf_layer with generic_layer id: " + glId.get());
 												return tx
-													.update(leafLayer)
-													.where(leafLayer.genericLayerId.eq(glId.get()))
+													.delete(tiledLayer)
+													.where(tiledLayer.genericLayerId.eq(glId.get()))
 													.execute()
-										*/
-													.thenApply(
-														l ->  new Response<String>(
-																CrudOperation.UPDATE,
-																CrudResponse.OK,
-																layerId));
-//										});
+													.thenCompose(
+														tlIdOld -> {
+														log.debug("Deleted tiledlayer glId: " + glId.get());
+														if (theLayer.tiledLayer().isPresent()){
+															return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+															    .thenApply(whatever ->
+															        new Response<String>(CrudOperation.UPDATE,
+													                CrudResponse.OK, layerId));
+														} else {
+															return f.successful( 
+																new Response<String>(CrudOperation.UPDATE,
+													            CrudResponse.OK, layerId));
+														}
+												});
+											});
 									});
 						}
 					}));
+	}
+
+	private CompletableFuture<List<Long>> insertTiledLayer(AsyncHelper tx, 
+			TiledLayer theTiledLayer, Integer genericLayerId, LoggingAdapter log) {
+		return tx
+			.insert(tiledLayer)
+			.set(tiledLayer.metaWidth, theTiledLayer.metaWidth())
+			.set(tiledLayer.metaHeight, theTiledLayer.metaHeight())
+			.set(tiledLayer.expireCache, theTiledLayer.expireCache())
+			.set(tiledLayer.expireClients, theTiledLayer.expireClients())
+			.set(tiledLayer.gutter, theTiledLayer.gutter())
+			.set(tiledLayer.genericLayerId, genericLayerId)
+			.executeWithKey(tiledLayer.id)
+			.thenCompose(
+				tlId -> {
+					log.debug("Insert mimeformats ");
+					return f.sequence(
+						theTiledLayer.mimeformats().stream()
+						    .map(name -> 
+						        tx
+					            .insert(tiledLayerMimeformat)
+					            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
+			            		.set(tiledLayerMimeformat.mimeformat, name)
+					            .execute())
+						    .collect(Collectors.toList()));
+			});
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {

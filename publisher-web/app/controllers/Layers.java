@@ -4,10 +4,12 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetLayerServices;
@@ -25,6 +27,7 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.TiledLayer;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -50,7 +53,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class Layers extends GroupsLayersCommon {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_LAYER#";
-	
 	
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -89,28 +91,34 @@ public class Layers extends GroupsLayersCommon {
 							}
 						}
 					}
-					if (form.field("styles").value().length() == 0 ) 
+					if (form.field("styles").value().length() == 0 ) {
+						Logger.debug ("Empty style list");
 						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
+					} else {
+						Logger.debug ("Form style list " + form.field("styles").value());
+						
+					}
+					
 					if (form.hasErrors ()) {
+						Logger.debug ("LayerForm errors " + form.errorsAsJson().toString());
 						return renderCreateForm (form);
 					}
 					// validation end
 					
-					// parse the list of (style.name, style.id) from the json string in the view form
+ 					// parse the list of (style.name, style.id) from the json string in the view form
 					String layerStyleList = form.get().getStyles();
-					final ObjectNode result = Json.newObject ();
-					final JsonNode result2 = Json.parse(layerStyleList);
 					
-					final List<String> styleIds = new ArrayList<> ();
+ 					final List<String> styleIds = new ArrayList<> ();
 					for (final JsonNode n: Json.parse (layerStyleList)) {
 						// get only the second element (style.id)
 						styleIds.add (n.get (1).asText ());
-					}
+ 					}
 					Logger.debug ("layerStyleList: " + styleIds.toString ());
 					
 					final LayerForm layerForm = form.get ();
-					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
-							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName);
+					final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
+							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
+							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
@@ -194,6 +202,8 @@ public class Layers extends GroupsLayersCommon {
 		LayerForm layerForm = new LayerForm ();
 		// The list of styles for this layer is initially empty
 		layerForm.setStyleList(new ArrayList<Style>());
+		// set mimeformats to default
+		layerForm.setMimeFormats(null);
 		
 		return from (database)
 				.get (Dataset.class, datasetId)
@@ -210,7 +220,7 @@ public class Layers extends GroupsLayersCommon {
 					}
 				});
 	}
-	
+
 	public static Promise<Result> edit (final String layerId) {
 		Logger.debug ("edit Layer: " + layerId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -218,46 +228,42 @@ public class Layers extends GroupsLayersCommon {
 		return from (database)
 			.get (Layer.class, layerId)
 			.query (new ListStyles (1l, null))
-			.query(new ListLayerStyles(layerId))
-			.query(new ListLayerKeywords(layerId))
 			.query(new GetLayerServices(layerId))
-			.executeFlat (new Function5<Layer, Page<Style>, List<Style>, List<String>, List<String>, Promise<Result>> () {
+			.executeFlat (new Function3<Layer, Page<Style>, List<String>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<Style> layerStyles, final List<String> keywords, final List<String> serviceIds) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds) throws Throwable {
 					String serviceId;
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
 					} else {
-						Logger.debug ("Services for layer: " + layer.name() + " # " + serviceIds.size());								
+						Logger.debug ("Services for layer " + layer.name() + ": # " + serviceIds.size());								
 						// get the first service in the list for preview
 						serviceId=serviceIds.get(0);
 					}
 					return from (database)
-							.get(Dataset.class, layer.datasetId())
 							.get(Service.class, serviceId)
-							.execute (new Function2<Dataset, Service, Result> () {
+							.execute (new Function<Service, Result> () {
 
 							@Override
-							public Result apply (final Dataset dataset, final Service service) throws Throwable {
-									
-								LayerForm layerForm = new LayerForm (layer);
-								layerForm.setKeywords(keywords);
-								if (layerStyles==null){
-									layerForm.setStyleList(new ArrayList<Style>());
-								} else {
-									layerForm.setStyleList(layerStyles);						
-								}
-								layerForm.setDatasetId(dataset.id());
-								layerForm.setDatasetName(dataset.name());
+							public Result apply (final Service service) throws Throwable {
 								
+								LayerForm layerForm = new LayerForm (layer);
+								Logger.debug ("tiledlayer present: " + layer.tiledLayer().isPresent() + ", enabled: " + layerForm.getEnabled());
+								
+								List<Style> layerStyles ;
+								if (layer.styles() == null){ 
+									layerStyles = new ArrayList<Style>();
+								} else {
+									layerStyles = layer.styles(); 
+								}
+								layerForm.setStyleList(layerStyles);
+									
 								final Form<LayerForm> formLayerForm = Form
 										.form (LayerForm.class)
 										.fill (layerForm);
 								
 								Logger.debug ("Edit layerForm: " + layerForm);						
-								Logger.debug ("allStyles: #" + allStyles.values().size());
-								Logger.debug ("layerStyles: #" + layerStyles.size());
 								
 								// build a json string with list of styles (style.name, style.id) 
 								final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
@@ -266,8 +272,11 @@ public class Layers extends GroupsLayersCommon {
 									styleNode.add (style.name ());
 									styleNode.add (style.id ());
 								}					
-								final String layerStyleListString = Json.stringify (arrayNode);
 								
+								final String layerStyleListString = Json.stringify (arrayNode);
+								Logger.debug ("allStyles: #" + allStyles.values().size());
+								Logger.debug ("layerStyles: #" + layerStyles.size());
+								Logger.debug ("layerStyles List: " + layerStyleListString);
 								// build a layer preview string
 								final String previewUrl ;
 								if (service==null){
@@ -297,17 +306,16 @@ public class Layers extends GroupsLayersCommon {
 		
 	}
 	
-	
-	public static class LayerForm {
+	public static class LayerForm extends TiledLayerForm{
 		
 		@Constraints.Required
 		private String id;
 		
-		@Constraints.Required (message = "test")
+		@Constraints.Required (message = "web.application.page.layers.form.field.name.validation.required")
 		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
 		private String name;
-		
+
 		private String title;
 		private String abstractText;
 		private List<String> keywords;
@@ -315,14 +323,16 @@ public class Layers extends GroupsLayersCommon {
 		private String datasetId;
 		private String datasetName;
 		/**
-		 * List of all styles in the system
+		 * List of styles in this layer
 		 */
 		private List<Style> styleList;
 		/**
-		 * String that contains all styles of this layer in json format 
+		 * Json array of all styles in the layer
 		 */
 		private String styles;
+		private Boolean enabled = false;
 
+		
 		public LayerForm(){
 			super();
 			this.id = ID;
@@ -330,6 +340,7 @@ public class Layers extends GroupsLayersCommon {
 		}
 		
 		public LayerForm(Layer layer){
+			super(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 			this.id = layer.id();
 			this.name = layer.name();
 			this.title = layer.title();
@@ -337,10 +348,13 @@ public class Layers extends GroupsLayersCommon {
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
+			this.keywords = layer.getKeywords();
+			this.styleList = layer.styles();
+			this.enabled = layer.tiledLayer().isPresent();
 		}
 
 		public String getId() {
-			return id;
+			return this.id;
 		}
 
 		public void setId(String id) {
@@ -348,7 +362,7 @@ public class Layers extends GroupsLayersCommon {
 		}
 
 		public String getName() {
-			return name;
+			return this.name;
 		}
 
 		public void setName(String name) {
@@ -395,7 +409,7 @@ public class Layers extends GroupsLayersCommon {
 			return styleList;
 		}
 
-		public void setStyleList(List<Style> styleList) {
+		public void setStyleList(List<Style> styles) {
 			this.styleList = styleList;
 		}
 
@@ -423,14 +437,20 @@ public class Layers extends GroupsLayersCommon {
 			this.datasetId = datasetId;
 		}
 
-		@Override
-		public String toString() {
-			
-			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
-					+ ", keywords=" + keywords + ", published=" + published + ", styleList=" + styleList + ", styles="
-					+ styles + "]";
+		public Boolean getEnabled() {
+			return enabled;
 		}
 
+		public void setEnabled(Boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		@Override
+		public String toString() {
+			return "LayerForm [id=" + getId() + ", name=" + getName() + ", title=" + title + ", abstractText=" + abstractText
+					+ ", keywords=" + keywords + ", published=" + published + ", datasetId=" + datasetId
+					+ ", datasetName=" + datasetName + ", styleList=" + styles + ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
+		}
 		
 	}
 }

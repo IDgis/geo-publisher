@@ -106,6 +106,8 @@ web.application.form.globalerrors.header=Validatiefouten
 
 web.application.page.list.published=gepubliceerd
 web.application.page.list.notpublished=niet gepubliceerd
+web.application.page.list.tiled=getiled
+web.application.page.list.nottiled=niet getiled
 
 # Widgets
 web.application.button.ok=Ok
@@ -446,6 +448,7 @@ web.application.page.layers.form.field.name.placeholder=Naam
 web.application.page.layers.form.field.name.help=De naam voor de laag
 web.application.page.layers.form.field.name.validation.error=De volgende karakters zijn toegestaan: a-z, 0-9, - en _ (geen spaties). Naam moet beginnen met een letter.
 web.application.page.layers.form.field.name.validation.length=Naam moet bestaan uit tenminste {0} karakter(s).
+web.application.page.layers.form.field.name.validation.required=Geef een naam op.
 web.application.page.layers.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
 web.application.page.layers.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
 
