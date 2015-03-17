@@ -15,7 +15,7 @@
 	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
 }
 
-@statusLink(status: DatasetStatus.Value, message: String) = {
+@statusLink(status: DatasetStatusType, message: String) = {
 	@defining(DatasetStatus.bind(status)) { boundStatus =>		
 		<li@if(boundStatus == currentDatasetStatus){ class="active"}>
 			@if(boundStatus == null) {
@@ -114,9 +114,9 @@
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
 									@statusLink(null, "web.application.page.datasets.list.status.all")									
-									@statusLink(DatasetStatus.Value.IMPORTED, "web.application.page.datasets.list.status.imported")
-									@statusLink(DatasetStatus.Value.WITH_MESSAGES, "web.application.page.datasets.list.status.structuralchange")									
-									@statusLink(DatasetStatus.Value.FAILURE, "web.application.page.datasets.list.status.importerrors")
+									@statusLink(DatasetStatusType.IMPORTED, "web.application.page.datasets.list.status.imported")
+									@statusLink(DatasetStatusType.WITH_MESSAGES, "web.application.page.datasets.list.status.structuralchange")									
+									@statusLink(DatasetStatusType.FAILURE, "web.application.page.datasets.list.status.importerrors")
 								</ul>
 							</div>
 						</div>

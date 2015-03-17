@@ -1,6 +1,7 @@
 @(notifications: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Notification])
 
 @import controllers.Datasets.DatasetStatus
+@import nl.idgis.publisher.domain.web.DatasetStatusType
 
 <div class="panel @if(notifications.values.isEmpty){panel-success}else{panel-info}">
 	<div class="panel-heading">
@@ -38,7 +39,7 @@
 			</a>
 		}
 	</div>
-	<a href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatus.Value.WITH_MESSAGES))">
+	<a href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatusType.WITH_MESSAGES))">
 		<div class="panel-footer">
 			<div class="row">
 				<div class="col-xs-10">

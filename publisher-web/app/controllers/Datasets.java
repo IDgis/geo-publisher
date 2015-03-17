@@ -32,6 +32,7 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
+import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
@@ -525,16 +526,9 @@ public class Datasets extends Controller {
 		return new Filter (orExpression);
 	}
 	
-	public static class DatasetStatus extends EnumPathBindable<DatasetStatus.Value, DatasetStatus> {
-
-		public static enum Value {
+	public static class DatasetStatus extends EnumPathBindable<DatasetStatusType, DatasetStatus> {		
 		
-			WITH_MESSAGES,
-			IMPORTED,
-			FAILURE;
-		}
-		
-		public static DatasetStatus bind(Value value) {
+		public static DatasetStatus bind(DatasetStatusType value) {
 			if(value == null) {
 				return null;
 			}
@@ -546,12 +540,12 @@ public class Datasets extends Controller {
 			this(null);
 		}
 		
-		public DatasetStatus(Value value) {
-			super(value, DatasetStatus.Value.class);
+		public DatasetStatus(DatasetStatusType value) {
+			super(value, DatasetStatusType.class);
 		}
 
 		@Override
-		protected DatasetStatus valueOf(Value value) {
+		protected DatasetStatus valueOf(DatasetStatusType value) {
 			return new DatasetStatus(value);
 		}
 	}

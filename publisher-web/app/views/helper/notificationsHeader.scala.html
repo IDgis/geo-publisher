@@ -1,6 +1,7 @@
 @(notifications: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Notification])
 
 @import controllers.Datasets.DatasetStatus
+@import nl.idgis.publisher.domain.web.DatasetStatusType
 
 <li class="dropdown-header">
 	@if(notifications.values.isEmpty){
@@ -27,5 +28,5 @@
 }
 <li class="divider"></li>
 <li>
-	<a class="text-center" href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatus.Value.WITH_MESSAGES))">@Domain.message("web.application.page.dashboard.alldatasetswitherrors") <span class="glyphicon glyphicon-chevron-right"></span></a> 
+	<a class="text-center" href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatusType.WITH_MESSAGES))">@Domain.message("web.application.page.dashboard.alldatasetswitherrors") <span class="glyphicon glyphicon-chevron-right"></span></a> 
 </li>
