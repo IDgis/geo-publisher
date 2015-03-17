@@ -814,6 +814,11 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						sw.writeEndElement();
 					}						
 				sw.writeEndElement();
+				
+				sw.writeStartElement("charset");
+					sw.writeCharacters("UTF-8");
+				sw.writeEndElement();
+				
 			sw.writeEndElement();
 			
 			sw.writeEndDocument();
