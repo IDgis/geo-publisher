@@ -97,13 +97,16 @@ public class StyleAdmin extends AbstractAdmin {
 				if (!msg.isPresent()){
 					// INSERT
 					log.debug("Inserting new style with name: " + styleName);
+					
+					String newStyleId = UUID.randomUUID().toString();
+					
 					return tx.insert(style)
-					.set(style.identification, UUID.randomUUID().toString())
+					.set(style.identification, newStyleId)
 					.set(style.name, styleName)
 					.set(style.definition, theStyle.definition())
 					.set(style.styleType, theStyle.styleType().name())
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, styleName));
+					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newStyleId));
 				} else {
 					// UPDATE
 					log.debug("Updating style with name: " + styleName);
@@ -112,7 +115,7 @@ public class StyleAdmin extends AbstractAdmin {
 					.set(style.styleType, theStyle.styleType().name())
 					.where(style.identification.eq(styleId))
 					.execute()
-					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, styleName));
+					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, styleId));
 				}
 		}));
 	}
