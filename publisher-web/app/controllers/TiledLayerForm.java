@@ -24,10 +24,10 @@ public class TiledLayerForm {
 	private static final Boolean GIF_DEFAULT  = false;
 
 	private TiledLayer tiledLayer;
-	private Boolean png  = PNG_DEFAULT;
-	private Boolean png8 = PNG8_DEFAULT;
-	private Boolean jpg  = JPG_DEFAULT;
-	private Boolean gif  = GIF_DEFAULT;
+	private Boolean png  = false;
+	private Boolean png8 = false;
+	private Boolean jpg  = false;
+	private Boolean gif  = false;
 	private Integer metaWidth     = META_WIDTH_DEFAULT;
 	private Integer metaHeight    = META_HEIGTH_DEFAULT;
 	private Integer expireCache   = EXPIRE_CACHE_DEFAULT;
@@ -77,16 +77,22 @@ public class TiledLayerForm {
 	}
 
 	public void setMimeFormats(List<String> mimeFormats) {
-		setPng(PNG_DEFAULT);
-		setPng8(PNG8_DEFAULT);
-		setJpg(JPG_DEFAULT);
-		setGif(GIF_DEFAULT);
-		if (mimeFormats==null) return;
-		for (String string : mimeFormats) {
-			if (string.equals(PNG)) setPng(true);
-			if (string.equals(PNG8)) setPng8(true);
-			if (string.equals(JPG)) setJpg(true);
-			if (string.equals(GIF)) setGif(true);
+		if (mimeFormats==null){ 
+			setPng(PNG_DEFAULT);
+			setPng8(PNG8_DEFAULT);
+			setJpg(JPG_DEFAULT);
+			setGif(GIF_DEFAULT);
+		} else {
+			setPng(false);
+			setPng8(false);
+			setJpg(false);
+			setGif(false);
+			for (String string : mimeFormats) {
+				if (string.equals(PNG)) setPng(true);
+				if (string.equals(PNG8)) setPng8(true);
+				if (string.equals(JPG)) setJpg(true);
+				if (string.equals(GIF)) setGif(true);
+			}
 		}
 	}
 

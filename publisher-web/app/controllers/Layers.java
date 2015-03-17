@@ -202,6 +202,8 @@ public class Layers extends GroupsLayersCommon {
 		LayerForm layerForm = new LayerForm ();
 		// The list of styles for this layer is initially empty
 		layerForm.setStyleList(new ArrayList<Style>());
+		// set mimeformats to default
+		layerForm.setMimeFormats(null);
 		
 		return from (database)
 				.get (Dataset.class, datasetId)
