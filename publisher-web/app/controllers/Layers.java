@@ -306,6 +306,14 @@ public class Layers extends GroupsLayersCommon {
 	
 	public static class LayerForm extends TiledLayerForm{
 		
+		@Constraints.Required
+		private String id;
+		
+		@Constraints.Required (message = "web.application.page.layers.form.field.name.validation.required")
+		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
+		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
+		private String name;
+
 		private String title;
 		private String abstractText;
 		private List<String> keywords;
@@ -402,14 +410,6 @@ public class Layers extends GroupsLayersCommon {
 		public void setStyleList(List<Style> styles) {
 			this.styleList = styleList;
 		}
-
-		@Constraints.Required
-		private String id;
-		
-//		@Constraints.Required (message = "test")
-		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
-		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
-		private String name;
 
 		public String getStyles() {
 			return styles;
