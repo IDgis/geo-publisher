@@ -107,10 +107,9 @@
 						@Domain.message("web.application.page.datasets.list.alert.nodatasets")Er zijn geen datasets gevonden die voldoen aan de criteria. 
 					</div>
 				} else {
-				<div class="list-group" id="dataset-list">
-				
-					@if(!onlyWithMessages) {
-						@for(dataset <- datasets.values) {
+				<div class="list-group" id="dataset-list">				
+					
+					@for(dataset <- datasets.values) {
 						<div class="list-group-item js-dataset-item@if(!dataset.activeNotifications.isEmpty){ list-group-item-warning}" 
 							data-dataset-id="@dataset.id"
 							data-dataset-name="@dataset.name"
@@ -160,39 +159,7 @@
 								</div>
 							</div>
 						</div>
-						}
-					}
-					
-					@if(onlyWithMessages) {
-					<div class="list-group-item list-group-item-warning">
-						<div class="row">
-							<div class="col-md-5">
-								<h4 class="list-group-item-heading">Sterrenwachten</h4>
-								
-								<span class="label label-info">Milieu</span>
-							</div>
-							<div class="col-md-5">
-								<p>
-									<span class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> Structuurwijziging in de brongegevens</span>
-								</p>
-								<p>
-									<span class="text-success"><span class="glyphicon glyphicon-ok-circle"></span> Laatst bijgewerkt: <strong>16-07-2014 15:54</strong></span>
-								</p>
-								<p>
-									<a href="#">Logboek ...</a>
-								</p>
-							</div>
-							<div class="col-md-2">
-								<div class="btn-group pull-right">
-										<a href="#" class="btn btn-default" title="@Domain.message("web.application.page.datasets.list.button.edit")"><span class="glyphicon glyphicon-edit"></span></a>
-										<a href="#" class="btn btn-default js-dataset-refresh" title="@Domain.message("web.application.page.datasets.list.button.refresh")"><span class="js-icon glyphicon glyphicon-refresh"></span></a>
-										<a href="#" class="btn btn-warning" title="@Domain.message("web.application.page.datasets.list.button.remove")"><span class="glyphicon glyphicon-remove"></span></a>
-								</div>
-							</div>
-						</div>
-					</div>
-					}
-										
+					}										
 					
 				</div>
 				
