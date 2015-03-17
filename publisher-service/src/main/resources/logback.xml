@@ -12,9 +12,9 @@
   	<logger name="nl.idgis.publisher.dataset" level="debug"/>
   -->
  
-  
+   <!-- 
   	<logger name="nl.idgis.publisher.admin" level="debug"/>
- 
+  -->
 
   <!-- 
   	<logger name="nl.idgis.publisher.admin.JobCreator" level="debug"/>

@@ -16,7 +16,7 @@ public class SourceDatasetInfo implements Serializable {
 	private static final long serialVersionUID = 1483600283295264723L;
 	
 	private String dataSourceId, dataSourceName;
-	private final String id, name;
+	private final String id, name, alternateTitle;
 	private final String categoryId, categoryName;
 	private Long count;
 	private SourceDatasetType type;
@@ -26,7 +26,7 @@ public class SourceDatasetInfo implements Serializable {
 	private Timestamp lastLogTime;
 
 	@QueryProjection
-	public SourceDatasetInfo(String id, String name, String dataSourceId,
+	public SourceDatasetInfo(String id, String name, String alternateTitle, String dataSourceId,
 			String dataSourceName, String categoryId, String categoryName,
 			Long count, final String type,
 			final String lastLogType,
@@ -40,6 +40,7 @@ public class SourceDatasetInfo implements Serializable {
 		
 		this.id = id;
 		this.name = name;
+		this.alternateTitle = alternateTitle;
 		this.dataSourceId = dataSourceId;
 		this.dataSourceName = dataSourceName;
 		this.categoryId = categoryId;
@@ -78,6 +79,10 @@ public class SourceDatasetInfo implements Serializable {
 
 	public String getName() {
 		return name;
+	}
+	
+	public String getAlternateTitle() {
+		return alternateTitle;
 	}
 
 	public String getCategoryId() {

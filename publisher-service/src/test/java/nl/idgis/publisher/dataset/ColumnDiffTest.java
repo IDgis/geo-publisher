@@ -140,6 +140,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		VectorDataset newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
 			testSourceDataset.getName(),
+			testSourceDataset.getAlternateTitle(),
 			testSourceDataset.getCategoryId(),			
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),
@@ -172,6 +173,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),
 			testSourceDataset.getName(),
+			testSourceDataset.getAlternateTitle(),
 			testSourceDataset.getCategoryId(),			
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),

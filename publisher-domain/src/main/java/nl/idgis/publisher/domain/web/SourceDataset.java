@@ -10,7 +10,7 @@ public final class SourceDataset extends Identifiable {
 
 	private static final long serialVersionUID = 3117616774767959933L;
 	
-	private final String name;
+	private final String name, alternateTitle;
 	private final EntityRef category;
 	private final EntityRef dataSource;
 	private final SourceDatasetType	type;
@@ -18,7 +18,8 @@ public final class SourceDataset extends Identifiable {
 	@JsonCreator
 	public SourceDataset (
 			final @JsonProperty("id") String id, 
-			final @JsonProperty("name") String name, 
+			final @JsonProperty("name") String name,
+			final @JsonProperty("alternateTitle") String alternateTitle, 
 			final @JsonProperty("category") EntityRef category,
 			final @JsonProperty("dataSource") EntityRef dataSource,
 			final @JsonProperty("type") SourceDatasetType type) {
@@ -29,6 +30,7 @@ public final class SourceDataset extends Identifiable {
 		}
 		
 		this.name = name;
+		this.alternateTitle = alternateTitle;
 		this.category = category;
 		this.dataSource = dataSource;
 		this.type = type;
@@ -37,6 +39,11 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public String name () {
 		return this.name;
+	}
+	
+	@JsonGetter
+	public String alternateTitle () {
+		return this.alternateTitle;
 	}
 	
 	@JsonGetter

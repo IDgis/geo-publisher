@@ -9,14 +9,16 @@ public final class UnavailableDataset extends Dataset {
 
 	private static final long serialVersionUID = -3885288497540653870L;
 
-	public UnavailableDataset(String id, String name, String categoryId, Date revisionDate, Set<Log> logs) {
-		super(id, name, categoryId, revisionDate, logs);
+	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs);
 	}
 
 	@Override
 	public String toString() {
 		return "UnavailableDataset [id=" + id + ", name=" + name
-				+ ", categoryId=" + categoryId + ", revisionDate="
-				+ revisionDate + ", logs=" + logs + "]";
-	}	
+				+ ", alternateTitle=" + alternateTitle + ", categoryId="
+				+ categoryId + ", revisionDate=" + revisionDate + ", logs="
+				+ logs + "]";
+	}
+
 }

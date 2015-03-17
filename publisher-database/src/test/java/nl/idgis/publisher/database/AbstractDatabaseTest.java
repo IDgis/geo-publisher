@@ -188,7 +188,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new VectorDataset(id, "My Test Table", "testCategory", revision, Collections.<Log>emptySet(), table);		
+		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), table);		
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -201,7 +201,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new UnavailableDataset(id, "My Test Table", "testCategory", revision, logs);		
+		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs);		
 	}
 	
 	protected ExecutionContext dispatcher() {

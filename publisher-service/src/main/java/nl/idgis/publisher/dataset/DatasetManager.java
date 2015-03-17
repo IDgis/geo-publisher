@@ -140,6 +140,7 @@ public class DatasetManager extends UntypedActor {
 					.singleResult(
 						sourceDataset.identification,
 						sourceDatasetVersion.name,
+						sourceDatasetVersion.alternateTitle,
 						sourceDatasetVersion.type,
 						category.identification,
 						sourceDatasetVersion.revision))
@@ -161,6 +162,7 @@ public class DatasetManager extends UntypedActor {
 						
 						String id = baseInfo.get(sourceDataset.identification);
 						String name = baseInfo.get(sourceDatasetVersion.name);
+						String alternateTitle = baseInfo.get(sourceDatasetVersion.alternateTitle);
 						String type = baseInfo.get(sourceDatasetVersion.type);
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
@@ -204,6 +206,7 @@ public class DatasetManager extends UntypedActor {
 								dataset = new VectorDataset(
 									id, 
 									name,
+									alternateTitle,
 									categoryId, 
 									revisionDate, 
 									logs, 
@@ -213,6 +216,7 @@ public class DatasetManager extends UntypedActor {
 								dataset = new UnavailableDataset(	
 									id,
 									name,
+									alternateTitle,
 									categoryId,
 									revisionDate,
 									logs);
@@ -286,11 +290,13 @@ public class DatasetManager extends UntypedActor {
 			}
 			
 			String name = dataset.getName();
+			String alternateTitle = dataset.getAlternateTitle();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.type, type)
-				.set(sourceDatasetVersion.name, name)				
+				.set(sourceDatasetVersion.name, name)		
+				.set(sourceDatasetVersion.alternateTitle, alternateTitle)
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.set(sourceDatasetVersion.revision, revision)
 				.executeWithKey(sourceDatasetVersion.id);
