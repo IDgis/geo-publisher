@@ -1,11 +1,19 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,19 +29,26 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.QLayerGroup;
+import nl.idgis.publisher.domain.web.QStyle;
+import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedIterable;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.ConstantImpl;
+import com.mysema.query.types.Path;
 
 public class LayerGroupAdmin extends AbstractAdmin {
 	
@@ -103,6 +118,7 @@ public class LayerGroupAdmin extends AbstractAdmin {
 			.from(genericLayer)
 			.leftJoin(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(service).on(genericLayer.id.eq(service.genericLayerId))
+			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(leafLayer.genericLayerId.isNull().and(service.genericLayerId.isNull()))
 			.orderBy (genericLayer.name.asc ());
 
@@ -131,32 +147,95 @@ public class LayerGroupAdmin extends AbstractAdmin {
 					addPageInfo (builder, listLayerGroups.getPage (), count);
 					
 					return listQuery
-						.list (new QLayerGroup(
-								genericLayer.identification,
-								genericLayer.name,
-								genericLayer.title, 
-								genericLayer.abstractCol,
-								genericLayer.published
-							))
-						.thenApply ((styles) -> {
-							builder.addAll (styles.list ());
+						.list (
+							genericLayer.identification,
+							genericLayer.name,
+							genericLayer.title,
+							genericLayer.abstractCol,
+							genericLayer.published,
+							tiledLayer.genericLayerId
+						)
+						.thenApply ((groups) -> {
+							for (Tuple group : groups.list()) {
+								boolean hasTiledLayer = group.get(tiledLayer.genericLayerId) != null;
+								log.debug("Group: " + group.get(genericLayer.name) + ", tiling = " + hasTiledLayer);
+								builder.add(new LayerGroup(
+										group.get(genericLayer.identification),
+										group.get(genericLayer.name),
+										group.get(genericLayer.title),
+										group.get(genericLayer.abstractCol),
+										group.get(genericLayer.published),
+										(hasTiledLayer
+											? new TiledLayer(
+												group.get(genericLayer.identification),
+												group.get(genericLayer.name),
+												group.get(null),
+												group.get(null),
+												group.get(null),
+												group.get(null),
+												group.get(null),
+												null)
+											: null)
+										));
+							}
 							return builder.build ();
 						});
 				});
 	}
 	
 	private CompletableFuture<Optional<LayerGroup>> handleGetLayergroup (String layergroupId) {
-		log.debug ("handleGetLayergroup: " + layergroupId);
-		return 
-			db.query().from(genericLayer)
+		log.debug("handleGetLayergroup: " + layergroupId);
+		
+		List<Path<?>> groupColumns = new ArrayList<>();
+		groupColumns.addAll(Arrays.asList(genericLayer.all()));
+		groupColumns.addAll(Arrays.asList(tiledLayer.all()));
+
+		return db.transactional(tx -> 
+			tx.query()
+			.from(genericLayer)
+			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layergroupId))
-			.singleResult(new QLayerGroup(
-					genericLayer.identification,
-					genericLayer.name,
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					genericLayer.published
-			));		
+			.singleResult(groupColumns.toArray (new Path<?>[groupColumns.size ()])).thenCompose(optionalGroup -> {
+				if(optionalGroup.isPresent()) {
+					Tuple group = optionalGroup.get();					
+					log.debug("generic layer id: " + group.get(genericLayer.id));
+						log.debug("tiled layer   id: " + group.get(tiledLayer.id));
+						boolean hasTiledLayer = group.get(tiledLayer.genericLayerId) != null;
+						log.debug("tiled layer glId: " + group.get(tiledLayer.genericLayerId) + " = " + hasTiledLayer);
+						
+						CompletableFuture<TypedList<String>> mimeformatsQuery;
+						if(hasTiledLayer) {
+							mimeformatsQuery = tx.query()
+							.from(tiledLayerMimeformat)
+							.where(tiledLayerMimeformat.tiledLayerId.eq(group.get(tiledLayer.id)))
+							.list(tiledLayerMimeformat.mimeformat);
+						} else {
+							mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
+						}
+						
+						return mimeformatsQuery.thenApply(mimeFormats ->	
+							Optional.of(new LayerGroup(
+								group.get(genericLayer.identification),
+								group.get(genericLayer.name),
+								group.get(genericLayer.title),
+								group.get(genericLayer.abstractCol),
+								group.get(genericLayer.published),
+									(hasTiledLayer
+										? new TiledLayer(
+											group.get(genericLayer.identification),
+											group.get(genericLayer.name),
+											group.get(tiledLayer.metaWidth),
+											group.get(tiledLayer.metaHeight),
+											group.get(tiledLayer.expireCache),
+											group.get(tiledLayer.expireClients),
+											group.get(tiledLayer.gutter),
+											mimeFormats.list())
+										: null)
+								)));
+				} else {
+					return f.successful(Optional.empty());
+				}
+			}));
 	}
 	
 	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup theLayergroup) {
