@@ -1,7 +1,9 @@
+@import controllers.Datasets.DatasetStatus
+
 @(datasets: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Dataset], 
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentCategory: nl.idgis.publisher.domain.web.Category,
-	onlyWithMessages: Boolean = false)
+	currentDatasetStatus: DatasetStatus = null)
 
 @import nl.idgis.publisher.domain.web._
 
@@ -11,6 +13,28 @@
 
 @categoryLink(cat: Category, cls: String = null) = {
 	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+}
+
+@statusLink(status: DatasetStatus.Value, message: String) = {
+	@defining(DatasetStatus.bind(status)) { boundStatus =>		
+		<li@if(boundStatus == currentDatasetStatus){ class="active"}>
+			@if(boundStatus == null) {
+				@if(currentCategory == null) {
+					<a href="@routes.Datasets.list()">
+				} else {
+					<a href="@routes.Datasets.listByCategory(currentCategory.id)">
+				}
+			} else {
+				@if(currentCategory == null) {
+					<a href="@routes.Datasets.listByStatus(boundStatus)">
+				} else {
+					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus)">
+				}			
+			}
+			@Domain.message(message)
+			</a>
+		</li>
+	} 
 }
 
 @allCategoriesLink() = {
@@ -89,9 +113,10 @@
 						<div id="collapse-filter-status" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li><a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.status.imported")</a></li>
-									<li@if(onlyWithMessages){ class="active"}><a href="@routes.Datasets.listWithMessages()">@Domain.message("web.application.page.datasets.list.status.structuralchange")</a></li>
-									<li><a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.status.importerrors")</a></li>
+									@statusLink(null, "web.application.page.datasets.list.status.all")									
+									@statusLink(DatasetStatus.Value.IMPORTED, "web.application.page.datasets.list.status.imported")
+									@statusLink(DatasetStatus.Value.WITH_MESSAGES, "web.application.page.datasets.list.status.structuralchange")									
+									@statusLink(DatasetStatus.Value.FAILURE, "web.application.page.datasets.list.status.importerrors")
 								</ul>
 							</div>
 						</div>
