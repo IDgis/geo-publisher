@@ -19,7 +19,7 @@ public class TiledLayerForm {
 	private static final String PNG  = "image/png";
 	
 	private TiledLayer tiledLayer;
-	private Boolean png  = false;
+	private Boolean png  = true;
 	private Boolean png8 = false;
 	private Boolean jpg  = false;
 	private Boolean gif  = false;
