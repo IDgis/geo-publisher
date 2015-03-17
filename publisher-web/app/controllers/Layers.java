@@ -94,27 +94,34 @@ public class Layers extends GroupsLayersCommon {
 							}
 						}
 					}
-					if (form.field("styles").value().length() == 0 ) 
+					if (form.field("styles").value().length() == 0 ) {
+						Logger.debug ("Empty style list");
 						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
+					} else {
+						Logger.debug ("Form style list " + form.field("styles").value());
+						
+					}
+					
 					if (form.hasErrors ()) {
+						Logger.debug ("LayerForm errors " + form.errorsAsJson().toString());
 						return renderCreateForm (form);
 					}
 					// validation end
 					
-					// parse the list of (style.name, style.id) from the json string in the view form
-					final List<String> styleIds = new ArrayList<> ();
-					List<Style> layerStyleList = form.get().getStyles();
-					for (Style style : layerStyleList) {
-						styleIds.add (style.definition());
-						
-					}
+ 					// parse the list of (style.name, style.id) from the json string in the view form
+					String layerStyleList = form.get().getStyles();
 					
-						Logger.debug ("layerStyleList: " + styleIds.toString ());
+ 					final List<String> styleIds = new ArrayList<> ();
+					for (final JsonNode n: Json.parse (layerStyleList)) {
+						// get only the second element (style.id)
+						styleIds.add (n.get (1).asText ());
+ 					}
+					Logger.debug ("layerStyleList: " + styleIds.toString ());
 					
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
-							layerForm.getTiledLayer(), layerForm.getKeywords(), layerForm.getStyles());
+							layerForm.getTiledLayer(), layerForm.getKeywords(), layerForm.getStyleList());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
@@ -231,7 +238,7 @@ public class Layers extends GroupsLayersCommon {
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
 					} else {
-						Logger.debug ("Services for layer: " + layer.name() + " # " + serviceIds.size());								
+						Logger.debug ("Services for layer " + layer.name() + ": # " + serviceIds.size());								
 						// get the first service in the list for preview
 						serviceId=serviceIds.get(0);
 					}
@@ -258,8 +265,6 @@ public class Layers extends GroupsLayersCommon {
 										.fill (layerForm);
 								
 								Logger.debug ("Edit layerForm: " + layerForm);						
-								Logger.debug ("allStyles: #" + allStyles.values().size());
-								Logger.debug ("layerStyles: #" + layerStyles.size());
 								
 								// build a json string with list of styles (style.name, style.id) 
 								final ArrayNode arrayNode = Json.newObject ().putArray ("styleList");
@@ -268,8 +273,11 @@ public class Layers extends GroupsLayersCommon {
 									styleNode.add (style.name ());
 									styleNode.add (style.id ());
 								}					
-								final String layerStyleListString = Json.stringify (arrayNode);
 								
+								final String layerStyleListString = Json.stringify (arrayNode);
+								Logger.debug ("allStyles: #" + allStyles.values().size());
+								Logger.debug ("layerStyles: #" + layerStyles.size());
+								Logger.debug ("layerStyles List: " + layerStyleListString);
 								// build a layer preview string
 								final String previewUrl ;
 								if (service==null){
@@ -302,12 +310,10 @@ public class Layers extends GroupsLayersCommon {
 	
 	public static class LayerForm extends TiledLayerForm{
 		
-
-
 		@Constraints.Required
 		private String id;
 		
-		@Constraints.Required (message = "test")
+//		@Constraints.Required (message = "test")
 		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
 		private String name;
@@ -319,17 +325,41 @@ public class Layers extends GroupsLayersCommon {
 		private String datasetId;
 		private String datasetName;
 		/**
-		 * List of all styles in the system
+		 * List of styles in this layer
 		 */
 		private List<Style> styleList;
 		/**
-		 * String that contains all styles of this layer in json format 
+		 * Json array of all styles in the layer
 		 */
-		private List<Style> styles;
-
+		private String styles;
 		private Boolean enabled = false;
 
+		/*
+		 * Tiled Layers
+		 */
+//		private static final Integer META_WIDTH_DEFAULT = 4;
+//		private static final Integer META_HEIGTH_DEFAULT = 4;
+//		private static final Integer EXPIRE_CACHE_DEFAULT = 0;
+//		private static final Integer EXPIER_CLIENTS_DEFAULT = 0;
+//		private static final Integer GUTTER_DEFAULT = 0;
+//		private static final String GIF = "#gif#";
+//		private static final String JPG = "#jpg#";
+//		private static final String PNG8 = "#png8#";
+//		private static final String PNG = "#png#";
+//		private TiledLayer tiledLayer;
+//		private Boolean png = false;
+//		private Boolean png8 = false;
+//		private Boolean jpg = false;
+//		private Boolean gif = false;
+//		private Integer metaWidth = META_WIDTH_DEFAULT;
+//		private Integer metaHeight = META_HEIGTH_DEFAULT;
+//		private Integer expireCache = EXPIRE_CACHE_DEFAULT;
+//		private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
+//		private Integer gutter = GUTTER_DEFAULT;
 
+
+		
+		
 		public LayerForm(){
 			super();
 			this.id = ID;
@@ -346,12 +376,13 @@ public class Layers extends GroupsLayersCommon {
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
 			this.keywords = layer. getKeywords();
-			this.styles = layer.styles();
+			this.styleList = layer.styles();
 			this.setTiledLayer(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
+			this.enabled = layer.tiledLayer().isPresent();
 		}
 
 		public String getId() {
-			return id;
+			return this.id;
 		}
 
 		public void setId(String id) {
@@ -359,7 +390,7 @@ public class Layers extends GroupsLayersCommon {
 		}
 
 		public String getName() {
-			return name;
+			return this.name;
 		}
 
 		public void setName(String name) {
@@ -406,15 +437,15 @@ public class Layers extends GroupsLayersCommon {
 			return styleList;
 		}
 
-		public void setStyleList(List<Style> styleList) {
+		public void setStyleList(List<Style> styles) {
 			this.styleList = styleList;
 		}
 
-		public List<Style> getStyles() {
+		public String getStyles() {
 			return styles;
 		}
 
-		public void setStyles(List<Style> styles) {
+		public void setStyles(String styles) {
 			this.styles = styles;
 		}
 
@@ -441,13 +472,132 @@ public class Layers extends GroupsLayersCommon {
 		public void setEnabled(Boolean enabled) {
 			this.enabled = enabled;
 		}
+
+//		public TiledLayer getTiledLayer() {
+//			return new TiledLayer(getId(), getName(), getMetaWidth(), getMetaHeight(), getExpireCache(), getExpireClients(), getGutter(), getMimeFormats() );
+//		}
+//
+//		public void setTiledLayer(TiledLayer tiledLayer) {
+//			this.tiledLayer = tiledLayer;
+//			if (tiledLayer == null){
+//				this.metaWidth = META_WIDTH_DEFAULT;
+//				this.metaHeight = META_HEIGTH_DEFAULT;
+//				this.expireCache = EXPIRE_CACHE_DEFAULT;
+//				this.expireClients = EXPIER_CLIENTS_DEFAULT;
+//				this.gutter = GUTTER_DEFAULT;
+//				setMimeFormats(null);
+//			} else {
+//				this.metaWidth = tiledLayer.metaWidth() == null ? META_WIDTH_DEFAULT : tiledLayer.metaWidth();
+//				this.metaHeight = tiledLayer.metaHeight() == null ? META_HEIGTH_DEFAULT : tiledLayer.metaHeight();
+//				this.expireCache = tiledLayer.expireCache() == null ? EXPIRE_CACHE_DEFAULT : tiledLayer.expireCache();
+//				this.expireClients = tiledLayer.expireClients() == null ? EXPIER_CLIENTS_DEFAULT : tiledLayer.expireClients();
+//				this.gutter = tiledLayer.gutter() == null ? GUTTER_DEFAULT : tiledLayer.gutter();
+//				setMimeFormats(tiledLayer.mimeformats());
+//			}
+//		}
+//
+//
+//		public List<String> getMimeFormats() {
+//			List<String> mimeFormats = new ArrayList<String>();
+//			if (getPng()) mimeFormats.add(PNG);
+//			if (getPng8()) mimeFormats.add(PNG8);
+//			if (getJpg()) mimeFormats.add(JPG);
+//			if (getGif()) mimeFormats.add(GIF);
+//			return mimeFormats;
+//		}
+//
+//		public void setMimeFormats(List<String> mimeFormats) {
+//			setPng(false);
+//			setPng8(false);
+//			setJpg(false);
+//			setGif(false);
+//			if (mimeFormats==null) return;
+//			for (String string : mimeFormats) {
+//				if (string.equals(PNG)) setPng(true);
+//				if (string.equals(PNG8)) setPng8(true);
+//				if (string.equals(JPG)) setJpg(true);
+//				if (string.equals(GIF)) setGif(true);
+//			}
+//		}
+//
+//		public Boolean getPng() {
+//			return png;
+//		}
+//
+//		public void setPng(Boolean png) {
+//			this.png = png;
+//		}
+//
+//		public Boolean getPng8() {
+//			return png8;
+//		}
+//
+//		public void setPng8(Boolean png8) {
+//			this.png8 = png8;
+//		}
+//
+//		public Boolean getJpg() {
+//			return jpg;
+//		}
+//
+//		public void setJpg(Boolean jpg) {
+//			this.jpg = jpg;
+//		}
+//
+//		public Boolean getGif() {
+//			return gif;
+//		}
+//
+//		public void setGif(Boolean gif) {
+//			this.gif = gif;
+//		}
+//
+//		public Integer getMetaWidth() {
+//			return metaWidth;
+//		}
+//
+//		public void setMetaWidth(Integer metaWidth) {
+//			this.metaWidth = metaWidth;
+//		}
+//
+//		public Integer getMetaHeight() {
+//			return metaHeight;
+//		}
+//
+//		public void setMetaHeight(Integer metaHeight) {
+//			this.metaHeight = metaHeight;
+//		}
+//
+//		public Integer getExpireCache() {
+//			return expireCache;
+//		}
+//
+//		public void setExpireCache(Integer expireCache) {
+//			this.expireCache = expireCache;
+//		}
+//
+//		public Integer getExpireClients() {
+//			return expireClients;
+//		}
+//
+//		public void setExpireClients(Integer expireClients) {
+//			this.expireClients = expireClients;
+//		}
+//
+//		public Integer getGutter() {
+//			return gutter;
+//		}
+//
+//		public void setGutter(Integer gutter) {
+//			this.gutter = gutter;
+//		}
+//
 		
 		@Override
 		public String toString() {
 			return "LayerForm [id=" + id + ", name=" + name + ", title=" + title + ", abstractText=" + abstractText
 					+ ", keywords=" + keywords + ", published=" + published + ", datasetId=" + datasetId
-					+ ", datasetName=" + datasetName + ", styleList=" + styleList + ", styles=" + styles
-					+ ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
+					+ ", datasetName=" + datasetName + ", styleList=" + styles + ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
 		}
 		
 	}

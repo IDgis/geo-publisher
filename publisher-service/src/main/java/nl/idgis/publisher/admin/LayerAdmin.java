@@ -272,7 +272,7 @@ public class LayerAdmin extends AbstractAdmin {
 																		.set(tiledLayer.expireCache, theLayer.tiledLayer().get().expireCache())
 																		.set(tiledLayer.expireClients, theLayer.tiledLayer().get().expireClients())
 																		.set(tiledLayer.gutter, theLayer.tiledLayer().get().gutter())
-																		.set(tiledLayer.id, glId.get())
+																		.set(tiledLayer.genericLayerId, glId.get())
 																		.executeWithKey(tiledLayer.id)
 																		.thenCompose(
 																			tlId -> {
@@ -294,7 +294,7 @@ public class LayerAdmin extends AbstractAdmin {
 																		new Response<String>(CrudOperation.CREATE,
 															            CrudResponse.OK, newLayerId));
 																}
-																});
+															});
 														});
 											});
 									});
@@ -318,21 +318,48 @@ public class LayerAdmin extends AbstractAdmin {
 										.from(genericLayer)
 										.where(genericLayer.identification.eq(layerId))
 										.singleResult(genericLayer.id)
-										/* update of leaflayer is useful when filter and metadata fields are used
 										.thenCompose(
 											glId -> {
-												log.debug("Updating leaf_layer with generic_layer id: " + glId.get());
 												return tx
-													.update(leafLayer)
-													.where(leafLayer.genericLayerId.eq(glId.get()))
+													.delete(tiledLayer)
+													.where(tiledLayer.genericLayerId.eq(glId.get()))
 													.execute()
-										*/
-													.thenApply(
-														l ->  new Response<String>(
-																CrudOperation.UPDATE,
-																CrudResponse.OK,
-																layerId));
-//										});
+													.thenCompose(
+														tlIdOld -> {
+														log.debug("Deleted tiledlayer glId: " + glId.get());
+														if (theLayer.tiledLayer().isPresent()){
+															return tx
+																.insert(tiledLayer)
+																.set(tiledLayer.metaWidth, theLayer.tiledLayer().get().metaWidth())
+																.set(tiledLayer.metaHeight, theLayer.tiledLayer().get().metaHeight())
+																.set(tiledLayer.expireCache, theLayer.tiledLayer().get().expireCache())
+																.set(tiledLayer.expireClients, theLayer.tiledLayer().get().expireClients())
+																.set(tiledLayer.gutter, theLayer.tiledLayer().get().gutter())
+																.set(tiledLayer.genericLayerId, glId.get())
+																.executeWithKey(tiledLayer.id)
+																.thenCompose(
+																	tlId -> {
+																		log.debug("Inserted tiledlayer id: " + tlId);
+																		log.debug("Insert mimeformats ");
+																		return f.sequence(
+																			theLayer.tiledLayer().get().mimeformats().stream()
+																			    .map(name -> 
+																			        tx
+																		            .insert(tiledLayerMimeformat)
+																		            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
+																            		.set(tiledLayerMimeformat.mimeformat, name)
+																		            .execute())
+																			    .collect(Collectors.toList())).thenApply(whatever ->
+																			        new Response<String>(CrudOperation.UPDATE,
+																	                CrudResponse.OK, layerId));
+																});
+														} else {
+															return f.successful( 
+																new Response<String>(CrudOperation.UPDATE,
+													            CrudResponse.OK, layerId));
+														}
+												});
+											});
 									});
 						}
 					}));

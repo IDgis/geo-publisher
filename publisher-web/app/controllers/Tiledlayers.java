@@ -52,7 +52,7 @@ public class Tiledlayers extends Controller {
 		}
 		
 		final TiledLayerForm tiledlayerForm = form.get ();
-		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, tiledlayerForm.name,
+		final TiledLayer tiledlayer = new TiledLayer(tiledlayerForm.id, "",
 				tiledlayerForm.metaWidth, tiledlayerForm.metaHeight, 
 				tiledlayerForm.expireCache, tiledlayerForm.expireClients,
 				tiledlayerForm.gutter, tiledlayerForm.getMimeFormats()
@@ -65,10 +65,10 @@ public class Tiledlayers extends Controller {
 				public Promise<Result> apply (final Response<?> response) throws Throwable {
 					if (CrudOperation.CREATE.equals (response.getOperation())) {
 						Logger.debug ("Created tiledlayer " + tiledlayer);
-						flash ("success", Domain.message("web.application.page.tiledlayers.name") + " " + tiledlayerForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+						flash ("success", Domain.message("web.application.page.tiledlayers.name") + " " + Domain.message("web.application.added").toLowerCase());
 					}else{
 						Logger.debug ("Updated tiledlayer " + tiledlayer);
-						flash ("success", Domain.message("web.application.page.tiledlayers.name") + " " + tiledlayerForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+						flash ("success", Domain.message("web.application.page.tiledlayers.name") + " " + Domain.message("web.application.updated").toLowerCase());
 					}
 					return Promise.pure (redirect (routes.Tiledlayers.list ()));
 				}
@@ -152,11 +152,7 @@ public class Tiledlayers extends Controller {
 		private static final String PNG8 = "#png8#";
 		private static final String PNG = "#png#";
 		
-		@Constraints.Required
 		private String id;
-		@Constraints.Required
-		@Constraints.MinLength (1)
-		private String name;
 		private TiledLayer tiledLayer;
 		private Boolean png = false;
 		private Boolean png8 = false;
@@ -192,16 +188,8 @@ public class Tiledlayers extends Controller {
 			this.id = id;
 		}
 
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-
 		public TiledLayer getTiledLayer() {
-			return new TiledLayer(getId(), getName(), getMetaWidth(), getMetaHeight(), getExpireCache(), getExpireClients(), getGutter(), getMimeFormats() );
+			return new TiledLayer(getId(), "", getMetaWidth(), getMetaHeight(), getExpireCache(), getExpireClients(), getGutter(), getMimeFormats() );
 		}
 
 		public void setTiledLayer(TiledLayer tiledLayer) {
@@ -321,7 +309,7 @@ public class Tiledlayers extends Controller {
 
 		@Override
 		public String toString() {
-			return "TiledLayerForm [id=" + id + ", name=" + name + ", tiledLayer="
+			return "TiledLayerForm [id=" + id + ", tiledLayer="
 					+ tiledLayer + ", png=" + png + ", png8=" + png8 + ", jpg=" + jpg + ", gif=" + gif + ", metaWidth="
 					+ metaWidth + ", metaHeight=" + metaHeight + ", expireCache=" + expireCache + ", expireClients="
 					+ expireClients + ", gutter=" + gutter + "]";
