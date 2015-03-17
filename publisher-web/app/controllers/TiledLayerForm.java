@@ -18,16 +18,21 @@ public class TiledLayerForm {
 	private static final String PNG8 = "image/png; mode=8bit";
 	private static final String PNG  = "image/png";
 	
+	private static final Boolean PNG_DEFAULT  = true;
+	private static final Boolean PNG8_DEFAULT = false;
+	private static final Boolean JPG_DEFAULT  = false;
+	private static final Boolean GIF_DEFAULT  = false;
+
 	private TiledLayer tiledLayer;
-	private Boolean png  = true;
-	private Boolean png8 = false;
-	private Boolean jpg  = false;
-	private Boolean gif  = false;
-	private Integer metaWidth = META_WIDTH_DEFAULT;
-	private Integer metaHeight = META_HEIGTH_DEFAULT;
-	private Integer expireCache = EXPIRE_CACHE_DEFAULT;
+	private Boolean png  = PNG_DEFAULT;
+	private Boolean png8 = PNG8_DEFAULT;
+	private Boolean jpg  = JPG_DEFAULT;
+	private Boolean gif  = GIF_DEFAULT;
+	private Integer metaWidth     = META_WIDTH_DEFAULT;
+	private Integer metaHeight    = META_HEIGTH_DEFAULT;
+	private Integer expireCache   = EXPIRE_CACHE_DEFAULT;
 	private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
-	private Integer gutter = GUTTER_DEFAULT;
+	private Integer gutter        = GUTTER_DEFAULT;
 
 	
 	public TiledLayerForm(){
@@ -72,10 +77,10 @@ public class TiledLayerForm {
 	}
 
 	public void setMimeFormats(List<String> mimeFormats) {
-		setPng(false);
-		setPng8(false);
-		setJpg(false);
-		setGif(false);
+		setPng(PNG_DEFAULT);
+		setPng8(PNG8_DEFAULT);
+		setJpg(JPG_DEFAULT);
+		setGif(GIF_DEFAULT);
 		if (mimeFormats==null) return;
 		for (String string : mimeFormats) {
 			if (string.equals(PNG)) setPng(true);
