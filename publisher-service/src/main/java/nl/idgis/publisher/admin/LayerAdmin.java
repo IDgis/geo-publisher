@@ -155,11 +155,14 @@ public class LayerAdmin extends AbstractAdmin {
 			.singleResult(layerColumns.toArray (new Path<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
 					Tuple layer = optionalLayer.get();					
+					log.debug("generic layer id: " + layer.get(genericLayer.id));
 					return tx.query()
 						.from(leafLayerKeyword)
 						.where(leafLayerKeyword.leafLayerId.eq(layer.get(leafLayer.id)))
 						.list(leafLayerKeyword.keyword).thenCompose(keywords -> {
+							log.debug("tiled layer   id: " + layer.get(tiledLayer.id));
 							boolean hasTiledLayer = layer.get(tiledLayer.genericLayerId) != null;
+							log.debug("tiled layer glId: " + layer.get(tiledLayer.genericLayerId) + " = " + hasTiledLayer);
 							
 							CompletableFuture<TypedList<String>> mimeformatsQuery;
 							if(hasTiledLayer) {
@@ -188,9 +191,8 @@ public class LayerAdmin extends AbstractAdmin {
 										layer.get(genericLayer.published),
 										layer.get(dataset.identification),
 										layer.get(dataset.name),
-											hasTiledLayer
-												? null
-												: new TiledLayer(
+											(hasTiledLayer
+												? new TiledLayer(
 													layer.get(genericLayer.identification),
 													layer.get(genericLayer.name),
 													layer.get(tiledLayer.metaWidth),
@@ -198,7 +200,9 @@ public class LayerAdmin extends AbstractAdmin {
 													layer.get(tiledLayer.expireCache),
 													layer.get(tiledLayer.expireClients),
 													layer.get(tiledLayer.gutter),
-													mimeFormats.list()),
+													mimeFormats.list())
+												: null)
+										,
 										keywords.list(), styles.list() ))));
 						});
 				} else {

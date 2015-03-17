@@ -121,7 +121,7 @@ public class Layers extends GroupsLayersCommon {
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.id, layerForm.name, layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
-							layerForm.getTiledLayer(), layerForm.getKeywords(), layerForm.getStyleList());
+							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList());
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)
@@ -248,9 +248,9 @@ public class Layers extends GroupsLayersCommon {
 
 							@Override
 							public Result apply (final Service service) throws Throwable {
-									
+								
 								LayerForm layerForm = new LayerForm (layer);
-								layerForm.setKeywords(layer.getKeywords());
+								Logger.debug ("tiledlayer present: " + layer.tiledLayer().isPresent() + ", enabled: " + layerForm.getEnabled());
 								
 								List<Style> layerStyles ;
 								if (layer.styles() == null){ 
@@ -375,7 +375,7 @@ public class Layers extends GroupsLayersCommon {
 			this.published = layer.published();
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
-			this.keywords = layer. getKeywords();
+			this.keywords = layer.getKeywords();
 			this.styleList = layer.styles();
 			this.setTiledLayer(layer.tiledLayer().isPresent()?layer.tiledLayer().get():null);
 			this.enabled = layer.tiledLayer().isPresent();
