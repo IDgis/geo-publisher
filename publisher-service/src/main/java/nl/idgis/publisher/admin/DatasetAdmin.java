@@ -12,6 +12,8 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -418,12 +420,24 @@ public class DatasetAdmin extends AbstractAdmin {
 						.where (dataset.identification.eq (id).and (dataset.id.eq (datasetColumn.datasetId)))
 						.exists()
 					);
-				
+
+				final AsyncSQLDeleteClause deleteLayer = tx
+					.delete (genericLayer)
+					.where (new SQLSubQuery ()
+						.from (leafLayer)
+						.join (dataset).on (dataset.id.eq (leafLayer.datasetId))
+						.where (
+							leafLayer.genericLayerId.eq (genericLayer.id)
+							.and (dataset.identification.eq (id))
+						)
+						.exists ()
+					);
+					
 				final AsyncSQLDeleteClause deleteDataset = tx
 					.delete (dataset)
 					.where (dataset.identification.eq (id));
 				
-				return deleteHelper (id, deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteDataset);
+				return deleteHelper (id, deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteLayer, deleteDataset);
 			});
 	}
 	
