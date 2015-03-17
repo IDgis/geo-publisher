@@ -4,7 +4,7 @@
 
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.tiledlayers.form.field.formats.label")</label>
-					<div class="col-sm-4">
+					<div class="col-sm-8">
 						<div class="input-group input-group-xs">
 							<label><input type="checkbox" id="input-png" name="png" value="true" @if("true".equals(tiledlayerForm("png").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.png.label")</label>
 						</div>
@@ -17,46 +17,46 @@
 						<div class="input-group input-group-xs">
 							<label><input type="checkbox" id="input-gif" name="gif" value="true" @if("true".equals(tiledlayerForm("gif").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.gif.label")</label>
 						</div>
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.formats.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.formats.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-metatilingwidth">@Domain.message("web.application.page.tiledlayers.form.field.metatilingwidth.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-metatilingwidth" name="metaWidth" placeholder="@Domain.message("web.application.page.groups.form.field.metatilingwidth.placeholder")" value="@tiledlayerForm("metaWidth").value">
 						@helper.fielderrors(tiledlayerForm("metaWidth").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.metatilingwidth.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.metatilingwidth.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-metatilingheight">@Domain.message("web.application.page.tiledlayers.form.field.metatilingheight.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-metatilingheight" name="metaHeight" placeholder="@Domain.message("web.application.page.groups.form.field.metatilingheight.placeholder")" value="@tiledlayerForm("metaHeight").value">
 						@helper.fielderrors(tiledlayerForm("metaHeight").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.metatilingheight.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.metatilingheight.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-servercache">@Domain.message("web.application.page.tiledlayers.form.field.servercache.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-servercache" name="expireCache" value="@tiledlayerForm("expireCache").value">
 						@helper.fielderrors(tiledlayerForm("expireCache").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.servercache.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.servercache.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-clientcache">@Domain.message("web.application.page.tiledlayers.form.field.clientcache.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-clientcache" name="expireClients" value="@tiledlayerForm("expireClients").value">
 						@helper.fielderrors(tiledlayerForm("expireClients").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.clientcache.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.clientcache.help")
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-gutter">@Domain.message("web.application.page.tiledlayers.form.field.gutter.label")</label>
 					<div class="col-lg-8">
 						<input class="form-control" id="input-gutter" name="gutter" value="@tiledlayerForm("gutter").value">
 						@helper.fielderrors(tiledlayerForm("gutter").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.gutter.help")</span>
 					</div>
+					@helper.tooltips("web.application.page.tiledlayers.form.field.gutter.help")
 				</div>
