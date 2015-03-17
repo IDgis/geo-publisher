@@ -7,12 +7,34 @@
 
 @import nl.idgis.publisher.domain.web._
 
-@categoryRefLink(cat: Category, cls: String = null) = {
-	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
+@categoryRefLink(cat: Category) = {
+	<a href="@routes.Datasets.listByCategory(cat.id)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
 }
 
-@categoryLink(cat: Category, cls: String = null) = {
-	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+@allCategoriesLink() = {
+	<li@if(currentCategory == null){ class="active"}>
+
+		@if(currentDatasetStatus == null) {
+			<a href="@routes.Datasets.list()">
+		} else {
+			<a href="@routes.Datasets.listByStatus(currentDatasetStatus)">
+		}
+		@Domain.message("web.application.page.datasets.list.allcategories")</a>
+	
+	</li>
+}
+
+@categoryLink(cat: Category) = {
+	<li@if(cat == currentCategory){ class="active"}>	
+	
+		@if(currentDatasetStatus == null) {
+			<a href="@routes.Datasets.listByCategory(cat.id)">
+		} else {
+			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus)">
+		}		
+		@cat.name</a>	
+	
+	</li>
 }
 
 @statusLink(status: DatasetStatusType, message: String) = {
@@ -37,15 +59,17 @@
 	} 
 }
 
-@allCategoriesLink() = {
-	<a href="@routes.Datasets.list()">@Domain.message("web.application.page.datasets.list.allcategories")</a>
-}
-
-@pageRef(targetPage: Long) = @{	  
-	if(currentCategory == null) 
-		routes.Datasets.list(targetPage)
-	else
-		routes.Datasets.listByCategory(currentCategory.id, targetPage)		
+@pageRef(targetPage: Long) = @{
+	if(currentDatasetStatus == null)
+		if(currentCategory == null)
+			routes.Datasets.list(targetPage)
+		else
+			routes.Datasets.listByCategory(currentCategory.id, targetPage)
+	else		
+		if(currentCategory == null) 
+			routes.Datasets.listByStatus(currentDatasetStatus, targetPage)
+		else
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage)
 }
 
 @layout.application(
@@ -93,9 +117,9 @@
 						<div id="collapse-filter-tags" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(currentCategory == null){ class="active"}>@allCategoriesLink()</li>
+									@allCategoriesLink()
 									@for(category <- categories) {
-										<li@if(category.equals(currentCategory)){ class="active"}>@categoryLink(category)</li>
+										@categoryLink(category)
 									}
 								</ul>
 							</div>
@@ -147,7 +171,7 @@
 								<div class="col-md-4">
 									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning">@dataset.name</a></h4>
 									
-									@categoryRefLink(dataset.category, "label label-info")
+									@categoryRefLink(dataset.category)
 									<span class="label label-default">@Domain.message("web.application.page.datasets.list.sourcedatasetref"): @dataset.sourceDataset.name</span>
 								</div>
 								<div class="col-md-4">
