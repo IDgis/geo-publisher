@@ -95,16 +95,23 @@
 					data-warning-delete-link="@routes.Layers.delete(layer.id)"
 					data-warning-delete-body="@Domain.message("web.application.page.layers.list.delete.warning.body", layer.datasetName)">
 					<div class="row">
-						<div class="col-md-5">
+						<div class="col-md-6">
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Layers.edit(layer.id)" class="text-warning">@layer.name</a>
 							</h4>
 						</div>
-						<div class="col-md-5">
+						<div class="col-md-2">
 							@if(layer.published){
 								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
 							}else{
 								<span>@Domain.message("web.application.page.list.notpublished")</span>
+							}
+						</div>
+						<div class="col-md-2">
+							@if(layer.tiledLayer.isPresent()){
+								<span><strong>@Domain.message("web.application.page.list.tiled")</strong></span>
+							}else{
+								<span>@Domain.message("web.application.page.list.nottiled")</span>
 							}
 						</div>
 						<div class="col-md-2">

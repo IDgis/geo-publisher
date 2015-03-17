@@ -84,6 +84,7 @@ public class LayerAdmin extends AbstractAdmin {
 				.from(genericLayer)
 				.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 				.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
+				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 				.orderBy (genericLayer.name.asc ());
 		
 		// Add a filter for the query string:
@@ -118,11 +119,13 @@ public class LayerAdmin extends AbstractAdmin {
 							genericLayer.abstractCol,
 							genericLayer.published,
 							dataset.identification,
-							dataset.name
-
+							dataset.name,
+							tiledLayer.genericLayerId
 							)
 					.thenApply ((layers) -> {
 						for (Tuple layer : layers.list()) {
+							boolean hasTiledLayer = layer.get(tiledLayer.genericLayerId) != null;
+							log.debug("Layer: " + layer.get(genericLayer.name) + ", tiling = " + hasTiledLayer);
 							builder.add(new Layer(
 									layer.get(genericLayer.identification),
 									layer.get(genericLayer.name),
@@ -130,10 +133,20 @@ public class LayerAdmin extends AbstractAdmin {
 									layer.get(genericLayer.abstractCol),
 									layer.get(genericLayer.published),
 									layer.get(dataset.identification),
-									layer.get(dataset.name),null,null,null));
+									layer.get(dataset.name),
+									(hasTiledLayer
+										? new TiledLayer(
+											layer.get(genericLayer.identification),
+											layer.get(genericLayer.name),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											layer.get(null),
+											null)
+										: null),
+									null, null));
 						}
-						
-						
 						return builder.build ();
 					});
 			});

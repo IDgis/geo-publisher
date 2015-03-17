@@ -106,6 +106,8 @@ web.application.form.globalerrors.header=Validatiefouten
 
 web.application.page.list.published=gepubliceerd
 web.application.page.list.notpublished=niet gepubliceerd
+web.application.page.list.tiled=getiled
+web.application.page.list.nottiled=niet getiled
 
 # Widgets
 web.application.button.ok=Ok
