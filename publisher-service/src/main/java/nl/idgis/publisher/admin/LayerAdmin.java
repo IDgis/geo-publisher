@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
@@ -37,6 +39,7 @@ import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -269,30 +272,10 @@ public class LayerAdmin extends AbstractAdmin {
 															n -> {
 																if (theLayer.tiledLayer().isPresent()){
 																	log.debug("Insert tiledlayer ");
-																	return tx
-																		.insert(tiledLayer)
-																		.set(tiledLayer.metaWidth, theLayer.tiledLayer().get().metaWidth())
-																		.set(tiledLayer.metaHeight, theLayer.tiledLayer().get().metaHeight())
-																		.set(tiledLayer.expireCache, theLayer.tiledLayer().get().expireCache())
-																		.set(tiledLayer.expireClients, theLayer.tiledLayer().get().expireClients())
-																		.set(tiledLayer.gutter, theLayer.tiledLayer().get().gutter())
-																		.set(tiledLayer.genericLayerId, glId.get())
-																		.executeWithKey(tiledLayer.id)
-																		.thenCompose(
-																			tlId -> {
-																				log.debug("Insert mimeformats ");
-																				return f.sequence(
-																					theLayer.tiledLayer().get().mimeformats().stream()
-																					    .map(name -> 
-																					        tx
-																				            .insert(tiledLayerMimeformat)
-																				            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
-																		            		.set(tiledLayerMimeformat.mimeformat, name)
-																				            .execute())
-																					    .collect(Collectors.toList())).thenApply(whatever ->
-																					        new Response<String>(CrudOperation.CREATE,
-																			                CrudResponse.OK, newLayerId));
-																		});
+																	return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+																			.thenApply(whatever ->
+																	        	new Response<String>(CrudOperation.CREATE,
+																	                CrudResponse.OK, newLayerId));
 																} else {
 																	return f.successful( 
 																		new Response<String>(CrudOperation.CREATE,
@@ -332,31 +315,10 @@ public class LayerAdmin extends AbstractAdmin {
 														tlIdOld -> {
 														log.debug("Deleted tiledlayer glId: " + glId.get());
 														if (theLayer.tiledLayer().isPresent()){
-															return tx
-																.insert(tiledLayer)
-																.set(tiledLayer.metaWidth, theLayer.tiledLayer().get().metaWidth())
-																.set(tiledLayer.metaHeight, theLayer.tiledLayer().get().metaHeight())
-																.set(tiledLayer.expireCache, theLayer.tiledLayer().get().expireCache())
-																.set(tiledLayer.expireClients, theLayer.tiledLayer().get().expireClients())
-																.set(tiledLayer.gutter, theLayer.tiledLayer().get().gutter())
-																.set(tiledLayer.genericLayerId, glId.get())
-																.executeWithKey(tiledLayer.id)
-																.thenCompose(
-																	tlId -> {
-																		log.debug("Inserted tiledlayer id: " + tlId);
-																		log.debug("Insert mimeformats ");
-																		return f.sequence(
-																			theLayer.tiledLayer().get().mimeformats().stream()
-																			    .map(name -> 
-																			        tx
-																		            .insert(tiledLayerMimeformat)
-																		            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
-																            		.set(tiledLayerMimeformat.mimeformat, name)
-																		            .execute())
-																			    .collect(Collectors.toList())).thenApply(whatever ->
-																			        new Response<String>(CrudOperation.UPDATE,
-																	                CrudResponse.OK, layerId));
-																});
+															return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+															    .thenApply(whatever ->
+															        new Response<String>(CrudOperation.UPDATE,
+													                CrudResponse.OK, layerId));
 														} else {
 															return f.successful( 
 																new Response<String>(CrudOperation.UPDATE,
@@ -367,6 +329,32 @@ public class LayerAdmin extends AbstractAdmin {
 									});
 						}
 					}));
+	}
+
+	private CompletableFuture<List<Long>> insertTiledLayer(AsyncHelper tx, 
+			TiledLayer theTiledLayer, Integer genericLayerId, LoggingAdapter log) {
+		return tx
+			.insert(tiledLayer)
+			.set(tiledLayer.metaWidth, theTiledLayer.metaWidth())
+			.set(tiledLayer.metaHeight, theTiledLayer.metaHeight())
+			.set(tiledLayer.expireCache, theTiledLayer.expireCache())
+			.set(tiledLayer.expireClients, theTiledLayer.expireClients())
+			.set(tiledLayer.gutter, theTiledLayer.gutter())
+			.set(tiledLayer.genericLayerId, genericLayerId)
+			.executeWithKey(tiledLayer.id)
+			.thenCompose(
+				tlId -> {
+					log.debug("Insert mimeformats ");
+					return f.sequence(
+						theTiledLayer.mimeformats().stream()
+						    .map(name -> 
+						        tx
+					            .insert(tiledLayerMimeformat)
+					            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
+			            		.set(tiledLayerMimeformat.mimeformat, name)
+					            .execute())
+						    .collect(Collectors.toList()));
+			});
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
