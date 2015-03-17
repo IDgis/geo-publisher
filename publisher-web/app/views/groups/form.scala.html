@@ -48,7 +48,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.groups.form.field.abstract.label")</label>
 					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4"></textarea>
+						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4">@groupForm("abstractText").value</textarea>
 						@helper.fielderrors(groupForm("abstractText").errors)
 					</div>
 					@helper.tooltips("web.application.page.groups.form.field.abstract.help")

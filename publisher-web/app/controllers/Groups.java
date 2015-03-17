@@ -275,6 +275,7 @@ public class Groups extends GroupsLayersCommon {
 		}
 		
 		public GroupForm(LayerGroup group){
+			super(group.tiledLayer().isPresent()?group.tiledLayer().get():null);
 			this.id = group.id();
 			this.name = group.name();
 			this.title = group.title();

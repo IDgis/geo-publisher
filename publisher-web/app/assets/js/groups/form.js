@@ -1,6 +1,7 @@
 require ([
 	'dojo/dom',
 	'dojo/on',
+	'dojo/dom-style',
 	'dojo/_base/window',
 	'dojo/query',
 	'dojo/dom-attr',
@@ -18,6 +19,7 @@ require ([
 ], function (
 	dom, 
 	on, 
+	domStyle, 
 	win, 
 	query, 
 	domattr, 
@@ -37,6 +39,14 @@ require ([
 	
 	var groepen = dom.byId('addgroup');
 	var lagen = dom.byId('addlayer');
+	
+	var inputEnable = dom.byId('input-enable');
+	var jsTiledForm = dom.byId('js-tiled-form');
+	if (inputEnable.checked) {
+		domStyle.set(jsTiledForm, "display", "block");
+	} else {
+		domStyle.set(jsTiledForm, "display", "none");
+	}
 	
 	on(groepen,'change', function(evt) {
 		var selectIndex = evt.currentTarget.options.selectedIndex;
@@ -90,12 +100,21 @@ require ([
 		domConstruct.destroy(itemToDel);
 	});
 	
+	on(inputEnable, 'click', function(evt) {
+		if (inputEnable.checked) {
+			domStyle.set(jsTiledForm, "display", "block");
+		} else {
+			domStyle.set(jsTiledForm, "display", "none");
+		}
+	});
+	
 	new Select ('#layers-select', {
 		onSelect: function (item) {
 			addLayer (item.id, item.label);
 		}
 	});
 	new Pager ('#layers-select .js-dropdown');
+	
 });
 
 $(function () {
