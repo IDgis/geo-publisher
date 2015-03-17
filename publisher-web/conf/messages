@@ -212,6 +212,7 @@ web.application.page.datasets.list.button.newlayer=Nieuwe laag
 web.application.page.datasets.list.search.placeholder=Zoek op datasetnaam ...
 web.application.page.datasets.list.filtercategorie.title=Categorieën
 web.application.page.datasets.list.status.title=Status
+web.application.page.datasets.list.status.all=Alles statussen
 web.application.page.datasets.list.status.imported=Geïmporteerd
 web.application.page.datasets.list.status.structuralchange=Structuurwijzigingen
 web.application.page.datasets.list.status.importerrors=Fouten bij importeren

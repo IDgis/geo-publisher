@@ -32,6 +32,7 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
+import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
@@ -49,6 +50,7 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+import utils.EnumPathBindable;
 import views.html.datasets.columns;
 import views.html.datasets.form;
 import views.html.datasets.list;
@@ -65,23 +67,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_DATASET#";
+	
+	public static Promise<Result> listByStatus(DatasetStatus status, long page) {
+		return listByCategoryAndStatus(null, status, page);
+	}
 
 	public static Promise<Result> list (long page) {
-		return listByCategoryAndMessages(null, false, page);
-	}
-	
-	
-	public static Promise<Result> listWithMessages (long page) {
-		return listByCategoryAndMessages(null, true, page);
+		return listByCategoryAndStatus(null, null, page);
 	}
 	
 	public static Promise<Result> listByCategory (String categoryId, long page) {
-		return listByCategoryAndMessages(categoryId, false, page);
-	}
-	
-	
-	public static Promise<Result> listByCategoryWithMessages (String categoryId, long page) {
-		return listByCategoryAndMessages(categoryId, true, page);
+		return listByCategoryAndStatus(categoryId, null, page);
 	}
 	
 	public static Promise<Result> show (final String datasetId) {
@@ -451,7 +447,7 @@ public class Datasets extends Controller {
 				});
 	}
 	
-	public static Promise<Result> listByCategoryAndMessages (final String categoryId, final boolean listWithMessages, final long page) {
+	public static Promise<Result> listByCategoryAndStatus(final String categoryId, final DatasetStatus status, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -467,13 +463,12 @@ public class Datasets extends Controller {
 				public Promise<Result> apply (final Page<Category> categories, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListDatasets (currentCategory, page))
+							.query (new ListDatasets (currentCategory, status == null ? null : status.value, page))
 							.execute (new Function<Page<Dataset>, Result> () {
 								@Override
 								public Result apply (final Page<Dataset> datasets) throws Throwable {
-									
-//									return ok (list.render (listWithMessages));
-									return ok (list.render (datasets, categories.values (), currentCategory, listWithMessages));
+
+									return ok (list.render (datasets, categories.values (), currentCategory, status));
 								}
 								
 							});
@@ -529,6 +524,30 @@ public class Datasets extends Controller {
 		final Filter.OperatorExpression orExpression = new Filter.OperatorExpression (OperatorType.OR, Arrays.<Filter.FilterExpression>asList (new Filter.FilterExpression[] { andExpression }));
 		
 		return new Filter (orExpression);
+	}
+	
+	public static class DatasetStatus extends EnumPathBindable<DatasetStatusType, DatasetStatus> {		
+		
+		public static DatasetStatus bind(DatasetStatusType value) {
+			if(value == null) {
+				return null;
+			}
+			
+			return new DatasetStatus(value); 
+		}
+		
+		public DatasetStatus() {
+			this(null);
+		}
+		
+		public DatasetStatus(DatasetStatusType value) {
+			super(value, DatasetStatusType.class);
+		}
+
+		@Override
+		protected DatasetStatus valueOf(DatasetStatusType value) {
+			return new DatasetStatus(value);
+		}
 	}
 
 	

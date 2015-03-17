@@ -1,5 +1,8 @@
 @(title: String, jsMain: String = null, cssMain: String = null, docPath: String = "index")(content: Html)
 
+@import controllers.Datasets.DatasetStatus
+@import nl.idgis.publisher.domain.web.DatasetStatusType
+
 @doFlash(flashType: String) = {
 	@if(flash.containsKey(flashType)) {
 		<div class="alert alert-@flashType">
@@ -55,7 +58,7 @@
 							<li class="divider"></li>
 							<li class="divider"></li>
 							<li>
-								<a class="text-center" href="@routes.Datasets.listWithMessages()">@Domain.message("web.application.layout.alldatasetswitherrors")Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
+								<a class="text-center" href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatusType.WITH_MESSAGES))">@Domain.message("web.application.layout.alldatasetswitherrors")Alle datasets met meldingen <span class="glyphicon glyphicon-chevron-right"></span></a> 
 							</li>
 						</ul>
 					</li>

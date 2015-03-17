@@ -54,6 +54,7 @@ import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
+import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Message;
@@ -63,8 +64,10 @@ import nl.idgis.publisher.domain.web.Status;
 
 import nl.idgis.publisher.utils.StreamUtils;
 
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -206,6 +209,7 @@ public class DatasetAdmin extends AbstractAdmin {
 		log.debug ("handleListDatasets: {}", listDatasets);
 		
 		String categoryId = listDatasets.categoryId();
+		DatasetStatusType status = listDatasets.status();
 		long page = listDatasets.getPage();
 		
 		return db.transactional(tx -> {
@@ -228,6 +232,20 @@ public class DatasetAdmin extends AbstractAdmin {
 							
 					if(categoryId != null) {
 						baseQuery.where(category.identification.eq(categoryId));
+					}
+					
+					if(status != null) {
+						switch(status) {
+							case IMPORTED:
+								baseQuery.where(datasetStatus.imported.isTrue());
+								break;
+							case FAILURE:
+								baseQuery.where(lastImportJob.finishState.eq(JobState.FAILED.name()));
+								break;
+							case WITH_MESSAGES:
+								baseQuery.where(datasetActiveNotification.datasetId.isNotNull());
+								break;
+						}
 					}
 					
 					singlePage(baseQuery, page);
