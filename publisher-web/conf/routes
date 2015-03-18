@@ -33,9 +33,8 @@ POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datas
 POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setNotificationResult(datasetId: String, notificationId: String)
 
 # Datasources
-GET		/datasources/download							controllers.DataSources.download(searchString: String ?="", withErrors: java.lang.Boolean ?= null)
+GET		/datasources/download							controllers.DataSources.download(searchString: String ?= "", withErrors: java.lang.Boolean ?= null, separator: String ?= ",", quote: String ?= "'", encoding: String ?= "iso-8859-1")
 POST	/datasources/refresh							controllers.DataSources.refreshDatasources()
-# http://localhost:9000/datasources/searching?searchString=gevonden
 GET		/datasources									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)

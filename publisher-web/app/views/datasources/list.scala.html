@@ -196,12 +196,67 @@
 				} else {
 					@* Download button and pagination in same row *@
 					<div class="row">
-						<div class="col-md-10">@helper.pagination(sourceDatasets, pageRef)</div>
-						<div class="col-md-2 text-right">
-							<a class="btn btn-info"
-								href="@routes.DataSources.download(search,withErrors)"
-								title="@Domain.message("web.application.page.sourcedatasets.list.button.download")">
-								Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span> </a>
+						<div class="col-md-8">@helper.pagination(sourceDatasets, pageRef)</div>
+						<div class="col-md-4 text-right">
+							<div class="row">
+								<form class="form-horizontal" action="@routes.DataSources.download()" method="get">
+									@if(search != null) {
+										<input type="hidden" name="search" value="@search">
+									}
+									@if(withErrors != null) {
+										<input type="hidden" name="withErrors" value="@withErrors">
+									}
+								
+									<button 
+										class="btn btn-info" 
+										title="@Domain.message("web.application.page.sourcedatasets.list.csv.button")" type="submit">
+										Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span></button>
+									
+									<div>
+										<a id="cvs-options-show" href="#">
+											<span>@Domain.message("web.application.page.sourcedatasets.list.csv.options.show")</span>
+										</a>
+										<span>&nbsp;</span>
+									</div>
+									
+									<div id="csv-options" class="hide">									
+										<div class="form-group">
+											<label class="col-sm-7 control-label" for="quote">@Domain.message("web.application.page.sourcedatasets.list.csv.quote")</label>
+											<div class="col-sm-5">
+												<select class="form-control" id="quote" name="quote">
+													<option>"</option>
+													<option>'</option>
+												</select>
+											</div>
+										</div>
+											
+										<div class="form-group">
+											<label class="col-sm-7 control-label" for="separator">@Domain.message("web.application.page.sourcedatasets.list.csv.separator")</label>
+											<div class="col-sm-5">
+												<select class="form-control" id="separator" name="separator">
+													<option>;</option>
+													<option>,</option>
+													<option value=" ">@Domain.message("web.application.page.sourcedatasets.list.csv.separator.space")</option>
+												</select>
+											</div>							
+										</div>
+											
+										<div class="form-group">
+											<label class="col-sm-7 control-label" for="encoding">@Domain.message("web.application.page.sourcedatasets.list.csv.encoding")</label>
+											<div class="col-sm-5">
+												<select class="form-control" id="encoding" name="encoding">
+													<option>iso-8859-1</option>
+													<option>utf-8</option>
+												</select>
+											</div>
+										</div>
+										
+										<a id="cvs-options-hide" href="#">
+											<span>@Domain.message("web.application.page.sourcedatasets.list.csv.options.hide")</span>
+										</a>
+									</div>
+								</form>
+							</div>
 						</div>
 					</div>
 
