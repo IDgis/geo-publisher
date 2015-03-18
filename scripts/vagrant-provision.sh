@@ -92,7 +92,7 @@ EOT
 	# Setup the geoserver password:	
 	echo "Generating standard geoserver password ..."
 	mkdir -p /var/lib/geoserver/security/
-	echo "admin=admin,ROLE_ADMINISTRATOR" > /var/lib/geoserver/security/users.properties
+	echo "admin=geoserver,ROLE_ADMINISTRATOR" > /var/lib/geoserver/security/users.properties
 	chown tomcat7:tomcat7 /var/lib/geoserver/security
 	chown tomcat7:tomcat7 /var/lib/geoserver/security/users.properties
 	
