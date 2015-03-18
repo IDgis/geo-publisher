@@ -1,8 +1,9 @@
-@(categories: List[controllers.Categories.FormCategory])
+@(categories: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Category])
 
 
 @import nl.idgis.publisher.domain.web._ 
-@layout.application( title = Domain.message("web.application.page.categories.form.header")
+@layout.application( title = Domain.message("web.application.page.categories.form.title"),
+	jsMain = routes.Assets.at("js/categories/form.js").url
 ) {
 
 <div class="page-content">
@@ -12,26 +13,22 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Categories.submitUpdate()" >
 				<div class="form-group">
-					<label class="col-sm-1 ">row</label>
-					<label class="col-sm-3 ">id</label>
-					<label class="col-sm-6 ">name</label>
+					<label class="col-sm-3 ">@Domain.message("web.application.page.categories.form.column.id")</label>
+					<label class="col-sm-6 ">@Domain.message("web.application.page.categories.form.column.name")</label>
+					@helper.tooltips("web.application.page.categories.form.help")
 				</div>
-				@for(category <- categories){
+				@for(category <- categories.values){
 				<div class="form-group">
-					<div class="col-lg-1">
-						<input class="form-control" id="input-row" name="row" placeholder="@Domain.message("web.application.page.categories.form.field.row.placeholder")" value="@category.getRow()">
-					</div>
 					<div class="col-lg-3">
-						<input class="form-control" id="input-identification" name="identification" placeholder="@Domain.message("web.application.page.categories.form.field.identification.placeholder")" value="@category.getIdentification()">
+						<input class="form-control" id="input-identification" name="identification[]" placeholder="@Domain.message("web.application.page.categories.form.field.id.placeholder")" value="@category.id()" readonly>
 					</div>
 					<div class="col-lg-6">
-						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.categories.form.field.name.placeholder")" value="@category.getName()">
+						<input class="form-control" id="input-name" name="name[]" placeholder="@Domain.message("web.application.page.categories.form.field.name.placeholder")" value="@category.name()">
 					</div>
-					@helper.tooltips("web.application.page.categories.form.field.help")
 				</div>
 				}
 				<div class="form-group">
-					<div class="col-sm-offset-2 col-sm-10">
+					<div class="col-sm-offset-2 col-sm-12">
 						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
 						<a href="@routes.Dashboard.index()" class="btn btn-success" title="Annuleren">@Domain.message("web.application.button.cancel")</a>
 					</div>

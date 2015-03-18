@@ -152,6 +152,7 @@ web.application.layout.sidebar.services=Services
 web.application.layout.sidebar.layers=Lagen
 web.application.layout.sidebar.groups=Groepen
 web.application.layout.sidebar.styles=Stijlen
+web.application.layout.sidebar.categories=Categorieën
 web.application.layout.sidebar.tiledlayers=Tiled lagen
 web.application.layout.sidebar.logging=Logging
 web.application.layout.sidebar.log=Logboek
@@ -601,3 +602,15 @@ web.application.page.tiledlayers.form.field.clientcache.help=Client cache laten 
 web.application.page.tiledlayers.form.field.gutter.label=Overloop in pixels
 web.application.page.tiledlayers.form.field.gutter.help=Overloop in pixels (0 - 100)
 
+# Categories
+web.application.page.categories.name=Categorieën
+
+web.application.page.categories.form.header=Categorieën
+
+web.application.page.categories.form.title=Categorieën
+web.application.page.categories.form.column.id=Id
+web.application.page.categories.form.column.name=Naam
+web.application.page.categories.form.help=Bij elke categorie kan een naam worden ingevuld, die zichbaar is in het Datasets en Brongegevens scherm
+
+web.application.page.categories.form.field.identification.placeholder=Identifier van de categorie (moet uniek zijn)
+web.application.page.categories.form.field.name.placeholder=Naam van de categorie

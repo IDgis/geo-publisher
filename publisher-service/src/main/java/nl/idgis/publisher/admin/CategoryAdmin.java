@@ -1,13 +1,20 @@
 package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.query.PutCategories;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.service.CrudOperation;
+import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.QCategory;
 import akka.actor.ActorRef;
@@ -45,7 +52,19 @@ public class CategoryAdmin extends AbstractAdmin {
 	
 	private CompletableFuture<Response<?>> handlePutCategories(PutCategories putCategories) {
 		log.debug("handlePutCategories");
-		return null;
+		List<Category> categories = putCategories.categories();
+		return db.transactional(tx -> {  
+			return f.sequence(
+				categories.stream()
+				    .map(cat -> 
+				        tx.update(category)
+		            		.set(category.name, cat.name())
+		            		.where(category.identification.eq(cat.id())) 
+				            .execute())
+				    .collect(Collectors.toList())).thenApply(whatever ->
+				       new Response<String>(CrudOperation.UPDATE,
+			                CrudResponse.OK, ""));
+		});
 		
 	}
 }
