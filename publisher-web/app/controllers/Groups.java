@@ -5,6 +5,7 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.List;
 
+import controllers.Layers.LayerForm;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
@@ -21,6 +22,7 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import play.Logger;
 import play.Play;
@@ -95,7 +97,7 @@ public class Groups extends GroupsLayersCommon {
 					Logger.debug ("Group structure list: " + layerIds);
 					
 					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
-							groupForm.abstractText,groupForm.published);
+							groupForm.abstractText,groupForm.published, (groupForm.enabled ? groupForm.getTiledLayer() : null));
 					
 					return from (database)
 						.put(group)
@@ -144,9 +146,13 @@ public class Groups extends GroupsLayersCommon {
 
 	public static Promise<Result> create () {
 		Logger.debug ("create Group");
-		final Form<GroupForm> groupForm = Form.form (GroupForm.class).fill (new GroupForm ());
+		GroupForm groupForm = new GroupForm ();
+		// set mimeformats to default
+		groupForm.setMimeFormats(null);
 		
-		return renderCreateForm (groupForm);
+		final Form<GroupForm> formGroupForm = Form.form (GroupForm.class).fill (groupForm);
+		
+		return renderCreateForm (formGroupForm);
 	}
 	
 	public static Promise<Result> edit (final String groupId) {
@@ -245,13 +251,13 @@ public class Groups extends GroupsLayersCommon {
 	}
 	
 	
-	public static class GroupForm{
+	public static class GroupForm extends TiledLayerForm{
 
 		@Constraints.Required
 		private String id;
-		@Constraints.Required (message = "test")
+		@Constraints.Required (message = "web.application.page.groups.form.field.name.validation.required")
 		@Constraints.MinLength (value = 3, message = "web.application.page.groups.form.field.name.validation.length")
-		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.groups.form.field.name.validation.error")
+		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.groups.form.field.name.validation.error")
 		private String name;
 		private String title;
 		private String abstractText;
@@ -261,17 +267,21 @@ public class Groups extends GroupsLayersCommon {
 		 */
 		private List<String> structure;
 
+		private Boolean enabled = false;
+
 		public GroupForm(){
 			super();
 			this.id=ID;
 		}
 		
 		public GroupForm(LayerGroup group){
+			super(group.tiledLayer().isPresent()?group.tiledLayer().get():null);
 			this.id = group.id();
 			this.name = group.name();
 			this.title = group.title();
 			this.abstractText = group.abstractText();
 			this.published = group.published();
+			this.enabled = group.tiledLayer().isPresent();
 
 		}
 
@@ -321,6 +331,14 @@ public class Groups extends GroupsLayersCommon {
 
 		public void setStructure(List<String> structure) {
 			this.structure = structure;
+		}
+		
+		public Boolean getEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(Boolean enabled) {
+			this.enabled = enabled;
 		}
 
 	}

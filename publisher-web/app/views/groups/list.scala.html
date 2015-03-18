@@ -93,16 +93,23 @@
 					data-warning-delete-link="@routes.Groups.delete(group.id)"
 					data-warning-delete-body="@Domain.message("web.application.page.groups.list.delete.warning.body")">
 					<div class="row">
-						<div class="col-md-5">
+						<div class="col-md-6">
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Groups.edit(group.id)" class="text-warning">@group.name</a>
 							</h4>
 						</div>
-						<div class="col-md-5">
+						<div class="col-md-2">
 							@if(group.published){
 								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
 							}else{
 								<span>@Domain.message("web.application.page.list.notpublished")</span>
+							}
+						</div>
+						<div class="col-md-2">
+							@if(group.tiledLayer.isPresent()){
+								<span><strong>@Domain.message("web.application.page.list.tiled")</strong></span>
+							}else{
+								<span>@Domain.message("web.application.page.list.nottiled")</span>
 							}
 						</div>
 						<div class="col-md-2">

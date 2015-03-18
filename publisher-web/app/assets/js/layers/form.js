@@ -17,9 +17,9 @@ require ([
 		pager = new Pager ('.gp-tree-values .js-pager');
 	var keywordbutton = dom.byId('add-keyword');
 	var keywordlist = dom.byId('keyword-list');
+	
 	var inputEnable = dom.byId('input-enable');
 	var jsTiledForm = dom.byId('js-tiled-form');
-	
 	if (inputEnable.checked) {
 		domStyle.set(jsTiledForm, "display", "block");
 	} else {

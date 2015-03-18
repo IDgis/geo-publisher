@@ -1,9 +1,12 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class DefaultTiling implements Tiling {
+public class DefaultTiling implements Tiling, Serializable {
 	
+	private static final long serialVersionUID = 2925287832249903424L;
+
 	private final List<String> mimeFormats;
 	
 	private final Integer metaWidth, metaHeight, expireCache, expireClients, gutter;

@@ -48,7 +48,7 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.groups.form.field.abstract.label")</label>
 					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4"></textarea>
+						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4">@groupForm("abstractText").value</textarea>
 						@helper.fielderrors(groupForm("abstractText").errors)
 					</div>
 					@helper.tooltips("web.application.page.groups.form.field.abstract.help")
@@ -115,7 +115,6 @@
 									@views.html.layers.layerPager(layers, null, null)
 								</div>
 							</div>
-							
 							@helper.fielderrors(groupForm("structure").errors)
 					</div>
 					@helper.tooltips("web.application.page.groups.form.field.structure.help")
@@ -128,6 +127,20 @@
 					</div>
 				</div>
 											
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-enable">@Domain.message("web.application.page.tiledlayers.form.field.enabled.label")</label>
+					<div class="col-lg-8">
+						<div class="input-group input-group-sm">
+							<input type="checkbox" class="form-control" id="input-enable" name="enabled" value="true" @if("true".equals(groupForm("enabled").value)){checked}>
+						</div>
+						@helper.fielderrors(groupForm("enabled").errors)
+						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.enabled.help")</span>
+					</div>
+				</div>
+				<div id="js-tiled-form">
+					@tiledlayers.tiledLayerBody(groupForm);
+				</div>
+				
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
 						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>

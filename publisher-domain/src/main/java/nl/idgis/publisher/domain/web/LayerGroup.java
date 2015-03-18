@@ -3,6 +3,8 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,6 +24,8 @@ public class LayerGroup extends Identifiable {
 	private final String abstractText;
 	private final Boolean published;
 	
+	private final TiledLayer tiledLayer;
+
 	@JsonCreator
 	@QueryProjection
 	public LayerGroup(
@@ -29,12 +33,14 @@ public class LayerGroup extends Identifiable {
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
-			final @JsonProperty("") Boolean published) {
+			final @JsonProperty("") Boolean published,
+			final @JsonProperty("") TiledLayer tiledLayer) {
 		super(id);
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
 		this.published = published;
+		this.tiledLayer = tiledLayer;
 	}
 
 	@JsonGetter
@@ -55,6 +61,10 @@ public class LayerGroup extends Identifiable {
 	@JsonGetter
 	public Boolean published() {
 		return published;
+	}
+
+	public Optional<TiledLayer> tiledLayer() {
+		return Optional.ofNullable(tiledLayer);
 	}
 	
 

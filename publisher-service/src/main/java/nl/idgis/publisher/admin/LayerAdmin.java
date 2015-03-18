@@ -48,7 +48,7 @@ import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Path;
 
-public class LayerAdmin extends AbstractAdmin {
+public class LayerAdmin extends LayerGroupCommonAdmin {
 	
 	public LayerAdmin(ActorRef database) {
 		super(database); 
@@ -342,32 +342,6 @@ public class LayerAdmin extends AbstractAdmin {
 									});
 						}
 					}));
-	}
-
-	private CompletableFuture<List<Long>> insertTiledLayer(AsyncHelper tx, 
-			TiledLayer theTiledLayer, Integer genericLayerId, LoggingAdapter log) {
-		return tx
-			.insert(tiledLayer)
-			.set(tiledLayer.metaWidth, theTiledLayer.metaWidth())
-			.set(tiledLayer.metaHeight, theTiledLayer.metaHeight())
-			.set(tiledLayer.expireCache, theTiledLayer.expireCache())
-			.set(tiledLayer.expireClients, theTiledLayer.expireClients())
-			.set(tiledLayer.gutter, theTiledLayer.gutter())
-			.set(tiledLayer.genericLayerId, genericLayerId)
-			.executeWithKey(tiledLayer.id)
-			.thenCompose(
-				tlId -> {
-					log.debug("Insert mimeformats ");
-					return f.sequence(
-						theTiledLayer.mimeformats().stream()
-						    .map(name -> 
-						        tx
-					            .insert(tiledLayerMimeformat)
-					            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
-			            		.set(tiledLayerMimeformat.mimeformat, name)
-					            .execute())
-						    .collect(Collectors.toList()));
-			});
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
