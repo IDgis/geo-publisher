@@ -16,6 +16,34 @@ require ([
 	xhr
 ) {
 	
+	console.log('hello world!');
+	
+	var cvsOptions = query('#csv-options');	
+	var csvOptionsShow = query ('#cvs-options-show');
+	var csvOptionsHide = query ('#cvs-options-hide');
+	
+	console.log(cvsOptions);
+	console.log(csvOptionsShow);
+	console.log(csvOptionsHide);
+	
+	csvOptionsShow.on ('click', function (e) {
+		e.preventDefault ();
+		
+		console.log('show clicked');
+		
+		domClass.add(csvOptionsShow[0], "hide");		
+		domClass.remove(cvsOptions[0], "hide");
+	});
+	
+	csvOptionsHide.on ('click', function (e) {
+		e.preventDefault ();
+		
+		console.log('hide clicked');
+		
+		domClass.remove(csvOptionsShow[0], "hide");		
+		domClass.add(cvsOptions[0], "hide");
+	});
+	
 	var refreshButtons = query ('.js-datasource-refresh'),
 		currentHarvesting = false;
 
