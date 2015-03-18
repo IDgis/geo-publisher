@@ -77,7 +77,7 @@ require ([
 			var el7 = put(el6, "a", naam);
 			var el8 = put(el3, "div.col-sm-1");
 			var el9 = put(el8, "div.pull-right.tree-item-delete");
-			var el10 = put(el9, "a.btn.btn-default.btn-sm.delete-el[value=$]", id);
+			var el10 = put(el9, "a.btn.btn-warning.btn-sm.delete-el[value=$]", id);
 			var el11 = put(el10, "span.glyphicon.glyphicon-remove");
 			
 			put(main, el1);
@@ -98,7 +98,7 @@ require ([
 			var el7 = put(el6, "a", naam);
 			var el8 = put(el3, "div.col-sm-1");
 			var el9 = put(el8, "div.pull-right.tree-item-delete");
-			var el10 = put(el9, "a.btn.btn-default.btn-sm.delete-el[value=$]", id);
+			var el10 = put(el9, "a.btn.btn-warning.btn-sm.delete-el[value=$]", id);
 			var el11 = put(el10, "span.glyphicon.glyphicon-remove");
 			
 			put(main, el1);
