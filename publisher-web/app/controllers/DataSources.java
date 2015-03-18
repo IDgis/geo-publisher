@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function4;
 
@@ -149,7 +150,7 @@ public class DataSources extends Controller {
 					return ok(
 						Stream.concat(
 							Stream.of(
-								toLine(Arrays.asList("id", "name", "category", "datasets"))),
+								toLine(Arrays.asList("id", "name", "category", "datasets", "error"))),
 						
 							sourceDatasetStats.values().stream()
 								.map(sourceDatasetStat -> {
@@ -158,8 +159,11 @@ public class DataSources extends Controller {
 									return toLine(Arrays.asList(
 										sourceDataset.id(),
 										sourceDataset.name(),
-										sourceDataset.category().name(),
-										"" + sourceDatasetStat.datasetCount()));
+										sourceDataset.category().name(),										
+										"" + sourceDatasetStat.datasetCount(),
+										sourceDatasetStat.lastLogMessage() == null
+											? ""
+											: Domain.message(sourceDatasetStat.lastLogMessage())));
 								}))
 								
 							.collect(Collectors.joining("\n")),
