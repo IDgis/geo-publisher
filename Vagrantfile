@@ -2,36 +2,24 @@
 # vi: set ft=ruby :
 
 Vagrant.configure(2) do |config|
-	config.vm.define "db", autostart: false do |db|
-		# Use Ubuntu 14.10 as a base:
-		db.vm.box = "ubuntu/utopic64"
+	# Use Ubuntu 14.10 as a base:
+	config.vm.box = "ubuntu/utopic64"
+
+	# Provision using a shell script:
+	config.vm.provision :shell, path: "scripts/vagrant-provision.sh"
 	
-		# Provision using a shell script:
-		db.vm.provision :shell, path: "scripts/vagrant-db.sh"
-		
-		# Forward the PostgreSQL port:
-		db.vm.network "forwarded_port", guest: 5432, host: 5432
+	# Forward the PostgreSQL port:
+	config.vm.network "forwarded_port", guest: 5432, host: 5432
 	
-		# Configure VirtualBox:
-	  	db.vm.provider "virtualbox" do |vb|
-			# Customize the amount of memory on the VM:
-			vb.memory = "1024"
-		end
-	end
+	# Forward the geoserver port:
+	config.vm.network "forwarded_port", guest: 8080, host: 8080
 	
-	config.vm.define "service", autostart: false do |service|
-		# Use Ubuntu 14.10 as a base:
-		service.vm.box = "ubuntu/utopic64"
-	
-		# Provision using a shell script:
-		service.vm.provision :shell, path: "scripts/vagrant-db.sh"
-		service.vm.provision :shell, path: "scripts/vagrant-service.sh"
-		
-		# Create a public network so that the service can connect to the local machine:
-		service.vm.network "public_network"
-		
-		# Forward the PostgreSQL port:
-		service.vm.network "forwarded_port", guest: 5432, host: 5432
-		service.vm.network "forwarded_port", guest: 2552, host: 2552
+	# Forward the zookeeper port:
+	config.vm.network "forwarded_port", guest: 2181, host: 2181
+
+	# Configure VirtualBox:
+  	config.vm.provider "virtualbox" do |vb|
+		# Customize the amount of memory on the VM:
+		vb.memory = "1024"
 	end
 end
