@@ -122,12 +122,6 @@
 				}
 			</div>
 			}
-			<div class="btn-group">
-				<a href="@routes.Services.create()" 
-					class="btn btn-success" title=@Domain.message("web.application.button.add")>
-					<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.button.add")
-				</a>
-			</div>
 			
 			@helper.deleteWarning()
 			@helper.pagination(services, pageRef)
