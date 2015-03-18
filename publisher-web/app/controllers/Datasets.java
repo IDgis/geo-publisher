@@ -8,12 +8,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
-
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
@@ -38,7 +38,6 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
-
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -58,7 +57,6 @@ import views.html.datasets.show;
 import views.html.datasets.status;
 import actions.DefaultAuthenticator;
 import actors.Database;
-
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -221,7 +219,7 @@ public class Datasets extends Controller {
 							", #sourcedatasets=" + sourceDatasets.pageCount() + 
 							", #columns: " + columns.size () + 
 							", datasetForm: " + datasetForm);
-					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, true));
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, Optional.<Dataset>empty ()));
 				}
 			});
 	}
@@ -310,11 +308,6 @@ public class Datasets extends Controller {
 							.executeFlat (new Function<Response<?>, Promise<Result>> () {
 								@Override
 								public Promise<Result> apply (final Response<?> response) throws Throwable {
-									if (CrudResponse.NOK.equals (response.getOperationResponse ())) {
-										datasetForm.reject ("Er bestaat al een dataset met tabelnaam " + dataset.getId ());
-										return renderCreateForm (datasetForm);
-									}
-									
 									flash ("success", "Dataset " + dataset.getName () + " is toegevoegd.");
 									
 									return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
@@ -324,7 +317,7 @@ public class Datasets extends Controller {
 				});
 	}
 	
-	private static Promise<Result> renderEditForm (final Form<DatasetForm> datasetForm) {
+	private static Promise<Result> renderEditForm (final Form<DatasetForm> datasetForm, final Dataset dataset) {
 		//TODO 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -341,7 +334,7 @@ public class Datasets extends Controller {
 							", #categories=" + categories.pageCount() + 
 							", #sourcedatasets=" + sourceDatasets.pageCount() + 
 							", #columns: " + columns.size ());
-					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, false));
+					return ok (form.render (dataSources, categories, sourceDatasets, columns, datasetForm, Optional.of (dataset)));
 				}
 			});
 	}
@@ -368,7 +361,7 @@ public class Datasets extends Controller {
 										.fill (new DatasetForm (ds, sds.dataSource().id(), columns));
 								
 								Logger.debug ("Edit datasetForm: " + datasetForm);						
-								return renderEditForm (datasetForm);
+								return renderEditForm (datasetForm, ds);
 							}
 						});
 				}
@@ -377,74 +370,78 @@ public class Datasets extends Controller {
 	}
 	
 	public static Promise<Result> submitEdit (final String datasetId) {
-		Logger.debug ("submitEdit");
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		final Form<DatasetForm> datasetForm = Form.form (DatasetForm.class).bindFromRequest ();
-		
-		if (datasetForm.hasErrors ()) {
-			Logger.debug("errors: {}", datasetForm.errors());
-			
-			return renderEditForm (datasetForm);
-		}
-		
-		final DatasetForm dataset = datasetForm.get ();
-		
-		return from (database)
-				.get (DataSource.class, dataset.getDataSourceId ())
-				.get (Category.class, dataset.getCategoryId ())
-				.get (SourceDataset.class, dataset.getSourceDatasetId ())
-				.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
-				.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
-					@Override
-					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
-						Logger.debug ("dataSource: " + dataSource);
-						Logger.debug ("category: " + category);
-						Logger.debug ("sourceDataset: " + sourceDataset);
-						
-						// TODO: Validate dataSource, category, sourceDataset!
-						
-						// Validate the columns used by the filter:
-						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
-							return renderEditForm (datasetForm);
-						}
-						
-						// Create the list of selected columns:
-						final List<Column> columns = new ArrayList<> ();
-						for (final Column column: sourceColumns) {
-							if (dataset.getColumns ().containsKey (column.getName ())) {
-								columns.add (column);
-							}
-						}
 
-						final PutDataset putDataset = new PutDataset (CrudOperation.UPDATE,
-								dataset.getId (), 
-								dataset.getName (), 
-								sourceDataset.id (), 
-								columns,
-								dataset.getFilterConditions ()
-							);
-						
-						Logger.debug ("update dataset " + putDataset);
-						
-						return from (database)
-							.put(putDataset)
-							.executeFlat (new Function<Response<?>, Promise<Result>> () {
-								@Override
-								public Promise<Result> apply (final Response<?> response) throws Throwable {
-									if (CrudResponse.NOK.equals (response.getOperationResponse ())) {
-										datasetForm.reject ("dataset kon niet worden geupdate: " + dataset.getName ());
-										return renderEditForm (datasetForm);
-									}
-									
-									flash ("success", "Dataset " + dataset.getName () + " is aangepast.");
-									
-									return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
+		return from (database)
+			.get (Dataset.class, datasetId)
+			.executeFlat ((ds) -> {
+				if (datasetForm.hasErrors ()) {
+					Logger.debug("errors: {}", datasetForm.errors());
+					
+					return renderEditForm (datasetForm, ds);
+				}
+				
+				final DatasetForm dataset = datasetForm.get ();
+				
+				return from (database)
+						.get (DataSource.class, dataset.getDataSourceId ())
+						.get (Category.class, dataset.getCategoryId ())
+						.get (SourceDataset.class, dataset.getSourceDatasetId ())
+						.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
+						.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
+								Logger.debug ("dataSource: " + dataSource);
+								Logger.debug ("category: " + category);
+								Logger.debug ("sourceDataset: " + sourceDataset);
+								
+								// TODO: Validate dataSource, category, sourceDataset!
+								
+								// Validate the columns used by the filter:
+								if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
+									datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+									return renderEditForm (datasetForm, ds);
 								}
-							});
-					}
-				});
+								
+								// Create the list of selected columns:
+								final List<Column> columns = new ArrayList<> ();
+								for (final Column column: sourceColumns) {
+									if (dataset.getColumns ().containsKey (column.getName ())) {
+										columns.add (column);
+									}
+								}
+
+								final PutDataset putDataset = new PutDataset (CrudOperation.UPDATE,
+										datasetId, 
+										dataset.getName (), 
+										sourceDataset.id (), 
+										columns,
+										dataset.getFilterConditions ()
+									);
+								
+								Logger.debug ("update dataset " + putDataset);
+								
+								return from (database)
+									.put(putDataset)
+									.executeFlat (new Function<Response<?>, Promise<Result>> () {
+										@Override
+										public Promise<Result> apply (final Response<?> response) throws Throwable {
+											if (CrudResponse.NOK.equals (response.getOperationResponse ())) {
+												datasetForm.reject ("dataset kon niet worden geupdate: " + dataset.getName ());
+												return renderEditForm (datasetForm, ds);
+											}
+											
+											flash ("success", "Dataset " + dataset.getName () + " is aangepast.");
+											
+											return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
+										}
+									});
+							}
+						});
+			});
+		
 	}
 	
 	public static Promise<Result> listByCategoryAndStatus(final String categoryId, final DatasetStatus status, final long page) {
@@ -569,9 +566,6 @@ public class Datasets extends Controller {
 		@Constraints.Required
 		private Map<String, String> columns;
 
-		@Constraints.Required		
-		private String id;
-
 		@Constraints.Required
 		private Filter filterConditions;
 
@@ -589,7 +583,6 @@ public class Datasets extends Controller {
 				map.put(column.getName(), column.getDataType().toString());
 			}			
 			setColumns (map);
-			setId (ds.id ());
 			setFilterConditions (ds.filterConditions ());
 		}
 		
@@ -633,14 +626,6 @@ public class Datasets extends Controller {
 			this.columns = columns;
 		}
 
-		public String getId () {
-			return id;
-		}
-
-		public void setId (final String id) {
-			this.id = id;
-		}
-
 		public Filter getFilterConditions () {
 			return filterConditions;
 		}
@@ -654,7 +639,7 @@ public class Datasets extends Controller {
 			return "DatasetForm [name=" + name + ", dataSourceId="
 					+ dataSourceId + ", categoryId=" + categoryId
 					+ ", sourceDatasetId=" + sourceDatasetId + ", columns="
-					+ columns + ", id=" + id + "]";
+					+ columns + "]";
 		}
 	}
 }

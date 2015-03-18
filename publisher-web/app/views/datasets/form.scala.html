@@ -7,10 +7,9 @@
 	sourceDatasets: Page[SourceDatasetStats],
 	columns: List[Column], 
 	datasetForm: Form[controllers.Datasets.DatasetForm],
-	createDataset: Boolean)
+	dataset: Optional[nl.idgis.publisher.domain.web.Dataset])
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
-@datasetId = @{datasetForm("id").value()}
 
 @layout.application(
 	title = Domain.message("web.application.page.datasets.form.title"),
@@ -18,7 +17,7 @@
 	docPath = "datasets/form"
 ) {
 	<div class="page-content">
-	@if(createDataset){
+	@if(!dataset.isPresent){
 		<h1 class="page-header">@Domain.message("web.application.page.datasets.form.header.new")</h1>
 	}else{
 		<h1 class="page-header">@Domain.message("web.application.page.datasets.form.header.edit")</h1>
@@ -38,7 +37,7 @@
 			</div>
 		}
 		
-		<form @if(createDataset){action="@routes.Datasets.submitCreate()"}else{action="@routes.Datasets.submitEdit(datasetId)"} method="post" class="form-horizontal" role="form">
+		<form @if(!dataset.isPresent){action="@routes.Datasets.submitCreate()"}else{action="@routes.Datasets.submitEdit(dataset.get().id)"} method="post" class="form-horizontal" role="form">
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">@Domain.message("web.application.page.datasets.form.tab.general.title")</a></li>
@@ -115,7 +114,7 @@
 											</div>
 										}
 										<div id="column-list" class="list-group">
-											@views.html.datasets.columns(columns, datasetForm, createDataset)
+											@views.html.datasets.columns(columns, datasetForm, !dataset.isPresent)
 										</div>
 									</div>
 								</div>
