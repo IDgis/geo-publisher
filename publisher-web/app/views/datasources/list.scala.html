@@ -199,7 +199,14 @@
 						<div class="col-md-8">@helper.pagination(sourceDatasets, pageRef)</div>
 						<div class="col-md-4 text-right">
 							<div class="row">
-								<form class="form-horizontal" action="@routes.DataSources.download(search,withErrors)" method="get">
+								<form class="form-horizontal" action="@routes.DataSources.download()" method="get">
+									@if(search != null) {
+										<input type="hidden" name="search" value="@search">
+									}
+									@if(withErrors != null) {
+										<input type="hidden" name="withErrors" value="@withErrors">
+									}
+								
 									<button 
 										class="btn btn-info" 
 										title="@Domain.message("web.application.page.sourcedatasets.list.csv.button")" type="submit">
