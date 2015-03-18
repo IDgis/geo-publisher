@@ -3,10 +3,14 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import models.Domain.Function;
 import models.Domain.Function4;
+
 import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
@@ -14,6 +18,7 @@ import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
+
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -24,6 +29,7 @@ import play.mvc.Security;
 import views.html.datasources.list;
 import actions.DefaultAuthenticator;
 import actors.Database;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -118,8 +124,7 @@ public class DataSources extends Controller {
 	 * If empty select all sourcedatasets.
 	 * @return
 	 */
-	public static Promise<Result> download(final String search, final Boolean withErrors) {
-		final String encoding = "iso-8859-1";
+	public static Promise<Result> download(final String search, final Boolean withErrors, final String separator, final String quote, final String encoding) { 
 		final String filename = "sourcedatasets.csv";
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -129,16 +134,37 @@ public class DataSources extends Controller {
 		return from (database)
 			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null))
 			.execute (new Function<Page<SourceDatasetStats>, Result> () {
+				
+				private String toLine(List<String> values) {
+					return values.stream()						
+						.map(s -> quote + s.replace(quote, quote + quote) + quote)
+						.collect(Collectors.joining(separator));
+				}
+				
 				@Override
 				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {
-					StringBuilder sb = new StringBuilder();
-					sb.append("\"id\", \"name\", \"category\", \"datasets\"\n");
-					for (SourceDatasetStats sourceDatasetStat : sourceDatasetStats.values()) {
-						sb.append("\"" + sourceDatasetStat.sourceDataset().id() + "\",\""+sourceDatasetStat.sourceDataset().name() + "\",\""+sourceDatasetStat.sourceDataset().category().name() + "\",\""+sourceDatasetStat.datasetCount() +"\" \n");
-					}
 					response().setContentType("application/x-download; charset=" + encoding);  
-					response().setHeader("Content-disposition","attachment; filename=" + filename); 
-					return ok(sb.toString(), encoding);
+					response().setHeader("Content-disposition", "attachment; filename=" + filename);
+					
+					return ok(
+						Stream.concat(
+							Stream.of(
+								toLine(Arrays.asList("id", "name", "category", "datasets"))),
+						
+							sourceDatasetStats.values().stream()
+								.map(sourceDatasetStat -> {
+									SourceDataset sourceDataset = sourceDatasetStat.sourceDataset();
+									
+									return toLine(Arrays.asList(
+										sourceDataset.id(),
+										sourceDataset.name(),
+										sourceDataset.category().name(),
+										"" + sourceDatasetStat.datasetCount()));
+								}))
+								
+							.collect(Collectors.joining("\n")),
+							
+						encoding);
 				}
 			});
 	}

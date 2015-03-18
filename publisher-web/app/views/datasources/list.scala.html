@@ -198,10 +198,16 @@
 					<div class="row">
 						<div class="col-md-10">@helper.pagination(sourceDatasets, pageRef)</div>
 						<div class="col-md-2 text-right">
-							<a class="btn btn-info"
-								href="@routes.DataSources.download(search,withErrors)"
-								title="@Domain.message("web.application.page.sourcedatasets.list.button.download")">
-								Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span> </a>
+							<form action="@routes.DataSources.download(search,withErrors)" method="get">
+								<input type="hidden" name="quote" value="&quot;">
+								<input type="hidden" name="separator" value=";">
+								<input type="hidden" name="encoding" value="iso-8859-1">
+							
+								<button 
+									class="btn btn-info" 
+									title="@Domain.message("web.application.page.sourcedatasets.list.button.download")" type="submit">
+									Download csv&nbsp;&nbsp;<span class="glyphicon glyphicon-download-alt"></span></button>
+							</form>	
 						</div>
 					</div>
 
