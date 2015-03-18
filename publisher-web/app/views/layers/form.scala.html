@@ -128,9 +128,8 @@
 							<input type="checkbox" class="form-control" id="input-enable" name="enabled" value="true" @if("true".equals(layerForm("enabled").value)){checked}>
 						</div>
 						@helper.fielderrors(layerForm("enabled").errors)
-						<span class="help-block">@Domain.message("web.application.page.tiledlayers.form.field.enabled.help")</span>
 					</div>
-				
+					@helper.tooltips("web.application.page.tiledlayers.form.field.enabled.help")
 				</div>
 				<div id="js-tiled-form">
 					@tiledlayers.tiledLayerBody(layerForm);

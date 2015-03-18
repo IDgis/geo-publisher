@@ -584,7 +584,7 @@ web.application.page.tiledlayers.form.header.new=Nieuwe tiled laag toevoegen
 web.application.page.tiledlayers.form.header.edit=Tiled laag {0} aanpassen
 
 web.application.page.tiledlayers.form.field.enabled.label=Tiles inschakelen
-web.application.page.tiledlayers.form.field.enabled.help=Maak tiling actief
+web.application.page.tiledlayers.form.field.enabled.help=Geef aan of de tiling geactiveerd moet worden
 
 web.application.page.tiledlayers.form.field.formats.label=Formaten
 web.application.page.tiledlayers.form.field.formats.help=Geef de mime formaten waarvoor tiles moeten worden aangemaakt
