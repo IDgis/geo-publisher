@@ -112,11 +112,11 @@
 						</span>
 					</li>
 					
-					@navItem(routes.Datasets.list().url) {
-						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")
-					}
 					@navItem(routes.DataSources.list().url) {
 						<span class="glyphicon glyphicon-hdd"></span> @Domain.message("web.application.layout.sidebar.sourcedatasets")
+					}
+					@navItem(routes.Datasets.list().url) {
+						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.datasets")
 					}
 					
 					<li class="navigation-header">
