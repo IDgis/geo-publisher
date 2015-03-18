@@ -10,6 +10,10 @@ GET		/												controllers.Dashboard.index()
 POST 	/constants/-/update								controllers.Constants.submitUpdate()
 GET		/constants/-/edit								controllers.Constants.edit()
 
+# Categories
+GET		/categories										controllers.Categories.edit()
+POST	/categories										controllers.Categories.submitUpdate()
+
 # Datasets
 GET		/datasets										controllers.Datasets.list(page: Long ?= 1)
 GET		/datasets/-/create								controllers.Datasets.createForm()
