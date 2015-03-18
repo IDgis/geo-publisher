@@ -2,14 +2,14 @@ package nl.idgis.publisher.domain.web.tree;
 
 public class DefaultDatasetLayerRef extends AbstractLayerRef<DatasetLayer> implements DatasetLayerRef {	
 
-	private static final long serialVersionUID = -536475503267823183L;
+	private static final long serialVersionUID = 5328262821783245084L;
 	
-	private final String style;
+	private final StyleRef styleRef;
 
-	public DefaultDatasetLayerRef(DefaultDatasetLayer layer, String style) {
+	public DefaultDatasetLayerRef(DefaultDatasetLayer layer, StyleRef styleRef) {
 		super(layer);
 		
-		this.style = style;
+		this.styleRef = styleRef;
 	}
 	
 	@Override
@@ -18,8 +18,8 @@ public class DefaultDatasetLayerRef extends AbstractLayerRef<DatasetLayer> imple
 	}
 
 	@Override
-	public String getStyleName() {
-		return style;
+	public StyleRef getStyleRef() {
+		return styleRef;
 	}
 	
 	@Override
@@ -29,7 +29,7 @@ public class DefaultDatasetLayerRef extends AbstractLayerRef<DatasetLayer> imple
 
 	@Override
 	public String toString() {
-		return "DefaultDatasetLayerRef [style=" + style + ", layer=" + layer
+		return "DefaultDatasetLayerRef [styleRef=" + styleRef + ", layer=" + layer
 				+ "]";
 	}
 }

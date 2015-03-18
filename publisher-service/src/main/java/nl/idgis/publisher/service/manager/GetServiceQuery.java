@@ -32,6 +32,8 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
+import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -162,6 +164,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 			.orderBy(serviceStructure.layerOrder.asc())
 			.list(
 				serviceStructure.styleIdentification,
+				serviceStructure.styleName,
 				serviceStructure.childLayerIdentification, 
 				serviceStructure.parentLayerIdentification);
 	}
@@ -217,10 +220,11 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 					// LinkedHashMap is used to preserve layer order
 					Map<String, String> structureMap = new LinkedHashMap<>();
 					
-					Map<String, String> styleMap = new HashMap<>();
+					Map<String, StyleRef> styleMap = new HashMap<>();
 					
 					for(Tuple structureTuple : structure) {
 						String styleId = structureTuple.get(serviceStructure.styleIdentification);
+						String styleName = structureTuple.get(serviceStructure.styleName);
 						String childId = structureTuple.get(serviceStructure.childLayerIdentification);
 						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification); 
 						
@@ -230,7 +234,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 						
 						structureMap.put(childId, parentId);
 						if(styleId != null) {
-							styleMap.put(childId, styleId);
+							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}
 					}
 					

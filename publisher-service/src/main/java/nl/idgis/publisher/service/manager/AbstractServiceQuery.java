@@ -38,6 +38,8 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 		
 		StringPath styleIdentification = createString("style_identification");
 		
+		StringPath styleName = createString("style_name");
+		
 		QServiceStructure(String variable) {
 	        super(QServiceStructure.class, forVariable(variable));
 	        
@@ -48,6 +50,7 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 	        add(childLayerIdentification);
 	        add(layerOrder);
 	        add(styleIdentification);
+	        add(styleName);
 	    }
 	}
 	
@@ -71,7 +74,8 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 			serviceStructure.parentLayerId,
 			serviceStructure.parentLayerIdentification,
 			serviceStructure.layerOrder,
-			serviceStructure.styleIdentification).as(
+			serviceStructure.styleIdentification,
+			serviceStructure.styleName).as(
 			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -86,7 +90,8 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification),
+						style.identification,
+						style.name),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -99,6 +104,7 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification)));
+						style.identification,
+						style.name)));
 	}
 }

@@ -19,10 +19,10 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private final Map<String, String> structure;
 	
-	private final Map<String, String> styles;
+	private final Map<String, StyleRef> styles;
 	
 	public static DefaultGroupLayer newInstance(String groupId, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, String> styles) {
+		Map<String, String> structure, Map<String, StyleRef> styles) {
 		
 		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
 		if(groupsMap.containsKey(groupId)) {
@@ -33,12 +33,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	}
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, String> styles) {
+		Map<String, String> structure, Map<String, StyleRef> styles) {
 		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
 	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, String> styles) {		
+		Map<String, String> structure, Map<String, StyleRef> styles) {		
 		
 		this.partialGroupLayer = partialGroupLayer;
 		this.datasets = datasets;

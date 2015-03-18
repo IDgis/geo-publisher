@@ -36,7 +36,7 @@ public class DefaultServiceTest {
 		structure.put("leaf1", "group0");
 		structure.put("leaf2", "group0");
 		
-		Map<String, String> styles = new HashMap<>();
+		Map<String, StyleRef> styles = new HashMap<>();
 		
 		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null);
 		Service service = new DefaultService(
@@ -97,7 +97,7 @@ public class DefaultServiceTest {
 		structure.put("group1", "group0");
 		structure.put("leaf2", "group1");
 		
-		Map<String, String> styles = new HashMap<>();
+		Map<String, StyleRef> styles = new HashMap<>();
 		
 		Service service = new DefaultService(
 			"service0", 

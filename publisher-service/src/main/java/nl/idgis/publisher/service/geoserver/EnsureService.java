@@ -139,7 +139,9 @@ public class EnsureService extends UntypedActor {
 									layer.getTableName(),
 									layer.getTiling().orElse(null),
 									defaultStyleName,
-									datasetRef.getStyleName(),
+									datasetRef.getStyleRef() == null 
+										? null
+										: datasetRef.getStyleRef().getName(),
 									additionalStyleNames), getSelf());
 						}
 					} else {

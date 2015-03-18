@@ -33,6 +33,8 @@ import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
+import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -172,6 +174,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		
 		StringPath styleIdentification = createString("style_identification");
 		
+		StringPath styleName = createString("style_name");
+		
 		QGroupStructure(String variable) {
 	        super(QGroupStructure.class, forVariable(variable));
 	        
@@ -182,6 +186,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	        add(childLayerIdentification);
 	        add(layerOrder);	   
 	        add(styleIdentification);
+	        add(styleName);
 	    }
 	}
 	
@@ -205,7 +210,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.parentLayerId,
 			groupStructure.parentLayerIdentification,
 			groupStructure.layerOrder,
-			groupStructure.styleIdentification).as(
+			groupStructure.styleIdentification,
+			groupStructure.styleName).as(
 			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -219,7 +225,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification),
+						style.identification,
+						style.name),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -232,7 +239,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification)));
+						style.identification,
+						style.name)));
 	}
 	
 	private CompletableFuture<TypedList<Tuple>> structure() {
@@ -240,7 +248,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			.from(groupStructure)
 			.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
 			.orderBy(groupStructure.layerOrder.asc())
-			.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
+			.list(
+				groupStructure.styleIdentification,
+				groupStructure.styleName,
+				groupStructure.childLayerIdentification, 
+				groupStructure.parentLayerIdentification);
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
@@ -260,10 +272,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 					// LinkedHashMap is used to preserve layer order
 					Map<String, String> structureMap = new LinkedHashMap<>();
 					
-					Map<String, String> styleMap = new HashMap<>();
+					Map<String, StyleRef> styleMap = new HashMap<>();
 					
 					for(Tuple structureTuple : structure) {
 						String styleId = structureTuple.get(groupStructure.styleIdentification);
+						String styleName = structureTuple.get(groupStructure.styleName);
 						String childId = structureTuple.get(groupStructure.childLayerIdentification);
 						String parentId = structureTuple.get(groupStructure.parentLayerIdentification); 
 						
@@ -273,7 +286,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						
 						structureMap.put(childId, parentId);
 						if(styleId != null) {
-							styleMap.put(childId, styleId);
+							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}
 					}
 					

@@ -56,6 +56,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 import nl.idgis.publisher.AbstractServiceTest;
@@ -330,7 +331,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(layerRef.isGroupRef());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
-		assertEquals("style0", datasetLayerRef.getStyleName());
+		StyleRef styleRef = datasetLayerRef.getStyleRef();
+		assertNotNull(styleRef);
+		assertEquals("style0", styleRef.getId());
+		assertEquals("styleName0", styleRef.getName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertEquals("layer0", datasetLayer.getId());
