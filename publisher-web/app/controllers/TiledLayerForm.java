@@ -3,6 +3,7 @@ package controllers;
 import java.util.ArrayList;
 import java.util.List;
 
+import play.data.validation.Constraints;
 import nl.idgis.publisher.domain.web.TiledLayer;
 
 public class TiledLayerForm {
@@ -28,10 +29,20 @@ public class TiledLayerForm {
 	private Boolean png8 = false;
 	private Boolean jpg  = false;
 	private Boolean gif  = false;
+
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.required")
+	@Constraints.Min (value = 1, message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.min")
+	@Constraints.Max (value = 20, message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.max")
 	private Integer metaWidth     = META_WIDTH_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.required")
+	@Constraints.Min (value = 1, message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.min")
+	@Constraints.Max (value = 20, message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.max")
 	private Integer metaHeight    = META_HEIGTH_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.servercache.validation.required")
 	private Integer expireCache   = EXPIRE_CACHE_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.clientcache.validation.required")
 	private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.gutter.validation.required")
 	private Integer gutter        = GUTTER_DEFAULT;
 
 	
