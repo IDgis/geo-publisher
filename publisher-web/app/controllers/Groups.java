@@ -96,6 +96,9 @@ public class Groups extends GroupsLayersCommon {
 					final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
 					Logger.debug ("Group structure list: " + layerIds);
 					
+					final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
+					Logger.debug ("Group layer style list: " + layerStyleIds);
+					
 					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
 							groupForm.abstractText,groupForm.published, (groupForm.enabled ? groupForm.getTiledLayer() : null));
 					
@@ -106,7 +109,7 @@ public class Groups extends GroupsLayersCommon {
 							public Promise<Result> apply (final Response<?> response) throws Throwable {
 								// Get the id of the layer we just put 
 								String groupId = response.getValue().toString();
-								PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds);															
+								PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds, layerStyleIds);															
 								return from (database)
 									.query(putGroupStructure)
 									.executeFlat (new Function<Response<?>, Promise<Result>> () {
@@ -266,6 +269,11 @@ public class Groups extends GroupsLayersCommon {
 		 * List of id's of layers/groups in this group
 		 */
 		private List<String> structure;
+		
+		/**
+		 * List of id's of styles in this group
+		 */
+		private List<String> styles;
 
 		private Boolean enabled = false;
 
@@ -331,6 +339,14 @@ public class Groups extends GroupsLayersCommon {
 
 		public void setStructure(List<String> structure) {
 			this.structure = structure;
+		}
+		
+		public List<String> getStyles() {
+			return styles;
+		}
+
+		public void setStyles(List<String> styles) {
+			this.styles = styles;
 		}
 		
 		public Boolean getEnabled() {

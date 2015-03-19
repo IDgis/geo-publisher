@@ -539,6 +539,9 @@ web.application.page.groups.form.field.structure.label=Structuur
 web.application.page.groups.form.field.structure.validation.error=Er moet mimimaal 1 groep of laag worden toegevoegd
 web.application.page.groups.form.field.structure.help=Voeg een groep of een laag toe
 
+web.application.page.groups.form.field.structure.style.label=Stijl
+web.application.page.groups.form.field.structure.style.default=(standaard)
+
 web.application.page.groups.form.field.addlayer.button=Toevoegen laag
 web.application.page.groups.form.field.addgroup.button=Toevoegen groep
 web.application.page.groups.form.field.services.label=Zit in de service(s)

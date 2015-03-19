@@ -4,6 +4,7 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import models.Domain;
 import models.Domain.Function;
@@ -11,6 +12,7 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
+
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
@@ -27,6 +29,7 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -40,6 +43,7 @@ import play.mvc.Security;
 import views.html.services.form;
 import views.html.services.list;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 
@@ -118,7 +122,12 @@ public class Services extends Controller {
 								Logger.debug("serviceId: " + serviceId);
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds);
+								
+								List<String> layerStyleIds = layerIds.stream()
+										.map(layer -> "")
+										.collect(Collectors.toList());
+								
+								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
 								return from (database)
 									.query(putServiceKeywords)
 									.query(putGroupStructure)
@@ -207,7 +216,12 @@ public class Services extends Controller {
 								Logger.debug("serviceId: " + serviceId);
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds);
+								
+								List<String> layerStyleIds = layerIds.stream()
+									.map(layer -> "")
+									.collect(Collectors.toList());
+								
+								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
 								return from (database)
 									.query(putServiceKeywords)
 									.query(putGroupStructure)
