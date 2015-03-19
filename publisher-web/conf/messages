@@ -56,6 +56,9 @@ nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_TABLE=Onbekende tabel
 # --------------
 # Web applicatie 
 # --------------
+# Generic play validation 'Invalid value' message (examples in $PLAY_HOME/framework/src/play/src/main/resources/messages)
+error.invalid=Verkeerde waarde (bijvoorbeeld tekst waar een getal wordt verwacht, of een getal dat groter is dan 2147483647)
+
 # Generieke tekst 
 web.application.title=GIS publicatieomgeving
 web.application.name=GEO Publisher
@@ -604,18 +607,38 @@ web.application.page.tiledlayers.form.field.formats.gif.label=gif
 
 web.application.page.tiledlayers.form.field.metatilingwidth.label=Metatiling breedte
 web.application.page.tiledlayers.form.field.metatilingwidth.help=Metatiling breedte (1 - 20)
+web.application.page.tiledlayers.form.field.metatilingwidth.placeholder=Metatiling breedte
+web.application.page.tiledlayers.form.field.metatilingwidth.validation.required=Deze waarde is verplicht (1 - 20)
+web.application.page.tiledlayers.form.field.metatilingwidth.validation.min=De metatiling breedte moet minimaal 1 zijn
+web.application.page.tiledlayers.form.field.metatilingwidth.validation.max=De metatiling breedte mag maximaal 20 zijn 
 
 web.application.page.tiledlayers.form.field.metatilingheight.label=Metatiling hoogte
 web.application.page.tiledlayers.form.field.metatilingheight.help=Metatiling hoogte (1 - 20)
+web.application.page.tiledlayers.form.field.metatilingheight.placeholder=Metatiling hoogte
+web.application.page.tiledlayers.form.field.metatilingheight.validation.required=Deze waarde is verplicht (1 - 20)
+web.application.page.tiledlayers.form.field.metatilingheight.validation.min=De metatiling hoogte moet minimaal 1 zijn
+web.application.page.tiledlayers.form.field.metatilingheight.validation.max=De metatiling hoogte mag maximaal 20 zijn 
 
 web.application.page.tiledlayers.form.field.servercache.label=Server cache
 web.application.page.tiledlayers.form.field.servercache.help=Server cache laten verlopen in aantal seconden (0 betekent bron instellingen)
+web.application.page.tiledlayers.form.field.servercache.placeholder=Server cache
+web.application.page.tiledlayers.form.field.servercache.validation.required=Deze waarde is verplicht
+web.application.page.tiledlayers.form.field.servercache.validation.min=Minimale waarde is 0
+web.application.page.tiledlayers.form.field.servercache.validation.max=Te hoge waarde (max. {0}). Geef een zinvolle maximale waarde bijvoorbeeld 86400 seconden (= een dag)
 
 web.application.page.tiledlayers.form.field.clientcache.label=Client cache
 web.application.page.tiledlayers.form.field.clientcache.help=Client cache laten verlopen in aantal seconden (0 betekent bron instellingen)
+web.application.page.tiledlayers.form.field.clientcache.placeholder=Client cache
+web.application.page.tiledlayers.form.field.clientcache.validation.required=Deze waarde is verplicht
+web.application.page.tiledlayers.form.field.clientcache.validation.min=Minimale waarde is 0
+web.application.page.tiledlayers.form.field.clientcache.validation.max=Te hoge waarde (max. {0}). Geef een zinvolle maximale waarde bijvoorbeeld 86400 seconden (= een dag)
 
 web.application.page.tiledlayers.form.field.gutter.label=Overloop in pixels
-web.application.page.tiledlayers.form.field.gutter.help=Overloop in pixels (0 - 100)
+web.application.page.tiledlayers.form.field.gutter.help=Overloop in pixels (toegestane waarden: 0,1,2,3,4,5,6,7,8,9,10,15,20,50,100)
+web.application.page.tiledlayers.form.field.gutter.placeholder=Overloop in pixels
+web.application.page.tiledlayers.form.field.gutter.validation.required=Deze waarde is verplicht (toegestane waarden: 0,1,2,3,4,5,6,7,8,9,10,15,20,50,100)
+web.application.page.tiledlayers.form.field.gutter.validation.min=Minimale waarde is 0
+web.application.page.tiledlayers.form.field.gutter.validation.max=Maximale waarde is 100
 
 # Categories
 web.application.page.categories.name=Categorieën

@@ -3,6 +3,7 @@ package controllers;
 import java.util.ArrayList;
 import java.util.List;
 
+import play.data.validation.Constraints;
 import nl.idgis.publisher.domain.web.TiledLayer;
 
 public class TiledLayerForm {
@@ -15,7 +16,7 @@ public class TiledLayerForm {
 
 	private static final String GIF  = "image/gif";
 	private static final String JPG  = "image/jpeg";
-	private static final String PNG8 = "image/png; mode=8bit";
+	private static final String PNG8 = "image/png8"; // "image/png; mode=8bit";
 	private static final String PNG  = "image/png";
 	
 	private static final Boolean PNG_DEFAULT  = true;
@@ -28,10 +29,26 @@ public class TiledLayerForm {
 	private Boolean png8 = false;
 	private Boolean jpg  = false;
 	private Boolean gif  = false;
+
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.required")
+	@Constraints.Min (value = 1, message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.min")
+	@Constraints.Max (value = 20, message = "web.application.page.tiledlayers.form.field.metatilingwidth.validation.max")
 	private Integer metaWidth     = META_WIDTH_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.required")
+	@Constraints.Min (value = 1, message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.min")
+	@Constraints.Max (value = 20, message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.max")
 	private Integer metaHeight    = META_HEIGTH_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.servercache.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.servercache.validation.min")
+	@Constraints.Max (value = 99999999, message = "web.application.page.tiledlayers.form.field.servercache.validation.max")
 	private Integer expireCache   = EXPIRE_CACHE_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.clientcache.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.clientcache.validation.min")
+	@Constraints.Max (value = 99999999, message = "web.application.page.tiledlayers.form.field.clientcache.validation.max")
 	private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
+	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.gutter.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.gutter.validation.min")
+	@Constraints.Max (value = 100, message = "web.application.page.tiledlayers.form.field.gutter.validation.max")
 	private Integer gutter        = GUTTER_DEFAULT;
 
 	
