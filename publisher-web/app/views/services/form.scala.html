@@ -93,8 +93,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.services.form.field.publish.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm">
-							<input type="checkbox" class="form-control" id="input-published" name="published" value="true" @if("true".equals (serviceForm("published").value)){checked}>
+						<div class="input-group input-group-sm checkbox-fix">
+							<input type="checkbox" id="input-published" name="published" value="true" @if("true".equals (serviceForm("published").value)){checked}>
 						</div>
 					
 						@helper.fielderrors(serviceForm("published").errors)

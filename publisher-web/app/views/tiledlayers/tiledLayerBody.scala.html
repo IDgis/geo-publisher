@@ -4,18 +4,18 @@
 
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.tiledlayers.form.field.formats.label")</label>
-					<div class="col-sm-8">
+					<div class="col-sm-8 mimeformats-box">
 						<div class="input-group input-group-xs">
-							<label><input type="checkbox" id="input-png" name="png" value="true" @if("true".equals(tiledlayerForm("png").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.png.label")</label>
+							<input type="checkbox" id="input-png" name="png" value="true" @if("true".equals(tiledlayerForm("png").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.png.label")
 						</div>
 						<div class="input-group input-group-xs">
-							<label><input type="checkbox" id="input-png8" name="png8" value="true" @if("true".equals(tiledlayerForm("png8").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.png8.label")</label>
+							<input type="checkbox" id="input-png8" name="png8" value="true" @if("true".equals(tiledlayerForm("png8").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.png8.label")
 						</div>
 						<div class="input-group input-group-xs">
-							<label><input type="checkbox" id="input-jpg" name="jpg" value="true" @if("true".equals(tiledlayerForm("jpg").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.jpg.label")</label>
+							<input type="checkbox" id="input-jpg" name="jpg" value="true" @if("true".equals(tiledlayerForm("jpg").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.jpg.label")
 						</div>
 						<div class="input-group input-group-xs">
-							<label><input type="checkbox" id="input-gif" name="gif" value="true" @if("true".equals(tiledlayerForm("gif").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.gif.label")</label>
+							<input type="checkbox" id="input-gif" name="gif" value="true" @if("true".equals(tiledlayerForm("gif").value)){checked}>&nbsp;@Domain.message("web.application.page.tiledlayers.form.field.formats.gif.label")
 						</div>
 					</div>
 					@helper.tooltips("web.application.page.tiledlayers.form.field.formats.help")
