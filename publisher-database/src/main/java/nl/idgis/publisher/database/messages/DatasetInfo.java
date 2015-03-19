@@ -20,6 +20,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final Timestamp lastImportTime;
 	private final JobState lastImportJobState;
 	private final List<StoredNotification> notifications;	
+	private final long layerCount;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName, 
@@ -28,7 +29,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final Boolean sourceDatasetColumnsChanged,
 			final Timestamp lastImportTime,
 			final String lastImportJobState,
-			final List<StoredNotification> notifications) {
+			final List<StoredNotification> notifications,
+			final long layerCount) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -41,6 +43,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.lastImportTime = lastImportTime;
 		this.lastImportJobState = toJobState(lastImportJobState);		
 		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
+		this.layerCount = layerCount;
 	}
 	
 	private static JobState toJobState(String jobStateName) {
@@ -89,6 +92,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
 	public List<StoredNotification> getNotifications () {
 		return Collections.unmodifiableList (notifications);
+	}
+	
+	public long getLayerCount () {
+		return layerCount;
 	}
 
 	@Override

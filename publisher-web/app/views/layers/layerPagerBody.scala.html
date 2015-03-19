@@ -7,7 +7,7 @@
 } else {
 	<div class="list-group">
 		@for(layer <- layers.values) {
-			<a href="#" class="list-group-item" data-id="@layer.id" data-label="@layer.name">
+			<a href="@routes.Layers.edit(layer.id)" class="list-group-item" data-id="@layer.id" data-label="@layer.name">
 				<div class="row">
 					<div class="col-lg-6">
 						@layer.name

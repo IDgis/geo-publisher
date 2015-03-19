@@ -100,6 +100,12 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			baseQuery.where (genericLayer.published.eq (listLayers.getPublished ()));
 		}
 		
+		// Add a filter for the dataset id:
+		if (listLayers.getDatasetId () != null) {
+			baseQuery.join (dataset).on (dataset.id.eq (leafLayer.datasetId))
+				.where (dataset.identification.eq (listLayers.getDatasetId ()));
+		}
+		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();
 		
 		singlePage (listQuery, listLayers.getPage ());

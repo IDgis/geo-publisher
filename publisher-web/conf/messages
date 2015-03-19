@@ -230,6 +230,12 @@ web.application.page.datasets.show.field.datasetstatus=Status
 web.application.page.datasets.show.field.datasetcategorie=Categorie
 web.application.page.datasets.show.field.datasethasfilters=Heeft filtercondities
 
+web.application.page.datasets.show.notifications.heading=Structuurwijzigingen
+web.application.page.datasets.show.notifications.none=Er zijn momenteel geen structuurwijzigingen op deze dataset.
+
+web.application.page.datasets.show.layers.heading=Lagen behorende bij deze dataset
+web.application.page.datasets.show.layers.noLayers=Er zijn geen lagen geconfigureerd bij deze dataset.
+
 web.application.page.datasets.show.form.headingnotaccepted=Structuurwijziging (verworpen)
 web.application.page.datasets.show.form.heading=Structuurwijziging		
 web.application.page.datasets.show.form.body=Wijzigingen in kolommen:
@@ -272,6 +278,9 @@ web.application.page.datasets.form.tab.columns.button.select_none=Deselecteer al
 web.application.page.datasets.form.tab.filters.alert=Het opgegeven filter is ongeldig.
 
 web.application.page.datasets.list.delete.warning.body=Weet u zeker dat u deze dataset wilt verwijderen? Gekoppelde lagen worden ook verwijderd, tevens worden de onderliggende data en filters verwijderd.
+web.application.page.datasets.list.layerCount=lagen
+web.application.page.datasets.list.layerCountSingle=1 laag
+web.application.page.datasets.list.layerCountNone=Geen lagen
 
 
 # General management
