@@ -360,11 +360,22 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(mimeFormats.contains("image/jpg"));
 		assertEquals(2, mimeFormats.size());
 		
-		List<String> styles = datasetLayer.getStyleNames();
-		assertEquals(2, styles.size());
-		assertTrue(styles.contains("styleName0"));
-		assertTrue(styles.contains("styleName1"));
+		List<StyleRef> styleRefs = datasetLayer.getStyleRefs();
+		assertNotNull(styleRefs);
 		
+		Iterator<StyleRef> styleRefsItr = styleRefs.iterator();
+		assertTrue(styleRefsItr.hasNext());
+		
+		styleRef = styleRefsItr.next();
+		assertNotNull(styleRef);
+		assertEquals("styleName0", styleRef.getName());
+		
+		assertTrue(styleRefsItr.hasNext());
+		
+		styleRef = styleRefsItr.next();
+		assertNotNull(styleRef);
+		assertEquals("styleName1", styleRef.getName());
+				
 		assertFalse(itr.hasNext());
 		
 		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");

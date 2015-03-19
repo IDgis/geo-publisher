@@ -16,6 +16,7 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 
 import nl.idgis.publisher.utils.TypedList;
 
@@ -25,7 +26,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 	
 	protected abstract CompletableFuture<Map<Integer, List<String>>> datasetKeywords();
 	
-	protected abstract CompletableFuture<Map<Integer, List<String>>> datasetStyles();
+	protected abstract CompletableFuture<Map<Integer, List<StyleRef>>> datasetStyles();
 	
 	protected abstract CompletableFuture<TypedList<Tuple>> datasetInfo();
 	

@@ -90,7 +90,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		}
 		
 		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> datasetStyles() {
+		protected CompletableFuture<Map<Integer, List<StyleRef>>> datasetStyles() {
 			return withGroupStructure.clone()
 				.from(leafLayer)
 				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
@@ -100,12 +100,15 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
 				.list(
 					genericLayer.id,
+					style.identification,
 					style.name).thenApply(resp ->
 						resp.list().stream()
 							.collect(Collectors.groupingBy(t ->
 								t.get(genericLayer.id),
 								Collectors.mapping(t ->
-									t.get(style.name),
+									new DefaultStyleRef(
+										t.get(style.identification),
+										t.get(style.name)),
 									Collectors.toList()))));
 		}
 		

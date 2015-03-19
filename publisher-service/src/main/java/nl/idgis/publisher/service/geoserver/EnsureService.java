@@ -119,7 +119,10 @@ public class EnsureService extends UntypedActor {
 							String defaultStyleName;
 							List<String> additionalStyleNames;
 							
-							List<String> styleNames = layer.getStyleNames();
+							List<String> styleNames = layer.getStyleRefs().stream()
+								.map(styleRef -> styleRef.getName())
+								.collect(Collectors.toList());
+							
 							if(styleNames.isEmpty()) {
 								defaultStyleName = null;
 								additionalStyleNames = Collections.emptyList();
