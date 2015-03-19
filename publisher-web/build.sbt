@@ -17,7 +17,8 @@ libraryDependencies ++= Seq(
   "org.webjars" % "dojo" % "1.10.0",
   "nl.idgis.publisher" % "publisher-domain" % (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head,
   "com.typesafe.akka" %% "akka-remote" % "2.3.3",
-  "org.pegdown" % "pegdown" % "1.5.0"
+  "org.pegdown" % "pegdown" % "1.5.0",
+  "org.apache.zookeeper" % "zookeeper", "3.4.5"
 )
 
 includeFilter in (Assets, LessKeys.less) := "*.less"
