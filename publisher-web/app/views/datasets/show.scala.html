@@ -50,47 +50,66 @@
 					</table>
 				</div>
 			</div>
-			@if(!dataset.activeNotifications.isEmpty) {
 			<div class="col-lg-6">
-				@for(notification <- dataset.activeNotifications) {
-				<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
-					<div class="panel-heading">
-						@if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-							@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
-						}else{
-							@Domain.message("web.application.page.datasets.show.form.heading")
-						}
-					</div>
-					<div class="panel-body">
-						@Domain.message("web.application.page.datasets.show.form.body")
-					</div>
-					<table class="table">
-						<tbody>
-							@for(diff <- diffs) {
-								<tr>
-									<th>@diff.getColumn().getName()</th>
-									<td>@diff.getColumn().getDataType().name</td>
-									<td>
-										@if(diff.getOperation().equals(ColumnDiffOperation.ADD)) {
-											@Domain.message("web.application.added")
-										} else {
-											@Domain.message("web.application.removed")
-										}
-									</td>
-								</tr>
+				@if(!dataset.activeNotifications.isEmpty) {
+					@for(notification <- dataset.activeNotifications) {
+					<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
+						<div class="panel-heading">
+							@if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+								@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
+							}else{
+								@Domain.message("web.application.page.datasets.show.form.heading")
 							}
-						</tbody>
-					</table>
-					<div class="panel-footer">
-						@if(!notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-							<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
-						}
-						<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
+						</div>
+						<div class="panel-body">
+							@Domain.message("web.application.page.datasets.show.form.body")
+						</div>
+						<table class="table">
+							<tbody>
+								@for(diff <- diffs) {
+									<tr>
+										<th>@diff.getColumn().getName()</th>
+										<td>@diff.getColumn().getDataType().name</td>
+										<td>
+											@if(diff.getOperation().equals(ColumnDiffOperation.ADD)) {
+												@Domain.message("web.application.added")
+											} else {
+												@Domain.message("web.application.removed")
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+						<div class="panel-footer">
+							@if(!notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+								<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
+							}
+							<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
+						</div>
+					</form>
+					}
+				} else {
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							@Domain.message("web.application.page.datasets.show.notifications.heading")
+						</div>
+						<div class="panel-body">
+							<strong class="text-info">@Domain.message("web.application.page.datasets.show.notifications.none")</strong>
+						</div>
 					</div>
-				</form>
 				}
 			</div>
-			}
+		</div>@* /row *@
+		
+		<div class="row">
+			<div class="col-lg-6">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						@Domain.message("web.application.page.datasets.show.layers.heading")
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 }

@@ -230,6 +230,11 @@ web.application.page.datasets.show.field.datasetstatus=Status
 web.application.page.datasets.show.field.datasetcategorie=Categorie
 web.application.page.datasets.show.field.datasethasfilters=Heeft filtercondities
 
+web.application.page.datasets.show.notifications.heading=Structuurwijzigingen
+web.application.page.datasets.show.notifications.none=Er zijn momenteel geen structuurwijzigingen op deze dataset.
+
+web.application.page.datasets.show.layers.heading=Lagen behorende bij deze dataset
+
 web.application.page.datasets.show.form.headingnotaccepted=Structuurwijziging (verworpen)
 web.application.page.datasets.show.form.heading=Structuurwijziging		
 web.application.page.datasets.show.form.body=Wijzigingen in kolommen:
