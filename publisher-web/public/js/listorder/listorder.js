@@ -54,6 +54,13 @@ define ([
 		
 		var orderedListItems = query ('> .list-group-item', this.orderedList),
 			self = this;
+		
+		// Optionally exclude child elements of the draggable elements:
+		// =========================================================================
+		
+		on (query ('.gp-draggable-exclude', this.orderedList), 'mousedown', function (e) {
+			e.stopPropagation();
+		});
 	
 		// Change list order:
 		// =========================================================================
