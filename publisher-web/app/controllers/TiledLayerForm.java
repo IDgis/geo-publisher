@@ -39,10 +39,16 @@ public class TiledLayerForm {
 	@Constraints.Max (value = 20, message = "web.application.page.tiledlayers.form.field.metatilingheight.validation.max")
 	private Integer metaHeight    = META_HEIGTH_DEFAULT;
 	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.servercache.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.servercache.validation.min")
+	@Constraints.Max (value = 99999999, message = "web.application.page.tiledlayers.form.field.servercache.validation.max")
 	private Integer expireCache   = EXPIRE_CACHE_DEFAULT;
 	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.clientcache.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.clientcache.validation.min")
+	@Constraints.Max (value = 99999999, message = "web.application.page.tiledlayers.form.field.clientcache.validation.max")
 	private Integer expireClients = EXPIER_CLIENTS_DEFAULT;
 	@Constraints.Required (message = "web.application.page.tiledlayers.form.field.gutter.validation.required")
+	@Constraints.Min (value = 0, message = "web.application.page.tiledlayers.form.field.gutter.validation.min")
+	@Constraints.Max (value = 100, message = "web.application.page.tiledlayers.form.field.gutter.validation.max")
 	private Integer gutter        = GUTTER_DEFAULT;
 
 	
