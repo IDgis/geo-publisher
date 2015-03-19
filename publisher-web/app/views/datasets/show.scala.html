@@ -116,8 +116,12 @@
 							<strong class="text-info">@Domain.message("web.application.page.datasets.show.layers.noLayers")</strong>
 						</div>
 					} else {
-						@views.html.layers.layerPagerBody(layers)
-						@views.html.layers.layerPagerFooter(layers)
+						<div class="panel-body">
+							@views.html.layers.layerPagerBody(layers)
+						</div>
+						<div class="panel-footer">
+							@views.html.layers.layerPagerFooter(layers)
+						</div>
 					}
 				</div>
 			</div>
