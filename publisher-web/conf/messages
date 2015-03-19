@@ -57,7 +57,7 @@ nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_TABLE=Onbekende tabel
 # Web applicatie 
 # --------------
 # Generic play validation 'Invalid value' message (examples in $PLAY_HOME/framework/src/play/src/main/resources/messages)
-error.invalid=Verkeerde waarde (bijvoorbeeld tekst waar een getal wordt verwacht, of een getal is groter dan 2147483647)
+error.invalid=Verkeerde waarde (bijvoorbeeld tekst waar een getal wordt verwacht, of een getal dat groter is dan 2147483647)
 
 # Generieke tekst 
 web.application.title=GIS publicatieomgeving
