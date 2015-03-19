@@ -13,7 +13,8 @@
 
 @layout.application(
 	title = Domain.message("web.application.page.datasets.show.title") + " - " + dataset.name,
-	docPath = "datasets/show"
+	docPath = "datasets/show",
+	jsMain = routes.Assets.at("js/datasets/show.js").url
 ) {
 	<div class="page-content">
 		<h1 class="page-header">@Domain.message("web.application.page.datasets.show.title") @dataset.name</h1>
@@ -106,7 +107,7 @@
 		
 		<div class="row">
 			<div class="col-lg-6">
-				<div class="panel panel-default">
+				<div class="panel panel-default" id="layer-list">
 					<div class="panel-heading">
 						@Domain.message("web.application.page.datasets.show.layers.heading")
 						<a href="@routes.Layers.create(dataset.id)" class="btn btn-sm btn-success pull-right"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
