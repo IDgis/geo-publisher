@@ -15,6 +15,7 @@ import static nl.idgis.publisher.database.QNotificationResult.notificationResult
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 import static nl.idgis.publisher.utils.JsonUtils.fromJson;
 
@@ -94,10 +95,12 @@ import com.mysema.query.types.Path;
 import com.mysema.query.types.SubQueryExpression;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ComparableExpressionBase;
+import com.mysema.query.types.path.PathBuilder;
 import com.typesafe.config.Config;
 
 public class PublisherTransaction extends QueryDSLTransaction {
 	
+	private final static PathBuilder<Long> layerCountPath = new PathBuilder<Long> (Long.class, "layerCount");
 	private final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -447,7 +450,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				datasetActiveNotification.notificationType,
 				datasetActiveNotification.notificationResult,
 				datasetActiveNotification.jobId,
-				datasetActiveNotification.jobType
+				datasetActiveNotification.jobType,
+				new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)
 			)) {
 			
 			if (t.get (datasetActiveNotification.notificationId) != null) {
@@ -500,7 +504,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				notifications
+				notifications,
+				t.get (layerCountPath)
 			);
 	}
 

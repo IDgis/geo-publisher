@@ -5,15 +5,15 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -36,7 +36,6 @@ import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoredNotification;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -61,22 +60,20 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.Status;
-
 import nl.idgis.publisher.utils.StreamUtils;
-
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
-
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Order;
+import com.mysema.query.types.path.PathBuilder;
 
 public class DatasetAdmin extends AbstractAdmin {
 	
+	private final static PathBuilder<Long> layerCountPath = new PathBuilder<Long> (Long.class, "layouerCount");
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 
 	public DatasetAdmin(ActorRef database) {
@@ -168,7 +165,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				importStatus,
 				notifications, // notification list
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
-				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class)
+				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class),
+				datasetInfo.getLayerCount ()
 		);
 	}
 	
@@ -185,7 +183,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				t.get (datasetStatus.sourceDatasetColumnsChanged),
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
-				notifications
+				notifications,
+				t.get (layerCountPath)
 			);
 	}
 	
@@ -269,7 +268,8 @@ public class DatasetAdmin extends AbstractAdmin {
 							datasetActiveNotification.notificationType,
 							datasetActiveNotification.notificationResult,
 							datasetActiveNotification.jobId,
-							datasetActiveNotification.jobType).thenApply(tuples -> {
+							datasetActiveNotification.jobType,
+							new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)).thenApply(tuples -> {
 								final List<DatasetInfo> datasetInfos = new ArrayList<> ();
 								String currentIdentification = null;
 								final List<StoredNotification> notifications = new ArrayList<> ();

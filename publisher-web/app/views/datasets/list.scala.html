@@ -195,6 +195,19 @@
 								</div>
 								<div class="col-md-2">
 									<a href="@routes.Layers.create(dataset.id)" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
+									@if(dataset.layerCount == 0) {
+										<p class="text-muted">@Domain.message("web.application.page.datasets.list.layerCountNone")</p>
+									} else {
+										<p>
+											<a href="@routes.Datasets.show(dataset.id)">
+												@if(dataset.layerCount == 1) {
+													@Domain.message("web.application.page.datasets.list.layerCountSingle")
+												} else {
+													@dataset.layerCount @Domain.message("web.application.page.datasets.list.layerCount")
+												}
+											</a>
+										</p>
+									}
 								</div>
 								<div class="col-md-2">
 									<div class="btn-group pull-right">

@@ -18,6 +18,7 @@ public final class Dataset extends Identifiable {
 	private final List<DashboardItem> activeNotifications;
 	private final EntityRef sourceDataset;
 	private final Filter filterConditions;
+	private final long layerCount;
 	
 	@JsonCreator
 	public Dataset (
@@ -27,7 +28,8 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("currentImportStatus") Status currentImportStatus,
 			final @JsonProperty("activeNotifications") List<DashboardItem> activeNotifications,
 			final @JsonProperty("sourceDataset") EntityRef sourceDataset,
-			final @JsonProperty("filterConditions") Filter filterConditions) {
+			final @JsonProperty("filterConditions") Filter filterConditions,
+			final @JsonProperty("layerCount") long layerCount) {
 		
 		super (id);
 		
@@ -37,6 +39,7 @@ public final class Dataset extends Identifiable {
 		this.activeNotifications = activeNotifications == null ? Collections.<DashboardItem>emptyList () : new ArrayList<> (activeNotifications);
 		this.sourceDataset = sourceDataset;
 		this.filterConditions = filterConditions;
+		this.layerCount = layerCount;
 	}
 	
 	@JsonGetter
@@ -67,5 +70,10 @@ public final class Dataset extends Identifiable {
 	@JsonGetter
 	public Filter filterConditions () {
 		return this.filterConditions;
+	}
+	
+	@JsonGetter
+	public long layerCount () {
+		return this.layerCount;
 	}
 }

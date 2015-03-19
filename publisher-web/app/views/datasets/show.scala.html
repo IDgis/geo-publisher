@@ -110,6 +110,9 @@
 				<div class="panel panel-default" id="layer-list">
 					<div class="panel-heading">
 						@Domain.message("web.application.page.datasets.show.layers.heading")
+						@if(dataset.layerCount > 0) {
+							(@dataset.layerCount)
+						}
 						<a href="@routes.Layers.create(dataset.id)" class="btn btn-sm btn-success pull-right"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
 					</div>
 					@if(layers.values.isEmpty) {
