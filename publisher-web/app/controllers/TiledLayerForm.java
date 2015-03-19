@@ -16,7 +16,7 @@ public class TiledLayerForm {
 
 	private static final String GIF  = "image/gif";
 	private static final String JPG  = "image/jpeg";
-	private static final String PNG8 = "image/png; mode=8bit";
+	private static final String PNG8 = "image/png8"; // "image/png; mode=8bit";
 	private static final String PNG  = "image/png";
 	
 	private static final Boolean PNG_DEFAULT  = true;
