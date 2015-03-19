@@ -26,10 +26,10 @@
 				<input type="hidden" name="returnUrl" value="@form("returnUrl").value">
 				<fieldset>
 					<div class="form-group">
-						<input class="form-control" type="email" autofocus name="username" placeholder=@Domain.message("web.application.login.placeholder.user") value="@form("username").value">
+						<input class="form-control" type="email" autofocus name="username" placeholder="@Domain.message("web.application.login.placeholder.user")" value="@form("username").value">
 					</div>
 					<div class="form-group">
-						<input class="form-control" type="password" name="password" placeholder=@Domain.message("web.application.login.placeholder.password")>
+						<input class="form-control" type="password" name="password" placeholder="@Domain.message("web.application.login.placeholder.password")">
 					</div>
 					<button class="btn btn-lg btn-success btn-block" href="@routes.Dashboard.index()" type="submit">@Domain.message("web.application.login.button")</a>
 				</fieldset>
