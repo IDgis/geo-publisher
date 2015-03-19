@@ -19,6 +19,7 @@ import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
@@ -34,6 +35,7 @@ import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.Filter;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
@@ -84,12 +86,9 @@ public class Datasets extends Controller {
 		return from (database)
 			.get (Dataset.class, datasetId)
 			.query (new ListDatasetColumnDiff (datasetId))
-			.execute (new Function2<Dataset, List<ColumnDiff>, Result> () {
-
-				@Override
-				public Result apply (final Dataset dataset, final List<ColumnDiff> diffs) throws Throwable {
-					return ok (show.render (dataset, diffs));
-				}
+			.query (new ListLayers (1l, null, null, datasetId))
+			.execute ((dataset, diffs, layers) -> {
+				return ok (show.render (dataset, diffs, layers));
 			});
 	}
 	

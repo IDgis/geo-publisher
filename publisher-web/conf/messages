@@ -234,6 +234,7 @@ web.application.page.datasets.show.notifications.heading=Structuurwijzigingen
 web.application.page.datasets.show.notifications.none=Er zijn momenteel geen structuurwijzigingen op deze dataset.
 
 web.application.page.datasets.show.layers.heading=Lagen behorende bij deze dataset
+web.application.page.datasets.show.layers.noLayers=Er zijn geen lagen geconfigureerd bij deze dataset.
 
 web.application.page.datasets.show.form.headingnotaccepted=Structuurwijziging (verworpen)
 web.application.page.datasets.show.form.heading=Structuurwijziging		

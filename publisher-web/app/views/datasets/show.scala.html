@@ -1,4 +1,6 @@
-@(dataset: nl.idgis.publisher.domain.web.Dataset, diffs: List[nl.idgis.publisher.domain.service.ColumnDiff])
+@(dataset: nl.idgis.publisher.domain.web.Dataset, 
+	diffs: List[nl.idgis.publisher.domain.service.ColumnDiff], 
+	layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
@@ -107,7 +109,16 @@
 				<div class="panel panel-default">
 					<div class="panel-heading">
 						@Domain.message("web.application.page.datasets.show.layers.heading")
+						<a href="@routes.Layers.create(dataset.id)" class="btn btn-sm btn-success pull-right"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
 					</div>
+					@if(layers.values.isEmpty) {
+						<div class="panel-body">
+							<strong class="text-info">@Domain.message("web.application.page.datasets.show.layers.noLayers")</strong>
+						</div>
+					} else {
+						@views.html.layers.layerPagerBody(layers)
+						@views.html.layers.layerPagerFooter(layers)
+					}
 				</div>
 			</div>
 		</div>
