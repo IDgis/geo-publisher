@@ -56,8 +56,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.groups.form.field.publish.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm checkbox-fix">
-							<input type="checkbox" id="input-published" name="published" value="true"  @if("true".equals (groupForm("published").value)){checked}> 
+						<div class="input-group input-group-sm">
+							<input type="checkbox" class="form-control" id="input-published" name="published" value="true"  @if("true".equals (groupForm("published").value)){checked}> 
 						</div>
 						@helper.fielderrors(groupForm("publish").errors)
 					</div>
@@ -70,50 +70,8 @@
 						<div class="list-group" id="groupLayerStructure">
 							@if(groupLayer != null) {
 								@* show items for each group/layer in the root group *@
-								@for(layerRef <- groupLayer.getLayers()) {
-									@defining(layerRef.getLayer()) { layer =>
-										<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
-											<input type="hidden" value="@layer.getId()" name="structure[]">
-											<div class="row">
-												<div class="col-sm-6 groupTree">
-													<ul class="treelist">
-														@helper.groupStructureRef(layerRef)
-													</ul>
-												</div>
-												<div class="col-sm-5">
-													@if(layerRef.isGroupRef) {
-														<input type="hidden" value="" name="styles[]">
-													} else {
-														@defining(layerRef.asDatasetRef()) { datasetRef =>
-														@defining(datasetRef.getLayer()) { datasetLayer =>
-														@defining(datasetRef.getStyleRef()) { styleRef =>															
-															<div class="form-group">
-																<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groups.form.field.structure.style.label")</label>
-																<div class="col-sm-6">
-																	<select class="form-control gp-draggable-exclude" name="styles[]">
-																		<option value="">@Domain.message("web.application.page.groups.form.field.structure.style.default")</option>
-																		@defining(if(styleRef == null) null else styleRef.getId()) { currentStyleId =>																			
-																			@for(styleRef <- datasetLayer.getStyleRefs()) {
-																				<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>
-																			}
-																		}
-																	</select>
-																</div>
-															</div>
-														}}}
-													}
-												</div>
-												<div class="col-sm-1">
-													<div class="pull-right tree-item-delete">
-														<a href="#" 
-															class="btn btn-warning btn-sm delete-el" value="@layer.getId()" title="@Domain.message("web.application.button.remove")">
-															<span class="glyphicon glyphicon-remove"></span>
-														</a>
-													</div>
-												</div>
-											</div>
-										</div>
-									}
+								@for(layerRef <- groupLayer.getLayers()) {																		
+									@helper.groupStructure(layerRef)									
 								}
 							}
 						</div>
@@ -153,8 +111,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-enable">@Domain.message("web.application.page.tiledlayers.form.field.enabled.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm checkbox-fix">
-							<input type="checkbox" id="input-enable" name="enabled" value="true" @if("true".equals(groupForm("enabled").value)){checked}>
+						<div class="input-group input-group-sm">
+							<input type="checkbox" class="form-control" id="input-enable" name="enabled" value="true" @if("true".equals(groupForm("enabled").value)){checked}>
 						</div>
 						@helper.fielderrors(groupForm("enabled").errors)
 					</div>
@@ -171,6 +129,9 @@
 							class="btn btn-success"> @Domain.message("web.application.button.cancel")
 						</a>
 						@helper.preview(previewUrl)
+						<a class="btn btn-success" disabled="disabled">
+							@Domain.message("web.application.button.tilingproperties")
+						</a>
 					</div>
 				</div>
 			</form>
