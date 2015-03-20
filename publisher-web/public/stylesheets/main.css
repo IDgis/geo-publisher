@@ -26,6 +26,8 @@
 .checkbox-fix {bottom:-7px;}
 .mimeformats-box {bottom:-7px;padding-bottom:7px;}
 
+.upload-file-form {padding:6px 0px;}
+
 ul.treelist {
 	position:relative;
 	left:-50px;

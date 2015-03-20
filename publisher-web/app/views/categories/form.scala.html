@@ -20,10 +20,10 @@
 				@for(category <- categories.values){
 				<div class="form-group">
 					<div class="col-lg-3">
-						<input class="form-control" id="input-identification" name="identification[]" placeholder="@Domain.message("web.application.page.categories.form.field.id.placeholder")" value="@category.id()" readonly>
+						<input class="form-control" id="input-identification" name="identification[]" title="@category.id()" placeholder="@Domain.message("web.application.page.categories.form.field.id.placeholder")" value="@category.id()" readonly>
 					</div>
 					<div class="col-lg-6">
-						<input class="form-control" id="input-name" name="name[]" placeholder="@Domain.message("web.application.page.categories.form.field.name.placeholder")" value="@category.name()">
+						<input class="form-control" id="input-name" name="name[]" title="@category.name()" placeholder="@Domain.message("web.application.page.categories.form.field.name.placeholder")" value="@category.name()">
 					</div>
 				</div>
 				}

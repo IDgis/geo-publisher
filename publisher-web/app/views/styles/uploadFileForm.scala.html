@@ -3,7 +3,8 @@
 @layout.html(
 	title = "Bestand uploaden",
 	stylesheets = Array(
-		routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css")).url
+		routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css")).url,
+		routes.Assets.at("stylesheets/main.css").url
 	),
 	scripts = Array(
 		routes.Application.javascriptRoutes.url,
@@ -13,8 +14,8 @@
 	)	
 ) {
 	<form method="POST" action="@routes.Styles.handleFileUploadForm()" enctype="multipart/form-data">
-		<input type="file" name="file" class="pull-left">
-		<button type="submit" class="btn btn-default">@Domain.message("web.application.page.styles.form.field.browse.button")</button>
+		<input type="file" name="file" class="upload-file-form pull-left">
+		<button type="submit" class="btn btn-default pull-right">@Domain.message("web.application.page.styles.form.field.browse.button")</button>
 	</form>
 	
 	@if(content != null) {
