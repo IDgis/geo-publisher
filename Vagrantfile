@@ -16,6 +16,9 @@ Vagrant.configure(2) do |config|
 	
 	# Forward the zookeeper port:
 	config.vm.network "forwarded_port", guest: 2181, host: 2181
+	
+	# Forward the exhibitor port:
+	config.vm.network "forwarded_port", guest:8081, host: 8081
 
 	# Configure VirtualBox:
   	config.vm.provider "virtualbox" do |vb|
