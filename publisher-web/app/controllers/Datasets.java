@@ -68,16 +68,16 @@ public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_DATASET#";
 	
-	public static Promise<Result> listByStatus(DatasetStatus status, long page) {
-		return listByCategoryAndStatus(null, status, page);
+	public static Promise<Result> listByStatus(DatasetStatus status, long page, final String query) {
+		return listByCategoryAndStatus(null, status, page, query);
 	}
 
-	public static Promise<Result> list (long page) {
-		return listByCategoryAndStatus(null, null, page);
+	public static Promise<Result> list (long page, final String query) {
+		return listByCategoryAndStatus(null, null, page, query);
 	}
 	
-	public static Promise<Result> listByCategory (String categoryId, long page) {
-		return listByCategoryAndStatus(categoryId, null, page);
+	public static Promise<Result> listByCategory (String categoryId, long page, final String query) {
+		return listByCategoryAndStatus(categoryId, null, page, query);
 	}
 	
 	public static Promise<Result> show (final String datasetId) {
@@ -173,7 +173,7 @@ public class Datasets extends Controller {
 						flash ("danger", "De dataset kon niet worden verwijderd");
 					}
 					
-					return redirect (routes.Datasets.list (1));
+					return redirect (routes.Datasets.list (1, null));
 				}
 			});
 	}
@@ -309,7 +309,7 @@ public class Datasets extends Controller {
 								public Promise<Result> apply (final Response<?> response) throws Throwable {
 									flash ("success", "Dataset " + dataset.getName () + " is toegevoegd.");
 									
-									return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
+									return Promise.pure (redirect (routes.Datasets.list (1, null)));
 								}
 							});
 					}
@@ -434,7 +434,7 @@ public class Datasets extends Controller {
 											
 											flash ("success", "Dataset " + dataset.getName () + " is aangepast.");
 											
-											return Promise.pure (redirect (routes.Datasets.list (routes.Datasets.list$default$1())));
+											return Promise.pure (redirect (routes.Datasets.list (1, null)));
 										}
 									});
 							}
@@ -443,7 +443,7 @@ public class Datasets extends Controller {
 		
 	}
 	
-	public static Promise<Result> listByCategoryAndStatus(final String categoryId, final DatasetStatus status, final long page) {
+	public static Promise<Result> listByCategoryAndStatus(final String categoryId, final DatasetStatus status, final long page, final String query) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -464,7 +464,7 @@ public class Datasets extends Controller {
 								@Override
 								public Result apply (final Page<Dataset> datasets) throws Throwable {
 
-									return ok (list.render (datasets, categories.values (), currentCategory, status));
+									return ok (list.render (datasets, categories.values (), currentCategory, status, query));
 								}
 								
 							});
