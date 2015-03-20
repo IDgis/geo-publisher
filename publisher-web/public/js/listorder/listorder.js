@@ -62,7 +62,7 @@ define ([
 			if (currentElement == element) {
 				return false;
 			} else {
-				if(domClass.contains (currentElement, "gp-draggable-exclude")) {
+				if(domClass.contains (currentElement, "js-gp-draggable-exclude")) {
 					return true;
 				} else {
 					return exclude (currentElement.parentNode);
@@ -73,7 +73,7 @@ define ([
 		// Change list order:
 		// =========================================================================
 				
-		on (this.orderedList, '.gp-draggable:mousedown', function (e) {
+		on (this.orderedList, '.js-gp-draggable:mousedown', function (e) {
 			var dragNode = this,
 				placeholder = null,
 				handles = [ ],

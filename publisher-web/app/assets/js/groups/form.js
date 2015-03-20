@@ -55,7 +55,7 @@ require ([
 		var structureName="structure[]";
 		
 		if(name !== "") {
-			var el1 = put("div.list-group-item.gp-draggable.tree-item[value=$]", id);
+			var el1 = put("div.list-group-item.js-gp-draggable.tree-item[value=$]", id);
 			var el2 = put(el1, "input[type=hidden][name=$][value=$]", structureName, id);
 			var el3 = put(el1, "div.row");
 			var el4 = put(el3, "div.col-sm-11.groupTree");
