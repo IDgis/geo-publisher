@@ -459,7 +459,7 @@ public class Datasets extends Controller {
 				public Promise<Result> apply (final Page<Category> categories, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListDatasets (currentCategory, status == null ? null : status.value, page))
+							.query (new ListDatasets (currentCategory, status == null ? null : status.value, query, page))
 							.execute (new Function<Page<Dataset>, Result> () {
 								@Override
 								public Result apply (final Page<Dataset> datasets) throws Throwable {

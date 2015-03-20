@@ -15,10 +15,13 @@ public class ListDatasets implements DomainQuery<Page<Dataset>>{
 	
 	private final long page;
 	
-	public ListDatasets (final Category category, DatasetStatusType status, long page) {
+	private final String query;
+	
+	public ListDatasets (final Category category, DatasetStatusType status, final String query, long page) {
 		this.categoryId = category == null ? null : category.id ();
 		this.status = status;
 		this.page = page;
+		this.query = query;
 	}
 	
 	public String categoryId () {
@@ -31,6 +34,10 @@ public class ListDatasets implements DomainQuery<Page<Dataset>>{
 	
 	public long getPage() {
 		return page;
+	}
+
+	public String getQuery () {
+		return query;
 	}
 
 	@Override
