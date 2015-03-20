@@ -1,24 +1,17 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QConstants.constants;
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
-import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
-import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -31,9 +24,9 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
+import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
-import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -62,93 +55,15 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	private class DatasetQuery extends AbstractDatasetQuery {
 		
 		DatasetQuery(LoggingAdapter log) {
-			super(log);
-		}
-
-		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats() {
-			return withServiceStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
-				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
-				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(tiledLayerMimeformat.mimeformat),
-									Collectors.toList()))));
+			super(log, withServiceStructure);
 		}
 		
 		@Override
-		protected CompletableFuture<Map<Integer, List<StyleRef>>> datasetStyles() {
-			return withServiceStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
-				.join(style).on(style.id.eq(layerStyle.styleId))
-				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					style.identification,
-					style.name).thenApply(resp ->
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									new DefaultStyleRef(
-										t.get(style.identification),
-										t.get(style.name)),
-									Collectors.toList()))));
-		}
-		
-		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> datasetKeywords() {
-			return withServiceStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
-				.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id))
-				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					leafLayerKeyword.keyword).thenApply(resp ->
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(leafLayerKeyword.keyword),
-									Collectors.toList()))));
-		}
-		
-		@Override
-		protected CompletableFuture<TypedList<Tuple>> datasetInfo() {
-			return withServiceStructure  
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
-				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
-				.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
-				.where(serviceStructure.serviceIdentification.eq(serviceId))
-				.list(
-					genericLayer.id,
-					genericLayer.identification, 
-					genericLayer.name, 
-					genericLayer.title, 
-					genericLayer.abstractCol,
-					dataset.identification,
-					tiledLayer.genericLayerId,
-					tiledLayer.metaWidth,					
-					tiledLayer.metaHeight,
-					tiledLayer.expireCache,
-					tiledLayer.expireClients,
-					tiledLayer.gutter);
+		protected AsyncSQLQuery filter(AsyncSQLQuery query) {
+			return 
+				query
+					.join(serviceStructure).on(serviceStructure.childLayerId.eq(genericLayer.id))
+					.where(serviceStructure.serviceIdentification.eq(serviceId));
 		}
 	}
 	
