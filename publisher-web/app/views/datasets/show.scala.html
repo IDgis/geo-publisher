@@ -11,6 +11,10 @@
 	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
 }
 
+@pageRef(page: Long) = @{
+	routes.Layers.listJson(null, null, page)
+}						
+
 @layout.application(
 	title = Domain.message("web.application.page.datasets.show.title") + " - " + dataset.name,
 	docPath = "datasets/show",
@@ -124,7 +128,7 @@
 							@views.html.layers.layerPagerBody(layers)
 						</div>
 						<div class="panel-footer">
-							@views.html.layers.layerPagerFooter(layers)
+							@views.html.layers.layerPagerFooter(layers, pageRef)
 						</div>
 					}
 				</div>
