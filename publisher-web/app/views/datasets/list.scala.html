@@ -28,9 +28,9 @@
 	<li@if(cat == currentCategory){ class="active"}>	
 	
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.listByCategory(cat.id)">
+			<a href="@routes.Datasets.listByCategory(cat.id)" title=@cat.id>
 		} else {
-			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus)">
+			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus)" title=@cat.id>
 		}		
 		@cat.name</a>	
 	

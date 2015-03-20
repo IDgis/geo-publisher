@@ -47,9 +47,9 @@
 
 @categoryLink(cat: Category, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors)"@if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors)"@if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	}
 }
 
