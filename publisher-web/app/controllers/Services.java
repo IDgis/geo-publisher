@@ -110,6 +110,8 @@ public class Services extends Controller {
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
 					Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
+					
+					final List<String> layerStyleIds = serviceForm.styles == null ? new ArrayList<>() : serviceForm.styles;
 
 					return from (database)
 						.put(service)
@@ -122,10 +124,6 @@ public class Services extends Controller {
 								Logger.debug("serviceId: " + serviceId);
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								
-								List<String> layerStyleIds = layerIds.stream()
-										.map(layer -> "")
-										.collect(Collectors.toList());
 								
 								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
 								return from (database)
@@ -204,6 +202,8 @@ public class Services extends Controller {
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
 					Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
+					
+					final List<String> layerStyleIds = serviceForm.styles == null ? new ArrayList<>() : serviceForm.styles;
 
 					return from (database)
 						.put(service)
@@ -216,10 +216,6 @@ public class Services extends Controller {
 								Logger.debug("serviceId: " + serviceId);
 								PutServiceKeywords putServiceKeywords = 
 										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								
-								List<String> layerStyleIds = layerIds.stream()
-									.map(layer -> "")
-									.collect(Collectors.toList());
 								
 								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
 								return from (database)
@@ -361,6 +357,12 @@ public class Services extends Controller {
 		 */
 		private List<String> structure;
 
+		
+		/**
+		 * List of id's of layer styles in this service
+		 */
+		private List<String> styles;
+		
 		public ServiceForm (){
 			super();
 			this.id = ID;		
@@ -491,13 +493,26 @@ public class Services extends Controller {
 			this.structure = structure;
 		}
 		
+		public List<String> getStyles() {
+			return styles;
+		}
+
+		public void setStyles(List<String> styles) {
+			this.styles = styles;
+		}
+
 		@Override
 		public String toString() {
-			return "ServiceForm [id=" + id + ", name=" + name + ", title=" + title + ", alternateTitle="
-					+ alternateTitle + ", abstractText=" + abstractText + ", keywords=" + keywords + ", metadata="
-					+ metadata + ", watermark=" + watermark + ", published=" + published + ", rootGroupId="
-					+ rootGroupId + ", constantsId=" + constantsId + ", structure=" + structure + "]";
+			return "ServiceForm [id=" + id + ", name=" + name + ", title="
+					+ title + ", alternateTitle=" + alternateTitle
+					+ ", abstractText=" + abstractText + ", keywords="
+					+ keywords + ", metadata=" + metadata + ", watermark="
+					+ watermark + ", published=" + published + ", rootGroupId="
+					+ rootGroupId + ", constantsId=" + constantsId
+					+ ", structure=" + structure + ", styles=" + styles + "]";
 		}
+		
+		
 		
 	}
 }
