@@ -1,4 +1,4 @@
-@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], query: String, published: java.lang.Boolean)
+@(query: String, published: java.lang.Boolean)
 
 <input type="text" class="form-control" placeholder="@Domain.message("web.application.page.layers.list.search.placeholder")" data-pager-parameter="q" @if(query!=null){value="@query"}else{value=""}>
 

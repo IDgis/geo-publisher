@@ -16,7 +16,7 @@ import com.mysema.query.annotations.QueryProjection;
  * @author Rob
  *
  */
-public class LayerGroup extends Identifiable {
+public class LayerGroup extends Identifiable implements Selectable {
 	private static final long serialVersionUID = 6882751274387765408L;
 
 	private final String name;

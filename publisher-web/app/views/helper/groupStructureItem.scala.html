@@ -19,10 +19,10 @@
 					@defining(datasetRef.getLayer()) { datasetLayer =>
 					@defining(datasetRef.getStyleRef()) { styleRef =>															
 						<div class="form-group">
-							<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groupstructure.style.label")</label>
+							<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groups.form.field.structure.style.label")</label>
 							<div class="col-sm-6">
 								<select class="form-control js-gp-draggable-exclude" name="styles[]">
-									<option value="">@Domain.message("web.application.page.groupstructure.style.default")</option>
+									<option value="">@Domain.message("web.application.page.groups.form.field.structure.style.default")</option>
 									@defining(if(styleRef == null) null else styleRef.getId()) { currentStyleId =>																			
 										@for(styleRef <- datasetLayer.getStyleRefs()) {
 											<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>

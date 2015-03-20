@@ -5,9 +5,18 @@
 
 @(	
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
+	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	content: List[LayerRef[_ <: Layer]],
 	errors: java.util.List[play.data.validation.ValidationError]
 )
+
+@layersPageRef(page: Long) = @{
+	routes.Layers.listJson(null, null, page)
+}
+
+@groupsPageRef(page: Long) = @{
+	routes.Groups.listJson(null, null, page)
+}
 
 <div class="form-group">
 	<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
@@ -18,15 +27,26 @@
 			}
 		</div>
 		
-		<div class="gp-pager-select" id="layers-select">
+		<span class="gp-pager-select" id="layers-select">
 			<button type="button" class="btn btn-default js-pager-select-button">
 				<span class="glyphicon glyphicon-plus"></span>
-				Voeg een laag toe ...
+				@Domain.message("web.application.page.groups.form.field.addlayer.button")
 			</button>
 			<div class="dropdown js-dropdown">
-				@views.html.layers.layerPager(layers, null, null)
+				@views.html.layers.layerPager(layers, null, null, layersPageRef)
 			</div>
-		</div>
+		</span>
+		
+		<span class="gp-pager-select" id="groups-select">
+			<button type="button" class="btn btn-default js-pager-select-button">
+				<span class="glyphicon glyphicon-plus"></span>
+				@Domain.message("web.application.page.groups.form.field.addgroup.button")
+			</button>
+			<div class="dropdown js-dropdown">
+				@views.html.layers.layerPager(groups, null, null, groupsPageRef)
+			</div>
+		</span>
+		
 		@helper.fielderrors(errors)
 	</div>
 	@helper.tooltips("web.application.page.groups.form.field.structure.help")

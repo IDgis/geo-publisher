@@ -1,4 +1,4 @@
-@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
+@(layers: nl.idgis.publisher.domain.response.Page[_ <: nl.idgis.publisher.domain.web.Selectable])
 
 @if(layers.values.isEmpty) {
 	<div class="alert alert-info">

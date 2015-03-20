@@ -64,8 +64,8 @@
 					@helper.tooltips("web.application.page.groups.form.field.publish.help")
 				</div>
 				
-				@helper.groupStructure(layers, groupLayer.getLayers(), groupForm("structure").errors)				
-
+				@helper.groupStructure(layers, groups, groupLayer.getLayers(), groupForm("structure").errors)
+				
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.services.label")</label>
 					<div class="col-sm-8">

@@ -64,14 +64,23 @@ require ([
 	
 	new Select ('#layers-select', {
 		onSelect: function (item) {
-			xhr ('/groups/structure-item/' + item.id)
+			xhr ('/layers/' + item.id + '/structure-item')
+				.then (function (data) {
+					domConstruct.place(data, main);				
+				});
+		}
+	});	
+	new Pager ('#layers-select .js-dropdown');
+	
+	new Select ('#groups-select', {
+		onSelect: function (item) {
+			xhr ('/groups/' + item.id + '/structure-item')
 				.then (function (data) {
 					domConstruct.place(data, main);				
 				});
 		}
 	});
-	new Pager ('#layers-select .js-dropdown');
-	
+	new Pager ('#groups-select .js-dropdown');	
 });
 
 $(function () {

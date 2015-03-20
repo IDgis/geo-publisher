@@ -5,7 +5,10 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.List;
 
-import controllers.Layers.LayerForm;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import scala.runtime.AbstractFunction1;
+
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
@@ -24,20 +27,24 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
-import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 
 import play.Logger;
 import play.Play;
+import play.api.mvc.Call;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
+import play.libs.Json;
 import play.libs.F.Promise;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.groups.form;
 import views.html.groups.list;
 import views.html.helper.groupStructureItem;
+import views.html.layers.layerPagerBody;
+import views.html.layers.layerPagerFooter;
+import views.html.layers.layerPagerHeader;
 import actions.DefaultAuthenticator;
 
 import akka.actor.ActorSelection;
@@ -371,6 +378,32 @@ public class Groups extends GroupsLayersCommon {
 			.query(new GetLayerRef(layerId))
 			.execute(layerRef ->
 				ok(groupStructureItem.render(layerRef)));
+	}
+	
+	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		return from (database)
+			.query (new ListLayerGroups (page, query, published))
+			.execute (new Function<Page<LayerGroup>, Result> () {
+				@Override
+				public Result apply (final Page<LayerGroup> layerGroups) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("header", layerPagerHeader.render (query, published).toString ());
+					result.put ("body", layerPagerBody.render (layerGroups).toString ());
+					result.put ("footer", layerPagerFooter.render (layerGroups, new AbstractFunction1<Long, Call>() {
+
+						@Override
+						public Call apply(Long page) {
+							return routes.Groups.listJson(query, published, page);
+						}
+						
+					}).toString ());
+
+					return ok (result);
+				}
+			});
 	}
 	
 }
