@@ -18,7 +18,9 @@ public class Application extends Controller {
 				routes.javascript.Events.eventsWithTag (),
 				routes.javascript.Styles.handleFileUploadRaw (),
 				routes.javascript.DataSources.refreshDatasources (),
-				routes.javascript.DataSources.refreshDatasource ()
+				routes.javascript.DataSources.refreshDatasource (),
+				routes.javascript.Layers.structureItem (),
+				routes.javascript.Groups.structureItem ()
 			)
 		).as("text/javascript");
 	}
