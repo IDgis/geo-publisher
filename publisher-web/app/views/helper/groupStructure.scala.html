@@ -6,7 +6,7 @@
 @(	
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
 	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
-	content: List[LayerRef[_ <: Layer]],
+	container: LayerContainer,
 	errors: java.util.List[play.data.validation.ValidationError]
 )
 
@@ -21,9 +21,11 @@
 <div class="form-group">
 	<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
 	<div class="col-sm-8">
-		<div class="list-group" id="groupLayerStructure">			
-			@for(layerRef <- content) {
-				@helper.groupStructureItem(layerRef)									
+		<div class="list-group" id="groupLayerStructure">
+			@if(container != null) {			
+				@for(layerRef <- container.getLayers()) {
+					@helper.groupStructureItem(layerRef)									
+				}
 			}
 		</div>
 		
