@@ -247,6 +247,10 @@ public class DatasetAdmin extends AbstractAdmin {
 						}
 					}
 					
+					if (listDatasets.getQuery () != null) {
+						baseQuery.where (dataset.name.containsIgnoreCase (listDatasets.getQuery ().trim ()));
+					}
+					
 					singlePage(baseQuery, page);
 					
 					return baseQuery

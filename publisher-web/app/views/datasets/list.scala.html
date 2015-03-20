@@ -3,21 +3,22 @@
 @(datasets: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Dataset], 
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentCategory: nl.idgis.publisher.domain.web.Category,
-	currentDatasetStatus: DatasetStatus = null)
+	currentDatasetStatus: DatasetStatus = null,
+	query: String)
 
 @import nl.idgis.publisher.domain.web._
 
 @categoryRefLink(cat: Category) = {
-	<a href="@routes.Datasets.listByCategory(cat.id)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
+	<a href="@routes.Datasets.listByCategory(cat.id, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
 }
 
 @allCategoriesLink() = {
 	<li@if(currentCategory == null){ class="active"}>
 
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.list()">
+			<a href="@routes.Datasets.list(1, query)">
 		} else {
-			<a href="@routes.Datasets.listByStatus(currentDatasetStatus)">
+			<a href="@routes.Datasets.listByStatus(currentDatasetStatus, 1, query)">
 		}
 		@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	
@@ -28,9 +29,9 @@
 	<li@if(cat == currentCategory){ class="active"}>	
 	
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.listByCategory(cat.id)" title=@cat.id>
+			<a href="@routes.Datasets.listByCategory(cat.id, 1, query)" title="@cat.id">
 		} else {
-			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus)" title=@cat.id>
+			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus, 1, query)" title="@cat.id">
 		}		
 		@cat.name</a>	
 	
@@ -42,15 +43,15 @@
 		<li@if(boundStatus == currentDatasetStatus){ class="active"}>
 			@if(boundStatus == null) {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.list()">
+					<a href="@routes.Datasets.list(1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategory(currentCategory.id)">
+					<a href="@routes.Datasets.listByCategory(currentCategory.id, 1, query)">
 				}
 			} else {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.listByStatus(boundStatus)">
+					<a href="@routes.Datasets.listByStatus(boundStatus, 1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus)">
+					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus, 1, query)">
 				}			
 			}
 			@Domain.message(message)
@@ -59,7 +60,7 @@
 	} 
 }
 
-@pageRef(targetPage: Long) = @{
+@pageRef(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
 			routes.Datasets.list(targetPage)
@@ -85,7 +86,7 @@
 		
 			@* Filters: *@
 			<div class="col-lg-3 col-lg-push-9">
-				<form class="form-horizontal" role="form">
+				<form class="form-horizontal" role="form" method="get" action="@pageRef()">
 					@* New dataset button: *@
 					<div class="form-group">
 						<div class="col-sm-12">
@@ -96,8 +97,12 @@
 					@* Search dataset input: *@
 					<div class="form-group has-feedback">
 						<div class="col-sm-12">
-							<input type="text" class="form-control col-sm-12" placeholder="@Domain.message("web.application.page.datasets.list.search.placeholder")">
+							<input type="text" name="q" class="form-control col-sm-12" placeholder="@Domain.message("web.application.page.datasets.list.search.placeholder")"@if(query!=null){ value="@query"}>
 							<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
+							
+							@if(query != null) {
+								<small><a href="@pageRef()">@Domain.message("web.application.page.datasets.list.search.clear")</a></small>
+							}
 						</div>
 					</div>
 					
