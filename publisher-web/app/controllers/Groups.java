@@ -57,7 +57,7 @@ public class Groups extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups(1l, null, null))
 			.query (new ListLayers (1l, null, null))
 			.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
 
@@ -177,7 +177,7 @@ public class Groups extends GroupsLayersCommon {
 		return from (database)
 			.get (LayerGroup.class, groupId)
 			.query (new GetGroupStructure(groupId))
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups(1l, null, null))
 			.query (new ListLayers (1l, null, null))
 			.query(new GetLayerServices(groupId))
 			.executeFlat (new Function5<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, List<String>, Promise<Result>> () {
