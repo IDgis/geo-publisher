@@ -37,7 +37,7 @@ import play.mvc.Result;
 import play.mvc.Security;
 import views.html.groups.form;
 import views.html.groups.list;
-import views.html.helper.groupStructure;
+import views.html.helper.groupStructureItem;
 import actions.DefaultAuthenticator;
 
 import akka.actor.ActorSelection;
@@ -370,7 +370,7 @@ public class Groups extends GroupsLayersCommon {
 		return from(database)
 			.query(new GetLayerRef(layerId))
 			.execute(layerRef ->
-				ok(groupStructure.render(layerRef)));
+				ok(groupStructureItem.render(layerRef)));
 	}
 	
 }

@@ -1,47 +1,33 @@
+
+@import java.util.List;
+@import nl.idgis.publisher.domain.response._; 
 @import nl.idgis.publisher.domain.web.tree._
 
-@(layerRef: LayerRef[_ <: Layer])
+@(	
+	layers: Page[nl.idgis.publisher.domain.web.Layer],
+	content: List[LayerRef[_ <: Layer]],
+	errors: java.util.List[play.data.validation.ValidationError]
+)
 
-@defining(layerRef.getLayer()) { layer =>
-	<div value="@layer.getId()" class="list-group-item js-gp-draggable tree-item">
-		<input type="hidden" value="@layer.getId()" name="structure[]">
-		<div class="row">
-			<div class="col-sm-6 groupTree">
-				<ul class="treelist">
-					@helper.groupStructureRef(layerRef)
-				</ul>
-			</div>
-			<div class="col-sm-5">
-				@if(layerRef.isGroupRef) {
-					<input type="hidden" value="" name="styles[]">
-				} else {
-					@defining(layerRef.asDatasetRef()) { datasetRef =>
-					@defining(datasetRef.getLayer()) { datasetLayer =>
-					@defining(datasetRef.getStyleRef()) { styleRef =>															
-						<div class="form-group">
-							<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groupstructure.style.label")</label>
-							<div class="col-sm-6">
-								<select class="form-control js-gp-draggable-exclude" name="styles[]">
-									<option value="">@Domain.message("web.application.page.groupstructure.style.default")</option>
-									@defining(if(styleRef == null) null else styleRef.getId()) { currentStyleId =>																			
-										@for(styleRef <- datasetLayer.getStyleRefs()) {
-											<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>
-										}
-									}
-								</select>
-							</div>
-						</div>
-					}}}
-				}
-			</div>
-			<div class="col-sm-1">
-				<div class="pull-right tree-item-delete">
-					<a href="#" 
-						class="btn btn-warning btn-sm delete-el" value="@layer.getId()" title=@Domain.message("web.application.button.remove")>
-						<span class="glyphicon glyphicon-remove"></span>
-					</a>
-				</div>
+<div class="form-group">
+	<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.structure.label")</label>
+	<div class="col-sm-8">
+		<div class="list-group" id="groupLayerStructure">			
+			@for(layerRef <- content) {
+				@helper.groupStructureItem(layerRef)									
+			}
+		</div>
+		
+		<div class="gp-pager-select" id="layers-select">
+			<button type="button" class="btn btn-default js-pager-select-button">
+				<span class="glyphicon glyphicon-plus"></span>
+				Voeg een laag toe ...
+			</button>
+			<div class="dropdown js-dropdown">
+				@views.html.layers.layerPager(layers, null, null)
 			</div>
 		</div>
+		@helper.fielderrors(errors)
 	</div>
-}
+	@helper.tooltips("web.application.page.groups.form.field.structure.help")
+</div>

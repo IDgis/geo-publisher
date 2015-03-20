@@ -6,7 +6,7 @@
 <a href="@routes.Groups.edit(groupLayer.getId())"><strong>@groupLayer.getName()</strong></a>
 <ul>
 	@for(layerRef <- groupLayer.getLayers()){
-		@helper.groupStructureRef(layerRef)
+		@helper.groupStructureItemRef(layerRef)
 	}
 </ul>
 </li>
