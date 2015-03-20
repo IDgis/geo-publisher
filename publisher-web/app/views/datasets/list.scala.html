@@ -99,6 +99,10 @@
 						<div class="col-sm-12">
 							<input type="text" name="q" class="form-control col-sm-12" placeholder="@Domain.message("web.application.page.datasets.list.search.placeholder")"@if(query!=null){ value="@query"}>
 							<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
+							
+							@if(query != null) {
+								<small><a href="@pageRef()">@Domain.message("web.application.page.datasets.list.search.clear")</a></small>
+							}
 						</div>
 					</div>
 					
