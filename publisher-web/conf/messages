@@ -146,7 +146,7 @@ web.application.layout.dropdowntitle.errors=Nieuwe fouten
 
 web.application.layout.sidebar.dashboard=Dashboard
 web.application.layout.sidebar.generalmanagement=Algemeen beheer
-web.application.layout.sidebar.constants=Gegevens
+web.application.layout.sidebar.constants=Organisatiekenmerken
 web.application.layout.sidebar.datamanagement=Databeheer
 web.application.layout.sidebar.datasets=Datasets
 web.application.layout.sidebar.sourcedatasets=Brongegevens
@@ -287,10 +287,10 @@ web.application.page.datasets.list.layerCountNone=Geen lagen
 
 
 # General management
-web.application.page.constants.name=Constants
+web.application.page.constants.name=Organisatiekenmerken
 
-web.application.page.constants.form.title=Gegevens formulier
-web.application.page.constants.form.header.new=Gegevens invullen
+web.application.page.constants.form.title=Organisatiekenmerken
+web.application.page.constants.form.header.new=Organisatiekenmerken
 
 web.application.page.constants.form.field.contact.label=Contactpersoon
 web.application.page.constants.form.field.contact.placeholder=Contactpersoon
