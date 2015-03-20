@@ -279,14 +279,7 @@ public class Datasets extends Controller {
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
-						// Validate the filter:
-						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
-						}
-						
-						if (existingDataset != null) {
-							datasetForm.reject (new ValidationError ("name", "web.application.page.datasets.form.errors.duplicateName"));
-						}
+						validateDatasetForm (datasetForm, dataset, sourceColumns, existingDataset);
 						
 						if (datasetForm.hasErrors ()) {
 							return renderCreateForm (datasetForm);
@@ -376,6 +369,17 @@ public class Datasets extends Controller {
 //		return Promise.pure ((Result) ok ());
 	}
 	
+	private static void validateDatasetForm (final Form<DatasetForm> form, final DatasetForm dataset, final List<Column> sourceColumns, final Dataset existingDataset) {
+		// Validate the filter:
+		if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
+			form.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+		}
+		
+		if (existingDataset != null) {
+			form.reject (new ValidationError ("name", "web.application.page.datasets.form.errors.duplicateName"));
+		}
+	}
+	
 	public static Promise<Result> submitEdit (final String datasetId) {
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -397,18 +401,24 @@ public class Datasets extends Controller {
 						.get (Category.class, dataset.getCategoryId ())
 						.get (SourceDataset.class, dataset.getSourceDatasetId ())
 						.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
-						.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
+						.query (new GetDatasetByName (dataset.getName ().trim (), false))
+						.executeFlat (new Function5<DataSource, Category, SourceDataset, List<Column>, Dataset, Promise<Result>> () {
 							@Override
-							public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
+							public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns, final Dataset existingDataset) throws Throwable {
 								Logger.debug ("dataSource: " + dataSource);
 								Logger.debug ("category: " + category);
 								Logger.debug ("sourceDataset: " + sourceDataset);
 								
 								// TODO: Validate dataSource, category, sourceDataset!
 								
-								// Validate the columns used by the filter:
-								if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-									datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+								validateDatasetForm (
+										datasetForm, 
+										dataset, 
+										sourceColumns, 
+										existingDataset != null && !existingDataset.id ().equals (ds.id ()) ? existingDataset : null
+									);
+								
+								if (datasetForm.hasErrors ()) {
 									return renderEditForm (datasetForm, ds);
 								}
 								
@@ -422,7 +432,7 @@ public class Datasets extends Controller {
 
 								final PutDataset putDataset = new PutDataset (CrudOperation.UPDATE,
 										datasetId, 
-										dataset.getName (), 
+										dataset.getName ().trim (), 
 										sourceDataset.id (), 
 										columns,
 										dataset.getFilterConditions ()
