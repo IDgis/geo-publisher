@@ -15,7 +15,7 @@ import models.Domain.Function2;
 import models.Domain.Function5;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
-import nl.idgis.publisher.domain.query.GetLayerRef;
+import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -371,13 +371,13 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> structureItem(String layerId) {
+	public static Promise<Result> structureItem(String groupId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
-			.query(new GetLayerRef(layerId))
-			.execute(layerRef ->
-				ok(groupStructureItem.render(layerRef)));
+			.query(new GetGroupLayerRef(groupId))
+			.execute(groupLayerRef ->
+				ok(groupStructureItem.render(groupLayerRef)));
 	}
 	
 	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
