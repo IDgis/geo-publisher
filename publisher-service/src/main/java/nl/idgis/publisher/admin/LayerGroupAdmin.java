@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
@@ -32,8 +33,10 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
 
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.StreamUtils;
@@ -64,6 +67,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 
 	@Override
 	protected void preStartAdmin() {
+		doQuery(GetLayerRef.class, this::handleGetLayerRef);
+		
 		doList(LayerGroup.class, this::handleListLayergroups);
 		doGet(LayerGroup.class, this::handleGetLayergroup);
 		doPut(LayerGroup.class, this::handlePutLayergroup);
@@ -76,6 +81,15 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		
 		doQuery (ListLayerGroups.class, this::handleListLayerGroupsWithQuery);
 
+	}
+	
+	private CompletableFuture<LayerRef<?>> handleGetLayerRef(GetLayerRef getLayerRef) {
+		String layerId = getLayerRef.getLayerId();
+		
+		log.debug("handleGetLayerRef: {}", layerId);
+		
+		return f.ask(serviceManager, new GetDatasetLayerRef(layerId), LayerRef.class)
+			.thenApply(layerRef -> layerRef);
 	}
 
 	private CompletableFuture<Optional<List<String>>> handleGetLayerServices (GetLayerServices getLayerServices) {

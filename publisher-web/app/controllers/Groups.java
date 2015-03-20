@@ -10,7 +10,9 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function5;
+
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -24,6 +26,7 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -34,7 +37,9 @@ import play.mvc.Result;
 import play.mvc.Security;
 import views.html.groups.form;
 import views.html.groups.list;
+import views.html.helper.groupStructure;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -357,6 +362,15 @@ public class Groups extends GroupsLayersCommon {
 			this.enabled = enabled;
 		}
 
+	}
+	
+	public static Promise<Result> structureItem(String layerId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new GetLayerRef(layerId))
+			.execute(layerRef ->
+				ok(groupStructure.render(layerRef)));
 	}
 	
 }

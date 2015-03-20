@@ -65,6 +65,7 @@ GET 	/groups/-/create								controllers.Groups.create()
 POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
 GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)
 POST 	/groups/:groupId/delete							controllers.Groups.delete(groupId : String)
+GET 	/groups/structure-item/:layerId					controllers.Groups.structureItem(layerId : String)
 
 GET		/styles											controllers.Styles.list(q: String ?= null, page : Long ?= 1)
 GET		/styles.json									controllers.Styles.listStylesJson(page: Long ?= 1, q: String ?= null)
