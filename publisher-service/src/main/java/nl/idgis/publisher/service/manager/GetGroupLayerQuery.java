@@ -7,8 +7,9 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,6 +30,7 @@ import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
+import nl.idgis.publisher.domain.web.tree.StructureItem;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -131,7 +133,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.layerOrder,
 			groupStructure.styleIdentification,
 			groupStructure.styleName).as(
-			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
+			new SQLSubQuery().unionAll( 
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -187,9 +189,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		return groups().thenCompose(groups ->
 			groups.list().isEmpty() ? f.successful(new NotFound()) : 
 				structure().thenCompose(structure ->															
-				datasets().thenApply(datasets -> {							
-					// LinkedHashMap is used to preserve layer order
-					Map<String, String> structureMap = new LinkedHashMap<>();
+				datasets().thenApply(datasets -> {
+					List<StructureItem> structureMap = new ArrayList<>();
 					
 					Map<String, StyleRef> styleMap = new HashMap<>();
 					
@@ -197,13 +198,9 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						String styleId = structureTuple.get(groupStructure.styleIdentification);
 						String styleName = structureTuple.get(groupStructure.styleName);
 						String childId = structureTuple.get(groupStructure.childLayerIdentification);
-						String parentId = structureTuple.get(groupStructure.parentLayerIdentification); 
+						String parentId = structureTuple.get(groupStructure.parentLayerIdentification);						
 						
-						if(structureMap.containsKey(childId)) {
-							throw new IllegalStateException("cycle detected, layer: " + childId);
-						}
-						
-						structureMap.put(childId, parentId);
+						structureMap.add(new StructureItem(childId, parentId));
 						if(styleId != null) {
 							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}

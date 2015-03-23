@@ -17,12 +17,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private final Map<String, PartialGroupLayer> groups;
 	
-	private final Map<String, String> structure;
+	private final List<StructureItem> structure;
 	
 	private final Map<String, StyleRef> styles;
 	
 	public static DefaultGroupLayer newInstance(String groupId, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, StyleRef> styles) {
+		List<StructureItem> structure, Map<String, StyleRef> styles) {
 		
 		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
 		if(groupsMap.containsKey(groupId)) {
@@ -33,12 +33,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	}
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, StyleRef> styles) {
+		List<StructureItem> structure, Map<String, StyleRef> styles) {
 		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
 	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
-		Map<String, String> structure, Map<String, StyleRef> styles) {		
+		List<StructureItem> structure, Map<String, StyleRef> styles) {		
 		
 		this.partialGroupLayer = partialGroupLayer;
 		this.datasets = datasets;
@@ -51,7 +51,8 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		return layers.stream()
 			.collect(Collectors.toMap(
 				layer -> layer.getId(),
-				Function.identity()));
+				Function.identity(),
+				(a, b) -> a)); // list may contain duplicates
 	}
 	
 	private LayerRef<?> asLayer(String id) {
@@ -68,15 +69,11 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		throw new IllegalArgumentException("unknown layer id: " + id);
 	}
 	
-	protected boolean filterGroup(Map.Entry<String, String> groupEntry) {
-		return getId().equals(groupEntry.getValue());
-	}
-
 	@Override
 	public List<LayerRef<?>> getLayers() {
-		return structure.entrySet().stream()
-			.filter(this::filterGroup)
-			.map(groupEntry -> asLayer(groupEntry.getKey()))
+		return structure.stream()
+			.filter(item -> getId().equals(item.getParent()))
+			.map(groupEntry -> asLayer(groupEntry.getChild()))
 			.collect(Collectors.toList());
 	}
 
@@ -103,6 +100,26 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	@Override
 	public Optional<Tiling> getTiling() {
 		return partialGroupLayer.getTiling();
+	}	
+	
+	private void toTree(StringBuilder sb, int depth) {
+		for(LayerRef<? extends Layer> layerRef : getLayers()) {
+			for(int i = 0; i < depth; i++) {
+				sb.append("-");
+			}
+			
+			sb.append(layerRef.getLayer().getName()).append("\n");
+			
+			if(layerRef.isGroupRef()) {
+				((DefaultGroupLayer)layerRef.asGroupRef().getLayer()).toTree(sb, depth + 1);
+			}
+		}
+	}
+	
+	public String toTree() {
+		StringBuilder sb = new StringBuilder();
+		toTree(sb, 0);
+		return sb.toString();
 	}
 
 	@Override

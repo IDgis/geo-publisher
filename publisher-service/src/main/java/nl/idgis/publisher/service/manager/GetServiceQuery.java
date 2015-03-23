@@ -7,8 +7,9 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +28,7 @@ import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
+import nl.idgis.publisher.domain.web.tree.StructureItem;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -134,9 +136,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 				structure().thenCompose(structure ->						
 				groups().thenCompose(groups ->
 				keywords().thenCompose(keywords ->
-				datasets().thenApply(datasets -> {							
-					// LinkedHashMap is used to preserve layer order
-					Map<String, String> structureMap = new LinkedHashMap<>();
+				datasets().thenApply(datasets -> {
+					List<StructureItem> structureMap = new ArrayList<>();
 					
 					Map<String, StyleRef> styleMap = new HashMap<>();
 					
@@ -144,13 +145,9 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 						String styleId = structureTuple.get(serviceStructure.styleIdentification);
 						String styleName = structureTuple.get(serviceStructure.styleName);
 						String childId = structureTuple.get(serviceStructure.childLayerIdentification);
-						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification); 
+						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification);
 						
-						if(structureMap.containsKey(childId)) {
-							throw new IllegalStateException("cycle detected, layer: " + childId);
-						}
-						
-						structureMap.put(childId, parentId);
+						structureMap.add(new StructureItem(childId, parentId));
 						if(styleId != null) {
 							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}

@@ -1067,7 +1067,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 	}
 	
-	@Test
+	/*@Test
 	public void testCycle() throws Exception {
 		insert(genericLayer)
 			.columns(
@@ -1129,7 +1129,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(message);
 		assertTrue(message.contains("cycle"));
 		assertTrue(message.contains("group1"));
-	}
+	}*/
 	
 	@Test
 	public void testPreventCycle() throws Throwable {

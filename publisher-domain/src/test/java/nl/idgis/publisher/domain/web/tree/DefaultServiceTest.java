@@ -5,11 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,10 +31,10 @@ public class DefaultServiceTest {
 			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
 			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 			
-		Map<String, String> structure = new LinkedHashMap<>();
-		structure.put("leaf0", "group0");
-		structure.put("leaf1", "group0");
-		structure.put("leaf2", "group0");
+		List<StructureItem> structure = new ArrayList<>();
+		structure.add(new StructureItem("leaf0", "group0"));
+		structure.add(new StructureItem("leaf1", "group0"));
+		structure.add(new StructureItem("leaf2", "group0"));
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
@@ -91,11 +91,11 @@ public class DefaultServiceTest {
 				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
 				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 				
-		Map<String, String> structure = new LinkedHashMap<>();
-		structure.put("leaf0", "group0");
-		structure.put("leaf1", "group0");
-		structure.put("group1", "group0");
-		structure.put("leaf2", "group1");
+		List<StructureItem> structure = new ArrayList<>();
+		structure.add(new StructureItem("leaf0", "group0"));
+		structure.add(new StructureItem("leaf1", "group0"));
+		structure.add(new StructureItem("group1", "group0"));
+		structure.add(new StructureItem("leaf2", "group1"));
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		

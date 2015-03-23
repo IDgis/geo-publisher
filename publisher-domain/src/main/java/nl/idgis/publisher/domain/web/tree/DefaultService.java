@@ -19,7 +19,7 @@ public class DefaultService implements Service, Serializable {
 			String contact, String organization, String position, String addressType, String address, 
 			String city, String state, String zipcode, String country, String telephone, String fax,
 			String email, PartialGroupLayer root, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-			Map<String, String> structure, Map<String, StyleRef> styles) {
+			List<StructureItem> structure, Map<String, StyleRef> styles) {
 		
 		this.id = id;
 		this.name = name;

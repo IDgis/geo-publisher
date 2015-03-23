@@ -76,7 +76,7 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 			serviceStructure.layerOrder,
 			serviceStructure.styleIdentification,
 			serviceStructure.styleName).as(
-			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
+			new SQLSubQuery().unionAll(
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
