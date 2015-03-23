@@ -3,7 +3,16 @@
 <div class="form-group@if(elements.hasErrors){ has-error}">
     <label class="control-label col-sm-3" for="@elements.id">@elements.label</label>
     <div class="controls col-sm-9">
-        @elements.input
+    	@if(elements.args.contains ('_required)) {
+    		<div class="input-group">
+    			@elements.input
+    			<div class="input-group-addon cursor-help" title="@Domain.message("form.required")">
+    				<span class="glyphicon glyphicon-asterisk text-warning"></span>
+    			</div>
+    		</div>
+    	} else {
+        	@elements.input
+        }
         <span class="help-block">@elements.errors.mkString(", ")</span>
         @for(info <- elements.infos) {
         	<span class="help-block">@info</span>
