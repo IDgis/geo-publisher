@@ -77,7 +77,7 @@ public class Styles extends Controller {
 					// validation start
 					if (form.field("id").value().equals(ID)){
 						for (Style style : styles.values()) {
-							if (form.field("name").value().equals(style.name())){
+							if (form.field("name").value().trim().equals(style.name())){
 								form.reject("name", Domain.message("web.application.page.styles.form.field.name.exists",  style.name()));
 							}
 						}
@@ -92,7 +92,7 @@ public class Styles extends Controller {
 					// validation end
 					
 					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name, styleForm.definition, styleForm.styleType, styleForm.inUse);
+					final Style style = new Style(styleForm.id, styleForm.name.trim (), styleForm.definition, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
