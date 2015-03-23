@@ -4,6 +4,8 @@
  layerStyleListString: java.lang.String,
  previewUrl: java.lang.String)
 
+@implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
+
 
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( 
@@ -26,40 +28,54 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Layers.submitCreateUpdate()">
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@layerForm("id").value" >
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-dataset">@Domain.message("web.application.page.layers.form.field.dataset.label")</label>
-					<div class="col-lg-8">
-						<input class="form-control" id="input-dataset" name="datasetName" value="@layerForm("datasetName").value" readonly>
-						<input type="hidden" class="form-control" name="datasetId" value="@layerForm("datasetId").value">
-						@helper.fielderrors(layerForm("datasetName").errors)
-						
-					</div>
-					@helper.tooltips("web.application.page.layers.form.field.dataset.help")
-				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.layers.form.field.name.label")</label>
-					<div class="col-lg-8">
-						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.layers.form.field.name.placeholder")" value="@layerForm("name").value" @if(!create){readonly}>
-						@helper.fielderrors(layerForm("name").errors)
-					</div>
-					@helper.tooltips("web.application.page.layers.form.field.name.help")
-				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.layers.form.field.title.label")</label>
-					<div class="col-lg-8">
-						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.layers.form.field.title.placeholder")" value="@layerForm("title").value">
-						@helper.fielderrors(layerForm("title").errors)
-					</div>
-					@helper.tooltips("web.application.page.layers.form.field.title.help")
-				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.layers.form.field.abstract.label")</label>
-					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.layers.form.field.abstract.placeholder")" value="@layerForm("abstractText").value" rows="4">@layerForm("abstractText").value</textarea>
-						@helper.fielderrors(layerForm("abstractText").errors)
-					</div>
-					@helper.tooltips("web.application.page.layers.form.field.abstract.help")
-				</div>
+				
+				@helper.inputText(
+					layerForm("datasetName"),
+					'_label -> Domain.message("web.application.page.layers.form.field.dataset.label"),
+					'id -> "input-dataset",
+					'class -> "form-control",
+					'_help -> Domain.message("web.application.page.layers.form.field.dataset.help"),
+					'disabled -> "disabled"
+				)
+
+				@if(create) {
+					@helper.inputText(
+						layerForm("name"),
+						'_label -> Domain.message("web.application.page.layers.form.field.name.label"),
+						'id -> "input-name",
+						'placeholder -> Domain.message("web.application.page.layers.form.field.name.placeholder"),
+						'class -> "form-control",
+						'_help -> Domain.message("web.application.page.layers.form.field.name.help"),
+						'_required -> true
+					)
+				} else {
+					@helper.inputText(
+						layerForm("name"),
+						'_label -> Domain.message("web.application.page.layers.form.field.name.label"),
+						'id -> "input-name",
+						'class -> "form-control",
+						'_help -> Domain.message("web.application.page.layers.form.field.name.help"),
+						'readonly -> "readonly"
+					)
+				}
+
+				@helper.inputText(
+					layerForm("title"),
+					'_label -> Domain.message("web.application.page.layers.form.field.title.label"),
+					'id -> "input-title",
+					'placeholder -> Domain.message("web.application.page.layers.form.field.title.placeholder"),
+					'class -> "form-control",
+					'_help -> Domain.message("web.application.page.layers.form.field.title.help")
+				)
+
+				@helper.textarea(
+					layerForm("abstractText"),
+					'_label -> Domain.message("web.application.page.layers.form.field.abstract.label"),
+					'id -> "input-abstractText",
+					'placeholder -> Domain.message("web.application.page.layers.form.field.abstract.placeholder"),
+					'class -> "form-control",
+					'_help -> Domain.message ("web.application.page.layers.form.field.abstract.help")
+				)
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-keyword">@Domain.message("web.application.page.layers.form.field.keywords.label")</label>
 					<div class="col-lg-8">
@@ -107,9 +123,13 @@
 						
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
-					<div class="controls col-sm-8">
-						<div class="gp-tree-select form-control" id="test-control">
-							<input type="hidden" name="styles" value="@layerStyleListString">
+					<div class="controls col-sm-9">
+						<div class="input-group">
+							<div class="gp-tree-select form-control" id="test-control">
+								<input type="hidden" name="styles" value="@layerStyleListString">
+							</div>
+		    				@helper.requiredFormAddon()
+							@helper.helpFormAddon(Domain.message("web.application.page.layers.form.field.styles.help"))
 						</div>
 						<div class="gp-tree-values dropdown">
 							<div class="js-pager">
@@ -118,7 +138,6 @@
 						</div>
 						@helper.fielderrors(layerForm("styles").errors)
 					</div>
-					@helper.tooltips("web.application.page.layers.form.field.styles.help")
 				</div>
 				
 				<div class="form-group">
@@ -132,7 +151,7 @@
 					@helper.tooltips("web.application.page.tiledlayers.form.field.enabled.help")
 				</div>
 				<div id="js-tiled-form">
-					@tiledlayers.tiledLayerBody(layerForm);
+					@tiledlayers.tiledLayerBody(layerForm)
 				</div>
 				
 				<div class="form-group">
