@@ -86,7 +86,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 				serviceStructure.styleIdentification,
 				serviceStructure.styleName,
 				serviceStructure.childLayerIdentification, 
-				serviceStructure.parentLayerIdentification);
+				serviceStructure.parentLayerIdentification,				
+				serviceStructure.cycle);
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
@@ -144,8 +145,12 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 					for(Tuple structureTuple : structure) {
 						String styleId = structureTuple.get(serviceStructure.styleIdentification);
 						String styleName = structureTuple.get(serviceStructure.styleName);
-						String childId = structureTuple.get(serviceStructure.childLayerIdentification);
+						String childId = structureTuple.get(serviceStructure.childLayerIdentification);						
 						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification);
+							
+						if(structureTuple.get(serviceStructure.cycle)) {
+							throw new IllegalStateException("cycle detected, layer: " + childId);
+						}
 						
 						structureMap.add(new StructureItem(childId, parentId));
 						if(styleId != null) {
