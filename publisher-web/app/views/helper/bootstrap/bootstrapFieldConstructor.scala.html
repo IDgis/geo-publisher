@@ -7,14 +7,10 @@
     		<div class="input-group">
     			@elements.input
     			@if(elements.args.contains ('_required)) {
-	    			<a href="#" tabindex="-1" class="input-group-addon cursor-help" role="button" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="@Domain.message("form.required")">
-	    				<span class="glyphicon glyphicon-asterisk text-warning"></span>
-	    			</a>
+    				@helper.requiredFormAddon()
 	    		}
 	    		@if(!elements.infos.isEmpty) {
-					<a href="#" tabindex="-1" class="input-group-addon cursor-help" role="button" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="@elements.infos.mkString(",")">
-						<span class="glyphicon glyphicon-question-sign"></span>
-					</a>	    			
+	    			@helper.helpFormAddon(elements.infos.mkString(","))
 	    		}
     		</div>
     	} else {
