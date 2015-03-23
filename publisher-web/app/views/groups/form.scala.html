@@ -10,6 +10,8 @@
 	previewUrl: String
 )
 
+@implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
+
 @layout.application( 
 	title="Groep toevoegen: "+ "naam",
 	jsMain = routes.Assets.at("js/groups/form.js").url,
@@ -29,30 +31,42 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Groups.submitCreateUpdate()">
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@groupForm("id").value" >
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-name">@Domain.message("web.application.page.groups.form.field.name.label")</label>
-					<div class="col-lg-8">
-						<input class="form-control" id="input-name" name="name" placeholder="@Domain.message("web.application.page.groups.form.field.name.placeholder")" value="@groupForm("name").value" @if(!create){readonly}>
-						@helper.fielderrors(groupForm("name").errors)
-					</div>
-					@helper.tooltips("web.application.page.groups.form.field.name.help")
-				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-title">@Domain.message("web.application.page.groups.form.field.title.label")</label>
-					<div class="col-lg-8">
-						<input class="form-control" id="input-title" name="title" placeholder="@Domain.message("web.application.page.groups.form.field.title.placeholder")" value="@groupForm("title").value">
-						@helper.fielderrors(groupForm("title").errors)
-					</div>
-					@helper.tooltips("web.application.page.groups.form.field.title.help")
-				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-abstractText">@Domain.message("web.application.page.groups.form.field.abstract.label")</label>
-					<div class="col-lg-8">
-						<textarea class="form-control" id="input-abstractText" name="abstractText" placeholder="@Domain.message("web.application.page.groups.form.field.abstract.placeholder")" value="@groupForm("abstractText").value" rows="4">@groupForm("abstractText").value</textarea>
-						@helper.fielderrors(groupForm("abstractText").errors)
-					</div>
-					@helper.tooltips("web.application.page.groups.form.field.abstract.help")
-				</div>
+				@if(create) {
+					@helper.inputText(
+						groupForm("name"),
+						'_label -> Domain.message("web.application.page.groups.form.field.name.label"),
+						'id -> "input-name",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.groups.form.field.name.placeholder"),
+						'_help -> Domain.message("web.application.page.groups.form.field.name.help"),
+						'_required -> true
+					)
+				} else {
+					@helper.inputText(
+						groupForm("name"),
+						'_label -> Domain.message("web.application.page.groups.form.field.name.label"),
+						'id -> "input-name",
+						'class -> "form-control",
+						'_help -> Domain.message("web.application.page.groups.form.field.name.help"),
+						'readonly -> "readonly"
+					)
+				}
+				@helper.inputText(
+					groupForm("title"),
+					'_label -> Domain.message("web.application.page.groups.form.field.title.label"),
+					'id -> "input-title",
+					'class -> "form-control",
+					'placeholder -> Domain.message("web.application.page.groups.form.field.title.placeholder"),
+					'_help -> Domain.message("web.application.page.groups.form.field.title.help")
+				)
+				@helper.textarea(
+					groupForm("abstractText"),
+					'_label -> Domain.message("web.application.page.groups.form.field.abstract.label"),
+					'id -> "input-abstractText",
+					'class -> "form-control",
+					'placeholder -> Domain.message("web.application.page.groups.form.field.abstract.placeholder"),
+					'_help -> Domain.message("web.application.page.groups.form.field.abstract.help")
+				)
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.groups.form.field.publish.label")</label>
 					<div class="col-lg-8">

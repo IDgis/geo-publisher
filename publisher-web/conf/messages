@@ -528,6 +528,8 @@ web.application.page.groups.form.field.name.validation.error=De volgende karakte
 web.application.page.groups.form.field.name.validation.length=Naam moet bestaan uit tenminste {0} karakter(s).
 web.application.page.groups.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
 web.application.page.groups.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
+web.application.page.groups.form.field.name.validation.serviceexists.error=Een service met dezelfde naam bestaat al
+web.application.page.groups.form.field.name.validation.required=Er dient een naam ingevuld te worden voor de groep
 
 web.application.page.groups.form.field.title.label=Titel
 web.application.page.groups.form.field.title.placeholder=Titel
