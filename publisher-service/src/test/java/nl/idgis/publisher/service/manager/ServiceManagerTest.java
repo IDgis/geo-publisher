@@ -1067,7 +1067,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 	}
 	
-	/*@Test
+	@Test
 	public void testCycle() throws Exception {
 		insert(genericLayer)
 			.columns(
@@ -1101,6 +1101,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.values(0, 1, 0).addBatch()
 			.values(0, 2, 0).addBatch()
 			.values(1, 2, 0).addBatch()
+			.values(2, 1, 0).addBatch()
 			.values(1, 3, 0).addBatch()
 			.values(2, 4, 0).addBatch()
 			.execute();
@@ -1129,7 +1130,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(message);
 		assertTrue(message.contains("cycle"));
 		assertTrue(message.contains("group1"));
-	}*/
+	}
 	
 	@Test
 	public void testPreventCycle() throws Throwable {
@@ -1239,7 +1240,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						groupBGroupAFuture.thenCompose(resp -> null))).thenCompose(resp -> 
 							f.ask(
 								serviceManager, 
-								new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), // TODO: use the same transaction
+								new GetGroupLayer(tx.getTransactionRef(), "root"),
 								GroupLayer.class).thenApply(groupLayer -> "final result"));
 			}).get();
 			

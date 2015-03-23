@@ -15,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.expr.SimpleExpression;
+import com.mysema.query.types.path.BooleanPath;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
@@ -97,6 +100,10 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		
 		StringPath styleName = createString("style_name");
 		
+		StringPath path = createString("path");
+		
+		BooleanPath cycle = createBoolean("cycle");
+		
 		QGroupStructure(String variable) {
 	        super(QGroupStructure.class, forVariable(variable));
 	        
@@ -108,6 +115,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	        add(layerOrder);	   
 	        add(styleIdentification);
 	        add(styleName);
+	        add(path);
+	        add(cycle);
 	    }
 	}
 	
@@ -124,6 +133,12 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		this.f = f;
 		this.groupLayerId = groupLayerId;
 		
+		SimpleExpression<String> pathElement = Expressions.template(
+			String.class, 
+			"'(' || {0} || ',' || {1} || ')'", 
+			child.id, 
+			parent.id);
+		
 		withGroupStructure = tx.query().withRecursive(groupStructure, 
 			groupStructure.groupLayerIdentification,
 			groupStructure.childLayerId, 
@@ -132,7 +147,9 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.parentLayerIdentification,
 			groupStructure.layerOrder,
 			groupStructure.styleIdentification,
-			groupStructure.styleName).as(
+			groupStructure.styleName,
+			groupStructure.path,
+			groupStructure.cycle).as(
 			new SQLSubQuery().unionAll( 
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -147,11 +164,14 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.identification,
 						layerStructure.layerOrder,
 						style.identification,
-						style.name),
+						style.name,
+						pathElement,
+						Expressions.template(Boolean.class, "false")),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-					.join(groupStructure).on(groupStructure.childLayerId.eq(layerStructure.parentLayerId))
+					.join(groupStructure).on(groupStructure.childLayerId.eq(layerStructure.parentLayerId)
+						.and(groupStructure.cycle.not()))
 					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						groupStructure.groupLayerIdentification, 
@@ -161,7 +181,15 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.identification,
 						layerStructure.layerOrder,
 						style.identification,
-						style.name)));
+						style.name,
+						groupStructure.path
+							.concat(pathElement),
+						Expressions.template(
+							Boolean.class, 
+							"{0} like '%(' || {1} || ',' || {2} || ')%'", 
+							groupStructure.path, 
+							child.id, 
+							parent.id))));
 	}
 	
 	private CompletableFuture<TypedList<Tuple>> structure() {
@@ -173,7 +201,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 				groupStructure.styleIdentification,
 				groupStructure.styleName,
 				groupStructure.childLayerIdentification, 
-				groupStructure.parentLayerIdentification);
+				groupStructure.parentLayerIdentification,				
+				groupStructure.cycle);
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
@@ -198,7 +227,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						String styleId = structureTuple.get(groupStructure.styleIdentification);
 						String styleName = structureTuple.get(groupStructure.styleName);
 						String childId = structureTuple.get(groupStructure.childLayerIdentification);
-						String parentId = structureTuple.get(groupStructure.parentLayerIdentification);						
+						String parentId = structureTuple.get(groupStructure.parentLayerIdentification);
+						
+						if(structureTuple.get(groupStructure.cycle)) {
+							throw new IllegalStateException("cycle detected, layer: " + childId);
+						}
 						
 						structureMap.add(new StructureItem(childId, parentId));
 						if(styleId != null) {

@@ -7,13 +7,18 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.expr.SimpleExpression;
+import com.mysema.query.types.path.BooleanPath;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
@@ -40,6 +45,10 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 		
 		StringPath styleName = createString("style_name");
 		
+		StringPath path = createString("path");
+		
+		BooleanPath cycle = createBoolean("cycle");
+		
 		QServiceStructure(String variable) {
 	        super(QServiceStructure.class, forVariable(variable));
 	        
@@ -51,6 +60,8 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 	        add(layerOrder);
 	        add(styleIdentification);
 	        add(styleName);
+	        add(path);
+	        add(cycle);
 	    }
 	}
 	
@@ -67,6 +78,12 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 		this.f = f;
 		this.tx = tx;
 		
+		SimpleExpression<String> pathElement = Expressions.template(
+			String.class, 
+			"'(' || {0} || ',' || {1} || ')'", 
+			child.id, 
+			parent.id);
+		
 		withServiceStructure = tx.query().withRecursive(serviceStructure,
 			serviceStructure.serviceIdentification,
 			serviceStructure.childLayerId, 
@@ -75,7 +92,9 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 			serviceStructure.parentLayerIdentification,
 			serviceStructure.layerOrder,
 			serviceStructure.styleIdentification,
-			serviceStructure.styleName).as(
+			serviceStructure.styleName,
+			serviceStructure.path,
+			serviceStructure.cycle).as(
 			new SQLSubQuery().unionAll(
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -91,11 +110,15 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 						parent.identification,
 						layerStructure.layerOrder,
 						style.identification,
-						style.name),
+						style.name,
+						pathElement,
+						Expressions.template(Boolean.class, "false")),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
-					.join(serviceStructure).on(serviceStructure.childLayerId.eq(layerStructure.parentLayerId))
+					.join(serviceStructure).on(
+						serviceStructure.childLayerId.eq(layerStructure.parentLayerId)
+						.and(serviceStructure.cycle.not()))
 					.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 					.list(
 						serviceStructure.serviceIdentification, 
@@ -105,6 +128,14 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 						parent.identification,
 						layerStructure.layerOrder,
 						style.identification,
-						style.name)));
+						style.name,
+						serviceStructure.path
+							.concat(pathElement),
+						Expressions.template(
+							Boolean.class, 
+							"{0} like '%(' || {1} || ',' || {2} || ')%'", 
+							serviceStructure.path, 
+							child.id, 
+							parent.id))));
 	}
 }
