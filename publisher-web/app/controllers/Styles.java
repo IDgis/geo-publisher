@@ -7,8 +7,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+
+import javax.xml.XMLConstants;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stax.StAXSource;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import models.Domain;
 import models.Domain.Function;
@@ -19,6 +30,7 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Style;
 
 import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import play.Logger;
@@ -35,16 +47,19 @@ import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.styles.form;
-import views.html.styles.list;
-import views.html.styles.stylePagerBody;
-import views.html.styles.stylePagerFooter;
-import views.html.styles.stylePagerHeader;
-import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import controllers.Styles.StyleForm;
+
+import views.html.styles.form;
+import views.html.styles.list;
+import views.html.styles.stylePagerHeader;
+import views.html.styles.stylePagerBody;
+import views.html.styles.stylePagerFooter;
+import views.html.styles.uploadFileForm;
 
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -82,9 +97,10 @@ public class Styles extends Controller {
 							}
 						}
 					}
-					boolean validXml = isValidXml(form.field("definition").value());
-					if (!validXml){ 
+					String xmlError = isValidXml(form.field("definition").value());
+					if (xmlError != null){ 
 						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
+						form.reject ("definition", xmlError);
 					}
 					if (form.hasErrors ()) {
 						return renderCreateForm (form);
@@ -114,28 +130,29 @@ public class Styles extends Controller {
 	}
 	
 
-	private static boolean isValidXml(String xmlContent) {
-		boolean isValid = true;
-//        try {
-//            SAXParserFactory factory = SAXParserFactory.newInstance();
-//            factory.setValidating(true);
-//            factory.setNamespaceAware(true);
-//
-//            SAXParser parser = factory.newSAXParser();
-//            parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
-//
-//            XMLReader reader = parser.getXMLReader();
-//            SimpleErrorHandler errorHandler = new SimpleErrorHandler();
-//            reader.setErrorHandler(errorHandler);
-//            Logger.debug ("START VALIDATING ....");
-//            reader.parse(new InputSource(new StringReader(xmlContent)));
-              // parse does not return 		
-//            Logger.debug ("DONE VALIDATING .... " + isValid);
-//        } catch (ParserConfigurationException | SAXException | IOException e) {
-//            e.printStackTrace();
-//            isValid = false;
-//        }
-		return (xmlContent.indexOf("xml") >= 0);
+	private static String isValidXml(String xmlContent) {
+		try {
+			final XMLStreamReader reader = XMLInputFactory.newInstance ().createXMLStreamReader (new StringReader (xmlContent));
+			final SchemaFactory schemaFactory = SchemaFactory.newInstance (XMLConstants.W3C_XML_SCHEMA_NS_URI);
+			final Schema schema = schemaFactory.newSchema (new StreamSource (Play.application().resourceAsStream ("StyledLayerDescriptor.xsd")));
+			final Validator validator = schema.newValidator ();
+			
+			validator.validate (new StAXSource (reader));
+		} catch (IOException e) {
+			return e.getLocalizedMessage ();
+		} catch (SAXParseException e) {
+			return e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (); 
+		} catch (SAXException e) {
+			return e.getLocalizedMessage ();
+		} catch (XMLStreamException e) {
+			if (e.getLocation () != null) {
+				return e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage ();
+			} else {
+				return e.getLocalizedMessage ();
+			}
+		}
+		
+		return null;
 	}
 
 	public static class SimpleErrorHandler implements ErrorHandler {
