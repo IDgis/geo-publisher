@@ -12,6 +12,7 @@ import scala.runtime.AbstractFunction1;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import models.Domain.Function3;
 import models.Domain.Function5;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
@@ -75,23 +76,29 @@ public class Groups extends GroupsLayersCommon {
 		return from (database)
 			.list (LayerGroup.class)
 			.list (Layer.class)
-			.executeFlat (new Function2<Page<LayerGroup>, Page<Layer>, Promise<Result>> () {
+			.list (Service.class)
+			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
 	
 				@Override
-				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
 					final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
 					Logger.debug ("submit Group: " + form.field("name").value());
 					
 					// validation start
 					if (form.field("id").value().equals(ID)){
 						for (LayerGroup layerGroup : groups.values()) {
-							if (form.field("name").value().equals(layerGroup.name())){
+							if (form.field("name").value().trim ().equals(layerGroup.name())){
 								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.groupexists.error"));
 							}
 						}
 						for (Layer layer : layers.values()) {
-							if (form.field("name").value().equals(layer.name())){
+							if (form.field("name").value().trim ().equals(layer.name())){
 								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.layerexists.error"));
+							}
+						}
+						for (final Service service: services.values ()) {
+							if (form.field ("name").value ().trim ().equals (service.name ())) {
+								form.reject ("name", Domain.message("web.application.page.groups.form.field.name.validation.serviceexists.error"));
 							}
 						}
 					}
@@ -111,7 +118,7 @@ public class Groups extends GroupsLayersCommon {
 					final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
 					Logger.debug ("Group layer style list: " + layerStyleIds);
 					
-					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
+					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
 							groupForm.abstractText,groupForm.published, (groupForm.enabled ? groupForm.getTiledLayer() : null));
 					
 					return from (database)
