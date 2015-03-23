@@ -6,8 +6,7 @@
 	create: Boolean,
 	groups: Page[LayerGroup],
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
-	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer,
-	serviceKeywords: java.util.List[java.lang.String]
+	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer
 )
 
 @layerPageRef(page: Long) = @{
@@ -83,11 +82,11 @@
 					@helper.tooltips("web.application.page.services.form.field.keywords.help")
 					<div class="col-sm-offset-2 col-lg-8">
 						<div class="keyword-list" id="keyword-list">
-							@for(keyword <- serviceKeywords) {
-								<div class="keyword-item-block" value=@keyword>
-									<input class="form-control" type="hidden" name="keywords[]" value=@keyword>
-									<span class="keyword-item label label-primary">@keyword
-										<button type="button" aria-hidden="true" class="close" value=@keyword>&times;</button>
+							@helper.repeat(serviceForm("keywords"), min = 0) { keywordField =>
+								<div class="keyword-item-block" value="@keywordField.value">
+									<input class="form-control" type="hidden" name="keywords[]" value="@keywordField.value">
+									<span class="keyword-item label label-primary">@keywordField.value
+										<button type="button" aria-hidden="true" class="close" value="@keywordField.value">&times;</button>
 									</span>
 								</div>
 							}

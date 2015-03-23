@@ -62,7 +62,7 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						return ok (form.render (serviceForm, create, groups, layers, groupLayer, new ArrayList<String>()));
+						return ok (form.render (serviceForm, create, groups, layers, groupLayer));
 					}
 				});
 	}
