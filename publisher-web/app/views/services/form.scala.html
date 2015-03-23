@@ -34,15 +34,26 @@
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" @if(create){action="@routes.Services.submitCreate()"}else{action="@routes.Services.submitUpdate(serviceForm("rootGroupId").value)"} >
 				<input type="hidden" class="form-control" id="input-rootGroupId" name="rootGroupId" value="@serviceForm("rootGroupId").value" >
-				@helper.inputText(
-					serviceForm("name"),
-					'_label -> Domain.message("web.application.page.services.form.field.name.label"),
-					'id -> "input-name",
-					'class -> "form-control",
-					'placeholder -> Domain.message("web.application.page.services.form.field.name.placeholder"),
-					'_help -> Domain.message("web.application.page.services.form.field.name.help"),
-					'_required -> true
-				)
+				@if(create) {
+					@helper.inputText(
+						serviceForm("name"),
+						'_label -> Domain.message("web.application.page.services.form.field.name.label"),
+						'id -> "input-name",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.services.form.field.name.placeholder"),
+						'_help -> Domain.message("web.application.page.services.form.field.name.help"),
+						'_required -> true
+					)
+				} else {
+					@helper.inputText(
+						serviceForm("name"),
+						'_label -> Domain.message("web.application.page.services.form.field.name.label"),
+						'id -> "input-name",
+						'class -> "form-control",
+						'_help -> Domain.message("web.application.page.services.form.field.name.help"),
+						'disabled -> "disabled"
+					)
+				}
 				
 				@helper.inputText(
 					serviceForm("title"),
