@@ -80,10 +80,11 @@ public class Layers extends GroupsLayersCommon {
 		return from (database)
 			.list (LayerGroup.class)
 			.list (Layer.class)
-			.executeFlat (new Function2<Page<LayerGroup>, Page<Layer>, Promise<Result>> () {
+			.list (Service.class)
+			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
 	
 				@Override
-				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
 					final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
 					
 					// validation start
@@ -96,6 +97,11 @@ public class Layers extends GroupsLayersCommon {
 						for (Layer layer : layers.values()) {
 							if (form.field("name").value().equals(layer.name())){
 								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.layerexists.error"));
+							}
+						}
+						for (final Service service: services.values ()) {
+							if (form.field ("name").value ().equals (service.name ())) {
+								form.reject ("name", "web.application.page.layers.form.field.name.validation.serviceexists.error");
 							}
 						}
 					}

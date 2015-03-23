@@ -479,6 +479,7 @@ web.application.page.layers.form.field.name.validation.length=Naam moet bestaan 
 web.application.page.layers.form.field.name.validation.required=Geef een naam op.
 web.application.page.layers.form.field.name.validation.groupexists.error=Een groep met dezelfde naam bestaat al
 web.application.page.layers.form.field.name.validation.layerexists.error=Een laag met dezelfde naam bestaat al
+web.application.page.layers.form.field.name.validation.serviceexists.error=Een service met dezelfde naam bestaat al
 
 web.application.page.layers.form.field.title.label=Titel
 web.application.page.layers.form.field.title.placeholder=Titel
