@@ -579,7 +579,9 @@ web.application.page.styles.form.field.name.placeholder=Geef een naam voor de st
 web.application.page.styles.form.field.name.help=De naam van de stijl
 web.application.page.styles.form.field.name.validation.error=De volgende karakters zijn toegestaan: a-z, 0-9, - en _ (geen spaties).
 web.application.page.styles.form.field.name.validation.length=Naam moet bestaan uit tenminste {0} karakter(s).
+web.application.page.styles.form.field.name.validation.required=Er dient een naam voor de stijl te worden ingevuld.
 web.application.page.styles.form.field.name.exists=Er bestaat al een stijl met de naam {0}
+web.application.page.styles.form.field.definition.validation.required=Er dient een stijldefinitie ingevuld te worden.
 
 web.application.page.styles.form.field.definition.label=Defineren stijl
 web.application.page.styles.form.field.definition.placeholder=Kopieer een stijl definitie of upload een bestand

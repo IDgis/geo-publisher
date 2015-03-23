@@ -301,11 +301,11 @@ public class Styles extends Controller {
 	public static class StyleForm {
 		@Constraints.Required
 		private String id;
-		@Constraints.Required (message = "test")
+		@Constraints.Required (message = "web.application.page.styles.form.field.name.validation.required")
 		@Constraints.MinLength (value = 3, message = "web.application.page.styles.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.styles.form.field.name.validation.error")
 		private String name;
-		@Constraints.Required
+		@Constraints.Required (message = "web.application.page.styles.form.field.definition.validation.required")
 		private String definition;
 		private String styleType;
 		private Boolean inUse;
