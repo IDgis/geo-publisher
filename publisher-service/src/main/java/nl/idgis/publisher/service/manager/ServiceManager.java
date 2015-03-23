@@ -12,8 +12,11 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
@@ -87,11 +90,17 @@ public class ServiceManager extends UntypedActor {
 			handleGetStyles((GetStyles)msg);
 		} else if(msg instanceof CreateStyleCursor) {
 			handleCreateStyleCursor((CreateStyleCursor)msg);
+		} else if(msg instanceof GetDatasetLayerRef) {
+			toSender(handleGetDatasetLayerRef((GetDatasetLayerRef)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<Object> handleGetDatasetLayerRef(GetDatasetLayerRef msg) {
+		return db.transactional(tx -> new GetDatasetLayerRefQuery(log, tx, msg.getLayerId()).result());
+	}
+
 	private CompletableFuture<TypedList<String>> handleGetServicesWithStyle(GetServicesWithStyle msg) {
 		return db.transactional(tx -> new GetServicesWithStyleQuery(log, f, tx, msg.getStyleId()).result());
 	}

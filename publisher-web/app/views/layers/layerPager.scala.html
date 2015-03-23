@@ -1,8 +1,14 @@
-@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], query: String, published: java.lang.Boolean)
+@import play.api.mvc.Call
+
+@(
+	layers: nl.idgis.publisher.domain.response.Page[_ <: nl.idgis.publisher.domain.web.Selectable], 
+	query: String, 
+	published: java.lang.Boolean,
+	pageRef: (Long) => Call)
 
 @helper.pager(
-	routes.Layers.listJson(null, null, if(layers.currentPage<1){ 1 } else { layers.currentPage }).url,
-	layerPagerHeader(layers, query, published),
+	pageRef(if(layers.currentPage < 1 ) 1 else layers.currentPage).url,	
+	layerPagerHeader(query, published),
 	layerPagerBody(layers),
-	layerPagerFooter(layers)
+	layerPagerFooter(layers, pageRef)
 )

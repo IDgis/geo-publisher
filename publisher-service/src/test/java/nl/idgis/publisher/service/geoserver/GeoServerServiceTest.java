@@ -53,6 +53,7 @@ import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
@@ -316,7 +317,17 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
-		when(datasetLayer.getStyleNames()).thenReturn(Arrays.asList(styleNames));
+		
+		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
+			.map(styleName -> {
+				StyleRef styleRef = mock(StyleRef.class);					
+				when(styleRef.getName()).thenReturn(styleName);
+				
+				return styleRef;
+			})
+			.collect(Collectors.toList());
+		
+		when(datasetLayer.getStyleRefs()).thenReturn(styleRefs);
 		
 		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);

@@ -5,12 +5,17 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.List;
 
-import controllers.Layers.LayerForm;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import scala.runtime.AbstractFunction1;
+
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function5;
+
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -22,19 +27,26 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
-import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+
 import play.Logger;
 import play.Play;
+import play.api.mvc.Call;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
+import play.libs.Json;
 import play.libs.F.Promise;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.groups.form;
 import views.html.groups.list;
+import views.html.helper.groupStructureItem;
+import views.html.layers.layerPagerBody;
+import views.html.layers.layerPagerFooter;
+import views.html.layers.layerPagerHeader;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -45,7 +57,7 @@ public class Groups extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups(1l, null, null))
 			.query (new ListLayers (1l, null, null))
 			.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
 
@@ -96,6 +108,9 @@ public class Groups extends GroupsLayersCommon {
 					final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
 					Logger.debug ("Group structure list: " + layerIds);
 					
+					final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
+					Logger.debug ("Group layer style list: " + layerStyleIds);
+					
 					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name, groupForm.title, 
 							groupForm.abstractText,groupForm.published, (groupForm.enabled ? groupForm.getTiledLayer() : null));
 					
@@ -106,7 +121,7 @@ public class Groups extends GroupsLayersCommon {
 							public Promise<Result> apply (final Response<?> response) throws Throwable {
 								// Get the id of the layer we just put 
 								String groupId = response.getValue().toString();
-								PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds);															
+								PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds, layerStyleIds);															
 								return from (database)
 									.query(putGroupStructure)
 									.executeFlat (new Function<Response<?>, Promise<Result>> () {
@@ -162,7 +177,7 @@ public class Groups extends GroupsLayersCommon {
 		return from (database)
 			.get (LayerGroup.class, groupId)
 			.query (new GetGroupStructure(groupId))
-			.list (LayerGroup.class)
+			.query (new ListLayerGroups(1l, null, null))
 			.query (new ListLayers (1l, null, null))
 			.query(new GetLayerServices(groupId))
 			.executeFlat (new Function5<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, List<String>, Promise<Result>> () {
@@ -266,6 +281,11 @@ public class Groups extends GroupsLayersCommon {
 		 * List of id's of layers/groups in this group
 		 */
 		private List<String> structure;
+		
+		/**
+		 * List of id's of styles in this group
+		 */
+		private List<String> styles;
 
 		private Boolean enabled = false;
 
@@ -333,6 +353,14 @@ public class Groups extends GroupsLayersCommon {
 			this.structure = structure;
 		}
 		
+		public List<String> getStyles() {
+			return styles;
+		}
+
+		public void setStyles(List<String> styles) {
+			this.styles = styles;
+		}
+		
 		public Boolean getEnabled() {
 			return enabled;
 		}
@@ -341,6 +369,41 @@ public class Groups extends GroupsLayersCommon {
 			this.enabled = enabled;
 		}
 
+	}
+	
+	public static Promise<Result> structureItem(String groupId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new GetGroupLayerRef(groupId))
+			.execute(groupLayerRef ->
+				ok(groupStructureItem.render(groupLayerRef)));
+	}
+	
+	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+
+		return from (database)
+			.query (new ListLayerGroups (page, query, published))
+			.execute (new Function<Page<LayerGroup>, Result> () {
+				@Override
+				public Result apply (final Page<LayerGroup> layerGroups) throws Throwable {
+					final ObjectNode result = Json.newObject ();
+					
+					result.put ("header", layerPagerHeader.render (query, published).toString ());
+					result.put ("body", layerPagerBody.render (layerGroups).toString ());
+					result.put ("footer", layerPagerFooter.render (layerGroups, new AbstractFunction1<Long, Call>() {
+
+						@Override
+						public Call apply(Long page) {
+							return routes.Groups.listJson(query, published, page);
+						}
+						
+					}).toString ());
+
+					return ok (result);
+				}
+			});
 	}
 	
 }

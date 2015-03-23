@@ -10,6 +10,10 @@
 	serviceKeywords: java.util.List[java.lang.String]
 )
 
+@layerPageRef(page: Long) = @{
+	routes.Layers.listJson(null, null, page)
+}
+
 @layout.application( 
 	title=Domain.message("web.application.page.services.form.title"),
 	jsMain = routes.Assets.at("js/services/form.js").url,
@@ -80,10 +84,10 @@
 					<div class="col-sm-offset-2 col-lg-8">
 						<div class="keyword-list" id="keyword-list">
 							@for(keyword <- serviceKeywords) {
-								<div class="keyword-item-block" value="@keyword">
-									<input class="form-control" type="hidden" name="keywords[]" value="@keyword">
+								<div class="keyword-item-block" value=@keyword>
+									<input class="form-control" type="hidden" name="keywords[]" value=@keyword>
 									<span class="keyword-item label label-primary">@keyword
-										<button type="button" aria-hidden="true" class="close" value="@keyword">&times;</button>
+										<button type="button" aria-hidden="true" class="close" value=@keyword>&times;</button>
 									</span>
 								</div>
 							}
@@ -93,8 +97,8 @@
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.services.form.field.publish.label")</label>
 					<div class="col-lg-8">
-						<div class="input-group input-group-sm checkbox-fix">
-							<input type="checkbox" id="input-published" name="published" value="true" @if("true".equals (serviceForm("published").value)){checked}>
+						<div class="input-group input-group-sm">
+							<input type="checkbox" class="form-control" id="input-published" name="published" value="true" @if("true".equals (serviceForm("published").value)){checked}>
 						</div>
 					
 						@helper.fielderrors(serviceForm("published").errors)
@@ -102,64 +106,7 @@
 					@helper.tooltips("web.application.page.services.form.field.publish.help")
 				</div>
 				
-				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.form.field.structure.label")</label>
-					<div class="col-sm-8">
-						<div class="list-group" id="groupLayerStructure">
-							@if(groupLayer != null) {
-								@* show items for each group/layer in the root group *@
-								@for(layerRef <- groupLayer.getLayers()) {
-									@defining(layerRef.getLayer()) { layer =>
-										<div value="@layer.getId()" class="list-group-item gp-draggable tree-item">
-											<input type="hidden" value="@layer.getId()" name="structure[]">
-											<div class="row">
-												<div class="col-sm-11 groupTree">
-													<ul class="treelist">
-														@helper.groupStructureRef(layerRef)
-													</ul>
-												</div>
-												<div class="col-sm-1">
-													<div class="pull-right tree-item-delete">
-														<a href="#" 
-															class="btn btn-warning btn-sm delete-el" value="@layer.getId()" title="@Domain.message("web.application.button.remove")">
-															<span class="glyphicon glyphicon-remove"></span>
-														</a>
-													</div>
-												</div>
-											</div>
-										</div>
-									}
-								}
-							}
-						</div>
-						
-							<span>Voeg groep toe:</span>
-							<select id="addgroup">
-								<option></option>
-								@for(group <- groups.values) {
-									<!-- do not show this group in the selectbox  -->
-									@if(serviceForm("id").value!=group.id){
-										<option value="@group.id">@group.name</option>
-									}
-								}
-							</select>
-							
-							<div class="gp-pager-select" id="layers-select">
-								<button type="button" class="btn btn-default js-pager-select-button">
-									<span class="glyphicon glyphicon-plus"></span>
-									Voeg een laag toe ...
-								</button>							
-								<div class="dropdown js-dropdown">
-									@views.html.layers.layerPager(layers, null, null)
-								</div>
-							</div>
-							
-							@helper.fielderrors(serviceForm("structure").errors)
-					</div>
-					@helper.tooltips("web.application.page.services.form.field.structure.help")
-				</div>
-				
-				
+				@helper.groupStructure(layers, groups, groupLayer, serviceForm("structure").errors)
 <!-- 			
 				<div class="form-group">
 						<div class="col-sm-10">

@@ -53,13 +53,27 @@ define ([
 		this.orderedList = element;
 		
 		var orderedListItems = query ('> .list-group-item', this.orderedList),
-			self = this;
-	
-		// Change list order:
+			self = this;	
+		
+		// Optionally exclude child elements of the draggable elements:
 		// =========================================================================
 		
+		var exclude = function (currentElement) {
+			if (currentElement == element) {
+				return false;
+			} else {
+				if(domClass.contains (currentElement, "js-gp-draggable-exclude")) {
+					return true;
+				} else {
+					return exclude (currentElement.parentNode);
+				}
+			}
+		};
+		
+		// Change list order:
+		// =========================================================================
 				
-		on (this.orderedList, '.gp-draggable:mousedown', function (e) {
+		on (this.orderedList, '.js-gp-draggable:mousedown', function (e) {
 			var dragNode = this,
 				placeholder = null,
 				handles = [ ],
@@ -70,6 +84,10 @@ define ([
 				items,
 				currentOverNode = null,
 				currentRel = null;
+			
+			if (exclude (e.target)) {
+				return;
+			}
 			
 			e.preventDefault();
 			e.stopPropagation();

@@ -3,20 +3,14 @@ package nl.idgis.publisher.service.manager;
 import static com.mysema.query.types.PathMetadataFactory.forVariable;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
@@ -32,7 +26,9 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -65,91 +61,16 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	private class DatasetQuery extends AbstractDatasetQuery {
 		
 		DatasetQuery(LoggingAdapter log) {
-			super(log);
-		}
-
-		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> datasetKeywords() {
-			return withGroupStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
-				.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id))
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(
-					genericLayer.id,
-					leafLayerKeyword.keyword).thenApply(resp ->
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(leafLayerKeyword.keyword),
-									Collectors.toList()))));
+			super(log, withGroupStructure);
 		}
 		
 		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> datasetStyles() {
-			return withGroupStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
-				.join(style).on(style.id.eq(layerStyle.styleId))
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(
-					genericLayer.id,
-					style.name).thenApply(resp ->
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(style.name),
-									Collectors.toList()))));
-		}
-		
-		@Override
-		protected CompletableFuture<TypedList<Tuple>> datasetInfo() {
-			return withGroupStructure  
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
-				.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
-				.join(dataset).on(dataset.id.eq(leafLayer.datasetId))
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(
-					genericLayer.id,
-					genericLayer.identification,
-					genericLayer.name,
-					genericLayer.title,
-					genericLayer.abstractCol,
-					dataset.identification,
-					tiledLayer.genericLayerId,
-					tiledLayer.metaWidth,					
-					tiledLayer.metaHeight,
-					tiledLayer.expireCache,
-					tiledLayer.expireClients,
-					tiledLayer.gutter);
-		}
-
-		@Override
-		protected CompletableFuture<Map<Integer, List<String>>> tilingDatasetMimeFormats() {
-			return withGroupStructure.clone()
-				.from(leafLayer)
-				.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
-				.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-				.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
-				.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
-				.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-				.list(
-					genericLayer.id,
-					tiledLayerMimeformat.mimeformat).thenApply(resp -> 
-						resp.list().stream()
-							.collect(Collectors.groupingBy(t ->
-								t.get(genericLayer.id),
-								Collectors.mapping(t ->
-									t.get(tiledLayerMimeformat.mimeformat),
-									Collectors.toList()))));
-		}
+		protected AsyncSQLQuery filter(AsyncSQLQuery filter) {
+			return
+				filter
+					.join(groupStructure).on(groupStructure.childLayerId.eq(genericLayer.id))
+					.where(groupStructure.groupLayerIdentification.eq(groupLayerId));
+		}	
 	}
 	
 	private final static QGroupStructure groupStructure = new QGroupStructure("group_structure");	
@@ -172,6 +93,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		
 		StringPath styleIdentification = createString("style_identification");
 		
+		StringPath styleName = createString("style_name");
+		
 		QGroupStructure(String variable) {
 	        super(QGroupStructure.class, forVariable(variable));
 	        
@@ -182,6 +105,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 	        add(childLayerIdentification);
 	        add(layerOrder);	   
 	        add(styleIdentification);
+	        add(styleName);
 	    }
 	}
 	
@@ -205,7 +129,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groupStructure.parentLayerId,
 			groupStructure.parentLayerIdentification,
 			groupStructure.layerOrder,
-			groupStructure.styleIdentification).as(
+			groupStructure.styleIdentification,
+			groupStructure.styleName).as(
 			new SQLSubQuery().unionAll( // TODO: unionAll -> union (doesn't work in H2)
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -219,7 +144,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification),
+						style.identification,
+						style.name),
 				new SQLSubQuery().from(layerStructure)
 					.join(child).on(child.id.eq(layerStructure.childLayerId))
 					.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -232,7 +158,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						parent.id,
 						parent.identification,
 						layerStructure.layerOrder,
-						style.identification)));
+						style.identification,
+						style.name)));
 	}
 	
 	private CompletableFuture<TypedList<Tuple>> structure() {
@@ -240,7 +167,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			.from(groupStructure)
 			.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
 			.orderBy(groupStructure.layerOrder.asc())
-			.list(groupStructure.childLayerIdentification, groupStructure.parentLayerIdentification);
+			.list(
+				groupStructure.styleIdentification,
+				groupStructure.styleName,
+				groupStructure.childLayerIdentification, 
+				groupStructure.parentLayerIdentification);
 	}
 	
 	private CompletableFuture<TypedList<PartialGroupLayer>> groups() {
@@ -260,10 +191,11 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 					// LinkedHashMap is used to preserve layer order
 					Map<String, String> structureMap = new LinkedHashMap<>();
 					
-					Map<String, String> styleMap = new HashMap<>();
+					Map<String, StyleRef> styleMap = new HashMap<>();
 					
 					for(Tuple structureTuple : structure) {
 						String styleId = structureTuple.get(groupStructure.styleIdentification);
+						String styleName = structureTuple.get(groupStructure.styleName);
 						String childId = structureTuple.get(groupStructure.childLayerIdentification);
 						String parentId = structureTuple.get(groupStructure.parentLayerIdentification); 
 						
@@ -273,7 +205,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 						
 						structureMap.put(childId, parentId);
 						if(styleId != null) {
-							styleMap.put(childId, styleId);
+							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}
 					}
 					

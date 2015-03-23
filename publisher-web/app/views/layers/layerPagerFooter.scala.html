@@ -1,8 +1,8 @@
-@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
+@import play.api.mvc.Call
 
-@pageRef(page: Long) = @{
-	routes.Layers.listJson(null, null, page)
-}
+@(
+	layers: nl.idgis.publisher.domain.response.Page[_ <: nl.idgis.publisher.domain.web.Selectable],
+	pageRef: (Long) => Call)
 
 @if(layers.hasMorePages) {
 	<div class="gp-pager-controls js-pager-controls">

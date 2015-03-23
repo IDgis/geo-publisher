@@ -3,7 +3,7 @@
 @(layerRef: LayerRef[_ <: Layer])
 
 	@if(layerRef.isGroupRef()){
-			@helper.groupStructureGroup(layerRef.asGroupRef().getLayer())
+			@helper.groupStructureItemGroup(layerRef.asGroupRef().getLayer())
 	}else{
 		<li>
 			<a href="@routes.Layers.edit(layerRef.getLayer().getId())">@layerRef.getLayer().getName()</a>

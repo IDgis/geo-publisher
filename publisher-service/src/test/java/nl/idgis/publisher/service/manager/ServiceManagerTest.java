@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -49,15 +50,19 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
@@ -330,7 +335,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(layerRef.isGroupRef());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
-		assertEquals("style0", datasetLayerRef.getStyleName());
+		StyleRef styleRef = datasetLayerRef.getStyleRef();
+		assertNotNull(styleRef);
+		assertEquals("style0", styleRef.getId());
+		assertEquals("styleName0", styleRef.getName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertEquals("layer0", datasetLayer.getId());
@@ -356,11 +364,22 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertTrue(mimeFormats.contains("image/jpg"));
 		assertEquals(2, mimeFormats.size());
 		
-		List<String> styles = datasetLayer.getStyleNames();
-		assertEquals(2, styles.size());
-		assertTrue(styles.contains("styleName0"));
-		assertTrue(styles.contains("styleName1"));
+		List<StyleRef> styleRefs = datasetLayer.getStyleRefs();
+		assertNotNull(styleRefs);
 		
+		Iterator<StyleRef> styleRefsItr = styleRefs.iterator();
+		assertTrue(styleRefsItr.hasNext());
+		
+		styleRef = styleRefsItr.next();
+		assertNotNull(styleRef);
+		assertEquals("styleName0", styleRef.getName());
+		
+		assertTrue(styleRefsItr.hasNext());
+		
+		styleRef = styleRefsItr.next();
+		assertNotNull(styleRef);
+		assertEquals("styleName1", styleRef.getName());
+				
 		assertFalse(itr.hasNext());
 		
 		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");
@@ -1119,74 +1138,110 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);		
 		
 		try {
-			db.transactional(tx ->
-				tx.insert(genericLayer)
+			db.transactional(tx -> {
+				CompletableFuture<Integer> layerIdFuture = 
+					tx.insert(genericLayer)
 					.set(genericLayer.identification, "layer")
 					.set(genericLayer.name, "layer-name")
-					.executeWithKey(genericLayer.id).thenCompose(layerId ->
+					.executeWithKey(genericLayer.id);
 				
-				tx.insert(leafLayer)
-					.set(leafLayer.genericLayerId, layerId)
-					.set(leafLayer.datasetId, datasetId)
-					.execute().thenCompose(leafLayer ->
+				CompletableFuture<Long> leafLayerFuture = 
+					layerIdFuture.thenCompose(layerId ->
+						tx.insert(leafLayer)
+							.set(leafLayer.genericLayerId, layerId)
+							.set(leafLayer.datasetId, datasetId)
+							.execute());
 					
-				tx.insert(genericLayer)
-					.set(genericLayer.identification, "root")
-					.set(genericLayer.name, "root-name")
-					.executeWithKey(genericLayer.id).thenCompose(rootId ->
+				CompletableFuture<Integer> rootIdFuture = 
+					tx.insert(genericLayer)
+						.set(genericLayer.identification, "root")
+						.set(genericLayer.name, "root-name")
+						.executeWithKey(genericLayer.id);
 					
-				tx.insert(genericLayer)
-					.set(genericLayer.identification, "group-a")
-					.set(genericLayer.name, "group-name-a")
-					.executeWithKey(genericLayer.id).thenCompose(groupAId ->
+				CompletableFuture<Integer> groupAIdFuture = 
+					tx.insert(genericLayer)
+						.set(genericLayer.identification, "group-a")
+						.set(genericLayer.name, "group-name-a")
+						.executeWithKey(genericLayer.id);
 					
-				tx.insert(genericLayer)
-					.set(genericLayer.identification, "group-b")
-					.set(genericLayer.name, "group-name-b")
-					.executeWithKey(genericLayer.id).thenCompose(groupBId ->
+				CompletableFuture<Integer> groupBIdFuture = 
+					tx.insert(genericLayer)
+						.set(genericLayer.identification, "group-b")
+						.set(genericLayer.name, "group-name-b")
+						.executeWithKey(genericLayer.id);
+				
+				CompletableFuture<Long> layerGroupAFuture = 
+					groupAIdFuture.thenCompose(groupAId ->
+					layerIdFuture.thenCompose(layerId ->					
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, groupAId)
+							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
+				
+				CompletableFuture<Long> layerGroupBFuture = 
+					groupBIdFuture.thenCompose(groupBId ->
+					layerIdFuture.thenCompose(layerId ->
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, groupBId)
+							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
+				
+				CompletableFuture<Long> groupARootFuture = 
+					rootIdFuture.thenCompose(rootId ->
+					groupAIdFuture.thenCompose(groupAId ->
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, rootId)
+							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
+				
+				CompletableFuture<Long> groupBRootFuture = 
+					rootIdFuture.thenCompose(rootId ->
+					groupBIdFuture.thenCompose(groupBId ->
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, rootId)
+							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
 					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, groupAId)
-					.set(layerStructure.childLayerId, layerId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(layerGroupA ->
+				CompletableFuture<Long> groupAGroupBFuture =
+					groupAIdFuture.thenCompose(groupAId ->
+					groupBIdFuture.thenCompose(groupBId ->
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, groupAId)
+							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
 					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, groupBId)
-					.set(layerStructure.childLayerId, layerId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(layerGroupB ->
-					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, rootId)
-					.set(layerStructure.childLayerId, groupAId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(groupARoot ->
-					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, rootId)
-					.set(layerStructure.childLayerId, groupBId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(groupBRoot ->
-					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, groupAId)
-					.set(layerStructure.childLayerId, groupBId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(groupAGroupB ->
-					
-				tx.insert(layerStructure)
-					.set(layerStructure.parentLayerId, groupBId)
-					.set(layerStructure.childLayerId, groupAId)
-					.set(layerStructure.layerOrder, 0)
-					.execute().thenCompose(groupBGroupA ->
-					
-				f.ask(
-					serviceManager, 
-					new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), // TODO: use the same transaction
-					GroupLayer.class).thenApply(groupLayer -> 
-					
-				"final result"))))))))))))).get();
+				CompletableFuture<Long> groupBGroupAFuture =
+					groupAIdFuture.thenCompose(groupAId ->
+					groupBIdFuture.thenCompose(groupBId ->
+						tx.insert(layerStructure)
+							.set(layerStructure.parentLayerId, groupBId)
+							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.layerOrder, 0)
+							.execute()));
+				
+				return f.sequence(
+					Arrays.asList(
+						layerIdFuture.thenCompose(resp -> null),
+						leafLayerFuture.thenCompose(resp -> null),
+						rootIdFuture.thenCompose(resp -> null),
+						groupAIdFuture.thenCompose(resp -> null),
+						groupBIdFuture.thenCompose(resp -> null),
+						layerGroupAFuture.thenCompose(resp -> null),
+						layerGroupBFuture.thenCompose(resp -> null),
+						groupARootFuture.thenCompose(resp -> null),
+						groupBRootFuture.thenCompose(resp -> null),
+						groupAGroupBFuture.thenCompose(resp -> null),
+						groupBGroupAFuture.thenCompose(resp -> null))).thenCompose(resp -> 
+							f.ask(
+								serviceManager, 
+								new GetGroupLayer(/*tx.getTransactionRef(),*/ "root"), // TODO: use the same transaction
+								GroupLayer.class).thenApply(groupLayer -> "final result"));
+			}).get();
 			
 			fail("transaction succeeded");
 		} catch(Exception e) {

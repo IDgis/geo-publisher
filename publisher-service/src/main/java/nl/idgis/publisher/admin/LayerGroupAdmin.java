@@ -4,6 +4,8 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
@@ -17,7 +19,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.GetGroupLayerRef;
+import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
@@ -29,12 +34,18 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.DefaultGroupLayerRef;
+
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.utils.StreamUtils;
+import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -58,6 +69,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 
 	@Override
 	protected void preStartAdmin() {
+		doQuery(GetLayerRef.class, this::handleGetLayerRef);
+		doQuery(GetGroupLayerRef.class, this::handleGetLayerGroupRef);
+		
 		doList(LayerGroup.class, this::handleListLayergroups);
 		doGet(LayerGroup.class, this::handleGetLayergroup);
 		doPut(LayerGroup.class, this::handlePutLayergroup);
@@ -70,6 +84,24 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		
 		doQuery (ListLayerGroups.class, this::handleListLayerGroupsWithQuery);
 
+	}
+	
+	private CompletableFuture<LayerRef<?>> handleGetLayerGroupRef(GetGroupLayerRef getLayerGroupRef) {
+		String groupId = getLayerGroupRef.getGroupId();
+		
+		log.debug("handleGetLayerGroupRef: {}", groupId);
+		
+		return f.ask(serviceManager, new GetGroupLayer(groupId), GroupLayer.class)
+			.thenApply(groupLayer -> new DefaultGroupLayerRef(groupLayer));
+	}
+	
+	private CompletableFuture<LayerRef<?>> handleGetLayerRef(GetLayerRef getLayerRef) {
+		String layerId = getLayerRef.getLayerId();
+		
+		log.debug("handleGetLayerRef: {}", layerId);
+		
+		return f.ask(serviceManager, new GetDatasetLayerRef(layerId), LayerRef.class)
+			.thenApply(layerRef -> layerRef);
 	}
 
 	private CompletableFuture<Optional<List<String>>> handleGetLayerServices (GetLayerServices getLayerServices) {
@@ -357,8 +389,16 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
 	private CompletableFuture<Response<?>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
 		String groupId = putGroupStructure.groupId();
+
 		List<String> layerIdList =  putGroupStructure.layerIdList();
+		List<String> layerStyleIdList =  putGroupStructure.layerStyleIdList();
+		
+		if(layerIdList.size() != layerStyleIdList.size()) {
+			return f.failed(new IllegalArgumentException("layerId, layerStyleId size mismatch"));
+		}
+				
 		log.debug("handlePutGroupStructure groupId: " + groupId + ", layer id's: " +layerIdList);
+		
 		return db.transactional(tx -> tx
 			.query()
 			.from(genericLayer)
@@ -375,22 +415,56 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							llNr -> {
 								// B. insert items of layerStructure
 								return f.sequence(												
-									StreamUtils.index(layerIdList.stream())
-										.map(layerIdIndexed -> 
-											tx
-												.insert(layerStructure)
-												.columns(
-													layerStructure.parentLayerId, 
-													layerStructure.childLayerId,
-													layerStructure.layerOrder)
-												.select(new SQLSubQuery().from(genericLayer)
-													.where(genericLayer.identification.eq(layerIdIndexed.getValue()))
-													.list(
-														glId.get(),
-														genericLayer.id,
-														layerIdIndexed.getIndex()))
-												.execute()
-												)
+									StreamUtils.index(
+											StreamUtils.zip(
+												layerIdList.stream(), 
+												layerStyleIdList.stream()))
+										.map(indexed -> {
+											ZippedEntry<String, String> value = indexed.getValue();
+											
+											String layerId = value.getFirst();
+											String layerStyleId = value.getSecond();
+											
+											if(layerStyleId.isEmpty()) {											
+												return tx.insert(layerStructure)
+													.columns(
+														layerStructure.parentLayerId, 
+														layerStructure.childLayerId,
+														layerStructure.layerOrder)
+													.select(new SQLSubQuery().from(genericLayer)
+														.where(genericLayer.identification.eq(layerId))
+														.list(
+															glId.get(),
+															genericLayer.id,
+															indexed.getIndex()))
+													.execute();
+											} else {
+												return tx.insert(layerStructure)
+													.columns(
+														layerStructure.parentLayerId, 
+														layerStructure.childLayerId,
+														layerStructure.layerOrder,
+														layerStructure.styleId)
+													.select(new SQLSubQuery().from(genericLayer)
+														.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+														.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+														.join(style).on(style.id.eq(layerStyle.styleId))
+														.where(genericLayer.identification.eq(layerId)
+															.and(style.identification.eq(layerStyleId)))
+														.list(
+															glId.get(),
+															genericLayer.id,
+															indexed.getIndex(),
+															style.id))
+													.execute().<Long>thenApply(result -> {
+														if(result != 1) {
+															throw new IllegalStateException("Unexpected result count: " + result);
+														}
+														
+														return result;
+													});
+											}
+										})
 										.collect(Collectors.toList())).thenApply(whatever ->
 											new Response<String>(CrudOperation.UPDATE,
 												CrudResponse.OK, groupId));												

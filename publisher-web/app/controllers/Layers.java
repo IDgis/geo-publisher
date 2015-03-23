@@ -12,6 +12,8 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
+
+import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
@@ -28,8 +30,10 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.TiledLayer;
+
 import play.Logger;
 import play.Play;
+import play.api.mvc.Call;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
@@ -37,17 +41,21 @@ import play.libs.F.Promise;
 import play.libs.Json;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.helper.groupStructureItem;
 import views.html.layers.form;
 import views.html.layers.list;
 import views.html.layers.layerPagerHeader;
 import views.html.layers.layerPagerBody;
 import views.html.layers.layerPagerFooter;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import scala.runtime.AbstractFunction1;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Layers extends GroupsLayersCommon {
@@ -170,6 +178,15 @@ public class Layers extends GroupsLayersCommon {
 			});
 	}
 	
+	public static Promise<Result> structureItem(String layerId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new GetLayerRef(layerId))
+			.execute(layerRef ->
+				ok(groupStructureItem.render(layerRef)));
+	}
+	
 	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
@@ -180,9 +197,16 @@ public class Layers extends GroupsLayersCommon {
 				public Result apply (final Page<Layer> layers) throws Throwable {
 					final ObjectNode result = Json.newObject ();
 					
-					result.put ("header", layerPagerHeader.render (layers, query, published).toString ());
+					result.put ("header", layerPagerHeader.render (query, published).toString ());
 					result.put ("body", layerPagerBody.render (layers).toString ());
-					result.put ("footer", layerPagerFooter.render (layers).toString ());
+					result.put ("footer", layerPagerFooter.render (layers, new AbstractFunction1<Long, Call>() {
+
+						@Override
+						public Call apply(Long page) {
+							return routes.Layers.listJson(query, published, page);
+						}
+						
+					}).toString ());
 
 					return ok (result);
 				}
