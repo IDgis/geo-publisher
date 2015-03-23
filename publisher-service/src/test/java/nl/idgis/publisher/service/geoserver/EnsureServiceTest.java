@@ -351,4 +351,63 @@ public class EnsureServiceTest {
 			.assertNext(Terminated.class)
 			.assertNotHasNext();
 	}
+	
+	@Test
+	public void testDuplicateLayer() throws Exception {
+		final int numberOfDuplicates = 10;
+		
+		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer0");
+		when(datasetLayer.getTitle()).thenReturn("title0");
+		when(datasetLayer.getAbstract()).thenReturn("abstract0");
+		when(datasetLayer.getTableName()).thenReturn("tableName0");		
+		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service0");
+		when(service.getName()).thenReturn("serviceName0");
+		when(service.getTitle()).thenReturn("serviceTitle0");
+		when(service.getAbstract()).thenReturn("serviceAbstract0");
+		when(service.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1", "keyword2"));
+		when(service.getTelephone()).thenReturn("serviceTelephone0");
+		
+		List<LayerRef<?>> layers = new ArrayList<>();
+		
+		for(int i = 0; i < numberOfDuplicates; i++) {
+			DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
+			when(datasetLayerRef.isGroupRef()).thenReturn(false);
+			when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
+			when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+			
+			layers.add(datasetLayerRef);
+		}
+		
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(layers);
+		
+		f.ask(geoServerService, new Ensure(
+			service,
+			new End()), Ack.class).get();
+		
+		f.ask(recorder, new Wait(3 + numberOfDuplicates), Waited.class).get();
+		
+		Recording recording = f.ask(recorder, new GetRecording(), Recording.class).get()
+			.assertNext(EnsureWorkspace.class, workspace -> {
+				assertEquals("serviceName0", workspace.getWorkspaceId());
+			});
+		
+		for(int i = 0; i < numberOfDuplicates; i++) {
+			String layerId = "layer0" + (i != 0 ? "-" + (i + 1) : "");			
+			
+			recording.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
+				assertEquals(layerId, featureType.getLayerId());
+				assertEquals("tableName0", featureType.getTableName());
+			});
+		}
+		
+		recording.assertNext(FinishEnsure.class)
+			.assertNext(Terminated.class)
+			.assertNotHasNext();
+	}
 }

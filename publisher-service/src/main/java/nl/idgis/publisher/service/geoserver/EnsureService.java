@@ -2,8 +2,10 @@ package nl.idgis.publisher.service.geoserver;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,8 @@ public class EnsureService extends UntypedActor {
 	
 	private boolean stylesReceived;
 	
+	private Set<String> layerIds;
+	
 	public static Props props() {
 		return Props.create(EnsureService.class);
 	}
@@ -51,6 +55,8 @@ public class EnsureService extends UntypedActor {
 		
 		styles = new ArrayList<>();
 		stylesReceived = false;
+		
+		layerIds = new HashSet<>();
 	}
 
 	@Override
@@ -133,9 +139,17 @@ public class EnsureService extends UntypedActor {
 									.collect(Collectors.toList());
 							}
 							
+							int layerIdPostfixCount = 2;
+							String layerId = layer.getName();
+							while(layerIds.contains(layerId)) {
+								layerId = layer.getName() + "-" + layerIdPostfixCount++;
+							}
+							
+							layerIds.add(layerId);
+							
 							getContext().parent().tell(
 								new EnsureFeatureTypeLayer(
-									layer.getName(), 
+									layerId, 
 									layer.getTitle(), 
 									layer.getAbstract(), 
 									layer.getKeywords(),
