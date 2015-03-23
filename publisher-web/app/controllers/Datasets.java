@@ -14,8 +14,10 @@ import models.Domain.Constant;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
+import models.Domain.Function5;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
+import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListDatasets;
@@ -27,7 +29,6 @@ import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Category;
@@ -35,7 +36,6 @@ import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.Filter;
-import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
@@ -270,17 +270,18 @@ public class Datasets extends Controller {
 				.get (Category.class, dataset.getCategoryId ())
 				.get (SourceDataset.class, dataset.getSourceDatasetId ())
 				.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
-				.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
+				.query (new GetDatasetByName (dataset.getName ().trim (), false))
+				.executeFlat (new Function5<DataSource, Category, SourceDataset, List<Column>, Dataset, Promise<Result>> () {
 					@Override
-					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
+					public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns, final Dataset existingDataset) throws Throwable {
 						Logger.debug ("dataSource: " + dataSource);
 						Logger.debug ("category: " + category);
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
-						// Validate the filter:
-						if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-							datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+						validateDatasetForm (datasetForm, dataset, sourceColumns, existingDataset);
+						
+						if (datasetForm.hasErrors ()) {
 							return renderCreateForm (datasetForm);
 						}
 						
@@ -294,7 +295,7 @@ public class Datasets extends Controller {
 
 						final PutDataset putDataset = new PutDataset (CrudOperation.CREATE,
 								ID, 
-								dataset.getName (), 
+								dataset.getName ().trim (), 
 								sourceDataset.id (), 
 								columns,
 								dataset.getFilterConditions ()
@@ -368,6 +369,17 @@ public class Datasets extends Controller {
 //		return Promise.pure ((Result) ok ());
 	}
 	
+	private static void validateDatasetForm (final Form<DatasetForm> form, final DatasetForm dataset, final List<Column> sourceColumns, final Dataset existingDataset) {
+		// Validate the filter:
+		if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
+			form.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+		}
+		
+		if (existingDataset != null) {
+			form.reject (new ValidationError ("name", "web.application.page.datasets.form.errors.duplicateName"));
+		}
+	}
+	
 	public static Promise<Result> submitEdit (final String datasetId) {
 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -389,18 +401,24 @@ public class Datasets extends Controller {
 						.get (Category.class, dataset.getCategoryId ())
 						.get (SourceDataset.class, dataset.getSourceDatasetId ())
 						.query (new ListSourceDatasetColumns (dataset.getDataSourceId (), dataset.getSourceDatasetId ()))
-						.executeFlat (new Function4<DataSource, Category, SourceDataset, List<Column>, Promise<Result>> () {
+						.query (new GetDatasetByName (dataset.getName ().trim (), false))
+						.executeFlat (new Function5<DataSource, Category, SourceDataset, List<Column>, Dataset, Promise<Result>> () {
 							@Override
-							public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns) throws Throwable {
+							public Promise<Result> apply (final DataSource dataSource, final Category category, final SourceDataset sourceDataset, final List<Column> sourceColumns, final Dataset existingDataset) throws Throwable {
 								Logger.debug ("dataSource: " + dataSource);
 								Logger.debug ("category: " + category);
 								Logger.debug ("sourceDataset: " + sourceDataset);
 								
 								// TODO: Validate dataSource, category, sourceDataset!
 								
-								// Validate the columns used by the filter:
-								if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-									datasetForm.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+								validateDatasetForm (
+										datasetForm, 
+										dataset, 
+										sourceColumns, 
+										existingDataset != null && !existingDataset.id ().equals (ds.id ()) ? existingDataset : null
+									);
+								
+								if (datasetForm.hasErrors ()) {
 									return renderEditForm (datasetForm, ds);
 								}
 								
@@ -414,7 +432,7 @@ public class Datasets extends Controller {
 
 								final PutDataset putDataset = new PutDataset (CrudOperation.UPDATE,
 										datasetId, 
-										dataset.getName (), 
+										dataset.getName ().trim (), 
 										sourceDataset.id (), 
 										columns,
 										dataset.getFilterConditions ()
@@ -549,17 +567,17 @@ public class Datasets extends Controller {
 	
 	public static class DatasetForm {
 		
-		@Constraints.Required
-		@Constraints.MinLength (1)
+		@Constraints.Required (message = "web.application.page.datasets.form.errors.nameEmpty")
+		@Constraints.MinLength (value = 1, message = "web.application.page.datasets.form.errors.nameEmpty")
 		private String name;
 
-		@Constraints.Required
+		@Constraints.Required (message = "web.application.page.datasets.form.errors.dataSourceEmpty")
 		private String dataSourceId;
 		
-		@Constraints.Required
+		@Constraints.Required (message = "web.application.page.datasets.form.errors.categoryEmpty")
 		private String categoryId;
 		
-		@Constraints.Required
+		@Constraints.Required (message = "web.application.page.datasets.form.errors.sourceDatasetEmpty")
 		private String sourceDatasetId;
 
 		@Constraints.Required

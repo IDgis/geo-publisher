@@ -18,13 +18,11 @@ import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
-import nl.idgis.publisher.domain.query.PutLayerStyles;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
@@ -34,7 +32,6 @@ import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
-import play.data.validation.ValidationError;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.mvc.Controller;
@@ -87,12 +84,11 @@ public class Services extends Controller {
 					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 					Logger.debug ("CREATE Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
+					
 					// validation start
-					if(form.field("id").value().equals(ID)){
-						for (Service service : services.values()) {
-							if (form.field("name").value().equals(service.name())){
-								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.exists.error"));
-							}
+					for (Service service : services.values()) {
+						if (form.field("name").value().equals(service.name())){
+							form.reject("name", "web.application.page.services.form.field.name.validation.exists.error");
 						}
 					}
 					
@@ -102,7 +98,7 @@ public class Services extends Controller {
 					// validation end
 					
 					final ServiceForm serviceForm = form.get ();
-					final Service service = new Service(serviceForm.id, serviceForm.name, serviceForm.title, 
+					final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
 							serviceForm.metadata, serviceForm.published,
 							serviceForm.rootGroupId,serviceForm.constantsId);
@@ -138,7 +134,6 @@ public class Services extends Controller {
 													.executeFlat (new Function<GroupLayer, Promise<Result>> () {
 														@Override
 														public Promise<Result>  apply (final GroupLayer groupLayer) throws Throwable {
-															serviceForm.id = serviceId;
 															serviceForm.rootGroupId = serviceId;
 															final Form<ServiceForm> formServiceForm = Form
 																	.form (ServiceForm.class)
@@ -336,9 +331,7 @@ public class Services extends Controller {
 	
 	public static class ServiceForm {
 
-		@Constraints.Required
-		private String id;
-		@Constraints.Required (message = "test")
+		@Constraints.Required (message = "web.application.page.services.form.field.name.validation.required")
 		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.services.form.field.name.validation.error")
 		private String name;
@@ -365,12 +358,10 @@ public class Services extends Controller {
 		
 		public ServiceForm (){
 			super();
-			this.id = ID;		
 			this.keywords = new ArrayList<String>();
 		}
 		
 		public ServiceForm (final Service service){
-			this.id = service.id();
 			this.name = service.name();
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
@@ -380,17 +371,6 @@ public class Services extends Controller {
 			this.rootGroupId =service.genericLayerId();
 			this.constantsId =service.constantsId();
 		}
-
-
-		public String getId() {
-			return id;
-		}
-
-
-		public void setId(String id) {
-			this.id = id;
-		}
-
 
 		public String getName() {
 			return name;
@@ -503,7 +483,7 @@ public class Services extends Controller {
 
 		@Override
 		public String toString() {
-			return "ServiceForm [id=" + id + ", name=" + name + ", title="
+			return "ServiceForm [name=" + name + ", title="
 					+ title + ", alternateTitle=" + alternateTitle
 					+ ", abstractText=" + abstractText + ", keywords="
 					+ keywords + ", metadata=" + metadata + ", watermark="

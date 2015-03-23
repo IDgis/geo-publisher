@@ -767,3 +767,7 @@ require ([
 		syncTextarea ();
 	});
 });
+
+$(function () {
+	$('[data-toggle="popover"]').popover();
+});

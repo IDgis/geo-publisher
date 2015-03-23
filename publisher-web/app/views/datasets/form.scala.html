@@ -56,7 +56,8 @@
 								'id -> "input-name", 
 								'class -> "form-control", 
 								'placeholder -> Domain.message("web.application.page.datasets.form.tab.general.field.name.placeholder"), 
-								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.name.help")
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.name.help"),
+								'_required -> true
 							)
 							
 							@helper.select(
@@ -68,7 +69,8 @@
 								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.label"),
 								'id -> "input-datasource",
 								'class -> "form-control",
-								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.help")
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.datasourceid.help"),
+								'_required -> true
 							)
 							
 							@helper.select(
@@ -80,7 +82,8 @@
 								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.label"),
 								'id -> "input-category",
 								'class -> "form-control",
-								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.help")
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.categoryid.help"),
+								'_required -> true
 							)
 
 							@helper.select(
@@ -93,7 +96,8 @@
 								'_label -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.label"),
 								'id -> "input-source-dataset",
 								'class -> "form-control",
-								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.help")
+								'_help -> Domain.message("web.application.page.datasets.form.tab.general.field.sourcedatasetid.help"),
+								'_required -> true
 							)
 							
 							<input type="hidden" class="form-control" id="input-id" name="@datasetForm("id").name" value="@datasetForm("id").value">

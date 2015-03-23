@@ -59,6 +59,8 @@ nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_TABLE=Onbekende tabel
 # Generic play validation 'Invalid value' message (examples in $PLAY_HOME/framework/src/play/src/main/resources/messages)
 error.invalid=Verkeerde waarde (bijvoorbeeld tekst waar een getal wordt verwacht, of een getal dat groter is dan 2147483647)
 
+form.required=Verplicht veld
+
 # Generieke tekst 
 web.application.title=GIS publicatieomgeving
 web.application.name=GEO Publisher
@@ -253,6 +255,11 @@ web.application.page.datasets.form.header.edit=Dataset aanpassen
 web.application.page.datasets.form.errors.header=De dataset kan niet worden opgeslagen
 web.application.page.datasets.form.errors.text=Niet alle ingevulde waarden zijn geldig, de in onderstaande formulieren gemarkeerde fouten dienen eerst hersteld te worden.
 web.application.page.datasets.form.globalerrors.header=Validatiefouten
+web.application.page.datasets.form.errors.nameEmpty=Er dient een unieke naam bestaande uit tenminste één teken ingevuld te worden.
+web.application.page.datasets.form.errors.dataSourceEmpty=Er is geen gegevensbron geselecteerd.
+web.application.page.datasets.form.errors.categoryEmpty=Er is geen categorie gekozen.
+web.application.page.datasets.form.errors.sourceDatasetEmpty=Er is geen brondataset gekozen.
+web.application.page.datasets.form.errors.duplicateName=De gekozen naam is al in gebruik bij een andere dataset.
 
 web.application.page.datasets.form.tab.general.title=Algemene gegevens
 web.application.page.datasets.form.tab.columns.title=Kolommen
@@ -396,6 +403,7 @@ web.application.page.services.form.field.name.help=De naam voor de service
 web.application.page.services.form.field.name.validation.error=De volgende karakters zijn toegestaan: a-z, 0-9, - en _ (geen spaties).
 web.application.page.services.form.field.name.validation.length=Naam moet bestaan uit tenminste {0} karakter(s).
 web.application.page.services.form.field.name.validation.exists.error=Een service met dezelfde naam bestaat al
+web.application.page.services.form.field.name.validation.required=Het is verplicht om een naam bij een service in te vullen
 
 web.application.page.services.form.field.title.label=Titel
 web.application.page.services.form.field.title.placeholder=Title

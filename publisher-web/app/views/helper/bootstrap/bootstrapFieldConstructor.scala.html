@@ -1,12 +1,25 @@
 @(elements: helper.FieldElements)
 
 <div class="form-group@if(elements.hasErrors){ has-error}">
-    <label class="control-label col-sm-3" for="@elements.id">@elements.label</label>
-    <div class="controls col-sm-9">
-        @elements.input
-        <span class="help-block">@elements.errors.mkString(", ")</span>
-        @for(info <- elements.infos) {
-        	<span class="help-block">@info</span>
+    <label class="control-label col-sm-2" for="@elements.id">@elements.label</label>
+    <div class="controls col-lg-9">
+    	@if(elements.args.contains ('_required) || !elements.infos.isEmpty) {
+    		<div class="input-group">
+    			@elements.input
+    			@if(elements.args.contains ('_required)) {
+	    			<a href="#" tabindex="-1" class="input-group-addon cursor-help" role="button" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="@Domain.message("form.required")">
+	    				<span class="glyphicon glyphicon-asterisk text-warning"></span>
+	    			</a>
+	    		}
+	    		@if(!elements.infos.isEmpty) {
+					<a href="#" tabindex="-1" class="input-group-addon cursor-help" role="button" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="@elements.infos.mkString(",")">
+						<span class="glyphicon glyphicon-question-sign"></span>
+					</a>	    			
+	    		}
+    		</div>
+    	} else {
+        	@elements.input
         }
+        <span class="help-block">@elements.errors.mkString(", ")</span>
     </div>
 </div>

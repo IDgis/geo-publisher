@@ -18,6 +18,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.response.Page;
@@ -61,6 +63,7 @@ import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.utils.StreamUtils;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -102,6 +105,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				throw new RuntimeException(e);
 			}
 		});
+		doQueryOptional (GetDatasetByName.class, this::handleGetDatasetByName);
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
@@ -204,6 +208,119 @@ public class DatasetAdmin extends AbstractAdmin {
 			);
 	}
 	
+	private CompletableFuture<Optional<Dataset>> handleGetDatasetByName (final GetDatasetByName getDataset) {
+		if (getDataset.getName () == null || getDataset.getName ().isEmpty ()) {
+			return CompletableFuture.completedFuture (Optional.<Dataset>empty ());
+		}
+		
+		return db.transactional (tx -> {
+			final AsyncSQLQuery query = datasetBaseQuery (tx);
+			
+			if (getDataset.isCaseSensitive ()) {
+				query.where (dataset.name.eq (getDataset.getName ()));
+			} else {
+				query.where (dataset.name.equalsIgnoreCase (getDataset.getName ()));
+			}
+			
+			return query
+				.list (datasetPaths ())
+				.thenApply (tuples -> {
+					final List<Dataset> datasets = createDatasets (tuples); 
+
+					if (datasets.isEmpty ()) {
+						return Optional.empty ();
+					} else {
+						return Optional.of (datasets.get (0));
+					}
+				});
+		});
+	}
+	
+	private AsyncSQLQuery datasetBaseQuery (final AsyncHelper tx) {
+		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
+		
+		return tx.query().from(dataset)
+			.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+			.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+				.and(new SQLSubQuery().from(sourceDatasetVersionSub)
+					.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
+						.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
+					.notExists()))
+			.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+			.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
+			.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))						
+			.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
+		
+	}
+	
+	private Object[] datasetPaths () {
+		return new Object[] {
+			dataset.identification,
+			dataset.name,
+			sourceDataset.identification,
+			sourceDatasetVersion.name,
+			category.identification,
+			category.name,
+			dataset.filterConditions,
+			datasetStatus.imported,
+			datasetStatus.sourceDatasetColumnsChanged,
+			lastImportJob.finishTime,
+			lastImportJob.finishState,							
+			datasetActiveNotification.notificationId,
+			datasetActiveNotification.notificationType,
+			datasetActiveNotification.notificationResult,
+			datasetActiveNotification.jobId,
+			datasetActiveNotification.jobType,
+			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)
+		};
+	}
+	
+	private List<DatasetInfo> createDatasetInfos (final TypedList<Tuple> tuples) {
+		final List<DatasetInfo> datasetInfos = new ArrayList<> ();
+		String currentIdentification = null;
+		final List<StoredNotification> notifications = new ArrayList<> ();
+		Tuple lastTuple = null;
+		
+		for (final Tuple t: tuples) {				
+			// Emit a new dataset info:
+			final String datasetIdentification = t.get (dataset.identification);
+			if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
+				datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+				notifications.clear ();
+			}
+			
+			// Store the last seen tuple:
+			currentIdentification = datasetIdentification; 
+			lastTuple = t;
+			
+			// Add a notification:
+			final Integer notificationId = t.get (datasetActiveNotification.notificationId);
+			if (notificationId != null) {
+				notifications.add (createStoredNotification (t));
+			}
+		}
+		
+		if (currentIdentification != null) {
+			datasetInfos.add (createDatasetInfo (lastTuple, notifications));
+		}
+
+		return Collections.unmodifiableList (datasetInfos);
+	}
+	
+	private List<Dataset> createDatasets (final TypedList<Tuple> tuples) {
+		final List<Dataset> datasets = new ArrayList<> ();
+		
+		for (final DatasetInfo datasetInfo: createDatasetInfos (tuples)) {
+			try {
+				datasets.add (createDataset (datasetInfo, objectMapper));
+			} catch(Throwable t) {
+				log.error("couldn't create dataset info: {}", t);
+			}
+		}
+		
+		return datasets;
+	}
+	
 	private CompletableFuture<Page<Dataset>> handleListDatasets (final ListDatasets listDatasets) {
 		log.debug ("handleListDatasets: {}", listDatasets);
 		
@@ -212,22 +329,10 @@ public class DatasetAdmin extends AbstractAdmin {
 		long page = listDatasets.getPage();
 		
 		return db.transactional(tx -> {
-			QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
-			
 			return tx.query().from(dataset)
 				.count()
 				.thenCompose(datasetCount -> {
-					AsyncSQLQuery baseQuery = tx.query().from(dataset)
-						.join (sourceDataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-						.join (sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
-							.and(new SQLSubQuery().from(sourceDatasetVersionSub)
-								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
-									.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
-								.notExists()))
-						.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
-						.leftJoin (datasetStatus).on (dataset.id.eq (datasetStatus.id))
-						.leftJoin (lastImportJob).on (dataset.id.eq (lastImportJob.datasetId))						
-						.leftJoin (datasetActiveNotification).on (dataset.id.eq (datasetActiveNotification.datasetId));
+					AsyncSQLQuery baseQuery = datasetBaseQuery (tx);
 							
 					if(categoryId != null) {
 						baseQuery.where(category.identification.eq(categoryId));
@@ -256,63 +361,12 @@ public class DatasetAdmin extends AbstractAdmin {
 					return baseQuery
 						.orderBy (dataset.identification.asc ())
 						.orderBy (datasetActiveNotification.jobCreateTime.desc ())
-						.list (
-							dataset.identification,
-							dataset.name,
-							sourceDataset.identification,
-							sourceDatasetVersion.name,
-							category.identification,
-							category.name,
-							dataset.filterConditions,
-							datasetStatus.imported,
-							datasetStatus.sourceDatasetColumnsChanged,
-							lastImportJob.finishTime,
-							lastImportJob.finishState,							
-							datasetActiveNotification.notificationId,
-							datasetActiveNotification.notificationType,
-							datasetActiveNotification.notificationResult,
-							datasetActiveNotification.jobId,
-							datasetActiveNotification.jobType,
-							new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)).thenApply(tuples -> {
-								final List<DatasetInfo> datasetInfos = new ArrayList<> ();
-								String currentIdentification = null;
-								final List<StoredNotification> notifications = new ArrayList<> ();
-								Tuple lastTuple = null;
-								
-								for (final Tuple t: tuples) {				
-									// Emit a new dataset info:
-									final String datasetIdentification = t.get (dataset.identification);
-									if (currentIdentification != null && !datasetIdentification.equals (currentIdentification)) {
-										datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-										notifications.clear ();
-									}
-									
-									// Store the last seen tuple:
-									currentIdentification = datasetIdentification; 
-									lastTuple = t;
-									
-									// Add a notification:
-									final Integer notificationId = t.get (datasetActiveNotification.notificationId);
-									if (notificationId != null) {
-										notifications.add (createStoredNotification (t));
-									}
-								}
-								
-								if (currentIdentification != null) {
-									datasetInfos.add (createDatasetInfo (lastTuple, notifications));
-								}
-								
-								log.debug("dataset info received");
-								
+						.list (datasetPaths ())
+						.thenApply(tuples -> {
 								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
-								final ObjectMapper objectMapper = new ObjectMapper ();
 								
-								for(DatasetInfo datasetInfo : datasetInfos) {
-									try {
-										pageBuilder.add (createDataset (datasetInfo, objectMapper));
-									} catch(Throwable t) {
-										log.error("couldn't create dataset info: {}", t);
-									}
+								for (final Dataset dataset: createDatasets (tuples)) {
+									pageBuilder.add (dataset);
 								}
 								
 								log.debug("sending dataset page");
@@ -551,5 +605,4 @@ public class DatasetAdmin extends AbstractAdmin {
 				}
 			}));
 	}
-
 }
