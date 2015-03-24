@@ -1099,11 +1099,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				layerStructure.childLayerId,
 				layerStructure.layerOrder)
 			.values(0, 1, 0).addBatch()
-			.values(0, 2, 0).addBatch()
+			.values(0, 2, 1).addBatch()
 			.values(1, 2, 0).addBatch()
-			.values(2, 1, 0).addBatch()
-			.values(1, 3, 0).addBatch()
-			.values(2, 4, 0).addBatch()
+			.values(1, 3, 1).addBatch()
+			.values(2, 1, 0).addBatch()			
+			.values(2, 4, 1).addBatch()
 			.execute();
 		
 		insert(service)
@@ -1248,5 +1248,94 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		} catch(Exception e) {
 			log.debug("exception: {}", e);
 		}
+	}
+	
+	@Test
+	public void testDuplicateGroupLeafs() throws Exception {
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)
+			.set(leafLayer.datasetId, datasetId)
+			.execute();
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		int aId = insert(genericLayer)
+			.set(genericLayer.identification, "a")
+			.set(genericLayer.name, "a-name")			
+			.executeWithKey(genericLayer.id);
+		
+		int bId = insert(genericLayer)
+			.set(genericLayer.identification, "b")
+			.set(genericLayer.name, "b-name")			
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, aId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, bId)
+			.set(layerStructure.layerOrder, 1)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, aId)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, bId)
+			.set(layerStructure.childLayerId, aId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.genericLayerId, rootId)			
+			.execute();
+		
+		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		
+		List<LayerRef<? extends Layer>> rootLayerRefs = service.getLayers();
+		assertNotNull(rootLayerRefs);
+		
+		Iterator<LayerRef<? extends Layer>> rootLayerRefsItr = rootLayerRefs.iterator();
+		assertNotNull(rootLayerRefsItr);
+		
+		assertTrue(rootLayerRefsItr.hasNext());
+		LayerRef<? extends Layer> aLayerRef = rootLayerRefsItr.next();		
+		assertNotNull(aLayerRef);
+		assertTrue(aLayerRef.isGroupRef());
+		
+		GroupLayer aLayer = aLayerRef.asGroupRef().getLayer();
+		assertEquals("a", aLayer.getId());
+		
+		List<LayerRef<? extends Layer>> aLayerRefs = aLayer.getLayers();
+		assertNotNull(aLayerRefs);
+		
+		Iterator<LayerRef<? extends Layer>> aLayerRefsItr = aLayerRefs.iterator();
+		assertNotNull(aLayerRefsItr);
+		
+		assertTrue(aLayerRefsItr.hasNext());		
+		LayerRef<? extends Layer> layerRef = aLayerRefsItr.next();
+		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
+		
+		DatasetLayer layer = layerRef.asDatasetRef().getLayer();
+		assertNotNull(layer);
+		assertEquals("layer", layer.getId());
+		
+		assertFalse(aLayerRefsItr.hasNext());
 	}
 }

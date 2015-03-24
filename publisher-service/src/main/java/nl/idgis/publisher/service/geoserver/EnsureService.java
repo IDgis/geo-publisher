@@ -44,7 +44,7 @@ public class EnsureService extends UntypedActor {
 	
 	private boolean stylesReceived;
 	
-	private Set<String> layerIds;
+	private Set<String> layerNames;
 	
 	public static Props props() {
 		return Props.create(EnsureService.class);
@@ -56,7 +56,7 @@ public class EnsureService extends UntypedActor {
 		styles = new ArrayList<>();
 		stylesReceived = false;
 		
-		layerIds = new HashSet<>();
+		layerNames = new HashSet<>();
 	}
 
 	@Override
@@ -113,7 +113,7 @@ public class EnsureService extends UntypedActor {
 							
 							getContext().parent().tell(
 								new EnsureGroupLayer(
-									layer.getName(), 
+									getUniqueLayerName(layer.getName()), 
 									layer.getTitle(), 
 									layer.getAbstract(),
 									layer.getTiling().orElse(null)), getSelf());							
@@ -139,17 +139,9 @@ public class EnsureService extends UntypedActor {
 									.collect(Collectors.toList());
 							}
 							
-							int layerIdPostfixCount = 2;
-							String layerId = layer.getName();
-							while(layerIds.contains(layerId)) {
-								layerId = layer.getName() + "-" + layerIdPostfixCount++;
-							}
-							
-							layerIds.add(layerId);
-							
 							getContext().parent().tell(
 								new EnsureFeatureTypeLayer(
-									layerId, 
+									getUniqueLayerName(layer.getName()), 
 									layer.getTitle(), 
 									layer.getAbstract(), 
 									layer.getKeywords(),
@@ -244,5 +236,18 @@ public class EnsureService extends UntypedActor {
 		log.error("timeout");
 		
 		getContext().stop(getSelf());
+	}
+	
+	private String getUniqueLayerName(String layerName) {
+		int layerNamePostfixCount = 2;
+		
+		String uniqueLayerName = layerName;
+		while(layerNames.contains(uniqueLayerName)) {
+			uniqueLayerName = layerName + "-" + layerNamePostfixCount++;
+		}
+		
+		layerNames.add(uniqueLayerName);
+		
+		return uniqueLayerName;
 	}
 }

@@ -45,7 +45,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 			.from(leafLayer)
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
 			.join(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
-			.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id)))				
+			.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id)))
+			.distinct()
 			.list(
 				genericLayer.id,
 				tiledLayerMimeformat.mimeformat).thenApply(resp -> 
@@ -62,7 +63,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 			.from(leafLayer)
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
-			.join(style).on(style.id.eq(layerStyle.styleId)))				
+			.join(style).on(style.id.eq(layerStyle.styleId)))
+			.distinct()
 			.list(
 				genericLayer.id,
 				style.identification,
@@ -82,6 +84,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 			.from(leafLayer)
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))				
 			.join(leafLayerKeyword).on(leafLayerKeyword.leafLayerId.eq(leafLayer.id)))				
+			.distinct()
 			.list(
 				genericLayer.id,
 				leafLayerKeyword.keyword).thenApply(resp ->

@@ -7,10 +7,6 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,10 +21,7 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
-import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-import nl.idgis.publisher.domain.web.tree.StyleRef;
-import nl.idgis.publisher.domain.web.tree.StructureItem;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -81,12 +74,14 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 		return withServiceStructure.clone()
 			.from(serviceStructure)
 			.where(serviceStructure.serviceIdentification.eq(serviceId))
-			.orderBy(serviceStructure.layerOrder.asc())
+			// order by parentLayerId is required in order to be able eliminate duplicates
+			.orderBy(serviceStructure.parentLayerId.asc(), serviceStructure.layerOrder.asc())
 			.list(
 				serviceStructure.styleIdentification,
 				serviceStructure.styleName,
 				serviceStructure.childLayerIdentification, 
-				serviceStructure.parentLayerIdentification,				
+				serviceStructure.parentLayerIdentification,
+				serviceStructure.layerOrder,
 				serviceStructure.cycle);
 	}
 	
@@ -132,31 +127,22 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 	
 	@Override
 	CompletableFuture<Object> result() {
+		StructureProcessor structureProcessor = new StructureProcessor(
+				serviceStructure.styleIdentification,
+				serviceStructure.styleName,
+				serviceStructure.childLayerIdentification,
+				serviceStructure.parentLayerIdentification,
+				serviceStructure.layerOrder,
+				serviceStructure.cycle);
+		
 		return info().thenCompose(info ->
 			info.isPresent() ?
 				structure().thenCompose(structure ->						
 				groups().thenCompose(groups ->
 				keywords().thenCompose(keywords ->
 				datasets().thenApply(datasets -> {
-					List<StructureItem> structureMap = new ArrayList<>();
-					
-					Map<String, StyleRef> styleMap = new HashMap<>();
-					
-					for(Tuple structureTuple : structure) {
-						String styleId = structureTuple.get(serviceStructure.styleIdentification);
-						String styleName = structureTuple.get(serviceStructure.styleName);
-						String childId = structureTuple.get(serviceStructure.childLayerIdentification);						
-						String parentId = structureTuple.get(serviceStructure.parentLayerIdentification);
-							
-						if(structureTuple.get(serviceStructure.cycle)) {
-							throw new IllegalStateException("cycle detected, layer: " + childId);
-						}
-						
-						structureMap.add(new StructureItem(childId, parentId));
-						if(styleId != null) {
-							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
-						}
-					}
+					StructureProcessor.Result transformedStructure 
+						= structureProcessor.transform(structure.list());
 					
 					Tuple serviceInfoTuple = info.get();
 	
@@ -186,8 +172,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 							null), // a root group doesn't have (or need) tiling
 						datasets.list(),
 						groups.list(),
-						structureMap,
-						styleMap);
+						transformedStructure.getStructureItems(),
+						transformedStructure.getStyles());
 				}))))
 			: f.successful(new NotFound()));
 	}
