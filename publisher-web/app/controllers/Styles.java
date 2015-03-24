@@ -43,6 +43,7 @@ import play.libs.F.Promise;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
@@ -53,7 +54,6 @@ import akka.actor.ActorSelection;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import controllers.Styles.StyleForm;
-
 import views.html.styles.form;
 import views.html.styles.list;
 import views.html.styles.stylePagerHeader;
@@ -78,6 +78,7 @@ public class Styles extends Controller {
          });
 	}
 	
+	@BodyParser.Of (value = BodyParser.MultipartFormData.class, maxLength = 1024 * 1024)
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -97,11 +98,17 @@ public class Styles extends Controller {
 							}
 						}
 					}
-					String xmlError = isValidXml(form.field("definition").value());
-					if (xmlError != null){ 
-						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-						form.reject ("definition", xmlError);
+					
+					if (form.field ("definition").value () == null) {
+						form.reject ("definition", "web.application.page.styles.form.field.definition.validation.tooLarge");
+					} else {
+						String xmlError = isValidXml(form.field("definition").value());
+						if (xmlError != null){ 
+							form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
+							form.reject ("definition", xmlError);
+						}
 					}
+					
 					if (form.hasErrors ()) {
 						return renderCreateForm (form);
 					}
