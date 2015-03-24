@@ -7,10 +7,6 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.Tuple;
@@ -30,10 +26,7 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
-import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-import nl.idgis.publisher.domain.web.tree.StyleRef;
-import nl.idgis.publisher.domain.web.tree.StructureItem;
 
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -196,12 +189,14 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		return withGroupStructure.clone()
 			.from(groupStructure)
 			.where(groupStructure.groupLayerIdentification.eq(groupLayerId))
-			.orderBy(groupStructure.layerOrder.asc())
+			// order by parentLayerId is required in order to be able eliminate duplicates
+			.orderBy(groupStructure.parentLayerId.asc(), groupStructure.layerOrder.asc())
 			.list(
 				groupStructure.styleIdentification,
 				groupStructure.styleName,
 				groupStructure.childLayerIdentification, 
-				groupStructure.parentLayerIdentification,				
+				groupStructure.parentLayerIdentification,
+				groupStructure.layerOrder,
 				groupStructure.cycle);
 	}
 	
@@ -215,38 +210,27 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 
 	@Override
 	CompletableFuture<Object> result() {
+		StructureProcessor structureProcessor = new StructureProcessor(
+			groupStructure.styleIdentification,
+			groupStructure.styleName,
+			groupStructure.childLayerIdentification,
+			groupStructure.parentLayerIdentification,
+			groupStructure.layerOrder,
+			groupStructure.cycle);
+		
 		return groups().thenCompose(groups ->
 			groups.list().isEmpty() ? f.successful(new NotFound()) : 
 				structure().thenCompose(structure ->															
 				datasets().thenApply(datasets -> {
-					List<StructureItem> structureMap = new ArrayList<>();
-					
-					Map<String, StyleRef> styleMap = new HashMap<>();
-					
-					for(Tuple structureTuple : structure) {
-						String styleId = structureTuple.get(groupStructure.styleIdentification);
-						String styleName = structureTuple.get(groupStructure.styleName);
-						String childId = structureTuple.get(groupStructure.childLayerIdentification);
-						String parentId = structureTuple.get(groupStructure.parentLayerIdentification);
-						
-						if(structureTuple.get(groupStructure.cycle)) {
-							throw new IllegalStateException("cycle detected, layer: " + childId);
-						}
-						
-						structureMap.add(new StructureItem(childId, parentId));
-						if(styleId != null) {
-							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
-						}
-					}
-					
-					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);
+					StructureProcessor.Result transformedStructure 
+						= structureProcessor.transform(structure.list()); 
 	
 					return DefaultGroupLayer.newInstance(
 						groupLayerId,
 						datasets.list(),
 						groups.list(),
-						structureMap,
-						styleMap);
+						transformedStructure.getStructureItems(),
+						transformedStructure.getStyles());
 				})));
 	}
 
