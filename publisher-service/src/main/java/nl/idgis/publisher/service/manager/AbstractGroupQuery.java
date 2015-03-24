@@ -66,6 +66,7 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 	private CompletableFuture<Map<Integer, List<String>>> tilingGroupMimeFormats() {
 		return groups()
 			.join(tiledLayerMimeformat).on(tiledLayerMimeformat.tiledLayerId.eq(tiledLayer.id))
+			.distinct()
 			.list(
 				genericLayer.id,
 				tiledLayerMimeformat.mimeformat).thenApply(resp -> 
