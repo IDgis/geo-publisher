@@ -1099,11 +1099,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				layerStructure.childLayerId,
 				layerStructure.layerOrder)
 			.values(0, 1, 0).addBatch()
-			.values(0, 2, 0).addBatch()
+			.values(0, 2, 1).addBatch()
 			.values(1, 2, 0).addBatch()
-			.values(2, 1, 0).addBatch()
-			.values(1, 3, 0).addBatch()
-			.values(2, 4, 0).addBatch()
+			.values(1, 3, 1).addBatch()
+			.values(2, 1, 0).addBatch()			
+			.values(2, 4, 1).addBatch()
 			.execute();
 		
 		insert(service)
