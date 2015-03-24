@@ -10,10 +10,18 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 
 public class TestStyle {
-
+	
+	public static Document getRegiosSld() throws Exception {
+		return getSld("regios.sld");
+	}
+	
 	public static Document getGreenSld() throws Exception {
+		return getSld("green.sld");
+	}
+
+	private static Document getSld(String name) throws Exception {
 		
-		InputStream green = TestStyle.class.getResourceAsStream("green.sld");
+		InputStream green = TestStyle.class.getResourceAsStream(name);
 		assertNotNull(green);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();

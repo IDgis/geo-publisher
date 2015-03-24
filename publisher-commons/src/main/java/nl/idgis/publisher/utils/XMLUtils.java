@@ -2,13 +2,17 @@ package nl.idgis.publisher.utils;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -23,6 +27,9 @@ import javax.xml.xpath.XPathFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 public class XMLUtils {
 	
@@ -83,7 +90,7 @@ public class XMLUtils {
 					
 				};
 			} catch(XPathExpressionException e) {
-				throw new IllegalArgumentException("invalid xpath expression: " + expression);
+				throw new IllegalArgumentException("invalid xpath expression: " + expression, e);
 			}
 		}
 		
@@ -136,11 +143,44 @@ public class XMLUtils {
 		public String stringOrNull(String expression) {
 			return string(expression).orElse(null);
 		}
+		
+		public void setTextContent(String textContent) {
+			item.setTextContent(textContent);
+		}
 	
 	}
 	
 	public static XPathHelper xpath(Document document) {
-		return new XPathHelper(XPathFactory.newInstance().newXPath(), document);
+		return xpath(document, Optional.empty());
+	}
+	
+	public static XPathHelper xpath(Document document, Optional<Map<String, String>> optionalNamespaces) {
+		XPath xpath = XPathFactory.newInstance().newXPath();
+		
+		if(optionalNamespaces.isPresent()) {
+			xpath.setNamespaceContext(new NamespaceContext() {
+				
+				BiMap<String, String> namespaces = HashBiMap.create(optionalNamespaces.get());
+
+				@Override
+				public String getNamespaceURI(String prefix) {					
+					return namespaces.get(prefix);
+				}
+
+				@Override
+				public String getPrefix(String namespaceURI) {
+					return namespaces.inverse().get(namespaceURI);
+				}
+
+				@Override
+				public Iterator<String> getPrefixes(String namespaceURI) {
+					return Collections.singletonList(namespaceURI).iterator();
+				}
+				
+			});
+		}
+		
+		return new XPathHelper(xpath, document);
 	}
 	
 	public static boolean equalsIgnoreWhitespace(Document a, Document b) throws XMLStreamException {
