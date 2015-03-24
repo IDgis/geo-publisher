@@ -5,11 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +31,7 @@ public class DefaultServiceTest {
 			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
 			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 			
-		List<StructureItem> structure = new ArrayList<>();
+		LinkedHashSet<StructureItem> structure = new LinkedHashSet<>();
 		structure.add(new StructureItem("leaf0", "group0"));
 		structure.add(new StructureItem("leaf1", "group0"));
 		structure.add(new StructureItem("leaf2", "group0"));
@@ -91,7 +91,7 @@ public class DefaultServiceTest {
 				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
 				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
 				
-		List<StructureItem> structure = new ArrayList<>();
+		LinkedHashSet<StructureItem> structure = new LinkedHashSet<>();
 		structure.add(new StructureItem("leaf0", "group0"));
 		structure.add(new StructureItem("leaf1", "group0"));
 		structure.add(new StructureItem("group1", "group0"));

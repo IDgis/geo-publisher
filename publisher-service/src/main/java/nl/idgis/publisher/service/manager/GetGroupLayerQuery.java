@@ -7,9 +7,8 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -219,7 +218,8 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 			groups.list().isEmpty() ? f.successful(new NotFound()) : 
 				structure().thenCompose(structure ->															
 				datasets().thenApply(datasets -> {
-					List<StructureItem> structureMap = new ArrayList<>();
+					// LinkedHashSet is used to preserve layer order and eliminate duplicates
+					LinkedHashSet<StructureItem> structureItems = new LinkedHashSet<>();
 					
 					Map<String, StyleRef> styleMap = new HashMap<>();
 					
@@ -233,19 +233,19 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 							throw new IllegalStateException("cycle detected, layer: " + childId);
 						}
 						
-						structureMap.add(new StructureItem(childId, parentId));
+						structureItems.add(new StructureItem(childId, parentId));
 						if(styleId != null) {
 							styleMap.put(childId, new DefaultStyleRef(styleId, styleName));
 						}
 					}
 					
-					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureMap, styleMap);
+					log.debug("datasets: {}, groups: {}, structure: {}, styles: {}", datasets, groups, structureItems, styleMap);
 	
 					return DefaultGroupLayer.newInstance(
 						groupLayerId,
 						datasets.list(),
 						groups.list(),
-						structureMap,
+						structureItems,
 						styleMap);
 				})));
 	}

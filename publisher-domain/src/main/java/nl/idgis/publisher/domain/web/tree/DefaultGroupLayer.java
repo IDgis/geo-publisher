@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,12 +18,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private final Map<String, PartialGroupLayer> groups;
 	
-	private final List<StructureItem> structure;
+	private final LinkedHashSet<StructureItem> structure;
 	
 	private final Map<String, StyleRef> styles;
 	
 	public static DefaultGroupLayer newInstance(String groupId, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		List<StructureItem> structure, Map<String, StyleRef> styles) {
+		LinkedHashSet<StructureItem> structure, Map<String, StyleRef> styles) {
 		
 		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
 		if(groupsMap.containsKey(groupId)) {
@@ -33,12 +34,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	}
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-		List<StructureItem> structure, Map<String, StyleRef> styles) {
+		LinkedHashSet<StructureItem> structure, Map<String, StyleRef> styles) {
 		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
 	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
-		List<StructureItem> structure, Map<String, StyleRef> styles) {		
+		LinkedHashSet<StructureItem> structure, Map<String, StyleRef> styles) {		
 		
 		this.partialGroupLayer = partialGroupLayer;
 		this.datasets = datasets;
