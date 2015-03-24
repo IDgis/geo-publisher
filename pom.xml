@@ -4,7 +4,7 @@
 
 	<groupId>nl.idgis.publisher</groupId>
 	<artifactId>publisher</artifactId>
-	<version>0.5.1-SNAPSHOT</version>
+	<version>0.6.1-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 
