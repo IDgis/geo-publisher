@@ -45,6 +45,7 @@ import com.ning.http.client.Response;
 
 import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.service.StyleUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
@@ -897,11 +898,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						.thenApply(this::optionalPresent))));
 	}
 	
+	private byte[] serializeStyle(Document sld) throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException {
+		return serialize(StyleUtils.toLowerCasePropertyName(sld));
+	}
+	
 	@Override
 	public CompletableFuture<Void> postStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return post(getStylesPath() + "?name=" + style.getName(), serialize(sld), getStyleContentType(sld));
+			return post(getStylesPath() + "?name=" + style.getName(), serializeStyle(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
@@ -911,7 +916,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> putStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return put(getStylePath(style.getName()), serialize(sld), getStyleContentType(sld));
+			return put(getStylePath(style.getName()), serializeStyle(sld), getStyleContentType(sld));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
