@@ -124,6 +124,8 @@ web.application.button.tilingproperties=Tiling eigenschappen
 web.application.button.add=Toevoegen
 web.application.button.edit=Bewerken
 web.application.button.remove=Verwijderen
+web.application.button.getcap=GetCapabilities
+
 
 # Filtering:
 web.application.filters.published.title=Publicatiestatus

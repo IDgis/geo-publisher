@@ -93,17 +93,29 @@
 					data-warning-delete-link="@routes.Services.delete(service.id)"
 					data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
 					<div class="row">
-						<div class="col-md-5">
+						<div class="col-md-6">
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 							</h4>
 						</div>
-						<div class="col-md-5">
+						<div class="col-md-2">
 							@if(service.published){
 								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
 							}else{
 								<span>@Domain.message("web.application.page.list.notpublished")</span>
 							}
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>WMS</span>
+								</a> 
+								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>WFS</span>
+								</a> 
+							</div>
 						</div>
 						<div class="col-md-2">
 							<div class="btn-group pull-right">
