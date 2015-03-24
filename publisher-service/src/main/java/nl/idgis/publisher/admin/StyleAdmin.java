@@ -18,6 +18,8 @@ import nl.idgis.publisher.domain.web.Style;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import com.mysema.query.support.Expressions;
+
 public class StyleAdmin extends AbstractAdmin {
 	
 	public StyleAdmin(ActorRef database) {
@@ -64,7 +66,7 @@ public class StyleAdmin extends AbstractAdmin {
 				addPageInfo (builder, listStyles.getPage (), count);
 				
 				return listQuery
-					.list (new QStyle (style.identification, style.name, style.definition, style.styleType, layerStyle.styleId.isNotNull()))
+					.list (new QStyle (style.identification, style.name, Expressions.constant(""), style.styleType, layerStyle.styleId.isNotNull()))
 					.thenApply ((styles) -> {
 						builder.addAll (styles.list ());
 						return builder.build ();
