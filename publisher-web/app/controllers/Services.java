@@ -76,22 +76,36 @@ public class Services extends Controller {
 	public static Promise<Result> submitCreate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
+			.list (LayerGroup.class)
+			.list (Layer.class)
 			.list (Service.class)
-			.executeFlat (new Function<Page<Service>, Promise<Result>> () {
+			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
 	
 				@Override
-				public Promise<Result> apply (final Page<Service> services) throws Throwable {
+				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
 					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 					Logger.debug ("CREATE Service: " + form.field("name").value());
 					Logger.debug ("Form: "+ form);
 					
 					// validation start
-					for (Service service : services.values()) {
-						if (form.field("name").value().equals(service.name())){
-							form.reject("name", "web.application.page.services.form.field.name.validation.exists.error");
+					// check if the choosen service name already exists
+					if (ID.equals(form.field("rootGroupId").value())){
+						for (LayerGroup layerGroup : groups.values()) {
+							if (form.field("name").value().trim ().equals(layerGroup.name())){
+								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.groupexists.error"));
+							}
+						}
+						for (Layer layer : layers.values()) {
+							if (form.field("name").value().trim ().equals(layer.name())){
+								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.layerexists.error"));
+							}
+						}
+						for (Service service: services.values ()) {
+							if (form.field ("name").value ().trim ().equals (service.name ())) {
+								form.reject ("name", Domain.message("web.application.page.services.form.field.name.validation.serviceexists.error"));
+							}
 						}
 					}
-					
 					if (form.hasErrors ()) {
 						return renderCreateForm (form);
 					}
@@ -358,6 +372,7 @@ public class Services extends Controller {
 		
 		public ServiceForm (){
 			super();
+			this.rootGroupId = ID;
 			this.keywords = new ArrayList<String>();
 		}
 		

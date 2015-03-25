@@ -342,7 +342,7 @@ public class Layers extends GroupsLayersCommon {
 		private String id;
 		
 		@Constraints.Required (message = "web.application.page.layers.form.field.name.validation.required")
-		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
+		@Constraints.MinLength (value = 3, message = "web.application.page.layers.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z][a-zA-Z0-9\\-\\_]+$", message = "web.application.page.layers.form.field.name.validation.error")
 		private String name;
 
