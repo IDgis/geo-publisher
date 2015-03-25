@@ -33,7 +33,7 @@ require ([
 	
 	var inputs = query ('input.js-style-definition'),
 		styleForm = dom.byId ('style-form'),
-		editorElement = put (inputs[0].parentNode, 'div[style="position: relative; width: 100%; height: 400px;"] div.form-control[style="width: 100%; height: 400px;"]'),
+		editorElement = put (inputs[0].parentNode, 'div.gp-editor-container div.form-control'),
 		initialValue = '';
 	
 	inputs.forEach (function (input) {
