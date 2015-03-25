@@ -171,4 +171,22 @@ require ([
 			}
 		});
 	});
+	
+	// Validate button:
+	var validateButton = dom.byId ('validate-style-button');
+	
+	on (validateButton, 'click', function (e) {
+		e.preventDefault ();
+		e.stopPropagation ();
+		
+		var value = editor.getValue ();
+		
+		xhr.post (jsRoutes.controllers.Styles.validateSld ().url, {
+			data: value,
+			handleAs: 'json',
+			headers: {
+				'Content-Type': 'text/xml'
+			}
+		});
+	});
 });

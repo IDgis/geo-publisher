@@ -313,6 +313,32 @@ public class Styles extends Controller {
 		return ok (result);
 	}
 	
+	@BodyParser.Of (value = BodyParser.Raw.class, maxLength = 2 * 1024 * 1024)
+	public static Result validateSld () {
+		final String content = request ().body ().asRaw () != null
+				? handleFileUpload (request ().body ().asRaw ().asFile ())
+				: null;
+				
+		final ObjectNode result = Json.newObject ();
+		if (content == null) {
+			result.put ("valid", false);
+		} else {
+			final XmlError xmlError = isValidXml (content);
+			
+			if (xmlError != null) {
+				result.put ("valid", false);
+				result.put ("message", xmlError.message);
+				if (xmlError.line != null) {
+					result.put ("line", (int) xmlError.line);
+				}
+			} else {
+				result.put ("valid", true);
+			}
+		}
+		
+		return ok (result);
+	}
+	
 	private static String handleFileUpload (final File file) {
 		if (file == null) {
 			return null;
