@@ -12,6 +12,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
@@ -71,7 +72,7 @@ public class Styles extends Controller {
 		 return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
-                 return ok (form.render (styleForm, true));
+                 return ok (form.render (styleForm, true, Optional.empty (), Optional.empty ()));
              }
          });
 	}
@@ -108,20 +109,27 @@ public class Styles extends Controller {
 					}
 					
 					if (form.hasErrors ()) {
-						return renderCreateForm (form);
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, form.field ("id").equals (ID), Optional.empty (), Optional.empty ())));
 					}
 
 					final StyleForm styleForm = form.get ();
 					final String sldContent = join (styleForm.getDefinition ());
+					final Optional<Integer> errorLine;
+					final Optional<String> errorMessage;
 					
-					String xmlError = isValidXml (sldContent);
+					final XmlError xmlError = isValidXml (sldContent);
 					if (xmlError != null){ 
 						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-						form.reject ("definition", xmlError);
+						form.reject ("definition", xmlError.message);
+						errorLine = xmlError.line == null ? Optional.empty () : Optional.of (xmlError.line);
+						errorMessage = Optional.of (xmlError.message);
+					} else {
+						errorLine = Optional.empty ();
+						errorMessage = Optional.empty ();
 					}
 					
 					if (form.hasErrors ()) {
-						return renderCreateForm (form);
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, form.field ("id").equals (ID), errorLine, errorMessage)));
 					}
 					// validation end
 					
@@ -147,7 +155,7 @@ public class Styles extends Controller {
 	}
 	
 
-	private static String isValidXml(String xmlContent) {
+	private static XmlError isValidXml(String xmlContent) {
 		try {
 			final XMLStreamReader reader = XMLInputFactory.newInstance ().createXMLStreamReader (new StringReader (xmlContent));
 			final SchemaFactory schemaFactory = SchemaFactory.newInstance (XMLConstants.W3C_XML_SCHEMA_NS_URI);
@@ -156,16 +164,18 @@ public class Styles extends Controller {
 			
 			validator.validate (new StAXSource (reader));
 		} catch (IOException e) {
-			return e.getLocalizedMessage ();
+			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (SAXParseException e) {
-			return e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (); 
+			return new XmlError (e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (), e.getLineNumber ());
 		} catch (SAXException e) {
-			return e.getLocalizedMessage ();
+			e.printStackTrace ();
+			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (XMLStreamException e) {
 			if (e.getLocation () != null) {
-				return e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage ();
+				return new XmlError (e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage (), e.getLocation ().getLineNumber ());
 			} else {
-				return e.getLocalizedMessage ();
+				e.printStackTrace ();
+				return new XmlError (e.getLocalizedMessage (), null);
 			}
 		}
 		
@@ -249,7 +259,7 @@ public class Styles extends Controller {
 					
 					Logger.debug ("Edit styleForm: " + styleForm);						
 
-					return ok (form.render (styleForm, false));
+					return ok (form.render (styleForm, false, Optional.empty (), Optional.empty ()));
 				}
 			});
 	}
@@ -395,5 +405,14 @@ public class Styles extends Controller {
 		
 	}
 
+	public static class XmlError {
+		public final String message;
+		public final Integer line;
+
+		public XmlError (final String message, final Integer line) {
+			this.message = message;
+			this.line = line;
+		}
+	}
 	
 }

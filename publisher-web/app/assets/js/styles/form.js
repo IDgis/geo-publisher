@@ -34,7 +34,9 @@ require ([
 	var inputs = query ('input.js-style-definition'),
 		styleForm = dom.byId ('style-form'),
 		editorElement = put (inputs[0].parentNode, 'div.gp-editor-container div.form-control'),
-		initialValue = '';
+		initialValue = '',
+		errorLine = domAttr.get (dom.byId ('style-editor-container'), 'data-error-line'),
+		errorMessage = domAttr.get (dom.byId ('style-editor-container'), 'data-error-message');
 	
 	inputs.forEach (function (input) {
 		initialValue += input.value;
@@ -44,7 +46,16 @@ require ([
 	
 	editor.getSession ().setMode ('ace/mode/xml');
 	editor.setValue (initialValue, -1);
-	editor.getSession ().addGutterDecoration (1, 'text-danger');
+	if (errorLine || errorMessage) {
+		editor.getSession ().setAnnotations ([
+			{
+				row: errorLine ? errorLine - 1 : 0,
+				column: 0,
+				text: errorMessage || '',
+				type: 'error'
+			}
+		]);
+	}
 	
 	on (styleForm, 'submit', function (e) {
 		var parent = inputs[0].parentNode,
