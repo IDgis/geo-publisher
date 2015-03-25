@@ -116,7 +116,7 @@ web.application.page.list.nottiled=niet getiled
 
 # Widgets
 web.application.button.ok=Ok
-web.application.button.validate=Valideren
+web.application.button.validate=Stijl valideren tegen het schema
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
 web.application.button.preview=Preview

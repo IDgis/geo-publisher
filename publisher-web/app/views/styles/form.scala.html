@@ -54,6 +54,9 @@
 						@helper.repeat(styleForm("definition"), min = 1) { styleDefinition =>
 							<input type="hidden" class="form-control js-style-definition" name="definition[]" value="@styleDefinition.value">
 						}
+						<p>
+							<button id="validate-style-button" class="btn btn-default" type="button"><span class="glyphicon glyphicon-cog"></span> @Domain.message("web.application.button.validate")</button>
+						</p>
 					</div>
 					@helper.tooltips("web.application.page.styles.form.field.definition.help")
 				</div>
@@ -90,10 +93,9 @@
 
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.validate")</button>
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<button class="btn btn-primary" type="submit">@Domain.message("web.application.button.save")</button>
 						<a href="@routes.Styles.list()" 
-							class="btn btn-success" title="Annuleren">
+							class="btn btn-default" title="Annuleren">
 							@Domain.message("web.application.button.cancel")
 						</a>
 					</div>
