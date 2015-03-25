@@ -24,7 +24,7 @@
 
 	<div class="row">
 		<div class="col-lg-12">
-			<form class="form-horizontal" method="post" action="@routes.Styles.submitCreateUpdate()" enctype="multipart/form-data">
+			<form class="form-horizontal" method="post" action="@routes.Styles.submitCreateUpdate()" enctype="multipart/form-data" id="style-form">
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@styleForm("id").value" >
 
 				@if(create) {				
