@@ -9,7 +9,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
@@ -47,37 +50,48 @@ import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.styles.form;
+import views.html.styles.list;
+import views.html.styles.stylePagerBody;
+import views.html.styles.stylePagerFooter;
+import views.html.styles.stylePagerHeader;
+import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import controllers.Styles.StyleForm;
-
-import views.html.styles.form;
-import views.html.styles.list;
-import views.html.styles.stylePagerHeader;
-import views.html.styles.stylePagerBody;
-import views.html.styles.stylePagerFooter;
-import views.html.styles.uploadFileForm;
-
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_STYLE#";
 	
-	 
+	private final static Promise<Schema> schemaPromise = Promise.promise (() -> {
+		final SchemaFactory schemaFactory = SchemaFactory.newInstance (XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		return schemaFactory.newSchema (new StreamSource (Play.application().resourceAsStream ("StyledLayerDescriptor.xsd")));
+	});
+	
 	private static Promise<Result> renderCreateForm (final Form<StyleForm> styleForm) {
 		// No need to go to the database, because the form contains all information needed
 		 return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
-                 return ok (form.render (styleForm, true));
+                 return ok (form.render (styleForm, true, Optional.empty (), Optional.empty ()));
              }
          });
 	}
 	
+	private static String join (final List<String> strings) {
+		final StringBuilder builder = new StringBuilder ();
+		
+		for (final String s: strings) {
+			builder.append (s);
+		}
+		
+		return builder.toString ();
+	}
+	
+	@BodyParser.Of (value = BodyParser.FormUrlEncoded.class, maxLength = 2 * 1024 * 1024)
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -97,18 +111,33 @@ public class Styles extends Controller {
 							}
 						}
 					}
-					String xmlError = isValidXml(form.field("definition").value());
+					
+					if (form.hasErrors ()) {
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, form.field ("id").equals (ID), Optional.empty (), Optional.empty ())));
+					}
+
+					final StyleForm styleForm = form.get ();
+					final String sldContent = join (styleForm.getDefinition ());
+					final Optional<Integer> errorLine;
+					final Optional<String> errorMessage;
+					
+					final XmlError xmlError = isValidXml (sldContent);
 					if (xmlError != null){ 
 						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-						form.reject ("definition", xmlError);
+						form.reject ("definition", xmlError.message);
+						errorLine = xmlError.line == null ? Optional.empty () : Optional.of (xmlError.line);
+						errorMessage = Optional.of (xmlError.message);
+					} else {
+						errorLine = Optional.empty ();
+						errorMessage = Optional.empty ();
 					}
+					
 					if (form.hasErrors ()) {
-						return renderCreateForm (form);
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, form.field ("id").equals (ID), errorLine, errorMessage)));
 					}
 					// validation end
 					
-					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name.trim (), styleForm.definition, styleForm.styleType, styleForm.inUse);
+					final Style style = new Style(styleForm.id, styleForm.name.trim (), sldContent, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
@@ -130,25 +159,23 @@ public class Styles extends Controller {
 	}
 	
 
-	private static String isValidXml(String xmlContent) {
+	private static XmlError isValidXml(String xmlContent) {
 		try {
 			final XMLStreamReader reader = XMLInputFactory.newInstance ().createXMLStreamReader (new StringReader (xmlContent));
-			final SchemaFactory schemaFactory = SchemaFactory.newInstance (XMLConstants.W3C_XML_SCHEMA_NS_URI);
-			final Schema schema = schemaFactory.newSchema (new StreamSource (Play.application().resourceAsStream ("StyledLayerDescriptor.xsd")));
-			final Validator validator = schema.newValidator ();
+			final Validator validator = schemaPromise.get (30000).newValidator ();
 			
 			validator.validate (new StAXSource (reader));
 		} catch (IOException e) {
-			return e.getLocalizedMessage ();
+			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (SAXParseException e) {
-			return e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (); 
+			return new XmlError (e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (), e.getLineNumber ());
 		} catch (SAXException e) {
-			return e.getLocalizedMessage ();
+			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (XMLStreamException e) {
 			if (e.getLocation () != null) {
-				return e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage ();
+				return new XmlError (e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage (), e.getLocation ().getLineNumber ());
 			} else {
-				return e.getLocalizedMessage ();
+				return new XmlError (e.getLocalizedMessage (), null);
 			}
 		}
 		
@@ -232,7 +259,7 @@ public class Styles extends Controller {
 					
 					Logger.debug ("Edit styleForm: " + styleForm);						
 
-					return ok (form.render (styleForm, false));
+					return ok (form.render (styleForm, false, Optional.empty (), Optional.empty ()));
 				}
 			});
 	}
@@ -255,6 +282,7 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (null));
 	}
 	
+	@BodyParser.Of (value = BodyParser.MultipartFormData.class, maxLength = 2 * 1024 * 1024)
 	public static Result handleFileUploadForm () {
 		final MultipartFormData body = request ().body ().asMultipartFormData ();
 		final FilePart uploadFile = body.getFile ("file");
@@ -268,7 +296,7 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (content));
 	}
 		
-	@BodyParser.Of (value = BodyParser.Raw.class)
+	@BodyParser.Of (value = BodyParser.Raw.class, maxLength = 2 * 1024 * 1024)
 	public static Result handleFileUploadRaw () {
 		final String content = request ().body ().asRaw () != null 
 				? handleFileUpload (request ().body ().asRaw ().asFile ()) 
@@ -323,7 +351,7 @@ public class Styles extends Controller {
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.styles.form.field.name.validation.error")
 		private String name;
 		@Constraints.Required (message = "web.application.page.styles.form.field.definition.validation.required")
-		private String definition;
+		private List<String> definition = new ArrayList<> ();
 		private String styleType;
 		private Boolean inUse;
 		
@@ -336,7 +364,8 @@ public class Styles extends Controller {
 		public StyleForm (final Style style){
 			this.id = style.id();
 			this.name = style.name();
-			this.definition = style.definition();
+			this.definition = new ArrayList<> ();
+			this.definition.add (style.definition ());
 			this.styleType = style.styleType().name();
 			this.inUse = style.inUse();
 		}
@@ -355,11 +384,11 @@ public class Styles extends Controller {
 		public void setName(String name) {
 			this.name = name;
 		}
-		public String getDefinition() {
+		public List<String> getDefinition() {
 			return definition;
 		}
-		public void setDefinition(String definition) {
-			this.definition = definition;
+		public void setDefinition(List<String> definition) {
+			this.definition = definition == null ? new ArrayList<> () : new ArrayList<> (definition);
 		}
 		public String getStyleType() {
 			return styleType;
@@ -376,5 +405,14 @@ public class Styles extends Controller {
 		
 	}
 
+	public static class XmlError {
+		public final String message;
+		public final Integer line;
+
+		public XmlError (final String message, final Integer line) {
+			this.message = message;
+			this.line = line;
+		}
+	}
 	
 }

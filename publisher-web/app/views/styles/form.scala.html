@@ -1,4 +1,4 @@
-@(styleForm: Form[controllers.Styles.StyleForm], create:Boolean)
+@(styleForm: Form[controllers.Styles.StyleForm], create:Boolean, errorLine: java.util.Optional[Integer] = java.util.Optional.empty(), errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 
 @import nl.idgis.publisher.domain.web._ 
 
@@ -24,7 +24,7 @@
 
 	<div class="row">
 		<div class="col-lg-12">
-			<form class="form-horizontal" method="post" action="@routes.Styles.submitCreateUpdate()" >
+			<form class="form-horizontal" method="post" action="@routes.Styles.submitCreateUpdate()" id="style-form">
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@styleForm("id").value" >
 
 				@if(create) {				
@@ -49,9 +49,11 @@
 				}
 				<div class="form-group@if(styleForm("definition").hasErrors){ has-error}">
 					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
-					<div class="col-sm-8">
+					<div class="col-sm-8" id="style-editor-container"@if(errorLine.isPresent){ data-error-line="@errorLine.get()"}@if(errorMessage.isPresent){ data-error-message="@errorMessage.get()"}>
 						@helper.fielderrors(styleForm("definition").errors)
-						<textarea class="form-control" id="input-definition" name="definition" rows="20" placeholder="@Domain.message("web.application.page.styles.form.field.definition.placeholder")">@styleForm("definition").value</textarea>
+						@helper.repeat(styleForm("definition"), min = 1) { styleDefinition =>
+							<input type="hidden" class="form-control js-style-definition" name="definition[]" value="@styleDefinition.value">
+						}
 					</div>
 					@helper.tooltips("web.application.page.styles.form.field.definition.help")
 				</div>
