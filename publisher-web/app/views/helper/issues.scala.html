@@ -4,23 +4,23 @@
 	<div class="panel-heading">
 		<div class="row">
 			<div class="col-xs-4">
-				<p class="announcement-heading">
+				<p class="announcement-glyphicon">
 					<span class="glyphicon glyphicon-warning-sign"></span>
 				</p>
 			</div>
 			<div class="col-xs-8 text-right">
 				<p class="announcement-heading">
-					@if(errors.values.isEmpty) {
-						@Domain.message("web.application.none")
-					} else {
-						@if(errors.hasMorePages){&gt; }@errors.values.size
-					}
-				</p>
-				<p class="announcement-text">
 					@if(errors.values.size != 1){
 						@Domain.message("web.application.page.dashboard.panel.newerrors")
 					}else{
 						@Domain.message("web.application.page.dashboard.panel.newerror")
+					}
+				</p>
+				<p class="announcement-text">
+					@if(errors.values.isEmpty) {
+						@Domain.message("web.application.none")
+					} else {
+						@if(errors.hasMorePages){&gt; }@errors.values.size
 					}
 				</p>
 				

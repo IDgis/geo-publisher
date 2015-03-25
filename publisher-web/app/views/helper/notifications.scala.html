@@ -6,24 +6,24 @@
 <div class="panel @if(notifications.values.isEmpty){panel-success}else{panel-info}">
 	<div class="panel-heading">
 		<div class="row">
-			<div class="col-xs-6">
-				<p class="announcement-heading">
+			<div class="col-xs-1">
+				<p class="announcement-glyphicon">
 					<span class="glyphicon glyphicon-bell"></span>
 				</p>
 			</div>
-			<div class="col-xs-6 text-right">
+			<div class="col-xs-11 text-right">
 				<p class="announcement-heading">
-					@if(notifications.values.isEmpty) {
-						@Domain.message("web.application.none")
-					} else {
-						@if(notifications.hasMorePages){&gt; }@notifications.values.size
-					}
-				</p>
-				<p class="announcement-text">
 					@if(notifications.values.size != 1){
 						@Domain.message("web.application.page.dashboard.panel.notifications")
 					}else{
 						@Domain.message("web.application.page.dashboard.panel.notification")
+					}
+				</p>
+				<p class="announcement-text">
+					@if(notifications.values.isEmpty) {
+						@Domain.message("web.application.none")
+					} else {
+						@if(notifications.hasMorePages){&gt; }@notifications.values.size
 					}
 				</p>
 			</div>

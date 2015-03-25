@@ -1,26 +1,26 @@
 @(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
 
-<div class="panel @if(tasks.values.size>0){panel-info}else{panel-success}">
+<div class="panel @if(tasks.values.isEmpty){panel-success}else{panel-info}">
 	<div class="panel-heading">
 		<div class="row">
-			<div class="col-xs-6">
-				<p class="announcement-heading">
+			<div class="col-xs-1">
+				<p class="announcement-glyphicon">
 					<span class="glyphicon glyphicon-tasks"></span>
 				</p>
 			</div>
-			<div class="col-xs-6 text-right">
+			<div class="col-xs-11 text-right">
 				<p class="announcement-heading">
-					@if(tasks.values.isEmpty) {
-						@Domain.message("web.application.none")
-					} else {
-						@tasks.values.size
-					}
-				</p>
-				<p class="announcement-text">
 					@if(tasks.values.size != 1){
 						@Domain.message("web.application.page.dashboard.panel.tasks")
 					}else{
 						@Domain.message("web.application.page.dashboard.panel.task")
+					}
+				</p>
+				<p class="announcement-text">
+					@if(tasks.values.isEmpty) {
+						@Domain.message("web.application.none")
+					} else {
+						@tasks.values.size
 					}
 				</p>
 			</div>

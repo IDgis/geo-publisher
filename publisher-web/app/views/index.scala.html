@@ -13,7 +13,7 @@
 	jsMain = routes.Assets.at("js/dashboard/main.js").url,
 	docPath = "dashboard"
 ) {
-
+	@* TITLE AND CLIENT LOGO *@
 	<div class="jumbotron">
 		<div class="row">
 			<div class="col-lg-8">
@@ -29,84 +29,33 @@
 		</div>
 	</div>
 	
+	@* INFO PANELS *@
 	<div class="page-content">
 		<div class="row">
 			@* DATASOURCES *@
-			<div class="col-lg-3">
-				@if(dataSources.values.size == 0){
-					<div class="panel panel-warning">
-				}else{
-					<div class="panel panel-success">
-				}
-					<div class="panel-heading">
-						<div class="row">
-							<div class="col-xs-4">
-								<p class="announcement-heading">
-									<span class="glyphicon glyphicon-cloud"></span>
-								</p>
-							</div>
-							<div class="col-xs-8 text-right">
-								<p class="announcement-heading">
-									@if(dataSources.values.isEmpty) {
-										@Domain.message("web.application.none")
-									} else {
-										@dataSources.values.size
-									}
-								</p>
-								<p class="announcement-text">
-								@if(dataSources.values.size != 1){
-								  	@Domain.message("web.application.page.dashboard.panel.datassources")
-								}else{
-									@Domain.message("web.application.page.dashboard.panel.datassource")
-								}
-								</p>
-							</div>
-						</div>
-					</div>
-					<ul class="list-group">
-						@for(dataSource <- dataSources.values) {
-							<li class="list-group-item">
-								<div>
-									<strong>@dataSource.name</strong>
-								</div>
-								<div>
-									@helper.status(dataSource.status)
-								</div>
-							</li>
-						}
-					</ul>
-					<a href="@routes.DataSources.list()">
-						<div class="panel-footer">
-							<div class="row">
-								<div class="col-xs-10">
-									@Domain.message("web.application.page.dashboard.panel.datassources.status")
-								</div>
-								<div class="col-xs-2 text-right">
-									<span class="glyphicon glyphicon-circle-arrow-right"></span>
-								</div>
-							</div>
-						</div>
-					</a>
-				</div>
+			<div class="col-lg-4">
+				@helper.dataSources(dataSources)
 			</div>
 					
 			@* NOTIFICATIONS *@
-			<div class="col-lg-3" id="dashboard-panel-notifications">
+			<div class="col-lg-4" id="dashboard-panel-notifications">
 				@helper.notifications(notifications)
 			</div>
 			
 			@* ACTIVE TASKS *@
-			<div class="col-lg-3" id="dashboard-panel-active-tasks">
+			<div class="col-lg-4" id="dashboard-panel-active-tasks">
 				@helper.activeTasks(tasks)
 			</div>
 			
-			@* ERRORS  *@
+			@* ERRORS  
 			<div class="col-lg-3" id="dashboard-panel-issues">
 				@helper.issues(errors)
 			</div>
+			*@
 		</div>
 	</div>
 	
+	@* VERSION AND IDGIS LOGO *@
 	<footer class="container">
 		<div class="row">
 			<div class="col-lg-10">
