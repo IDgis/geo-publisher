@@ -9,7 +9,9 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
@@ -43,24 +45,20 @@ import play.libs.F.Promise;
 import play.libs.Json;
 import play.mvc.BodyParser;
 import play.mvc.Controller;
-import play.mvc.Http;
 import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.Security;
+import views.html.styles.form;
+import views.html.styles.list;
+import views.html.styles.stylePagerBody;
+import views.html.styles.stylePagerFooter;
+import views.html.styles.stylePagerHeader;
+import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import controllers.Styles.StyleForm;
-import views.html.styles.form;
-import views.html.styles.list;
-import views.html.styles.stylePagerHeader;
-import views.html.styles.stylePagerBody;
-import views.html.styles.stylePagerFooter;
-import views.html.styles.uploadFileForm;
-
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
@@ -78,7 +76,17 @@ public class Styles extends Controller {
          });
 	}
 	
-	@BodyParser.Of (value = BodyParser.MultipartFormData.class, maxLength = 1024 * 1024)
+	private static String join (final List<String> strings) {
+		final StringBuilder builder = new StringBuilder ();
+		
+		for (final String s: strings) {
+			builder.append (s);
+		}
+		
+		return builder.toString ();
+	}
+	
+	@BodyParser.Of (value = BodyParser.FormUrlEncoded.class, maxLength = 1024 * 1024)
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -99,14 +107,17 @@ public class Styles extends Controller {
 						}
 					}
 					
-					if (form.field ("definition").value () == null) {
-						form.reject ("definition", "web.application.page.styles.form.field.definition.validation.tooLarge");
-					} else {
-						String xmlError = isValidXml(form.field("definition").value());
-						if (xmlError != null){ 
-							form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
-							form.reject ("definition", xmlError);
-						}
+					if (form.hasErrors ()) {
+						return renderCreateForm (form);
+					}
+
+					final StyleForm styleForm = form.get ();
+					final String sldContent = join (styleForm.getDefinition ());
+					
+					String xmlError = isValidXml (sldContent);
+					if (xmlError != null){ 
+						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
+						form.reject ("definition", xmlError);
 					}
 					
 					if (form.hasErrors ()) {
@@ -114,8 +125,7 @@ public class Styles extends Controller {
 					}
 					// validation end
 					
-					final StyleForm styleForm = form.get ();
-					final Style style = new Style(styleForm.id, styleForm.name.trim (), styleForm.definition, styleForm.styleType, styleForm.inUse);
+					final Style style = new Style(styleForm.id, styleForm.name.trim (), sldContent, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
@@ -330,7 +340,7 @@ public class Styles extends Controller {
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.styles.form.field.name.validation.error")
 		private String name;
 		@Constraints.Required (message = "web.application.page.styles.form.field.definition.validation.required")
-		private String definition;
+		private List<String> definition = new ArrayList<> ();
 		private String styleType;
 		private Boolean inUse;
 		
@@ -343,7 +353,8 @@ public class Styles extends Controller {
 		public StyleForm (final Style style){
 			this.id = style.id();
 			this.name = style.name();
-			this.definition = style.definition();
+			this.definition = new ArrayList<> ();
+			this.definition.add (style.definition ());
 			this.styleType = style.styleType().name();
 			this.inUse = style.inUse();
 		}
@@ -362,11 +373,11 @@ public class Styles extends Controller {
 		public void setName(String name) {
 			this.name = name;
 		}
-		public String getDefinition() {
+		public List<String> getDefinition() {
 			return definition;
 		}
-		public void setDefinition(String definition) {
-			this.definition = definition;
+		public void setDefinition(List<String> definition) {
+			this.definition = definition == null ? new ArrayList<> () : new ArrayList<> (definition);
 		}
 		public String getStyleType() {
 			return styleType;

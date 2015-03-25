@@ -5,9 +5,11 @@ $(function () {
 require ([
 	'dojo/dom',
 	'dojo/dom-class',
+	'dojo/dom-attr',
 	'dojo/on',
 	'dojo/request/xhr',
 	'dojo/json',
+	'dojo/query',
 	
 	'put-selector/put',
 	
@@ -17,28 +19,68 @@ require ([
 ], function (
 	dom,
 	domClass,
+	domAttr,
 	on,
 	xhr,
 	json,
+	query,
 	
 	put,
 	
 	ace
 ) {
-	var textarea = dom.byId ('input-definition'),
-		styleForm = dom.byId ('style-form'),
-		editorElement = put (textarea.parentNode, 'div[style="position: relative; width: 100%; height: 400px;"] div.form-control[style="width: 100%; height: 400px;"]');
+	var MAX_CHUNK_SIZE = 50 * 1024;
 	
-	domClass.add (textarea, 'hidden');
+	var inputs = query ('input.js-style-definition'),
+		styleForm = dom.byId ('style-form'),
+		editorElement = put (inputs[0].parentNode, 'div[style="position: relative; width: 100%; height: 400px;"] div.form-control[style="width: 100%; height: 400px;"]'),
+		initialValue = '';
+	
+	inputs.forEach (function (input) {
+		initialValue += input.value;
+	});
 	
 	var editor = window.ace.edit (editorElement);
 	
 	editor.getSession ().setMode ('ace/mode/xml');
-	editor.setValue (textarea.value, -1);
+	editor.setValue (initialValue, -1);
 	editor.getSession ().addGutterDecoration (1, 'text-danger');
 	
 	on (styleForm, 'submit', function (e) {
-		textarea.value = editor.getValue ();
+		var parent = inputs[0].parentNode,
+			value = editor.getValue (),
+			i = 0;
+		
+		inputs = query ('input.js-style-definition', parent);
+		
+		while (value.length > 0) {
+			var chunk;
+			
+			if (value.length > MAX_CHUNK_SIZE) {
+				chunk = value.substring (0, MAX_CHUNK_SIZE);
+				value = value.substring (MAX_CHUNK_SIZE);
+			} else {
+				chunk = value;
+				value = '';
+			}
+			
+			// Create a textarea if required:
+			var currentInput;
+			if (i < inputs.length) {
+				currentInput = inputs[i];
+			} else {
+				currentInput = put (parent, 'input.js-style-definition[type="hidden"]');
+				domAttr.set (currentInput, 'name', 'definition[]');
+			}
+			
+			currentInput.value = chunk;
+			
+			++ i;
+		}
+		
+		for (; i < inputs.length; ++ i) {
+			put (inputs[i], '!');
+		}
 	});
 	
 	var styleEditorElement = editorElement;
