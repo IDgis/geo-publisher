@@ -170,13 +170,11 @@ public class Styles extends Controller {
 		} catch (SAXParseException e) {
 			return new XmlError (e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (), e.getLineNumber ());
 		} catch (SAXException e) {
-			e.printStackTrace ();
 			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (XMLStreamException e) {
 			if (e.getLocation () != null) {
 				return new XmlError (e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage (), e.getLocation ().getLineNumber ());
 			} else {
-				e.printStackTrace ();
 				return new XmlError (e.getLocalizedMessage (), null);
 			}
 		}
