@@ -47,7 +47,7 @@
 						'_readonly -> true
 					)
 				}
-				<div class="form-group@if(styleForm("definition").hasErrors){ has-error}">
+				<div class="form-group@if(styleForm("definition").hasErrors){ has-error}" id="style-editor-group">
 					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
 					<div class="col-sm-8" id="style-editor-container"@if(errorLine.isPresent){ data-error-line="@errorLine.get()"}@if(errorMessage.isPresent){ data-error-message="@errorMessage.get()"}>
 						@helper.fielderrors(styleForm("definition").errors)

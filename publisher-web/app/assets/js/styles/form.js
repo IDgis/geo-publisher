@@ -46,15 +46,20 @@ require ([
 	
 	editor.getSession ().setMode ('ace/mode/xml');
 	editor.setValue (initialValue, -1);
-	if (errorLine || errorMessage) {
+	
+	function setError (line, message) {
 		editor.getSession ().setAnnotations ([
 			{
-				row: errorLine ? errorLine - 1 : 0,
+				row: line ? line - 1 : 0,
 				column: 0,
-				text: errorMessage || '',
+				text: message || '',
 				type: 'error'
 			}
 		]);
+	}
+	
+	if (errorLine || errorMessage) {
+		setErrro (errorLine, errorMessage);
 	}
 	
 	on (styleForm, 'submit', function (e) {
@@ -186,6 +191,14 @@ require ([
 			handleAs: 'json',
 			headers: {
 				'Content-Type': 'text/xml'
+			}
+		}).then (function (response) {
+			domClass[response.valid ? 'remove' : 'add'] (dom.byId ('style-editor-group'), 'has-error');
+	
+			editor.getSession ().clearAnnotations ();
+			
+			if (!response.valid) {
+				setError (response.line, response.message);
 			}
 		});
 	});
