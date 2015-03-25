@@ -86,7 +86,7 @@ require ([
 	var styleEditorElement = editorElement;
 	
 	window._geopublisherFileUploadCallback = function (content) {
-		styleEditorElement.value = content;
+		editor.setValue (content, -1);
 	};
 	
 	function sendFile (file) {
