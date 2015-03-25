@@ -86,7 +86,7 @@ public class Styles extends Controller {
 		return builder.toString ();
 	}
 	
-	@BodyParser.Of (value = BodyParser.FormUrlEncoded.class, maxLength = 1024 * 1024)
+	@BodyParser.Of (value = BodyParser.FormUrlEncoded.class, maxLength = 2 * 1024 * 1024)
 	public static Promise<Result> submitCreateUpdate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
@@ -272,6 +272,7 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (null));
 	}
 	
+	@BodyParser.Of (value = BodyParser.MultipartFormData.class, maxLength = 2 * 1024 * 1024)
 	public static Result handleFileUploadForm () {
 		final MultipartFormData body = request ().body ().asMultipartFormData ();
 		final FilePart uploadFile = body.getFile ("file");
@@ -285,7 +286,7 @@ public class Styles extends Controller {
 		return ok (uploadFileForm.render (content));
 	}
 		
-	@BodyParser.Of (value = BodyParser.Raw.class)
+	@BodyParser.Of (value = BodyParser.Raw.class, maxLength = 2 * 1024 * 1024)
 	public static Result handleFileUploadRaw () {
 		final String content = request ().body ().asRaw () != null 
 				? handleFileUpload (request ().body ().asRaw ().asFile ()) 
