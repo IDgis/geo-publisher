@@ -1,6 +1,8 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -47,6 +49,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
@@ -77,6 +80,7 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.TestStyle;
+import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
@@ -1367,9 +1371,55 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId)			
 			.execute();
 		
-		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
-		assertEquals("service", service.getId());
+		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		assertEquals("service", stagingService.getId());
 		
 		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		
+		Iterator<Tuple> publishedServiceItr = 
+			query().from(publishedService)
+			.list(publishedService.all()).iterator();
+		
+		assertTrue(publishedServiceItr.hasNext());
+		
+		Tuple publishedServiceTuple = publishedServiceItr.next();
+		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
+		assertNotNull(publishedServiceContent);
+		
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent);
+		assertNotNull(reconstrucedPublishedService);
+		assertEquals("service", reconstrucedPublishedService.getId());
+		
+		assertFalse(publishedServiceItr.hasNext());
+		
+		Iterator<Tuple> publishedServiceEnvironmentItr =
+			query().from(publishedServiceEnvironment)
+				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.orderBy(environment.identification.asc())
+				.list(
+					genericLayer.identification,
+					environment.identification).iterator();
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		Tuple publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment0", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment1", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment2", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertFalse(publishedServiceEnvironmentItr.hasNext());
 	}
 }
