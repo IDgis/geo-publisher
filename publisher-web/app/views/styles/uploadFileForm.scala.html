@@ -1,7 +1,7 @@
 @(content: String = null)
 
 @layout.html(
-	title = "Bestand uploaden",
+	title = Domain.message("web.application.page.styles.form.upload.title"),
 	stylesheets = Array(
 		routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css")).url,
 		routes.Assets.at("stylesheets/main.css").url

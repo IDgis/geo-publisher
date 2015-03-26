@@ -143,6 +143,7 @@ web.application.layout.showlog=Bekijk logboek
 web.application.layout.showerrorlog=Bekijk foutlogboek
 web.application.layout.profile=Profiel
 web.application.layout.logout=Afmelden
+web.application.layout.help=Help
 
 web.application.layout.dropdowntitle.notifications=Nieuwe meldingen
 web.application.layout.dropdowntitle.tasks=Taken
@@ -364,6 +365,7 @@ web.application.page.sourcedatasets.list.csv.separator=Kolomscheidingsteken
 web.application.page.sourcedatasets.list.csv.separator.space=(spatie)
 web.application.page.sourcedatasets.list.csv.encoding=Tekenset
 web.application.page.sourcedatasets.list.csv.button=Download lijst van brongegevens als csv bestand
+web.application.page.sourcedatasets.list.csv.button.text=Download csv
 web.application.page.sourcedatasets.list.button.newdataset=Nieuwe dataset toevoegen voor deze bron
 web.application.page.sourcedatasets.list.nodatasetcoupled=Er zijn geen gekoppelde datasets.
 web.application.page.sourcedatasets.list.datasetcoupled=dataset gekoppeld.
@@ -578,6 +580,7 @@ web.application.page.styles.list.search.showAll=Toon alle stijlen ...
 web.application.page.styles.form.title=Stijl formulier
 web.application.page.styles.form.header.new=Nieuwe stijl toevoegen
 web.application.page.styles.form.header.edit=Stijl {0} aanpassen
+web.application.page.styles.form.upload.title=Bestand uploaden
 
 web.application.page.styles.form.field.name.label=Naam
 web.application.page.styles.form.field.name.placeholder=Geef een naam voor de stijl
