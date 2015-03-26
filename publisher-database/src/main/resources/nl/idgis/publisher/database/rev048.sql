@@ -25,4 +25,15 @@ create table publisher.published_service_environment(
 	constraint published_service_environment_environment_id foreign key(environment_id) references publisher.environment(id)
 );
 
+create table publisher.published_service_style(
+	id serial,
+	service_id integer,
+	identification varchar(80),
+	name varchar(80),
+	definition text,
+	
+	constraint published_service_style_pk primary key(id),
+	constraint published_service_service_id_fk foreign key(service_id) references publisher.published_service(service_id)
+);
+
 insert into publisher.version(id) values(48);
