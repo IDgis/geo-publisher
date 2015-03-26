@@ -47,10 +47,19 @@
 						'_readonly -> true
 					)
 				}
-				<div class="form-group@if(styleForm("definition").hasErrors){ has-error}">
+				<div class="form-group@if(styleForm("definition").hasErrors){ has-error}" id="style-editor-group">
 					<label class="col-sm-2 control-label" for="input-definition">@Domain.message("web.application.page.styles.form.field.definition.label")</label>
 					<div class="col-sm-8" id="style-editor-container"@if(errorLine.isPresent){ data-error-line="@errorLine.get()"}@if(errorMessage.isPresent){ data-error-message="@errorMessage.get()"}>
-						@helper.fielderrors(styleForm("definition").errors)
+						<div class="row">
+							<div class="col-lg-4">
+								<p>
+									<button id="validate-style-button" class="btn btn-default" type="button"><span class="glyphicon glyphicon-cog"></span> @Domain.message("web.application.button.validate")</button>
+								</p>
+							</div>
+							<div class="col-lg-8" id="style-editor-validation">
+								@helper.fielderrors(styleForm("definition").errors)
+							</div>
+						</div>
 						@helper.repeat(styleForm("definition"), min = 1) { styleDefinition =>
 							<input type="hidden" class="form-control js-style-definition" name="definition[]" value="@styleDefinition.value">
 						}
@@ -90,10 +99,9 @@
 
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.validate")</button>
-						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<button class="btn btn-primary" type="submit">@Domain.message("web.application.button.save")</button>
 						<a href="@routes.Styles.list()" 
-							class="btn btn-success" title="Annuleren">
+							class="btn btn-default" title="Annuleren">
 							@Domain.message("web.application.button.cancel")
 						</a>
 					</div>

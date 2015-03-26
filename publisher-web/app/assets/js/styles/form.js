@@ -6,6 +6,7 @@ require ([
 	'dojo/dom',
 	'dojo/dom-class',
 	'dojo/dom-attr',
+	'dojo/dom-construct',
 	'dojo/on',
 	'dojo/request/xhr',
 	'dojo/json',
@@ -20,6 +21,7 @@ require ([
 	dom,
 	domClass,
 	domAttr,
+	domConstruct,
 	on,
 	xhr,
 	json,
@@ -46,15 +48,20 @@ require ([
 	
 	editor.getSession ().setMode ('ace/mode/xml');
 	editor.setValue (initialValue, -1);
-	if (errorLine || errorMessage) {
+	
+	function setError (line, message) {
 		editor.getSession ().setAnnotations ([
 			{
-				row: errorLine ? errorLine - 1 : 0,
+				row: line ? line - 1 : 0,
 				column: 0,
-				text: errorMessage || '',
+				text: message || '',
 				type: 'error'
 			}
 		]);
+	}
+	
+	if (errorLine || errorMessage) {
+		setError (errorLine, errorMessage);
 	}
 	
 	on (styleForm, 'submit', function (e) {
@@ -169,6 +176,51 @@ require ([
 			if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length >= 1) {
 				sendFile (e.dataTransfer.files[0]);
 			}
+		});
+	});
+	
+	// Validate button:
+	var validateButton = dom.byId ('validate-style-button'),
+		validationContainer = dom.byId ('style-editor-validation'),
+		styleEditorGroup = dom.byId ('style-editor-group');
+	
+	on (validateButton, 'click', function (e) {
+		e.preventDefault ();
+		e.stopPropagation ();
+		
+		var value = editor.getValue ();
+		
+		validateButton.disabled = true;
+		
+		var glyphicon = query ('.glyphicon', validateButton)[0];
+		domClass.replace (glyphicon, ['glyphicon-refresh', 'rotating'], 'glyphicon-cog');
+	
+		domConstruct.empty (validationContainer);
+		
+		domClass.remove (styleEditorGroup, ['has-error', 'has-success']);
+		
+		xhr.post (jsRoutes.controllers.Styles.validateSld ().url, {
+			data: value,
+			handleAs: 'json',
+			headers: {
+				'Content-Type': 'text/xml'
+			}
+		}).then (function (response) {
+			domClass[response.valid ? 'remove' : 'add'] (styleEditorGroup, 'has-error');
+	
+			editor.getSession ().clearAnnotations ();
+			
+			if (!response.valid) {
+				setError (response.line, response.message);
+				put (validationContainer, 'div.alert.alert-danger $', response.message);
+				domClass.add (styleEditorGroup, 'has-error');
+			} else {
+				put (validationContainer, 'div.alert.alert-success $', response.message);
+				domClass.add (styleEditorGroup, 'has-success');
+			}
+			
+			validateButton.disabled = false;
+			domClass.replace (glyphicon, 'glyphicon-cog', ['glyphicon-refresh', 'rotating']);
 		});
 	});
 });

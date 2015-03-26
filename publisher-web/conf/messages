@@ -116,7 +116,7 @@ web.application.page.list.nottiled=niet getiled
 
 # Widgets
 web.application.button.ok=Ok
-web.application.button.validate=Valideren
+web.application.button.validate=Stijl valideren tegen het schema
 web.application.button.cancel=Annuleren
 web.application.button.save=Opslaan
 web.application.button.preview=Preview
@@ -594,6 +594,8 @@ web.application.page.styles.form.field.definition.help=De SLD xml definitie van 
 web.application.page.styles.form.field.definition.select=Kies een bestand waar de SLD xml definitie in staat
 web.application.page.styles.form.field.type.select=Selecteer om wat voor type stijl het gaat
 web.application.page.styles.form.field.definition.validation.error=Inhoud moet xml zijn volgens de {0} standaard
+web.application.page.styles.form.field.definition.validation.cantValidate=De stijl kon niet worden gevalideerd. Mogelijk is deze te groot: de limiet bedraagt 2 MB.
+web.application.page.styles.form.field.definition.validation.valid=De stijl is successvol gevalideerd tegen het SLD schema.
 
 web.application.page.styles.form.field.browse.label=Selecteer uit bestand
 web.application.page.styles.form.field.type.label=Type stijl
