@@ -21,6 +21,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
@@ -98,11 +99,17 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetDatasetLayerRef((GetDatasetLayerRef)msg));
 		} else if(msg instanceof PublishService) {
 			toSender(handlePublishService((PublishService)msg));
+		} else if(msg instanceof GetPublishedService) {
+			toSender(handleGetPublishedService((GetPublishedService)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<Object> handleGetPublishedService(GetPublishedService msg) {
+		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, f, tx, msg.getServiceId()).result());
+	}
+
 	private CompletableFuture<Ack> handlePublishService(PublishService msg) {
 		return 
 			db.transactional(msg, tx ->

@@ -82,6 +82,7 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
@@ -89,6 +90,7 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.PublishService;
+import nl.idgis.publisher.service.manager.messages.PublishedService;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
@@ -1374,6 +1376,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
 		assertEquals("service", stagingService.getId());
 		
+		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
+		
 		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
 		
 		Iterator<Tuple> publishedServiceItr = 
@@ -1421,5 +1425,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("environment2", publishedServiceEnvironmentTuple.get(environment.identification));
 		
 		assertFalse(publishedServiceEnvironmentItr.hasNext());
+		
+		PublishedService ps = f.ask(serviceManager, new GetPublishedService("service"), PublishedService.class).get();		
+		assertEquals(environmentIds, ps.getEnvironmentIds());		
+		assertEquals("service", ps.getService().getId());
 	}
 }
