@@ -39,11 +39,10 @@ public class PublishServiceQuery extends AbstractQuery<Ack> {
 	private CompletableFuture<Long> deleteExisting() {
 		return
 			tx.delete(publishedServiceEnvironment)
-				.where(new SQLSubQuery().from(publishedService)
-					.join(service).on(service.id.eq(publishedService.serviceId))
+				.where(new SQLSubQuery().from(service)					
 					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 					.where(genericLayer.identification.eq(stagingService.getId())
-						.and(publishedService.id.eq(publishedServiceEnvironment.publishedServiceId)))
+						.and(service.id.eq(publishedServiceEnvironment.serviceId)))
 					.exists())
 				.execute().thenCompose(environments -> {
 					log.debug("existing published_service_environment records deleted: {}", environments);
@@ -61,39 +60,41 @@ public class PublishServiceQuery extends AbstractQuery<Ack> {
 
 	@Override
 	public CompletableFuture<Ack> result() {
+		String serviceIdentification = stagingService.getId();
+		
+		log.debug("publishing service: {}" , serviceIdentification);
+		
 		return 
 			deleteExisting().thenCompose(publishedServices -> {
 			log.debug("existing published_service records deleted: {}", publishedServices);
 			
-			return tx.insert(publishedService)
-				.columns(
-					publishedService.serviceId,
-					publishedService.content)
-				.select(new SQLSubQuery().from(service)
-					.join(genericLayer).on(genericLayer.id.eq(service.id))
-					.where(genericLayer.identification.eq(stagingService.getId()))
-					.list(
-						service.id,
-						JsonService.toJson(stagingService)))
-				.executeWithKey(publishedService.id).thenCompose(publishedServiceId ->
-					tx.insert(publishedServiceEnvironment)
-						.columns(
-							publishedServiceEnvironment.publishedServiceId,
-							publishedServiceEnvironment.environmentId)
-						.select(new SQLSubQuery().from(environment)
-							.where(environment.identification.in(environmentIds))
-							.list(
-								publishedServiceId,
-								environment.id))
-						.execute()).thenApply(environments -> {
-							if(environmentIds.size() != environments) {
-								throw new IllegalArgumentException("not all environments exists");
-							}
-							
-							log.debug("service published for {} environments", environments);
-
-							return new Ack();
-						});
+			return tx.query().from(service)
+					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+					.where(genericLayer.identification.eq(serviceIdentification))
+					.singleResult(service.id).thenCompose(serviceId ->
+						tx.insert(publishedService)
+						.set(publishedService.serviceId, serviceId.orElseThrow(() -> new IllegalArgumentException("service doesn't exists: " + serviceIdentification)))
+						.set(publishedService.content, JsonService.toJson(stagingService))
+						.execute().thenCompose(publishedService ->
+							tx.insert(publishedServiceEnvironment)
+								.columns(
+									publishedServiceEnvironment.serviceId,
+									publishedServiceEnvironment.environmentId)
+								.select(new SQLSubQuery().from(environment)
+									.where(environment.identification.in(environmentIds))
+									.list(
+										serviceId.get(),
+										environment.id))
+								.execute()).thenApply(environments -> {
+									long missingEnvironments = environmentIds.size() - environments;
+									if(missingEnvironments > 0) {
+										throw new IllegalArgumentException("" + missingEnvironments + " environments don't exist");
+									}
+									
+									log.debug("service published for {} environments", environments);
+		
+									return new Ack();
+								}));
 		});
 	}
 

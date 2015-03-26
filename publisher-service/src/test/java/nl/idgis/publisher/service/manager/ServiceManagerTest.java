@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.manager;
 
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -30,9 +31,11 @@ import static org.junit.Assert.fail;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -64,6 +67,7 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -80,6 +84,7 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
@@ -1337,5 +1342,34 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("layer", layer.getId());
 		
 		assertFalse(aLayerRefsItr.hasNext());
+	}
+	
+	@Test
+	public void testPublishService() throws Exception {
+		Set<String> environmentIds = new HashSet<>();
+		environmentIds.add("environment0");
+		environmentIds.add("environment1");
+		environmentIds.add("environment2");
+		
+		for(String environmentId : environmentIds) {
+			insert(environment)
+				.set(environment.identification, environmentId)
+				.set(environment.name, environmentId + "-name")
+				.execute();
+		}
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		insert(service)
+			.set(service.genericLayerId, rootId)			
+			.execute();
+		
+		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		assertEquals("service", service.getId());
+		
+		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
 	}
 }
