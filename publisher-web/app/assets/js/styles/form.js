@@ -6,6 +6,7 @@ require ([
 	'dojo/dom',
 	'dojo/dom-class',
 	'dojo/dom-attr',
+	'dojo/dom-construct',
 	'dojo/on',
 	'dojo/request/xhr',
 	'dojo/json',
@@ -20,6 +21,7 @@ require ([
 	dom,
 	domClass,
 	domAttr,
+	domConstruct,
 	on,
 	xhr,
 	json,
@@ -59,7 +61,7 @@ require ([
 	}
 	
 	if (errorLine || errorMessage) {
-		setErrro (errorLine, errorMessage);
+		setError (errorLine, errorMessage);
 	}
 	
 	on (styleForm, 'submit', function (e) {
@@ -178,13 +180,24 @@ require ([
 	});
 	
 	// Validate button:
-	var validateButton = dom.byId ('validate-style-button');
+	var validateButton = dom.byId ('validate-style-button'),
+		validationContainer = dom.byId ('style-editor-validation'),
+		styleEditorGroup = dom.byId ('style-editor-group');
 	
 	on (validateButton, 'click', function (e) {
 		e.preventDefault ();
 		e.stopPropagation ();
 		
 		var value = editor.getValue ();
+		
+		validateButton.disabled = true;
+		
+		var glyphicon = query ('.glyphicon', validateButton)[0];
+		domClass.replace (glyphicon, ['glyphicon-refresh', 'rotating'], 'glyphicon-cog');
+	
+		domConstruct.empty (validationContainer);
+		
+		domClass.remove (styleEditorGroup, ['has-error', 'has-success']);
 		
 		xhr.post (jsRoutes.controllers.Styles.validateSld ().url, {
 			data: value,
@@ -193,13 +206,21 @@ require ([
 				'Content-Type': 'text/xml'
 			}
 		}).then (function (response) {
-			domClass[response.valid ? 'remove' : 'add'] (dom.byId ('style-editor-group'), 'has-error');
+			domClass[response.valid ? 'remove' : 'add'] (styleEditorGroup, 'has-error');
 	
 			editor.getSession ().clearAnnotations ();
 			
 			if (!response.valid) {
 				setError (response.line, response.message);
+				put (validationContainer, 'div.alert.alert-danger $', response.message);
+				domClass.add (styleEditorGroup, 'has-error');
+			} else {
+				put (validationContainer, 'div.alert.alert-success $', response.message);
+				domClass.add (styleEditorGroup, 'has-success');
 			}
+			
+			validateButton.disabled = false;
+			domClass.replace (glyphicon, 'glyphicon-cog', ['glyphicon-refresh', 'rotating']);
 		});
 	});
 });

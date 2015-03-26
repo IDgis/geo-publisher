@@ -322,6 +322,7 @@ public class Styles extends Controller {
 		final ObjectNode result = Json.newObject ();
 		if (content == null) {
 			result.put ("valid", false);
+			result.put ("message", Domain.message ("web.application.page.styles.form.field.definition.validation.cantValidate"));
 		} else {
 			final XmlError xmlError = isValidXml (content);
 			
@@ -333,6 +334,7 @@ public class Styles extends Controller {
 				}
 			} else {
 				result.put ("valid", true);
+				result.put ("message", Domain.message ("web.application.page.styles.form.field.definition.validation.valid"));
 			}
 		}
 		
