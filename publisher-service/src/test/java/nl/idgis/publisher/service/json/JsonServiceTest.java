@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.json;
 
 import static java.util.Collections.emptyList;
 import static java.util.Arrays.asList;
