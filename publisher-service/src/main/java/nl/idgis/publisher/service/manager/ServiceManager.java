@@ -105,7 +105,7 @@ public class ServiceManager extends UntypedActor {
 	
 	private CompletableFuture<Ack> handlePublishService(PublishService msg) {
 		return 
-			db.transactional(tx ->
+			db.transactional(msg, tx ->
 				f.ask(
 					getSelf(), 
 					new GetService(
