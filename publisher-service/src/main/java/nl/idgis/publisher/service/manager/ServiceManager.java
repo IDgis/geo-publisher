@@ -15,6 +15,9 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
+import nl.idgis.publisher.domain.web.tree.Service;
+
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
@@ -24,6 +27,7 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.ListCursor;
@@ -92,11 +96,26 @@ public class ServiceManager extends UntypedActor {
 			handleCreateStyleCursor((CreateStyleCursor)msg);
 		} else if(msg instanceof GetDatasetLayerRef) {
 			toSender(handleGetDatasetLayerRef((GetDatasetLayerRef)msg));
+		} else if(msg instanceof PublishService) {
+			toSender(handlePublishService((PublishService)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<Ack> handlePublishService(PublishService msg) {
+		return 
+			db.transactional(tx ->
+				f.ask(
+					getSelf(), 
+					new GetService(
+						tx.getTransactionRef(), 
+						msg.getServiceId()), 
+						Service.class).thenCompose(service ->
+							new PublishServiceQuery(log, tx, service, msg.getEnvironmentIds())
+								.result()));
+	}
+
 	private CompletableFuture<Object> handleGetDatasetLayerRef(GetDatasetLayerRef msg) {
 		return db.transactional(tx -> new GetDatasetLayerRefQuery(log, tx, msg.getLayerId()).result());
 	}
