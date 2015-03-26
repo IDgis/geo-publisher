@@ -537,7 +537,7 @@ public class DatasetAdmin extends AbstractAdmin {
 								.set(dataset.filterConditions, 
 									objectMapper.writeValueAsString(putDataset.getFilterConditions()))
 								.executeWithKey(dataset.id).thenCompose(datasetId ->
-									insertDatasetColumns(tx, datasetId, putDataset.getColumnList()).thenApply(v ->
+									insertDatasetColumns(tx, datasetId.get(), putDataset.getColumnList()).thenApply(v ->
 										new Response<String>(CrudOperation.CREATE, CrudResponse.OK, datasetIdent)));
 						} catch(Exception e) {
 							return f.failed(e);

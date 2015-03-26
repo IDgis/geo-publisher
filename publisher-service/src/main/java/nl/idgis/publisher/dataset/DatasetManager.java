@@ -104,12 +104,12 @@ public class DatasetManager extends UntypedActor {
 		}
 	}
 
-	private CompletableFuture<Integer> getCategoryId(final AsyncHelper tx, final String identification) {
+	private CompletableFuture<Optional<Integer>> getCategoryId(final AsyncHelper tx, final String identification) {
 		log.debug("get category id: {}", identification);
 		
 		// category can be null for unavailable datasets
 		if(identification == null) {
-			return f.successful(null);
+			return f.successful(Optional.empty());
 		}
 		
 		return
@@ -117,7 +117,7 @@ public class DatasetManager extends UntypedActor {
 				.where(category.identification.eq(identification))
 				.singleResult(category.id).thenCompose(id -> {
 					if(id.isPresent()) {
-						return f.successful(id.get());
+						return f.successful(id);
 					} else {
 						return tx.insert(category)
 							.set(category.identification, identification)
@@ -297,15 +297,15 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.type, type)
 				.set(sourceDatasetVersion.name, name)		
 				.set(sourceDatasetVersion.alternateTitle, alternateTitle)
-				.set(sourceDatasetVersion.categoryId, categoryId)
+				.set(sourceDatasetVersion.categoryId, categoryId.orElse(null))
 				.set(sourceDatasetVersion.revision, revision)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
 				
-				return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId, dataset).thenCompose(v -> {					
+				return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId.get(), dataset).thenCompose(v -> {					
 					if(dataset instanceof VectorDataset) {
-						return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId, (VectorDataset)dataset);
+						return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId.get(), (VectorDataset)dataset);
 					} else {
 						return f.successful(null);
 					}
@@ -387,7 +387,7 @@ public class DatasetManager extends UntypedActor {
 					.where(dataSource.identification.eq(dataSourceIdentification))
 					.list(dataSource.id, dataset.getId()))
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
-					insertSourceDatasetVersion(tx, sourceDatasetId, dataset)).thenApply(v -> new Registered());
+					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());
 	}
 
 	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {

@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.util.List;
 
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.sql.Configuration;
@@ -11,6 +12,7 @@ import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.dml.SQLUpdateClause;
 import com.mysema.query.types.Expression;
+import com.mysema.query.types.Path;
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.utils.TypedList;
@@ -54,7 +56,15 @@ public abstract class QueryDSLTransaction extends JdbcTransaction {
 	}
 	
 	@SuppressWarnings("unchecked")
+	protected <T> TypedList<T> toTypedList(Expression<T> expression, List<T> list) {
+		return new TypedList<>((Class<T>)expression.getType(), list);
+	}
+	
+	protected <T> TypedList<T> toTypedList(SQLInsertClause insert, Path<T> path) {
+		return toTypedList(path, insert.executeWithKeys(path));
+	}
+	
 	protected <T> TypedList<T> toTypedList(QueryMetadata metadata, Expression<T> expression) {
-		return new TypedList<>((Class<T>)expression.getType(), query(metadata).list(expression));
+		return toTypedList(expression, query(metadata).list(expression));		
 	}
 }

@@ -1140,7 +1140,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		try {
 			db.transactional(tx -> {
-				CompletableFuture<Integer> layerIdFuture = 
+				CompletableFuture<Optional<Integer>> layerIdFuture = 
 					tx.insert(genericLayer)
 					.set(genericLayer.identification, "layer")
 					.set(genericLayer.name, "layer-name")
@@ -1149,23 +1149,23 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				CompletableFuture<Long> leafLayerFuture = 
 					layerIdFuture.thenCompose(layerId ->
 						tx.insert(leafLayer)
-							.set(leafLayer.genericLayerId, layerId)
+							.set(leafLayer.genericLayerId, layerId.get())
 							.set(leafLayer.datasetId, datasetId)
 							.execute());
 					
-				CompletableFuture<Integer> rootIdFuture = 
+				CompletableFuture<Optional<Integer>> rootIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "root")
 						.set(genericLayer.name, "root-name")
 						.executeWithKey(genericLayer.id);
 					
-				CompletableFuture<Integer> groupAIdFuture = 
+				CompletableFuture<Optional<Integer>> groupAIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "group-a")
 						.set(genericLayer.name, "group-name-a")
 						.executeWithKey(genericLayer.id);
 					
-				CompletableFuture<Integer> groupBIdFuture = 
+				CompletableFuture<Optional<Integer>> groupBIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "group-b")
 						.set(genericLayer.name, "group-name-b")
@@ -1175,8 +1175,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					layerIdFuture.thenCompose(layerId ->					
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupAId)
-							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.parentLayerId, groupAId.get())
+							.set(layerStructure.childLayerId, layerId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1184,8 +1184,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupBIdFuture.thenCompose(groupBId ->
 					layerIdFuture.thenCompose(layerId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupBId)
-							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.parentLayerId, groupBId.get())
+							.set(layerStructure.childLayerId, layerId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1193,8 +1193,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					rootIdFuture.thenCompose(rootId ->
 					groupAIdFuture.thenCompose(groupAId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, rootId)
-							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.parentLayerId, rootId.get())
+							.set(layerStructure.childLayerId, groupAId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1202,8 +1202,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					rootIdFuture.thenCompose(rootId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, rootId)
-							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.parentLayerId, rootId.get())
+							.set(layerStructure.childLayerId, groupBId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 					
@@ -1211,8 +1211,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupAId)
-							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.parentLayerId, groupAId.get())
+							.set(layerStructure.childLayerId, groupBId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 					
@@ -1220,8 +1220,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupBId)
-							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.parentLayerId, groupBId.get())
+							.set(layerStructure.childLayerId, groupAId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				

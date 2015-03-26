@@ -27,14 +27,17 @@ import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.protocol.messages.Failure;
+
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.QJobState;
+
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.JobState;
@@ -43,6 +46,7 @@ import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.service.Column;
+
 import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
@@ -67,6 +71,7 @@ import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -349,7 +354,7 @@ public class JobManager extends UntypedActor {
 									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 									.where(dataset.identification.eq(datasetId))
 									.list(
-										importJobId,
+										importJobId.orElseThrow(() -> new IllegalStateException("multiple jobs created")),
 										datasetColumn.index,
 										datasetColumn.name,
 										datasetColumn.dataType))
@@ -375,7 +380,7 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
 		return tx.insert(job)
 			.set(job.type, jobType.name())
-			.executeWithKey(job.id);
+			.executeWithKey(job.id).thenApply(Optional::get);
 	}
 	
 	private CompletableFuture<Ack> handleCreateImportJob(CreateImportJob msg) {
@@ -433,7 +438,7 @@ public class JobManager extends UntypedActor {
 									.singleResult(dataset.id))
 							.thenCompose((jobId, datasetId) -> 
 								tx.insert(removeJob)
-									.set(removeJob.jobId, jobId)
+									.set(removeJob.jobId, jobId.get())
 									.set(removeJob.datasetId, datasetId
 										.orElseThrow(() -> new IllegalArgumentException("dataset not exists")))
 									.execute().thenApply(l -> new Ack()));
@@ -472,7 +477,7 @@ public class JobManager extends UntypedActor {
 							
 							return 
 								tx.insert(harvestJob)
-									.set(harvestJob.jobId, jobId)				
+									.set(harvestJob.jobId, jobId.get())				
 									.set(harvestJob.dataSourceId, dataSourceId
 										.orElseThrow(() -> new IllegalArgumentException("data source not exists")))
 									.execute();

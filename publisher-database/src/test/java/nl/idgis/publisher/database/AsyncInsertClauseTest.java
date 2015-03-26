@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -42,12 +43,12 @@ public class AsyncInsertClauseTest extends AbstractDatabaseHelperTest {
 	public void testExecuteWithKey() throws Exception {
 		assertTrue(query().from(dataSource).notExists());
 		
-		CompletableFuture<Integer> future = db.insert(dataSource)
+		CompletableFuture<Optional<Integer>> future = db.insert(dataSource)
 			.set(dataSource.identification, "id")
 			.set(dataSource.name, "name")		
 			.executeWithKey(dataSource.id);
 		
-		Integer generatedKey = future.get(2, TimeUnit.SECONDS);
+		Integer generatedKey = future.get(2, TimeUnit.SECONDS).get();
 		assertNotNull(generatedKey);
 		
 		Integer queryResult = query()
