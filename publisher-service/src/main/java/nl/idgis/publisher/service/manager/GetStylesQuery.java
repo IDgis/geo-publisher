@@ -15,6 +15,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -22,12 +23,12 @@ import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 
-public class GetStylesQuery extends AbstractServiceQuery<List<Style>> {
+public class GetStylesQuery extends AbstractServiceQuery<List<Style>, AsyncSQLQuery> {
 	
 	private final String serviceId;
 
 	GetStylesQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String serviceId) {
-		super(log, f, tx);
+		super(log, f, tx.query());
 		
 		this.serviceId = serviceId;
 	}

@@ -119,7 +119,7 @@ public class ServiceManager extends UntypedActor {
 						tx.getTransactionRef(), 
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
-							new PublishServiceQuery(log, tx, service, msg.getEnvironmentIds())
+							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentIds())
 								.result()));
 	}
 
