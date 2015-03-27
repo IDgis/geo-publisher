@@ -22,6 +22,7 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
@@ -101,11 +102,25 @@ public class ServiceManager extends UntypedActor {
 			toSender(handlePublishService((PublishService)msg));
 		} else if(msg instanceof GetPublishedService) {
 			toSender(handleGetPublishedService((GetPublishedService)msg));
+		} else if(msg instanceof GetPublishedStyles) {
+			handleGetPublishedStyles((GetPublishedStyles)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private void handleGetPublishedStyles(GetPublishedStyles msg) {
+		ActorRef self = getSelf(), sender = getSender();
+		db.transactional(msg, tx -> 
+			new GetPublishedStylesQuery(log, f, tx, msg.getServiceId()).result()).whenComplete((result, t) -> {
+				if(t == null) {
+					self.tell(new CreateStyleCursor(result), sender);
+				} else {
+					sender.tell(new Failure(t), self);
+				}
+			});
+	}
+
 	private CompletableFuture<Object> handleGetPublishedService(GetPublishedService msg) {
 		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, f, tx, msg.getServiceId()).result());
 	}
