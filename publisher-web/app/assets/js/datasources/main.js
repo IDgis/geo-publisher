@@ -6,6 +6,8 @@ require ([
     'dojo/on',
     'dojo/request/xhr',
     
+    'dojo/NodeList-dom',
+    
 	'dojo/domReady!'
 ], function (
 	query,
@@ -16,20 +18,12 @@ require ([
 	xhr
 ) {
 	
-	console.log('hello world!');
-	
 	var cvsOptions = query('#csv-options');	
 	var csvOptionsShow = query ('#cvs-options-show');
 	var csvOptionsHide = query ('#cvs-options-hide');
 	
-	console.log(cvsOptions);
-	console.log(csvOptionsShow);
-	console.log(csvOptionsHide);
-	
 	csvOptionsShow.on ('click', function (e) {
 		e.preventDefault ();
-		
-		console.log('show clicked');
 		
 		domClass.add(csvOptionsShow[0], "hide");		
 		domClass.remove(cvsOptions[0], "hide");
@@ -37,8 +31,6 @@ require ([
 	
 	csvOptionsHide.on ('click', function (e) {
 		e.preventDefault ();
-		
-		console.log('hide clicked');
 		
 		domClass.remove(csvOptionsShow[0], "hide");		
 		domClass.add(cvsOptions[0], "hide");
@@ -78,6 +70,8 @@ require ([
 		});
 	});
 	
+	
+	
 	refreshButtons.on ('click', function (e) {
 		e.preventDefault ();
 		e.stopPropagation ();
@@ -93,13 +87,17 @@ require ([
 		} else {
 			url = jsRoutes.controllers.DataSources.refreshDatasources ().url;
 		}
+		
+		var refreshItem = query ('#js-datasource-refresh-data'),
+			refreshSuccess = refreshItem.attr ('data-refresh-success')[0],
+			refreshFailure = refreshItem.attr ('data-refresh-failure')[0];
 	
 		xhr.post (url, {
 			handleAs: 'json'
 		}).then (function () {
-			topic.publish ('publisher/notification', 'info', 'Verversen van brongegevens is ingepland');
+			topic.publish ('publisher/notification', 'info', refreshSuccess);
 		}, function () {
-			topic.publish ('publisher/notification', 'danger', 'Verversen van brongegevens kon niet worden ingepland');
+			topic.publish ('publisher/notification', 'danger', refreshFailure);
 		});
 	});
 });

@@ -398,6 +398,8 @@ web.application.page.sourcedatasets.list.errorsBoth=Met en zonder fouten
 web.application.page.sourcedatasets.list.errorsWith=Met fouten
 web.application.page.sourcedatasets.list.errorsWithout=Zonder fouten
 web.application.page.sourcedatasets.list.button.refresh=Brongegevens verversen
+web.application.page.sourcedatasets.list.button.refresh.success=Verversen van brongegevens is ingepland
+web.application.page.sourcedatasets.list.button.refresh.failure=Verversen van brongegevens kon niet worden ingepland
 
 # DataSources
 web.application.page.datasources.title=Gegevensbronnen
