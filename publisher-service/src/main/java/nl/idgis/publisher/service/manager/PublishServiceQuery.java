@@ -115,10 +115,11 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 												publishedServiceStyle.name,
 												publishedServiceStyle.definition)
 											.select(new SQLSubQuery().from(style)
-												.where(withServiceStructure.from(serviceStructure)
+												// TODO: get service filter listed below working properly													
+												/*.where(withServiceStructure.from(serviceStructure)
 													.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
 														.and(serviceStructure.styleIdentification.eq(style.identification)))
-													.exists())
+													.exists())*/
 												.list(
 													serviceId.get(),
 													style.identification,
