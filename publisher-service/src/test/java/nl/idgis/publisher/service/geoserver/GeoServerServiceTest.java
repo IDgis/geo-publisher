@@ -77,6 +77,10 @@ import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
+import nl.idgis.publisher.service.provisioning.ConnectionInfo;
+import nl.idgis.publisher.service.provisioning.ProvisioningManager;
+import nl.idgis.publisher.service.provisioning.ServiceInfo;
+import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -230,7 +234,7 @@ public class GeoServerServiceTest {
 	
 	FutureUtils f;
 	
-	ActorRef serviceManager, geoServerService, recorder;
+	ActorRef serviceManager, provisioningManager, recorder;
 		
 	@BeforeClass
 	public static void testServers() throws Exception {
@@ -273,20 +277,27 @@ public class GeoServerServiceTest {
 		
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
-		Config geoserverConfig = ConfigFactory.empty()
-			.withValue("url", ConfigValueFactory.fromAnyRef("http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/"))
-			.withValue("user", ConfigValueFactory.fromAnyRef("admin"))
-			.withValue("password", ConfigValueFactory.fromAnyRef("geoserver"))
-			.withValue("schema", ConfigValueFactory.fromAnyRef("staging_data"));
+		ActorRef database = actorSystem.actorOf(DatabaseMock.props(), "database");
 		
-		Config databaseConfig = ConfigFactory.empty()
-			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test"))
-			.withValue("user", ConfigValueFactory.fromAnyRef("postgres"))
-			.withValue("password", ConfigValueFactory.fromAnyRef("postgres"));
+		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager), "provisioning-manager");
 		
-		ActorRef database = actorSystem.actorOf(DatabaseMock.props());
+		ActorRef updateServiceInfoRecorder = actorSystem.actorOf(AnyRecorder.props(), "update-service-info-recorder");
 		
-		geoServerService = actorSystem.actorOf(GeoServerService.props(database, serviceManager, geoserverConfig, databaseConfig));
+		provisioningManager.tell(new AddStagingService(new ServiceInfo(
+			new ConnectionInfo(
+					"http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/",
+					"admin",
+					"geoserver"),
+			
+			new ConnectionInfo(
+					"jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test",
+					"postgres",
+					"postgres"))), 
+					
+			updateServiceInfoRecorder);
+		
+		// wait for update acknowledgement
+		f.ask(updateServiceInfoRecorder, new Wait(1), Waited.class).get();
 		
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
 	}
@@ -342,7 +353,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
 		
-		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -410,7 +421,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
 		
-		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -466,7 +477,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
 		
-		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		f.ask(recorder, new Clear(), Cleared.class).get();
@@ -482,7 +493,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
 		
-		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -536,7 +547,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
 		
-		geoServerService.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -571,7 +582,7 @@ public class GeoServerServiceTest {
 			// includes the default styles to prevent other tests from running properly
 			Arrays.asList("point", "line", "polygon", "raster", "style"))), Ack.class).get();
 		
-		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		provisioningManager.tell(new VacuumServiceJobInfo(0), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -592,7 +603,7 @@ public class GeoServerServiceTest {
 		
 		f.ask(recorder, new Clear(), Cleared.class).get();
 		
-		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		provisioningManager.tell(new VacuumServiceJobInfo(0), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
@@ -609,7 +620,7 @@ public class GeoServerServiceTest {
 			
 		f.ask(recorder, new Clear(), Cleared.class).get();
 		
-		geoServerService.tell(new VacuumServiceJobInfo(0), recorder);
+		provisioningManager.tell(new VacuumServiceJobInfo(0), recorder);
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		

@@ -23,7 +23,7 @@ public class MetadataGenerator extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, service, harvester;
+	private final ActorRef database, harvester;
 	
 	private AsyncDatabaseHelper db;
 	
@@ -33,9 +33,8 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private FutureUtils f;
 	
-	public MetadataGenerator(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		this.database = database;
-		this.service = service;
+	public MetadataGenerator(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		this.database = database;		
 		this.harvester = harvester;
 		this.serviceMetadataSource = serviceMetadataSource;
 		this.datasetMetadataTarget = datasetMetadataTarget;
@@ -43,8 +42,8 @@ public class MetadataGenerator extends UntypedActor {
 		this.constants = constants;
 	}
 	
-	public static Props props(ActorRef database, ActorRef service, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		return Props.create(MetadataGenerator.class, database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
+	public static Props props(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		return Props.create(MetadataGenerator.class, database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
 	}
 	
 	@Override

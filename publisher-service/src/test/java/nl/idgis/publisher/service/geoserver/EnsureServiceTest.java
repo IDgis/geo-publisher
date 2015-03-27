@@ -48,11 +48,15 @@ import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import static java.util.Collections.singleton;
 
 public class EnsureServiceTest {
 	
@@ -167,14 +171,16 @@ public class EnsureServiceTest {
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof Ensure) {
-				ActorRef ensureService = getContext().actorOf(EnsureService.props(), nameGenerator.getName(EnsureService.class));
+				ActorRef infoCollector = getContext().actorOf(
+					InfoCollector.props(singleton(getSelf())), 
+					nameGenerator.getName(EnsureService.class));
 				
 				Ensure ensure = (Ensure)msg;
 				ensure.getMessages().stream()
-					.forEach(item -> ensureService.tell(item, getSelf()));
+					.forEach(item -> infoCollector.tell(item, getSelf()));
 				
-				getContext().watch(ensureService);
-				getContext().become(provisioning(getSender()), false);				
+				getContext().watch(infoCollector);
+				getContext().become(provisioning(getSender()), false);
 			} else {
 				log.error("unexpected: {}", msg);
 			}

@@ -29,8 +29,9 @@ import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
-import nl.idgis.publisher.service.geoserver.GeoServerService;
 import nl.idgis.publisher.service.manager.ServiceManager;
+import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
+import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -171,15 +172,16 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(database, harvester), "loader");
 		
-		Config geoserverConfig = config.getConfig("geoserver");
-		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		final ActorRef service = getContext().actorOf(GeoServerService.props(database, serviceManager, geoserverConfig, databaseConfig), "service");
+		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()));
 		
-		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, service), "jobs");
+		Config geoserverConfig = config.getConfig("geoserver");
+		// TODO: provide service information to provision manager
 		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, service, jobSystem, serviceManager), "admin");
+		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager), "jobs");
+		
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningManager, jobSystem, serviceManager), "admin");
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
@@ -187,7 +189,7 @@ public class ServiceApp extends UntypedActor {
 		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")));
 		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")));		
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, service, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
 		getContext().system().scheduler().schedule(
 				Duration.create(10, TimeUnit.SECONDS), 
 				Duration.create(10, TimeUnit.SECONDS),

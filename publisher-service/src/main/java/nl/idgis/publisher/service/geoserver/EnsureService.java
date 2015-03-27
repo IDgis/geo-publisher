@@ -1,6 +1,5 @@
 package nl.idgis.publisher.service.geoserver;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
@@ -31,53 +31,40 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.manager.messages.Style;
-import nl.idgis.publisher.stream.messages.End;
-import nl.idgis.publisher.stream.messages.NextItem;
 
 public class EnsureService extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private Service service;
+	private final ActorRef target;
 	
-	private List<Style> styles;
+	private final Service service;
 	
-	private boolean stylesReceived;
+	private final List<Style> styles;
+	
+	public EnsureService(ActorRef target, Service service, List<Style> styles) {
+		this.target = target;
+		this.service = service;
+		this.styles = styles;
+	}
 	
 	private Set<String> layerNames;
 	
-	public static Props props() {
-		return Props.create(EnsureService.class);
+	public static Props props(ActorRef target, Service service, List<Style> styles) {
+		return Props.create(EnsureService.class, target, service, styles);
 	}
 	
 	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 		
-		styles = new ArrayList<>();
-		stylesReceived = false;
-		
 		layerNames = new HashSet<>();
+		processStyles();
 	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {			
 			handleReceiveTimeout();
-		} else if(msg instanceof Service) {
-			log.debug("service received");
-			
-			service = (Service)msg;
-			handleContentReceived();
-		} else if(msg instanceof Style) {
-			log.debug("style received");
-			
-			styles.add((Style)msg);
-			getSender().tell(new NextItem(), getSelf());
-		} else if(msg instanceof End) {
-			log.debug("all styles received");
-			
-			stylesReceived = true;			
-			handleContentReceived();
 		} else if(msg instanceof Ensured) {
 			log.debug("ensured (root)");
 			
@@ -111,7 +98,7 @@ public class EnsureService extends UntypedActor {
 						if(layerRef.isGroupRef()) {
 							GroupLayer layer = layerRef.asGroupRef().getLayer();
 							
-							getContext().parent().tell(
+							target.tell(
 								new EnsureGroupLayer(
 									getUniqueLayerName(layer.getName()), 
 									layer.getTitle(), 
@@ -139,7 +126,7 @@ public class EnsureService extends UntypedActor {
 									.collect(Collectors.toList());
 							}
 							
-							getContext().parent().tell(
+							target.tell(
 								new EnsureFeatureTypeLayer(
 									getUniqueLayerName(layer.getName()), 
 									layer.getTitle(), 
@@ -156,7 +143,7 @@ public class EnsureService extends UntypedActor {
 					} else {
 						log.debug("unbecome {}", depth);
 						
-						getContext().parent().tell(new FinishEnsure(), getSelf());
+						target.tell(new FinishEnsure(), getSelf());
 						getContext().unbecome();
 					}
 				} else {
@@ -180,7 +167,7 @@ public class EnsureService extends UntypedActor {
 					
 					if(itr.hasNext()) {
 						Style style = itr.next();
-						getContext().parent().tell(new EnsureStyle(style.getStyleName(), style.getSld()), getSelf());
+						target.tell(new EnsureStyle(style.getStyleName(), style.getSld()), getSelf());
 					} else {
 						getContext().become(receive());
 						processService();
@@ -193,16 +180,6 @@ public class EnsureService extends UntypedActor {
 			}
 		};
 	}
-	
-	private void handleContentReceived() {
-		if(service == null || !stylesReceived) {
-			return;
-		}
-		
-		log.debug("service and style info received");
-		
-		processStyles();
-	}
 
 	private void processStyles() {
 		getSelf().tell(new Ensured(), getSelf());
@@ -210,7 +187,7 @@ public class EnsureService extends UntypedActor {
 	}
 
 	private void processService() {
-		getContext().parent().tell(
+		target.tell(
 			new EnsureWorkspace(
 				service.getName(), 
 				service.getTitle(),

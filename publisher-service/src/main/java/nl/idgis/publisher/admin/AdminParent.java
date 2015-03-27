@@ -5,23 +5,23 @@ import akka.actor.Props;
 
 public class AdminParent extends AbstractAdminParent {
 
-	private final ActorRef database, harvester, loader, service, jobSystem, serviceManager;
+	private final ActorRef database, harvester, loader, provisioning, jobSystem, serviceManager;
 	
-	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem, ActorRef serviceManager) {
+	public AdminParent(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem, ActorRef serviceManager) {
 		this.database = database;
 		this.harvester = harvester;
 		this.loader = loader;
-		this.service = service;
+		this.provisioning = provisioning;
 		this.jobSystem = jobSystem;
 		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem, ActorRef serviceManager) {
-		return Props.create(AdminParent.class, database, harvester, loader, service, jobSystem, serviceManager);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem, ActorRef serviceManager) {
+		return Props.create(AdminParent.class, database, harvester, loader, provisioning, jobSystem, serviceManager);
 	}
 	
 	protected void createActors() {
-		createAdminActor(Admin.props(database, harvester, loader, service, jobSystem), "admin");
+		createAdminActor(Admin.props(database, harvester, loader, provisioning, jobSystem), "admin");
 		createAdminActor(DataSourceAdmin.props(database, harvester), "data-source");
 		createAdminActor(CategoryAdmin.props(database), "category");
 		createAdminActor(DatasetAdmin.props(database), "dataset");
