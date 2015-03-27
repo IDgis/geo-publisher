@@ -225,6 +225,24 @@ require ([
 	// =========================================================================
 	// Filter editor:
 	// =========================================================================
+	var filterItem = query ('#dataset-filters'),
+		dataFiltersEquals = filterItem.attr ('data-filters-equals')[0],
+		dataFiltersNotEquals = filterItem.attr ('data-filters-not-equals')[0],
+		dataFiltersLessThan = filterItem.attr ('data-filters-less-than')[0],
+		dataFiltersLessThanEqual = filterItem.attr ('data-filters-less-than-equal')[0],
+		dataFiltersGreaterThan = filterItem.attr ('data-filters-greater-than')[0],
+		dataFiltersGreaterThanEqual = filterItem.attr ('data-filters-greater-than-equal')[0],
+		dataFiltersLike = filterItem.attr ('data-filters-like')[0],
+		dataFiltersIn = filterItem.attr ('data-filters-in')[0],
+		dataFiltersNotNull = filterItem.attr ('data-filters-not-null')[0],
+		dataFiltersArea = filterItem.attr ('data-filters-area')[0],
+		dataFiltersOperation = filterItem.attr ('data-filters-operation')[0],
+		dataFiltersColumn = filterItem.attr ('data-filters-column')[0],
+		dataFiltersMissingColumn = filterItem.attr ('data-filters-missing-column')[0],
+		dataFiltersConditionOne = filterItem.attr ('data-filters-condition-one')[0],
+		dataFiltersConditionAll = filterItem.attr ('data-filters-condition-all')[0],
+		dataFiltersOr = filterItem.attr ('data-filters-or')[0];
+	
 	var filterTextarea = query ('textarea[name="filterConditions"]')[0],
 		filterEditorNode = dom.byId ('filter-editor'),
 		typeOperatorMapping = {
@@ -235,39 +253,39 @@ require ([
 		},
 		operatorProperties = {
 			EQUALS: {
-				label: 'gelijk aan',
+				label: dataFiltersEquals,
 				arity: 2
 			},
 			NOT_EQUALS: {
-				label: 'ongelijk aan',
+				label: dataFiltersNotEquals,
 				arity: 2
 			},
 			LESS_THAN: {
-				label: 'minder dan',
+				label: dataFiltersLessThan,
 				arity: 2
 			},
 			LESS_THAN_EQUAL: {
-				label: 'minder dan of gelijk aan',
+				label: dataFiltersLessThanEqual,
 				arity: 2
 			},
 			GREATER_THAN: {
-				label: 'groter dan',
+				label: dataFiltersGreaterThan,
 				arity: 2
 			},
 			GREATER_THAN_EQUAL: {
-				label: 'groter dan of gelijk aan',
+				label: dataFiltersGreaterThanEqual,
 				arity: 2
 			},
 			LIKE: {
-				label: 'komt overeen met patroon',
+				label: dataFiltersLike,
 				arity: 2
 			},
 			IN: {
-				label: 'komt voor in lijst',
+				label: dataFiltersIn,
 				arity: 2
 			},
 			NOT_NULL: {
-				label: 'heeft een waarde',
+				label: dataFiltersNotNull,
 				arity: 1
 			}
 		},
@@ -307,7 +325,7 @@ require ([
 			if (type == 'GEOMETRY') {
 				columns.push ({
 					name: name + '.area', 
-					label: 'Oppervlakte ' + name + ' (NUMERIC)',
+					label: dataFiltersArea + ' ' + name + ' (NUMERIC)',
 					type: 'NUMERIC'
 				});
 			}
@@ -435,7 +453,7 @@ require ([
 		}
 		
 		// Add the empty operator:
-		domAttr.set (put (d.operatorSelect, 'option[value=$]' + (!d.operator || d.operator === '' ? '[selected]' : '') + ' $', '', 'Operatie ...'), 'value', '');
+		domAttr.set (put (d.operatorSelect, 'option[value=$]' + (!d.operator || d.operator === '' ? '[selected]' : '') + ' $', '', dataFiltersOperation), 'value', '');
 
 		// Add the operators that apply to this column type:
 		var hasSelection = !d.operator || d.operator === '';
@@ -478,7 +496,7 @@ require ([
 			d.columnSelect, 
 			'option[value=$]' + (!d.column || d.column === '' ? '[selected]' : '')+ ' $',
 			'',
-			'Kies een kolom ...'
+			dataFiltersColumn
 		), 'value', '');
 		
 		// Add the column values:
@@ -502,7 +520,7 @@ require ([
 				name = d.column.substring (0, offset),
 				type = d.column.substring (offset + 1);
 			
-			put (d.columnSelect, 'option[value="-"][selected] span.text-danger $', 'Ontbrekende kolom: ' + name + ' (' + type + ')');
+			put (d.columnSelect, 'option[value="-"][selected] span.text-danger $', dataFiltersMissingColumn + ' ' + name + ' (' + type + ')');
 			domClass.add (d.columnSelect.parentNode, 'has-error');
 		} else {
 			domClass.remove (d.columnSelect.parentNode, 'has-error');
@@ -636,12 +654,12 @@ require ([
 		domClass.add (list, 'js-list');
 
 		// Create header:
-		put (header, 'div.col-lg-10 $', isAnd ? 'Alle onderstaande condities zijn waar' : 'Tenminste één van onderstaande condities is waar');
+		put (header, 'div.col-lg-10 $', isAnd ? dataFiltersConditionAll : dataFiltersConditionOne);
 		d.removeButton = put (header, 'div.col-lg-2.text-right button[type="button"].btn.btn-warning span.glyphicon.glyphicon-remove <');
 		
 		for (var i = 0; i < children.length; ++ i) {
 			if (!isAnd && i > 0) {
-				put (list, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', 'Of');
+				put (list, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', dataFiltersOr);
 			}
 			put (list, children[i]);
 		}
@@ -756,7 +774,7 @@ require ([
 				type: 'operator',
 				operatorType: 'AND'
 			};
-			put (listNode, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', 'Of');
+			put (listNode, 'div.js-filter-separator.filter-separator.filter-separator-or.text-center.h3 span.label.label-info $', dataFiltersOr);
 		}
 
 		put (listNode, buildExpression (expression));

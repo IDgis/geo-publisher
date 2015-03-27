@@ -102,7 +102,9 @@
 				<form class="form-horizontal" role="form" method="GET" action="@pageRef()">
 					@* Refresh source datasets button: *@
 					<div class="form-group">
-						<div class="col-sm-12">
+						<div class="col-sm-12" id="js-datasource-refresh-data"
+							data-refresh-success="@Domain.message("web.application.page.sourcedatasets.list.button.refresh.success")"
+							data-refresh-failure="@Domain.message("web.application.page.sourcedatasets.list.button.refresh.failure")">
 							<a href="#" class="btn btn-success js-datasource-refresh col-sm-12" title="@Domain.message("web.application.page.sourcedatasets.list.button.refresh")"><span class="js-icon glyphicon glyphicon-refresh"></span> @Domain.message("web.application.page.sourcedatasets.list.button.refresh")</a>
 						</div>
 					</div>

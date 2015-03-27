@@ -68,7 +68,7 @@ define ([
 			
 			query ('.term, .add-term', this.containerNode).forEach (function (n) { put (n, '!'); })
 			
-			this.addButton = put (this.containerNode, 'a.label.label-default.add-term[href="#"][title=$] span.glyphicon.glyphicon-plus <', 'Item toevoegen');
+			this.addButton = put (this.containerNode, 'a.label.label-default.add-term[href="#"] span.glyphicon.glyphicon-plus <');
 			
 			array.forEach (values, function (value) {
 				var label = value[0],

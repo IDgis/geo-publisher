@@ -127,7 +127,24 @@
 					</div>
 				</div>
 				
-				<div class="tab-pane" id="dataset-filters">
+				<div class="tab-pane" id="dataset-filters"
+					data-filters-equals="@Domain.message("web.application.page.datasets.form.tab.filters.equals")"
+					data-filters-not-equals="@Domain.message("web.application.page.datasets.form.tab.filters.notequals")"
+					data-filters-less-than="@Domain.message("web.application.page.datasets.form.tab.filters.lessthan")"
+					data-filters-less-than-equal="@Domain.message("web.application.page.datasets.form.tab.filters.lessthanequal")"
+					data-filters-greater-than="@Domain.message("web.application.page.datasets.form.tab.filters.greaterthan")"
+					data-filters-greater-than-equal="@Domain.message("web.application.page.datasets.form.tab.filters.greaterthanequal")"
+					data-filters-like="@Domain.message("web.application.page.datasets.form.tab.filters.like")"
+					data-filters-in="@Domain.message("web.application.page.datasets.form.tab.filters.in")"
+					data-filters-not-null="@Domain.message("web.application.page.datasets.form.tab.filters.notnull")"
+					
+					data-filters-area="@Domain.message("web.application.page.datasets.form.tab.filters.area")"
+					data-filters-operation="@Domain.message("web.application.page.datasets.form.tab.filters.operation")"
+					data-filters-column="@Domain.message("web.application.page.datasets.form.tab.filters.column")"
+					data-filters-missing-column="@Domain.message("web.application.page.datasets.form.tab.filters.missing.column")"
+					data-filters-condition-one="@Domain.message("web.application.page.datasets.form.tab.filters.condition.one")"
+					data-filters-condition-all="@Domain.message("web.application.page.datasets.form.tab.filters.condition.all")"
+					data-filters-or="@Domain.message("web.application.page.datasets.form.tab.filters.or")">
 					<div class="row">
 						<div class="col-lg-12">
 							@if(!datasetForm("filterConditions").errors.isEmpty) {
