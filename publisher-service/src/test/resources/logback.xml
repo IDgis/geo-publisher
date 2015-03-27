@@ -12,6 +12,10 @@
   -->
   
   <!--
+  <logger name="nl.idgis.publisher.service.provisioning" level="debug"/>
+  -->
+  
+  <!--
   <logger name="nl.idgis.publisher.service.manager.ServiceManager" level="debug"/>
   -->  
   
