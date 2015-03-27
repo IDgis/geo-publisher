@@ -4,7 +4,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import akka.actor.ActorRef;
 
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
 
@@ -42,24 +45,25 @@ class DefaultRecording implements Recording {
 	
 	@Override
 	public <T> Recording assertNext(Class<T> clazz) throws Exception {
-		return assertNext(null, clazz, null);
+		return assertNext(null, clazz, (BiConsumer<T, ActorRef>)null);
 	}
 	
 	@Override
 	public <T> Recording assertNext(String message, Class<T> clazz) throws Exception {
-		return assertNext(message, clazz, null);
+		return assertNext(message, clazz, (BiConsumer<T, ActorRef>)null);
 	}
 	
 	@Override
-	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
+	public <T> Recording assertNext(Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception {
 		return assertNext(null, clazz, procedure);
 	}
 	
 	@Override	
-	public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
+	public <T> Recording assertNext(String message, Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception {
 		assertHasNext(message);
 		
-		Object val = iterator.next().getMessage();
+		RecordedMessage recordedMessage = iterator.next();
+		Object val = recordedMessage.getMessage();
 		
 		if(message == null) {
 			assertTrue("expected: " + clazz.getCanonicalName() + " was: " 
@@ -69,9 +73,19 @@ class DefaultRecording implements Recording {
 		}
 		
 		if(procedure != null) {
-			procedure.accept(clazz.cast(val));
+			procedure.accept(clazz.cast(val), recordedMessage.getSender());
 		}
 		
 		return this;
+	}
+
+	@Override
+	public <T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception {
+		return assertNext(clazz, (t, sender) -> procedure.accept(t));
+	}
+
+	@Override
+	public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
+		return assertNext(message, clazz, (t, sender) -> procedure.accept(t));
 	}
 }
