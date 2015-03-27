@@ -30,8 +30,11 @@ import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.service.manager.ServiceManager;
+import nl.idgis.publisher.service.provisioning.ConnectionInfo;
 import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
+import nl.idgis.publisher.service.provisioning.ServiceInfo;
+import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -174,10 +177,21 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()));
+		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), "provisioning-manager");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
-		// TODO: provide service information to provision manager
+		provisioningManager.tell(new AddStagingService(new ServiceInfo(
+				new ConnectionInfo(
+					geoserverConfig.getString("url"),
+					geoserverConfig.getString("user"),
+					geoserverConfig.getString("password")),
+					
+				new ConnectionInfo(		
+					databaseConfig.getString("url"),
+					databaseConfig.getString("user"),
+					databaseConfig.getString("password")))),
+					
+				getSelf());
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager), "jobs");
 		
