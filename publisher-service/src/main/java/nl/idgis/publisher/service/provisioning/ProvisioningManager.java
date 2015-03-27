@@ -42,7 +42,9 @@ import nl.idgis.publisher.service.provisioning.messages.UpdateServiceInfo;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 import static java.util.Collections.singletonList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 
 public class ProvisioningManager extends UntypedActor {
@@ -98,6 +100,8 @@ public class ProvisioningManager extends UntypedActor {
 			handleUpdateServiceInfo((UpdateServiceInfo)msg);
 		} else if(msg instanceof ServiceJobInfo) {			
 			handleServiceJobInfo((ServiceJobInfo)msg);
+		} else if(msg instanceof GetActiveJobs) {
+			getSender().tell(new ActiveJobs(emptyList()), getSelf());
 		} else {
 			unhandled(msg);
 		}
