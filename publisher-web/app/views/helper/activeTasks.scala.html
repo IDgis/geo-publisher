@@ -20,7 +20,7 @@
 					@if(tasks.values.isEmpty) {
 						@Domain.message("web.application.none")
 					} else {
-						@tasks.values.size
+						@if(tasks.hasMorePages){&gt; }@tasks.values.size
 					}
 				</p>
 			</div>
@@ -31,7 +31,18 @@
 		@for(task <- tasks.values) {
 			<li class="list-group-item task">
 				<div>
-					<strong>@task.title</strong>
+					@if(task.active){
+						<strong>@task.title</strong>
+						<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+					}else{
+						<strong>@task.title</strong> 
+						@if(task.message().properties() != null){
+							@task.message().properties().getIdentification()
+							<div class="text-muted">
+								@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @task.message().properties().getTitle()
+							</div>
+						}
+					}
 				</div>
 				@if(task.progress != null) {
 					<div class="progress progress-striped active" >
@@ -41,12 +52,11 @@
 						</div>
 					</div>
 				}
-				<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
 			</li>
 		}
 	</ul>
 	
-	<a href="@routes.Logging.messages()">
+	<a href="@routes.Logging.tasks()">
 		<div class="panel-footer">
 			<div class="row">
 				<div class="col-xs-10">

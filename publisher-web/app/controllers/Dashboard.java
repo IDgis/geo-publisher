@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import models.Domain.Function4;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
+import nl.idgis.publisher.domain.query.ListActiveTasks;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.ActiveTask;
@@ -40,6 +41,7 @@ public class Dashboard extends Controller {
 		
 		final ListIssues listIssues;
 		final ListActiveNotifications listNotifications;
+		final ListActiveTasks listActiveTasks;
 		
 		// Determine the last time errors have been displayed:
 		final Http.Cookie messagesLastTime = request ().cookie ("messagesDisplayTime");
@@ -63,22 +65,24 @@ public class Dashboard extends Controller {
 		
 		// List active notifications:
 		listNotifications = new ListActiveNotifications (false, null, 0l, (long)notificationCount); 
+		// List active tasks current and recent (last 24 h), only a few items (5) visible 
+		listActiveTasks = new ListActiveTasks(new Timestamp(new java.util.Date().getTime() - (24*3600*1000)), 1L, 5L);
 		
 		return from (database)
-				.list (DataSource.class)
-				.query (listNotifications)
-				.list (ActiveTask.class)
-				.query (listIssues)
-				.execute (new Function4<Page<DataSource>, Page<Notification>, Page<ActiveTask>, Page<Issue>, Result> () {
-					@Override
-					public Result apply (
-							final Page<DataSource> dataSources, 
-							final Page<Notification> notifications, 
-							final Page<ActiveTask> activeTasks, 
-							final Page<Issue> issues) throws Throwable {
+			.list (DataSource.class)
+			.query (listNotifications)
+			.query (listActiveTasks)
+			.query (listIssues)
+			.execute (new Function4<Page<DataSource>, Page<Notification>, Page<ActiveTask>, Page<Issue>, Result> () {
+				@Override
+				public Result apply (
+					final Page<DataSource> dataSources, 
+					final Page<Notification> notifications, 
+					final Page<ActiveTask> activeTasks, 
+					final Page<Issue> issues) throws Throwable {
 						return ok(index.render (dataSources, notifications, activeTasks, issues));
-					}
-				});
+				}
+			});
 
 	}
 }

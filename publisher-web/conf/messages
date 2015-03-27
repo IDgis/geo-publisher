@@ -3,8 +3,10 @@
 # --------------
 nl.idgis.publisher.domain.job.JobType.HARVEST.ACTIVE=Bezig met harvesten
 nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
+nl.idgis.publisher.domain.job.JobType.SERVICE.ACTIVE=Bezig met service
 nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.job.JobType.IMPORT=import
+nl.idgis.publisher.domain.job.JobType.SERVICE=service
 
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
@@ -178,7 +180,22 @@ web.application.log.messages.list.alert.noissues=Er zijn geen meldingen gevonden
 web.application.log.messages.list.alert.adapt=Pas de criteria aan of toon 
 web.application.log.messages.list.alert.show=alle meldingen
 
-web.application.log.tasks.title=Logboek - Taken
+web.application.log.tasks.title=Logboek - Systeem taken
+web.application.log.tasks.header=Systeem taken
+web.application.log.tasks.alert.header=Nieuwe systeem taken.
+web.application.log.tasks.alert.text=Er zijn nieuwe systeem taken gerapporteerd.
+web.application.log.tasks.alert.ref=Toon systeem taken.
+web.application.log.tasks.list.alert.notasks=Er zijn geen systeem taken gevonden.
+web.application.log.tasks.list.alert.adapt=Pas de criteria aan of toon 
+web.application.log.tasks.list.alert.show=Alle systeem taken
+web.application.log.tasks.list.now=momenteel
+web.application.log.tasks.list.hasrun=uitgevoerd
+web.application.log.tasks.list.running=in uitvoering
+web.application.log.tasks.list.heading.type=Type
+web.application.log.tasks.list.heading.name=Naam
+web.application.log.tasks.list.heading.time=Tijd
+web.application.log.tasks.list.heading.result=Resultaat
+web.application.log.tasks.list.heading.progress=Voortgang
 
 # Dashboard
 web.application.page.dashboard.title=Dashboard
