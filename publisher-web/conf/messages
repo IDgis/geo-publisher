@@ -139,9 +139,10 @@ web.application.filters.published.unpublished=Ongepubliceerd
 web.application.layout.togglenavigation=Toggle navigation
 web.application.layout.nodatasetswithstructuralchange=geen datasets met structuurwijziging
 web.application.layout.alldatasetswitherrors=Alle datasets met meldingen
-web.application.layout.notasks=geen actieve taken
+web.application.layout.notasks=geen systeem taken
 web.application.layout.noerrors=geen nieuwe fouten
 web.application.layout.showlog=Bekijk logboek
+web.application.layout.showtasks=Bekijk systeem taken
 web.application.layout.showerrorlog=Bekijk foutlogboek
 web.application.layout.profile=Profiel
 web.application.layout.logout=Afmelden
@@ -166,7 +167,7 @@ web.application.layout.sidebar.categories=Categorieën
 web.application.layout.sidebar.tiledlayers=Tiled lagen
 web.application.layout.sidebar.logging=Logging
 web.application.layout.sidebar.log=Logboek
-web.application.layout.sidebar.log.tasks=Taken
+web.application.layout.sidebar.log.tasks=Systeem taken
 web.application.layout.sidebar.log.errors=Foutmeldingen
 
 # Logging
@@ -200,6 +201,7 @@ web.application.log.tasks.list.heading.progress=Voortgang
 # Dashboard
 web.application.page.dashboard.title=Dashboard
 web.application.page.dashboard.showlog=Bekijk logboek
+web.application.page.dashboard.showtasklog=Bekijk systeem taken
 web.application.page.dashboard.showerrorlog=Bekijk foutlogboek
 web.application.page.dashboard.alldatasetswitherrors=Alle datatasets met meldingen
 web.application.page.dashboard.nodatasetswitherrors=Geen datatasets met meldingen

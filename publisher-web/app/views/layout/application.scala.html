@@ -69,7 +69,7 @@
 							<li class="divider"></li>
 							<li class="divider"></li>
 							<li>
-								<a href="#" class="text-center">@Domain.message("web.application.layout.showlog") <span class="glyphicon glyphicon-chevron-right"></span></a>
+								<a href="#" class="text-center">@Domain.message("web.application.layout.showtasks") <span class="glyphicon glyphicon-chevron-right"></span></a>
 							</li>
 						</ul>
 					</li>
@@ -143,7 +143,7 @@
 					<li>
 						<a data-target="#logging-menu" data-toggle="collapse" href="#"><span class="glyphicon glyphicon-stats"></span> @Domain.message("web.application.layout.sidebar.log") <span class="caret"></span></a>
 						<ul id="logging-menu" class="collapse nav nav-second-level">
-							@* <li><a href="@routes.Logging.tasks()">@Domain.message("web.application.layout.sidebar.log.tasks")</a></li> *@
+							<li><a href="@routes.Logging.tasks()">@Domain.message("web.application.layout.sidebar.log.tasks")</a></li>
 							@navItem(routes.Logging.messages().url) {
 								@Domain.message("web.application.layout.sidebar.log.errors")
 							}
