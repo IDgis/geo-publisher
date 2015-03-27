@@ -168,6 +168,9 @@
 							data-dataset-id="@dataset.id"
 							data-dataset-name="@dataset.name"
 							
+							data-refresh-success="@Domain.message("web.application.page.datasets.list.refresh.success", dataset.name)"
+							data-refresh-failure="@Domain.message("web.application.page.datasets.list.refresh.failure", dataset.name)"
+							
 							data-warning-pre-title="@Domain.message("web.application.removing")"
 							data-warning-title="@dataset.name"
 							data-warning-delete-link="@routes.Datasets.delete(dataset.id)"

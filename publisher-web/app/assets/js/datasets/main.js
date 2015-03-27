@@ -38,7 +38,9 @@ require ([
 	
 			var datasetItem = query (this).closest ('.js-dataset-item'), 
 				datasetId = datasetItem.attr ('data-dataset-id')[0],
-				datasetName = datasetItem.attr ('data-dataset-name')[0];
+				datasetName = datasetItem.attr ('data-dataset-name')[0],
+				datasetRefreshSuccess = datasetItem.attr ('data-refresh-success')[0],
+				datasetRefreshFailure = datasetItem.attr ('data-refresh-failure')[0];
 		
 			domClass.add (query ('.js-icon', this)[0], 'rotating');
 			
@@ -46,12 +48,12 @@ require ([
 				handleAs: 'json'
 			}).then (function (data) {
 				if (data.result && data.result == 'ok') {
-					topic.publish ('publisher/notification', 'success', 'Verversen van dataset ' + datasetName + ' ingepland.');
+					topic.publish ('publisher/notification', 'success', datasetRefreshSuccess);
 				} else {
-					topic.publish ('publisher/notification', 'danger', 'Kan verversen van dataset ' + datasetName + ' niet inplannen.');
+					topic.publish ('publisher/notification', 'danger', datasetRefreshFailure);
 				}
 			}, function () {
-				topic.publish ('publisher/notification', 'danger', 'Kan verversen van dataset ' + datasetName + ' niet inplannen.');
+				topic.publish ('publisher/notification', 'danger', datasetRefreshFailure);
 			});
 		});
 	}
