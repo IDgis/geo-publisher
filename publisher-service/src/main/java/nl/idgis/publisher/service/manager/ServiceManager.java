@@ -5,6 +5,7 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
@@ -131,7 +132,7 @@ public class ServiceManager extends UntypedActor {
 				f.ask(
 					getSelf(), 
 					new GetService(
-						tx.getTransactionRef(), 
+						Optional.of(tx.getTransactionRef()), 
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
 							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentIds())

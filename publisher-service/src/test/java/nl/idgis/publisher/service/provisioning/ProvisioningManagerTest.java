@@ -18,9 +18,13 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
+import nl.idgis.publisher.DatabaseMock;
 import nl.idgis.publisher.domain.job.JobState;
-
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -33,9 +37,11 @@ import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
+import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
 import nl.idgis.publisher.service.provisioning.messages.RemovePublicationService;
 import nl.idgis.publisher.service.provisioning.messages.RemoveStagingService;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.TypedList;
 
 public class ProvisioningManagerTest  {
 	
@@ -157,6 +163,69 @@ public class ProvisioningManagerTest  {
 		}
 	};
 	
+	public static class ServiceManagerResponse {
+		
+		private final Object request;
+		
+		public ServiceManagerResponse(Object request) {
+			this.request = request;
+		}
+		
+		public Object getRequest() {
+			return request;
+		}
+	}
+	
+	public static class ServiceManagerMock extends UntypedActor {		
+		
+		static Props props() {
+			return Props.create(ServiceManagerMock.class);
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			getSender().tell(new ServiceManagerResponse(msg), getSelf());
+		}
+	}
+	
+	public static class EnvironmentInfoProviderMock extends UntypedActor {
+		
+		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+		
+		private final ActorRef database;
+		
+		private FutureUtils f;
+		
+		private AsyncDatabaseHelper db;
+		
+		public EnvironmentInfoProviderMock(ActorRef database) {
+			this.database = database;
+		}
+		
+		public static Props props(ActorRef database) {
+			return Props.create(EnvironmentInfoProviderMock.class, database);
+		}
+		
+		@Override
+		public void preStart() throws Exception {
+			f = new FutureUtils(getContext());
+			db = new AsyncDatabaseHelper(database, f, log);
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			if(msg instanceof GetEnvironments) {
+				ActorRef sender = getSender();
+				db.transactional((GetEnvironments)msg, tx ->
+					f.successful(new TypedList<>(String.class, Arrays.asList("environmentId")))).thenAccept(resp ->
+						sender.tell(resp, getSelf()));
+			} else {
+				unhandled(msg);
+			}
+		}
+		
+	}
+	
 	FutureUtils f;
 	
 	ActorSystem actorSystem;
@@ -173,8 +242,9 @@ public class ProvisioningManagerTest  {
 		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
 		provisioningManager = actorSystem.actorOf(
 			ProvisioningManager.props(
-				actorSystem.deadLetters(),
-				actorSystem.deadLetters(),
+				actorSystem.actorOf(DatabaseMock.props()),
+				actorSystem.actorOf(ServiceManagerMock.props()),
+				
 				new ProvisioningPropsFactory() {
 					
 					@Override
@@ -185,6 +255,11 @@ public class ProvisioningManagerTest  {
 					@Override
 					public Props ensureJobProps(Set<ActorRef> targets) {
 						return JobActor.props(recorder, targets);
+					}
+
+					@Override
+					public Props environmentInfoProviderProps(ActorRef database) {
+						return EnvironmentInfoProviderMock.props(database);
 					}
 				}));
 		

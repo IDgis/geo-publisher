@@ -24,6 +24,10 @@ public class AskResponse<T> implements Serializable {
 	public ActorRef getSender() {
 		return sender;
 	}
+	
+	public void forward(ActorRef actorRef) {
+		actorRef.tell(msg, sender);
+	}
 
 	@Override
 	public String toString() {

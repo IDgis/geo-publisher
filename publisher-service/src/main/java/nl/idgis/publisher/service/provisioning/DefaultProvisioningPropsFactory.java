@@ -31,4 +31,9 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 	public Props ensureJobProps(Set<ActorRef> targets) {
 		return InfoCollector.props(targets);
 	}
+
+	@Override
+	public Props environmentInfoProviderProps(ActorRef database) {
+		return EnvironmentInfoProvider.props(database);
+	}
 }

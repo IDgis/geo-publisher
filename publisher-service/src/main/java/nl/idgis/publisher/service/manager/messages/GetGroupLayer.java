@@ -15,11 +15,11 @@ public class GetGroupLayer implements Serializable, AsyncTransactional {
 	private final String groupLayerId;
 	
 	public GetGroupLayer(String groupLayerId) {
-		this(null, groupLayerId);
+		this(Optional.empty(), groupLayerId);
 	}
 
-	public GetGroupLayer(AsyncTransactionRef transactionRef, String groupLayerId) {
-		this.transactionRef = transactionRef;
+	public GetGroupLayer(Optional<AsyncTransactionRef> transactionRef, String groupLayerId) {
+		this.transactionRef = transactionRef.orElse(null);
 		this.groupLayerId = groupLayerId;
 	}
 	

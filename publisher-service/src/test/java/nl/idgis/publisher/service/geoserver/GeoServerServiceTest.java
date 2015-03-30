@@ -40,10 +40,9 @@ import akka.actor.UntypedActor;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
-import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.Rollback;
-import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
+import nl.idgis.publisher.DatabaseMock;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
@@ -78,13 +77,17 @@ import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.provisioning.ConnectionInfo;
+import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
+import nl.idgis.publisher.service.provisioning.ProvisioningManagerTest.EnvironmentInfoProviderMock;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
+import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
 import nl.idgis.publisher.stream.ListCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
+import nl.idgis.publisher.utils.TypedList;
 
 public class GeoServerServiceTest {
 	
@@ -147,40 +150,7 @@ public class GeoServerServiceTest {
 		}
 	}
 	
-	static class TransactionMock extends UntypedActor {
-		
-		public static Props props() {
-			return Props.create(TransactionMock.class);
-		}
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof Commit || msg instanceof Rollback) {
-				getSender().tell(new Ack(), getSelf());
-				getContext().stop(getSelf());
-			} else {
-				unhandled(msg);
-			}
-		}
-	}
 	
-	static class DatabaseMock extends UntypedActor {
-		
-		public static Props props() {
-			return Props.create(DatabaseMock.class);
-		}
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof StartTransaction) {
-				getSender().tell(new TransactionCreated(
-					getContext().actorOf(TransactionMock.props())), getSelf());
-			} else {
-				unhandled(msg);
-			}
-		}
-		
-	}
 	
 	static class ServiceManagerMock extends UntypedActor {
 		
@@ -224,6 +194,44 @@ public class GeoServerServiceTest {
 				unhandled(msg);
 			}
 		}
+	}
+	
+	public static class EnvironmentInfoProviderMock extends UntypedActor {
+		
+		private final LoggingAdapter log = Logging.getLogger();
+		
+		private final ActorRef database;
+		
+		private FutureUtils f;
+		
+		private AsyncDatabaseHelper db;
+		
+		public EnvironmentInfoProviderMock(ActorRef database) {
+			this.database = database;
+		}
+		
+		public static Props props(ActorRef database) {
+			return Props.create(EnvironmentInfoProviderMock.class, database);
+		}
+		
+		@Override
+		public void preStart() throws Exception {
+			f = new FutureUtils(getContext());
+			db = new AsyncDatabaseHelper(database, f, log);
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			if(msg instanceof GetEnvironments) {
+				ActorRef sender = getSender();
+				db.transactional((GetEnvironments)msg, tx ->
+					f.successful(new TypedList<>(String.class, Arrays.asList("environmentId")))).thenAccept(resp ->
+						sender.tell(resp, getSelf()));
+			} else {
+				unhandled(msg);
+			}
+		}
+		
 	}
 	
 	static LoggingAdapter log = Logging.getLogger();
@@ -279,7 +287,14 @@ public class GeoServerServiceTest {
 		
 		ActorRef database = actorSystem.actorOf(DatabaseMock.props(), "database");
 		
-		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager), "provisioning-manager");
+		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory() {
+
+			@Override
+			public Props environmentInfoProviderProps(ActorRef database) {				
+				return EnvironmentInfoProviderMock.props(database);
+			}
+			
+		}), "provisioning-manager");
 		
 		ActorRef updateServiceInfoRecorder = actorSystem.actorOf(AnyRecorder.props(), "update-service-info-recorder");
 		
@@ -590,7 +605,7 @@ public class GeoServerServiceTest {
 			rest.getWorkspaces().get().stream()
 				.map(workspace -> workspace.getName())
 				.collect(Collectors.toSet())
-					.contains("workspace"));			
+					.contains("workspace"));
 		assertTrue(
 			rest.getStyles().get().stream()
 				.map(style -> style.getName())
