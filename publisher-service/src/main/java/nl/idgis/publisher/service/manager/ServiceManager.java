@@ -3,8 +3,14 @@ package nl.idgis.publisher.service.manager;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
+import static nl.idgis.publisher.database.QEnvironment.environment;
+
+import static java.util.Collections.emptyMap;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -23,6 +29,7 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
@@ -31,6 +38,7 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.PublishService;
+import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.ListCursor;
@@ -105,6 +113,8 @@ public class ServiceManager extends UntypedActor {
 			toSender(handleGetPublishedService((GetPublishedService)msg));
 		} else if(msg instanceof GetPublishedStyles) {
 			handleGetPublishedStyles((GetPublishedStyles)msg);
+		} else if(msg instanceof GetPublishedServiceIndex) {
+			toSender(handleGetPublishedServiceIndex((GetPublishedServiceIndex)msg));
 		} else {
 			unhandled(msg);
 		}
@@ -164,6 +174,10 @@ public class ServiceManager extends UntypedActor {
 					sender.tell(new Failure(t), self);
 				}
 			});
+	}
+	
+	private CompletableFuture<PublishedServiceIndex> handleGetPublishedServiceIndex(GetPublishedServiceIndex msg) {
+		return f.successful(new PublishedServiceIndex(emptyMap()));					
 	}
 
 	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {
