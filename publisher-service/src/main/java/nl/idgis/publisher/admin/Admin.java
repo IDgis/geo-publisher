@@ -193,9 +193,9 @@ public class Admin extends AbstractAdmin {
 				.leftJoin(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.leftJoin(nl.idgis.publisher.database.QService.service).on(serviceJob.serviceId.eq(nl.idgis.publisher.database.QService.service.id))
 				.leftJoin(genericLayer).on(nl.idgis.publisher.database.QService.service.genericLayerId.eq(genericLayer.id))			
-				.orderBy(jobState.createTime.desc(),job.type.asc(),job.createTime.desc())
+				.orderBy(jobState.createTime.desc(),job.createTime.desc(),job.type.asc())
 				.where(job.createTime.between(since, new Timestamp(new java.util.Date().getTime()))
-					.and(jobState.state.ne("STARTED"))
+					.and(jobState.state.isNull().or(jobState.state.ne("STARTED")))
 				);
 
 	}
