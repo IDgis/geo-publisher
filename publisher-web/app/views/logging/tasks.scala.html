@@ -1,7 +1,88 @@
-@()
+@(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
+
+@import nl.idgis.publisher.domain.MessageProperties
+@import nl.idgis.publisher.domain.web._
+
+@pageRef(targetPage: Long) = @{
+	routes.Logging.tasksWithPaging (targetPage)	  
+}
 
 @layout.application(
 	title = Domain.message("web.application.log.tasks.title"),
 	jsMain = routes.Assets.at("js/logging/main.js").url
 ) {
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.log.tasks.header")</h1>
+	<div class="row">
+		@* List of log tasks: *@
+		<div class="col-lg-12">
+			@if(tasks.values.isEmpty) {
+				<div class="alert alert-info">
+					@Domain.message("web.application.log.tasks.list.alert.notasks")
+					<a href="@routes.Logging.tasks()">@Domain.message("web.application.log.tasks.list.alert.show")</a>.
+				</div>
+			} else {
+				@helper.pagination(tasks, pageRef)
+				<div class="list-group">
+						<div class="row">
+							<div class="col-lg-1">
+								<strong>@Domain.message("web.application.log.tasks.list.heading.type")</strong>
+							</div>
+							<div class="col-lg-4">
+								<strong>@Domain.message("web.application.log.tasks.list.heading.name")</strong>
+							</div>
+							<div class="col-lg-2">
+								<strong>@Domain.message("web.application.log.tasks.list.heading.time")</strong>
+							</div>
+							<div class="col-lg-2">
+								<strong>@Domain.message("web.application.log.tasks.list.heading.result")</strong>
+							</div>
+							<div class="col-lg-3">
+								<strong>@Domain.message("web.application.log.tasks.list.heading.progress")</strong>
+							</div>
+						</div>
+				@for(task <- tasks.values) {
+					<div class="list-group-item js-style-item">
+						<div class="row">
+							<div class="col-lg-1">
+								<strong>@task.title</strong>
+							</div>
+							<div class="col-lg-4">
+								@if(task.message().properties() != null){
+									@task.message().properties().getIdentification()
+								}
+							</div>
+							<div class="col-lg-2">
+								@if(task.time() != null) {
+									@{new org.joda.time.LocalDateTime(task.time().getTime()).toString("dd-MM-yyyy HH:mm:ss")}
+								}else{
+									@Domain.message("web.application.log.tasks.list.now")
+								}
+							</div>
+							<div class="col-lg-2">
+								@if(task.message().properties() != null) {
+									@task.message().properties().getTitle()
+								}
+							</div>
+							<div class="col-lg-3">
+								@if(task.progress != null) {
+									<div class="progress progress-striped active" >
+										<div class="progress-bar progress-bar-success" role="progressbar" 
+										  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+										  @task.progress%
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					</div>
+				}
+				</div>
+			} 
+		</div>
+		
+	</div>
+</div>
+
 }

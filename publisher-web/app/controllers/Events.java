@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import models.Domain;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
+import nl.idgis.publisher.domain.query.ListActiveTasks;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.ActiveTask;
@@ -169,6 +170,7 @@ public class Events extends Controller {
 
 			final ListIssues listIssues;
 			final ListActiveNotifications listNotifications;
+			final ListActiveTasks listActiveTasks;
 			
 			// List active issues:
 			listIssues = new ListIssues (
@@ -180,9 +182,11 @@ public class Events extends Controller {
 			
 			// List active notifications:
 			listNotifications = new ListActiveNotifications (false, null, 0l, (long)notificationCount);
+			// List active tasks current and recent (last 24 h), only a few items (5) visible 
+			listActiveTasks = new ListActiveTasks(new Timestamp(new java.util.Date().getTime() - (24*3600*1000)), 1L, 5L);
 			
 			final Promise<EventInfo> eventInfo = from (database)
-				.list (ActiveTask.class)
+				.query (listActiveTasks)
 				.query (listNotifications)
 				.query (listIssues)
 				.execute (new Domain.Function3<Page<ActiveTask>, Page<Notification>, Page<Issue>, EventInfo> () {

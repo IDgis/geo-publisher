@@ -3,8 +3,10 @@
 # --------------
 nl.idgis.publisher.domain.job.JobType.HARVEST.ACTIVE=Bezig met harvesten
 nl.idgis.publisher.domain.job.JobType.IMPORT.ACTIVE=Bezig met importeren
+nl.idgis.publisher.domain.job.JobType.SERVICE.ACTIVE=Bezig met service
 nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.job.JobType.IMPORT=import
+nl.idgis.publisher.domain.job.JobType.SERVICE=service
 
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
@@ -137,9 +139,10 @@ web.application.filters.published.unpublished=Ongepubliceerd
 web.application.layout.togglenavigation=Toggle navigation
 web.application.layout.nodatasetswithstructuralchange=geen datasets met structuurwijziging
 web.application.layout.alldatasetswitherrors=Alle datasets met meldingen
-web.application.layout.notasks=geen actieve taken
+web.application.layout.notasks=geen systeem taken
 web.application.layout.noerrors=geen nieuwe fouten
 web.application.layout.showlog=Bekijk logboek
+web.application.layout.showtasks=Bekijk systeem taken
 web.application.layout.showerrorlog=Bekijk foutlogboek
 web.application.layout.profile=Profiel
 web.application.layout.logout=Afmelden
@@ -164,7 +167,7 @@ web.application.layout.sidebar.categories=Categorieën
 web.application.layout.sidebar.tiledlayers=Tiled lagen
 web.application.layout.sidebar.logging=Logging
 web.application.layout.sidebar.log=Logboek
-web.application.layout.sidebar.log.tasks=Taken
+web.application.layout.sidebar.log.tasks=Systeem taken
 web.application.layout.sidebar.log.errors=Foutmeldingen
 
 # Logging
@@ -178,11 +181,27 @@ web.application.log.messages.list.alert.noissues=Er zijn geen meldingen gevonden
 web.application.log.messages.list.alert.adapt=Pas de criteria aan of toon 
 web.application.log.messages.list.alert.show=alle meldingen
 
-web.application.log.tasks.title=Logboek - Taken
+web.application.log.tasks.title=Logboek - Systeem taken
+web.application.log.tasks.header=Systeem taken
+web.application.log.tasks.alert.header=Nieuwe systeem taken.
+web.application.log.tasks.alert.text=Er zijn nieuwe systeem taken gerapporteerd.
+web.application.log.tasks.alert.ref=Toon systeem taken.
+web.application.log.tasks.list.alert.notasks=Er zijn geen systeem taken gevonden.
+web.application.log.tasks.list.alert.adapt=Pas de criteria aan of toon 
+web.application.log.tasks.list.alert.show=Alle systeem taken
+web.application.log.tasks.list.now=momenteel
+web.application.log.tasks.list.hasrun=uitgevoerd
+web.application.log.tasks.list.running=in uitvoering
+web.application.log.tasks.list.heading.type=Type
+web.application.log.tasks.list.heading.name=Naam
+web.application.log.tasks.list.heading.time=Tijd
+web.application.log.tasks.list.heading.result=Resultaat
+web.application.log.tasks.list.heading.progress=Voortgang
 
 # Dashboard
 web.application.page.dashboard.title=Dashboard
 web.application.page.dashboard.showlog=Bekijk logboek
+web.application.page.dashboard.showtasklog=Bekijk systeem taken
 web.application.page.dashboard.showerrorlog=Bekijk foutlogboek
 web.application.page.dashboard.alldatasetswitherrors=Alle datatasets met meldingen
 web.application.page.dashboard.nodatasetswitherrors=Geen datatasets met meldingen
@@ -190,14 +209,14 @@ web.application.page.dashboard.datasetwithstructuralchange=dataset met structuur
 web.application.page.dashboard.datasetswithstructuralchange=datasets met structuurwijziging
 web.application.page.dashboard.timeunknown=tijdstip onbekend
 
-web.application.page.dashboard.panel.datassource=Actieve gegevensbron
-web.application.page.dashboard.panel.datassources=Actieve gegevensbronnen
+web.application.page.dashboard.panel.datassource=Gegevensbron
+web.application.page.dashboard.panel.datassources=Gegevensbronnen
 web.application.page.dashboard.panel.datassources.status=Bekijk status
-web.application.page.dashboard.panel.notification=Melding
-web.application.page.dashboard.panel.notifications=Meldingen
-web.application.page.dashboard.panel.task=Actieve taak
-web.application.page.dashboard.panel.tasks=Actieve taken
-web.application.page.dashboard.panel.notasks=geen actieve taken
+web.application.page.dashboard.panel.notification=Openstaande actie
+web.application.page.dashboard.panel.notifications=Openstaande acties
+web.application.page.dashboard.panel.task=Systeem taak
+web.application.page.dashboard.panel.tasks=Systeem taken
+web.application.page.dashboard.panel.notasks=geen systeem taken
 web.application.page.dashboard.panel.error=Foutmelding
 web.application.page.dashboard.panel.errors=Foutmeldingen
 web.application.page.dashboard.panel.newerror=Nieuwe foutmelding

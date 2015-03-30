@@ -2,6 +2,7 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -9,10 +10,15 @@ import java.util.List;
 import java.util.Set;
 
 import models.Domain.Function;
+import models.Domain.Function4;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.query.ListActiveTasks;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.web.ActiveTask;
+import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.Notification;
 import play.Logger;
 import play.Play;
 import play.libs.Akka;
@@ -22,6 +28,7 @@ import play.mvc.Result;
 import play.mvc.Security;
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
+import views.html.index;
 import views.html.logging.messages;
 import views.html.logging.tasks;
 
@@ -76,8 +83,24 @@ public class Logging extends Controller {
 		
 	}
 	
-	public static Result tasks () {
-		return ok (tasks.render ());
+	public static Promise<Result> tasks () {
+		return tasksWithPaging(1L);
+	}
+	
+	public static Promise<Result> tasksWithPaging (final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		// List active tasks current and recent (last 24 h), one screen full with paging 
+		ListActiveTasks listActiveTasks = 
+			new ListActiveTasks(new Timestamp(new java.util.Date().getTime() - (24*3600*1000)), page, 10L);
+		
+		return from (database)
+			.query (listActiveTasks)
+			.execute (new Function<Page<ActiveTask>, Result> () {
+				@Override
+				public Result apply (final Page<ActiveTask> activeTasks) throws Throwable {
+						return ok (tasks.render (activeTasks));
+				}
+			});
 	}
 	
 	public static String logLevelsWith (final Set<LogLevel> logLevels, final LogLevel logLevel) {

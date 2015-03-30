@@ -1,12 +1,23 @@
 @(tasks: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ActiveTask])
 
-<li class="dropdown-header">@if(tasks.values.isEmpty){@Domain.message("web.application.page.dashboard.panel.notasks")}else{@tasks.values.size @if(tasks.values.size == 1){@Domain.message("web.application.page.dashboard.panel.task")}else{@Domain.message("web.application.page.dashboard.panel.tasks")}}</li>
+<li class="dropdown-header">
+	@if(tasks.values.isEmpty){
+		@Domain.message("web.application.page.dashboard.panel.notasks")
+	}else{
+		@if(tasks.hasMorePages){&gt; }@tasks.values.size 
+		@if(tasks.values.size == 1){
+			@Domain.message("web.application.page.dashboard.panel.task")
+		}else{
+			@Domain.message("web.application.page.dashboard.panel.tasks")
+		}
+	}
+</li>
 <li class="divider"></li>
 @for(task <- tasks.values) {
 	<li>
 		<a href="@routes.Dashboard.index()">
 			<div>
-				<p>@task.title</p>
+				<strong>@task.title</strong>
 			</div>
 			@if(task.progress != null) {
 				<div class="progress progress-striped active" >
@@ -16,11 +27,20 @@
 					</div>
 				</div>
 			}
-			<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+			@if(task.active){
+				<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+			}else{
+				@if(task.message().properties() != null){
+					@task.message().properties().getIdentification()
+					<div class="text-muted">
+						@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @task.message().properties().getTitle()
+					</div>
+				}
+			}
 		</a>
 	</li>
 }
 <li class="divider"></li>
 <li>
-	<a href="@routes.Logging.messages()" class="text-center">@Domain.message("web.application.page.dashboard.showlog") <span class="glyphicon glyphicon-chevron-right"></span></a>
+	<a href="@routes.Logging.tasks()" class="text-center">@Domain.message("web.application.page.dashboard.showtasklog") <span class="glyphicon glyphicon-chevron-right"></span></a>
 </li>

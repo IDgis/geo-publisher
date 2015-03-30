@@ -4,10 +4,17 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +44,7 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.query.HarvestDatasources;
+import nl.idgis.publisher.domain.query.ListActiveTasks;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListIssues;
@@ -53,10 +60,14 @@ import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.JobStatusType;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
+import nl.idgis.publisher.domain.web.Status;
+import nl.idgis.publisher.domain.web.DataSourceStatusType;
+import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -64,12 +75,14 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
+import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import com.google.common.collect.Iterables;
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.ExpressionUtils;
@@ -101,16 +114,15 @@ public class Admin extends AbstractAdmin {
 	protected void preStartAdmin() {
 		
 		doList(Notification.class, this::handleListDashboardNotifications);
-		doList(ActiveTask.class, this::handleListDashboardActiveTasks);
 		doList(Issue.class, this::handleListDashboardIssues);
+		doQuery(ListActiveTasks.class, this::handleListDashboardActiveTasks);
 		
 		doGet(SourceDataset.class, this::handleGetSourceDataset);
 		
 		// TODO: put
 		
 		// TODO: delete
-		
-		
+			
 		doQuery(ListIssues.class, this::handleListIssues);
 		doQuery(ListSourceDatasetColumns.class, this::handleListSourceDatasetColumns);
 		doQuery(ListDatasetColumns.class, this::handleListDatasetColumns);		
@@ -165,8 +177,109 @@ public class Admin extends AbstractAdmin {
 		return handleListIssues (new ListIssues (LogLevel.WARNING.andUp ()));
 	}
 	
-	private CompletableFuture<Page<ActiveTask>> handleListDashboardActiveTasks() {
-		log.debug ("handleDashboardActiveTaskList");
+	
+	private AsyncSQLQuery recentJobsBaseQuery(Timestamp since){
+		return
+				db.query().from(job)
+				// if there is not jobState (yet), assume the job is planned
+				.leftJoin(jobState).on(jobState.jobId.eq(job.id))
+				// harvest job and datasource 
+				.leftJoin(harvestJob).on(harvestJob.jobId.eq(job.id))
+				.leftJoin(dataSource).on(harvestJob.dataSourceId.eq(dataSource.id))
+				// import job and dataset 
+				.leftJoin(importJob).on(importJob.jobId.eq(job.id))
+				.leftJoin(dataset).on(importJob.datasetId.eq(dataset.id))
+				// service job and generic layer 
+				.leftJoin(serviceJob).on(serviceJob.jobId.eq(job.id))
+				.leftJoin(nl.idgis.publisher.database.QService.service).on(serviceJob.serviceId.eq(nl.idgis.publisher.database.QService.service.id))
+				.leftJoin(genericLayer).on(nl.idgis.publisher.database.QService.service.genericLayerId.eq(genericLayer.id))			
+				.orderBy(jobState.createTime.desc(),job.createTime.desc(),job.type.asc())
+				.where(job.createTime.between(since, new Timestamp(new java.util.Date().getTime()))
+					.and(jobState.state.isNull().or(jobState.state.ne("STARTED")))
+				);
+
+	}
+
+	private CompletableFuture<TypedList<Tuple>> recentJobsListQuery(AsyncSQLQuery baseQuery, Long page, Long limit){
+		AsyncSQLQuery listQuery = baseQuery.clone();
+		return listQuery.limit(limit)
+			.offset((page - 1) * limit)
+			.list(
+				job.type,
+				job.createTime,
+				jobState.state,
+				jobState.createTime,
+				dataSource.name,
+				dataset.name,
+				genericLayer.name
+			);
+	}
+	
+	private CompletableFuture<List<ActiveTask>> handleRecentJobs(AsyncSQLQuery baseQuery, Long page, Long limit) {
+		log.debug("fetching recent jobs");
+		return
+			recentJobsListQuery(baseQuery, page, limit)
+				.thenApply(recentJobs -> {
+					List<ActiveTask> recentJobList = new ArrayList<>();
+					JobType jt = null ;
+					Status js = null;
+					String identifier = "";
+					Timestamp now = new Timestamp(new java.util.Date().getTime());
+					for (Tuple t : recentJobs) {
+						if (t.get(job.type).equals("HARVEST")){									
+							jt = JobType.HARVEST;
+							identifier = t.get(dataSource.name);
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(DataSourceStatusType.OK, t.get(jobState.createTime));
+								} else{
+									js = new Status(DataSourceStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+								}
+							}
+						} else if (t.get(job.type).equals("IMPORT")){
+							jt = JobType.IMPORT;
+							identifier = t.get(dataset.name);
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(DatasetImportStatusType.IMPORTED, t.get(jobState.createTime));
+								} else{
+									js = new Status(DatasetImportStatusType.NOT_IMPORTED, t.get(jobState.createTime));
+								}
+							}
+						} else if (t.get(job.type).equals("SERVICE")){
+							jt = JobType.SERVICE;
+							identifier = t.get(genericLayer.name);
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(JobStatusType.OK, t.get(jobState.createTime));
+								} else{
+									js = new Status(JobStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+								}
+							}
+						}
+//						log.debug("\t"+jt + ", " +identifier+ ", " + js );
+						recentJobList.add(
+							new ActiveTask(
+								"", 
+								jt.toString(), 
+								new Message(jt, new DefaultMessageProperties (
+									null, identifier, 
+									js.type().toString())
+								), js.since())
+						); 
+					}
+					return recentJobList;
+				});
+	}
+	
+	private CompletableFuture<Page<ActiveTask>> handleListDashboardActiveTasks(ListActiveTasks listActiveTasks) {
+		log.debug ("handleDashboardActiveTaskList, since=" + listActiveTasks.getSince () + ", page=" + listActiveTasks.getPage () + ", limit=" + listActiveTasks.getLimit ());
 		
 		CompletableFuture<Object> dataSourceInfo = f.ask(database, new GetDataSourceInfo());
 		CompletableFuture<Object> harvestJobs = f.ask(harvester, new GetActiveJobs());
@@ -184,27 +297,26 @@ public class Admin extends AbstractAdmin {
 			return retval;
 		});
 		
-		
-		final CompletableFuture<Iterable<ActiveTask>> activeHarvestTasks = 
+		final CompletableFuture<List<ActiveTask>> activeHarvestTasks = 
 			harvestJobs.thenCompose(msg -> {
 				final ActiveJobs activeJobs = (ActiveJobs)msg;
 				
-				return dataSourceNames.thenApply(dsn -> {
-					List<ActiveTask> activeTasks = new ArrayList<>();
+				return dataSourceNames.thenCompose(dsn -> {
+					List<CompletableFuture<ActiveTask>> activeTasks = new ArrayList<>();
 					
 					for(ActiveJob activeJob : activeJobs.getActiveJobs()) {
 						HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
 						 
 						activeTasks.add(
-							new ActiveTask(
+								f.successful(new ActiveTask(
 									"" + harvestJob.getId(), 
 									dsn.get(harvestJob.getDataSourceId()), 
 									new Message(JobType.HARVEST, new DefaultMessageProperties (
 											EntityType.DATA_SOURCE, harvestJob.getDataSourceId (), dsn.get(harvestJob.getDataSourceId()))), 
-									null));
+											new Timestamp(new java.util.Date().getTime()))));
 					}
 					
-					return activeTasks;					
+					return f.sequence(activeTasks);					
 				});			
 		});
 		
@@ -251,22 +363,46 @@ public class Admin extends AbstractAdmin {
 										"" + job.getId(), 
 										"", 
 										new Message(JobType.SERVICE, null),
-										null)));
+										new Timestamp(new java.util.Date().getTime()))));
 							}
 							
 							return f.sequence(activeTasks);
 						});					
 				});
 		
-		return activeHarvestTasks.thenCompose(harvestTasks -> {
-			return activeDatasetTasks.thenApply(loaderTasks -> {
-				Iterable<ActiveTask> tasks = Iterables.concat(harvestTasks, loaderTasks);
+			return activeHarvestTasks.thenCompose(harvestTasks -> {
+				return activeDatasetTasks.thenCompose(loaderTasks -> {
+					final AsyncSQLQuery jobsBaseQuery = 
+						recentJobsBaseQuery(listActiveTasks.getSince());
+					return jobsBaseQuery
+						.count()
+						.thenCompose(count -> {
+							return handleRecentJobs(jobsBaseQuery, listActiveTasks.getPage(), listActiveTasks.getLimit())
+								.thenApply(recentJobs -> {
+									Builder<ActiveTask> builder = new Page.Builder<>();
 				
-				Builder<ActiveTask> builder = new Page.Builder<>();
-				for(ActiveTask activeTask : tasks) {
-					builder.add(activeTask);
-				}
-				return builder.build();
+									final Long totalCount = count + harvestTasks.size() + loaderTasks.size();
+									// Paging:
+									Long limit = listActiveTasks.getLimit();
+									long pages = totalCount / limit + Math.min(1, totalCount % limit);
+									if(pages > 1) {
+										builder
+											.setHasMorePages(true)
+											.setPageCount(pages)
+											.setCurrentPage(listActiveTasks.getPage ());
+									} else {
+										builder
+										.setHasMorePages(false)
+										.setPageCount(pages)
+										.setCurrentPage(1L);
+									}
+									builder.addAll(harvestTasks);
+									builder.addAll(loaderTasks);
+									builder.addAll(recentJobs);
+									log.debug(">>> pages: " + pages + ", page=" + builder.getCurrentPage() + ", count=" + totalCount + ", pcount=" + builder.getPageCount() + " <<<");
+									return builder.build();
+									});				
+						});				
 			});				
 		});
 	}
