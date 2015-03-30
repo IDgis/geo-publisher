@@ -60,6 +60,7 @@ import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Issue;
+import nl.idgis.publisher.domain.web.JobStatusType;
 import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
@@ -180,7 +181,8 @@ public class Admin extends AbstractAdmin {
 	private AsyncSQLQuery recentJobsBaseQuery(Timestamp since){
 		return
 				db.query().from(job)
-				.join(jobState).on(jobState.jobId.eq(job.id))
+				// if there is not jobState (yet), assume the job is planned
+				.leftJoin(jobState).on(jobState.jobId.eq(job.id))
 				// harvest job and datasource 
 				.leftJoin(harvestJob).on(harvestJob.jobId.eq(job.id))
 				.leftJoin(dataSource).on(harvestJob.dataSourceId.eq(dataSource.id))
@@ -222,30 +224,43 @@ public class Admin extends AbstractAdmin {
 					JobType jt = null ;
 					Status js = null;
 					String identifier = "";
+					Timestamp now = new Timestamp(new java.util.Date().getTime());
 					for (Tuple t : recentJobs) {
 						if (t.get(job.type).equals("HARVEST")){									
 							jt = JobType.HARVEST;
 							identifier = t.get(dataSource.name);
-							if (t.get(jobState.state).equals("SUCCEEDED")) {
-								js = new Status(DataSourceStatusType.OK, t.get(jobState.createTime));
-							} else{
-								js = new Status(DataSourceStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(DataSourceStatusType.OK, t.get(jobState.createTime));
+								} else{
+									js = new Status(DataSourceStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+								}
 							}
 						} else if (t.get(job.type).equals("IMPORT")){
 							jt = JobType.IMPORT;
 							identifier = t.get(dataset.name);
-							if (t.get(jobState.state).equals("SUCCEEDED")) {
-								js = new Status(DatasetImportStatusType.IMPORTED, t.get(jobState.createTime));
-							} else{
-								js = new Status(DatasetImportStatusType.NOT_IMPORTED, t.get(jobState.createTime));
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(DatasetImportStatusType.IMPORTED, t.get(jobState.createTime));
+								} else{
+									js = new Status(DatasetImportStatusType.NOT_IMPORTED, t.get(jobState.createTime));
+								}
 							}
 						} else if (t.get(job.type).equals("SERVICE")){
 							jt = JobType.SERVICE;
 							identifier = t.get(genericLayer.name);
-							if (t.get(jobState.state).equals("SUCCEEDED")) {
-								js = new Status(DataSourceStatusType.OK, t.get(jobState.createTime));
-							} else{
-								js = new Status(DataSourceStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+							if (t.get(jobState.state) == null){
+								js = new Status(JobStatusType.PLANNED, now);
+							} else {
+								if (t.get(jobState.state).equals("SUCCEEDED")) {
+									js = new Status(JobStatusType.OK, t.get(jobState.createTime));
+								} else{
+									js = new Status(JobStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+								}
 							}
 						}
 //						log.debug("\t"+jt + ", " +identifier+ ", " + js );
