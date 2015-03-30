@@ -2,12 +2,16 @@ package nl.idgis.publisher.job.manager.messages;
 
 public class EnsureServiceJobInfo extends ServiceJobInfo {	
 
-	private static final long serialVersionUID = -5565063840815339459L;
+	private static final long serialVersionUID = 1836336574151204818L;
 	
 	private final String serviceId;	
 	
 	public EnsureServiceJobInfo(int id, String serviceId) {
-		super(id);
+		this(id, serviceId, false);
+	}
+	
+	public EnsureServiceJobInfo(int id, String serviceId, boolean published) {
+		super(id, published);
 		
 		this.serviceId = serviceId;
 	}
@@ -18,6 +22,8 @@ public class EnsureServiceJobInfo extends ServiceJobInfo {
 
 	@Override
 	public String toString() {
-		return "EnsureServiceJobInfo [serviceId=" + serviceId + "]";
+		return "EnsureServiceJobInfo [serviceId=" + serviceId + ", published="
+				+ published + "]";
 	}
+	
 }
