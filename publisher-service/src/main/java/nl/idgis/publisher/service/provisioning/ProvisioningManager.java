@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -18,7 +19,9 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -30,8 +33,10 @@ import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
@@ -253,11 +258,15 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		private final TypedList<String> environmentIds;
 		
 		private final List<AskResponse<Object>> responses;
+		
+		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, List<AskResponse<Object>> responses) {
+			this(initiator, jobInfo, responses, Optional.empty());
+		}
 	
-		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, TypedList<String> environmentIds, List<AskResponse<Object>> responses) {
+		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, List<AskResponse<Object>> responses, Optional<TypedList<String>> environmentIds) {
 			this.initiator = initiator;
 			this.jobInfo = jobInfo;
-			this.environmentIds = environmentIds;
+			this.environmentIds = environmentIds.orElse(null);
 			this.responses = responses;			
 		}
 
@@ -269,8 +278,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			return jobInfo;
 		}
 
-		public TypedList<String> getEnvironmentIds() {
-			return environmentIds;
+		public Optional<TypedList<String>> getEnvironmentIds() {
+			return Optional.ofNullable(environmentIds);
 		}
 
 		public List<AskResponse<Object>> getResponses() {
@@ -284,13 +293,11 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		EnsureServiceJobInfo jobInfo = msg.getJobInfo();
 		ActorRef initiator = msg.getInitiator();
 		
-		Set<ActorRef> targets;
-		if(jobInfo.isPublished()) {
-			targets = publication(msg.getEnvironmentIds().list());			
-		} else {
-			targets = staging();				
-		}
-		
+		Set<ActorRef> targets =		
+			msg.getEnvironmentIds()
+				.map(environmentIds -> publication(environmentIds.list()))
+				.orElse(staging());
+
 		ActorRef jobHandler = getContext().actorOf(
 				provisioningPropsFactory.ensureJobProps(targets),
 				nameGenerator.getName(msg.getClass()));
@@ -300,6 +307,14 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			response.forward(jobHandler));
 		
 		getContext().become(provisioning(jobInfo, initiator, jobHandler, targets));
+	}
+	
+	@SuppressWarnings("unchecked")
+	private CompletableFuture<TypedList<String>> getEnvironments(Optional<AsyncTransactionRef> transactionRef, String serviceId) {
+		return f.ask(
+			environmentInfoProvider, 
+			new GetEnvironments(transactionRef, serviceId), 
+			TypedList.class).thenApply(environmentIds -> (TypedList<String>)environmentIds.cast(String.class)); 
 	}
 	
 	private void handleServiceJobInfo(ServiceJobInfo msg) {
@@ -317,15 +332,23 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			db.transactional(tx -> {
 				Optional<AsyncTransactionRef> transactionRef = Optional.of(tx.getTransactionRef());
 				
-				return				
-					f.ask(environmentInfoProvider, new GetEnvironments(transactionRef, serviceId), TypedList.class).thenCompose(environmentIds ->			
-					f.askWithSender(serviceManager, new GetService(transactionRef, serviceId)).thenCompose(service ->
-					f.askWithSender(serviceManager, new GetStyles(transactionRef, serviceId)).thenApply(styles ->
-						new StartProvisioning(
-								initiator, 
-								jobInfo, 
-								(TypedList<String>)environmentIds.cast(String.class), 
-								asList(service, styles)))));
+				return jobInfo.isPublished()
+					? 
+						f.askWithSender(serviceManager, new GetPublishedService(transactionRef, serviceId)).thenCompose(service ->
+						f.askWithSender(serviceManager, new GetPublishedStyles(transactionRef, serviceId)).thenCompose(styles ->
+						getEnvironments(transactionRef, serviceId).thenApply(environmentIds ->					
+							new StartProvisioning(
+									initiator, 
+									jobInfo, 
+									asList(service, styles),
+									Optional.of(environmentIds)))))
+					:
+						f.askWithSender(serviceManager, new GetService(transactionRef, serviceId)).thenCompose(service ->
+						f.askWithSender(serviceManager, new GetStyles(transactionRef, serviceId)).thenApply(styles ->
+							new StartProvisioning(
+									initiator, 
+									jobInfo, 
+									asList(service, styles))));
 			
 			}).thenAccept(result -> self.tell(result, self));
 			
