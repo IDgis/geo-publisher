@@ -44,7 +44,7 @@ public class LayerGroupCommonAdmin extends AbstractAdmin {
 						    .map(name -> 
 						        tx
 					            .insert(tiledLayerMimeformat)
-					            .set(tiledLayerMimeformat.tiledLayerId, tlId) 
+					            .set(tiledLayerMimeformat.tiledLayerId, tlId.get()) 
 			            		.set(tiledLayerMimeformat.mimeformat, name)
 					            .execute())
 						    .collect(Collectors.toList()));

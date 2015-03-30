@@ -10,16 +10,19 @@ import java.util.concurrent.CompletableFuture;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
-public class GetServicesWithDatasetQuery extends AbstractServiceQuery<TypedList<String>> {
+public class GetServicesWithDatasetQuery extends AbstractServiceQuery<TypedList<String>, AsyncSQLQuery> {
 
 	private final String datasetId;
 
 	GetServicesWithDatasetQuery (final LoggingAdapter log, final FutureUtils f, final AsyncHelper tx, final String datasetId) {
-		super(log, f, tx);
+		super(log, f, tx.query());
 		
 		this.datasetId = datasetId;
 	}

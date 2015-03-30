@@ -26,7 +26,7 @@ import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
-public class GetServiceQuery extends AbstractServiceQuery<Object> {
+public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery> {
 	
 	private class GroupQuery extends AbstractGroupQuery {
 
@@ -62,11 +62,14 @@ public class GetServiceQuery extends AbstractServiceQuery<Object> {
 		}
 	}
 	
+	private final AsyncHelper tx;
+	
 	private final String serviceId;
 
 	GetServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String serviceId) {		
-		super(log, f, tx);
+		super(log, f, tx.query());
 		
+		this.tx = tx;		
 		this.serviceId = serviceId;
 	}
 	

@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
+import com.mysema.query.sql.SQLCommonQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.expr.SimpleExpression;
@@ -16,12 +17,9 @@ import com.mysema.query.types.path.StringPath;
 
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.database.AsyncHelper;
-import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.utils.FutureUtils;
 
-public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
+public abstract class AbstractServiceQuery<T, U extends SQLCommonQuery<U>> extends AbstractQuery<T> {
 
 	protected final static QServiceStructure serviceStructure = new QServiceStructure("service_structure");
 	
@@ -66,17 +64,14 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 	}
 	
 	protected final FutureUtils f;
-	
-	protected final AsyncHelper tx;
-	
-	protected final AsyncSQLQuery withServiceStructure;
+		
+	protected final U withServiceStructure;
 	
 	@SuppressWarnings("unchecked")
-	protected AbstractServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx) {
+	protected AbstractServiceQuery(LoggingAdapter log, FutureUtils f, U query) {
 		super(log);
 		
 		this.f = f;
-		this.tx = tx;
 		
 		SimpleExpression<String> pathElement = Expressions.template(
 			String.class, 
@@ -84,7 +79,7 @@ public abstract class AbstractServiceQuery<T> extends AbstractQuery<T> {
 			child.id, 
 			parent.id);
 		
-		withServiceStructure = tx.query().withRecursive(serviceStructure,
+		withServiceStructure = query.withRecursive(serviceStructure,
 			serviceStructure.serviceIdentification,
 			serviceStructure.childLayerId, 
 			serviceStructure.childLayerIdentification,

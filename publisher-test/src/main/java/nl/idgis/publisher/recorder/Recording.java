@@ -1,6 +1,9 @@
 package nl.idgis.publisher.recorder;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import akka.actor.ActorRef;
 
 public interface Recording {
 
@@ -17,7 +20,11 @@ public interface Recording {
 	<T> Recording assertNext(String message, Class<T> clazz) throws Exception;
 
 	<T> Recording assertNext(Class<T> clazz, Consumer<T> procedure) throws Exception;
+	
+	<T> Recording assertNext(Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception;
 
 	<T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception;
+	
+	<T> Recording assertNext(String message, Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception;
 
 }

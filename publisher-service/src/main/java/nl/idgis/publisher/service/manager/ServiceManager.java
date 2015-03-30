@@ -15,15 +15,21 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
+import nl.idgis.publisher.domain.web.tree.Service;
+
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.ListCursor;
@@ -92,11 +98,46 @@ public class ServiceManager extends UntypedActor {
 			handleCreateStyleCursor((CreateStyleCursor)msg);
 		} else if(msg instanceof GetDatasetLayerRef) {
 			toSender(handleGetDatasetLayerRef((GetDatasetLayerRef)msg));
+		} else if(msg instanceof PublishService) {
+			toSender(handlePublishService((PublishService)msg));
+		} else if(msg instanceof GetPublishedService) {
+			toSender(handleGetPublishedService((GetPublishedService)msg));
+		} else if(msg instanceof GetPublishedStyles) {
+			handleGetPublishedStyles((GetPublishedStyles)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private void handleGetPublishedStyles(GetPublishedStyles msg) {
+		ActorRef self = getSelf(), sender = getSender();
+		db.transactional(msg, tx -> 
+			new GetPublishedStylesQuery(log, f, tx, msg.getServiceId()).result()).whenComplete((result, t) -> {
+				if(t == null) {
+					self.tell(new CreateStyleCursor(result), sender);
+				} else {
+					sender.tell(new Failure(t), self);
+				}
+			});
+	}
+
+	private CompletableFuture<Object> handleGetPublishedService(GetPublishedService msg) {
+		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, f, tx, msg.getServiceId()).result());
+	}
+
+	private CompletableFuture<Ack> handlePublishService(PublishService msg) {
+		return 
+			db.transactional(msg, tx ->
+				f.ask(
+					getSelf(), 
+					new GetService(
+						tx.getTransactionRef(), 
+						msg.getServiceId()), 
+						Service.class).thenCompose(service ->
+							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentIds())
+								.result()));
+	}
+
 	private CompletableFuture<Object> handleGetDatasetLayerRef(GetDatasetLayerRef msg) {
 		return db.transactional(tx -> new GetDatasetLayerRefQuery(log, tx, msg.getLayerId()).result());
 	}

@@ -82,19 +82,19 @@ public class Admin extends AbstractAdmin {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef harvester, loader, service, jobSystem;
+	private final ActorRef harvester, loader, provisioning, jobSystem;
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem) {
 		super(database);
 		
 		this.harvester = harvester;
 		this.loader = loader;
-		this.service = service;
+		this.provisioning = provisioning;
 		this.jobSystem = jobSystem;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service, ActorRef jobSystem) {
-		return Props.create(Admin.class, database, harvester, loader, service, jobSystem);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem) {
+		return Props.create(Admin.class, database, harvester, loader, provisioning, jobSystem);
 	}
 	
 	@Override
@@ -171,7 +171,7 @@ public class Admin extends AbstractAdmin {
 		CompletableFuture<Object> dataSourceInfo = f.ask(database, new GetDataSourceInfo());
 		CompletableFuture<Object> harvestJobs = f.ask(harvester, new GetActiveJobs());
 		CompletableFuture<Object> loaderJobs = f.ask(loader, new GetActiveJobs());
-		CompletableFuture<Object> serviceJobs = f.ask(service, new GetActiveJobs());
+		CompletableFuture<Object> serviceJobs = f.ask(provisioning, new GetActiveJobs());
 		
 		CompletableFuture<Map<String, String>> dataSourceNames = dataSourceInfo.thenApply(msg -> {
 			List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;

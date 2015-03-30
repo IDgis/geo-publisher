@@ -1,5 +1,8 @@
 package nl.idgis.publisher.service.manager;
 
+import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -30,9 +33,11 @@ import static org.junit.Assert.fail;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,6 +49,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
@@ -64,6 +70,7 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -73,13 +80,17 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.TestStyle;
+import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.PublishService;
+import nl.idgis.publisher.service.manager.messages.PublishedService;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
@@ -1140,7 +1151,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		try {
 			db.transactional(tx -> {
-				CompletableFuture<Integer> layerIdFuture = 
+				CompletableFuture<Optional<Integer>> layerIdFuture = 
 					tx.insert(genericLayer)
 					.set(genericLayer.identification, "layer")
 					.set(genericLayer.name, "layer-name")
@@ -1149,23 +1160,23 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				CompletableFuture<Long> leafLayerFuture = 
 					layerIdFuture.thenCompose(layerId ->
 						tx.insert(leafLayer)
-							.set(leafLayer.genericLayerId, layerId)
+							.set(leafLayer.genericLayerId, layerId.get())
 							.set(leafLayer.datasetId, datasetId)
 							.execute());
 					
-				CompletableFuture<Integer> rootIdFuture = 
+				CompletableFuture<Optional<Integer>> rootIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "root")
 						.set(genericLayer.name, "root-name")
 						.executeWithKey(genericLayer.id);
 					
-				CompletableFuture<Integer> groupAIdFuture = 
+				CompletableFuture<Optional<Integer>> groupAIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "group-a")
 						.set(genericLayer.name, "group-name-a")
 						.executeWithKey(genericLayer.id);
 					
-				CompletableFuture<Integer> groupBIdFuture = 
+				CompletableFuture<Optional<Integer>> groupBIdFuture = 
 					tx.insert(genericLayer)
 						.set(genericLayer.identification, "group-b")
 						.set(genericLayer.name, "group-name-b")
@@ -1175,8 +1186,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					layerIdFuture.thenCompose(layerId ->					
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupAId)
-							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.parentLayerId, groupAId.get())
+							.set(layerStructure.childLayerId, layerId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1184,8 +1195,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupBIdFuture.thenCompose(groupBId ->
 					layerIdFuture.thenCompose(layerId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupBId)
-							.set(layerStructure.childLayerId, layerId)
+							.set(layerStructure.parentLayerId, groupBId.get())
+							.set(layerStructure.childLayerId, layerId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1193,8 +1204,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					rootIdFuture.thenCompose(rootId ->
 					groupAIdFuture.thenCompose(groupAId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, rootId)
-							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.parentLayerId, rootId.get())
+							.set(layerStructure.childLayerId, groupAId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1202,8 +1213,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					rootIdFuture.thenCompose(rootId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, rootId)
-							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.parentLayerId, rootId.get())
+							.set(layerStructure.childLayerId, groupBId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 					
@@ -1211,8 +1222,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupAId)
-							.set(layerStructure.childLayerId, groupBId)
+							.set(layerStructure.parentLayerId, groupAId.get())
+							.set(layerStructure.childLayerId, groupBId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 					
@@ -1220,8 +1231,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					groupAIdFuture.thenCompose(groupAId ->
 					groupBIdFuture.thenCompose(groupBId ->
 						tx.insert(layerStructure)
-							.set(layerStructure.parentLayerId, groupBId)
-							.set(layerStructure.childLayerId, groupAId)
+							.set(layerStructure.parentLayerId, groupBId.get())
+							.set(layerStructure.childLayerId, groupAId.get())
 							.set(layerStructure.layerOrder, 0)
 							.execute()));
 				
@@ -1337,5 +1348,86 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("layer", layer.getId());
 		
 		assertFalse(aLayerRefsItr.hasNext());
+	}
+	
+	@Test
+	public void testPublishService() throws Exception {
+		Set<String> environmentIds = new HashSet<>();
+		environmentIds.add("environment0");
+		environmentIds.add("environment1");
+		environmentIds.add("environment2");
+		
+		for(String environmentId : environmentIds) {
+			insert(environment)
+				.set(environment.identification, environmentId)
+				.set(environment.name, environmentId + "-name")
+				.execute();
+		}
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		insert(service)
+			.set(service.genericLayerId, rootId)			
+			.execute();
+		
+		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		assertEquals("service", stagingService.getId());
+		
+		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
+		
+		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		
+		Iterator<Tuple> publishedServiceItr = 
+			query().from(publishedService)
+			.list(publishedService.all()).iterator();
+		
+		assertTrue(publishedServiceItr.hasNext());
+		
+		Tuple publishedServiceTuple = publishedServiceItr.next();
+		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
+		assertNotNull(publishedServiceContent);
+		
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent);
+		assertNotNull(reconstrucedPublishedService);
+		assertEquals("service", reconstrucedPublishedService.getId());
+		
+		assertFalse(publishedServiceItr.hasNext());
+		
+		Iterator<Tuple> publishedServiceEnvironmentItr =
+			query().from(publishedServiceEnvironment)
+				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.orderBy(environment.identification.asc())
+				.list(
+					genericLayer.identification,
+					environment.identification).iterator();
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		Tuple publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment0", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment1", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment2", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertFalse(publishedServiceEnvironmentItr.hasNext());
+		
+		PublishedService ps = f.ask(serviceManager, new GetPublishedService("service"), PublishedService.class).get();		
+		assertEquals(environmentIds, ps.getEnvironmentIds());		
+		assertEquals("service", ps.getService().getId());
 	}
 }

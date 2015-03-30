@@ -230,8 +230,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		Path<?> key = query.getKey();
 		
-		if(key != null) {
-			return insert.executeWithKey(key);
+		if(key != null) {			
+			return toTypedList(insert, key);
 		} else {
 			return insert.execute();
 		}

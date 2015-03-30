@@ -148,6 +148,8 @@ public abstract class JdbcTransaction extends UntypedActor {
 					sender.tell(queryResult, self);
 				}
 			} catch(Exception e) {
+				e.printStackTrace();
+				
 				log.error("error during executing query: {}, {}", msg, e);
 				
 				sender.tell(new Failure(e), self);

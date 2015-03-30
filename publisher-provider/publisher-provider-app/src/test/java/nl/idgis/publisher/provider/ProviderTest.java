@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
@@ -192,6 +193,20 @@ public class ProviderTest {
 
 		@Override
 		public <T> Recording assertNext(String message, Class<T> clazz, Consumer<T> procedure) throws Exception {
+			recording.assertNext(message, clazz, procedure);
+			
+			return this;
+		}
+
+		@Override
+		public <T> Recording assertNext(Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception {
+			recording.assertNext(clazz, procedure);
+			
+			return this;
+		}
+
+		@Override
+		public <T> Recording assertNext(String message, Class<T> clazz, BiConsumer<T, ActorRef> procedure) throws Exception {
 			recording.assertNext(message, clazz, procedure);
 			
 			return this;

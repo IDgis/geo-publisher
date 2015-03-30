@@ -1,27 +1,24 @@
 package nl.idgis.publisher.service.geoserver;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.function.Function;
 
 import com.google.common.base.Objects;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
-import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -29,18 +26,8 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.domain.job.JobState;
-
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
-import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
-import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
-import nl.idgis.publisher.messages.ActiveJob;
-import nl.idgis.publisher.messages.ActiveJobs;
-import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
@@ -50,27 +37,22 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
-import nl.idgis.publisher.service.geoserver.rest.GroupRef;
-import nl.idgis.publisher.service.geoserver.rest.Layer;
-import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
-import nl.idgis.publisher.service.geoserver.rest.ServiceSettings;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
-import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GroupRef;
+import nl.idgis.publisher.service.geoserver.rest.Layer;
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
+import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
+import nl.idgis.publisher.service.geoserver.rest.ServiceSettings;
+import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.TiledLayer;
-import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
-import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
-import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
-import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
-import nl.idgis.publisher.utils.UniqueNameGenerator;
 import nl.idgis.publisher.utils.XMLUtils;
 
 public class GeoServerService extends UntypedActor {
@@ -79,38 +61,29 @@ public class GeoServerService extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
+	private final String url, user, password;
 	
-	private final ActorRef database, serviceManager;
-	
-	private final String serviceLocation, user, password;
-	
-	private final Map<String, String> connectionParameters;
-	
-	private GeoServerRest rest;
+	private final Map<String, String> databaseConnectionParameters;
 	
 	private FutureUtils f;
 	
-	private AsyncDatabaseHelper db;
+	private GeoServerRest rest;
 
-	public GeoServerService(ActorRef database, ActorRef serviceManager, String serviceLocation, String user, String password, Map<String, String> connectionParameters) throws Exception {		
-		this.database = database;
-		this.serviceManager = serviceManager;
-		this.serviceLocation = serviceLocation;
+	public GeoServerService(String url, String user, String password, Map<String, String> databaseConnectionParameters) throws Exception {
+		this.url = url;
 		this.user = user;
 		this.password = password;
-		this.connectionParameters = Collections.unmodifiableMap(connectionParameters);
+		this.databaseConnectionParameters = Collections.unmodifiableMap(databaseConnectionParameters);
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, Config geoserverConfig, Config databaseConfig) {
-		String serviceLocation = geoserverConfig.getString("url");
-		String user = geoserverConfig.getString("user");
-		String password = geoserverConfig.getString("password");		
+	public static Props props(
+		String serviceUrl, String serviceUser, String servicePassword, 
+		String databaseUrl, String databaseUser, String databasePassword, 
 		
-		String url = databaseConfig.getString("url");
+		String schema) {
 		
 		Pattern urlPattern = Pattern.compile("jdbc:postgresql://(.*):(.*)/(.*)");
-		Matcher matcher = urlPattern.matcher(url);
+		Matcher matcher = urlPattern.matcher(databaseUrl);
 		
 		if(!matcher.matches()) {
 			throw new IllegalArgumentException("incorrect database url");
@@ -121,102 +94,174 @@ public class GeoServerService extends UntypedActor {
 		connectionParameters.put("host", matcher.group(1));
 		connectionParameters.put("port", matcher.group(2));
 		connectionParameters.put("database", matcher.group(3));
-		connectionParameters.put("user", databaseConfig.getString("user"));
-		connectionParameters.put("passwd", databaseConfig.getString("password"));
-		connectionParameters.put("schema", geoserverConfig.getString("schema"));
+		connectionParameters.put("user", databaseUser);
+		connectionParameters.put("passwd", databasePassword);
+		connectionParameters.put("schema", schema);
 		
-		return Props.create(GeoServerService.class, database, serviceManager, serviceLocation, user, password, connectionParameters);
+		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
-		rest = new DefaultGeoServerRest(f, log, serviceLocation, user, password);		
+		rest = new DefaultGeoServerRest(f, log, url, user, password);		
 	}
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof EnsureServiceJobInfo) {
-			handleEnsureServiceJob((EnsureServiceJobInfo)msg);
-		} else if(msg instanceof VacuumServiceJobInfo) {
-			handleVacuumServiceJob((VacuumServiceJobInfo)msg);
-		} else if(msg instanceof GetActiveJobs) {
-			getSender().tell(new ActiveJobs(Collections.<ActiveJob>emptyList()), getSelf());
-		} else if(msg instanceof Terminated) {
-			log.debug("child actor terminated: {}", ((Terminated)msg).getActor());
+		ActorRef initiator = getSender();
+		
+		if(msg instanceof ServiceIndex) {
+			log.debug("service index received");
+			
+			ServiceIndex serviceIndex = (ServiceIndex)msg;					
+			Set<String> serviceNames = serviceIndex.getServiceNames()
+				.stream().collect(Collectors.toSet());
+			Set<String> styleNames = serviceIndex.getStyleNames()
+				.stream().collect(Collectors.toSet());
+			
+			log.debug("serviceNames: {}", serviceNames);
+			log.debug("styleNames: {}", styleNames);
+				
+			CompletableFuture<List<String>> deletedWorkspaces = 
+				rest.getWorkspaces().thenCompose(workspaces ->
+					f.sequence(
+						workspaces.stream()
+							.filter(workspace -> !serviceNames.contains(workspace.getName()))									
+							.map(workspace -> rest.deleteWorkspace(workspace)
+								.<String>thenApply(v -> workspace.getName()))
+							.collect(Collectors.toList())));
+			
+			CompletableFuture<List<String>> deletedStyles =
+				rest.getStyles().thenCompose(styles ->
+					f.sequence(
+						styles.stream()
+							.filter(style -> !styleNames.contains(style.getName()))
+							.map(style -> rest.deleteStyle(style)
+								.<String>thenApply(v -> style.getName()))
+							.collect(Collectors.toList())));
+			
+			deletedWorkspaces.thenCompose(workspaces ->
+				deletedStyles.thenApply(styles -> {
+					workspaces.stream().forEach(workspace -> log.debug("workspace deleted: {}", workspace));
+					styles.stream().forEach(style -> log.debug("style deleted: {}", style));
+					
+					return new Vacuumed();
+				})).whenComplete((resp, t) -> {
+					if(t != null) {
+						toSelf(new Failure(t));
+					} else {
+						toSelf(resp);
+					}
+				});
+			
+			getContext().become(vacuuming(initiator));
+		} else if(msg instanceof EnsureStyle) {
+			EnsureStyle ensureStyle = (EnsureStyle)msg;					
+			log.debug("ensure style: {}", ensureStyle.getName());
+			
+			toSelf(
+				rest.getStyle(ensureStyle.getName()).thenCompose(style -> {
+					if(style.isPresent()) {
+						log.debug("style already present");
+						
+						try {
+							if(XMLUtils.equalsIgnoreWhitespace(
+								style.get().getSld(),
+								ensureStyle.getSld())) {										
+								log.debug("style unchanged");										
+								return f.successful(new StyleEnsured());										
+							} else {
+								log.debug("style changed");
+								return rest.putStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
+							}
+						} catch(Exception e) {
+							log.error("failed to compare sld documents", e);
+							return f.failed(e);
+						}
+					} else {
+						log.debug("style missing");
+						
+						return rest.postStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
+					}
+				}));
+			
+			getContext().become(ensuring(initiator));
+		} else if(msg instanceof EnsureWorkspace) {
+			log.debug("ensure workspace: {}", msg);
+			
+			EnsureWorkspace ensureWorkspace = (EnsureWorkspace)msg;
+			
+			String workspaceId = ensureWorkspace.getWorkspaceId();
+			
+			toSelf(
+				rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
+					if(optionalWorkspace.isPresent()) {
+						log.debug("existing workspace found: {}", workspaceId);
+						
+						Workspace workspace = optionalWorkspace.get();
+						
+						return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
+							if(optionalDataStore.isPresent()) {
+								log.debug("existing data store found: publisher-geometry");
+								
+								DataStore dataStore = optionalDataStore.get();										
+								return 
+									rest.getFeatureTypes(workspace, dataStore).thenCompose(featureTypes ->
+									rest.getLayerGroups(workspace).thenCompose(layerGroups ->
+										f.sequence(featureTypes.stream()
+											.map(featureType -> rest.getLayer(workspace, featureType))
+											.collect(Collectors.toList())).thenCompose(layers -> {
+										
+									log.debug("feature types and layer groups retrieved");
+																				
+									return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->											
+										new EnsuringWorkspace(workspace, dataStore, featureTypes, layerGroups, layers));
+								})));
+							}
+							
+							throw new IllegalStateException("publisher-geometry data store is missing");
+						});
+					}
+					
+					Workspace workspace = new Workspace(workspaceId);
+					return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {								
+						log.debug("workspace created: {}", workspaceId);
+						DataStore dataStore = new DataStore("publisher-geometry", databaseConnectionParameters);
+						return rest.postDataStore(workspace, dataStore).thenCompose(vDataStore -> {									
+							log.debug("data store created: publisher-geometry");
+							return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->
+								new EnsuringWorkspace(workspace, dataStore));
+						});
+					});
+				}));
+			
+			getContext().become(ensuring(initiator));
 		} else {
-			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
 		}
 	}
 	
 	private static class Vacuumed {}
 	
-	private Procedure<Object> vacuuming(ActorRef initiator, VacuumServiceJobInfo serviceJob) {
+	private Procedure<Object> vacuuming(ActorRef initiator) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof ServiceIndex) {
-					log.debug("service index received");
-					
-					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
-					initiator.tell(new Ack(), getSelf());
-					
-					ServiceIndex serviceIndex = (ServiceIndex)msg;					
-					Set<String> serviceNames = serviceIndex.getServiceNames()
-						.stream().collect(Collectors.toSet());
-					Set<String> styleNames = serviceIndex.getStyleNames()
-						.stream().collect(Collectors.toSet());
-					
-					log.debug("serviceNames: {}", serviceNames);
-					log.debug("styleNames: {}", styleNames);
-						
-					CompletableFuture<List<String>> deletedWorkspaces = 
-						rest.getWorkspaces().thenCompose(workspaces ->
-							f.sequence(
-								workspaces.stream()
-									.filter(workspace -> !serviceNames.contains(workspace.getName()))									
-									.map(workspace -> rest.deleteWorkspace(workspace)
-										.<String>thenApply(v -> workspace.getName()))
-									.collect(Collectors.toList())));
-					
-					CompletableFuture<List<String>> deletedStyles =
-						rest.getStyles().thenCompose(styles ->
-							f.sequence(
-								styles.stream()
-									.filter(style -> !styleNames.contains(style.getName()))
-									.map(style -> rest.deleteStyle(style)
-										.<String>thenApply(v -> style.getName()))
-									.collect(Collectors.toList())));
-					
-					deletedWorkspaces.thenCompose(workspaces ->
-						deletedStyles.thenApply(styles -> {
-							workspaces.stream().forEach(workspace -> log.debug("workspace deleted: {}", workspace));
-							styles.stream().forEach(style -> log.debug("style deleted: {}", style));
-							
-							return new Vacuumed();
-						})).whenComplete((resp, t) -> {
-							if(t != null) {
-								toSelf(new Failure(t));
-							} else {
-								toSelf(resp);
-							}
-						});
-				} else if(msg instanceof Vacuumed) {
+				if(msg instanceof Vacuumed) {
 					log.debug("vacuum completed");
 					vacuumed(JobState.SUCCEEDED);
 				} else if(msg instanceof ReceiveTimeout) {
 					log.error("timeout while vacuuming");
 					vacuumed(JobState.FAILED);
 				} else {
-					elseProvisioning(msg, serviceJob, initiator);
+					elseProvisioning(msg, initiator);
 				}
 			}
 
 			private void vacuumed(JobState result) {
-				initiator.tell(new UpdateJobState(result), getSelf());
+				getContext().parent().tell(new UpdateJobState(result), getSelf());
 				
 				getContext().setReceiveTimeout(Duration.Inf());
 				getContext().become(receive());
@@ -225,28 +270,9 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private void handleVacuumServiceJob(VacuumServiceJobInfo serviceJob) {
-		log.debug("executing vacuum service job");
-		
-		serviceManager.tell(new GetServiceIndex(), getSelf());
-		
-		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
-		getContext().become(vacuuming(getSender(), serviceJob));
-	}
-
-	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator) {
-		if(msg instanceof ServiceJobInfo) {
-			// this shouldn't happen too often, TODO: rethink job mechanism
-			log.debug("receiving service job while already provisioning");
-			getSender().tell(new Ack(), getSelf());
-		} else if(msg instanceof GetActiveJobs) {
-			getSender().tell(new ActiveJobs(Collections.singletonList(new ActiveJob(serviceJob))), getSelf());
-		} else if(msg instanceof Failure) {
+	private void elseProvisioning(Object msg, ActorRef initiator) {
+		if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
-			
-			ensureFailure(initiator);
-		} else if(msg instanceof Terminated) {
-			log.error("child actor terminated prematurely: {}", ((Terminated)msg).getActor());
 			
 			ensureFailure(initiator);
 		} else {
@@ -257,7 +283,7 @@ public class GeoServerService extends UntypedActor {
 
 	private void ensureFailure(ActorRef initiator) {
 		// TODO: add logging
-		initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+		getContext().parent().tell(new UpdateJobState(JobState.FAILED), getSelf());
 		getContext().become(receive());
 	}
 	
@@ -278,10 +304,10 @@ public class GeoServerService extends UntypedActor {
 		});
 	}
 	
-	private void ensured(ActorRef provisioningService) {
+	private void ensured(ActorRef initiator) {
 		log.debug("ensured");
 		
-		provisioningService.tell(new Ensured(), getSelf());
+		initiator.tell(new Ensured(), getSelf());
 	}
 	
 	private static class StyleEnsured { }
@@ -306,9 +332,7 @@ public class GeoServerService extends UntypedActor {
 	private static class WorkspaceEnsured { }
 	
 	private Procedure<Object> layers(
-			ActorRef initiator, 
-			ServiceJobInfo serviceJob, 
-			ActorRef provisioningService, 
+			ActorRef initiator,
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
@@ -316,14 +340,12 @@ public class GeoServerService extends UntypedActor {
 			Map<String, TiledLayer> tiledLayers,
 			Map<String, Layer> layers) {
 		
-		return layers(null, initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers);
+		return layers(null, initiator, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers);
 	}
 	
 	private Procedure<Object> layers(
 			EnsureGroupLayer groupLayer, 
-			ActorRef initiator, 
-			ServiceJobInfo serviceJob, 
-			ActorRef provisioningService, 
+			ActorRef initiator,
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
@@ -478,10 +500,10 @@ public class GeoServerService extends UntypedActor {
 				if(msg instanceof EnsureGroupLayer) {
 					EnsureGroupLayer ensureLayer = (EnsureGroupLayer)msg;
 					
-					ensured(provisioningService);
+					ensured(initiator);
 					groupLayerContent.add(new GroupRef(ensureLayer.getLayerId()));
-					getContext().become(layers(ensureLayer, initiator, serviceJob, 
-						provisioningService, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers), false);
+					getContext().become(layers(ensureLayer, initiator, 
+						workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;					
 					String layerId = ensureLayer.getLayerId();
@@ -533,7 +555,7 @@ public class GeoServerService extends UntypedActor {
 						putLayer(ensureLayer);
 					}
 				} else if(msg instanceof LayerEnsured) {
-					ensured(provisioningService);				
+					ensured(initiator);				
 				} else if(msg instanceof FinishEnsure) {
 					if(groupLayer == null) {
 						log.debug("deleting removed items");
@@ -609,16 +631,16 @@ public class GeoServerService extends UntypedActor {
 						}
 					}
 				} else if(msg instanceof WorkspaceEnsured) {
-					log.debug("ack");
+					log.debug("workspace ensured");
 					
-					ensured(provisioningService);
-					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+					ensured(initiator);
+					getContext().parent().tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
 					getContext().unbecome();
 				} else if(msg instanceof GroupEnsured) {
-					ensured(provisioningService);
+					ensured(initiator);
 					getContext().unbecome();
 				} else {
-					elseProvisioning(msg, serviceJob, initiator);
+					elseProvisioning(msg, initiator);
 				}
 			}						
 		};
@@ -679,140 +701,62 @@ public class GeoServerService extends UntypedActor {
 		}
 	};
 	
-	private Procedure<Object> ensuring(ActorRef initiator, ServiceJobInfo serviceJob, ActorRef provisioningService) {
+	private CompletableFuture<Void> ensureWorkspace(Workspace workspace, EnsureWorkspace ensureWorkspace) {
+		return ensureServiceSettings(workspace, ensureWorkspace.getServiceSettings())
+			.thenCompose(v -> ensureWorkspaceSettings(workspace, ensureWorkspace.getWorkspaceSettings()));					
+	}
+	
+	private CompletableFuture<Void> ensureWorkspaceSettings(Workspace workspace, WorkspaceSettings ensureWorkspaceSettings) {
+		return rest.getWorkspaceSettings(workspace).thenCompose(workspaceSettings -> {
+			if(workspaceSettings.equals(ensureWorkspaceSettings)) {
+				log.debug("workspace settings unchanged");						
+				return f.successful(null);
+			} else {
+				log.debug("workspace settings changed");
+				return rest.putWorkspaceSettings(workspace, ensureWorkspaceSettings);
+			}
+		});
+	}
+	
+	private CompletableFuture<List<Void>> ensureServiceSettings(Workspace workspace, ServiceSettings ensureServiceSettings) {
+		return f.sequence(SERVICE_TYPES.stream()
+			.map(serviceType -> rest.getServiceSettings(workspace, serviceType))
+			.collect(Collectors.toList())).thenCompose(optionalServiceSettings -> {
+				return f.sequence(StreamUtils
+					.zip(
+						SERVICE_TYPES.stream(),
+						optionalServiceSettings.stream())
+					.map(entry -> {
+						ServiceType serviceType = entry.getFirst();
+						Optional<ServiceSettings> optionalServiceSettigns = entry.getSecond();								
+						if(optionalServiceSettigns.isPresent()) {													
+							ServiceSettings serviceSettings = optionalServiceSettigns.get();
+							if(serviceSettings.equals(ensureServiceSettings)) {
+								log.debug("service settings service type {} unchanged", serviceType);														
+								return f.<Void>successful(null);
+							} else {
+								log.debug("service settings service type {} changed, was: {}, ensure: {}", serviceType, serviceSettings, ensureServiceSettings);														
+								return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
+							}
+						} else {
+							log.debug("service settings for service type {} not found", serviceType);
+							return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
+						}
+					})
+					.collect(Collectors.toList()));
+			});
+	}
+	
+	private Procedure<Object> ensuring(ActorRef initiator) {
 		log.debug("-> ensuring");
 		
 		return new Procedure<Object>() {
-			
-			private CompletableFuture<Void> ensureWorkspace(Workspace workspace, EnsureWorkspace ensureWorkspace) {
-				return ensureServiceSettings(workspace, ensureWorkspace.getServiceSettings())
-					.thenCompose(v -> ensureWorkspaceSettings(workspace, ensureWorkspace.getWorkspaceSettings()));					
-			}
-			
-			private CompletableFuture<Void> ensureWorkspaceSettings(Workspace workspace, WorkspaceSettings ensureWorkspaceSettings) {
-				return rest.getWorkspaceSettings(workspace).thenCompose(workspaceSettings -> {
-					if(workspaceSettings.equals(ensureWorkspaceSettings)) {
-						log.debug("workspace settings unchanged");						
-						return f.successful(null);
-					} else {
-						log.debug("workspace settings changed");
-						return rest.putWorkspaceSettings(workspace, ensureWorkspaceSettings);
-					}
-				});
-			}
-			
-			private CompletableFuture<List<Void>> ensureServiceSettings(Workspace workspace, ServiceSettings ensureServiceSettings) {
-				return f.sequence(SERVICE_TYPES.stream()
-					.map(serviceType -> rest.getServiceSettings(workspace, serviceType))
-					.collect(Collectors.toList())).thenCompose(optionalServiceSettings -> {
-						return f.sequence(StreamUtils
-							.zip(
-								SERVICE_TYPES.stream(),
-								optionalServiceSettings.stream())
-							.map(entry -> {
-								ServiceType serviceType = entry.getFirst();
-								Optional<ServiceSettings> optionalServiceSettigns = entry.getSecond();								
-								if(optionalServiceSettigns.isPresent()) {													
-									ServiceSettings serviceSettings = optionalServiceSettigns.get();
-									if(serviceSettings.equals(ensureServiceSettings)) {
-										log.debug("service settings service type {} unchanged", serviceType);														
-										return f.<Void>successful(null);
-									} else {
-										log.debug("service settings service type {} changed, was: {}, ensure: {}", serviceType, serviceSettings, ensureServiceSettings);														
-										return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
-									}
-								} else {
-									log.debug("service settings for service type {} not found", serviceType);
-									return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
-								}
-							})
-							.collect(Collectors.toList()));
-					});
-			}
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof EnsureStyle) {
-					EnsureStyle ensureStyle = (EnsureStyle)msg;					
-					log.debug("ensure style: {}", ensureStyle.getName());
-					
-					toSelf(
-						rest.getStyle(ensureStyle.getName()).thenCompose(style -> {
-							if(style.isPresent()) {
-								log.debug("style already present");
-								
-								try {
-									if(XMLUtils.equalsIgnoreWhitespace(
-										style.get().getSld(),
-										ensureStyle.getSld())) {										
-										log.debug("style unchanged");										
-										return f.successful(new StyleEnsured());										
-									} else {
-										log.debug("style changed");
-										return rest.putStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
-									}
-								} catch(Exception e) {
-									log.error("failed to compare sld documents", e);
-									return f.failed(e);
-								}
-							} else {
-								log.debug("style missing");
-								
-								return rest.postStyle(ensureStyle.getStyle()).thenApply(v -> new StyleEnsured());
-							}
-						}));
-				} else if(msg instanceof EnsureWorkspace) {
-					EnsureWorkspace ensureWorkspace = (EnsureWorkspace)msg;
-					
-					initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
-					initiator.tell(new Ack(), getSelf());
-					
-					String workspaceId = ensureWorkspace.getWorkspaceId();
-					
-					toSelf(
-						rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
-							if(optionalWorkspace.isPresent()) {
-								log.debug("existing workspace found: {}", workspaceId);
-								
-								Workspace workspace = optionalWorkspace.get();
-								
-								return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
-									if(optionalDataStore.isPresent()) {
-										log.debug("existing data store found: publisher-geometry");
-										
-										DataStore dataStore = optionalDataStore.get();										
-										return 
-											rest.getFeatureTypes(workspace, dataStore).thenCompose(featureTypes ->
-											rest.getLayerGroups(workspace).thenCompose(layerGroups ->
-												f.sequence(featureTypes.stream()
-													.map(featureType -> rest.getLayer(workspace, featureType))
-													.collect(Collectors.toList())).thenCompose(layers -> {
-												
-											log.debug("feature types and layer groups retrieved");
-																						
-											return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->											
-												new EnsuringWorkspace(workspace, dataStore, featureTypes, layerGroups, layers));
-										})));
-									}
-									
-									throw new IllegalStateException("publisher-geometry data store is missing");
-								});
-							}
-							
-							Workspace workspace = new Workspace(workspaceId);
-							return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {								
-								log.debug("workspace created: {}", workspaceId);
-								DataStore dataStore = new DataStore("publisher-geometry", connectionParameters);
-								return rest.postDataStore(workspace, dataStore).thenCompose(vDataStore -> {									
-									log.debug("data store created: publisher-geometry");
-									return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->
-										new EnsuringWorkspace(workspace, dataStore));
-								});
-							});
-						}));					
-				} else if(msg instanceof EnsuringWorkspace) {
+				 if(msg instanceof EnsuringWorkspace) {
 					EnsuringWorkspace workspaceEnsured = (EnsuringWorkspace)msg;
-					ensured(provisioningService);
+					ensured(initiator);
 					
 					log.debug("ensuring workspace content");
 					Workspace workspace = workspaceEnsured.getWorkspace();
@@ -821,12 +765,13 @@ public class GeoServerService extends UntypedActor {
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
 					Map<String, TiledLayer> tiledLayers = new HashMap<>();
 					Map<String, Layer> layers = workspaceEnsured.getLayers();
-					getContext().become(layers(initiator, serviceJob, provisioningService, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers));
+					getContext().become(layers(initiator, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers));
 				} else if(msg instanceof StyleEnsured) {
 					log.debug("style ensured");
-					ensured(provisioningService);
+					ensured(initiator);
+					getContext().become(receive());
 				} else {
-					elseProvisioning(msg, serviceJob, initiator);
+					elseProvisioning(msg, initiator);
 				}
 			}
 			
@@ -840,26 +785,5 @@ public class GeoServerService extends UntypedActor {
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	private void handleEnsureServiceJob(EnsureServiceJobInfo serviceJob) {
-		log.debug("executing ensure service job: " + serviceJob);
-		
-		ActorRef ensureService = getContext().actorOf(
-				EnsureService.props(), 
-				nameGenerator.getName(EnsureService.class));
-		
-		getContext().watch(ensureService);
-		
-		String serviceId = serviceJob.getServiceId();
-		
-		db.<List<AskResponse<Object>>>transactional(tx ->			
-			f.askWithSender(serviceManager, new GetService(tx.getTransactionRef(), serviceId)).thenCompose(service ->
-			f.askWithSender(serviceManager, new GetStyles(tx.getTransactionRef(), serviceId)).thenApply(styles -> 
-				Arrays.asList(service, styles)))).thenAccept(results ->
-					results.stream().forEach(result ->
-						ensureService.tell(result.getMessage(), result.getSender())));
-		
-		getContext().become(ensuring(getSender(), serviceJob, ensureService));
 	}
 }

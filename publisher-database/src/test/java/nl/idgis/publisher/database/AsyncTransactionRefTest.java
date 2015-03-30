@@ -18,18 +18,18 @@ public class AsyncTransactionRefTest extends AbstractDatabaseHelperTest {
 				.set(category.name, "name")
 				.executeWithKey(category.id).thenCompose(categoryId -> {
 					return db.query().from(category)
-						.where(category.id.eq(categoryId))
+						.where(category.id.eq(categoryId.get()))
 						.exists().thenCompose(otherTransactionExists -> {
 							assertFalse(otherTransactionExists);							
 							
 							return tx.query().from(category)
-								.where(category.id.eq(categoryId))
+								.where(category.id.eq(categoryId.get()))
 								.exists().thenCompose(sameTransactionExists -> {
 									assertTrue(sameTransactionExists);
 									
 									return db.transactional(Optional.of(tx.getTransactionRef()), tx2 -> 
 										tx2.query().from(category)
-											.where(category.id.eq(categoryId))
+											.where(category.id.eq(categoryId.get()))
 											.exists().thenApply(boundTransactionExists -> {
 										assertTrue(boundTransactionExists);
 										

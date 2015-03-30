@@ -11,16 +11,19 @@ import java.util.concurrent.CompletableFuture;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
-public class GetServicesWithStyleQuery extends AbstractServiceQuery<TypedList<String>> {
+public class GetServicesWithStyleQuery extends AbstractServiceQuery<TypedList<String>, AsyncSQLQuery> {
 	
 	private final String styleId;
 
 	GetServicesWithStyleQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, String styleId) {
-		super(log, f, tx);
+		super(log, f, tx.query());
 		
 		this.styleId = styleId;
 	}
