@@ -3,10 +3,10 @@ package nl.idgis.publisher.harvester;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
+import nl.idgis.publisher.dataset.messages.CleanupCategories;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
@@ -14,21 +14,18 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
-
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import scala.concurrent.duration.Duration;
 
 public class HarvestSession extends UntypedActor {
@@ -88,14 +85,25 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		f.ask(jobContext, new UpdateJobState(JobState.SUCCEEDED)).whenComplete((msg, t) -> {
-			if(t != null) {
-				log.error("couldn't change job state: {}", t);
-			} else {			
-				log.debug("harvesting of dataSource finished: " + harvestJob);
+		f.ask (datasetManager, new CleanupCategories ()).whenComplete ((message, error) -> {
+			final JobState finishState;
+			if (error != null) {
+				log.error ("couldn't perform cleanup on categories: {}", error);
+				finishState = JobState.FAILED;
+			} else {
+				log.debug ("categories cleaned up");
+				finishState = JobState.SUCCEEDED;
 			}
 			
-			getContext().stop(getSelf());
+			f.ask(jobContext, new UpdateJobState(finishState)).whenComplete((msg, t) -> {
+				if(t != null) {
+					log.error("couldn't change job state: {}", t);
+				} else {			
+					log.debug("harvesting of dataSource finished: " + harvestJob);
+				}
+				
+				getContext().stop(getSelf());
+			});
 		});
 	}
 
