@@ -11,10 +11,8 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
-
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
-
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
@@ -28,11 +26,10 @@ import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
-
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-
 import akka.actor.ActorRef;
+import akka.actor.Identify;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -265,6 +262,7 @@ public class LoaderSession extends UntypedActor {
 			filteredCount++;
 			
 			getSender().tell(new NextItem(), getSelf());
+			transaction.tell (new Identify ("keepalive"), getSelf ());
 		} else {
 			insertCount++;
 			
