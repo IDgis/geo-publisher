@@ -404,7 +404,12 @@ public class DatasetManager extends UntypedActor {
 					: insertSourceDataset(tx, dataSource, dataset)));
 	}
 	
-	private CompletableFuture<Object> handleCleanupCategories (final CleanupCategories cleanupCategories) {
-		return null;
+	private CompletableFuture<Long> handleCleanupCategories (final CleanupCategories cleanupCategories) {
+		return db.transactional (tx -> {
+			return tx
+				.delete (category)
+				.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
+				.execute ();
+		});
 	}
 }
