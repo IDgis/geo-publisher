@@ -16,26 +16,14 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.util.Timeout;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.projections.QColumn;
-
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
+import nl.idgis.publisher.dataset.messages.CleanupCategories;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-import nl.idgis.publisher.protocol.messages.Failure;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -46,9 +34,18 @@ import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
-
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JsonUtils;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.util.Timeout;
+
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
 
 public class DatasetManager extends UntypedActor {
 
@@ -99,6 +96,8 @@ public class DatasetManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof RegisterSourceDataset) {
 			returnToSender(handleRegisterSourceDataset((RegisterSourceDataset) msg));
+		} else if (msg instanceof CleanupCategories) {
+			returnToSender (handleCleanupCategories ((CleanupCategories) msg));
 		} else {
 			unhandled(msg);
 		}
@@ -404,5 +403,13 @@ public class DatasetManager extends UntypedActor {
 						: insertSourceDatasetVersion(tx, dataSource, dataset)
 					: insertSourceDataset(tx, dataSource, dataset)));
 	}
-
+	
+	private CompletableFuture<Long> handleCleanupCategories (final CleanupCategories cleanupCategories) {
+		return db.transactional (tx -> {
+			return tx
+				.delete (category)
+				.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
+				.execute ();
+		});
+	}
 }

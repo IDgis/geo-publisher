@@ -4,31 +4,40 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.sql.SQLSubQuery;
+
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
+import nl.idgis.publisher.dataset.messages.CleanupCategories;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
-
 import nl.idgis.publisher.AbstractServiceTest;
 
 public class DatasetManagerTest extends AbstractServiceTest {
@@ -157,5 +166,82 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		
 		// verifies that the dataset manager is able to retrieve datasets without a categoryId 
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
+	}
+
+	private void deleteSourceDataset (final String id) {
+		delete (sourceDatasetVersionLog)
+			.where (sourceDatasetVersionLog.sourceDatasetVersionId.in (
+				new SQLSubQuery ()
+					.from (sourceDatasetVersion)
+					.join (sourceDataset).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+					.where (sourceDataset.identification.eq (id))
+					.list (sourceDatasetVersion.id)
+			))
+			.execute ();
+		
+		delete (sourceDatasetVersionColumn)
+			.where (sourceDatasetVersionColumn.sourceDatasetVersionId.in (
+				new SQLSubQuery ()
+					.from (sourceDatasetVersion)
+					.join (sourceDataset).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+					.where (sourceDataset.identification.eq (id))
+					.list (sourceDatasetVersion.id) 
+			))
+			.execute ();
+		
+		delete (sourceDatasetVersion)
+			.where (sourceDatasetVersion.sourceDatasetId.in (
+				new SQLSubQuery ()
+					.from (sourceDataset)
+					.where (sourceDataset.identification.eq (id))
+					.list (sourceDataset.id)
+			))
+			.execute ();
+			
+		delete (sourceDataset)
+			.where (sourceDataset.identification.eq (id))
+			.execute ();
+	}
+	
+	@Test
+	public void testCleanupCategories () throws Exception {
+		final List<Column> columns = Arrays.asList(
+				new Column("col0", Type.TEXT),
+				new Column("col1", Type.NUMERIC));
+		final Table table = new Table(columns);
+		final Timestamp revision = new Timestamp(new Date().getTime());
+		final VectorDataset[] datasets = {
+			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), table),
+			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), table),
+			new VectorDataset ("table3", "My Test Table 3", "alternate title", "category1", revision, Collections.<Log>emptySet(), table),
+			new VectorDataset ("table4", "My Test Table 4", "alternate title", "category2", revision, Collections.<Log>emptySet(), table)
+		};
+		
+		for (final VectorDataset ds: datasets) {
+			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", ds), Registered.class).get();		
+		}
+		
+		// After inserting 4 source datasets with two different categories, there should be two categories:
+		assertEquals (2, query ().from (category).count ());
+
+		deleteSourceDataset ("table1");
+		f.ask (datasetManager, new CleanupCategories ()).get ();
+		
+		assertEquals (2, query ().from (category).count ());
+		
+		deleteSourceDataset ("table3");
+		f.ask (datasetManager, new CleanupCategories ()).get ();
+		
+		assertEquals (1, query ().from (category).count ());
+		
+		deleteSourceDataset ("table2");
+		f.ask (datasetManager, new CleanupCategories ()).get ();
+		
+		assertEquals (1, query ().from (category).count ());
+		
+		deleteSourceDataset ("table4");
+		f.ask (datasetManager, new CleanupCategories ()).get ();
+		
+		assertEquals (0, query ().from (category).count ());
 	}
 }
