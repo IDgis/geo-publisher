@@ -12,7 +12,7 @@
 
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.services.list.header")</h1>
-	
+
 	<div class="row">
 
 		@* Filters and search: *@
@@ -78,66 +78,91 @@
 	
 		@* List of services: *@
 		<div class="col-lg-9 col-lg-pull-3">
-			@if(services.values.isEmpty) {
-			<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
-			} else {
-			<div class="list-group" id="service-list">
-	
-				@for(service <- services.values) {
-				<div class="list-group-item js-service-item" 
-					data-service-id="@service.id"
-					data-service-name="@service.name"
-					
-					data-warning-pre-title="@Domain.message("web.application.removing")"
-					data-warning-title="@service.name"
-					data-warning-delete-link="@routes.Services.delete(service.id)"
-					data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
-					<div class="row">
-						<div class="col-md-6">
-							<h4 class="list-group-item-heading">
-								<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
-							</h4>
-						</div>
-						<div class="col-md-2">
-							@if(service.published){
-								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
-							}else{
-								<span>@Domain.message("web.application.page.list.notpublished")</span>
-							}
-						</div>
-						<div class="col-md-2">
-							<div class="btn-group pull-right">
-								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
-									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-									<span>WMS</span>
-								</a> 
-								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
-									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-									<span>WFS</span>
-								</a> 
+
+
+			<div class="row well well-sm">
+
+				<div class="col-md-8">
+				</div>
+				<div class="col-md-2">
+					<div class="btn-group pull-left">
+						<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
+							class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+							<span>WMTS</span>
+						</a> 
+						<a href="@models.Service.getTmsGetCapUrl()"  target="_blank"
+							class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+							<span>&nbsp;TMS&nbsp;&nbsp;</span>
+						</a> 
+					</div>
+				</div>
+				<div class="col-md-2">
+				</div>
+
+			</div>
+
+			<div class="row">
+				@if(services.values.isEmpty) {
+				<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
+				} else {
+				<div class="list-group" id="service-list">
+		
+					@for(service <- services.values) {
+					<div class="list-group-item js-service-item" 
+						data-service-id="@service.id"
+						data-service-name="@service.name"
+						
+						data-warning-pre-title="@Domain.message("web.application.removing")"
+						data-warning-title="@service.name"
+						data-warning-delete-link="@routes.Services.delete(service.id)"
+						data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
+						<div class="row">
+							<div class="col-md-6">
+								<h4 class="list-group-item-heading">
+									<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
+								</h4>
 							</div>
-						</div>
-						<div class="col-md-2">
-							<div class="btn-group pull-right">
-								<a href="@routes.Services.edit(service.id)"
-									class="btn btn-default" title="@Domain.message("web.application.button.edit")">
-									<span class="glyphicon glyphicon-edit"></span>
-								</a> 
-								<a data-toggle="modal" data-target="#js-delete-warning" 
-									class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
-									<span class="glyphicon glyphicon-remove"></span>
-								</a>
+							<div class="col-md-2">
+								@if(service.published){
+									<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
+								}else{
+									<span>@Domain.message("web.application.page.list.notpublished")</span>
+								}
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-left">
+									<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
+										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+										<span>&nbsp;WMS&nbsp;</span>
+									</a> 
+									<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
+										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+										<span>&nbsp;WFS&nbsp;</span>
+									</a> 
+								</div>
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-right">
+									<a href="@routes.Services.edit(service.id)"
+										class="btn btn-default" title="@Domain.message("web.application.button.edit")">
+										<span class="glyphicon glyphicon-edit"></span>
+									</a> 
+									<a data-toggle="modal" data-target="#js-delete-warning" 
+										class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								</div>
 							</div>
 						</div>
 					</div>
+					}
 				</div>
 				}
-			</div>
-			}
-			
-			@helper.deleteWarning()
-			@helper.pagination(services, pageRef)
-			
+				
+				@helper.deleteWarning()
+				@helper.pagination(services, pageRef)
+				
+			</div> @* row *@
 		</div> @* /services*@
 	
 	</div>
