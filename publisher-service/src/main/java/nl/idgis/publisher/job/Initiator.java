@@ -20,7 +20,7 @@ public class Initiator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef jobManager;
+	private final ActorRef jobManager, jobListener;
 	
 	private final Map<Object, Pair<String, ActorRef>> actorRefs;
 	
@@ -28,8 +28,9 @@ public class Initiator extends UntypedActor {
 	
 	private final Map<ActorRef, Object> dispatchers = new HashMap<>();
 	
-	public Initiator(ActorRef jobManager, Map<Object, Pair<String, ActorRef>> actorRefs, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
+	public Initiator(ActorRef jobManager, ActorRef jobListener, Map<Object, Pair<String, ActorRef>> actorRefs, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
 		this.jobManager = jobManager;
+		this.jobListener = jobListener;
 		this.actorRefs = actorRefs;
 		this.pollInterval = pollInterval;
 		this.dispatcherTimeout = dispatcherTimeout;
@@ -49,16 +50,16 @@ public class Initiator extends UntypedActor {
 			return this;
 		}
 		
-		public Props create(ActorRef jobManager) {
-			return create(jobManager, DEFAULT_POLL_INTERVAL, DEFAULT_DISPATCHER_TIMEOUT);
+		public Props create(ActorRef jobManager, ActorRef jobListener) {
+			return create(jobManager, jobListener, DEFAULT_POLL_INTERVAL, DEFAULT_DISPATCHER_TIMEOUT);
 		}
 		
-		public Props create(ActorRef jobManager, FiniteDuration pollInterval) {
-			return create(jobManager, pollInterval, DEFAULT_DISPATCHER_TIMEOUT);
+		public Props create(ActorRef jobManager, ActorRef jobListener, FiniteDuration pollInterval) {
+			return create(jobManager, jobListener, pollInterval, DEFAULT_DISPATCHER_TIMEOUT);
 		}
 		
-		public Props create(ActorRef jobManager, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
-			return Props.create(Initiator.class, jobManager,  Collections.unmodifiableMap(actorRefs), pollInterval, dispatcherTimeout);
+		public Props create(ActorRef jobManager, ActorRef jobListener, FiniteDuration pollInterval, FiniteDuration dispatcherTimeout) {
+			return Props.create(Initiator.class, jobManager,  jobListener, Collections.unmodifiableMap(actorRefs), pollInterval, dispatcherTimeout);
 		}
 	}
 	
@@ -78,7 +79,7 @@ public class Initiator extends UntypedActor {
 			
 			log.debug("starting initiation dispatcher for: " + target);
 			
-			ActorRef dispatcher = getContext().actorOf(InitiatorDispatcher.props(jobManager, target, dispatcherTimeout), name);
+			ActorRef dispatcher = getContext().actorOf(InitiatorDispatcher.props(jobManager, jobListener, target, dispatcherTimeout), name);
 			jobManager.tell(msg, dispatcher);
 			
 			dispatchers.put(dispatcher, msg);

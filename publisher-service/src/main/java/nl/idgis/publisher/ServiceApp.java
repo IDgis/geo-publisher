@@ -193,7 +193,7 @@ public class ServiceApp extends UntypedActor {
 					
 				getSelf());
 		
-		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager), "jobs");
+		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager, serviceManager), "jobs");
 		
 		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningManager, jobSystem, serviceManager), "admin");
 		

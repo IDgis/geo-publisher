@@ -22,7 +22,7 @@ public class CreatorTest extends AbstractServiceTest {
 	
 	@Before
 	public void actors() {		
-		creator = actorOf(Creator.props(jobManager, database), "creator");
+		creator = actorOf(Creator.props(jobManager, database, serviceManager), "creator");
 	}
 
 	@Test

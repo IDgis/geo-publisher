@@ -41,7 +41,7 @@ public class JobExecutorFacade extends UntypedActor {
 		if(msg instanceof JobInfo) {
 			log.debug("job info received");
 			
-			ActorRef jobContext = getContext().actorOf(JobContext.props(jobManager, (JobInfo)msg));
+			ActorRef jobContext = getContext().actorOf(JobContext.props(jobManager, getSelf(), (JobInfo)msg));
 			senders.put(jobContext, getSender());
 			target.tell(msg, jobContext);
 		} else if(msg instanceof Ack) {
