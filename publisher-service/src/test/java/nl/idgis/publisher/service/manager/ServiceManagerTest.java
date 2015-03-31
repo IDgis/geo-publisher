@@ -1251,7 +1251,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						groupBGroupAFuture.thenCompose(resp -> null))).thenCompose(resp -> 
 							f.ask(
 								serviceManager, 
-								new GetGroupLayer(tx.getTransactionRef(), "root"),
+								new GetGroupLayer(Optional.of(tx.getTransactionRef()), "root"),
 								GroupLayer.class).thenApply(groupLayer -> "final result"));
 			}).get();
 			

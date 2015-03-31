@@ -171,7 +171,7 @@ public class JobManager extends UntypedActor {
 			
 			.thenCompose(notExists -> {
 				if(notExists) {
-					return createVacuumServiceJob(tx)
+					return createVacuumServiceJob(tx, msg.isPublished())
 						.thenApply(l -> {
 							log.debug("vacuum service job created");
 							
@@ -283,7 +283,7 @@ public class JobManager extends UntypedActor {
 			
 			.thenCompose(notExists -> {
 				if(notExists) {
-					return createEnsureServiceJob(tx, serviceId)
+					return createEnsureServiceJob(tx, serviceId, msg.isPublished())
 						.thenApply(l -> {
 							log.debug("service job created");
 							
@@ -296,32 +296,39 @@ public class JobManager extends UntypedActor {
 			}));
 	}
 	
-	private CompletableFuture<Long> createEnsureServiceJob(final AsyncHelper tx, final String serviceId) {
+	private CompletableFuture<Long> createEnsureServiceJob(final AsyncHelper tx, final String serviceId, final boolean published) {
 		return
 			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
 				tx.insert(serviceJob)
 					.columns(
 						serviceJob.jobId,
 						serviceJob.type,
-						serviceJob.serviceId)
+						serviceJob.serviceId,
+						serviceJob.published)
 					.select(new SQLSubQuery().from(service)
 						.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 						.where(genericLayer.identification.eq(serviceId))
-						.list(jobId, "ENSURE", service.id))
+						.list(
+							jobId, 
+							"ENSURE", 
+							service.id,
+							published))
 					.execute());
 				
 	}
 	
-	private CompletableFuture<Long> createVacuumServiceJob(final AsyncHelper tx) {
+	private CompletableFuture<Long> createVacuumServiceJob(final AsyncHelper tx, boolean published) {
 		return
 			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
 				tx.insert(serviceJob)
 					.columns(
 						serviceJob.jobId,
-						serviceJob.type)
+						serviceJob.type,
+						serviceJob.published)
 					.values(
 						jobId, 
-						"VACUUM")
+						"VACUUM",
+						published)
 					.execute());
 				
 	}
@@ -509,19 +516,21 @@ public class JobManager extends UntypedActor {
 				.list(
 					serviceJob.jobId,
 					serviceJob.type,
+					serviceJob.published,
 					genericLayer.identification).thenApply(result -> {
 						List<ServiceJobInfo> retval = new ArrayList<>();
 						
 						for(Tuple t : result) {
 							int jobId = t.get(serviceJob.jobId);
 							String type = t.get(serviceJob.type);
+							boolean published = t.get(serviceJob.published);
 							
 							switch(type) {
 								case "VACUUM":
-									retval.add(new VacuumServiceJobInfo(jobId));
+									retval.add(new VacuumServiceJobInfo(jobId, published));
 									break;
 								case "ENSURE":
-									retval.add(new EnsureServiceJobInfo(jobId, t.get(genericLayer.identification)));
+									retval.add(new EnsureServiceJobInfo(jobId, t.get(genericLayer.identification), published));
 									break;
 								default:
 									throw new IllegalStateException("Unknown service job type encountered: " + type);

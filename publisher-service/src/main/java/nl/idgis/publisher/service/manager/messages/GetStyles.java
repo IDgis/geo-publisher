@@ -15,11 +15,11 @@ public class GetStyles implements AsyncTransactional, Serializable {
 	private final String serviceId;
 	
 	public GetStyles(String serviceId) {
-		this(null, serviceId);
+		this(Optional.empty(), serviceId);
 	}
 	
-	public GetStyles(AsyncTransactionRef transactionRef, String serviceId) {
-		this.transactionRef = transactionRef;
+	public GetStyles(Optional<AsyncTransactionRef> transactionRef, String serviceId) {
+		this.transactionRef = transactionRef.orElse(null);
 		this.serviceId = serviceId;
 	}
 	

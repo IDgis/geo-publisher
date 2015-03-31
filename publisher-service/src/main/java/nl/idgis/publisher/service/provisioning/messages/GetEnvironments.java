@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service.manager.messages;
+package nl.idgis.publisher.service.provisioning.messages;
 
 import java.io.Serializable;
 import java.util.Optional;
@@ -6,19 +6,19 @@ import java.util.Optional;
 import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncTransactional;
 
-public class GetService implements Serializable, AsyncTransactional {	
-	
-	private static final long serialVersionUID = 7541065168553854852L;
+public class GetEnvironments implements Serializable, AsyncTransactional {
 
+	private static final long serialVersionUID = -6272595108178262037L;
+	
 	private final AsyncTransactionRef transactionRef;
 	
 	private final String serviceId;
 	
-	public GetService(String serviceId) {
+	public GetEnvironments(String serviceId) {
 		this(Optional.empty(), serviceId);
 	}
-
-	public GetService(Optional<AsyncTransactionRef> transactionRef, String serviceId) {
+	
+	public GetEnvironments(Optional<AsyncTransactionRef> transactionRef, String serviceId) {
 		this.transactionRef = transactionRef.orElse(null);
 		this.serviceId = serviceId;
 	}
@@ -27,15 +27,14 @@ public class GetService implements Serializable, AsyncTransactional {
 	public Optional<AsyncTransactionRef> getTransactionRef() {
 		return Optional.ofNullable(transactionRef);
 	}
-	
+
 	public String getServiceId() {
 		return serviceId;
 	}
 
 	@Override
 	public String toString() {
-		return "GetService [transactionRef=" + transactionRef + ", serviceId="
-				+ serviceId + "]";
+		return "GetEnvironments [transactionRef=" + transactionRef
+				+ ", serviceId=" + serviceId + "]";
 	}
-	
 }

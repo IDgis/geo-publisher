@@ -1,12 +1,20 @@
 package nl.idgis.publisher.job.manager.messages;
 
-public class CreateVacuumServiceJob extends CreateJob {
+public class CreateVacuumServiceJob extends CreateServiceJob {
 
-	private static final long serialVersionUID = -1180753466614506531L;	
+	private static final long serialVersionUID = 1228775541762439568L;
+
+	public CreateVacuumServiceJob() {
+		this(false);
+	}
+	
+	public CreateVacuumServiceJob(boolean published) {
+		super(published);
+	}
 
 	@Override
 	public String toString() {
-		return "CreateVacuumServiceJob []";
+		return "CreateVacuumServiceJob [published=" + published + "]";
 	}
 	
 }
