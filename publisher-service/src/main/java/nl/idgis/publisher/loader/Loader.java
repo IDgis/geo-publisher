@@ -5,15 +5,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.messages.JobInfo;
 
+import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
@@ -36,7 +43,9 @@ public class Loader extends UntypedActor {
 	
 	private final ActorRef database, harvester;
 	
-	private Map<ImportJobInfo, ActorRef> sessions;
+	private BiMap<ImportJobInfo, ActorRef> sessions;
+	
+	private Map<ImportJobInfo, ActorRef> jobContexts;
 	
 	private Map<ActorRef, Progress> progress;
 	
@@ -53,9 +62,10 @@ public class Loader extends UntypedActor {
 	
 	@Override
 	public void preStart() throws Exception {
-		sessions = new HashMap<>();
+		sessions = HashBiMap.create();
 		busyDataSources = new HashMap<>();
 		progress = new HashMap<>();
+		jobContexts = new HashMap<>();
 	}
 
 	@Override
@@ -74,8 +84,33 @@ public class Loader extends UntypedActor {
 			handleGetDataSource((GetDataSource)msg);
 		} else if(msg instanceof Progress) {
 			handleProgress((Progress)msg);
+		} else if(msg instanceof Terminated) {
+			handleTerminated((Terminated)msg);
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void handleTerminated(Terminated msg) {
+		ActorRef session = msg.getActor();
+		
+		log.debug("terminated: {}", session);
+		
+		ImportJobInfo importJob = sessions.inverse().get(session);
+		if(importJob == null) {
+			log.error("session unknown");
+		} else {
+			log.debug("aborting job");
+			
+			ActorRef jobContext = jobContexts.get(importJob);
+			if(jobContext == null) {
+				log.error("job context not found");
+			} else {
+				jobContext.tell(new UpdateJobState(JobState.ABORTED), getSelf());
+			}
+			
+			log.debug("finishing session");
+			getSelf().tell(new SessionFinished(importJob), getSelf());
 		}
 	}
 
@@ -126,7 +161,8 @@ public class Loader extends UntypedActor {
 		if(sessions.containsKey(importJob)) {
 			log.debug("import job finished: " + importJob);
 			
-			progress.remove(sessions.remove(importJob));
+			ActorRef session = sessions.remove(importJob);
+			getContext().unwatch(session);
 			
 			String dataSourceId = importJob.getDataSourceId();
 			if(busyDataSources.containsKey(dataSourceId)) {
@@ -141,6 +177,8 @@ public class Loader extends UntypedActor {
 			} else {
 				log.error("data source missing from busy data sources");
 			}
+			
+			jobContexts.remove(importJob);
 			
 			getSender().tell(new Ack(), getSelf());
 		} else {
@@ -163,7 +201,9 @@ public class Loader extends UntypedActor {
 			busyDataSources.put(dataSourceId, 1);
 		}
 		
-		sessions.put(job, msg.getSession());
+		ActorRef session = msg.getSession();
+		getContext().watch(session);
+		sessions.put(job, session);
 		
 		getSender().tell(new Ack(), getSelf());
 	}
@@ -171,8 +211,11 @@ public class Loader extends UntypedActor {
 	private void handleImportJob(final ImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
+		ActorRef jobContext = getSender();
+		jobContexts.put(importJob, jobContext);
+		
 		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, getSender(), database),
+				LoaderSessionInitiator.props(importJob, jobContext, database),
 				nameGenerator.getName(LoaderSessionInitiator.class));
 		
 		getSelf().tell(new GetDataSource(importJob.getDataSourceId()), initiator);
