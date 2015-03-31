@@ -57,8 +57,10 @@ public class JobContextTest {
 		
 		jobManager = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
 		
+		ActorRef jobListener = actorSystem.actorOf(AnyRecorder.props(), "listener");
+		
 		jobContextParent = actorSystem.actorOf(AnyRecorder.props());
-		jobContext = f.ask(jobContextParent, new Create(JobContext.props(jobManager, jobInfo)), Created.class).get().getActorRef();
+		jobContext = f.ask(jobContextParent, new Create(JobContext.props(jobManager, jobListener, jobInfo)), Created.class).get().getActorRef();
 		
 		deadWatch = actorSystem.actorOf(AnyRecorder.props());		
 		f.ask(deadWatch, new Watch(jobContext), Watching.class);

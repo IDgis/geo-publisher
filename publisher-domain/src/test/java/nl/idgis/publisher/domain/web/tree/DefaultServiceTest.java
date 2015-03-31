@@ -27,9 +27,12 @@ public class DefaultServiceTest {
 	@Test
 	public void testNoGroup() {
 		List<DefaultDatasetLayer> datasets = Arrays.asList(
-			new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
-			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
-			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
+			new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
+				null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
+			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
+				null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList()),
+			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
+				null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList()));
 			
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0"));
@@ -87,9 +90,12 @@ public class DefaultServiceTest {
 				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null));
 		
 		List<DefaultDatasetLayer> datasets = Arrays.asList(
-				new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", null, Collections.emptyList(), "myTable0", Collections.emptyList()),
-				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", null, Collections.emptyList(), "myTable1", Collections.emptyList()),
-				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", null, Collections.emptyList(), "myTable2", Collections.emptyList()));
+				new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
+					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
+				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
+					null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList()),
+				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
+					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList()));
 				
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0"));

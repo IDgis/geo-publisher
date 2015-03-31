@@ -27,6 +27,7 @@ import akka.japi.Procedure;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
@@ -36,6 +37,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
@@ -390,6 +392,16 @@ public class GeoServerService extends UntypedActor {
 				
 				if(!Objects.equal(rest.getNativeName(), ensure.getTableName())) {
 					log.debug("new table name: {}, was {}", ensure.getTableName(), rest.getNativeName());
+					
+					return false;
+				}
+				
+				List<String> restColumnNames = rest.getAttributes().stream()
+					.map(Attribute::getName)
+					.collect(Collectors.toList());
+				
+				if(!Objects.equal(restColumnNames, ensure.getColumnNames())) {					
+					log.debug("new column names: {}, was {}", ensure.getColumnNames(), restColumnNames);
 					
 					return false;
 				}

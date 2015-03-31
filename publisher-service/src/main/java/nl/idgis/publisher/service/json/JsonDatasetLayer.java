@@ -60,6 +60,14 @@ public class JsonDatasetLayer implements DatasetLayer {
 	public String getTableName() {
 		return jsonNode.get("tableName").asText();
 	}
+	
+	@Override
+	public List<String> getColumnNames() {
+		return 
+			getStream(jsonNode, "columnNames")
+				.map(JsonNode::asText)
+				.collect(toList());
+	}
 
 	@Override
 	public List<StyleRef> getStyleRefs() {

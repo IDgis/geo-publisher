@@ -8,6 +8,9 @@ import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 
 import java.util.Collections;
 import java.util.List;
@@ -116,11 +119,33 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 				tiledLayer.expireClients,
 				tiledLayer.gutter);
 	}
+	
+	private CompletableFuture<Map<Integer, List<String>>> datasetColumns() {
+		// TODO: staging vs publication?
+		
+		return filter(query.clone()
+			.from(leafLayer)
+			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))			
+			.join(lastImportJob).on(lastImportJob.datasetId.eq(leafLayer.datasetId))
+			.join(importJob).on(importJob.jobId.eq(lastImportJob.jobId))
+			.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id)))
+			.orderBy(importJobColumn.index.asc())
+			.list(
+				genericLayer.id,
+				importJobColumn.name).thenApply(resp ->
+					resp.list().stream()
+					.collect(Collectors.groupingBy(t ->
+						t.get(genericLayer.id),
+						Collectors.mapping(t ->
+							t.get(importJobColumn.name),
+							Collectors.toList()))));
+	}
 
 	@Override
 	protected CompletableFuture<TypedList<DefaultDatasetLayer>> result() {
 		return 
 			tilingDatasetMimeFormats().thenCompose(tilingMimeFormats ->
+			datasetColumns().thenCompose(columns ->
 			datasetKeywords().thenCompose(keywords ->
 			datasetStyles().thenCompose(styles ->			
 			datasetInfo().thenApply(resp ->
@@ -144,9 +169,12 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 								? keywords.get(t.get(genericLayer.id))									
 								: Collections.emptyList(),
 							t.get(dataset.identification),
+							columns.containsKey(t.get(genericLayer.id))
+								? columns.get(t.get(genericLayer.id))
+								: Collections.emptyList(),
 							styles.containsKey(t.get(genericLayer.id))
 								? styles.get(t.get(genericLayer.id))
 								: Collections.emptyList()))
-						.collect(Collectors.toList()))))));
+						.collect(Collectors.toList())))))));
 	}
 }

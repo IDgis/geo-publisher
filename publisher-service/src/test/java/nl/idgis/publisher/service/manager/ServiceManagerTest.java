@@ -24,6 +24,8 @@ import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.database.QJobState.jobState;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -145,7 +147,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(sourceDatasetVersion.type, "VECTOR")
 			.executeWithKey(sourceDatasetVersion.id);
 		
-		for(int i = 0; i < 10; i++) {
+		for(int i = 0; i < 2; i++) {
 			insert(sourceDatasetVersionColumn)
 			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
 			.set(sourceDatasetVersionColumn.index, i)
@@ -201,6 +203,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					datasetColumn.index,
 					datasetColumn.name,
 					datasetColumn.dataType))
+			.execute();
+		
+		insert(jobState)
+			.columns(
+				jobState.jobId,
+				jobState.state)
+			.values(jobId, "STARTED").addBatch()
+			.values(jobId, "SUCCEEDED").addBatch()
 			.execute();
 	}
 		
@@ -359,6 +369,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals(2, keywords.size());
 		assertTrue(keywords.contains("keyword0"));
 		assertTrue(keywords.contains("keyword1"));
+		
+		List<String> columnNames = datasetLayer.getColumnNames();
+		assertEquals(Arrays.asList("column0", "column1"), columnNames);
 		
 		Optional<Tiling> optionalTiling = datasetLayer.getTiling();
 		assertTrue(optionalTiling.isPresent());		

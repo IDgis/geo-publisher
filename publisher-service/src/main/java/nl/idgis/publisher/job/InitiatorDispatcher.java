@@ -27,16 +27,17 @@ public class InitiatorDispatcher extends UntypedActor {
 	
 	private final FiniteDuration timeout;
 	
-	private final ActorRef jobManager, target;
+	private final ActorRef jobManager, jobListener, target;
 	
-	public InitiatorDispatcher(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
+	public InitiatorDispatcher(ActorRef jobManager, ActorRef jobListener, ActorRef target, FiniteDuration timeout) {
 		this.jobManager = jobManager;
+		this.jobListener = jobListener;
 		this.target = target;
 		this.timeout = timeout;
 	}
 	
-	public static Props props(ActorRef jobManager, ActorRef target, FiniteDuration timeout) {
-		return Props.create(InitiatorDispatcher.class, jobManager, target, timeout);
+	public static Props props(ActorRef jobManager, ActorRef jobListener, ActorRef target, FiniteDuration timeout) {
+		return Props.create(InitiatorDispatcher.class, jobManager, jobListener, target, timeout);
 	}
 	
 	@Override
@@ -102,7 +103,7 @@ public class InitiatorDispatcher extends UntypedActor {
 		log.debug("sending message to target: " + jobInfo);
 		
 		ActorRef jobContext = getContext().actorOf(
-				JobContext.props(jobManager, jobInfo), 
+				JobContext.props(jobManager, jobListener, jobInfo), 
 				nameGenerator.getName(JobContext.class));
 		
 		target.tell(jobInfo, jobContext);

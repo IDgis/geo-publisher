@@ -39,6 +39,7 @@ import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.recorder.AnyRecorder;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 
@@ -183,11 +184,12 @@ public class InitiatorTest extends AbstractServiceTest {
 			.execute();
 	}
 	
-	ActorRef manager;
+	ActorRef manager, listener;
 	
 	@Before
 	public void actors() throws Exception {
 		manager = actorOf(JobManager.props(database), "manager");
+		listener = actorOf(AnyRecorder.props(), "listener");
 	}
 	
 	@Test
@@ -198,7 +200,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		actorOf(
 			Initiator.props()
 				.add(harvester, "harvester", new GetHarvestJobs())
-				.create(manager), 
+				.create(manager, listener), 
 			"initiator");
 		
 		List<?> list = f.ask(harvester, new GetReceivedJobs(1), List.class).get();
@@ -214,7 +216,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		actorOf(
 			Initiator.props()
 				.add(loader, "loader", new GetImportJobs())
-				.create(manager), 
+				.create(manager, listener), 
 			"initiator");
 		
 		List<?> list = f.ask(loader, new GetReceivedJobs(2), List.class).get();
@@ -241,7 +243,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		actorOf(
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())
-				.create(manager), 
+				.create(manager, listener), 
 			"initiator");
 		
 		List<?> list = f.ask(service, new GetReceivedJobs(1), List.class).get();
@@ -254,7 +256,7 @@ public class InitiatorTest extends AbstractServiceTest {
 		actorOf(
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())
-				.create(manager, Duration.create(1, TimeUnit.MILLISECONDS)), 
+				.create(manager, listener, Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");
 		
 		Thread.sleep(100);
@@ -282,7 +284,8 @@ public class InitiatorTest extends AbstractServiceTest {
 			Initiator.props()
 				.add(service, "service", new GetServiceJobs())
 				.create(
-						manager, 
+						manager,
+						listener,
 						Duration.create(1, TimeUnit.MILLISECONDS), 
 						Duration.create(1, TimeUnit.MILLISECONDS)), 
 			"initiator");

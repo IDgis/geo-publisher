@@ -31,7 +31,7 @@ public class JobSystem extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, service;
+	private final ActorRef database, harvester, loader, provisioningManager, serviceManager;
 	
 	private ActorRef jobManager, jobCreator;
 	
@@ -59,15 +59,16 @@ public class JobSystem extends UntypedActor {
 		}
 	}
 	
-	public JobSystem(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
+	public JobSystem(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
 		this.database = database;
 		this.harvester = harvester;
 		this.loader = loader;
-		this.service = service;
+		this.provisioningManager = provisioningManager;
+		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef service) {
-		return Props.create(JobSystem.class, database, harvester, loader, service);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
+		return Props.create(JobSystem.class, database, harvester, loader, provisioningManager, serviceManager);
 	}
 	
 	@Override
@@ -75,16 +76,16 @@ public class JobSystem extends UntypedActor {
 		jobManager = getContext().actorOf(
 				JobManager.props(database), "manager");
 		
-		getContext().actorOf(
-				Initiator.props()
-					.add(harvester, "harvester", new GetHarvestJobs())
-					.add(loader, "import", new GetImportJobs())
-					.add(loader, "remove", new GetRemoveJobs())
-					.add(service, "service", new GetServiceJobs())
-					.create(jobManager), 
-				"initiator");
+		jobCreator = getContext().actorOf(Creator.props(jobManager, database, serviceManager), "creator");
 		
-		jobCreator = getContext().actorOf(Creator.props(jobManager, database), "creator");
+		getContext().actorOf(
+			Initiator.props()
+				.add(harvester, "harvester", new GetHarvestJobs())
+				.add(loader, "import", new GetImportJobs())
+				.add(loader, "remove", new GetRemoveJobs())
+				.add(provisioningManager, "service", new GetServiceJobs())
+				.create(jobManager, jobCreator), 
+			"initiator");
 		
 		createJobsIntervals = new HashMap<>();
 		createJobsIntervals.put(new CreateHarvestJobs(), Duration.apply(15, TimeUnit.MINUTES));

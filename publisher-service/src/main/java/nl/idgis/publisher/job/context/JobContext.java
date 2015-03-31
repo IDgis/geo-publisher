@@ -18,6 +18,7 @@ import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
+import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.AddNotification;
@@ -30,17 +31,18 @@ public class JobContext extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef jobManager;
+	private final ActorRef jobManager, jobListener;
 	
 	private final JobInfo jobInfo;
 		
-	public JobContext(ActorRef jobManager, JobInfo jobInfo) {
+	public JobContext(ActorRef jobManager, ActorRef jobListener, JobInfo jobInfo) {
 		this.jobManager = jobManager;
-		this.jobInfo = jobInfo;
+		this.jobListener = jobListener;
+		this.jobInfo = jobInfo;		
 	}
 	
-	public static Props props(ActorRef jobManager, JobInfo jobInfo) {
-		return Props.create(JobContext.class, jobManager, jobInfo);
+	public static Props props(ActorRef jobManager, ActorRef jobListener, JobInfo jobInfo) {
+		return Props.create(JobContext.class, jobManager, jobListener, jobInfo);
 	}
 	
 	@Override
@@ -112,6 +114,9 @@ public class JobContext extends UntypedActor {
 					jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
 					
 					if(jobState.isFinished()) {
+						log.debug("job finished");
+						jobListener.tell(new JobFinished(jobInfo, jobState), getSelf());
+						
 						getContext().stop(getSelf());
 					}
 				} else {
@@ -165,6 +170,9 @@ public class JobContext extends UntypedActor {
 					jobManager.tell(new UpdateState(jobInfo, jobState), getSender());
 					
 					if(jobState.isFinished()) {
+						log.debug("job finished");
+						jobListener.tell(new JobFinished(jobInfo, jobState), getSelf());
+						
 						getContext().become(finished());
 					}
 				} else { 
