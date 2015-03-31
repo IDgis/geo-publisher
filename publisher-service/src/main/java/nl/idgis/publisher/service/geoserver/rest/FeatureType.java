@@ -10,10 +10,6 @@ public class FeatureType {
 	
 	private final List<Attribute> attributes;
 	
-	public FeatureType(String name, String nativeName, String title, String abstr, List<String> keywords) {
-		this(name, nativeName, title, abstr, keywords, null);
-	}
-	
 	public FeatureType(String name, String nativeName, String title, String abstr, List<String> keywords, List<Attribute> attributes) {
 		this.name = name;		
 		this.nativeName = nativeName;

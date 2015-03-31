@@ -60,7 +60,7 @@ public class DefaultGeoServerRestTest {
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"public\"");
-		stmt.execute("create table \"public\".\"test_table\"(\"id\" serial, \"test\" integer)");
+		stmt.execute("create table \"public\".\"test_table\"(\"id\" serial, \"test\" integer, \"dummy\" integer)");
 		stmt.execute("select AddGeometryColumn ('public', 'test_table', 'the_geom', 4326, 'GEOMETRY', 2)");
 		stmt.execute("create schema \"b0\"");
 		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
@@ -128,7 +128,12 @@ public class DefaultGeoServerRestTest {
 		assertTrue(featureTypes.isEmpty());
 		
 		service.postFeatureType(workspace, dataStore, new FeatureType(
-			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("test"),
+					new Attribute("the_geom")))).get();
 		
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
@@ -182,7 +187,12 @@ public class DefaultGeoServerRestTest {
 		service.postDataStore(workspace, dataStore).get();
 		
 		service.postFeatureType(workspace, dataStore, new FeatureType(
-			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"))).get();
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Arrays.asList(
+					new Attribute("id"), 
+					new Attribute("test"), 
+					new Attribute("the_geom")))).get();
 		
 		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList(new LayerRef("test")));
 		service.postLayerGroup(workspace, layerGroup).get();
@@ -338,7 +348,12 @@ public class DefaultGeoServerRestTest {
 		DataStore dataStore = new DataStore("dataStore", getConnectionParameters());
 		service.postDataStore(workspace, dataStore).get();
 		
-		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", Arrays.asList("test"));		
+		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", 
+			Arrays.asList("test"),
+			Arrays.asList(
+				new Attribute("id"), 
+				new Attribute("test"), 
+				new Attribute("the_geom")));		
 		service.postFeatureType(workspace, dataStore, featureType).get();
 		
 		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Arrays.asList(new StyleRef("red")))).get();
@@ -381,7 +396,12 @@ public class DefaultGeoServerRestTest {
 		service.postDataStore(workspace, dataStore).get();
 		
 		FeatureType featureType = new FeatureType(
-			"test", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"));
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Arrays.asList(
+						new Attribute("id"), 
+						new Attribute("test"), 
+						new Attribute("the_geom")));
 		service.postFeatureType(workspace, dataStore, featureType).get();
 		
 		assertNotEquals("green", service.getLayer(workspace, featureType).get().getDefaultStyle().getStyleName());
@@ -428,7 +448,12 @@ public class DefaultGeoServerRestTest {
 		service.postDataStore(anotherWorkspace, dataStore).get();
 		
 		FeatureType anotherFeatureType = new FeatureType(
-			"anotherTest", "test_table", "title", "abstract", Arrays.asList("keyword0", "keyword1"));
+			"anotherTest", "test_table", "title", "abstract", 
+			Arrays.asList("keyword0", "keyword1"),
+				Arrays.asList(
+					new Attribute("id"), 
+					new Attribute("test"), 
+					new Attribute("the_geom")));
 		service.postFeatureType(anotherWorkspace, anotherDataStore, anotherFeatureType).get();
 				
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());

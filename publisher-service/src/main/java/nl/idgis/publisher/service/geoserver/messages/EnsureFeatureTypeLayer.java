@@ -5,15 +5,18 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
+import nl.idgis.publisher.service.geoserver.rest.Attribute;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.Layer;
 import nl.idgis.publisher.service.geoserver.rest.StyleRef;
 
 public class EnsureFeatureTypeLayer extends EnsureLayer {
 
-	private static final long serialVersionUID = 3034150832260095127L;
+	private static final long serialVersionUID = 4489704653307367970L;
 
 	private final String tableName;
+	
+	private final List<String> columnNames;
 	
 	private final List<String> keywords;
 	
@@ -22,10 +25,12 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 	private final List<String> additionalStyleNames;
 	
 	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, String tableName, 
-			Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames) {
+			List<String> columnNames, Tiling tilingSettings, String defaultStyleName, String groupStyleName, 
+			List<String> additionalStyleNames) {
 		super(layerId, title, abstr, tilingSettings);
 		
 		this.tableName = tableName;
+		this.columnNames = columnNames;
 		this.keywords = keywords;
 		this.defaultStyleName = defaultStyleName;
 		this.groupStyleName = groupStyleName;
@@ -34,6 +39,10 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 	
 	public String getTableName() {
 		return tableName;
+	}
+	
+	public List<String> getColumnNames() {
+		return columnNames;
 	}
 	
 	public List<String> getKeywords() {
@@ -58,7 +67,10 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 				tableName,
 				title,
 				abstr,
-				keywords);
+				keywords,
+				columnNames.stream()
+					.map(Attribute::new)
+					.collect(Collectors.toList()));
 	}
 	
 	public Layer getLayer() {
@@ -72,11 +84,11 @@ public class EnsureFeatureTypeLayer extends EnsureLayer {
 
 	@Override
 	public String toString() {
-		return "EnsureFeatureTypeLayer [tableName=" + tableName + ", keywords="
-				+ keywords + ", defaultStyleName=" + defaultStyleName
+		return "EnsureFeatureTypeLayer [tableName=" + tableName
+				+ ", columnNames=" + columnNames + ", keywords=" + keywords
+				+ ", defaultStyleName=" + defaultStyleName
 				+ ", groupStyleName=" + groupStyleName
-				+ ", additionalStyleNames=" + additionalStyleNames
-				+ ", layerId=" + layerId + ", title=" + title + ", abstr="
-				+ abstr + ", tilingSettings=" + tilingSettings + "]";
-	}		
+				+ ", additionalStyleNames=" + additionalStyleNames + "]";
+	}
+		
 }

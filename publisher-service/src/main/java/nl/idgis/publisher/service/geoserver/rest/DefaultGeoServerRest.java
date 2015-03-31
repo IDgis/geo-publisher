@@ -482,6 +482,19 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeEndElement();
 			}
 			sw.writeEndElement();
+						
+			
+			List<Attribute> attributes = featureType.getAttributes();				
+			
+			sw.writeStartElement("attributes");
+				for(Attribute attribute : attributes) {
+					sw.writeStartElement("attribute");
+						sw.writeStartElement("name");
+							sw.writeCharacters(attribute.getName());
+						sw.writeEndElement();
+					sw.writeEndElement();
+				}
+			sw.writeEndElement();
 			
 			sw.writeStartElement("enabled");
 				sw.writeCharacters("true");
