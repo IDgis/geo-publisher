@@ -113,6 +113,7 @@ public class StyleAdmin extends AbstractAdmin {
 					// UPDATE
 					log.debug("Updating style with name: " + styleName);
 					return tx.update(style)
+					.set(style.name, styleName)
 					.set(style.definition, theStyle.definition())
 					.set(style.styleType, theStyle.styleType().name())
 					.where(style.identification.eq(styleId))
