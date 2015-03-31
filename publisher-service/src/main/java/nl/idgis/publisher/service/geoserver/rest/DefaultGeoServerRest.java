@@ -45,7 +45,6 @@ import com.ning.http.client.Response;
 
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.service.StyleUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
@@ -912,7 +911,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	private byte[] serializeStyle(Document sld) throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException {
-		return serialize(StyleUtils.toLowerCasePropertyName(sld));
+		return serialize(sld);
 	}
 	
 	@Override
