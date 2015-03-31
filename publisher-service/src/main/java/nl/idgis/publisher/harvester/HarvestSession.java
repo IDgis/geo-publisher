@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
@@ -7,6 +8,7 @@ import nl.idgis.publisher.dataset.messages.CleanupCategories;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
+
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
@@ -14,18 +16,21 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
+
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import scala.concurrent.duration.Duration;
 
 public class HarvestSession extends UntypedActor {
@@ -36,16 +41,19 @@ public class HarvestSession extends UntypedActor {
 	
 	private final HarvestJobInfo harvestJob;
 	
+	private final Set<String> datasetIds;
+	
 	private FutureUtils f;
 	
-	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob) {
+	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> datasetIds) {
 		this.jobContext = jobContext;
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
+		this.datasetIds = datasetIds;
 	}
 	
-	public static Props props(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob) {
-		return Props.create(HarvestSession.class, jobContext, datasetManager, harvestJob);
+	public static Props props(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> datasetIds) {
+		return Props.create(HarvestSession.class, jobContext, datasetManager, harvestJob, datasetIds);
 	}
 	
 	@Override
@@ -53,6 +61,8 @@ public class HarvestSession extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 		
 		f = new FutureUtils(getContext());
+		
+		log.debug("existing datasets: {}", datasetIds.size());
 	}
 
 	@Override
@@ -102,6 +112,8 @@ public class HarvestSession extends UntypedActor {
 					log.debug("harvesting of dataSource finished: " + harvestJob);
 				}
 				
+				log.debug("obsolete datasets left: {}", datasetIds.size());
+				
 				getContext().stop(getSelf());
 			});
 		});
@@ -111,7 +123,9 @@ public class HarvestSession extends UntypedActor {
 		log.debug("dataset received");
 		
 		ActorRef sender = getSender();
+		
 		String dataSourceId = harvestJob.getDataSourceId();
+		datasetIds.remove(dataset.getId());
 		
 		f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
 			.exceptionally(e -> new Failure(e)).thenAccept((msg) -> {			
