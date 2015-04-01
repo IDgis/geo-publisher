@@ -2,6 +2,7 @@ package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.stream.StreamProvider;
@@ -22,6 +23,9 @@ public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 
 	@Override
 	protected Props start(GetAllMetadata msg) {
-		return MetadataCursor.props(Arrays.asList(metadataDirectory.listFiles()).iterator());
+		return MetadataCursor.props(
+			Arrays.asList(metadataDirectory.listFiles()).stream()
+				.filter(File::isFile)
+				.collect(Collectors.toList()).iterator());
 	}
 }

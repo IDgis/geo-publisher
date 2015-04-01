@@ -5,11 +5,15 @@ import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
 
 public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	public MetadataCursor(Iterator<File> t) {
 		super(t);	
@@ -27,7 +31,9 @@ public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 	@Override
 	protected CompletableFuture<MetadataItem> next() {
 		try {
-			return f.successful(MetadataParser.createMetadataItem(t.next()));
+			File file = t.next();
+			log.debug("parsing metadata: {}", file);
+			return f.successful(MetadataParser.createMetadataItem(file));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
