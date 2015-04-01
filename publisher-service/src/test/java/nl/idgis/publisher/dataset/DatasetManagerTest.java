@@ -25,7 +25,7 @@ import org.junit.Test;
 import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
-import nl.idgis.publisher.dataset.messages.CleanupCategories;
+import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
@@ -204,7 +204,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	}
 	
 	@Test
-	public void testCleanupCategories () throws Exception {
+	public void testCleanup () throws Exception {
 		final List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
@@ -225,22 +225,22 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		assertEquals (2, query ().from (category).count ());
 
 		deleteSourceDataset ("table1");
-		f.ask (datasetManager, new CleanupCategories ()).get ();
+		f.ask (datasetManager, new Cleanup ()).get ();
 		
 		assertEquals (2, query ().from (category).count ());
 		
 		deleteSourceDataset ("table3");
-		f.ask (datasetManager, new CleanupCategories ()).get ();
+		f.ask (datasetManager, new Cleanup ()).get ();
 		
 		assertEquals (1, query ().from (category).count ());
 		
 		deleteSourceDataset ("table2");
-		f.ask (datasetManager, new CleanupCategories ()).get ();
+		f.ask (datasetManager, new Cleanup ()).get ();
 		
 		assertEquals (1, query ().from (category).count ());
 		
 		deleteSourceDataset ("table4");
-		f.ask (datasetManager, new CleanupCategories ()).get ();
+		f.ask (datasetManager, new Cleanup ()).get ();
 		
 		assertEquals (0, query ().from (category).count ());
 	}

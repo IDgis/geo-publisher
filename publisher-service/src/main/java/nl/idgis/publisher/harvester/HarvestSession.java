@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
-import nl.idgis.publisher.dataset.messages.CleanupCategories;
+import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -119,12 +119,12 @@ public class HarvestSession extends UntypedActor {
 	private void cleanup() {
 		log.debug("cleaning up");
 		
-		f.ask (datasetManager, new CleanupCategories ()).whenComplete ((message, error) -> {			
+		f.ask (datasetManager, new Cleanup ()).whenComplete ((message, error) -> {			
 			if (error != null) {
-				log.error ("couldn't perform cleanup on categories: {}", error);
+				log.error ("couldn't perform cleanup: {}", error);
 				finish(JobState.FAILED);
 			} else {
-				log.debug ("categories cleaned up");
+				log.debug ("cleaned up");
 				finish(JobState.SUCCEEDED);
 			}
 		});

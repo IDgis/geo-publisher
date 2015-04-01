@@ -21,7 +21,7 @@ import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.projections.QColumn;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
-import nl.idgis.publisher.dataset.messages.CleanupCategories;
+import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -102,8 +102,8 @@ public class DatasetManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof RegisterSourceDataset) {
 			returnToSender(handleRegisterSourceDataset((RegisterSourceDataset) msg));
-		} else if (msg instanceof CleanupCategories) {
-			returnToSender (handleCleanupCategories ((CleanupCategories) msg));
+		} else if (msg instanceof Cleanup) {
+			returnToSender (handleCleanup ((Cleanup) msg));
 		} else if (msg instanceof DeleteSourceDatasets) {
 			returnToSender (handleDeleteSourceDatasets((DeleteSourceDatasets)msg));
 		} else {
@@ -435,7 +435,7 @@ public class DatasetManager extends UntypedActor {
 					: insertSourceDataset(tx, dataSource, dataset)));
 	}
 	
-	private CompletableFuture<Long> handleCleanupCategories (final CleanupCategories cleanupCategories) {
+	private CompletableFuture<Long> handleCleanup (final Cleanup cleanup) {
 		return db.transactional (tx -> {
 			return tx
 				.delete (category)
