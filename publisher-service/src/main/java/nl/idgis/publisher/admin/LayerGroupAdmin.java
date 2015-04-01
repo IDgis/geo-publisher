@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerRef;
@@ -36,8 +36,8 @@ import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayerRef;
-
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.service.manager.CycleException;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
@@ -45,7 +45,6 @@ import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -387,7 +386,22 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				);
 	}
 	
-	private CompletableFuture<Response<?>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
+	private static class EnrichedCycleException extends RuntimeException {
+		
+		private final Response<String> response;
+		
+		public EnrichedCycleException(CycleException cause, Response<String> response) {
+			super(cause);
+			
+			this.response = response;
+		}
+		
+		public Response<String> getResponse() {
+			return response;
+		}
+	}
+	
+	private CompletableFuture<Response<String>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
 		String groupId = putGroupStructure.groupId();
 
 		List<String> layerIdList =  putGroupStructure.layerIdList();
@@ -399,7 +413,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				
 		log.debug("handlePutGroupStructure groupId: " + groupId + ", layer id's: " +layerIdList);
 		
-		return db.transactional(tx -> tx
+		return db.<Response<String>>transactional(tx -> tx
 			.query()
 			.from(genericLayer)
 			.where(genericLayer.identification.eq(groupId))
@@ -465,11 +479,55 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 													});
 											}
 										})
-										.collect(Collectors.toList())).thenApply(whatever ->
-											new Response<String>(CrudOperation.UPDATE,
-												CrudResponse.OK, groupId));												
+										.collect(Collectors.toList())).thenCompose(whatever ->
+											f.ask(serviceManager, new GetGroupLayer(Optional.of(tx.getTransactionRef()), groupId)))
+												.thenCompose(groupLayer -> {
+													// TODO put this in a separate query or query all cycles
+													if(groupLayer instanceof Failure) {
+														Throwable cause = ((Failure) groupLayer).getCause();
+														if(cause instanceof CycleException) {
+															// get offending group id
+															String cycleGroupId = ((CycleException)cause).getLayerId();
+															// get group name;
+															return tx.query()
+															.from(genericLayer)
+															.where(genericLayer.identification.eq(cycleGroupId))
+															.singleResult(genericLayer.name)
+															.thenApply(glName -> {
+																if (glName.isPresent()){
+																	throw new EnrichedCycleException(
+																		(CycleException)cause, 
+																		new Response<String>(CrudOperation.UPDATE, 
+																			CrudResponse.NOK, glName.get()));
+																}else{
+																	throw new EnrichedCycleException(
+																		(CycleException)cause, 
+																		new Response<String>(CrudOperation.UPDATE, 
+																			CrudResponse.NOK, cycleGroupId));																	
+																}
+															});
+															
+														} else {
+															return f.successful(new Response<String>(CrudOperation.UPDATE, 
+																CrudResponse.NOK, cause.getMessage()));
+														}
+													} else {												
+														return f.successful(new Response<String>(CrudOperation.UPDATE,
+															CrudResponse.OK, groupId));
+													}
+												});
 							});
-		}));
+		})).exceptionally(t -> {
+			if(t instanceof CompletionException) {
+				t = t.getCause();
+			}
+			
+			if(t instanceof EnrichedCycleException) {
+				return ((EnrichedCycleException)t).getResponse();
+			}
+			
+			return new Response<String>(CrudOperation.UPDATE, CrudResponse.NOK, t.getMessage());
+		});
 	}
 	
 }

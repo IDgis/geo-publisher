@@ -19,15 +19,12 @@ import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -221,16 +218,21 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		return groups().thenCompose(groups ->
 			groups.list().isEmpty() ? f.successful(new NotFound()) : 
 				structure().thenCompose(structure ->															
-				datasets().thenApply(datasets -> {
-					StructureProcessor.Result transformedStructure 
-						= structureProcessor.transform(structure.list()); 
-	
-					return DefaultGroupLayer.newInstance(
-						groupLayerId,
-						datasets.list(),
-						groups.list(),
-						transformedStructure.getStructureItems(),
-						transformedStructure.getStyles());
+				datasets().thenCompose(datasets -> {					
+						try {
+							StructureProcessor.Result transformedStructure 
+								= structureProcessor.transform(structure.list());
+							
+							return f.successful(DefaultGroupLayer.newInstance(
+								groupLayerId,
+								datasets.list(),
+								groups.list(),
+								transformedStructure.getStructureItems(),
+								transformedStructure.getStyles()));
+						} catch (CycleException e) {
+							log.debug("CycleException: " + e + "[" +e.getMessage()+"]");
+							return f.failed(e);
+						}
 				})));
 	}
 

@@ -143,40 +143,45 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 				structure().thenCompose(structure ->						
 				groups().thenCompose(groups ->
 				keywords().thenCompose(keywords ->
-				datasets().thenApply(datasets -> {
-					StructureProcessor.Result transformedStructure 
-						= structureProcessor.transform(structure.list());
-					
-					Tuple serviceInfoTuple = info.get();
-	
-					return new DefaultService(
-						serviceId, 
-						serviceInfoTuple.get(genericLayer.name),
-						serviceInfoTuple.get(genericLayer.title),
-						serviceInfoTuple.get(genericLayer.abstractCol),
-						keywords.list(),
-						serviceInfoTuple.get(constants.contact),
-						serviceInfoTuple.get(constants.organization),
-						serviceInfoTuple.get(constants.position),
-						serviceInfoTuple.get(constants.addressType),
-						serviceInfoTuple.get(constants.address),
-						serviceInfoTuple.get(constants.city),
-						serviceInfoTuple.get(constants.state),
-						serviceInfoTuple.get(constants.zipcode),
-						serviceInfoTuple.get(constants.country),
-						serviceInfoTuple.get(constants.telephone),
-						serviceInfoTuple.get(constants.fax),
-						serviceInfoTuple.get(constants.email),
-						new PartialGroupLayer(
-							serviceInfoTuple.get(genericLayer.identification),
+				datasets().thenCompose(datasets -> {
+					try {
+						StructureProcessor.Result transformedStructure 
+							= structureProcessor.transform(structure.list());
+						
+						Tuple serviceInfoTuple = info.get();
+		
+						return f.successful(new DefaultService(
+							serviceId, 
 							serviceInfoTuple.get(genericLayer.name),
 							serviceInfoTuple.get(genericLayer.title),
 							serviceInfoTuple.get(genericLayer.abstractCol),
-							null), // a root group doesn't have (or need) tiling
-						datasets.list(),
-						groups.list(),
-						transformedStructure.getStructureItems(),
-						transformedStructure.getStyles());
+							keywords.list(),
+							serviceInfoTuple.get(constants.contact),
+							serviceInfoTuple.get(constants.organization),
+							serviceInfoTuple.get(constants.position),
+							serviceInfoTuple.get(constants.addressType),
+							serviceInfoTuple.get(constants.address),
+							serviceInfoTuple.get(constants.city),
+							serviceInfoTuple.get(constants.state),
+							serviceInfoTuple.get(constants.zipcode),
+							serviceInfoTuple.get(constants.country),
+							serviceInfoTuple.get(constants.telephone),
+							serviceInfoTuple.get(constants.fax),
+							serviceInfoTuple.get(constants.email),
+							new PartialGroupLayer(
+								serviceInfoTuple.get(genericLayer.identification),
+								serviceInfoTuple.get(genericLayer.name),
+								serviceInfoTuple.get(genericLayer.title),
+								serviceInfoTuple.get(genericLayer.abstractCol),
+								null), // a root group doesn't have (or need) tiling
+							datasets.list(),
+							groups.list(),
+							transformedStructure.getStructureItems(),
+							transformedStructure.getStyles()));
+					} catch(CycleException e) {
+						log.debug("CycleException: " + e);
+						return f.failed(e);
+					}
 				}))))
 			: f.successful(new NotFound()));
 	}

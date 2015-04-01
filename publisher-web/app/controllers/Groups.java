@@ -136,10 +136,22 @@ public class Groups extends GroupsLayersCommon {
 										public Promise<Result> apply (final Response<?> response) throws Throwable {
 											if (CrudOperation.CREATE.equals (response.getOperation())) {
 												Logger.debug ("Created group " + group);
-												flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+												if (response.getOperationResponse().equals(CrudResponse.NOK)){
+													flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
+													form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+													return Promise.pure (redirect (routes.Groups.edit(groupId)));
+												} else {
+													flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+												}
 											}else{
 												Logger.debug ("Updated group " + group);
-												flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+												if (response.getOperationResponse().equals(CrudResponse.NOK)){
+													flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
+													form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+													return Promise.pure (redirect (routes.Groups.edit(groupId)));
+												} else {
+													flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+												}
 											}
 											return Promise.pure (redirect (routes.Groups.list (null, null, 1)));
 										}

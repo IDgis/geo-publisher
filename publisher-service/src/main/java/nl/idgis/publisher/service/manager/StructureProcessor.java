@@ -50,7 +50,7 @@ class StructureProcessor {
 		this.cyclePath = cyclePath;
 	}
 
-	Result transform(List<Tuple> tuples) {
+	Result transform(List<Tuple> tuples) throws CycleException {
 		List<StructureItem> structureItems = new ArrayList<>();
 		
 		Map<String, StyleRef> styles = new HashMap<>();
@@ -65,7 +65,7 @@ class StructureProcessor {
 			Integer layerOrder = structureTuple.get(layerOrderPath);
 				
 			if(structureTuple.get(cyclePath)) {
-				throw new IllegalStateException("cycle detected, layer: " + childId);
+				throw new CycleException(childId);
 			}
 			
 			// skip duplicates
