@@ -227,9 +227,11 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 	}
 	
 	private ServiceInfo createServiceInfo (final Service service) {
+		final String url = service.serviceUrl.endsWith ("/") ? service.serviceUrl : service.serviceUrl + "/";
+		
 		return new ServiceInfo (
 				new ConnectionInfo (
-					service.serviceUrl, 
+					url, 
 					stagingServiceInfo.getService ().getUser (), 
 					stagingServiceInfo.getService ().getPassword ()
 				), 
