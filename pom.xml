@@ -24,6 +24,7 @@
 		<scala.abi.version>2.11</scala.abi.version>
 		<deegree.version>3.4-pre13</deegree.version>
 		<querydsl.version>3.4.1</querydsl.version>
+		<curator.version>2.7.1</curator.version>
 		
 		<!-- 
 		Versions of dependencies that are shared with Play. These versions should match the ones used by Play.
@@ -445,6 +446,33 @@
 			    <groupId>org.codehaus.woodstox</groupId>
 			    <artifactId>woodstox-core-lgpl</artifactId>
 			    <version>4.1.5</version>
+			</dependency>
+			
+			<!-- Curator framework: -->
+			<dependency>
+			    <groupId>org.apache.curator</groupId>
+			    <artifactId>curator-recipes</artifactId>
+			    <version>${curator.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.apache.curator</groupId>
+			    <artifactId>curator-framework</artifactId>
+			    <version>${curator.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.apache.curator</groupId>
+			    <artifactId>curator-x-discovery</artifactId>
+			    <version>${curator.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.apache.curator</groupId>
+			    <artifactId>curator-client</artifactId>
+			    <version>${curator.version}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.apache.curator</groupId>
+			    <artifactId>apache-curator</artifactId>
+			    <version>${curator.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

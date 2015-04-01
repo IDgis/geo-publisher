@@ -10,15 +10,11 @@ import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
-
 import nl.idgis.publisher.admin.AdminParent;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.QJobState;
-
 import nl.idgis.publisher.domain.job.JobState;
-
 import nl.idgis.publisher.dataset.DatasetManager;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
@@ -34,12 +30,12 @@ import nl.idgis.publisher.service.provisioning.ConnectionInfo;
 import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
+import nl.idgis.publisher.service.provisioning.ZooKeeperServiceInfoProvider;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
@@ -171,6 +167,8 @@ public class ServiceApp extends UntypedActor {
 		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
 		Config harvesterConfig = config.getConfig("harvester");
+		final Config zooKeeperConfig = config.getConfig ("zooKeeper");
+		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(database, harvester), "loader");
@@ -178,6 +176,11 @@ public class ServiceApp extends UntypedActor {
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
 		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), "provisioning-manager");
+		
+		final ActorRef zooKeeperServiceInfoProvider = getContext ().actorOf (ZooKeeperServiceInfoProvider.props (
+				zooKeeperConfig.getString ("hosts"), 
+				zooKeeperConfig.hasPath ("namespace") ? zooKeeperConfig.getString ("namespace") : null
+			), "zookeeper-service-info-provider");
 		
 		Config geoserverConfig = config.getConfig("geoserver");
 		provisioningManager.tell(new AddStagingService(new ServiceInfo(
