@@ -1,5 +1,6 @@
 package nl.idgis.publisher.dataset;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -9,21 +10,26 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDataset
 import static nl.idgis.publisher.utils.StreamUtils.index;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.projections.QColumn;
+
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
-import nl.idgis.publisher.dataset.messages.CleanupCategories;
+import nl.idgis.publisher.dataset.messages.Cleanup;
+import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
+
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.LogLevel;
@@ -34,9 +40,11 @@ import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
+
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JsonUtils;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -46,6 +54,7 @@ import akka.util.Timeout;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.expr.DateTimeExpression;
 
 public class DatasetManager extends UntypedActor {
 
@@ -96,11 +105,21 @@ public class DatasetManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof RegisterSourceDataset) {
 			returnToSender(handleRegisterSourceDataset((RegisterSourceDataset) msg));
-		} else if (msg instanceof CleanupCategories) {
-			returnToSender (handleCleanupCategories ((CleanupCategories) msg));
+		} else if (msg instanceof Cleanup) {
+			returnToSender (handleCleanup ((Cleanup) msg));
+		} else if (msg instanceof DeleteSourceDatasets) {
+			returnToSender (handleDeleteSourceDatasets((DeleteSourceDatasets)msg));
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private CompletableFuture<Long> handleDeleteSourceDatasets(DeleteSourceDatasets msg) {
+		return
+			db.update(sourceDataset)
+			.set(sourceDataset.deleteTime, DateTimeExpression.currentTimestamp(Timestamp.class))
+			.where(sourceDataset.identification.in(msg.getDatasetIds()))
+			.execute();
 	}
 
 	private CompletableFuture<Optional<Integer>> getCategoryId(final AsyncHelper tx, final String identification) {
@@ -241,10 +260,17 @@ public class DatasetManager extends UntypedActor {
 					if(maxVersionId.isPresent()) {
 						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);						
 					} else {
-						return f.successful(Optional.empty());
+						return f.<Optional<Dataset>>successful(Optional.empty());
 					}					
 
-				}); 
+				}).thenCompose(optionalDataset -> {
+					if(optionalDataset.isPresent()) {
+						return ensureNotDeleted(tx, identification)
+							.thenApply(ensured -> optionalDataset);
+					} else {					
+						return f.successful(optionalDataset);
+					}
+				});
 						
 	}
 	
@@ -388,6 +414,14 @@ public class DatasetManager extends UntypedActor {
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
 					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());
 	}
+	
+	private CompletableFuture<Long> ensureNotDeleted(AsyncHelper tx, String datasetId) {
+		return 
+			tx.update(sourceDataset)
+			.setNull(sourceDataset.deleteTime)
+			.where(sourceDataset.identification.eq(datasetId))
+			.execute();
+	}
 
 	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
 		log.debug("registering source dataset");
@@ -404,12 +438,55 @@ public class DatasetManager extends UntypedActor {
 					: insertSourceDataset(tx, dataSource, dataset)));
 	}
 	
-	private CompletableFuture<Long> handleCleanupCategories (final CleanupCategories cleanupCategories) {
+	private CompletableFuture<Long> handleCleanup (final Cleanup cleanup) {
 		return db.transactional (tx -> {
-			return tx
-				.delete (category)
-				.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
-				.execute ();
+			return 
+				f.sequence(
+					Arrays.asList(
+						tx.delete(sourceDatasetVersionLog)
+						.where(new SQLSubQuery().from(sourceDataset)
+							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.id.eq(sourceDatasetVersionLog.sourceDatasetVersionId)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDatasetVersionColumn)
+						.where(new SQLSubQuery().from(sourceDataset)
+							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDatasetVersion)
+						.where(new SQLSubQuery().from(sourceDataset)							
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDataset)
+						.where(new SQLSubQuery().from(dataset)
+							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.notExists().and(sourceDataset.deleteTime.isNotNull()))
+						.execute(),
+						
+						tx.delete (category)
+						.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
+						.execute ()
+					)).thenApply(results ->
+							results.stream()
+								.collect(Collectors.summingLong(Long::longValue)));
 		});
 	}
 }

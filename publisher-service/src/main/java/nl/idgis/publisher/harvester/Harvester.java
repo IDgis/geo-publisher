@@ -1,6 +1,8 @@
 package nl.idgis.publisher.harvester;
 
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -27,15 +29,20 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
+
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 public class Harvester extends UntypedActor {
 	
 	private final Config config;
 	
-	private final ActorRef datasetManager;
+	private final ActorRef database, datasetManager;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -46,14 +53,44 @@ public class Harvester extends UntypedActor {
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
 	
 	private FutureUtils f;
+	
+	private AsyncDatabaseHelper db;
+	
+	private static class StartHarvesting {
+		
+		private final ActorRef jobContext;
+		
+		private final HarvestJobInfo jobInfo;
+		
+		private final Set<String> datasetIds;
+		
+		StartHarvesting(ActorRef jobContext, HarvestJobInfo jobInfo, Set<String> datasetIds) {
+			this.jobContext = jobContext;
+			this.jobInfo = jobInfo;
+			this.datasetIds = datasetIds;
+		}
+		
+		public ActorRef getJobContext() {
+			return this.jobContext;
+		}
 
-	public Harvester(ActorRef datasetManager, Config config) {			
+		public HarvestJobInfo getJobInfo() {
+			return jobInfo;
+		}
+
+		public Set<String> getDatasetIds() {
+			return datasetIds;
+		}
+	}
+
+	public Harvester(ActorRef database, ActorRef datasetManager, Config config) {
+		this.database = database;
 		this.datasetManager = datasetManager;
 		this.config = config;
 	}
 	
-	public static Props props(ActorRef datasetManager, Config config) {
-		return Props.create(Harvester.class, datasetManager, config);
+	public static Props props(ActorRef database, ActorRef datasetManager, Config config) {
+		return Props.create(Harvester.class, database, datasetManager, config);
 	}
 
 	@Override
@@ -70,6 +107,7 @@ public class Harvester extends UntypedActor {
 		sessions = HashBiMap.create();
 		
 		f = new FutureUtils(getContext());
+		db = new AsyncDatabaseHelper(database, f, log);
 	}
 
 	@Override
@@ -88,9 +126,25 @@ public class Harvester extends UntypedActor {
 			handleGetDataSource((GetDataSource)msg);
 		} else if(msg instanceof GetActiveJobs) {
 			handleGetActiveJobs();
+		} else if(msg instanceof StartHarvesting) {
+			handleStartHarvesting((StartHarvesting)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleStartHarvesting(StartHarvesting msg) {		
+		HarvestJobInfo harvestJob = msg.getJobInfo();
+		
+		ActorRef session = getContext().actorOf(
+				HarvestSession.props(msg.getJobContext(), datasetManager, 
+					harvestJob, msg.getDatasetIds()), 
+				nameGenerator.getName(HarvestSession.class));
+		
+		getContext().watch(session);
+		sessions.put(harvestJob, session);
+		
+		dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
 	}
 
 	private void handleGetActiveJobs() {
@@ -135,9 +189,33 @@ public class Harvester extends UntypedActor {
 			if(isHarvesting(dataSourceId)) {
 				log.debug("already harvesting dataSource: " + dataSourceId);
 			} else {
-				log.debug("Initializing harvesting for dataSource: " + dataSourceId);
+				log.debug("Initializing harvesting for dataSource: " + dataSourceId);			
 			
-				startHarvesting(harvestJob);
+				ActorRef sender = getSender(), self = getSelf();
+				f.ask(sender, new UpdateJobState(JobState.STARTED)).whenComplete((msg, t) -> {
+					if(t != null) {
+						log.error("couldn't change job state: {}", t);
+						sender.tell(new Ack(), getSelf());
+					} else {
+						log.debug("starting harvesting for dataSource: " + harvestJob);
+						
+						sender.tell(new Ack(), getSelf());
+						
+						db.query().from(sourceDataset)
+							.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+							.where(sourceDataset.deleteTime.isNull()
+								.and(dataSource.identification.eq(dataSourceId)))
+							.list(sourceDataset.identification).thenAccept(datasetIds ->						
+								self.tell(
+									new StartHarvesting(
+										sender, 
+										harvestJob, 
+										datasetIds.list().stream()
+											.collect(Collectors.toSet())), 
+										
+									self));
+					}
+				});
 			}
 		} else {
 			getSender().tell(new Ack(), getSelf());
@@ -172,29 +250,5 @@ public class Harvester extends UntypedActor {
 		dataSources.put(dataSourceId, dataSource);
 		
 		getSender().tell(new Ack(), getSelf());
-	}	
-
-	private void startHarvesting(final HarvestJobInfo harvestJob) {
-		
-		ActorRef sender = getSender();
-		f.ask(sender, new UpdateJobState(JobState.STARTED)).whenComplete((msg, t) -> {
-			if(t != null) {
-				log.error("couldn't change job state: {}", t);
-				sender.tell(new Ack(), getSelf());
-			} else {
-				log.debug("starting harvesting for dataSource: " + harvestJob);
-				
-				sender.tell(new Ack(), getSelf());
-				
-				ActorRef session = getContext().actorOf(
-						HarvestSession.props(sender, datasetManager, harvestJob), 
-						nameGenerator.getName(HarvestSession.class));
-				
-				getContext().watch(session);
-				sessions.put(harvestJob, session);
-				
-				dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
-			}
-		});
 	}
 }

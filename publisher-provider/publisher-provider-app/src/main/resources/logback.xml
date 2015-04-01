@@ -34,6 +34,11 @@
   <!-- 
   	<logger name="nl.idgis.publisher.protocol.MessageProtocolHandler" level="debug"/>
   -->
+  
+  <!--
+  	<logger name="nl.idgis.publisher.provider.metadata" level="debug"/>
+   -->
+  
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
