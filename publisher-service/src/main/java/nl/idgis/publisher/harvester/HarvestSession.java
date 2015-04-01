@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.CleanupCategories;
+import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
@@ -25,6 +26,7 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
@@ -95,27 +97,51 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		f.ask (datasetManager, new CleanupCategories ()).whenComplete ((message, error) -> {
-			final JobState finishState;
+		if(datasetIds.isEmpty()) {
+			log.debug ("no obsolete datasets");
+			cleanup();
+		} else {
+			log.debug ("obsolete datasets: {}", datasetIds.size());
+			
+			f.ask (datasetManager, new DeleteSourceDatasets(
+				harvestJob.getDataSourceId(), 
+				datasetIds)).whenComplete ((message, error) -> {
+					if (error != null) {
+						log.error ("couldn't delete source datasets: {}", error);
+						finish(JobState.FAILED);
+					} else {
+						cleanup();
+					}
+				});
+		}
+	}
+
+	private void cleanup() {
+		log.debug("cleaning up");
+		
+		f.ask (datasetManager, new CleanupCategories ()).whenComplete ((message, error) -> {			
 			if (error != null) {
 				log.error ("couldn't perform cleanup on categories: {}", error);
-				finishState = JobState.FAILED;
+				finish(JobState.FAILED);
 			} else {
 				log.debug ("categories cleaned up");
-				finishState = JobState.SUCCEEDED;
+				finish(JobState.SUCCEEDED);
+			}
+		});
+	}
+
+	private void finish(final JobState finishState) {
+		log.debug("finishing harvest session: {}", finishState);
+		
+		ActorRef self = getSelf();
+		f.ask(jobContext, new UpdateJobState(finishState)).whenComplete((msg, t) -> {
+			if(t != null) {
+				log.error("couldn't change job state: {}", t);
+			} else {			
+				log.debug("harvesting of dataSource finished: " + harvestJob);
 			}
 			
-			f.ask(jobContext, new UpdateJobState(finishState)).whenComplete((msg, t) -> {
-				if(t != null) {
-					log.error("couldn't change job state: {}", t);
-				} else {			
-					log.debug("harvesting of dataSource finished: " + harvestJob);
-				}
-				
-				log.debug("obsolete datasets left: {}", datasetIds.size());
-				
-				getContext().stop(getSelf());
-			});
+			self.tell(PoisonPill.getInstance(), self);
 		});
 	}
 
