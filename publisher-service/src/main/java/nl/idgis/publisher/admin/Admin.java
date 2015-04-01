@@ -276,7 +276,7 @@ private String getEnumName(Enum e){
 								new Message(jt, new DefaultMessageProperties (
 									null, identifier, 
 									getEnumName((Enum)js.type()))
-								), js.since())
+								), js.since(), false)//active is false because these are past tasks
 						); 
 					}
 					return recentJobList;
@@ -319,7 +319,7 @@ private String getEnumName(Enum e){
 								getEnumName(JobType.HARVEST), 
 								new Message(JobType.HARVEST, new DefaultMessageProperties (
 									EntityType.DATA_SOURCE, dsn.get(harvestJob.getDataSourceId()), getEnumName(JobStatusType.RUNNING))), 
-									new Timestamp(new java.util.Date().getTime()))));
+									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
 					}
 					
 					return f.sequence(activeTasks);					
@@ -358,7 +358,7 @@ private String getEnumName(Enum e){
 										getEnumName(JobType.IMPORT),
 										new Message(JobType.IMPORT, new DefaultMessageProperties (
 												EntityType.DATASET, datasetInfo.getName (), getEnumName(JobStatusType.RUNNING))),
-										(int)(progress.getCount() * 100 / progress.getTotalCount()));
+										(int)(progress.getCount() * 100 / progress.getTotalCount()), true);//active is true because this is a current tasks
 								}));
 							}
 							
@@ -370,7 +370,7 @@ private String getEnumName(Enum e){
 									getEnumName(JobType.SERVICE),
 									new Message(JobType.SERVICE, new DefaultMessageProperties (
 											EntityType.DATASET, "", getEnumName(JobStatusType.RUNNING))),
-									new Timestamp(new java.util.Date().getTime()))));
+									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
 							}
 							
 							return f.sequence(activeTasks);

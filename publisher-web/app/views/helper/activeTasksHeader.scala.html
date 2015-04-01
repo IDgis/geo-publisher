@@ -2,32 +2,27 @@
 
 <li class="dropdown-header">
 	@if(tasks.values.isEmpty){
-		@Domain.message("web.application.page.dashboard.panel.notasks")
+		@Domain.message("web.application.page.dashboard.panel.noactivetasks")
 	}else{
 		@if(tasks.hasMorePages){&gt; }@tasks.values.size 
 		@if(tasks.values.size == 1){
-			@Domain.message("web.application.page.dashboard.panel.task")
+			@Domain.message("web.application.page.dashboard.panel.activetask")
 		}else{
-			@Domain.message("web.application.page.dashboard.panel.tasks")
+			@Domain.message("web.application.page.dashboard.panel.activetasks")
 		}
 	}
 </li>
 <li class="divider"></li>
+<ul class="list-group">
 @for(task <- tasks.values) {
-	<li>
+	<li class="list-group-item task">
 		<a href="@routes.Dashboard.index()">
 			<div>
 				<strong>@Domain.message(task.title)</strong>
-			</div>
-			@if(task.progress != null) {
-				<div class="progress progress-striped active" >
-					<div class="progress-bar progress-bar-success" role="progressbar" 
-					  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
-					  @task.progress%
-					</div>
-				</div>
-			}
 			@if(task.active){
+				@if(task.message().properties() != null){
+					@task.message().properties().getIdentification()
+				}
 				<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
 			}else{
 				@if(task.message().properties() != null){
@@ -37,10 +32,22 @@
 					</div>
 				}
 			}
+			</div>
 		</a>
+			@if(task.progress != null) {
+				<div class="progress progress-striped active" >
+					<div class="progress-bar progress-bar-success" role="progressbar" 
+					  aria-valuenow="@task.progress" aria-valuemin="0" aria-valuemax="100" style="width: @task.progress%">
+					  @task.progress%
+					</div>
+				</div>
+			}
 	</li>
 }
+</ul>
+
 <li class="divider"></li>
+
 <li>
 	<a href="@routes.Logging.tasks()" class="text-center">@Domain.message("web.application.page.dashboard.showtasklog") <span class="glyphicon glyphicon-chevron-right"></span></a>
 </li>
