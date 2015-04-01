@@ -257,10 +257,17 @@ public class DatasetManager extends UntypedActor {
 					if(maxVersionId.isPresent()) {
 						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);						
 					} else {
-						return f.successful(Optional.empty());
+						return f.<Optional<Dataset>>successful(Optional.empty());
 					}					
 
-				}); 
+				}).thenCompose(optionalDataset -> {
+					if(optionalDataset.isPresent()) {
+						return ensureNotDeleted(tx, identification)
+							.thenApply(ensured -> optionalDataset);
+					} else {					
+						return f.successful(optionalDataset);
+					}
+				});
 						
 	}
 	
@@ -403,6 +410,14 @@ public class DatasetManager extends UntypedActor {
 					.list(dataSource.id, dataset.getId()))
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
 					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());
+	}
+	
+	private CompletableFuture<Long> ensureNotDeleted(AsyncHelper tx, String datasetId) {
+		return 
+			tx.update(sourceDataset)
+			.setNull(sourceDataset.deleteTime)
+			.where(sourceDataset.identification.eq(datasetId))
+			.execute();
 	}
 
 	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
