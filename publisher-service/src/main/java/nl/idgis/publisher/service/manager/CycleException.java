@@ -7,6 +7,7 @@ public class CycleException extends Exception {
 	private final String layerId;
 	
 	public CycleException(String layerId) {
+		super("cycle caused by group: " + layerId);
 		this.layerId = layerId;
 	}
 
