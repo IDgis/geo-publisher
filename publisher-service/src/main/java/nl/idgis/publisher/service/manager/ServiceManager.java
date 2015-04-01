@@ -6,24 +6,21 @@ import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
 import static nl.idgis.publisher.database.QEnvironment.environment;
-
 import static java.util.Collections.emptyMap;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.domain.web.tree.Service;
-
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
@@ -199,7 +196,11 @@ public class ServiceManager extends UntypedActor {
 		
 		future.whenComplete((resp, t) -> {
 			if(t != null) {
-				sender.tell(new Failure(t), self);
+				if(t instanceof CompletionException) {
+					sender.tell(new Failure(t.getCause()), self);
+				} else {
+					sender.tell(new Failure(t), self);
+				}
 			} else {
 				sender.tell(resp, self);
 			}
