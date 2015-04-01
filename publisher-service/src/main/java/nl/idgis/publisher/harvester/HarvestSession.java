@@ -124,7 +124,7 @@ public class HarvestSession extends UntypedActor {
 				log.error ("couldn't perform cleanup: {}", error);
 				finish(JobState.FAILED);
 			} else {
-				log.debug ("cleaned up");
+				log.debug ("obsolete records removed: {}", message);
 				finish(JobState.SUCCEEDED);
 			}
 		});

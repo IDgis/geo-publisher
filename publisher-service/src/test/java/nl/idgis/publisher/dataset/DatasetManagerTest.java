@@ -4,7 +4,7 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
-import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -22,7 +22,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.expr.DateTimeExpression;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
@@ -169,38 +169,10 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	}
 
 	private void deleteSourceDataset (final String id) {
-		delete (sourceDatasetVersionLog)
-			.where (sourceDatasetVersionLog.sourceDatasetVersionId.in (
-				new SQLSubQuery ()
-					.from (sourceDatasetVersion)
-					.join (sourceDataset).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
-					.where (sourceDataset.identification.eq (id))
-					.list (sourceDatasetVersion.id)
-			))
-			.execute ();
-		
-		delete (sourceDatasetVersionColumn)
-			.where (sourceDatasetVersionColumn.sourceDatasetVersionId.in (
-				new SQLSubQuery ()
-					.from (sourceDatasetVersion)
-					.join (sourceDataset).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
-					.where (sourceDataset.identification.eq (id))
-					.list (sourceDatasetVersion.id) 
-			))
-			.execute ();
-		
-		delete (sourceDatasetVersion)
-			.where (sourceDatasetVersion.sourceDatasetId.in (
-				new SQLSubQuery ()
-					.from (sourceDataset)
-					.where (sourceDataset.identification.eq (id))
-					.list (sourceDataset.id)
-			))
-			.execute ();
-			
-		delete (sourceDataset)
-			.where (sourceDataset.identification.eq (id))
-			.execute ();
+		update(sourceDataset)
+			.set(sourceDataset.deleteTime, DateTimeExpression.currentTimestamp(Timestamp.class))
+			.where(sourceDataset.identification.eq(id))
+			.execute();
 	}
 	
 	@Test
@@ -221,27 +193,32 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", ds), Registered.class).get();		
 		}
 		
+		assertEquals (4, query ().from (sourceDataset).count ());
 		// After inserting 4 source datasets with two different categories, there should be two categories:
-		assertEquals (2, query ().from (category).count ());
+		assertEquals (2, query ().from (category).count ());		
 
 		deleteSourceDataset ("table1");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
+		assertEquals (3, query ().from (sourceDataset).count ());
 		assertEquals (2, query ().from (category).count ());
 		
 		deleteSourceDataset ("table3");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
+		assertEquals (2, query ().from (sourceDataset).count ());
 		assertEquals (1, query ().from (category).count ());
 		
 		deleteSourceDataset ("table2");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
+		assertEquals (1, query ().from (sourceDataset).count ());
 		assertEquals (1, query ().from (category).count ());
 		
 		deleteSourceDataset ("table4");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
+		assertEquals (0, query ().from (sourceDataset).count ());
 		assertEquals (0, query ().from (category).count ());
 	}
 }

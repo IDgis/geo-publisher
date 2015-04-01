@@ -1,5 +1,6 @@
 package nl.idgis.publisher.dataset;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -9,12 +10,14 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDataset
 import static nl.idgis.publisher.utils.StreamUtils.index;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
@@ -437,10 +440,53 @@ public class DatasetManager extends UntypedActor {
 	
 	private CompletableFuture<Long> handleCleanup (final Cleanup cleanup) {
 		return db.transactional (tx -> {
-			return tx
-				.delete (category)
-				.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
-				.execute ();
+			return 
+				f.sequence(
+					Arrays.asList(
+						tx.delete(sourceDatasetVersionLog)
+						.where(new SQLSubQuery().from(sourceDataset)
+							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.id.eq(sourceDatasetVersionLog.sourceDatasetVersionId)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDatasetVersionColumn)
+						.where(new SQLSubQuery().from(sourceDataset)
+							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDatasetVersion)
+						.where(new SQLSubQuery().from(sourceDataset)							
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull()))
+							.exists())
+						.execute(),
+						
+						tx.delete(sourceDataset)
+						.where(new SQLSubQuery().from(dataset)
+							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.notExists().and(sourceDataset.deleteTime.isNotNull()))
+						.execute(),
+						
+						tx.delete (category)
+						.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
+						.execute ()
+					)).thenApply(results ->
+							results.stream()
+								.collect(Collectors.summingLong(Long::longValue)));
 		});
 	}
 }
