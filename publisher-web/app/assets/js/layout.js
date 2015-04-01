@@ -85,7 +85,6 @@ require ([
     var eventTypes = {
     	'active-tasks': 'activeTasks',
     	'notifications': 'notifications',
-    	'issues': 'issues'
     };
     
     function processEvents (data) {
@@ -154,9 +153,6 @@ require ([
     });
     topic.subscribe ('publisher/notifications', function (notifications) {
     	updateEventDropdown (notificationsDropdown, notifications);
-    });
-    topic.subscribe ('publisher/issues', function (issues) {
-    	updateEventDropdown (issuesDropdown, issues);
     });
     
     // =========================================================================

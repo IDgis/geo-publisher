@@ -26,8 +26,4 @@ require ([
 		domConstruct.empty (notificationsPanel);
 		notificationsPanel.innerHTML = notifications.content;
 	});
-	topic.subscribe ('publisher/issues', function (issues) {
-		domConstruct.empty (issuesPanel);
-		issuesPanel.innerHTML = issues.content;
-	});
 });
