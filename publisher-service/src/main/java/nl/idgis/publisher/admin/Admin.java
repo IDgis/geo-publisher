@@ -215,6 +215,11 @@ public class Admin extends AbstractAdmin {
 			);
 	}
 	
+private String getEnumName(Enum e){
+	return e.getClass().getCanonicalName() + "."  + e.name();
+}
+
+	
 	private CompletableFuture<List<ActiveTask>> handleRecentJobs(AsyncSQLQuery baseQuery, Long page, Long limit) {
 		log.debug("fetching recent jobs");
 		return
@@ -267,16 +272,17 @@ public class Admin extends AbstractAdmin {
 						recentJobList.add(
 							new ActiveTask(
 								"", 
-								jt.toString(), 
+								getEnumName(jt), 
 								new Message(jt, new DefaultMessageProperties (
 									null, identifier, 
-									js.type().toString())
+									getEnumName((Enum)js.type()))
 								), js.since())
 						); 
 					}
 					return recentJobList;
 				});
 	}
+	
 	
 	private CompletableFuture<Page<ActiveTask>> handleListDashboardActiveTasks(ListActiveTasks listActiveTasks) {
 		log.debug ("handleDashboardActiveTaskList, since=" + listActiveTasks.getSince () + ", page=" + listActiveTasks.getPage () + ", limit=" + listActiveTasks.getLimit ());
@@ -308,12 +314,12 @@ public class Admin extends AbstractAdmin {
 						HarvestJobInfo harvestJob = (HarvestJobInfo)activeJob.getJob();
 						 
 						activeTasks.add(
-								f.successful(new ActiveTask(
-									"" + harvestJob.getId(), 
-									dsn.get(harvestJob.getDataSourceId()), 
-									new Message(JobType.HARVEST, new DefaultMessageProperties (
-											EntityType.DATA_SOURCE, harvestJob.getDataSourceId (), dsn.get(harvestJob.getDataSourceId()))), 
-											new Timestamp(new java.util.Date().getTime()))));
+							f.successful(new ActiveTask(
+								"" + harvestJob.getId(), 
+								getEnumName(JobType.HARVEST), 
+								new Message(JobType.HARVEST, new DefaultMessageProperties (
+									EntityType.DATA_SOURCE, dsn.get(harvestJob.getDataSourceId()), getEnumName(JobStatusType.RUNNING))), 
+									new Timestamp(new java.util.Date().getTime()))));
 					}
 					
 					return f.sequence(activeTasks);					
@@ -349,9 +355,9 @@ public class Admin extends AbstractAdmin {
 									
 									return new ActiveTask(
 										"" + job.getId(),
-										datasetInfo.getName(),
+										getEnumName(JobType.IMPORT),
 										new Message(JobType.IMPORT, new DefaultMessageProperties (
-												EntityType.DATASET, datasetInfo.getId (), datasetInfo.getName ())),
+												EntityType.DATASET, datasetInfo.getName (), getEnumName(JobStatusType.RUNNING))),
 										(int)(progress.getCount() * 100 / progress.getTotalCount()));
 								}));
 							}
@@ -360,10 +366,11 @@ public class Admin extends AbstractAdmin {
 								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
 								
 								activeTasks.add(f.successful(new ActiveTask(
-										"" + job.getId(), 
-										"", 
-										new Message(JobType.SERVICE, null),
-										new Timestamp(new java.util.Date().getTime()))));
+									"" + job.getId(), 
+									getEnumName(JobType.SERVICE),
+									new Message(JobType.SERVICE, new DefaultMessageProperties (
+											EntityType.DATASET, ""+job.getId(), getEnumName(JobStatusType.RUNNING))),
+									new Timestamp(new java.util.Date().getTime()))));
 							}
 							
 							return f.sequence(activeTasks);

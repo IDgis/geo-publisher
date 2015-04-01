@@ -8,6 +8,19 @@ nl.idgis.publisher.domain.job.JobType.HARVEST=harvest
 nl.idgis.publisher.domain.job.JobType.IMPORT=import
 nl.idgis.publisher.domain.job.JobType.SERVICE=service
 
+nl.idgis.publisher.domain.web.JobStatusType.OK=uitgevoerd
+nl.idgis.publisher.domain.web.JobStatusType.PLANNED=ingepland
+nl.idgis.publisher.domain.web.JobStatusType.RUNNING=in uitvoering
+nl.idgis.publisher.domain.web.JobStatusType.NOT_CONNECTED=niet verbonden
+
+nl.idgis.publisher.domain.web.DataSourceStatusType.OK=uitgevoerd
+nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=niet verbonden
+
+nl.idgis.publisher.domain.web.DatasetImportStatusType.NOT_IMPORTED=niet geïmporteerd
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTING=importeren
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTED=geïmporteerd
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORT_FAILED=import mislukt
+
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
 
