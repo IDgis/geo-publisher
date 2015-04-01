@@ -17,7 +17,7 @@
 	<li>
 		<a href="@routes.Dashboard.index()">
 			<div>
-				<strong>@task.title</strong>
+				<strong>@Domain.message(task.title)</strong>
 			</div>
 			@if(task.progress != null) {
 				<div class="progress progress-striped active" >
@@ -33,7 +33,7 @@
 				@if(task.message().properties() != null){
 					@task.message().properties().getIdentification()
 					<div class="text-muted">
-						@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @task.message().properties().getTitle()
+						@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @Domain.message(task.message().properties().getTitle())
 					</div>
 				}
 			}
