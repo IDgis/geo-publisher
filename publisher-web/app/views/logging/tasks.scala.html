@@ -46,7 +46,7 @@
 					<div class="list-group-item js-style-item">
 						<div class="row">
 							<div class="col-lg-1">
-								<strong>@task.title</strong>
+								<strong>@Domain.message(task.title)</strong>
 							</div>
 							<div class="col-lg-4">
 								@if(task.message().properties() != null){
@@ -62,7 +62,7 @@
 							</div>
 							<div class="col-lg-2">
 								@if(task.message().properties() != null) {
-									@task.message().properties().getTitle()
+									 @Domain.message(task.message().properties().getTitle())
 								}
 							</div>
 							<div class="col-lg-3">

@@ -252,7 +252,7 @@ private String getEnumName(Enum e){
 								if (t.get(jobState.state).equals("SUCCEEDED")) {
 									js = new Status(DatasetImportStatusType.IMPORTED, t.get(jobState.createTime));
 								} else{
-									js = new Status(DatasetImportStatusType.NOT_IMPORTED, t.get(jobState.createTime));
+									js = new Status(DatasetImportStatusType.IMPORT_FAILED, t.get(jobState.createTime));
 								}
 							}
 						} else if (t.get(job.type).equals("SERVICE")){
@@ -315,7 +315,7 @@ private String getEnumName(Enum e){
 						 
 						activeTasks.add(
 							f.successful(new ActiveTask(
-								"" + harvestJob.getId(), 
+								"", 
 								getEnumName(JobType.HARVEST), 
 								new Message(JobType.HARVEST, new DefaultMessageProperties (
 									EntityType.DATA_SOURCE, dsn.get(harvestJob.getDataSourceId()), getEnumName(JobStatusType.RUNNING))), 
@@ -354,7 +354,7 @@ private String getEnumName(Enum e){
 									DatasetInfo datasetInfo = (DatasetInfo)msg2;
 									
 									return new ActiveTask(
-										"" + job.getId(),
+										"",
 										getEnumName(JobType.IMPORT),
 										new Message(JobType.IMPORT, new DefaultMessageProperties (
 												EntityType.DATASET, datasetInfo.getName (), getEnumName(JobStatusType.RUNNING))),
@@ -366,10 +366,10 @@ private String getEnumName(Enum e){
 								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
 								
 								activeTasks.add(f.successful(new ActiveTask(
-									"" + job.getId(), 
+									"", 
 									getEnumName(JobType.SERVICE),
 									new Message(JobType.SERVICE, new DefaultMessageProperties (
-											EntityType.DATASET, ""+job.getId(), getEnumName(JobStatusType.RUNNING))),
+											EntityType.DATASET, "", getEnumName(JobStatusType.RUNNING))),
 									new Timestamp(new java.util.Date().getTime()))));
 							}
 							
