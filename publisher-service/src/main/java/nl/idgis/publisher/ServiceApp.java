@@ -9,13 +9,12 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.admin.AdminParent;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.QJobState;
-import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.dataset.DatasetManager;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
@@ -31,11 +30,11 @@ import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
 import nl.idgis.publisher.service.provisioning.ZooKeeperServiceInfoProvider;
-import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
+import scala.concurrent.duration.Duration;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
@@ -166,8 +165,9 @@ public class ServiceApp extends UntypedActor {
 	private Procedure<Object> running() throws Exception {
 		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
-		Config harvesterConfig = config.getConfig("harvester");
+		final Config harvesterConfig = config.getConfig("harvester");
 		final Config zooKeeperConfig = config.getConfig ("zooKeeper");
+		final Config geoserverConfig = config.getConfig("geoserver");
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
@@ -177,24 +177,23 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), "provisioning-manager");
 		
-		final ActorRef zooKeeperServiceInfoProvider = getContext ().actorOf (ZooKeeperServiceInfoProvider.props (
-				zooKeeperConfig.getString ("hosts"), 
+		getContext ().actorOf (ZooKeeperServiceInfoProvider.props (
+				new ServiceInfo(
+						new ConnectionInfo(
+							geoserverConfig.getString("url"),
+							geoserverConfig.getString("user"),
+							geoserverConfig.getString("password")),
+							
+						new ConnectionInfo(		
+							databaseConfig.getString("url"),
+							databaseConfig.getString("user"),
+							databaseConfig.getString("password"))
+					),
+				provisioningManager,
+				zooKeeperConfig.getString ("hosts"),
+				zooKeeperConfig.getString ("stagingEnvironmentId"),
 				zooKeeperConfig.hasPath ("namespace") ? zooKeeperConfig.getString ("namespace") : null
 			), "zookeeper-service-info-provider");
-		
-		Config geoserverConfig = config.getConfig("geoserver");
-		provisioningManager.tell(new AddStagingService(new ServiceInfo(
-				new ConnectionInfo(
-					geoserverConfig.getString("url"),
-					geoserverConfig.getString("user"),
-					geoserverConfig.getString("password")),
-					
-				new ConnectionInfo(		
-					databaseConfig.getString("url"),
-					databaseConfig.getString("user"),
-					databaseConfig.getString("password")))),
-					
-				getSelf());
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager, serviceManager), "jobs");
 		
