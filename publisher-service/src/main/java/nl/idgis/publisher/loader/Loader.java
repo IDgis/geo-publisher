@@ -225,8 +225,8 @@ public class Loader extends UntypedActor {
 		jobContexts.put(importJob, jobContext);
 		
 		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, jobContext, database),
-				nameGenerator.getName(LoaderSessionInitiator.class));
+				VectorLoaderSessionInitiator.props(importJob, jobContext, database),
+				nameGenerator.getName(VectorLoaderSessionInitiator.class));
 		
 		getSelf().tell(new GetDataSource(importJob.getDataSourceId()), initiator);
 	}

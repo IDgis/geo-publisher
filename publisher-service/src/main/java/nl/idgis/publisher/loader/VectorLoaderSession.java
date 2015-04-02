@@ -38,7 +38,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure; 
 
-public class LoaderSession extends UntypedActor {
+public class VectorLoaderSession extends UntypedActor {
 	
 	private static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(30, TimeUnit.SECONDS);
 
@@ -76,7 +76,7 @@ public class LoaderSession extends UntypedActor {
 	
 	private FutureUtils f;
 	
-	public LoaderSession(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+	public VectorLoaderSession(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
 		this.receiveTimeout = receiveTimeout;
 		this.loader = loader;
 		this.importJob = importJob;
@@ -86,7 +86,7 @@ public class LoaderSession extends UntypedActor {
 	}
 	
 	public static Props props(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(LoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
+		return Props.create(VectorLoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	public static Props props(ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {

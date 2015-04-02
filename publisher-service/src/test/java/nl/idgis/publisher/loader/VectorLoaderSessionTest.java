@@ -49,7 +49,7 @@ import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
-public class LoaderSessionTest {
+public class VectorLoaderSessionTest {
 	
 	ActorSystem actorSystem;
 	
@@ -92,7 +92,7 @@ public class LoaderSessionTest {
 		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
-		loaderSession = actorSystem.actorOf(LoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));
 		
 		f = new FutureUtils(actorSystem);
 	}

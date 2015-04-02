@@ -48,7 +48,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
-public class LoaderSessionInitiator extends AbstractStateMachine<String> {
+public class VectorLoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -65,14 +65,14 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
+	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
 		this.importJob = importJob;
 		this.jobContext = jobContext;
 		this.database = database;
 	}
 	
 	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
-		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, database);
+		return Props.create(VectorLoaderSessionInitiator.class, importJob, jobContext, database);
 	}
 	
 	private Procedure<Object> waitingForDatasetStatusInfo() {
@@ -297,7 +297,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 				new GetDataset(
 						importJob.getSourceDatasetId(), 
 						requestColumnNames, 
-						LoaderSession.props(								
+						VectorLoaderSession.props(								
 								getContext().parent(), // loader
 								importJob,
 								filterEvaluator,
