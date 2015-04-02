@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider;
 
 import java.util.concurrent.TimeoutException;
 
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
@@ -27,7 +29,7 @@ public abstract class AbstractDatasetFetcher<T extends AbstractGetDatasetRequest
 		this.request = request;
 	}
 	
-	protected abstract void handleMetadataItem(MetadataItem msg) throws Exception;
+	protected abstract void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception;
 	
 	@Override
 	public final void onReceive(Object msg) throws Exception {
@@ -44,7 +46,10 @@ public abstract class AbstractDatasetFetcher<T extends AbstractGetDatasetRequest
 		} else if(msg instanceof MetadataItem) {
 			log.debug("metadata item");
 			
-			handleMetadataItem((MetadataItem)msg);
+			MetadataDocumentFactory metadataDocumentFactory = new MetadataDocumentFactory();
+			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(((MetadataItem)msg).getContent());
+			
+			handleMetadataDocument(metadataDocument);
 		} else {			
 			unhandled(msg);
 		}

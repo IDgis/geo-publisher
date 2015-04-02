@@ -4,9 +4,11 @@ import java.util.Optional;
 
 import nl.idgis.publisher.protocol.messages.Hello;
 import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
+import nl.idgis.publisher.provider.protocol.AbstractGetDatasetRequest;
 import nl.idgis.publisher.provider.protocol.EchoRequest;
 import nl.idgis.publisher.provider.protocol.EchoResponse;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
+import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
@@ -54,6 +56,8 @@ public abstract class AbstractProvider extends UntypedActor {
 			handleGetDatasetInfo((GetDatasetInfo)msg);
 		} else if(msg instanceof GetVectorDataset) {
 			handleGetVectorDataset((GetVectorDataset)msg);
+		} else if(msg instanceof GetRasterDataset) {
+			handleGetRasterDataset((GetRasterDataset)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -63,17 +67,27 @@ public abstract class AbstractProvider extends UntypedActor {
 		return Optional.empty();
 	}
 	
+	protected Optional<Props> getRasterDatasetFetcher(GetRasterDataset msg) {
+		return Optional.empty();
+	}
+	
 	private void handleGetVectorDataset(GetVectorDataset msg) {
 		log.debug("get vector dataset");		
-		
-		
-		Optional<Props> optionalProps = getVectorDatasetFetcher(msg);
+		performFetch(msg, getVectorDatasetFetcher(msg));
+	}
+	
+	private void handleGetRasterDataset(GetRasterDataset msg) {
+		log.debug("get raster dataset");		
+		performFetch(msg, getRasterDatasetFetcher(msg));
+	}
+
+	private void performFetch(AbstractGetDatasetRequest msg, Optional<Props> optionalProps) {
 		if(optionalProps.isPresent()) {
 			log.debug("props obtained");
 			
 			ActorRef fetcher = getContext().actorOf(
 				optionalProps.get(), 
-				nameGenerator.getName(VectorDatasetFetcher.class));
+				nameGenerator.getName(AbstractDatasetFetcher.class));
 			
 			metadata.tell(new GetMetadata(msg.getIdentification()), fetcher);
 		} else {

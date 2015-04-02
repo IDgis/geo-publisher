@@ -7,12 +7,10 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.Records;
@@ -141,10 +139,7 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 		};
 	}
 	
-	protected void handleMetadataItem(MetadataItem msg) throws Exception {
-		MetadataDocumentFactory metadataDocumentFactory = new MetadataDocumentFactory();
-		MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(((MetadataItem)msg).getContent());
-		
+	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
 		String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
 		
 		database.tell(new StartTransaction(), getSelf());
