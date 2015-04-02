@@ -55,26 +55,18 @@ require ([
 			}).then (function(data) {					
 				columnList.innerHTML = data;
 				
-				updateColumnCount();
+				if(updateColumnCount() > 0) { // not all datasets have columns (e.g. raster data)
+					tabs.forEach(function(tab) {
+						domClass.remove(tab, 'hidden');
+					});
+				}
 				updateFilterColumns ();
-			});
-		
-			tabs.forEach(function(tab) {
-				domClass.remove(tab, 'disabled');
-				query('a', tab)
-					.forEach(function(link) {
-						domAttr.set(link, 'data-toggle', 'tab'); 
-				});
 			});
 		} else {
 			updateColumnCount();
 		
 			tabs.forEach(function(tab) {
-				domClass.add(tab, 'disabled');
-				query('a', tab)
-					.forEach(function(link) {
-						domAttr.remove(link, 'data-toggle'); 
-				});
+				domClass.add(tab, 'hidden');				
 			});
 		}
 	}
@@ -151,12 +143,17 @@ require ([
 		selectNoColumns();
 	});
 	
-	function updateColumnCount() {
-		query('#tab-columns span.badge')[0].innerHTML =
-			query('input', columnList)
-				.filter(function(item) {
-					return item.checked;
-				}).length;
+	function getColumnCount() {
+		return query('input', columnList)
+			.filter(function(item) {
+				return item.checked;
+			}).length;
+	}
+	
+	function updateColumnCount() {		
+		columnCount = getColumnCount();		
+		query('#tab-columns span.badge')[0].innerHTML = columnCount;
+		return columnCount;
 	}
 	
 	on(columnList, 'change', function(event) {
