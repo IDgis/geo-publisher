@@ -1,4 +1,8 @@
-.gp-tree-select .term,.gp-tree-select .add-term{margin-left:4px;margin-right:4px}
+.gp-tree-select .term,.gp-tree-select .add-term {
+	margin-left: 4px;
+	margin-right: 4px;
+	white-space: normal;
+}
 .gp-tree-select .term .close,.gp-tree-select .add-term .close{float:none;display:inline-block;vertical-align:middle;margin-left:6px}
 
 .gp-tree-select {height:auto;overflow:auto}
