@@ -23,6 +23,13 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	@Override
 	protected void processMetadata() {
 		categoryId = "raster";
+		
+		if(title == null) {
+			reportedTitle = alternateTitle;
+		} else {
+			reportedTitle = title;
+		}
+		
 		if(logs.isEmpty()) {
 			tellTarget(new RasterDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, RasterFormat.TIFF));
 		} else {
