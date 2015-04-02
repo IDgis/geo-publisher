@@ -4,6 +4,8 @@ import static models.Domain.from;
 
 import java.security.MessageDigest;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import models.Domain;
@@ -12,6 +14,7 @@ import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListActiveTasks;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.response.Page;
+import nl.idgis.publisher.domain.response.Page.Builder;
 import nl.idgis.publisher.domain.web.ActiveTask;
 import nl.idgis.publisher.domain.web.Issue;
 import nl.idgis.publisher.domain.web.Notification;
@@ -29,8 +32,6 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
 import scala.concurrent.duration.Duration;
-import views.html.helper.activeTasks;
-import views.html.helper.activeTasksHeader;
 import actions.JsonRestAuthenticator;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -246,16 +247,34 @@ public class Events extends Controller {
 		}
 		
 		private static TaggedResponse emitTasks (final String currentTag, final Page<ActiveTask> tasks) throws Throwable {
-			final JsonNode tasksNode = Json.toJson (tasks.values ());
+			//make a short list of all active (=running now) tasks
+			List<ActiveTask> activeTaskList = new ArrayList<ActiveTask>();
+			for (ActiveTask activeTask : tasks.values()) {
+				if (activeTask.active()){
+					activeTaskList.add(activeTask);
+				}
+			} 
+			Long pageSize = 5L;
+			Builder<ActiveTask> activeTaskBuilder = new Builder<ActiveTask>();
+			activeTaskBuilder.setCurrentPage(1L);
+			activeTaskBuilder.setHasMorePages(activeTaskList.size() > pageSize);
+			activeTaskBuilder.setPageCount(activeTaskList.size() / pageSize);
+			activeTaskBuilder.addAll(activeTaskList);
+			Page<ActiveTask> activeTasks = activeTaskBuilder.build();
+
+			final JsonNode tasksNode = Json.toJson (activeTasks.values ());
 			final String newTag = md5 (Json.stringify (tasksNode));
 			
 			if (!newTag.equals (currentTag)) {
 				final ObjectNode response = Json.newObject ();
 				
 				response.put ("list", tasksNode);
-				response.put ("content", activeTasks.render (tasks).body ());
-				response.put ("headerContent", activeTasksHeader.render (tasks).body ());
-				response.put ("hasMore", tasks.hasMorePages ());
+				// the overview of all tasks (planned, running, ready)
+				response.put ("content", views.html.helper.activeTasks.render (tasks).body ());
+				// the view of current running tasks
+				response.put ("headerContent", views.html.helper.activeTasksHeader.render (activeTasks).body ());
+				
+				response.put ("hasMore", activeTasks.hasMorePages ());
 				
 				return new TaggedResponse (newTag, response);
 			}

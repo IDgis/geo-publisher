@@ -20,13 +20,14 @@ public final class ActiveTask extends DashboardItem {
 			final @JsonProperty("id") String id,
 			final @JsonProperty("title") String title,
 			final @JsonProperty("message") Message message,
-			final @JsonProperty("progress") Integer progress) {
+			final @JsonProperty("progress") Integer progress,
+			final @JsonProperty("active") Boolean active) {
 		
 		super(id, message);
 		
 		this.title = title;
 		this.progress = progress;
-		this.active = true;
+		this.active = active;
 		this.time = new Timestamp(new java.util.Date().getTime());//currentTime
 	}
 	
@@ -35,13 +36,14 @@ public final class ActiveTask extends DashboardItem {
 			final @JsonProperty("id") String id,
 			final @JsonProperty("title") String title,
 			final @JsonProperty("message") Message message,
-			final @JsonProperty("time") Timestamp time) {
+			final @JsonProperty("time") Timestamp time,
+			final @JsonProperty("active") Boolean active) {
 		
 		super(id, message);
 		
 		this.title = title;
 		this.progress = null;
-		this.active = false;
+		this.active = active;
 		this.time = time;
 	}
 	
