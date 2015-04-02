@@ -21,6 +21,8 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
@@ -43,9 +45,9 @@ public class Loader extends UntypedActor {
 	
 	private final ActorRef database, harvester;
 	
-	private BiMap<VectorImportJobInfo, ActorRef> sessions;
+	private BiMap<ImportJobInfo, ActorRef> sessions;
 	
-	private Map<VectorImportJobInfo, ActorRef> jobContexts;
+	private Map<ImportJobInfo, ActorRef> jobContexts;
 	
 	private Map<ActorRef, Progress> progress;
 	
@@ -72,7 +74,9 @@ public class Loader extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof VectorImportJobInfo) {
 			handleVectorImportJob((VectorImportJobInfo)msg);
-		} else if(msg instanceof RemoveJobInfo) {
+		} else if(msg instanceof RasterImportJobInfo)
+			handleRasterImportJob((RasterImportJobInfo)msg);
+		else if(msg instanceof RemoveJobInfo) {
 			handleRemoveJob((RemoveJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);
@@ -91,12 +95,18 @@ public class Loader extends UntypedActor {
 		}
 	}
 
+	private void handleRasterImportJob(RasterImportJobInfo importJob) {
+		log.debug("raster data import requested: " + importJob);
+		
+		unhandled(importJob);
+	}
+
 	private void handleTerminated(Terminated msg) {
 		ActorRef session = msg.getActor();
 		
 		log.debug("terminated: {}", session);
 		
-		VectorImportJobInfo importJob = sessions.inverse().get(session);
+		ImportJobInfo importJob = sessions.inverse().get(session);
 		if(importJob == null) {
 			log.error("session unknown");
 		} else {
@@ -145,7 +155,7 @@ public class Loader extends UntypedActor {
 
 	private void handleGetActiveJobs(GetActiveJobs msg) {
 		List<ActiveJob> activeJobs = new ArrayList<>();
-		for(Map.Entry<VectorImportJobInfo, ActorRef> session : sessions.entrySet()) {
+		for(Map.Entry<ImportJobInfo, ActorRef> session : sessions.entrySet()) {
 			JobInfo jobInfo = session.getKey();
 			
 			ActorRef actor = session.getValue();
@@ -156,7 +166,7 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleSessionFinished(SessionFinished msg) {
-		VectorImportJobInfo importJob = msg.getImportJob();
+		ImportJobInfo importJob = msg.getImportJob();
 		
 		if(sessions.containsKey(importJob)) {
 			log.debug("import job finished: " + importJob);
@@ -209,7 +219,7 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleVectorImportJob(final VectorImportJobInfo importJob) {
-		log.debug("data import requested: " + importJob);
+		log.debug("vector data import requested: " + importJob);
 		
 		ActorRef jobContext = getSender();
 		jobContexts.put(importJob, jobContext);

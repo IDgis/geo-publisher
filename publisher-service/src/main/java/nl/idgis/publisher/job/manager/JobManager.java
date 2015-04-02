@@ -60,6 +60,7 @@ import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.QHarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.QRemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
@@ -567,6 +568,7 @@ public class JobManager extends UntypedActor {
 								category.identification,
 								dataSource.identification,
 								sourceDataset.identification,
+								sourceDatasetVersion.type,
 								dataset.id,
 								dataset.name,
 								dataset.identification))
@@ -628,33 +630,49 @@ public class JobManager extends UntypedActor {
 								notifications.add(new Notification(notificationType, result));
 							}
 							
-							jobs.add(new VectorImportJobInfo(
-									t.get(job.id),
-									t.get(category.identification),
-									t.get(dataSource.identification), 
-									t.get(sourceDataset.identification),
-									t.get(dataset.identification),
-									t.get(dataset.name),
-									t.get(importJob.filterConditions),
-									consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-										
-										@Override
-										public Column apply(Tuple t) {
-											return new Column(
-												t.get(importJobColumn.name), 
-												t.get(importJobColumn.dataType));
-										}
-									}),
-									consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-										
-										@Override
-										public Column apply(Tuple t) {
-											return new Column(
-												t.get(sourceDatasetVersionColumn.name),
-												t.get(sourceDatasetVersionColumn.dataType));
-										} 
-									}),
-									notifications));
+							String type = t.get(sourceDatasetVersion.type);
+							log.debug("import job type: {}", type);
+							
+							switch(type) {
+								case "RASTER":
+									jobs.add(new RasterImportJobInfo(
+											t.get(job.id),
+											t.get(category.identification),
+											t.get(dataSource.identification), 
+											t.get(sourceDataset.identification),
+											t.get(dataset.identification),
+											t.get(dataset.name),
+											notifications));
+								case "VECTOR":							
+									jobs.add(new VectorImportJobInfo(
+											t.get(job.id),
+											t.get(category.identification),
+											t.get(dataSource.identification), 
+											t.get(sourceDataset.identification),
+											t.get(dataset.identification),
+											t.get(dataset.name),
+											t.get(importJob.filterConditions),
+											consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+												
+												@Override
+												public Column apply(Tuple t) {
+													return new Column(
+														t.get(importJobColumn.name), 
+														t.get(importJobColumn.dataType));
+												}
+											}),
+											consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
+												
+												@Override
+												public Column apply(Tuple t) {
+													return new Column(
+														t.get(sourceDatasetVersionColumn.name),
+														t.get(sourceDatasetVersionColumn.dataType));
+												} 
+											}),
+											notifications));
+								break;
+							}
 						}						
 
 						return new TypedList<>(ImportJobInfo.class, jobs);
