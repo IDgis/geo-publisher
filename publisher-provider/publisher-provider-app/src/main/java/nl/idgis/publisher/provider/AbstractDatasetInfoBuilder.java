@@ -106,22 +106,26 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 		}
 		
 		try {
+			log.debug("parsing metadata");
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
 			
 			try {
-				title = metadataDocument.getTitle();				
+				title = metadataDocument.getTitle();
+				log.debug("title: {}", title);
 			} catch(NotFound nf) {
 				addMetadataParsingError(MetadataField.TITLE, MetadataLogType.NOT_FOUND, null);
 			}
 			
 			try {
-				alternateTitle = metadataDocument.getAlternateTitle();				
+				alternateTitle = metadataDocument.getAlternateTitle();
+				log.debug("alternateTitle: {}", alternateTitle);
 			} catch(NotFound nf) {
 				addMetadataParsingError(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
 			try {
-				revisionDate = metadataDocument.getRevisionDate();				
+				revisionDate = metadataDocument.getRevisionDate();
+				log.debug("revisionDate: {}", revisionDate);
 			} catch(NotFound nf) {
 				addMetadataParsingError(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
 			}
