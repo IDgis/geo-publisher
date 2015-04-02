@@ -79,34 +79,36 @@
 		@* List of services: *@
 		<div class="col-lg-9 col-lg-pull-3">
 
-
-			<div class="row well well-sm">
-
-				<div class="col-md-8">
-				</div>
-				<div class="col-md-2">
-					<div class="btn-group pull-left">
-						<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
-							class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-							<span>WMTS</span>
-						</a> 
-						<a href="@models.Service.getTmsGetCapUrl()"  target="_blank"
-							class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-							<span>&nbsp;TMS&nbsp;&nbsp;</span>
-						</a> 
-					</div>
-				</div>
-				<div class="col-md-2">
-				</div>
-
-			</div>
-
 			<div class="row">
 				@if(services.values.isEmpty) {
-				<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
+					<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
 				} else {
-				<div class="list-group" id="service-list">
+	
+				@* buttons for wmts, tms on top of service list *@	
+				<div class="list-group">
+					<div class="list-group-item well well-sm"> 
+						<div class="row">
+							<div class="col-md-8">
+							</div>
+							<div class="col-md-2">
+								<div class="btn-group pull-left">
+									<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
+										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+										<span>WMTS</span>
+									</a> 
+									<a href="@models.Service.getTmsGetCapUrl()"  target="_blank"
+										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+										<span>&nbsp;TMS&nbsp;</span>
+									</a> 
+								</div>
+							</div>
+							<div class="col-md-2">
+							</div>
+						</div>
+					</div>
+				</div>
 		
+				<div class="list-group" id="service-list">
 					@for(service <- services.values) {
 					<div class="list-group-item js-service-item" 
 						data-service-id="@service.id"
