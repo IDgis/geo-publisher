@@ -1,15 +1,13 @@
 package nl.idgis.publisher.provider;
 
-import java.io.File;
 import java.io.Serializable;
+import java.util.Optional;
 
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.protocol.MessageProtocolActors;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Hello;
-import nl.idgis.publisher.provider.database.Database;
-import nl.idgis.publisher.provider.metadata.Metadata;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -63,15 +61,20 @@ public class ClientActors extends MessageProtocolActors {
 	private void createProviders(ActorRef harvester) {
 		log.debug("creating providers");
 		
-		for(Config instance : config.getConfigList("instances")) {
-			final String instanceName = instance.getString("name");
-			
-			final Props database = Database.props(instance.getConfig("database"), instanceName);
-			final Props metadata = Metadata.props(new File(instance.getString("metadata.folder")));					
-			
-			final ActorRef provider = getContext().actorOf(Provider.props(database, metadata), "provider-" + instanceName);					
-			harvester.tell(new Hello(instanceName), provider);
-		}
+		ProviderPropsFactory factory = new ProviderPropsFactory(log);
+		config.getConfigList("instances").stream()
+			.map(factory::props)
+			.filter(Optional::isPresent)
+			.map(Optional::get)
+			.forEach(providerProps -> {
+				String name = providerProps.getName();
+				
+				ActorRef provider = getContext().actorOf(
+					providerProps.getProps(), 
+					"provider-" + name);
+				
+				harvester.tell(new Hello(name), provider);
+			});
 	} 
 	
 	protected void createActors(ActorRef messageProtocolHandler, ActorRef messagePackagerProvider) {
