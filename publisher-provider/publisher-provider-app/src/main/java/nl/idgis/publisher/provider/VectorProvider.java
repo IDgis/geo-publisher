@@ -1,33 +1,24 @@
 package nl.idgis.publisher.provider;
 
-import nl.idgis.publisher.protocol.messages.Hello;
-import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
-import nl.idgis.publisher.provider.protocol.EchoRequest;
-import nl.idgis.publisher.provider.protocol.EchoResponse;
+import java.util.Optional;
+
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
-import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
-public class VectorProvider extends UntypedActor {
+public class VectorProvider extends AbstractProvider {
 	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	private final Props databaseProps;
 	
-	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
-	
-	private final Props databaseProps, metadataProps;
-	
-	private ActorRef database, metadata;
+	private ActorRef database;
 	
 	public VectorProvider(Props databaseProps, Props metadataProps) {
-		this.databaseProps = databaseProps;
-		this.metadataProps = metadataProps;
+		super(metadataProps);
+		
+		this.databaseProps = databaseProps;		
 	}
 	
 	public static Props props(Props databaseProps, Props metadataProps) {
@@ -35,56 +26,22 @@ public class VectorProvider extends UntypedActor {
 	}
 	
 	@Override
-	public void preStart() {
-		database = getContext().actorOf(databaseProps, "database");
-		metadata = getContext().actorOf(metadataProps, "metadata");
+	public void preStartProvider() {
+		database = getContext().actorOf(databaseProps, "database");		
 	}
-
+	
 	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof Hello) {
-			log.info("registered with: " + ((Hello)msg).getName());
-		} else if(msg instanceof EchoRequest) {
-			getSender().tell(new EchoResponse(((EchoRequest) msg).getPayload()), getSelf());
-		} else if(msg instanceof ListDatasetInfo) {
-			handleListDatasetInfo((ListDatasetInfo)msg);
-		} else if(msg instanceof GetDatasetInfo) {
-			handleGetDatasetInfo((GetDatasetInfo)msg);
-		} else if(msg instanceof GetVectorDataset) {
-			handleGetVectorDataset((GetVectorDataset)msg);
-		} else {
-			unhandled(msg);
-		}
+	protected Optional<Props> getVectorDatasetFetcher(GetVectorDataset msg) {
+		return Optional.of(VectorDatasetFetcher.props(getSender(), database, msg));
 	}
-
-	private void handleGetVectorDataset(GetVectorDataset msg) {
-		log.debug("get vector dataset");		
-		
-		ActorRef fetcher = getContext().actorOf(
-				VectorDatasetFetcher.props(getSender(), database, msg), 
-				nameGenerator.getName(VectorDatasetFetcher.class));
-		
-		metadata.tell(new GetMetadata(msg.getIdentification()), fetcher);
+	
+	@Override
+	protected Props getDatasetInfoBuilder(GetDatasetInfo msg) {
+		return DatasetInfoBuilder.props(getSender(), getSelf(), database, msg.getAttachmentTypes());
 	}
-
-	private void handleGetDatasetInfo(GetDatasetInfo msg) {
-		log.debug("get dataset info");
-		
-		ActorRef builder = getContext().actorOf(
-				DatasetInfoBuilder.props(getSender(), getSelf(), database, msg.getAttachmentTypes()),
-				nameGenerator.getName(DatasetInfoBuilder.class));
-		
-		metadata.tell(new GetMetadata(msg.getIdentification()), builder);
+	
+	@Override
+	protected Props getDatasetInfoConverter(ListDatasetInfo msg) {
+		return DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, database);
 	}
-
-	private void handleListDatasetInfo(ListDatasetInfo msg) {
-		log.debug("list dataset info");
-		
-		ActorRef converter = getContext().actorOf(
-				DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, database),
-				nameGenerator.getName(DatasetInfoConverter.class));
-		
-		converter.forward(msg, getContext());
-	}
-
 }
