@@ -87,6 +87,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	}
 	
 	protected void tellTarget(Object msg) {
+		log.debug("result: {}", msg);
+		
 		sender.tell(msg, converter);
 		getContext().stop(getSelf());
 	}

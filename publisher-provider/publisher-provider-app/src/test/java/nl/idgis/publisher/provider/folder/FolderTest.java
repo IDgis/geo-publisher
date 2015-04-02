@@ -1,5 +1,6 @@
 package nl.idgis.publisher.provider.folder;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
@@ -19,6 +20,8 @@ import com.typesafe.config.ConfigValueFactory;
 
 import nl.idgis.publisher.provider.folder.messages.FetchFile;
 import nl.idgis.publisher.provider.folder.messages.FileNotExists;
+import nl.idgis.publisher.provider.folder.messages.FileSize;
+import nl.idgis.publisher.provider.folder.messages.GetFileSize;
 import nl.idgis.publisher.provider.protocol.FileChunk;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -90,5 +93,11 @@ public class FolderTest {
 		assertTrue(Arrays.equals(bytes, testFileContent));
 		
 		stream.close();
+	}
+	
+	@Test
+	public void testGetFileSize() throws Exception {
+		FileSize fileSize = f.ask(folder, new GetFileSize(Paths.get("test.tiff")), FileSize.class).get();
+		assertEquals((long)testFileContent.length, fileSize.getSize());
 	}
 }

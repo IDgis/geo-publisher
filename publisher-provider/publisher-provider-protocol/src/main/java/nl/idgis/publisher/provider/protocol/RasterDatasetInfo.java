@@ -16,6 +16,8 @@ public class RasterDatasetInfo extends DatasetInfo {
 	private static final long serialVersionUID = -352747575039672262L;
 	
 	private final RasterFormat format;
+	
+	private final long size;
 
 	/**
 	 * 
@@ -26,14 +28,16 @@ public class RasterDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
-	 * @param format file format for the dataset.
+	 * @param format file format of the dataset.
+	 * @param size size of the dataset
 	 */
 	public RasterDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
-		Set<Log> logs, RasterFormat format) {
+		Set<Log> logs, RasterFormat format, long size) {
 		
 		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 		
 		this.format = format;
+		this.size = size;
 	}
 
 	/**
@@ -43,10 +47,18 @@ public class RasterDatasetInfo extends DatasetInfo {
 	public RasterFormat getFormat() {
 		return format;
 	}
+	
+	/**
+	 * 
+	 * @return the size of the dataset
+	 */
+	public long getSize() {
+		return size;
+	}
 
 	@Override
 	public String toString() {
-		return "RasterDatasetInfo [format=" + format + "]";
+		return "RasterDatasetInfo [format=" + format + ", size=" + size + "]";
 	}
-
+	
 }

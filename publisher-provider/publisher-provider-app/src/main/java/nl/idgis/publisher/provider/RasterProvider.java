@@ -30,7 +30,7 @@ public class RasterProvider extends AbstractProvider {
 
 	@Override
 	protected DatasetInfoBuilderPropsFactory getDatasetInfoBuilder() { 
-		return RasterDatasetInfoBuilder.props();
+		return RasterDatasetInfoBuilder.props(folder);
 	}
 
 	@Override

@@ -4,9 +4,13 @@ import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.function.Consumer;
 
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.folder.messages.FetchFile;
 import nl.idgis.publisher.provider.folder.messages.FileNotExists;
+import nl.idgis.publisher.provider.folder.messages.FileSize;
+import nl.idgis.publisher.provider.folder.messages.GetFileSize;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -36,16 +40,29 @@ public class Folder extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof FetchFile) {
 			handleFetchFile((FetchFile)msg);
-		} else {		
+		} else if(msg instanceof GetFileSize) {
+			handleGetFileSize((GetFileSize)msg);
+		} else {
 			unhandled(msg);
 		}
 	}
 
-	private void handleFetchFile(FetchFile msg) throws Exception {
+	private void handleGetFileSize(GetFileSize msg) {
 		Path file = msg.getFile();
 		
-		log.debug("fetching file: {}", file);
+		log.debug("determine file size: {}", file);
 		
+		ActorRef sender = getSender();
+		resolveFile(msg, file, resolvedFile -> {
+			try {
+				sender.tell(new FileSize(Files.size(resolvedFile)), getSelf());
+			} catch(Exception e) {
+				sender.tell(new Failure(e), getSelf());
+			}
+		});
+	}
+	
+	private void resolveFile(Object msg, Path file, Consumer<Path> func) {
 		if(file.isAbsolute()) {
 			log.debug("is absolute");
 			
@@ -59,15 +76,12 @@ public class Folder extends UntypedActor {
 				
 				if(Files.isDirectory(resolvedFile)) {
 					log.debug("is directory");
+					
+					unhandled(msg);
 				} else {
 					log.debug("is file");
 					
-					ActorRef cursor = getContext().actorOf(
-						ChannelCursor.props(AsynchronousFileChannel.open(
-							resolvedFile, 
-							StandardOpenOption.READ)),
-						nameGenerator.getName(ChannelCursor.class));
-					cursor.tell(new NextItem(), getSender());
+					func.accept(resolvedFile);
 				}
 			} else {
 				log.debug("not exists");
@@ -75,6 +89,26 @@ public class Folder extends UntypedActor {
 				getSender().tell(new FileNotExists(), getSelf());
 			}
 		}
+	}
+
+	private void handleFetchFile(FetchFile msg) throws Exception {
+		Path file = msg.getFile();
+		
+		log.debug("fetching file: {}", file);
+		
+		ActorRef sender = getSender();
+		resolveFile(msg, file, resolvedFile -> {
+			try {
+			ActorRef cursor = getContext().actorOf(
+				ChannelCursor.props(AsynchronousFileChannel.open(
+					resolvedFile, 
+					StandardOpenOption.READ)),
+				nameGenerator.getName(ChannelCursor.class));
+			cursor.tell(new NextItem(), sender);
+			} catch(Exception e) {
+				sender.tell(new Failure(e), getSelf());
+			}
+		});
 	}	
 
 }
