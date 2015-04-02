@@ -264,7 +264,7 @@
 
 					<div class="list-group">
 						@for(dataset <- sourceDatasets.values) {
-							<div class="list-group-item@if(dataset.sourceDataset.`type` == SourceDatasetType.UNAVAILABLE){ list-group-item-warning}">
+							<div class="list-group-item@if(dataset.sourceDataset.`type` == SourceDatasetType.UNAVAILABLE || dataset.sourceDataset.deleted){ list-group-item-warning}">
 								<div class="row">
 									<div class="col-md-5">
 										<h4 class="list-group-item-heading">@dataset.sourceDataset.name</h4>
@@ -278,7 +278,7 @@
 										@sourceDatasetDetails(dataset)
 									</div>
 									<div class="col-md-2 text-right">
-										@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE) {
+										@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE && !dataset.sourceDataset.deleted) {
 											<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")"><span class="glyphicon glyphicon-plus"></span></a>
 										}
 									</div>

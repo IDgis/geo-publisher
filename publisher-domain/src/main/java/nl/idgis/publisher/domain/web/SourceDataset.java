@@ -14,6 +14,7 @@ public final class SourceDataset extends Identifiable {
 	private final EntityRef category;
 	private final EntityRef dataSource;
 	private final SourceDatasetType	type;
+	private final boolean deleted;
 	
 	@JsonCreator
 	public SourceDataset (
@@ -22,7 +23,8 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("alternateTitle") String alternateTitle, 
 			final @JsonProperty("category") EntityRef category,
 			final @JsonProperty("dataSource") EntityRef dataSource,
-			final @JsonProperty("type") SourceDatasetType type) {
+			final @JsonProperty("type") SourceDatasetType type,
+			final @JsonProperty("deleted") boolean deleted) {
 		super(id);
 		
 		if (type == null) {
@@ -34,6 +36,7 @@ public final class SourceDataset extends Identifiable {
 		this.category = category;
 		this.dataSource = dataSource;
 		this.type = type;
+		this.deleted = deleted;
 	}
 
 	@JsonGetter
@@ -59,5 +62,10 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public SourceDatasetType type () {
 		return this.type;
+	}
+	
+	@JsonGetter
+	public boolean deleted () {
+		return this.deleted;
 	}
 }

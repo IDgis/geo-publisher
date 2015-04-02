@@ -22,3 +22,9 @@
 		}
 	}
 </p>
+
+@if(dataset.sourceDataset.deleted) {
+	<p class="text-danger">
+		<span class="glyphicon glyphicon-exclamation-sign"></span> @Domain.message("web.application.page.sourcedatasets.list.deleted")
+	</p>
+}
