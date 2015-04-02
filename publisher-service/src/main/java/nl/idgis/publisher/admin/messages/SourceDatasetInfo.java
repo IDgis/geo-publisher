@@ -24,6 +24,8 @@ public class SourceDatasetInfo implements Serializable {
 	private DatasetLogType lastLogType; 
 	private DatasetLog<?> lastLogParameters;
 	private Timestamp lastLogTime;
+	
+	private Timestamp deleteTime;
 
 	@QueryProjection
 	public SourceDatasetInfo(String id, String name, String alternateTitle, String dataSourceId,
@@ -31,7 +33,8 @@ public class SourceDatasetInfo implements Serializable {
 			Long count, final String type,
 			final String lastLogType,
 			final String lastLogParameters,
-			final Timestamp lastLogTime) {
+			final Timestamp lastLogTime,
+			final Timestamp deleteTime) {
 		super();
 		
 		if (type == null) {
@@ -50,6 +53,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.lastLogType = lastLogType == null ? null : DatasetLogType.valueOf (lastLogType);
 		this.lastLogParameters = lastLogParameters == null || lastLogParameters.isEmpty () ? null : parseLogParameters (this.lastLogType, lastLogParameters); 
 		this.lastLogTime = lastLogTime;
+		this.deleteTime = deleteTime;
 	}
 
 	private DatasetLog<?> parseLogParameters (final DatasetLogType logType, final String value) {
@@ -111,5 +115,9 @@ public class SourceDatasetInfo implements Serializable {
 
 	public Timestamp getLastLogTime () {
 		return lastLogTime;
+	}
+	
+	public Timestamp getDeleteTime () {
+		return deleteTime;
 	}
 }

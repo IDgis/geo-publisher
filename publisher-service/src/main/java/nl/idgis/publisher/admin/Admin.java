@@ -4,12 +4,12 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -57,6 +57,8 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.ColumnDiff;
 import nl.idgis.publisher.domain.web.ActiveTask;
+import nl.idgis.publisher.domain.web.DataSourceStatusType;
+import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Issue;
@@ -66,8 +68,6 @@ import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
-import nl.idgis.publisher.domain.web.DataSourceStatusType;
-import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -81,7 +81,6 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import com.google.common.collect.Iterables;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
@@ -474,7 +473,8 @@ private String getEnumName(Enum e){
 							.unique (sourceDatasetVersion2.type),
 						selectLastLog ("type", sourceDataset, l -> l.type),
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
-						selectLastLog ("time", sourceDataset, l -> l.createTime)
+						selectLastLog ("time", sourceDataset, l -> l.createTime),
+						sourceDataset.deleteTime
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -489,7 +489,8 @@ private String getEnumName(Enum e){
 									EntityType.DATA_SOURCE, 
 									sourceDatasetInfo.getDataSourceId(), 
 									sourceDatasetInfo.getDataSourceName()),
-								sourceDatasetInfo.getType ()
+								sourceDatasetInfo.getType (),
+								sourceDatasetInfo.getDeleteTime () != null
 							)));	
 	}
 
@@ -646,7 +647,8 @@ private String getEnumName(Enum e){
 						selectLastVersion ("db_type", sourceDataset, v -> v.type),
 						selectLastLog ("type", sourceDataset, l -> l.type),
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
-						selectLastLog ("time", sourceDataset, l -> l.createTime)
+						selectLastLog ("time", sourceDataset, l -> l.createTime),
+						sourceDataset.deleteTime
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -658,7 +660,8 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.getAlternateTitle(),
 							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
-							sourceDatasetInfo.getType ()
+							sourceDatasetInfo.getType (),
+							sourceDatasetInfo.getDeleteTime () != null
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (
