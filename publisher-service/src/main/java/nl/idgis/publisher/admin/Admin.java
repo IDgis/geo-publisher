@@ -454,6 +454,7 @@ private String getEnumName(Enum e){
 			.groupBy(dataSource.name)
 			.groupBy(category.identification)
 			.groupBy(category.name)
+			.groupBy(sourceDataset.deleteTime)
 			.singleResult(
 				new QSourceDatasetInfo(
 						sourceDataset.identification, 
@@ -634,6 +635,7 @@ private String getEnumName(Enum e){
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)
 					.groupBy(sourceDatasetVersion.alternateTitle)
+					.groupBy(sourceDataset.deleteTime)
 					.orderBy(sourceDatasetVersion.name.trim().asc())
 					.list(new QSourceDatasetInfo(
 						sourceDataset.identification, 
