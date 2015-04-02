@@ -43,7 +43,11 @@
 							</div>
 						</div>
 				@for(task <- tasks.values) {
+				@if(task.active){			
+					<div class="well well-sm">
+				}else{
 					<div class="list-group-item js-style-item">
+				}
 						<div class="row">
 							<div class="col-lg-1">
 								<strong>@Domain.message(task.title)</strong>
