@@ -133,10 +133,11 @@
 							@helper.helpFormAddon(Domain.message("web.application.page.layers.form.field.styles.help"))
 						</div>
 						<div class="gp-tree-values dropdown">
-							<div class="js-pager">
+							<div class="js-pager dropdown-content">
 								@styles.stylePager(allStyles)
 							</div>
 						</div>
+						
 						@helper.fielderrors(layerForm("styles").errors)
 					</div>
 				</div>

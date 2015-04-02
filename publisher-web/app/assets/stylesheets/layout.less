@@ -123,7 +123,70 @@ footer {
 
 /* Tree select: */
 
+	.gp-tree-select {
+		height:auto;
+		overflow:auto;
+		
+		.term, .add-term {
+			margin-left: 4px;
+			margin-right: 4px;
+			white-space: normal;
+			
+			.close {
+				float: none;
+				display: inline-block;
+				vertical-align: middle;
+				margin-left: 6px;
+			}
+		}
+	}
+
 	.gp-tree-values {
+	
+		.dropdown-menu {
+			max-height: 300px;
+			min-width: 400px;
+			overflow: auto;
+			padding: 8px;
+		}
+
+		&.dropdown {	
+			.dropdown-content {
+				position: absolute;
+				display: none;
+				z-index: 1000;
+				width: 400px;
+			}
+			
+			&.open {
+				.dropdown-content {
+					display: block;
+				}
+			}
+			
+			.panel-body {
+				height: 300px;
+				overflow: auto;
+			}
+			.panel-footer .gp-pager-controls {
+				margin: 0 auto;
+			}
+		}
+		
+		ul, li{
+			display: block;
+			margin: 0;
+			padding:0;
+		}
+		li > ul {
+			display: none;
+			margin-left: 2em
+		};
+		li.expanded > ul {
+			display:block;
+		}
+		
+	/*
 		&.dropdown {
 			position: absolute;
 			display: none;
@@ -143,6 +206,7 @@ footer {
 				margin: 0 auto;
 			}
 		}
+	*/
 	}
 	
 /* Pager select: */
