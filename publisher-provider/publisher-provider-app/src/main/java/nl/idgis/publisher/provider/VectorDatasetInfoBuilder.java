@@ -69,11 +69,15 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			reportedTitle = title;
 		}
 		
-		if(tableName != null && !tableName.trim().isEmpty()) {
-			database.tell(new DescribeTable(tableName), getSelf());
-			database.tell(new PerformCount(tableName), getSelf());
+		if(logs.isEmpty()) {		
+			if(tableName != null && !tableName.trim().isEmpty()) {
+				database.tell(new DescribeTable(tableName), getSelf());
+				database.tell(new PerformCount(tableName), getSelf());
+			} else {
+				logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));					
+				sendUnavailable();
+			}
 		} else {
-			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));					
 			sendUnavailable();
 		}
 	}

@@ -96,7 +96,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	}
 	
 	protected abstract void processMetadata();
-	
+		
 	private void handleMetadataItem(MetadataItem metadataItem) {
 		identification = metadataItem.getIdentification();
 		byte[] content = metadataItem.getContent();
@@ -126,11 +126,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 				addMetadataParsingError(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
-			if(logs.isEmpty()) {
-				processMetadata();
-			} else {
-				sendUnavailable();
-			}
+			processMetadata();
 		} catch(Exception e) {
 			sendUnavailable();
 		}
