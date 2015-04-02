@@ -372,7 +372,7 @@ public class Datasets extends Controller {
 	private static void validateDatasetForm (final Form<DatasetForm> form, final DatasetForm dataset, final List<Column> sourceColumns, final Dataset existingDataset) {
 		// Validate the filter:
 		if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
-			form.reject (new ValidationError ("filterConditions", "Het opgegeven filter is ongeldig"));
+			form.reject (new ValidationError ("filterConditions", "web.application.page.datasets.form.tab.filters.alert"));
 		}
 		
 		if (existingDataset != null) {
