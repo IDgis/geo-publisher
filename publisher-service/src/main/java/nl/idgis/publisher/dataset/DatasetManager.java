@@ -40,6 +40,7 @@ import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.domain.service.RasterDataset;
 
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -230,6 +231,15 @@ public class DatasetManager extends UntypedActor {
 									logs, 
 									new Table(columnInfo.list()));
 								break;
+							case "RASTER":
+								dataset = new RasterDataset(	
+									id,
+									name,
+									alternateTitle,
+									categoryId,
+									revisionDate,
+									logs);
+								break;
 							default:
 								dataset = new UnavailableDataset(	
 									id,
@@ -295,6 +305,8 @@ public class DatasetManager extends UntypedActor {
 		final String type;
 		if(dataset instanceof VectorDataset) {			
 			type = "VECTOR";
+		} else if(dataset instanceof RasterDataset) {
+			type = "RASTER";
 		} else if(dataset instanceof UnavailableDataset) {			
 			type = "UNAVAILABLE";
 		} else {			

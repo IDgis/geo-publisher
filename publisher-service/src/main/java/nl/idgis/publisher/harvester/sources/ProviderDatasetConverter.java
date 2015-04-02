@@ -15,6 +15,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.domain.service.RasterDataset;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
@@ -23,6 +24,7 @@ import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
+import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
@@ -80,7 +82,11 @@ public class ProviderDatasetConverter extends StreamConverter {
 				
 				Table table = new Table(columns);				
 				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, table);
-			} else { 
+			} else if(msg instanceof RasterDatasetInfo) {
+				log.debug("raster dataset info type");
+				
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs);
+			} else {
 				log.debug("unhandled dataset info type");
 				
 				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs);
