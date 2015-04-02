@@ -15,7 +15,7 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -64,7 +64,7 @@ public class LoaderSession extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ImportJobInfo importJob;
+	private final VectorImportJobInfo importJob;
 	
 	private final ActorRef loader, transaction, jobContext;
 	
@@ -76,7 +76,7 @@ public class LoaderSession extends UntypedActor {
 	
 	private FutureUtils f;
 	
-	public LoaderSession(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+	public LoaderSession(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
 		this.receiveTimeout = receiveTimeout;
 		this.loader = loader;
 		this.importJob = importJob;
@@ -85,11 +85,11 @@ public class LoaderSession extends UntypedActor {
 		this.jobContext = jobContext;
 	}
 	
-	public static Props props(Duration receiveTimeout, ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+	public static Props props(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
 		return Props.create(LoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
-	public static Props props(ActorRef loader, ImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+	public static Props props(ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
 		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	

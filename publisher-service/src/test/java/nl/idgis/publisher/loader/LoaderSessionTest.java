@@ -28,7 +28,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -89,7 +89,7 @@ public class LoaderSessionTest {
 			columns.add(new Column("column" + i, Type.NUMERIC));
 		}
 		
-		ImportJobInfo importJob = new ImportJobInfo(0, "categoryId", "dataSourceId", "sourceDatasetId", 
+		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
 		loaderSession = actorSystem.actorOf(LoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));

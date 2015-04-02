@@ -2,19 +2,19 @@ package nl.idgis.publisher.loader.messages;
 
 import java.io.Serializable;
 
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 
 public class SessionFinished implements Serializable {	
 
 	private static final long serialVersionUID = -4490550399994987792L;
 	
-	private final ImportJobInfo importJob;	
+	private final VectorImportJobInfo importJob;	
 	
-	public SessionFinished(ImportJobInfo importJob) {
+	public SessionFinished(VectorImportJobInfo importJob) {
 		this.importJob = importJob;		
 	}
 
-	public ImportJobInfo getImportJob() {
+	public VectorImportJobInfo getImportJob() {
 		return importJob;
 	}
 

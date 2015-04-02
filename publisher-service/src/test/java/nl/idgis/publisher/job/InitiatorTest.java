@@ -36,7 +36,7 @@ import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.AnyRecorder;
@@ -224,12 +224,12 @@ public class InitiatorTest extends AbstractServiceTest {
 		Object job0 = list.get(0);
 		Object job1 = list.get(1);
 		
-		assertEquals(ImportJobInfo.class, job0.getClass());
-		assertEquals(ImportJobInfo.class, job1.getClass());
+		assertEquals(VectorImportJobInfo.class, job0.getClass());
+		assertEquals(VectorImportJobInfo.class, job1.getClass());
 		
 		Set<String> datasets = new HashSet<>();
-		datasets.add(((ImportJobInfo)job0).getDatasetId());
-		datasets.add(((ImportJobInfo)job1).getDatasetId());
+		datasets.add(((VectorImportJobInfo)job0).getDatasetId());
+		datasets.add(((VectorImportJobInfo)job1).getDatasetId());
 		
 		assertTrue(datasets.contains("testDataset0"));
 		assertTrue(datasets.contains("testDataset1"));

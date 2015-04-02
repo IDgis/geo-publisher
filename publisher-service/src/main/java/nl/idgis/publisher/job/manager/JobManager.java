@@ -59,6 +59,7 @@ import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.QHarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.QRemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
@@ -627,7 +628,7 @@ public class JobManager extends UntypedActor {
 								notifications.add(new Notification(notificationType, result));
 							}
 							
-							jobs.add(new ImportJobInfo(
+							jobs.add(new VectorImportJobInfo(
 									t.get(job.id),
 									t.get(category.identification),
 									t.get(dataSource.identification), 

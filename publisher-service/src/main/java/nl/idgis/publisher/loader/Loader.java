@@ -21,7 +21,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionFinished;
@@ -43,9 +43,9 @@ public class Loader extends UntypedActor {
 	
 	private final ActorRef database, harvester;
 	
-	private BiMap<ImportJobInfo, ActorRef> sessions;
+	private BiMap<VectorImportJobInfo, ActorRef> sessions;
 	
-	private Map<ImportJobInfo, ActorRef> jobContexts;
+	private Map<VectorImportJobInfo, ActorRef> jobContexts;
 	
 	private Map<ActorRef, Progress> progress;
 	
@@ -70,8 +70,8 @@ public class Loader extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ImportJobInfo) {
-			handleImportJob((ImportJobInfo)msg);
+		if(msg instanceof VectorImportJobInfo) {
+			handleVectorImportJob((VectorImportJobInfo)msg);
 		} else if(msg instanceof RemoveJobInfo) {
 			handleRemoveJob((RemoveJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
@@ -96,7 +96,7 @@ public class Loader extends UntypedActor {
 		
 		log.debug("terminated: {}", session);
 		
-		ImportJobInfo importJob = sessions.inverse().get(session);
+		VectorImportJobInfo importJob = sessions.inverse().get(session);
 		if(importJob == null) {
 			log.error("session unknown");
 		} else {
@@ -145,7 +145,7 @@ public class Loader extends UntypedActor {
 
 	private void handleGetActiveJobs(GetActiveJobs msg) {
 		List<ActiveJob> activeJobs = new ArrayList<>();
-		for(Map.Entry<ImportJobInfo, ActorRef> session : sessions.entrySet()) {
+		for(Map.Entry<VectorImportJobInfo, ActorRef> session : sessions.entrySet()) {
 			JobInfo jobInfo = session.getKey();
 			
 			ActorRef actor = session.getValue();
@@ -156,7 +156,7 @@ public class Loader extends UntypedActor {
 	}
 
 	private void handleSessionFinished(SessionFinished msg) {
-		ImportJobInfo importJob = msg.getImportJob();
+		VectorImportJobInfo importJob = msg.getImportJob();
 		
 		if(sessions.containsKey(importJob)) {
 			log.debug("import job finished: " + importJob);
@@ -189,7 +189,7 @@ public class Loader extends UntypedActor {
 	private void handleSessionStarted(SessionStarted msg) {
 		log.debug("data import session started: " + msg);		
 		
-		ImportJobInfo job = msg.getImportJob();
+		VectorImportJobInfo job = msg.getImportJob();
 
 		String dataSourceId = job.getDataSourceId();
 		if(busyDataSources.containsKey(dataSourceId)) {
@@ -208,7 +208,7 @@ public class Loader extends UntypedActor {
 		getSender().tell(new Ack(), getSelf());
 	}
 
-	private void handleImportJob(final ImportJobInfo importJob) {
+	private void handleVectorImportJob(final VectorImportJobInfo importJob) {
 		log.debug("data import requested: " + importJob);
 		
 		ActorRef jobContext = getSender();

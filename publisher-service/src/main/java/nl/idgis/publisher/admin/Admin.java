@@ -69,7 +69,7 @@ import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
@@ -348,7 +348,7 @@ private String getEnumName(Enum e){
 							
 							List<CompletableFuture<ActiveTask>> activeTasks = new ArrayList<>();
 							for(ActiveJob activeLoaderJob : activeLoaderJobs.getActiveJobs()) {
-								final ImportJobInfo job = (ImportJobInfo)activeLoaderJob.getJob();
+								final VectorImportJobInfo job = (VectorImportJobInfo)activeLoaderJob.getJob();
 								final Progress progress = (Progress)activeLoaderJob.getProgress();
 								
 								CompletableFuture<Object> dsi;

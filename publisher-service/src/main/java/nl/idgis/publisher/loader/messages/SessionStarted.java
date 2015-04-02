@@ -4,21 +4,21 @@ import java.io.Serializable;
 
 import akka.actor.ActorRef;
 
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 
 public class SessionStarted implements Serializable {	
 	
 	private static final long serialVersionUID = 3261050647784309391L;
 	
-	private final ImportJobInfo importJob;
+	private final VectorImportJobInfo importJob;
 	private final ActorRef session;
 	
-	public SessionStarted(ImportJobInfo importJob, ActorRef session) {
+	public SessionStarted(VectorImportJobInfo importJob, ActorRef session) {
 		this.importJob = importJob;
 		this.session = session;
 	}
 
-	public ImportJobInfo getImportJob() {
+	public VectorImportJobInfo getImportJob() {
 		return importJob;
 	}
 	

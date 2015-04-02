@@ -33,7 +33,7 @@ import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -52,7 +52,7 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	private final ImportJobInfo importJob;
+	private final VectorImportJobInfo importJob;
 	
 	private final ActorRef jobContext, database;
 	
@@ -65,13 +65,13 @@ public class LoaderSessionInitiator extends AbstractStateMachine<String> {
 	
 	private ActorRef dataSource, transaction;	
 	
-	public LoaderSessionInitiator(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
+	public LoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
 		this.importJob = importJob;
 		this.jobContext = jobContext;
 		this.database = database;
 	}
 	
-	public static Props props(ImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
+	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
 		return Props.create(LoaderSessionInitiator.class, importJob, jobContext, database);
 	}
 	
