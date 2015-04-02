@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.folder.messages.Eof;
-import nl.idgis.publisher.provider.folder.messages.FileChunk;
+import nl.idgis.publisher.provider.protocol.FileChunk;
 import nl.idgis.publisher.stream.StreamCursor;
 
 import akka.actor.ActorRef;

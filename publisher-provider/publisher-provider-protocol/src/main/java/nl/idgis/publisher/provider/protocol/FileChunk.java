@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.folder.messages;
+package nl.idgis.publisher.provider.protocol;
 
 import nl.idgis.publisher.stream.messages.Item;
 

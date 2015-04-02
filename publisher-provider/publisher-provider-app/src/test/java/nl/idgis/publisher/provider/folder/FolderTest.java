@@ -18,8 +18,8 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import nl.idgis.publisher.provider.folder.messages.FetchFile;
-import nl.idgis.publisher.provider.folder.messages.FileChunk;
 import nl.idgis.publisher.provider.folder.messages.FileNotExists;
+import nl.idgis.publisher.provider.protocol.FileChunk;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
