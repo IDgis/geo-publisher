@@ -2,9 +2,7 @@ package nl.idgis.publisher.provider;
 
 import java.util.Optional;
 
-import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
-import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -36,12 +34,7 @@ public class VectorProvider extends AbstractProvider {
 	}
 	
 	@Override
-	protected Props getDatasetInfoBuilder(GetDatasetInfo msg) {
-		return DatasetInfoBuilder.props(getSender(), getSelf(), database, msg.getAttachmentTypes());
-	}
-	
-	@Override
-	protected Props getDatasetInfoConverter(ListDatasetInfo msg) {
-		return DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, database);
+	protected DatasetInfoBuilderPropsFactory getDatasetInfoBuilder() {
+		return VectorDatasetInfoBuilder.props(database);
 	}
 }

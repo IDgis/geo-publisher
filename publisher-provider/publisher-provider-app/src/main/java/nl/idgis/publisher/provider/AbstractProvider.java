@@ -81,25 +81,23 @@ public abstract class AbstractProvider extends UntypedActor {
 		}
 	}
 	
-	protected abstract Props getDatasetInfoBuilder(GetDatasetInfo msg);
+	protected abstract DatasetInfoBuilderPropsFactory getDatasetInfoBuilder();
 
 	private void handleGetDatasetInfo(GetDatasetInfo msg) {
 		log.debug("get dataset info");
 		
 		ActorRef builder = getContext().actorOf(
-				getDatasetInfoBuilder(msg),
-				nameGenerator.getName(DatasetInfoBuilder.class));
+				getDatasetInfoBuilder().props(getSender(), getSelf(), msg.getAttachmentTypes()),
+				nameGenerator.getName(VectorDatasetInfoBuilder.class));
 		
 		metadata.tell(new GetMetadata(msg.getIdentification()), builder);
 	}
 	
-	protected abstract Props getDatasetInfoConverter(ListDatasetInfo msg);
-
 	private void handleListDatasetInfo(ListDatasetInfo msg) {
 		log.debug("list dataset info");
 		
 		ActorRef converter = getContext().actorOf(
-				getDatasetInfoConverter(msg),
+				DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, getDatasetInfoBuilder()),
 				nameGenerator.getName(DatasetInfoConverter.class));
 		
 		converter.forward(msg, getContext());

@@ -36,7 +36,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class DatasetInfoBuilder extends UntypedActor {
+public class VectorDatasetInfoBuilder extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -60,7 +60,7 @@ public class DatasetInfoBuilder extends UntypedActor {
 	
 	private Long numberOfRecords;
 
-	public DatasetInfoBuilder(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
+	public VectorDatasetInfoBuilder(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
 		this.sender = sender;		
 		this.converter = converter;
 		this.database = database;
@@ -70,8 +70,9 @@ public class DatasetInfoBuilder extends UntypedActor {
 		logs = new HashSet<>();
 	}
 	
-	public static Props props(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {
-		return Props.create(DatasetInfoBuilder.class, sender, converter, database, requestedAttachmentTypes);
+	public static DatasetInfoBuilderPropsFactory props(ActorRef database) {
+		return (sender, converter, requestedAttachmentTypes) ->		
+			Props.create(VectorDatasetInfoBuilder.class, sender, converter, database, requestedAttachmentTypes);
 	}
 	
 	@Override

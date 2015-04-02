@@ -20,23 +20,25 @@ public class DatasetInfoConverter extends StreamConverter {
 	
 	private final Set<AttachmentType> requestedAttachmentTypes;
 	
-	private final ActorRef metadata, database;
+	private final ActorRef metadata;
+	
+	private final DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory;
 
-	public DatasetInfoConverter(Set<AttachmentType> requestedAttachmentTypes, ActorRef metadata, ActorRef database) {		
+	public DatasetInfoConverter(Set<AttachmentType> requestedAttachmentTypes, ActorRef metadata, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {		
 		this.requestedAttachmentTypes = requestedAttachmentTypes;
 		this.metadata = metadata;
-		this.database = database;
+		this.datasetInfoBuilderPropsFactory = datasetInfoBuilderPropsFactory;
 	}
 	
-	public static Props props(Set<AttachmentType> attachmentTypes, ActorRef metadata, ActorRef database) {
-		return Props.create(DatasetInfoConverter.class, attachmentTypes, metadata, database);
+	public static Props props(Set<AttachmentType> attachmentTypes, ActorRef metadata, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {
+		return Props.create(DatasetInfoConverter.class, attachmentTypes, metadata, datasetInfoBuilderPropsFactory);
 	}
 
 	@Override
 	protected void convert(Item item, ActorRef sender) {
 		if(item instanceof MetadataItem) {
-			Props datasetInfoBuilderProps = DatasetInfoBuilder.props(sender, getSelf(), database, requestedAttachmentTypes);
-			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName(DatasetInfoBuilder.class));
+			Props datasetInfoBuilderProps = datasetInfoBuilderPropsFactory.props(sender, getSelf(), requestedAttachmentTypes);
+			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName(VectorDatasetInfoBuilder.class));
 			datasetInfoBuilder.forward(item, getContext());
 		} else {
 			unhandled(item);
