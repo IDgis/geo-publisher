@@ -125,7 +125,6 @@ define ([
 		},
 		
 		_openTree: function () {
-			put (this.containerNode, '+', this.treeNode);
 			if (domClass.contains (this.treeNode, 'open')) {
 				return;
 			}
