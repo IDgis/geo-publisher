@@ -15,7 +15,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class Provider extends UntypedActor {
+public class VectorProvider extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -25,13 +25,13 @@ public class Provider extends UntypedActor {
 	
 	private ActorRef database, metadata;
 	
-	public Provider(Props databaseProps, Props metadataProps) {
+	public VectorProvider(Props databaseProps, Props metadataProps) {
 		this.databaseProps = databaseProps;
 		this.metadataProps = metadataProps;
 	}
 	
 	public static Props props(Props databaseProps, Props metadataProps) {
-		return Props.create(Provider.class, databaseProps, metadataProps);
+		return Props.create(VectorProvider.class, databaseProps, metadataProps);
 	}
 	
 	@Override

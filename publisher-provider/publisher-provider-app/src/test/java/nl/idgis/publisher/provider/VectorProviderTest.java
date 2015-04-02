@@ -64,7 +64,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 
-public class ProviderTest {
+public class VectorProviderTest {
 	
 	private static TableInfo tableInfo;
 	
@@ -103,7 +103,7 @@ public class ProviderTest {
 		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
-		provider = actorSystem.actorOf(Provider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
+		provider = actorSystem.actorOf(VectorProvider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
 		
 		metadata = ActorSelection.apply(provider, "metadata");
 		database = ActorSelection.apply(provider, "database");
@@ -113,7 +113,7 @@ public class ProviderTest {
 	
 	@Before
 	public void metadataDocument() throws Exception {
-		InputStream inputStream = ProviderTest.class.getResourceAsStream("/nl/idgis/publisher/metadata/dataset.xml");
+		InputStream inputStream = VectorProviderTest.class.getResourceAsStream("/nl/idgis/publisher/metadata/dataset.xml");
 		assertNotNull("metadata document missing", inputStream);
 		
 		byte[] content = IOUtils.toByteArray(inputStream);

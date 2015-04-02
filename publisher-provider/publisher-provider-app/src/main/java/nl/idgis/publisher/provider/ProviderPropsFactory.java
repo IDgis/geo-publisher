@@ -25,7 +25,7 @@ public class ProviderPropsFactory {
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, Provider.props(database, metadata));
+		return new ProviderProps(name, VectorProvider.props(database, metadata));
 	}
 
 	public Optional<ProviderProps> props(Config providerConfig) {
