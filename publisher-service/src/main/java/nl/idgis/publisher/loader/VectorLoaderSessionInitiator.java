@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import nl.idgis.publisher.AbstractStateMachine;
-
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
@@ -28,46 +26,42 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 
-import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
-import nl.idgis.publisher.loader.messages.Busy;
-import nl.idgis.publisher.loader.messages.SessionStarted;
 import nl.idgis.publisher.protocol.messages.Ack;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
-public class VectorLoaderSessionInitiator extends AbstractStateMachine<String> {
+public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator<VectorImportJobInfo> {
 	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
-	private final VectorImportJobInfo importJob;
-	
-	private final ActorRef jobContext, database;
+	private final ActorRef database;
 	
 	private DatasetStatusInfo datasetStatus = null;
+	
 	private FilterEvaluator filterEvaluator = null;
+	
 	private List<Column> requiredColumns = null;
+	
 	private List<String >requestColumnNames = null;
+	
 	private Set<Column> missingColumns = null, missingFilterColumns = null;
-	private boolean continueImport = true, acknowledged = false;
 	
-	private ActorRef dataSource, transaction;	
+	private boolean continueImport = true;
 	
-	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {		
-		this.importJob = importJob;
-		this.jobContext = jobContext;
+	private ActorRef transaction;	
+	
+	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
+		super(importJob, jobContext);
+				
 		this.database = database;
 	}
 	
@@ -90,27 +84,7 @@ public class VectorLoaderSessionInitiator extends AbstractStateMachine<String> {
 			}
 			
 		};
-	}
-
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof NotConnected) {					
-			log.warning("not connected: " + importJob.getDataSourceId());
-			
-			acknowledgeJobAndStop();
-		} else if(msg instanceof Busy) {
-			log.debug("busy: " + importJob.getDataSourceId());
-			
-			acknowledgeJobAndStop();
-		} else if(msg instanceof ActorRef) {
-			log.debug("dataSource received");
-			
-			dataSource = (ActorRef)msg;
-			
-			database.tell(new GetDatasetStatus(importJob.getDatasetId()), getSelf());
-			become("retrieving dataset status info", waitingForDatasetStatusInfo());
-		}
-	}
+	}	
 
 	private void handleDatasetStatusInfo() throws Exception {
 		log.debug("dataset status received");
@@ -305,41 +279,6 @@ public class VectorLoaderSessionInitiator extends AbstractStateMachine<String> {
 								jobContext)), getSelf());
 		
 		become("starting session", waitingForSessionStarted());
-	}	
-	
-	private Procedure<Object> waitingForSessionStartedAck() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					log.debug("session started ack");
-					
-					acknowledgeJobAndStop();
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
-	}
-	
-	private Procedure<Object> waitingForSessionStarted() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					log.debug("session started");
-					
-					getContext().parent().tell(new SessionStarted(importJob, getSender()), getSelf());
-					become("registering session start", waitingForSessionStartedAck());
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
 	}
 	
 	private Procedure<Object> waitingForTableCreated() {
@@ -445,21 +384,8 @@ public class VectorLoaderSessionInitiator extends AbstractStateMachine<String> {
 		become("starting transaction", waitingForTransactionCreated());
 	}
 	
-	protected void timeout(String state) {
-		if(!acknowledged) {
-			acknowledgeJob();
-		}
-		
-		log.error("timeout during: " + state);
-	}
-	
-	private void acknowledgeJobAndStop() {
-		acknowledgeJob();
-		getContext().stop(getSelf());
-	}
-
-	private void acknowledgeJob() {
-		acknowledged = true;
-		jobContext.tell(new Ack(), getSelf());
+	protected void dataSourceReceived() {
+		database.tell(new GetDatasetStatus(importJob.getDatasetId()), getSelf());
+		become("retrieving dataset status info", waitingForDatasetStatusInfo());
 	}
 }

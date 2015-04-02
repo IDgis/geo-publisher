@@ -199,7 +199,7 @@ public class Loader extends UntypedActor {
 	private void handleSessionStarted(SessionStarted msg) {
 		log.debug("data import session started: " + msg);		
 		
-		VectorImportJobInfo job = msg.getImportJob();
+		ImportJobInfo job = msg.getImportJob();
 
 		String dataSourceId = job.getDataSourceId();
 		if(busyDataSources.containsKey(dataSourceId)) {
