@@ -7,7 +7,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
 import nl.idgis.publisher.folder.messages.FetchFile;
-import nl.idgis.publisher.folder.messages.FileExists;
 import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileSize;
 import nl.idgis.publisher.folder.messages.GetFileSize;
@@ -58,13 +57,14 @@ public class Folder extends UntypedActor {
 		log.debug("storing data in file: {}", file);
 		
 		ActorRef sender = getSender();
-		resolveFile(msg, file, true, resolvedFile -> {
+		resolveFile(msg, file, false, resolvedFile -> {
 			try {
 				ActorRef receiver = getContext().actorOf(
 					ChannelReceiver.props(AsynchronousFileChannel.open(
 						resolvedFile, 
 						StandardOpenOption.WRITE,
-						StandardOpenOption.CREATE_NEW)),
+						StandardOpenOption.TRUNCATE_EXISTING,
+						StandardOpenOption.CREATE)),
 					nameGenerator.getName(ChannelReceiver.class));
 				
 				getSender().tell(new FileReceiver(receiver), getSelf());
@@ -91,10 +91,10 @@ public class Folder extends UntypedActor {
 	}
 	
 	private void resolveFile(Object msg, Path file, Consumer<Path> func) {
-		resolveFile(msg, file, false, func);
+		resolveFile(msg, file, true, func);
 	}
 	
-	private void resolveFile(Object msg, Path file, boolean exists, Consumer<Path> func) {
+	private void resolveFile(Object msg, Path file, boolean existCheck, Consumer<Path> func) {
 		if(file.isAbsolute()) {
 			log.debug("is absolute");
 			
@@ -103,8 +103,10 @@ public class Folder extends UntypedActor {
 			log.debug("is relative");
 			
 			Path resolvedFile = root.resolve(file);			
-			if(Files.exists(resolvedFile) != exists) {
-				log.debug(exists ? "not exists" : "exists");
+			if(!existCheck || Files.exists(resolvedFile)) {
+				if(existCheck) {
+					log.debug("exists");
+				}
 				
 				if(Files.isDirectory(resolvedFile)) {
 					log.debug("is directory");
@@ -116,13 +118,9 @@ public class Folder extends UntypedActor {
 					func.accept(resolvedFile);
 				}
 			} else {
-				log.debug(exists ? "exists" : "not exists");
+				log.debug("not exists");
 				
-				if(exists) {
-					getSender().tell(new FileExists(), getSelf());
-				} else {
-					getSender().tell(new FileNotExists(), getSelf());
-				}
+				getSender().tell(new FileNotExists(), getSelf());
 			}
 		}
 	}
