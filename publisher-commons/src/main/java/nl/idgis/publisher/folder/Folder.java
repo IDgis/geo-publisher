@@ -7,9 +7,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
 import nl.idgis.publisher.folder.messages.FetchFile;
+import nl.idgis.publisher.folder.messages.FileExists;
 import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileSize;
 import nl.idgis.publisher.folder.messages.GetFileSize;
+import nl.idgis.publisher.folder.messages.GetFileReceiver;
+import nl.idgis.publisher.folder.messages.FileReceiver;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
@@ -42,9 +45,34 @@ public class Folder extends UntypedActor {
 			handleFetchFile((FetchFile)msg);
 		} else if(msg instanceof GetFileSize) {
 			handleGetFileSize((GetFileSize)msg);
+		} else if(msg instanceof GetFileReceiver) {
+			handleStoreFile((GetFileReceiver)msg);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleStoreFile(GetFileReceiver msg) {
+		Path file = msg.getFile();
+		
+		log.debug("storing data in file: {}", file);
+		
+		ActorRef sender = getSender();
+		resolveFile(msg, file, true, resolvedFile -> {
+			try {
+				ActorRef receiver = getContext().actorOf(
+					ChannelReceiver.props(AsynchronousFileChannel.open(
+						resolvedFile, 
+						StandardOpenOption.WRITE,
+						StandardOpenOption.CREATE_NEW)),
+					nameGenerator.getName(ChannelReceiver.class));
+				
+				getSender().tell(new FileReceiver(receiver), getSelf());
+			} catch(Exception e) {
+				sender.tell(new Failure(e), getSelf());
+			}
+		});
+		
 	}
 
 	private void handleGetFileSize(GetFileSize msg) {
@@ -63,6 +91,10 @@ public class Folder extends UntypedActor {
 	}
 	
 	private void resolveFile(Object msg, Path file, Consumer<Path> func) {
+		resolveFile(msg, file, false, func);
+	}
+	
+	private void resolveFile(Object msg, Path file, boolean exists, Consumer<Path> func) {
 		if(file.isAbsolute()) {
 			log.debug("is absolute");
 			
@@ -71,8 +103,8 @@ public class Folder extends UntypedActor {
 			log.debug("is relative");
 			
 			Path resolvedFile = root.resolve(file);			
-			if(Files.exists(resolvedFile)) {
-				log.debug("exists");
+			if(Files.exists(resolvedFile) != exists) {
+				log.debug(exists ? "not exists" : "exists");
 				
 				if(Files.isDirectory(resolvedFile)) {
 					log.debug("is directory");
@@ -84,9 +116,13 @@ public class Folder extends UntypedActor {
 					func.accept(resolvedFile);
 				}
 			} else {
-				log.debug("not exists");
+				log.debug(exists ? "exists" : "not exists");
 				
-				getSender().tell(new FileNotExists(), getSelf());
+				if(exists) {
+					getSender().tell(new FileExists(), getSelf());
+				} else {
+					getSender().tell(new FileNotExists(), getSelf());
+				}
 			}
 		}
 	}
@@ -99,12 +135,12 @@ public class Folder extends UntypedActor {
 		ActorRef sender = getSender();
 		resolveFile(msg, file, resolvedFile -> {
 			try {
-			ActorRef cursor = getContext().actorOf(
-				ChannelCursor.props(AsynchronousFileChannel.open(
-					resolvedFile, 
-					StandardOpenOption.READ)),
-				nameGenerator.getName(ChannelCursor.class));
-			cursor.tell(new NextItem(), sender);
+				ActorRef cursor = getContext().actorOf(
+					ChannelCursor.props(AsynchronousFileChannel.open(
+						resolvedFile, 
+						StandardOpenOption.READ)),
+					nameGenerator.getName(ChannelCursor.class));
+				cursor.tell(new NextItem(), sender);
 			} catch(Exception e) {
 				sender.tell(new Failure(e), getSelf());
 			}
