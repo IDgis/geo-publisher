@@ -130,9 +130,9 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 		serviceTreeCache.start ();
 		
 		// Add the default staging environment:
-		//log.info ("Adding default staging environment");
-		//target.tell (new AddStagingService (stagingServiceInfo), getSelf ());
-		//hasDefaultStaging = true;
+		log.info ("Adding default staging environment");
+		target.tell (new AddStagingService (stagingServiceInfo), getSelf ());
+		hasDefaultStaging = true;
 	}
 	
 	private JsonNode readJson (final byte[] data) {
