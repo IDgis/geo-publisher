@@ -1,0 +1,19 @@
+@import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.response._ 
+
+@(items: Page[_ <: nl.idgis.publisher.domain.web.Selectable], label: String, msgNone: String)
+
+	<div class="form-group">
+		<label class="col-sm-2 control-label">@label</label>
+		<div class="col-sm-8"> 
+			<ol class="breadcrumb">
+				@if(items == null || items.values == null || items.values.isEmpty() ){
+					<li>@msgNone</li>
+				}else{								
+					@for(item <- items.values){
+						<li><a href="#" >@item.name()</a>&nbsp;</li>
+					}
+				}
+			</ol>
+		</div>
+	</div>

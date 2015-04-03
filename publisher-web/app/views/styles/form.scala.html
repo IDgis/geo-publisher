@@ -87,21 +87,9 @@
 						</div>
 					</div>
 				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.breadcrumb.label")</label>
-					<div class="col-sm-8"> 
-						<ol class="breadcrumb">
-							@if(layers == null || layers.values == null || layers.values.isEmpty() ){
-								<li>@Domain.message("web.application.page.styles.form.field.breadcrumb.none")</li>
-							}else{								
-								@for(layer <- layers.values){
-									<li><a href="@routes.Layers.edit(layer.id())" >@layer.name()</a>&nbsp;</li>
-								}
-							}
-						</ol>
-					</div>
-				</div>
-
+		
+				@helper.breadcrumbs(layers, Domain.message("web.application.page.styles.form.field.breadcrumb.label"), Domain.message("web.application.page.styles.form.field.breadcrumb.none"))
+		
 				<!-- fields that are not user editable but must be passed on -->
 				<input type="hidden" class="form-control" id="input-format" name="format" value="@styleForm("format").value" readonly>
 				<input type="hidden" class="form-control" id="input-version" name="version" value="@styleForm("version").value" readonly>
