@@ -1,0 +1,29 @@
+@import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.response._ 
+
+@* 
+	Shows a list of items.
+	Can be used to show parents (e.g. layers where a style is used in)
+	Parameters:
+		items: Page[{Selectable] - list of items where item has methods id() and  name()
+		parentRef: method to call with parameter item.id(), in a href context
+		label: String - text for the label in the form
+		msgNone: String - text to display when there are no items (list is empty or null)
+*@
+
+@(items: Page[_ <: nl.idgis.publisher.domain.web.Selectable], parentRef: (String) => Call, label: String, msgNone: String)
+
+	<div class="form-group">
+		<label class="col-sm-2 control-label">@label</label>
+		<div class="col-sm-8"> 
+			<ol class="breadcrumb">
+				@if(items == null || items.values == null || items.values.isEmpty() ){
+					<li>@msgNone</li>
+				}else{								
+					@for(item <- items.values){
+						<li> <a href="@parentRef(item.id())">@item.name()</a></li>
+					}
+				}
+			</ol>
+		</div>
+	</div>

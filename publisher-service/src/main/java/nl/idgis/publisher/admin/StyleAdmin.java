@@ -1,23 +1,31 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QStyle.style;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.domain.query.GetStyleParentLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.support.Expressions;
 
 public class StyleAdmin extends AbstractAdmin {
@@ -37,6 +45,7 @@ public class StyleAdmin extends AbstractAdmin {
 		doPut(Style.class, this::handlePutStyle);
 		doDelete(Style.class, this::handleDeleteStyle);
 		doQuery (ListStyles.class, this::handleListStylesWithQuery);
+		doQuery (GetStyleParentLayers.class, this::handleGetStyleParentLayers);
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {
@@ -131,4 +140,63 @@ public class StyleAdmin extends AbstractAdmin {
 			.thenApply(l -> new Response<String>(CrudOperation.DELETE, CrudResponse.OK, styleId));
 	}
 	
+	private CompletableFuture<Page<Layer>> handleGetStyleParentLayers(final GetStyleParentLayers getStyleParentLayers){
+		String styleId = getStyleParentLayers.getId();
+		log.debug ("handleGetStyleParentLayers: " + styleId);
+		final Page.Builder<Layer> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getLayersFromLayerStyleQuery =  
+			db.query().from(genericLayer)
+			.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+			.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
+			.join(style).on(style.id.eq(layerStyle.styleId))
+			.where(style.identification.eq(styleId))
+			.orderBy(genericLayer.name.asc());
+		
+		final AsyncSQLQuery getLayersFromLayerStructureQuery =  
+			db.query().from(genericLayer)
+			.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+			.join(layerStructure).on(layerStructure.childLayerId.eq(genericLayer.id))
+			.join(style).on(style.id.eq(layerStructure.styleId))
+			.where(style.identification.eq(styleId))
+			.orderBy(genericLayer.name.asc());
+		
+		return getLayersFromLayerStyleQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenCompose (styleLayers -> {
+				for (Tuple layer : styleLayers.list()) {
+					builder.add(new Layer(
+						layer.get(genericLayer.identification),
+						layer.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null,
+						null,
+						null, null, null)
+					);
+				}
+				return getLayersFromLayerStructureQuery.list(
+					genericLayer.identification,
+					genericLayer.name
+					).thenApply(structLayers -> {
+						for (Tuple layer : structLayers.list()) {
+							builder.add(new Layer(
+								layer.get(genericLayer.identification),
+								layer.get(genericLayer.name),
+								null,
+								null,
+								null,
+								null,
+								null,
+								null, null, null)
+							);
+						}
+						return builder.build();
+					});
+			});
+	}
+	
+
 }

@@ -1,6 +1,7 @@
-@(styleForm: Form[controllers.Styles.StyleForm], create:Boolean, errorLine: java.util.Optional[Integer] = java.util.Optional.empty(), errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
-
 @import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.response._ 
+
+@(styleForm: Form[controllers.Styles.StyleForm], layers: Page[Layer], create:Boolean, errorLine: java.util.Optional[Integer] = java.util.Optional.empty(), errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
@@ -86,13 +87,9 @@
 						</div>
 					</div>
 				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.styles.form.field.layers.label")</label>
-					<div class="col-sm-8">
-						<span class="help-block"></span>
-					</div>
-				</div>
-
+		
+				@helper.parents(layers, routes.Layers.edit, Domain.message("web.application.page.styles.form.field.breadcrumb.label"), Domain.message("web.application.page.styles.form.field.breadcrumb.none"))
+		
 				<!-- fields that are not user editable but must be passed on -->
 				<input type="hidden" class="form-control" id="input-format" name="format" value="@styleForm("format").value" readonly>
 				<input type="hidden" class="form-control" id="input-version" name="version" value="@styleForm("version").value" readonly>
