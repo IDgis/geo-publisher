@@ -17,7 +17,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 
-public class ProviderGetDatasetInitiater extends UntypedActor {
+public class ProviderFetchVectorDatasetInitiator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -29,7 +29,7 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 	
 	private final ActorRef sender, receiver, provider;
 	
-	public ProviderGetDatasetInitiater(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
+	public ProviderFetchVectorDatasetInitiator(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
 		this.sender = sender;		
 		this.receiver = receiver;
 		this.provider = provider;
@@ -38,7 +38,7 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 	}
 	
 	public static Props props(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
-		return Props.create(ProviderGetDatasetInitiater.class, sender, request, receiver, provider);
+		return Props.create(ProviderFetchVectorDatasetInitiator.class, sender, request, receiver, provider);
 	}
 	
 	@Override

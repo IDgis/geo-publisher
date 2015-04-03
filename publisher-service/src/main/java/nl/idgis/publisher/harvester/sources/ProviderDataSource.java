@@ -99,8 +99,8 @@ public class ProviderDataSource extends UntypedActor {
 				nameGenerator.getName(receiverProps.clazz()));
 		
 		ActorRef initiator = getContext().actorOf(
-				ProviderGetDatasetInitiater.props(getSender(), msg, receiver, provider),
-				nameGenerator.getName(ProviderGetDatasetInitiater.class));
+				ProviderFetchVectorDatasetInitiator.props(getSender(), msg, receiver, provider),
+				nameGenerator.getName(ProviderFetchVectorDatasetInitiator.class));
 		
 		provider.tell(new GetDatasetInfo(Collections.<AttachmentType>emptySet(), msg.getId()), initiator);
 	}
