@@ -452,10 +452,12 @@ web.application.page.services.list.button.create=Maak een nieuwe service ...
 web.application.page.layers.services.search.placeholder=Zoek een service ...
 web.application.page.services.list.search.showAll=Hef filter op servicenaam op
 web.application.page.services.list.confidential=Vertrouwelijk
+web.application.page.services.list.publish=Publiceren
 
 web.application.page.services.form.title=Service formulier
 web.application.page.services.form.header.new=Nieuwe service toevoegen
 web.application.page.services.form.header.edit=Service {0} aanpassen
+web.application.page.services.form.header.publish=Service {0} publiceren
 
 web.application.page.services.form.field.name.label=Naam
 web.application.page.services.form.field.name.placeholder=Naam

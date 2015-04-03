@@ -119,7 +119,7 @@
 						data-warning-delete-link="@routes.Services.delete(service.id)"
 						data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
 						<div class="row">
-							<div class="col-md-6">
+							<div class="col-md-4">
 								<h4 class="list-group-item-heading">
 									<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 								</h4>
@@ -133,6 +133,12 @@
 								}else{
 									<span>@Domain.message("web.application.page.list.notpublished")</span>
 								}
+							</div>
+							<div class="col-md-2">
+								<a href="@routes.Services.publishService(service.id)"
+										class="btn btn-default" title="">
+										<span>@Domain.message("web.application.page.services.list.publish")</span>
+									</a> 
 							</div>
 							<div class="col-md-2">
 								<div class="btn-group pull-left">

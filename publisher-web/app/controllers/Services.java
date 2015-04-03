@@ -4,6 +4,7 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import models.Domain;
@@ -12,7 +13,6 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
-
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
@@ -26,21 +26,22 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-
 import play.Logger;
 import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
+import play.libs.F;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
 import views.html.services.form;
 import views.html.services.list;
+import views.html.services.publishService;
 import actions.DefaultAuthenticator;
-
 import akka.actor.ActorSelection;
 
 
@@ -64,6 +65,15 @@ public class Services extends Controller {
 				});
 	}
 	
+	private static Promise<Result> renderPublishForm (final Form<ServiceForm> serviceForm, final Form<ServicePublishForm> servicePublishForm) {
+		return Promise.promise(new F.Function0<Result>() {
+             @Override
+             public Result apply() throws Throwable {
+            	 return ok (publishService.render (serviceForm, servicePublishForm));
+             }
+        });
+	}
+	
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
 		return renderForm(serviceForm, null, true);
 	}
@@ -72,6 +82,9 @@ public class Services extends Controller {
 		return renderForm(serviceForm, groupLayer, false);
 	}
 	
+	private static Promise<Result> renderCreatePublishForm (final Form<ServiceForm> serviceForm, final Form<ServicePublishForm> servicePublishForm) {
+		return renderPublishForm(serviceForm, servicePublishForm);
+	}
 	
 	public static Promise<Result> submitCreate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -286,6 +299,14 @@ public class Services extends Controller {
 				}
 			});
 	}
+	
+	public static Promise<Result> publishService (final String serviceId) {
+		Logger.debug ("publish Service");
+		final Form<ServiceForm> serviceForm = Form.form (ServiceForm.class).fill (new ServiceForm ());
+		final Form<ServicePublishForm> servicePublishForm = Form.form (ServicePublishForm.class).fill (new ServicePublishForm ());
+				
+		return renderCreatePublishForm (serviceForm, servicePublishForm);
+	}
 
 	public static Promise<Result> create () {
 		Logger.debug ("create Service");
@@ -340,6 +361,48 @@ public class Services extends Controller {
 				return redirect (routes.Services.list (null, null, 1));
 			}
 		});
+	}
+	
+	public static class ServicePublishForm {
+		private Boolean guaranteedSV = false;
+		private Boolean publicSV = false;
+		private Boolean secureSV = false;
+		
+		public ServicePublishForm () {
+			super();
+		}
+		
+		public ServicePublishForm (ServicePublish servicePublish){
+			this.guaranteedSV = servicePublish.guaranteedSV();
+			this.publicSV = servicePublish.publicSV();
+			this.secureSV = servicePublish.secureSV();
+		}
+		
+		public Boolean getGuaranteedSV() {
+			return guaranteedSV;
+		}
+		
+		public void setGuaranteedSV(Boolean guaranteedSV) {
+			this.guaranteedSV = guaranteedSV;
+		}
+		
+		public Boolean getPublicSV() {
+			return publicSV;
+		}
+		
+		public void setPublicSV(Boolean publicSV) {
+			this.publicSV = publicSV;
+		}
+		
+		public Boolean getSecureSV() {
+			return secureSV;
+		}
+		
+		public void setSecureSV(Boolean secureSV) {
+			this.secureSV = secureSV;
+		}
+
+
 	}
 	
 	

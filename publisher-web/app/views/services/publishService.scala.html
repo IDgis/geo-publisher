@@ -1,0 +1,31 @@
+@import nl.idgis.publisher.domain.web._ 
+
+@(serviceForm: Form[controllers.Services.ServiceForm], servicePublishForm: Form[controllers.Services.ServicePublishForm])
+
+
+@layout.application( title = Domain.message("web.application.page.services.list.header"),
+	jsMain = routes.Assets.at("js/services/list.js").url, 
+	docPath = "services/list"
+) {
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.page.services.form.header.publish", serviceForm("name").value)</h1>
+
+	<div class="row">
+		<div class="col-lg-9">
+			<div class="row">
+				<div class="list-group-item">
+					<div class="row">
+						<div class="col-md-12">
+							<h4 class="list-group-item-heading">
+								<a href="" class="text-warning">abc</a>
+								<input type="checkbox" class="pull-right">
+							</h4>
+						</div>
+					</div>
+				</div>			
+			</div>
+		</div>
+	</div>
+</div>
+}
