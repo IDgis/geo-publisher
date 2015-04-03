@@ -10,11 +10,16 @@ import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.admin.AdminParent;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.PublisherDatabase;
 import nl.idgis.publisher.database.QJobState;
+
 import nl.idgis.publisher.dataset.DatasetManager;
+
 import nl.idgis.publisher.domain.job.JobState;
+
+import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.harvester.Harvester;
 import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
@@ -34,7 +39,9 @@ import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
+
 import scala.concurrent.duration.Duration;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
@@ -171,7 +178,10 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
-		final ActorRef loader = getContext().actorOf(Loader.props(database, getContext().system().deadLetters(), harvester), "loader");
+		File rasterFolderFile = new File(config.getString("raster.folder"));
+		ActorRef rasterFolder = getContext().actorOf(Folder.props(rasterFolderFile.toPath()), "rasterFolder");
+		
+		final ActorRef loader = getContext().actorOf(Loader.props(database, rasterFolder, harvester), "loader");
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
