@@ -556,8 +556,11 @@ web.application.page.layers.form.field.publish.label=Publiceren
 web.application.page.layers.form.field.publish.help=Geef aan of de laag gepubliceerd wordt
 
 web.application.page.layers.form.field.groups.label=Zit in de groep(en)
-web.application.page.layers.form.field.breadcrumb.label=Zit in de groep(en)
-web.application.page.layers.form.field.breadcrumb.none=geen
+web.application.page.layers.form.field.parentGroups.label=Zit in de groep(en)
+web.application.page.layers.form.field.parentGroups.none=geen
+web.application.page.layers.form.field.parentServices.label=Zit in de service(s)
+web.application.page.layers.form.field.parentServices.none=geen
+
 
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 web.application.page.layers.form.field.styles.default=Default stijl
@@ -618,8 +621,10 @@ web.application.page.groups.form.field.structure.style.default=(standaard)
 web.application.page.groups.form.field.addlayer.button=Voeg een laag toe ...
 web.application.page.groups.form.field.addgroup.button=Voeg een groep toe ...
 
-web.application.page.groups.form.field.breadcrumb.label=Zit in de service(s)
-web.application.page.groups.form.field.breadcrumb.none=geen
+web.application.page.groups.form.field.parentGroups.label=Zit in de groep(en)
+web.application.page.groups.form.field.parentGroups.none=geen
+web.application.page.groups.form.field.parentServices.label=Zit in de service(s)
+web.application.page.groups.form.field.parentServices.none=geen
 
 web.application.page.groups.list.delete.warning.body=Weet u zeker dat u deze groep wilt verwijderen? De lagen en groepen binnen deze groep blijven bestaan, maar de groepstructuur wordt verwijderd.
 

@@ -5,7 +5,8 @@
  create: Boolean,
  allStyles: Page[Style],
  layerStyleListString: java.lang.String,
- parentGroups: Page[LayerGroup],
+ parentGroups: Page[nl.idgis.publisher.domain.web.LayerGroup],
+ parentServices: Page[nl.idgis.publisher.domain.web.Service],
  previewUrl: java.lang.String)
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
@@ -118,7 +119,8 @@
 					@helper.tooltips("web.application.page.layers.form.field.publish.help")
 				</div>
 		
-				@helper.parents(parentGroups, routes.Groups.edit, Domain.message("web.application.page.layers.form.field.breadcrumb.label"), Domain.message("web.application.page.layers.form.field.breadcrumb.none"))
+				@helper.parents(parentGroups, routes.Groups.edit, Domain.message("web.application.page.layers.form.field.parentGroups.label"), Domain.message("web.application.page.layers.form.field.parentGroups.none"))
+				@helper.parents(parentServices, routes.Services.edit, Domain.message("web.application.page.layers.form.field.parentServices.label"), Domain.message("web.application.page.layers.form.field.parentServices.none"))
 		
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>

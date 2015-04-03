@@ -13,6 +13,7 @@ import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
+import nl.idgis.publisher.domain.query.GetLayerParentServices;
 import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
@@ -68,7 +69,7 @@ public class Layers extends GroupsLayersCommon {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
-						return ok (form.render (layerForm, true, allStyles, "", null, ""));
+						return ok (form.render (layerForm, true, allStyles, "", null, null, ""));
 					}
 				});
 	}
@@ -258,10 +259,11 @@ public class Layers extends GroupsLayersCommon {
 			.query (new ListStyles (1l, null))
 			.query(new GetLayerServices(layerId))
 			.query(new GetLayerParentGroups(layerId))
-			.executeFlat (new Function4<Layer, Page<Style>, List<String>, Page<LayerGroup>, Promise<Result>> () {
+			.query(new GetLayerParentServices(layerId))
+			.executeFlat (new Function5<Layer, Page<Style>, List<String>, Page<LayerGroup>, Page<Service>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds, final Page<LayerGroup> parentGroups) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds, final Page<LayerGroup> parentGroups, final Page<Service> parentServices) throws Throwable {
 					String serviceId;
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
@@ -313,7 +315,7 @@ public class Layers extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, parentGroups, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, parentGroups, parentServices, previewUrl));
 							}
 						});
 				}
