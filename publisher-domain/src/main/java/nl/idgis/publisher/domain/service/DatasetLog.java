@@ -1,9 +1,10 @@
 package nl.idgis.publisher.domain.service;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
+import nl.idgis.publisher.domain.StatusType;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public abstract class DatasetLog<T extends DatasetLog<T>> implements MessageProperties {
 	
@@ -43,6 +44,12 @@ public abstract class DatasetLog<T extends DatasetLog<T>> implements MessageProp
 		}
 		
 		return dataset.getName();
+	}
+	
+	@Override
+	@JsonIgnore
+	public StatusType getStatus () {
+		return null;
 	}
 	
 	public abstract T withDataset(Dataset dataset);

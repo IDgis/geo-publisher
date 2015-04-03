@@ -9,4 +9,6 @@ public interface MessageProperties extends Serializable {
 	 String getIdentification ();
 	 
 	 String getTitle ();
+	 
+	 StatusType getStatus ();
 }
