@@ -102,7 +102,7 @@ public abstract class AbstractProvider extends UntypedActor {
 		
 		ActorRef builder = getContext().actorOf(
 				getDatasetInfoBuilder().props(getSender(), getSelf(), msg.getAttachmentTypes()),
-				nameGenerator.getName(VectorDatasetInfoBuilder.class));
+				nameGenerator.getName(AbstractDatasetInfoBuilder.class));
 		
 		metadata.tell(new GetMetadata(msg.getIdentification()), builder);
 	}
