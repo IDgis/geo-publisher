@@ -2,9 +2,9 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
@@ -20,8 +20,10 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetGroupLayerRef;
+import nl.idgis.publisher.domain.query.GetGroupParentGroups;
+import nl.idgis.publisher.domain.query.GetGroupParentServices;
+import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
@@ -32,10 +34,11 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
+import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.TiledLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultGroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
-import nl.idgis.publisher.domain.web.tree.DefaultGroupLayerRef;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.CycleException;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
@@ -83,6 +86,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		
 		doQuery (ListLayerGroups.class, this::handleListLayerGroupsWithQuery);
 
+		doQuery (GetGroupParentServices.class, this::handleGetGroupParentServices);
+		doQuery (GetGroupParentGroups.class, this::handleGetGroupParentGroups);
+		
 	}
 	
 	private CompletableFuture<LayerRef<?>> handleGetLayerGroupRef(GetGroupLayerRef getLayerGroupRef) {
@@ -528,6 +534,80 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			
 			return new Response<String>(CrudOperation.UPDATE, CrudResponse.NOK, t.getMessage());
 		});
+	}
+	
+	private CompletableFuture<Page<Service>> handleGetGroupParentServices(GetGroupParentServices getGroupParentServices){
+		String groupId = getGroupParentServices.getId();
+		
+		log.debug ("GetGroupParentServices: " + groupId);
+		final Page.Builder<Service> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
+			db.query()
+			.from(genericLayer)
+			.where(genericLayer.id.in(
+				new SQLSubQuery()
+					.from(layerStructure)
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
+					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(groupId))
+					.list(layerStructure.parentLayerId)
+			))
+			.orderBy(genericLayer.name.asc());
+		
+		return getGroupsFromLayerStructureQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenApply(groups -> {
+				for (Tuple group : groups.list()) {
+					builder.add(new Service(
+						group.get(genericLayer.identification),
+						group.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null, null, null, null
+						));
+				}
+				return builder.build();
+			});
+	}
+	
+	private CompletableFuture<Page<LayerGroup>> handleGetGroupParentGroups(GetGroupParentGroups getGroupParentGroups){
+		String groupId = getGroupParentGroups.getId();
+		
+		log.debug ("GetGroupParentGroups: " + groupId);
+		final Page.Builder<LayerGroup> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
+			db.query()
+			.from(genericLayer)
+			.where(genericLayer.id.in(
+				new SQLSubQuery()
+					.from(layerStructure)
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
+					.join(service).on(service.genericLayerId.ne(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(groupId))
+					.list(layerStructure.parentLayerId)
+			))
+			.orderBy(genericLayer.name.asc());
+		
+		return getGroupsFromLayerStructureQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenApply(groups -> {
+				for (Tuple group : groups.list()) {
+					builder.add(new LayerGroup(
+							group.get(genericLayer.identification),
+							group.get(genericLayer.name),
+							null,
+							null,
+							null,
+							null
+							));
+				}
+				return builder.build();
+			});
 	}
 	
 }
