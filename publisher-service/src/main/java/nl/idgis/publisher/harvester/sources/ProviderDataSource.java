@@ -15,6 +15,8 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
+import nl.idgis.publisher.harvester.sources.messages.FetchDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchRasterDataset;
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
@@ -55,8 +57,8 @@ public class ProviderDataSource extends UntypedActor {
 			handleListDatasets((ListDatasets)msg);
 		} else if(msg instanceof GetDatasetMetadata) {
 			handleGetDatasetMetadata((GetDatasetMetadata)msg);
-		} else if(msg instanceof FetchVectorDataset) {
-			handleFetchVectorDataset((FetchVectorDataset)msg);
+		} else if(msg instanceof FetchDataset) {
+			handleFetchDataset((FetchDataset)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -90,17 +92,35 @@ public class ProviderDataSource extends UntypedActor {
 		converter.forward(msg, getContext());
 	}
 	
-	private void handleFetchVectorDataset(final FetchVectorDataset msg) {
-		log.debug("retrieving vector data from provider");
+	private void handleFetchDataset(final FetchDataset msg) {
+		log.debug("retrieving data from provider");
 		
 		Props receiverProps = msg.getReceiverProps();
 		ActorRef receiver = getContext().actorOf(
 				receiverProps, 
 				nameGenerator.getName(receiverProps.clazz()));
 		
-		ActorRef initiator = getContext().actorOf(
-				ProviderFetchVectorDatasetInitiator.props(getSender(), msg, receiver, provider),
+		ActorRef initiator;
+		if(msg instanceof FetchVectorDataset) {
+			log.debug("retrieving vector data");
+			
+			initiator = getContext().actorOf(
+				ProviderFetchVectorDatasetInitiator.props(getSender(), (FetchVectorDataset)msg, receiver, provider),
 				nameGenerator.getName(ProviderFetchVectorDatasetInitiator.class));
+		} else if(msg instanceof FetchRasterDataset) {
+			log.debug("retrieving raster data");
+			
+			initiator = getContext().actorOf(
+				ProviderFetchRasterDatasetInitiator.props(getSender(), (FetchRasterDataset)msg, receiver, provider),
+				nameGenerator.getName(ProviderFetchRasterDatasetInitiator.class));
+		} else {
+			log.error("don't know how to retrieve data: {}", msg);
+			
+			getContext().stop(receiver);
+			
+			unhandled(msg);
+			return;
+		}
 		
 		provider.tell(new GetDatasetInfo(Collections.<AttachmentType>emptySet(), msg.getId()), initiator);
 	}
