@@ -306,7 +306,13 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		msg.getResponses().stream().forEach(response -> 
 			response.forward(jobHandler));
 		
-		getContext().become(provisioning(jobInfo, initiator, jobHandler, targets));
+		if (targets.isEmpty ()) {
+			log.error ("No targets for provisioning, aborting provisioning job");
+			initiator.tell (new UpdateJobState (JobState.FAILED), getSelf ());
+			getContext ().become (receive ());
+		} else {
+			getContext().become(provisioning(jobInfo, initiator, jobHandler, targets));
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
