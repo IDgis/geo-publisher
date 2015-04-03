@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.folder;
+package nl.idgis.publisher.folder;
 
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
@@ -6,11 +6,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
+import nl.idgis.publisher.folder.messages.FetchFile;
+import nl.idgis.publisher.folder.messages.FileNotExists;
+import nl.idgis.publisher.folder.messages.FileSize;
+import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.provider.folder.messages.FetchFile;
-import nl.idgis.publisher.provider.folder.messages.FileNotExists;
-import nl.idgis.publisher.provider.folder.messages.FileSize;
-import nl.idgis.publisher.provider.folder.messages.GetFileSize;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 

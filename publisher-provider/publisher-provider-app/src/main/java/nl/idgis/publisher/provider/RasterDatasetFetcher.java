@@ -2,8 +2,8 @@ package nl.idgis.publisher.provider;
 
 import java.nio.file.Paths;
 
+import nl.idgis.publisher.folder.messages.FetchFile;
 import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.provider.folder.messages.FetchFile;
 import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 
 import akka.actor.ActorRef;

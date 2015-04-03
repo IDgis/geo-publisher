@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.folder;
+package nl.idgis.publisher.folder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -18,11 +18,12 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import nl.idgis.publisher.provider.folder.messages.FetchFile;
-import nl.idgis.publisher.provider.folder.messages.FileNotExists;
-import nl.idgis.publisher.provider.folder.messages.FileSize;
-import nl.idgis.publisher.provider.folder.messages.GetFileSize;
-import nl.idgis.publisher.provider.protocol.FileChunk;
+import nl.idgis.publisher.folder.Folder;
+import nl.idgis.publisher.folder.messages.FetchFile;
+import nl.idgis.publisher.folder.messages.FileChunk;
+import nl.idgis.publisher.folder.messages.FileNotExists;
+import nl.idgis.publisher.folder.messages.FileSize;
+import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;

@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import com.typesafe.config.Config;
 
+import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.provider.database.Database;
-import nl.idgis.publisher.provider.folder.Folder;
 import nl.idgis.publisher.provider.metadata.Metadata;
 
 import akka.actor.Props;

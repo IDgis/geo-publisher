@@ -1,4 +1,4 @@
-package nl.idgis.publisher.provider.folder.messages;
+package nl.idgis.publisher.folder.messages;
 
 import java.io.Serializable;
 import java.nio.file.Path;

@@ -3,8 +3,8 @@ package nl.idgis.publisher.provider;
 import java.nio.file.Paths;
 import java.util.Set;
 
-import nl.idgis.publisher.provider.folder.messages.FileSize;
-import nl.idgis.publisher.provider.folder.messages.GetFileSize;
+import nl.idgis.publisher.folder.messages.FileSize;
+import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.RasterFormat;

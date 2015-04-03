@@ -6,9 +6,9 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.harvester.sources.messages.StartRasterImport;
 import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
-import nl.idgis.publisher.provider.protocol.FileChunk;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobInfo, StartRasterImport> {
