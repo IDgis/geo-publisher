@@ -1,6 +1,11 @@
 @import nl.idgis.publisher.domain.web._ 
 @import nl.idgis.publisher.domain.response._ 
 
+@* 
+	Shows a list of items.
+	Can be used to show parents (e.g. layers where a style is used in)
+*@
+
 @(items: Page[_ <: nl.idgis.publisher.domain.web.Selectable], label: String, msgNone: String)
 
 	<div class="form-group">

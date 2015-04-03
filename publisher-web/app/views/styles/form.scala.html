@@ -88,7 +88,7 @@
 					</div>
 				</div>
 		
-				@helper.breadcrumbs(layers, Domain.message("web.application.page.styles.form.field.breadcrumb.label"), Domain.message("web.application.page.styles.form.field.breadcrumb.none"))
+				@helper.parents(layers, Domain.message("web.application.page.styles.form.field.breadcrumb.label"), Domain.message("web.application.page.styles.form.field.breadcrumb.none"))
 		
 				<!-- fields that are not user editable but must be passed on -->
 				<input type="hidden" class="form-control" id="input-format" name="format" value="@styleForm("format").value" readonly>
