@@ -18,7 +18,6 @@ import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
-import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
@@ -126,7 +125,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 	@Override
 	@SuppressWarnings("unchecked")
 	public final void onReceive(Object msg) throws Exception {
-		if(msg instanceof StartVectorImport) {
+		if(msg instanceof StartImport) {
 			handleStartImport((U)msg);
 		} else {
 			onReceiveElse(msg);
