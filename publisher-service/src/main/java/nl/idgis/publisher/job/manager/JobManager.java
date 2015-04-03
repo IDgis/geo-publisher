@@ -643,6 +643,7 @@ public class JobManager extends UntypedActor {
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											notifications));
+									break;
 								case "VECTOR":							
 									jobs.add(new VectorImportJobInfo(
 											t.get(job.id),
