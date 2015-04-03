@@ -11,7 +11,7 @@ import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
@@ -25,11 +25,11 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 	
 	private final Duration timeout = Duration.create(15, TimeUnit.SECONDS);
 	
-	private final GetDataset request;
+	private final FetchVectorDataset request;
 	
 	private final ActorRef sender, receiver, provider;
 	
-	public ProviderGetDatasetInitiater(ActorRef sender, GetDataset request, ActorRef receiver, ActorRef provider) {
+	public ProviderGetDatasetInitiater(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
 		this.sender = sender;		
 		this.receiver = receiver;
 		this.provider = provider;
@@ -37,7 +37,7 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 		this.request = request;
 	}
 	
-	public static Props props(ActorRef sender, GetDataset request, ActorRef receiver, ActorRef provider) {
+	public static Props props(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
 		return Props.create(ProviderGetDatasetInitiater.class, sender, request, receiver, provider);
 	}
 	

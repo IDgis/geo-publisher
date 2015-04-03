@@ -15,7 +15,7 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
@@ -55,8 +55,8 @@ public class ProviderDataSource extends UntypedActor {
 			handleListDatasets((ListDatasets)msg);
 		} else if(msg instanceof GetDatasetMetadata) {
 			handleGetDatasetMetadata((GetDatasetMetadata)msg);
-		} else if(msg instanceof GetDataset) {
-			handleGetDataset((GetDataset)msg);
+		} else if(msg instanceof FetchVectorDataset) {
+			handleFetchVectorDataset((FetchVectorDataset)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -90,8 +90,8 @@ public class ProviderDataSource extends UntypedActor {
 		converter.forward(msg, getContext());
 	}
 	
-	private void handleGetDataset(final GetDataset msg) {
-		log.debug("retrieving data from provider");
+	private void handleFetchVectorDataset(final FetchVectorDataset msg) {
+		log.debug("retrieving vector data from provider");
 		
 		Props receiverProps = msg.getReceiverProps();
 		ActorRef receiver = getContext().actorOf(

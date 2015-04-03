@@ -66,7 +66,7 @@ import nl.idgis.publisher.domain.web.Filter.ValueExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.job.JobExecutorFacade;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
@@ -176,8 +176,8 @@ public class LoaderTest extends AbstractServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);
 			
-			if(msg instanceof GetDataset) {
-				GetDataset gd = (GetDataset)msg;
+			if(msg instanceof FetchVectorDataset) {
+				FetchVectorDataset gd = (FetchVectorDataset)msg;
 				
 				columns = gd.getColumns();
 				sendColumns();

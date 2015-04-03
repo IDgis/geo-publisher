@@ -26,7 +26,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
@@ -268,7 +268,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		log.debug("requesting columns: " + requestColumnNames);
 		
 		dataSource.tell(
-				new GetDataset(
+				new FetchVectorDataset(
 						importJob.getSourceDatasetId(), 
 						requestColumnNames, 
 						VectorLoaderSession.props(								

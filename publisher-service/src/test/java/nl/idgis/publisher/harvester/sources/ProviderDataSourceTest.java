@@ -40,7 +40,7 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartImport;
@@ -200,7 +200,7 @@ public class ProviderDataSourceTest {
 		
 		ActorRef startImportCollector = actorSystem.actorOf(Collector.props(), "start-import-collector");		
 		ActorRef recordsCollector = actorSystem.actorOf(Collector.props(), "records-collector");		
-		providerDataSource.tell(new GetDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(recordsCollector, startImportCollector)), sessionInitiator);
+		providerDataSource.tell(new FetchVectorDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(recordsCollector, startImportCollector)), sessionInitiator);
 		
 		StartImport startImport = f.ask(startImportCollector, new GetMessage(), StartImport.class).get();
 		assertEquals(startImport.getInitiator(), sessionInitiator);
