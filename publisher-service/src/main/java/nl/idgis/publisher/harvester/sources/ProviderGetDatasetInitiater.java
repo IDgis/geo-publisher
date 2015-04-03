@@ -12,7 +12,7 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
-import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
@@ -55,7 +55,7 @@ public class ProviderGetDatasetInitiater extends UntypedActor {
 		} else if(msg instanceof VectorDatasetInfo) {
 			log.debug("vector dataset info received");
 			
-			receiver.tell(new StartImport(sender, ((VectorDatasetInfo)msg).getNumberOfRecords()), getSelf());
+			receiver.tell(new StartVectorImport(sender, ((VectorDatasetInfo)msg).getNumberOfRecords()), getSelf());
 		} else if(msg instanceof Ack) {
 			log.debug("receiver is ready");
 			

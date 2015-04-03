@@ -26,7 +26,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.job.JobState;
 
-import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.loader.messages.SessionFinished;
@@ -103,7 +103,7 @@ public class VectorLoaderSessionTest {
 		
 		final int numberOfRecords = 10;
 		
-		f.ask(loaderSession, new StartImport(initiator, numberOfRecords), Ack.class).get();
+		f.ask(loaderSession, new StartVectorImport(initiator, numberOfRecords), Ack.class).get();
 		
 		f.ask(initiator, new GetRecording(), Recording.class).get()
 			.assertHasNext()
@@ -186,7 +186,7 @@ public class VectorLoaderSessionTest {
 	public void testFailure() throws Exception {
 		ActorRef initiator = actorSystem.actorOf(AnyRecorder.props());
 		
-		f.ask(loaderSession, new StartImport(initiator, 100), Ack.class).get();
+		f.ask(loaderSession, new StartVectorImport(initiator, 100), Ack.class).get();
 		
 		List<Object> values = new ArrayList<Object>();
 		for(int i = 0; i < columns.size(); i++) {
@@ -267,7 +267,7 @@ public class VectorLoaderSessionTest {
 		
 		ActorRef initiator = actorSystem.actorOf(AnyRecorder.props());
 		
-		f.ask(loaderSession, new StartImport(initiator, 100), Ack.class);
+		f.ask(loaderSession, new StartVectorImport(initiator, 100), Ack.class);
 		
 		List<Object> values = new ArrayList<Object>();
 		for(int i = 0; i < columns.size(); i++) {

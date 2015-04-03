@@ -4,29 +4,17 @@ import java.io.Serializable;
 
 import akka.actor.ActorRef;
 
-public class StartImport implements Serializable {
+public abstract class StartImport implements Serializable {
 
-	private static final long serialVersionUID = -5582569392322992810L;
+	private static final long serialVersionUID = -7298951026938449629L;
 	
-	private final ActorRef initiator;
-	private final long count;
+	protected final ActorRef initiator;
 	
-	public StartImport(ActorRef initiator, long count) {
+	protected StartImport(ActorRef initiator) {
 		this.initiator = initiator;
-		this.count = count;
 	}
-	
+
 	public ActorRef getInitiator() {
 		return initiator;
 	}
-	
-	public long getCount() {
-		return count;
-	}
-
-	@Override
-	public String toString() {
-		return "StartImport [initiator=" + initiator + ", count=" + count + "]";
-	}
-	
 }

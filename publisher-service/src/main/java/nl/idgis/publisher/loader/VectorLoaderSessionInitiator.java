@@ -1,6 +1,5 @@
 package nl.idgis.publisher.loader;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +36,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Procedure;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
@@ -263,22 +261,18 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		};
 	}
 	
-	private void startLoaderSession() throws IOException, JsonProcessingException {
-		
+	private void startLoaderSession() throws Exception {
 		log.debug("requesting columns: " + requestColumnNames);
 		
-		dataSource.tell(
-				new FetchVectorDataset(
-						importJob.getSourceDatasetId(), 
-						requestColumnNames, 
-						VectorLoaderSession.props(								
-								getContext().parent(), // loader
-								importJob,
-								filterEvaluator,
-								transaction, 
-								jobContext)), getSelf());
-		
-		become("starting session", waitingForSessionStarted());
+		startLoaderSession(new FetchVectorDataset(
+			importJob.getSourceDatasetId(), 
+			requestColumnNames, 
+			VectorLoaderSession.props(								
+				getContext().parent(), // loader
+				importJob,
+				filterEvaluator,
+				transaction, 
+				jobContext)));
 	}
 	
 	private Procedure<Object> waitingForTableCreated() {

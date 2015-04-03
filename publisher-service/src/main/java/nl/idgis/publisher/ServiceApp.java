@@ -171,7 +171,7 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
-		final ActorRef loader = getContext().actorOf(Loader.props(database, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(database, getContext().system().deadLetters(), harvester), "loader");
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		

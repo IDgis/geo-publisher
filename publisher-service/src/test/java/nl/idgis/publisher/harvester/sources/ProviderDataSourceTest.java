@@ -43,7 +43,7 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
-import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.harvester.sources.mock.ProviderMock;
 import nl.idgis.publisher.harvester.sources.mock.messages.PutDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
@@ -163,7 +163,7 @@ public class ProviderDataSourceTest {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
-			if(msg instanceof StartImport) {
+			if(msg instanceof StartVectorImport) {
 				log.debug("start import received");
 				
 				startImportCollector.forward(msg, getContext());
@@ -188,7 +188,7 @@ public class ProviderDataSourceTest {
 	}
 	
 	@Test
-	public void testGetDataset() throws Exception {
+	public void testFetchVectorDataset() throws Exception {
 		Set<Record> records = new HashSet<>();
 		for(int i = 0; i < 42; i++) {
 			records.add(new Record(Arrays.<Object>asList(i, "title" + i)));
@@ -202,7 +202,7 @@ public class ProviderDataSourceTest {
 		ActorRef recordsCollector = actorSystem.actorOf(Collector.props(), "records-collector");		
 		providerDataSource.tell(new FetchVectorDataset("vectorDataset", Arrays.asList("id", "title"), DatasetReceiver.props(recordsCollector, startImportCollector)), sessionInitiator);
 		
-		StartImport startImport = f.ask(startImportCollector, new GetMessage(), StartImport.class).get();
+		StartVectorImport startImport = f.ask(startImportCollector, new GetMessage(), StartVectorImport.class).get();
 		assertEquals(startImport.getInitiator(), sessionInitiator);
 		
 		List<?> returnedRecords = f.ask(recordsCollector, new GetMessage(), List.class).get();

@@ -12,6 +12,7 @@ import akka.japi.Procedure;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.harvester.messages.NotConnected;
+import nl.idgis.publisher.harvester.sources.messages.FetchDataset;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
@@ -27,7 +28,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 	
 	private boolean acknowledged = false;
 	
-	protected ActorRef dataSource;
+	private ActorRef dataSource;
 	
 	protected AbstractLoaderSessionInitiator(T importJob, ActorRef jobContext) {
 		this.importJob = importJob;
@@ -70,7 +71,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 		jobContext.tell(new Ack(), getSelf());
 	}
 	
-	protected abstract void dataSourceReceived();
+	protected abstract void dataSourceReceived() throws Exception;
 	
 	@Override
 	public final void onReceive(Object msg) throws Exception {
@@ -124,5 +125,11 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 			}
 			
 		};
+	}
+	
+	protected void startLoaderSession(FetchDataset fetchDataset) throws Exception {
+		dataSource.tell(fetchDataset, getSelf());
+		
+		become("starting session", waitingForSessionStarted());
 	}
 }
