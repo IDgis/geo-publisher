@@ -1,6 +1,9 @@
 package nl.idgis.publisher.provider;
 
+import java.nio.file.Paths;
+
 import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.provider.folder.messages.FetchFile;
 import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 
 import akka.actor.ActorRef;
@@ -22,9 +25,8 @@ public class RasterDatasetFetcher extends AbstractDatasetFetcher<GetRasterDatase
 
 	@Override
 	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
-		String fileName = metadataDocument.getAlternateTitle() + ".tif";
-		
-		// TODO: fetch data
+		String fileName = metadataDocument.getAlternateTitle() + ".tif";		
+		folder.tell(new FetchFile(Paths.get(fileName)), sender);
 	}
 
 }
