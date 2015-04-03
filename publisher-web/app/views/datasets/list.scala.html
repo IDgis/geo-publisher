@@ -7,6 +7,7 @@
 	query: String)
 
 @import nl.idgis.publisher.domain.web._
+@import nl.idgis.publisher.domain.StatusType
 
 @categoryRefLink(cat: Category) = {
 	<a href="@routes.Datasets.listByCategory(cat.id, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
@@ -71,6 +72,17 @@
 			routes.Datasets.listByStatus(currentDatasetStatus, targetPage)
 		else
 			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage)
+}
+
+@statusClass(dataset: Dataset) = @{
+	if(dataset.currentImportStatus.`type`.statusCategory == StatusType.StatusCategory.INFO)
+		"list-group-item-info"
+	else if (dataset.currentImportStatus.`type`.statusCategory == StatusType.StatusCategory.WARNING)
+		"list-group-item-warning"
+	else if (dataset.currentImportStatus.`type`.statusCategory == StatusType.StatusCategory.ERROR)
+		"list-group-item-danger"
+	else
+		""
 }
 
 @layout.application(
@@ -202,7 +214,9 @@
 									</div>
 								</div>
 								<div class="col-md-2">
-									<a href="@routes.Layers.create(dataset.id)" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
+									@if(dataset.currentImportStatus.`type`.statusCategory != StatusType.StatusCategory.ERROR) {
+										<a href="@routes.Layers.create(dataset.id)" class="btn btn-success col-sm-12"><span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.datasets.list.button.newlayer")</a>
+									}
 									@if(dataset.layerCount == 0) {
 										<p class="text-muted">@Domain.message("web.application.page.datasets.list.layerCountNone")</p>
 									} else {
