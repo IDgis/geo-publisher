@@ -35,6 +35,11 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 		buffer = ByteBuffer.allocateDirect(CHUNK_SIZE);
 	}
 	
+	@Override
+	public final void postStop() throws Exception {
+		t.close();
+	}
+	
 	protected void preStartElse() throws Exception {
 		buffer.clear();
 		position = 0;

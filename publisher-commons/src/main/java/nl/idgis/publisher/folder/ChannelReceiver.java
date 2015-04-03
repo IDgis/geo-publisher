@@ -31,6 +31,11 @@ public class ChannelReceiver extends UntypedActor {
 	public static Props props(AsynchronousFileChannel channel) {
 		return Props.create(ChannelReceiver.class, channel);
 	}
+	
+	@Override
+	public final void postStop() throws Exception {
+		channel.close();
+	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
