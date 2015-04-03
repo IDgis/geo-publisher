@@ -4,6 +4,10 @@
 @* 
 	Shows a list of items.
 	Can be used to show parents (e.g. layers where a style is used in)
+	Parameters:
+		items: Page[{Selectable] - list of items where item has method name()
+		label: String - text for the label in the form
+		msgNone: String - text to display when there are no items (list is empty or null)
 *@
 
 @(items: Page[_ <: nl.idgis.publisher.domain.web.Selectable], label: String, msgNone: String)
