@@ -210,7 +210,10 @@ public class Admin extends AbstractAdmin {
 				jobState.createTime,
 				dataSource.name,
 				dataset.name,
-				genericLayer.name
+				genericLayer.name,
+				dataSource.identification,
+				dataset.identification,
+				genericLayer.identification
 			);
 	}
 	
@@ -228,11 +231,13 @@ private String getEnumName(Enum e){
 					JobType jt = null ;
 					Status js = null;
 					String identifier = "";
+					String title = "";
 					Timestamp now = new Timestamp(new java.util.Date().getTime());
 					for (Tuple t : recentJobs) {
 						if (t.get(job.type).equals("HARVEST")){									
 							jt = JobType.HARVEST;
-							identifier = t.get(dataSource.name);
+							identifier = t.get (dataSource.identification);
+							title = t.get (dataSource.name);
 							if (t.get(jobState.state) == null){
 								js = new Status(JobStatusType.PLANNED, now);
 							} else {
@@ -244,7 +249,8 @@ private String getEnumName(Enum e){
 							}
 						} else if (t.get(job.type).equals("IMPORT")){
 							jt = JobType.IMPORT;
-							identifier = t.get(dataset.name);
+							identifier = t.get (dataset.identification);
+							title = t.get (dataset.name);
 							if (t.get(jobState.state) == null){
 								js = new Status(JobStatusType.PLANNED, now);
 							} else {
@@ -256,7 +262,8 @@ private String getEnumName(Enum e){
 							}
 						} else if (t.get(job.type).equals("SERVICE")){
 							jt = JobType.SERVICE;
-							identifier = t.get(genericLayer.name);
+							identifier = t.get (genericLayer.identification);
+							title = t.get (genericLayer.name);
 							if (t.get(jobState.state) == null){
 								js = new Status(JobStatusType.PLANNED, now);
 							} else {
@@ -273,8 +280,10 @@ private String getEnumName(Enum e){
 								"", 
 								getEnumName(jt), 
 								new Message(jt, new DefaultMessageProperties (
-									null, identifier, 
-									getEnumName((Enum)js.type()))
+									null, 
+									identifier, 
+									title,
+									js.type ())
 								), js.since(), false)//active is false because these are past tasks
 						); 
 					}
@@ -317,7 +326,10 @@ private String getEnumName(Enum e){
 								"", 
 								getEnumName(JobType.HARVEST), 
 								new Message(JobType.HARVEST, new DefaultMessageProperties (
-									EntityType.DATA_SOURCE, dsn.get(harvestJob.getDataSourceId()), getEnumName(JobStatusType.RUNNING))), 
+									EntityType.DATA_SOURCE, 
+									harvestJob.getDataSourceId (),
+									dsn.get(harvestJob.getDataSourceId()), 
+									JobStatusType.RUNNING)), 
 									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
 					}
 					
@@ -356,7 +368,10 @@ private String getEnumName(Enum e){
 										"",
 										getEnumName(JobType.IMPORT),
 										new Message(JobType.IMPORT, new DefaultMessageProperties (
-												EntityType.DATASET, datasetInfo.getName (), getEnumName(JobStatusType.RUNNING))),
+												EntityType.DATASET,
+												datasetInfo.getId (),
+												datasetInfo.getName (), 
+												JobStatusType.RUNNING)),
 										(int)(progress.getCount() * 100 / progress.getTotalCount()), true);//active is true because this is a current tasks
 								}));
 							}
@@ -368,7 +383,10 @@ private String getEnumName(Enum e){
 									"", 
 									getEnumName(JobType.SERVICE),
 									new Message(JobType.SERVICE, new DefaultMessageProperties (
-											EntityType.DATASET, "", getEnumName(JobStatusType.RUNNING))),
+											EntityType.DATASET,
+											"",
+											"", 
+											JobStatusType.RUNNING)),
 									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
 							}
 							

@@ -2,6 +2,7 @@ package nl.idgis.publisher.domain.job;
 
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageProperties;
+import nl.idgis.publisher.domain.StatusType;
 
 public abstract class JobMessageProperties implements MessageProperties {
 
@@ -33,5 +34,10 @@ public abstract class JobMessageProperties implements MessageProperties {
 	@Override
 	public String getTitle () {
 		return title;
+	}
+	
+	@Override
+	public StatusType getStatus () {
+		return null;
 	}
 }
