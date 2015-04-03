@@ -15,7 +15,6 @@ import nl.idgis.publisher.harvester.sources.messages.StartImport;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.AbstractGetDatasetRequest;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
-import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 
 public abstract class ProviderFetchDatasetInitiator<T extends FetchDataset, U extends DatasetInfo> extends UntypedActor {
 
@@ -50,7 +49,7 @@ public abstract class ProviderFetchDatasetInitiator<T extends FetchDataset, U ex
 			log.error("timeout");
 			
 			getContext().stop(getSelf());
-		} else if(msg instanceof VectorDatasetInfo) {
+		} else if(msg instanceof DatasetInfo) {
 			log.debug("dataset info received");
 			
 			receiver.tell(startImport((U)msg), getSelf());
