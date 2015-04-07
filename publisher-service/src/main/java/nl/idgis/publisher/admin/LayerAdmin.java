@@ -41,6 +41,7 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -211,6 +212,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
 								.join(style).on(layerStyle.styleId.eq(style.id))
 								.where(genericLayer.identification.eq(layerId))
+								.orderBy(layerStyle.styleOrder.asc())
 								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 								.thenApply(styles ->
 									Optional.of(new Layer(
@@ -491,7 +493,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					.from(style, leafLayer, layerStyle)
 					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
-							.and(layerStyle.styleId.eq(style.id)))
+						.and(layerStyle.styleId.eq(style.id)))
+					.orderBy(layerStyle.styleOrder.asc())
 					.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 					.thenApply(this::toList);
 		}));
@@ -522,17 +525,25 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.thenCompose(
 									llNr -> {
 										// B. insert items of layerStyles	
-										return tx
+										return f.sequence(
+												StreamUtils.index(
+													layerStyles.stream()
+												)
+											    .map(indexed -> tx
 											.insert(layerStyle)
 											.columns(
 												layerStyle.layerId, 
-												layerStyle.styleId)
+												layerStyle.styleId,
+												layerStyle.defaultStyle)
 											.select(new SQLSubQuery().from(style)
-												.where(style.identification.in(layerStyles))
+												.where(style.identification.eq(indexed.getValue()))
 												.list(
 													llId.get(),
-													style.id))
-											.execute().thenApply(whatever ->
+													style.id,
+													indexed.getIndex()==0)
+											)
+											.execute())
+											.collect(Collectors.toList())).thenApply(whatever ->
 											new Response<String>(CrudOperation.UPDATE,
 													CrudResponse.OK, layerId));
 									});
