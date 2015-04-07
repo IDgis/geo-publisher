@@ -41,6 +41,7 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -522,17 +523,25 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.thenCompose(
 									llNr -> {
 										// B. insert items of layerStyles	
-										return tx
+										return f.sequence(
+												StreamUtils.index(
+													layerStyles.stream()
+												)
+											    .map(indexed -> tx
 											.insert(layerStyle)
 											.columns(
 												layerStyle.layerId, 
-												layerStyle.styleId)
+												layerStyle.styleId,
+												layerStyle.defaultStyle)
 											.select(new SQLSubQuery().from(style)
-												.where(style.identification.in(layerStyles))
+												.where(style.identification.eq(indexed.getValue()))
 												.list(
 													llId.get(),
-													style.id))
-											.execute().thenApply(whatever ->
+													style.id,
+													indexed.getIndex()==0)
+											)
+											.execute())
+											.collect(Collectors.toList())).thenApply(whatever ->
 											new Response<String>(CrudOperation.UPDATE,
 													CrudResponse.OK, layerId));
 									});
