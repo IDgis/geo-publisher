@@ -14,7 +14,7 @@ import nl.idgis.publisher.stream.messages.Item;
  */
 public abstract class DatasetInfo extends Item {
 
-	private static final long serialVersionUID = -8008276578452464137L;
+	private static final long serialVersionUID = 7930689908022260600L;
 
 	protected final String identification;
 	
@@ -29,8 +29,10 @@ public abstract class DatasetInfo extends Item {
 	protected final Set<Attachment> attachments;
 	
 	protected final Set<Log> logs;
+	
+	protected final boolean confidential;
 			
-	DatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
+	DatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs, boolean confidential) {
 		this.identification = identification;
 		this.title = title;		
 		this.alternateTitle = alternateTitle;
@@ -38,6 +40,7 @@ public abstract class DatasetInfo extends Item {
 		this.revisionDate = revisionDate;
 		this.attachments = attachments;
 		this.logs = logs;
+		this.confidential = confidential;
 	}
 	
 	/**
@@ -94,6 +97,14 @@ public abstract class DatasetInfo extends Item {
 	 */
 	public Set<Log> getLogs() {
 		return logs;
+	}
+	
+	/**
+	 * 
+	 * @return whether or not this dataset is confidential
+	 */
+	public boolean isConfidential() {
+		return confidential;
 	}
 	
 }

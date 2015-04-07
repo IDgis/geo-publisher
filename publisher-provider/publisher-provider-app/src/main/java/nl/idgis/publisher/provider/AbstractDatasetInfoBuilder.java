@@ -47,6 +47,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected Date revisionDate;
 	
+	protected boolean confidential = false;
+	
 	protected AbstractDatasetInfoBuilder(ActorRef sender, ActorRef converter, Set<AttachmentType> requestedAttachmentTypes) {
 		this.sender = sender;		
 		this.converter = converter;		
@@ -94,7 +96,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	}
 	
 	protected void sendUnavailable() {
-		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs));		
+		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, confidential));		
 	}
 	
 	protected abstract void processMetadata();

@@ -11,10 +11,10 @@ import nl.idgis.publisher.domain.Log;
  * @author copierrj
  *
  */
-public class RasterDatasetInfo extends DatasetInfo {	
+public class RasterDatasetInfo extends DatasetInfo {
 
-	private static final long serialVersionUID = -352747575039672262L;
-	
+	private static final long serialVersionUID = 7889073817616234406L;
+
 	private final RasterFormat format;
 	
 	private final long size;
@@ -28,13 +28,14 @@ public class RasterDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
+	 * @param confidential whether or not the dataset is confidential
 	 * @param format file format of the dataset.
 	 * @param size size of the dataset
 	 */
 	public RasterDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
-		Set<Log> logs, RasterFormat format, long size) {
+		Set<Log> logs, boolean confidential, RasterFormat format, long size) {
 		
-		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
+		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs, confidential);
 		
 		this.format = format;
 		this.size = size;
@@ -58,7 +59,12 @@ public class RasterDatasetInfo extends DatasetInfo {
 
 	@Override
 	public String toString() {
-		return "RasterDatasetInfo [format=" + format + ", size=" + size + "]";
+		return "RasterDatasetInfo [format=" + format + ", size=" + size
+				+ ", identification=" + identification + ", title=" + title
+				+ ", alternateTitle=" + alternateTitle + ", categoryId="
+				+ categoryId + ", revisionDate=" + revisionDate
+				+ ", attachments=" + attachments + ", logs=" + logs
+				+ ", confidential=" + confidential + "]";
 	}
 	
 }

@@ -47,7 +47,7 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	@Override
 	protected void onReceiveElse(Object msg) throws Exception {
 		if(msg instanceof FileSize) {
-			tellTarget(new RasterDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, RasterFormat.TIFF, ((FileSize)msg).getSize()));
+			tellTarget(new RasterDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, confidential, RasterFormat.TIFF, ((FileSize)msg).getSize()));
 		} else {
 			unhandled(msg);
 		}
