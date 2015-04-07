@@ -7,13 +7,13 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
 
-public abstract class ImportJobInfo extends JobInfo {
-
-	private static final long serialVersionUID = -2957923190022287737L;
+public abstract class ImportJobInfo extends JobInfo {	
 	
-	protected final String categoryId, dataSourceId, sourceDatasetId, datasetId, datasetName;
+	private static final long serialVersionUID = -7154041096342322584L;
+	
+	protected final String categoryId, dataSourceId, sourceDatasetId, externalSourceDatasetId, datasetId, datasetName;
 
-	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, 
+	public ImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String externalSourceDatasetId, 
 		String datasetId, String datasetName, List<Notification> notifications) {
 		
 		super(id, JobType.IMPORT, notifications);
@@ -21,6 +21,7 @@ public abstract class ImportJobInfo extends JobInfo {
 		this.categoryId = categoryId;
 		this.dataSourceId = dataSourceId;
 		this.sourceDatasetId = sourceDatasetId;
+		this.externalSourceDatasetId = externalSourceDatasetId;
 		this.datasetId = datasetId;
 		this.datasetName = datasetName;
 	}
@@ -36,9 +37,13 @@ public abstract class ImportJobInfo extends JobInfo {
 	public String getDataSourceId() {
 		return dataSourceId;
 	}
-
+	
 	public String getSourceDatasetId() {
 		return sourceDatasetId;
+	}
+
+	public String getExternalSourceDatasetId() {
+		return externalSourceDatasetId;
 	}
 
 	public String getDatasetId() {
@@ -61,6 +66,10 @@ public abstract class ImportJobInfo extends JobInfo {
 				+ ((datasetId == null) ? 0 : datasetId.hashCode());
 		result = prime * result
 				+ ((datasetName == null) ? 0 : datasetName.hashCode());
+		result = prime
+				* result
+				+ ((externalSourceDatasetId == null) ? 0
+						: externalSourceDatasetId.hashCode());
 		result = prime * result
 				+ ((sourceDatasetId == null) ? 0 : sourceDatasetId.hashCode());
 		return result;
@@ -95,6 +104,12 @@ public abstract class ImportJobInfo extends JobInfo {
 				return false;
 		} else if (!datasetName.equals(other.datasetName))
 			return false;
+		if (externalSourceDatasetId == null) {
+			if (other.externalSourceDatasetId != null)
+				return false;
+		} else if (!externalSourceDatasetId
+				.equals(other.externalSourceDatasetId))
+			return false;
 		if (sourceDatasetId == null) {
 			if (other.sourceDatasetId != null)
 				return false;
@@ -102,5 +117,5 @@ public abstract class ImportJobInfo extends JobInfo {
 			return false;
 		return true;
 	}
-
+	
 }

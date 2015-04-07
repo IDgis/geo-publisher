@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -119,7 +120,7 @@ public class DatasetManager extends UntypedActor {
 		return
 			db.update(sourceDataset)
 			.set(sourceDataset.deleteTime, DateTimeExpression.currentTimestamp(Timestamp.class))
-			.where(sourceDataset.identification.in(msg.getDatasetIds()))
+			.where(sourceDataset.externalIdentification.in(msg.getDatasetIds()))
 			.execute();
 	}
 
@@ -157,7 +158,7 @@ public class DatasetManager extends UntypedActor {
 					.leftJoin(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 					.where(sourceDatasetVersion.id.eq(versionId))
 					.singleResult(
-						sourceDataset.identification,
+						sourceDataset.externalIdentification,
 						sourceDatasetVersion.name,
 						sourceDatasetVersion.alternateTitle,
 						sourceDatasetVersion.type,
@@ -180,7 +181,7 @@ public class DatasetManager extends UntypedActor {
 					sourceDatasetVersionColumn.dataType))).thenApply((baseInfoOptional, logInfo, columnInfo) -> {
 						Tuple baseInfo = baseInfoOptional.orElseThrow(() -> new IllegalArgumentException("source dataset version missing"));
 						
-						String id = baseInfo.get(sourceDataset.identification);
+						String id = baseInfo.get(sourceDataset.externalIdentification);
 						String name = baseInfo.get(sourceDatasetVersion.name);
 						String alternateTitle = baseInfo.get(sourceDatasetVersion.alternateTitle);
 						String type = baseInfo.get(sourceDatasetVersion.type);
@@ -270,7 +271,7 @@ public class DatasetManager extends UntypedActor {
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
-						.and(sourceDataset.identification.eq(identification)))
+						.and(sourceDataset.externalIdentification.eq(identification)))
 				.singleResult(sourceDatasetVersion.id.max()).thenCompose(maxVersionId -> {
 					if(maxVersionId.isPresent()) {
 						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);						
@@ -296,7 +297,7 @@ public class DatasetManager extends UntypedActor {
 			tx.query().from(sourceDataset)
 				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(dataSource.identification.eq(dataSourceIdentification)
-					.and(sourceDataset.identification.eq(dataset.getId())))
+					.and(sourceDataset.externalIdentification.eq(dataset.getId())))
 				.singleResult(sourceDataset.id).thenCompose(sourceDatasetIdOptional -> {
 					Integer sourceDatasetId = sourceDatasetIdOptional.orElseThrow(() -> new IllegalStateException("source dataset id missing"));
 					
@@ -424,12 +425,16 @@ public class DatasetManager extends UntypedActor {
 		return
 			tx.insert(sourceDataset)
 				.columns(
-					sourceDataset.dataSourceId, 
+					sourceDataset.dataSourceId,
+					sourceDataset.externalIdentification,
 					sourceDataset.identification)
 				.select(new SQLSubQuery()
 					.from(dataSource)
 					.where(dataSource.identification.eq(dataSourceIdentification))
-					.list(dataSource.id, dataset.getId()))
+					.list(
+						dataSource.id, 
+						dataset.getId(),
+						UUID.randomUUID().toString()))
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
 					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());
 	}
@@ -438,7 +443,7 @@ public class DatasetManager extends UntypedActor {
 		return 
 			tx.update(sourceDataset)
 			.setNull(sourceDataset.deleteTime)
-			.where(sourceDataset.identification.eq(datasetId))
+			.where(sourceDataset.externalIdentification.eq(datasetId))
 			.execute();
 	}
 

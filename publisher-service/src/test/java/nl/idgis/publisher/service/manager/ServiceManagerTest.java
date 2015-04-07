@@ -136,7 +136,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.executeWithKey(category.id);
 		
 		int sourceDatasetId = insert(sourceDataset)
-			.set(sourceDataset.identification, "sourcedataset0")
+			.set(sourceDataset.identification, UUID.randomUUID().toString())
+			.set(sourceDataset.externalIdentification, "sourcedataset0")
 			.set(sourceDataset.dataSourceId, dataSourceId)
 			.executeWithKey(sourceDataset.id);
 		

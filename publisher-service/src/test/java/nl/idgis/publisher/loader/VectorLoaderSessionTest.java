@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -89,7 +90,7 @@ public class VectorLoaderSessionTest {
 			columns.add(new Column("column" + i, Type.NUMERIC));
 		}
 		
-		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", "sourceDatasetId", 
+		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
 		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));

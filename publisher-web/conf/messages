@@ -40,7 +40,7 @@ nl.idgis.publisher.domain.web.DashboardActiveTaskType.HARVESTER_STARTED=Importer
 
 nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Structuurwijziging
 
-nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Uitgevoerd
+nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
 nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
 
 nl.idgis.publisher.domain.web.DatasetImportStatusType.NOT_IMPORTED=Nog niet geïmporteerd

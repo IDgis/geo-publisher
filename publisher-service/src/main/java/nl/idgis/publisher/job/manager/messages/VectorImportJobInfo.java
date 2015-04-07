@@ -6,16 +6,16 @@ import java.util.List;
 import nl.idgis.publisher.domain.job.Notification;
 import nl.idgis.publisher.domain.service.Column;
 
-public class VectorImportJobInfo extends ImportJobInfo {
-	
-	private static final long serialVersionUID = -7099595558614549074L;
-	
+public class VectorImportJobInfo extends ImportJobInfo {		
+
+	private static final long serialVersionUID = 2489387779878772008L;
+
 	private final String filterCondition;
 	
 	private final List<Column> columns, sourceDatasetColumns; 
 	
-	public VectorImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String datasetId, String datasetName, String filterCondition, List<Column> columns, List<Column> sourceDatasetColumns, List<Notification> notifications) {
-		super(id, categoryId, dataSourceId, sourceDatasetId, datasetId, datasetName, notifications);		
+	public VectorImportJobInfo(int id, String categoryId, String dataSourceId, String sourceDatasetId, String externalSourceDatasetId, String datasetId, String datasetName, String filterCondition, List<Column> columns, List<Column> sourceDatasetColumns, List<Notification> notifications) {
+		super(id, categoryId, dataSourceId, sourceDatasetId, externalSourceDatasetId, datasetId, datasetName, notifications);		
 		
 		this.filterCondition = filterCondition;
 		this.columns = columns;
@@ -81,9 +81,9 @@ public class VectorImportJobInfo extends ImportJobInfo {
 				+ ", columns=" + columns + ", sourceDatasetColumns="
 				+ sourceDatasetColumns + ", categoryId=" + categoryId
 				+ ", dataSourceId=" + dataSourceId + ", sourceDatasetId="
-				+ sourceDatasetId + ", datasetId=" + datasetId
+				+ sourceDatasetId + ", externalSourceDatasetId="
+				+ externalSourceDatasetId + ", datasetId=" + datasetId
 				+ ", datasetName=" + datasetName + ", id=" + id + ", jobType="
 				+ jobType + ", notifications=" + notifications + "]";
 	}	
-	
 }

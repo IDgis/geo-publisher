@@ -100,13 +100,13 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		
 		assertTrue(
 			query().from(sourceDataset)
-				.where(sourceDataset.identification.eq("testVectorDataset"))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 				.exists());
 		
 		assertEquals(1,
 			query().from(sourceDatasetVersion)
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-				.where(sourceDataset.identification.eq("testVectorDataset"))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 				.singleResult(sourceDatasetVersion.id.count()).intValue());
 	}
 	
@@ -130,12 +130,12 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		assertEquals(2,
 				query().from(sourceDatasetVersion)
 					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-					.where(sourceDataset.identification.eq("testVectorDataset"))
+					.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 					.singleResult(sourceDatasetVersion.id.count()).intValue());
 		
 		Iterator<Timestamp> itr = query().from(sourceDatasetVersion)
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-			.where(sourceDataset.identification.eq("testVectorDataset"))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 			.orderBy(sourceDatasetVersion.id.asc())
 			.list(sourceDatasetVersion.revision).iterator();
 		
@@ -174,7 +174,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	private void deleteSourceDataset (final String id) {
 		update(sourceDataset)
 			.set(sourceDataset.deleteTime, DateTimeExpression.currentTimestamp(Timestamp.class))
-			.where(sourceDataset.identification.eq(id))
+			.where(sourceDataset.externalIdentification.eq(id))
 			.execute();
 	}
 	
