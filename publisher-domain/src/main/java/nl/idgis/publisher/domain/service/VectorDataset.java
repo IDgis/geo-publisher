@@ -5,14 +5,14 @@ import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
 
-public final class VectorDataset extends Dataset {
+public final class VectorDataset extends Dataset {	
 
-	private static final long serialVersionUID = -7143425494499774273L;
+	private static final long serialVersionUID = 391878045683152106L;
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, Table table) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, Table table) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential);
 		
 		this.table = table;
 	}
@@ -51,8 +51,6 @@ public final class VectorDataset extends Dataset {
 		return "VectorDataset [table=" + table + ", id=" + id + ", name="
 				+ name + ", alternateTitle=" + alternateTitle + ", categoryId="
 				+ categoryId + ", revisionDate=" + revisionDate + ", logs="
-				+ logs + "]";
-	}
-
-	
+				+ logs + ", confidential=" + confidential + "]";
+	}	
 }

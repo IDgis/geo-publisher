@@ -68,6 +68,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 			String categoryId = datasetInfo.getCategoryId();			
 			Date revisionDate = datasetInfo.getRevisionDate();
 			Set<Log> logs = datasetInfo.getLogs();
+			boolean confidential = datasetInfo.isConfidential();
 			
 			final Dataset dataset;
 			if(datasetInfo instanceof VectorDatasetInfo) {
@@ -81,15 +82,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, table);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, table);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

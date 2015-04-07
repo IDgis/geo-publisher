@@ -7,8 +7,8 @@ import java.util.Set;
 import nl.idgis.publisher.domain.Log;
 
 public abstract class Dataset implements Serializable {
-	
-	private static final long serialVersionUID = 8178725904348962956L;
+
+	private static final long serialVersionUID = -8161951034272334261L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -18,13 +18,16 @@ public abstract class Dataset implements Serializable {
 	
 	protected final Set<Log> logs;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs) {
+	protected final boolean confidential;
+	
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
 		this.categoryId = categoryId;
 		this.revisionDate = revisionDate;
 		this.logs = logs;
+		this.confidential = confidential;
 	}
 
 	public String getId() {
@@ -50,6 +53,10 @@ public abstract class Dataset implements Serializable {
 	public Set<Log> getLogs() {
 		return logs;
 	}
+	
+	public boolean isConfidential() {
+		return confidential;
+	}
 
 	@Override
 	public int hashCode() {
@@ -59,6 +66,7 @@ public abstract class Dataset implements Serializable {
 				+ ((alternateTitle == null) ? 0 : alternateTitle.hashCode());
 		result = prime * result
 				+ ((categoryId == null) ? 0 : categoryId.hashCode());
+		result = prime * result + (confidential ? 1231 : 1237);
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((logs == null) ? 0 : logs.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -86,6 +94,8 @@ public abstract class Dataset implements Serializable {
 				return false;
 		} else if (!categoryId.equals(other.categoryId))
 			return false;
+		if (confidential != other.confidential)
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -107,6 +117,6 @@ public abstract class Dataset implements Serializable {
 		} else if (!revisionDate.equals(other.revisionDate))
 			return false;
 		return true;
-	}
+	}	
 
 }
