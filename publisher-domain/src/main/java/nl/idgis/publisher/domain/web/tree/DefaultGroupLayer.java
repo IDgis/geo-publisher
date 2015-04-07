@@ -13,7 +13,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 
 	private final PartialGroupLayer partialGroupLayer;
 
-	private final Map<String, DefaultDatasetLayer> datasets;
+	private final Map<String, DefaultVectorDatasetLayer> datasets;
 	
 	private final Map<String, PartialGroupLayer> groups;
 	
@@ -21,7 +21,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private final Map<String, StyleRef> styles;
 	
-	public static DefaultGroupLayer newInstance(String groupId, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
+	public static DefaultGroupLayer newInstance(String groupId, List<DefaultVectorDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure, Map<String, StyleRef> styles) {
 		
 		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
@@ -32,12 +32,12 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		}
 	}
 	
-	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultDatasetLayer> datasets, List<PartialGroupLayer> groups, 
+	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<DefaultVectorDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure, Map<String, StyleRef> styles) {
 		this(partialGroupLayer, toMap(datasets), toMap(groups), structure, styles);
 	}
 	
-	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
+	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, DefaultVectorDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
 		List<StructureItem> structure, Map<String, StyleRef> styles) {		
 		
 		this.partialGroupLayer = partialGroupLayer;
@@ -57,7 +57,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	private LayerRef<?> asLayer(String id) {
 		if(datasets.containsKey(id)) {
-			DefaultDatasetLayer datasetNode = datasets.get(id);			
+			DefaultVectorDatasetLayer datasetNode = datasets.get(id);			
 			return new DefaultDatasetLayerRef(datasetNode, styles.get(id));
 		}
 		
@@ -104,7 +104,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 
 	@Override
 	public boolean isConfidential () {
-		for (final DefaultDatasetLayer datasetLayer: datasets.values ()) {
+		for (final AbstractDatasetLayer datasetLayer: datasets.values ()) {
 			if (datasetLayer.isConfidential ()) {
 				return true;
 			}

@@ -73,6 +73,7 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -384,14 +385,17 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertEquals("layer0", datasetLayer.getId());
-		assertEquals("dataset0", datasetLayer.getTableName());
+		
+		assertTrue(datasetLayer.isVectorLayer());
+		VectorDatasetLayer vectorDatasetLayer = datasetLayer.asVectorLayer();
+		assertEquals("dataset0", vectorDatasetLayer.getTableName());
 		
 		List<String> keywords = datasetLayer.getKeywords();
 		assertEquals(2, keywords.size());
 		assertTrue(keywords.contains("keyword0"));
 		assertTrue(keywords.contains("keyword1"));
 		
-		List<String> columnNames = datasetLayer.getColumnNames();
+		List<String> columnNames = vectorDatasetLayer.getColumnNames();
 		assertEquals(Arrays.asList("column0", "column1"), columnNames);
 		
 		Optional<Tiling> optionalTiling = datasetLayer.getTiling();

@@ -20,7 +20,7 @@ import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 
@@ -125,7 +125,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 				constants.email);
 	}
 	
-	private CompletableFuture<TypedList<DefaultDatasetLayer>> datasets() {
+	private CompletableFuture<TypedList<DefaultVectorDatasetLayer>> datasets() {
 		return new DatasetQuery(log).result();
 	}
 	

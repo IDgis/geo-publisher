@@ -16,7 +16,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
-import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
@@ -26,12 +26,12 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testNoGroup() {
-		List<DefaultDatasetLayer> datasets = Arrays.asList(
-			new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
+		List<DefaultVectorDatasetLayer> datasets = Arrays.asList(
+			new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 				null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList(), false),
-			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
+			new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
 				null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList(), false),
-			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
+			new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
 				null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 			
 		List<StructureItem> structure = new ArrayList<>();
@@ -89,12 +89,12 @@ public class DefaultServiceTest {
 				root,
 				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null, false));
 		
-		List<DefaultDatasetLayer> datasets = Arrays.asList(
-				new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
+		List<DefaultVectorDatasetLayer> datasets = Arrays.asList(
+				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList(), false),
-				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
+				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
 					null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList(), false),
-				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
+				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
 					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 				
 		List<StructureItem> structure = new ArrayList<>();
@@ -174,8 +174,12 @@ public class DefaultServiceTest {
 		
 		DatasetLayer layer = layerRef.asDatasetRef().getLayer();
 		assertNotNull(layer);
+		assertEquals(id, layer.getId());
 		
-		assertEquals(id, layer.getId());		
-		assertEquals(tableName, layer.getTableName());
+		assertTrue(layer.isVectorLayer());
+		VectorDatasetLayer vectorLayer = layer.asVectorLayer();
+		
+		assertEquals(id, vectorLayer.getId());		
+		assertEquals(tableName, vectorLayer.getTableName());
 	}
 }
