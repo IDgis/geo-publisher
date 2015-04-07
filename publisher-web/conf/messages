@@ -558,8 +558,10 @@ web.application.page.layers.form.field.publish.help=Geef aan of de laag gepublic
 web.application.page.layers.form.field.groups.label=Zit in de groep(en)
 web.application.page.layers.form.field.parentGroups.label=Zit in de groep(en)
 web.application.page.layers.form.field.parentGroups.none=geen
+web.application.page.layers.form.field.parentGroups.help=Laat alleen de groepen zien waar deze laag direct onder zit
 web.application.page.layers.form.field.parentServices.label=Zit in de service(s)
 web.application.page.layers.form.field.parentServices.none=geen
+web.application.page.layers.form.field.parentServices.help=Laat alleen de services zien waar deze laag direct onder zit
 
 
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
@@ -623,8 +625,10 @@ web.application.page.groups.form.field.addgroup.button=Voeg een groep toe ...
 
 web.application.page.groups.form.field.parentGroups.label=Zit in de groep(en)
 web.application.page.groups.form.field.parentGroups.none=geen
+web.application.page.groups.form.field.parentGroups.help=Laat alleen de groepen zien waar deze groep direct onder zit
 web.application.page.groups.form.field.parentServices.label=Zit in de service(s)
 web.application.page.groups.form.field.parentServices.none=geen
+web.application.page.groups.form.field.parentServices.help=Laat alleen de services zien waar deze groep direct onder zit
 
 web.application.page.groups.list.delete.warning.body=Weet u zeker dat u deze groep wilt verwijderen? De lagen en groepen binnen deze groep blijven bestaan, maar de groepstructuur wordt verwijderd.
 
@@ -665,8 +669,9 @@ web.application.page.styles.form.field.browse.label=Selecteer uit bestand
 web.application.page.styles.form.field.type.label=Type stijl
 web.application.page.styles.form.field.browse.button=Geselecteerde bestand inladen
 
-web.application.page.styles.form.field.breadcrumb.label=Zit in de laag/lagen
-web.application.page.styles.form.field.breadcrumb.none=geen
+web.application.page.styles.form.field.parentlayers.label=Zit in de laag/lagen
+web.application.page.styles.form.field.parentlayers.none=geen
+web.application.page.styles.form.field.parentlayers.help=Laat alleen de lagen zien waar deze stijl direct onder zit
 
 web.application.page.styles.form.field.type.select=Selecteer om wat voor type stijl het gaat
 web.application.page.styles.form.field.type.point=Punt

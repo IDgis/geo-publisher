@@ -119,8 +119,14 @@
 					@helper.tooltips("web.application.page.layers.form.field.publish.help")
 				</div>
 		
-				@helper.parents(parentGroups, routes.Groups.edit, Domain.message("web.application.page.layers.form.field.parentGroups.label"), Domain.message("web.application.page.layers.form.field.parentGroups.none"))
-				@helper.parents(parentServices, routes.Services.edit, Domain.message("web.application.page.layers.form.field.parentServices.label"), Domain.message("web.application.page.layers.form.field.parentServices.none"))
+				@helper.parents(parentGroups, routes.Groups.edit, 
+					Domain.message("web.application.page.layers.form.field.parentGroups.label"), 
+					Domain.message("web.application.page.layers.form.field.parentGroups.none"),
+					Domain.message("web.application.page.layers.form.field.parentGroups.help"))
+				@helper.parents(parentServices, routes.Services.edit, 
+					Domain.message("web.application.page.layers.form.field.parentServices.label"), 
+					Domain.message("web.application.page.layers.form.field.parentServices.none"),
+					Domain.message("web.application.page.layers.form.field.parentServices.help"))
 		
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
