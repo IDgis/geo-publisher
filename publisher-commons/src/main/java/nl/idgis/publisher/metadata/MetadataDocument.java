@@ -346,4 +346,13 @@ public class MetadataDocument {
 		xmlDocument.updateString(namespaces, getAlternateTitlePath(), newTitle);
 	}
 	
+	protected String getOtherconstraintsPath() {
+		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints"
+				+ "/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
+	}
+
+	public String getOtherConstraints() throws NotFound {
+		return xmlDocument.getString(namespaces, getOtherconstraintsPath());		
+	}
+	
 }

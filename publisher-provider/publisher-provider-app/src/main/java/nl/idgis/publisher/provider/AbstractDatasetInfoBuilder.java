@@ -134,6 +134,15 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 				addMetadataParsingError(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
+			try {
+				String otherConstraints = metadataDocument.getOtherConstraints();
+				log.debug("other constraints: {}", otherConstraints);
+				confidential = "alleen voor intern gebruik".equals(otherConstraints);
+				log.debug("confidential: {}", confidential);
+			} catch(NotFound nf) {
+				log.debug("other constraints not found");
+			}
+			
 			processMetadata();
 		} catch(Exception e) {
 			sendUnavailable();
