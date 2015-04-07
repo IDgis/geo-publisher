@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 
 public class StyleAdmin extends AbstractAdmin {
@@ -157,49 +159,24 @@ public class StyleAdmin extends AbstractAdmin {
 			.where(style.identification.eq(styleId))
 			.orderBy(genericLayer.name.asc());
 		
-		final AsyncSQLQuery getLayersFromLayerStructureQuery =  
-			db.query().from(genericLayer)
-			.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
-			.join(layerStructure).on(layerStructure.childLayerId.eq(genericLayer.id))
-			.join(style).on(style.id.eq(layerStructure.styleId))
-			.where(style.identification.eq(styleId))
-			.orderBy(genericLayer.name.asc());
-		
-		return getLayersFromLayerStyleQuery.list(
-			genericLayer.identification,
-			genericLayer.name
-			).thenCompose (styleLayers -> {
-				for (Tuple layer : styleLayers.list()) {
-					builder.add(new Layer(
-						layer.get(genericLayer.identification),
-						layer.get(genericLayer.name),
-						null,
-						null,
-						null,
-						null,
-						null,
-						null, null, null)
-					);
-				}
-				return getLayersFromLayerStructureQuery.list(
-					genericLayer.identification,
-					genericLayer.name
-					).thenApply(structLayers -> {
-						for (Tuple layer : structLayers.list()) {
-							builder.add(new Layer(
-								layer.get(genericLayer.identification),
-								layer.get(genericLayer.name),
-								null,
-								null,
-								null,
-								null,
-								null,
-								null, null, null)
-							);
-						}
-						return builder.build();
-					});
-			});
+			return getLayersFromLayerStyleQuery.list(
+				genericLayer.identification,
+				genericLayer.name
+				).thenApply(sryleLayers -> {
+					for (Tuple layer : sryleLayers.list()) {
+						builder.add(new Layer(
+							layer.get(genericLayer.identification),
+							layer.get(genericLayer.name),
+							null,
+							null,
+							null,
+							null,
+							null,
+							null, null, null)
+						);
+					}
+					return builder.build();
+				});
 	}
 	
 	private CompletableFuture<Page<LayerGroup>> handleGetStyleParentGroups(final GetStyleParentGroups getStyleParentGroups){
@@ -208,12 +185,17 @@ public class StyleAdmin extends AbstractAdmin {
 		final Page.Builder<LayerGroup> builder = new Page.Builder<> ();
 		
 		final AsyncSQLQuery getLayersFromLayerStructureQuery =  
-			db.query().from(genericLayer)
-			.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
-			.join(layerStructure).on(layerStructure.childLayerId.eq(genericLayer.id))
-			.join(style).on(style.id.eq(layerStructure.styleId))
-			.where(style.identification.eq(styleId))
-			.orderBy(genericLayer.name.asc());
+				db.query()
+				.from(genericLayer)
+				.where(genericLayer.id.in(
+					new SQLSubQuery()
+						.from(layerStructure)
+						.join(genericLayer).on(genericLayer.id.eq(layerStructure.parentLayerId))
+						.join(style).on(style.id.eq(layerStructure.styleId))
+						.where(style.identification.eq(styleId))
+						.list(layerStructure.parentLayerId)
+				))
+				.orderBy(genericLayer.name.asc());
 		
 			return getLayersFromLayerStructureQuery.list(
 				genericLayer.identification,
@@ -223,9 +205,9 @@ public class StyleAdmin extends AbstractAdmin {
 						builder.add(new LayerGroup(
 								group.get(genericLayer.identification),
 								group.get(genericLayer.name),
-								group.get(genericLayer.title),
-								group.get(genericLayer.abstractCol),
-								group.get(genericLayer.published),
+								null,
+								null,
+								null,
 								null
 								));
 					}
