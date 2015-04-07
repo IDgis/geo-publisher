@@ -2,32 +2,21 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
 
-public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
+public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements VectorDatasetLayer {
 
-	private static final long serialVersionUID = -1160957299881769454L;
-
-	private final List<String> keywords;
+	private static final long serialVersionUID = -1773177921425540543L;	
 	
 	private final String tableName;
 	
 	private final List<String> columnNames;
 	
-	private final List<StyleRef> styleRef;
-	
-	public DefaultDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, 
+	public DefaultVectorDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, 
 		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef) {
 		
-		super(id, name, title, abstr, tiling);
+		super(id, name, title, abstr, tiling, keywords, styleRef);
 		
-		this.keywords = keywords;
 		this.tableName = tableName;
 		this.columnNames = columnNames;
-		this.styleRef = styleRef;
-	}	
-	
-	@Override
-	public List<String> getKeywords() {
-		return keywords;
 	}
 
 	@Override
@@ -39,15 +28,20 @@ public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 	public List<String> getColumnNames() {
 		return columnNames;
 	}
-	
+
 	@Override
-	public List<StyleRef> getStyleRefs() {
-		return styleRef;
+	public boolean isVectorLayer() {
+		return true;
+	}
+
+	@Override
+	public VectorDatasetLayer asVectorLayer() {
+		return this;
 	}
 
 	@Override
 	public String toString() {
-		return "DefaultDatasetLayer [keywords=" + keywords + ", tableName="
+		return "DefaultVectorDatasetLayer [keywords=" + keywords + ", tableName="
 				+ tableName + ", columnNames=" + columnNames + ", styleRef="
 				+ styleRef + "]";
 	}

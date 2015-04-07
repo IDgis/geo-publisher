@@ -22,13 +22,13 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.Recorder;
@@ -48,14 +48,11 @@ import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import static java.util.Collections.singleton;
 
 public class EnsureServiceTest {
@@ -230,10 +227,12 @@ public class EnsureServiceTest {
 	public void testSingleLayer() throws Exception {
 		Tiling tilingSettings = mock(Tiling.class);
 		
-		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		VectorDatasetLayer datasetLayer = mock(VectorDatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer0");
 		when(datasetLayer.getTitle()).thenReturn("title0");
 		when(datasetLayer.getAbstract()).thenReturn("abstract0");
+		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("tableName0");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.of(tilingSettings));
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
@@ -298,8 +297,10 @@ public class EnsureServiceTest {
 		
 		List<LayerRef<?>> layers = new ArrayList<>();
 		for(int i = 0; i < numberOfLayers; i++) {
-			DatasetLayer layer = mock(DatasetLayer.class);			
+			VectorDatasetLayer layer = mock(VectorDatasetLayer.class);			
 			when(layer.getName()).thenReturn("layer" + i);
+			when(layer.isVectorLayer()).thenReturn(true);
+			when(layer.asVectorLayer()).thenReturn(layer);
 			when(layer.getTableName()).thenReturn("tableName" + i);
 			when(layer.getTiling()).thenReturn(Optional.empty());
 			
@@ -362,10 +363,12 @@ public class EnsureServiceTest {
 	public void testDuplicateLayer() throws Exception {
 		final int numberOfDuplicates = 10;
 		
-		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		VectorDatasetLayer datasetLayer = mock(VectorDatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer0");
 		when(datasetLayer.getTitle()).thenReturn("title0");
 		when(datasetLayer.getAbstract()).thenReturn("abstract0");
+		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("tableName0");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));

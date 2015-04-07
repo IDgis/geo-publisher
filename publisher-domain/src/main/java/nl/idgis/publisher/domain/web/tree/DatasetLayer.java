@@ -6,9 +6,13 @@ public interface DatasetLayer extends Layer {
 	
 	List<String> getKeywords();
 	
-	String getTableName();
-	
-	List<String> getColumnNames();
-	
 	List<StyleRef> getStyleRefs();
+	
+	boolean isVectorLayer();
+	
+	VectorDatasetLayer asVectorLayer();
+	
+	boolean isRasterLayer();
+	
+	RasterDatasetLayer asRasterLayer();
 }
