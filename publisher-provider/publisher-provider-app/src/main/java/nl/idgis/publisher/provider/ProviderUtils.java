@@ -1,6 +1,10 @@
 package nl.idgis.publisher.provider;
 
 public class ProviderUtils {
+	
+	public static String getRasterFile(String alternateTitle) {
+		return alternateTitle + ".tif";
+	}
 
 	public static String getTableName(String alternateTitle) {
 		if(alternateTitle != null 

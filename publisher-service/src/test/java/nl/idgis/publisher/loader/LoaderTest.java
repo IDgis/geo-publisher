@@ -66,8 +66,8 @@ import nl.idgis.publisher.domain.web.Filter.ValueExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.sources.messages.GetDataset;
-import nl.idgis.publisher.harvester.sources.messages.StartImport;
+import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
+import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.JobExecutorFacade;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
@@ -176,14 +176,14 @@ public class LoaderTest extends AbstractServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);
 			
-			if(msg instanceof GetDataset) {
-				GetDataset gd = (GetDataset)msg;
+			if(msg instanceof FetchVectorDataset) {
+				FetchVectorDataset gd = (FetchVectorDataset)msg;
 				
 				columns = gd.getColumns();
 				sendColumns();
 				
 				ActorRef receiver = getContext().actorOf(gd.getReceiverProps(), "receiver");
-				receiver.tell(new StartImport(getSender(), 10), getSelf());
+				receiver.tell(new StartVectorImport(getSender(), 10), getSelf());
 				getContext().become(waitingForStart(), true);
 			} else {
 				onReceiveElse(msg);
@@ -297,15 +297,25 @@ public class LoaderTest extends AbstractServiceTest {
 		}		
 	}
 	
-	ActorRef loader, dataSourceMock, databaseMock;
+	static class RasterFolderMock extends UntypedActor {
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			unhandled(msg);
+		}
+		
+	}
+	
+	ActorRef loader, dataSourceMock, databaseMock, rasterFolderMock;
 	
 	@Before
 	public void actors() {
 		databaseMock = actorOf(Props.create(DatabaseMock.class, database), "databaseMock");
 		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
+		rasterFolderMock = actorOf(Props.create(RasterFolderMock.class), "rasterFolderMock");
 		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
 		
-		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, harvesterMock), "loader")), "loaderFacade");
+		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, rasterFolderMock, harvesterMock), "loader")), "loaderFacade");
 	}
 
 	@Test

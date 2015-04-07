@@ -48,7 +48,8 @@ public class GetVectorDataset extends AbstractGetDatasetRequest {
 	@Override
 	public String toString() {
 		return "GetVectorDataset [columnNames=" + columnNames
-				+ ", messageSize=" + messageSize + "]";
-	}
+				+ ", messageSize=" + messageSize + ", identification="
+				+ getIdentification() + "]";
+	}	
 
 }

@@ -15,6 +15,8 @@ import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function4;
 import models.Domain.Function5;
+
+import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
@@ -40,6 +42,7 @@ import nl.idgis.publisher.domain.web.Filter.OperatorType;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -59,6 +62,7 @@ import views.html.datasets.show;
 import views.html.datasets.status;
 import actions.DefaultAuthenticator;
 import actors.Database;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -279,7 +283,7 @@ public class Datasets extends Controller {
 						Logger.debug ("sourceDataset: " + sourceDataset);
 						
 						// TODO: Validate dataSource, category, sourceDataset and columns!
-						validateDatasetForm (datasetForm, dataset, sourceColumns, existingDataset);
+						validateDatasetForm (datasetForm, dataset, sourceColumns, existingDataset, sourceDataset);
 						
 						if (datasetForm.hasErrors ()) {
 							return renderCreateForm (datasetForm);
@@ -369,7 +373,11 @@ public class Datasets extends Controller {
 //		return Promise.pure ((Result) ok ());
 	}
 	
-	private static void validateDatasetForm (final Form<DatasetForm> form, final DatasetForm dataset, final List<Column> sourceColumns, final Dataset existingDataset) {
+	private static void validateDatasetForm (final Form<DatasetForm> form, final DatasetForm dataset, final List<Column> sourceColumns, final Dataset existingDataset, final SourceDataset sourceDataset) {
+		if (sourceDataset.type().equals(SourceDatasetType.VECTOR) && dataset.getColumns() == null) {
+			form.reject (new ValidationError ("columns", "error.required"));
+		}
+		
 		// Validate the filter:
 		if (!dataset.getFilterConditions ().isValid (sourceColumns)) {
 			form.reject (new ValidationError ("filterConditions", "web.application.page.datasets.form.tab.filters.alert"));
@@ -415,7 +423,8 @@ public class Datasets extends Controller {
 										datasetForm, 
 										dataset, 
 										sourceColumns, 
-										existingDataset != null && !existingDataset.id ().equals (ds.id ()) ? existingDataset : null
+										existingDataset != null && !existingDataset.id ().equals (ds.id ()) ? existingDataset : null,
+										sourceDataset
 									);
 								
 								if (datasetForm.hasErrors ()) {
@@ -580,7 +589,6 @@ public class Datasets extends Controller {
 		@Constraints.Required (message = "web.application.page.datasets.form.errors.sourceDatasetEmpty")
 		private String sourceDatasetId;
 
-		@Constraints.Required
 		private Map<String, String> columns;
 
 		@Constraints.Required

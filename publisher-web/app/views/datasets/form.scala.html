@@ -41,8 +41,8 @@
 		
 			<ul class="nav nav-tabs" role="tablist">
 				<li class="active"><a href="#dataset-details" role="tab" data-toggle="tab">@Domain.message("web.application.page.datasets.form.tab.general.title")</a></li>
-				<li id="tab-columns"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-columns" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.columns.title")</span> }else{ @Domain.message("web.application.page.datasets.form.tab.columns.title") } <span class="badge">0</span></a></li>
-				<li id="tab-filters"@if(columns.isEmpty){ class="disabled"}><a href="#dataset-filters" role="tab"@if(!columns.isEmpty){ data-toggle="tab"}>@if(!datasetForm("filterConditions").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.filters.title")</span> } else { @Domain.message("web.application.page.datasets.form.tab.filters.title") } <span class="badge js-filter-count">0</span></a></li>
+				<li id="tab-columns"@if(columns.isEmpty){ class="hidden"}><a href="#dataset-columns" role="tab" data-toggle="tab">@if(!datasetForm("columns").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.columns.title")</span> }else{ @Domain.message("web.application.page.datasets.form.tab.columns.title") } <span class="badge">0</span></a></li>
+				<li id="tab-filters"@if(columns.isEmpty){ class="hidden"}><a href="#dataset-filters" role="tab" data-toggle="tab">@if(!datasetForm("filterConditions").errors.isEmpty){ <span class="text-danger">@Domain.message("web.application.page.datasets.form.tab.filters.title")</span> } else { @Domain.message("web.application.page.datasets.form.tab.filters.title") } <span class="badge js-filter-count">0</span></a></li>
 			</ul>
 			
 			<div class="tab-content">

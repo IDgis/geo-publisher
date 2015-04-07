@@ -45,6 +45,7 @@ import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
@@ -195,12 +196,15 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		ImportJobInfo importJobInfo = importJobsItr.next();
 		assertEquals("testDataset", importJobInfo.getDatasetId());
-		assertEquals("testCategory", importJobInfo.getCategoryId());		
+		assertEquals("testCategory", importJobInfo.getCategoryId());
 		
-		String filterCondition = importJobInfo.getFilterCondition();
+		assertTrue(importJobInfo instanceof VectorImportJobInfo);
+		VectorImportJobInfo vectorImportJobInfo = (VectorImportJobInfo)importJobInfo;
+		
+		String filterCondition = vectorImportJobInfo.getFilterCondition();
 		assertNotNull(filterCondition);
 		
-		assertColumns(importJobInfo.getColumns());
+		assertColumns(vectorImportJobInfo.getColumns());
 		
 		result = f.ask(database, new GetDatasetStatus()).get();
 		assertTrue(result instanceof TypedIterable);

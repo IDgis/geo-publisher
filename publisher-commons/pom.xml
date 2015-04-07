@@ -62,6 +62,16 @@
 		    <groupId>org.codehaus.woodstox</groupId>
 		    <artifactId>woodstox-core-lgpl</artifactId>		    
 		</dependency>
+		<dependency>
+			<groupId>com.typesafe.akka</groupId>
+			<artifactId>akka-slf4j_${scala.abi.version}</artifactId>
+			<scope>test</scope>  
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<scope>test</scope>		  
+		</dependency>
     </dependencies>
     
 </project>

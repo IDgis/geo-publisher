@@ -35,11 +35,20 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 
 	protected abstract CompletableFuture<V> next();
 	
+	protected void preStartElse() throws Exception {
+		
+	}
+	
 	@Override
 	public final void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 		
 		f = new FutureUtils(getContext());
+		preStartElse();
+	}
+	
+	protected void onReceiveElse(Object msg) throws Exception {
+		unhandled(msg);
 	}
 
 	@Override
@@ -73,7 +82,7 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			log.error("timeout");
 			getContext().stop(getSelf());
 		} else {			
-			unhandled(msg);
+			onReceiveElse(msg);
 		}
 	}
 }

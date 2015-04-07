@@ -22,6 +22,8 @@ import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionFinished;
@@ -41,7 +43,7 @@ public class Loader extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef database, harvester;
+	private final ActorRef database, rasterFolder, harvester;
 	
 	private BiMap<ImportJobInfo, ActorRef> sessions;
 	
@@ -51,13 +53,14 @@ public class Loader extends UntypedActor {
 	
 	private Map<String, Integer> busyDataSources;
 
-	public Loader(ActorRef database, ActorRef harvester) {		
+	public Loader(ActorRef database, ActorRef rasterFolder, ActorRef harvester) {		
 		this.database = database;
+		this.rasterFolder = rasterFolder;
 		this.harvester = harvester;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester) {
-		return Props.create(Loader.class, database, harvester);
+	public static Props props(ActorRef database, ActorRef rasterFolder, ActorRef harvester) {
+		return Props.create(Loader.class, database, rasterFolder, harvester);
 	}
 	
 	@Override
@@ -72,7 +75,7 @@ public class Loader extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ImportJobInfo) {
 			handleImportJob((ImportJobInfo)msg);
-		} else if(msg instanceof RemoveJobInfo) {
+		} if(msg instanceof RemoveJobInfo) {
 			handleRemoveJob((RemoveJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);
@@ -90,7 +93,7 @@ public class Loader extends UntypedActor {
 			unhandled(msg);
 		}
 	}
-
+	
 	private void handleTerminated(Terminated msg) {
 		ActorRef session = msg.getActor();
 		
@@ -207,17 +210,28 @@ public class Loader extends UntypedActor {
 		
 		getSender().tell(new Ack(), getSelf());
 	}
-
-	private void handleImportJob(final ImportJobInfo importJob) {
+	
+	private void handleImportJob(ImportJobInfo importJob) {
+		log.debug("starting import job: {}", importJob);
+		
 		log.debug("data import requested: " + importJob);
 		
+		ActorRef initiator;
 		ActorRef jobContext = getSender();
-		jobContexts.put(importJob, jobContext);
+		if(importJob instanceof VectorImportJobInfo) {
+			initiator = getContext().actorOf(
+				VectorLoaderSessionInitiator.props((VectorImportJobInfo)importJob, jobContext, database),
+				nameGenerator.getName(VectorLoaderSessionInitiator.class));
+		} else if(importJob instanceof RasterImportJobInfo) {
+			initiator = getContext().actorOf(
+				RasterLoaderSessionInitiator.props((RasterImportJobInfo)importJob, jobContext, rasterFolder),
+				nameGenerator.getName(RasterLoaderSessionInitiator.class));
+		} else {
+			unhandled(importJob);
+			return;
+		}
 		
-		ActorRef initiator = getContext().actorOf(
-				LoaderSessionInitiator.props(importJob, jobContext, database),
-				nameGenerator.getName(LoaderSessionInitiator.class));
-		
+		jobContexts.put(importJob, jobContext);		
 		getSelf().tell(new GetDataSource(importJob.getDataSourceId()), initiator);
 	}
 	

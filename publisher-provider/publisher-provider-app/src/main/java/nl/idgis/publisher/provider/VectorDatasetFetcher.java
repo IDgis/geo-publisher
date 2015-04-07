@@ -7,15 +7,11 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
-import nl.idgis.publisher.provider.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
-import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
 import nl.idgis.publisher.provider.protocol.Records;
 
@@ -25,23 +21,16 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Terminated;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-public class VectorDatasetFetcher extends UntypedActor {
+public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDataset> {
 	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
-	private final ActorRef sender, database;
-	
-	private final GetVectorDataset request;
+	private final ActorRef database;
 		
 	public VectorDatasetFetcher(ActorRef sender, ActorRef database, GetVectorDataset request) {
-		this.sender = sender;
+		super(sender, request);
+		
 		this.database = database;
-		this.request = request;		
 	}
 	
 	public static Props props(ActorRef sender, ActorRef database, GetVectorDataset request) {
@@ -149,32 +138,11 @@ public class VectorDatasetFetcher extends UntypedActor {
 			
 		};
 	}
-
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof ReceiveTimeout) {
-			log.error("timeout while collecting information");
-			
-			sender.tell(new Failure(new TimeoutException("collecting information")), getSelf());
-			getContext().stop(getSelf());
-		} else if(msg instanceof MetadataNotFound) {
-			log.debug("metadata not found");
-			
-			sender.tell(new DatasetNotFound(((MetadataNotFound)msg).getIdentification()), getSelf());
-			getContext().stop(getSelf());
-		} else if(msg instanceof MetadataItem) {
-			log.debug("metadata item");
-			
-			MetadataDocumentFactory metadataDocumentFactory = new MetadataDocumentFactory();
-			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(((MetadataItem)msg).getContent());
-			
-			String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
-			
-			database.tell(new StartTransaction(), getSelf());
-			getContext().become(startingTransaction(tableName));
-		} else {			
-			unhandled(msg);
-		}
+	
+	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
+		String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		
+		database.tell(new StartTransaction(), getSelf());
+		getContext().become(startingTransaction(tableName));
 	}
-
 }
