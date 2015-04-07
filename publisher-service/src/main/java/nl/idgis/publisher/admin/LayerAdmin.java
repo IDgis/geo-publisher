@@ -212,6 +212,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
 								.join(style).on(layerStyle.styleId.eq(style.id))
 								.where(genericLayer.identification.eq(layerId))
+								.orderBy(layerStyle.id.asc())
 								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 								.thenApply(styles ->
 									Optional.of(new Layer(
@@ -492,7 +493,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					.from(style, leafLayer, layerStyle)
 					//.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
-							.and(layerStyle.styleId.eq(style.id)))
+						.and(layerStyle.styleId.eq(style.id)))
+					.orderBy(layerStyle.id.asc())
 					.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
 					.thenApply(this::toList);
 		}));
