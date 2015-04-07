@@ -5,13 +5,18 @@
 	Shows a list of items.
 	Can be used to show parents (e.g. layers where a style is used in)
 	Parameters:
-		items: Page[{Selectable] - list of items where item has methods id() and  name()
+		items: Page[{Nameable] - list of items where item has methods id() and name()
 		parentRef: method to call with parameter item.id(), in a href context
 		label: String - text for the label in the form
 		msgNone: String - text to display when there are no items (list is empty or null)
+		help : String - tooltip helptext
 *@
 
-@(items: Page[_ <: nl.idgis.publisher.domain.web.Selectable], parentRef: (String) => Call, label: String, msgNone: String)
+@(items: Page[_ <: nl.idgis.publisher.domain.web.Nameable], 
+parentRef: (String) => Call, 
+label: String, 
+msgNone: String,
+help: String)
 
 	<div class="form-group">
 		<label class="col-sm-2 control-label">@label</label>
@@ -26,4 +31,5 @@
 				}
 			</ol>
 		</div>
+		@helper.tooltips(help)
 	</div>

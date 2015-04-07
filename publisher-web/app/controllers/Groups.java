@@ -8,13 +8,13 @@ import java.util.List;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import scala.runtime.AbstractFunction1;
-
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function5;
-
+import nl.idgis.publisher.domain.query.GetGroupParentGroups;
+import nl.idgis.publisher.domain.query.GetGroupParentServices;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
@@ -29,7 +29,6 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-
 import play.Logger;
 import play.Play;
 import play.api.mvc.Call;
@@ -47,7 +46,6 @@ import views.html.layers.layerPagerBody;
 import views.html.layers.layerPagerFooter;
 import views.html.layers.layerPagerHeader;
 import actions.DefaultAuthenticator;
-
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -64,7 +62,7 @@ public class Groups extends GroupsLayersCommon {
 
 				@Override
 				public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-					return ok (form.render (groupForm, true, groups, layers, null, null));
+					return ok (form.render (groupForm, true, groups, layers, null, null, null, null));
 				}
 			});
 
@@ -213,10 +211,12 @@ public class Groups extends GroupsLayersCommon {
 					}
 					return from (database)
 							.get(Service.class, serviceId)
-							.execute (new Function<Service, Result> () {
+							.query(new GetGroupParentGroups(groupId))
+							.query(new GetGroupParentServices(groupId))
+							.execute (new Function3<Service, Page<LayerGroup>, Page<Service>, Result> () {
 
 							@Override
-							public Result apply (final Service service) throws Throwable {
+							public Result apply (final Service service, final Page<LayerGroup> parentGroups, final Page<Service> parentServices) throws Throwable {
 									
 								final Form<GroupForm> groupForm = Form
 										.form (GroupForm.class)
@@ -247,7 +247,7 @@ public class Groups extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), group.name());
 								}
-								return ok (form.render (groupForm, false, groups, layers, groupLayer, previewUrl));
+								return ok (form.render (groupForm, false, groups, layers, groupLayer, parentGroups, parentServices, previewUrl));
 							}
 							});
 				}

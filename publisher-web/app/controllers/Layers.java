@@ -12,7 +12,8 @@ import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
-
+import nl.idgis.publisher.domain.query.GetLayerParentGroups;
+import nl.idgis.publisher.domain.query.GetLayerParentServices;
 import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
@@ -30,7 +31,6 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.TiledLayer;
-
 import play.Logger;
 import play.Play;
 import play.api.mvc.Call;
@@ -48,7 +48,6 @@ import views.html.layers.layerPagerHeader;
 import views.html.layers.layerPagerBody;
 import views.html.layers.layerPagerFooter;
 import actions.DefaultAuthenticator;
-
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -70,7 +69,7 @@ public class Layers extends GroupsLayersCommon {
 
 					@Override
 					public Result apply (final Page<Style> allStyles) throws Throwable {
-						return ok (form.render (layerForm, true, allStyles, "", ""));
+						return ok (form.render (layerForm, true, allStyles, "", null, null, ""));
 					}
 				});
 	}
@@ -259,10 +258,12 @@ public class Layers extends GroupsLayersCommon {
 			.get (Layer.class, layerId)
 			.query (new ListStyles (1l, null))
 			.query(new GetLayerServices(layerId))
-			.executeFlat (new Function3<Layer, Page<Style>, List<String>, Promise<Result>> () {
+			.query(new GetLayerParentGroups(layerId))
+			.query(new GetLayerParentServices(layerId))
+			.executeFlat (new Function5<Layer, Page<Style>, List<String>, Page<LayerGroup>, Page<Service>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds) throws Throwable {
+				public Promise<Result> apply (final Layer layer, final Page<Style> allStyles, final List<String> serviceIds, final Page<LayerGroup> parentGroups, final Page<Service> parentServices) throws Throwable {
 					String serviceId;
 					if (serviceIds==null || serviceIds.isEmpty()){
 						serviceId="";
@@ -314,7 +315,7 @@ public class Layers extends GroupsLayersCommon {
 								} else {
 									previewUrl = makePreviewUrl(service.name(), layer.name());
 								}
-								return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, previewUrl));
+								return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, parentGroups, parentServices, previewUrl));
 							}
 						});
 				}

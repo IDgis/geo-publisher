@@ -7,6 +7,8 @@
 	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
 	groupLayer: GroupLayer,
+	parentGroups: Page[nl.idgis.publisher.domain.web.LayerGroup],
+	parentServices: Page[nl.idgis.publisher.domain.web.Service],
 	previewUrl: String
 )
 
@@ -84,7 +86,16 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.groups.form.field.services.label")</label>
 					<div class="col-sm-8"></div>
 				</div>
-											
+		
+				@helper.parents(parentGroups, routes.Groups.edit, 
+					Domain.message("web.application.page.groups.form.field.parentGroups.label"), 
+					Domain.message("web.application.page.groups.form.field.parentGroups.none"),
+					Domain.message("web.application.page.groups.form.field.parentGroups.help"))
+				@helper.parents(parentServices, routes.Services.edit, 
+					Domain.message("web.application.page.groups.form.field.parentServices.label"), 
+					Domain.message("web.application.page.groups.form.field.parentServices.none"),
+					Domain.message("web.application.page.groups.form.field.parentServices.help"))
+													
 				<div class="form-group">
 					<label class="col-sm-2 control-label" for="input-enable">@Domain.message("web.application.page.tiledlayers.form.field.enabled.label")</label>
 					<div class="col-lg-8">

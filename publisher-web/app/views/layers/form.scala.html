@@ -1,13 +1,16 @@
+@import nl.idgis.publisher.domain.web._ 
+@import nl.idgis.publisher.domain.response._ 
+
 @(layerForm: Form[controllers.Layers.LayerForm],
  create: Boolean,
- allStyles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style],
+ allStyles: Page[Style],
  layerStyleListString: java.lang.String,
+ parentGroups: Page[nl.idgis.publisher.domain.web.LayerGroup],
+ parentServices: Page[nl.idgis.publisher.domain.web.Service],
  previewUrl: java.lang.String)
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
-
-@import nl.idgis.publisher.domain.web._ 
 @layout.application( 
 	title=Domain.message("web.application.page.layers.form.title"),
 	jsMain = routes.Assets.at("js/layers/form.js").url,
@@ -115,13 +118,16 @@
 					</div>
 					@helper.tooltips("web.application.page.layers.form.field.publish.help")
 				</div>
-				<div class="form-group">
-					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.groups.label")</label>
-					<div class="col-sm-8">
-						<span>-</span>
-					</div>
-				</div>
-						
+		
+				@helper.parents(parentGroups, routes.Groups.edit, 
+					Domain.message("web.application.page.layers.form.field.parentGroups.label"), 
+					Domain.message("web.application.page.layers.form.field.parentGroups.none"),
+					Domain.message("web.application.page.layers.form.field.parentGroups.help"))
+				@helper.parents(parentServices, routes.Services.edit, 
+					Domain.message("web.application.page.layers.form.field.parentServices.label"), 
+					Domain.message("web.application.page.layers.form.field.parentServices.none"),
+					Domain.message("web.application.page.layers.form.field.parentServices.help"))
+		
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 					<div class="controls col-sm-9">

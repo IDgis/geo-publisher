@@ -16,7 +16,7 @@ import com.mysema.query.annotations.QueryProjection;
  * @author Rob
  *
  */
-public class Service extends Identifiable {
+public class Service extends Identifiable implements Nameable{
 	private static final long serialVersionUID = -4339122844101328594L;
 
 	private final String name;

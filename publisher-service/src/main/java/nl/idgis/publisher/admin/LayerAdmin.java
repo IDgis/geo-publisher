@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
+import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.domain.query.GetLayerParentGroups;
+import nl.idgis.publisher.domain.query.GetLayerParentServices;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
 import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -32,7 +35,9 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QLayer;
+import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
@@ -72,6 +77,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		doQuery(PutLayerStyles.class, this::handlePutLayerStyles);
 		
 		doQuery (ListLayers.class, this::handleListLayersWithQuery);
+		
+		doQuery (GetLayerParentGroups.class, this::handleGetLayerParentGroups);
+		doQuery (GetLayerParentServices.class, this::handleGetLayerParentServices);
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
@@ -532,4 +540,81 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		}));
 	}
 	
+	private CompletableFuture<Page<LayerGroup>> handleGetLayerParentGroups(GetLayerParentGroups getLayerParentGroups){
+		String layerId = getLayerParentGroups.getId();
+		
+		log.debug ("handleGetLayerParentGroups: " + layerId);
+		final Page.Builder<LayerGroup> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
+			db.query()
+			.from(genericLayer)
+			.where(genericLayer.id.in(
+				new SQLSubQuery()
+					.from(layerStructure)
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
+					.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(layerId)
+						.and(service.genericLayerId.isNull()))
+					.list(layerStructure.parentLayerId)
+			))
+			.orderBy(genericLayer.name.asc());
+		
+		return getGroupsFromLayerStructureQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenApply(groups -> {
+				for (Tuple group : groups.list()) {
+					builder.add(new LayerGroup(
+						group.get(genericLayer.identification),
+						group.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null
+						));
+				}
+				return builder.build();
+			});
+	}
+
+	private CompletableFuture<Page<Service>> handleGetLayerParentServices(GetLayerParentServices getLayerParentServices){
+		String layerId = getLayerParentServices.getId();
+		
+		log.debug ("handleGetLayerParentServices: " + layerId);
+		final Page.Builder<Service> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
+			db.query()
+			.from(genericLayer)
+			.where(genericLayer.id.in(
+				new SQLSubQuery()
+					.from(layerStructure)
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
+					.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(layerId)
+						.and(service.genericLayerId.isNotNull()))
+					.list(layerStructure.parentLayerId)
+			))
+			.orderBy(genericLayer.name.asc());
+		
+		return getGroupsFromLayerStructureQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenApply(groups -> {
+				for (Tuple group : groups.list()) {
+					builder.add(new Service(
+						group.get(genericLayer.identification),
+						group.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null, null, null, null
+						));
+				}
+				return builder.build();
+			});
+	}
 }
