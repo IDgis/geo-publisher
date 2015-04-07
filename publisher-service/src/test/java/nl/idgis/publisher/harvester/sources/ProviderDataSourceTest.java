@@ -86,7 +86,7 @@ public class ProviderDataSourceTest {
 		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC), new ColumnInfo("title", Type.TEXT)};
 		TableInfo tableInfo = new TableInfo(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, "tableName", tableInfo, 42);				
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, false, "tableName", tableInfo, 42);				
 	}
 	
 	@Before

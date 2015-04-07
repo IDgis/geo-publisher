@@ -124,6 +124,7 @@ public class JobManagerTest extends AbstractServiceTest {
 				.set(sourceDatasetVersion.revision, testRevision)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.categoryId, categoryId)
+				.set(sourceDatasetVersion.confidential, true)
 				.executeWithKey(sourceDatasetVersion.id);
 		
 		for(int i = 0; i < 10; i++) {

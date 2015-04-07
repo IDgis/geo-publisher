@@ -374,6 +374,7 @@ public class LoaderTest extends AbstractServiceTest {
 				testDataset.getCategoryId(),				
 				testDataset.getRevisionDate(),
 				Collections.<Log>emptySet(),
+				false,
 				updatedTable);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class).get();

@@ -145,6 +145,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(sourceDatasetVersion.categoryId, categoryId)
 			.set(sourceDatasetVersion.name, "sourcedataset-name0")
 			.set(sourceDatasetVersion.type, "VECTOR")
+			.set(sourceDatasetVersion.confidential, false)
 			.executeWithKey(sourceDatasetVersion.id);
 		
 		for(int i = 0; i < 2; i++) {

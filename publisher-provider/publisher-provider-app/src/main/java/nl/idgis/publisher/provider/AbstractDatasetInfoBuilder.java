@@ -47,6 +47,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected Date revisionDate;
 	
+	protected boolean confidential = false;
+	
 	protected AbstractDatasetInfoBuilder(ActorRef sender, ActorRef converter, Set<AttachmentType> requestedAttachmentTypes) {
 		this.sender = sender;		
 		this.converter = converter;		
@@ -94,7 +96,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	}
 	
 	protected void sendUnavailable() {
-		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs));		
+		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, confidential));		
 	}
 	
 	protected abstract void processMetadata();
@@ -130,6 +132,15 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 				log.debug("revisionDate: {}", revisionDate);
 			} catch(NotFound nf) {
 				addMetadataParsingError(MetadataField.REVISION_DATE, MetadataLogType.NOT_FOUND, null);				
+			}
+			
+			try {
+				String otherConstraints = metadataDocument.getOtherConstraints();
+				log.debug("other constraints: {}", otherConstraints);
+				confidential = "alleen voor intern gebruik".equals(otherConstraints);
+				log.debug("confidential: {}", confidential);
+			} catch(NotFound nf) {
+				log.debug("other constraints not found");
 			}
 			
 			processMetadata();

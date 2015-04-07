@@ -162,7 +162,8 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.alternateTitle,
 						sourceDatasetVersion.type,
 						category.identification,
-						sourceDatasetVersion.revision))
+						sourceDatasetVersion.revision,
+						sourceDatasetVersion.confidential))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -185,6 +186,7 @@ public class DatasetManager extends UntypedActor {
 						String type = baseInfo.get(sourceDatasetVersion.type);
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
+						boolean confidential = baseInfo.get(sourceDatasetVersion.confidential);
 						
 						// convert from timestamp to date because harvester provides date objects,
 						// otherwise source dataset versions are never equal.
@@ -229,6 +231,7 @@ public class DatasetManager extends UntypedActor {
 									categoryId, 
 									revisionDate, 
 									logs, 
+									confidential,
 									new Table(columnInfo.list()));
 								break;
 							case "RASTER":
@@ -238,7 +241,8 @@ public class DatasetManager extends UntypedActor {
 									alternateTitle,
 									categoryId,
 									revisionDate,
-									logs);
+									logs,
+									confidential);
 								break;
 							default:
 								dataset = new UnavailableDataset(	
@@ -247,7 +251,8 @@ public class DatasetManager extends UntypedActor {
 									alternateTitle,
 									categoryId,
 									revisionDate,
-									logs);
+									logs,
+									confidential);
 								break;
 						}
 						
@@ -328,6 +333,7 @@ public class DatasetManager extends UntypedActor {
 			
 			String name = dataset.getName();
 			String alternateTitle = dataset.getAlternateTitle();
+			boolean confidential = dataset.isConfidential();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -336,6 +342,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.alternateTitle, alternateTitle)
 				.set(sourceDatasetVersion.categoryId, categoryId.orElse(null))
 				.set(sourceDatasetVersion.revision, revision)
+				.set(sourceDatasetVersion.confidential, confidential)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
