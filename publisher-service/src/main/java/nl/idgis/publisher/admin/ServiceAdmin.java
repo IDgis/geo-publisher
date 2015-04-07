@@ -1,5 +1,7 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
@@ -30,10 +32,12 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 
+import com.mysema.query.Tuple;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -77,21 +81,30 @@ public class ServiceAdmin extends AbstractAdmin {
 		return handleListServicesWithQuery (new ListServices (null, null, null));
 	}
 	
-	private CompletableFuture<List<ServicePublish>> handleListEnvironments(ListEnvironments listEnvironments) {
+	private CompletableFuture<Page<ServicePublish>> handleListEnvironments(ListEnvironments listEnvironments) {
 		String serviceId = listEnvironments.getServiceId();
+		final Page.Builder<ServicePublish> builder = new Page.Builder<> ();
 		
-		return db.transactional(tx ->
-		// Check if there is another service with the same id
-			tx.query().from(service)
+		return db.query().from(service)
 			.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 			.leftJoin(publishedServiceEnvironment).on(service.id.eq(publishedServiceEnvironment.serviceId))
 			.leftJoin(environment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
 			.where(genericLayer.identification.eq(serviceId))
-			.list()
-			.thenApply(msg -> {
-				
-			})
-		);
+			.list(
+					environment.identification,
+					environment.name,
+					publishedServiceEnvironment.environmentId
+					).thenApply(publish -> {
+						for (Tuple service : publish.list()) {
+							builder.add(new ServicePublish(
+									serviceId,
+									service.get(environment.identification),
+									service.get(environment.name),
+									service.get(publishedServiceEnvironment.environmentId)!=null
+									));
+						}
+						return builder.build();
+					});
 	}
 	
 	private BooleanExpression isConfidential () {

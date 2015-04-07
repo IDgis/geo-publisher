@@ -1,7 +1,7 @@
 @import nl.idgis.publisher.domain.web._ 
 
-@(serviceForm: Form[controllers.Services.ServiceForm], 
-	servicePublishForm: Form[controllers.Services.ServicePublishForm])
+@(serviceForm: String, 
+	servicePublishName: Form[controllers.Services.ServicePublishForm.name])
 
 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),

@@ -70,7 +70,7 @@ public class Services extends Controller {
 		return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
-            	 return ok (publishService.render (serviceForm, servicePublishForm));
+            	 return ok (publishService.render (serviceForm.name(), servicePublishForm));
              }
         });
 	}
@@ -84,7 +84,7 @@ public class Services extends Controller {
 	}
 	
 	private static Promise<Result> renderCreatePublishForm (final Form<ServiceForm> serviceForm, final Form<ServicePublishForm> servicePublishForm) {
-		return renderPublishForm(serviceForm, servicePublishForm);
+		return renderPublishForm(serviceForm.name(), servicePublishForm);
 	}
 	
 	public static Promise<Result> submitCreate () {
@@ -305,19 +305,19 @@ public class Services extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		Logger.debug ("publish Service");
 		
-		final Form<ServicePublishForm> servicePublishForm = Form.form (ServicePublishForm.class).fill (new ServicePublishForm ());
-		
 		return from (database)
-			.get (Service.class, serviceId)
-			.executeFlat (new Function<Service, Promise<Result>> () {
+			.get(Service.class,  serviceId)
+			.query (new ListEnvironments (serviceId))
+			.executeFlat (new Function2 <Service, Page<ServicePublish>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service) throws Throwable {
-					ServiceForm  serviceForm = new ServiceForm (service);
-					final Form<ServiceForm> formServiceForm = Form
-							.form (ServiceForm.class)
-							.fill (serviceForm);
-					return renderCreatePublishForm (formServiceForm, servicePublishForm);
+				public Promise<Result> apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
+					Logger.debug("Service publish: " + servicePublish);
+					ServicePublishForm  servicePublishForm = new ServicePublishForm (servicePublish);
+					final Form<ServicePublishForm> formServicePublishForm = Form
+							.form (ServicePublishForm.class)
+							.fill (servicePublishForm);
+					return renderCreatePublishForm (service.name(), servicePublishForm);
 				}
 			});
 	}
