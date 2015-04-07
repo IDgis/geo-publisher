@@ -554,8 +554,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					.from(layerStructure)
 					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
 					.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
-					.join(service).on(service.genericLayerId.ne(layerStructure.parentLayerId))
-					.where(genericLayer.identification.eq(layerId))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(layerId)
+						.and(service.genericLayerId.isNull()))
 					.list(layerStructure.parentLayerId)
 			))
 			.orderBy(genericLayer.name.asc());
@@ -592,8 +593,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					.from(layerStructure)
 					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
 					.join(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
-					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
-					.where(genericLayer.identification.eq(layerId))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(layerId)
+						.and(service.genericLayerId.isNotNull()))
 					.list(layerStructure.parentLayerId)
 			))
 			.orderBy(genericLayer.name.asc());
@@ -604,13 +606,13 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			).thenApply(groups -> {
 				for (Tuple group : groups.list()) {
 					builder.add(new Service(
-							group.get(genericLayer.identification),
-							group.get(genericLayer.name),
-							null,
-							null,
-							null,
-							null, null, null, null
-							));
+						group.get(genericLayer.identification),
+						group.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null, null, null, null
+						));
 				}
 				return builder.build();
 			});

@@ -536,43 +536,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		});
 	}
 	
-	private CompletableFuture<Page<Service>> handleGetGroupParentServices(GetGroupParentServices getGroupParentServices){
-		String groupId = getGroupParentServices.getId();
-		
-		log.debug ("GetGroupParentServices: " + groupId);
-		final Page.Builder<Service> builder = new Page.Builder<> ();
-		
-		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
-			db.query()
-			.from(genericLayer)
-			.where(genericLayer.id.in(
-				new SQLSubQuery()
-					.from(layerStructure)
-					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
-					.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
-					.where(genericLayer.identification.eq(groupId))
-					.list(layerStructure.parentLayerId)
-			))
-			.orderBy(genericLayer.name.asc());
-		
-		return getGroupsFromLayerStructureQuery.list(
-			genericLayer.identification,
-			genericLayer.name
-			).thenApply(groups -> {
-				for (Tuple group : groups.list()) {
-					builder.add(new Service(
-						group.get(genericLayer.identification),
-						group.get(genericLayer.name),
-						null,
-						null,
-						null,
-						null, null, null, null
-						));
-				}
-				return builder.build();
-			});
-	}
-	
 	private CompletableFuture<Page<LayerGroup>> handleGetGroupParentGroups(GetGroupParentGroups getGroupParentGroups){
 		String groupId = getGroupParentGroups.getId();
 		
@@ -586,8 +549,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				new SQLSubQuery()
 					.from(layerStructure)
 					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
-					.join(service).on(service.genericLayerId.ne(layerStructure.parentLayerId))
-					.where(genericLayer.identification.eq(groupId))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(groupId)
+						.and(service.genericLayerId.isNull()))
 					.list(layerStructure.parentLayerId)
 			))
 			.orderBy(genericLayer.name.asc());
@@ -605,6 +569,44 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							null,
 							null
 							));
+				}
+				return builder.build();
+			});
+	}
+	
+	private CompletableFuture<Page<Service>> handleGetGroupParentServices(GetGroupParentServices getGroupParentServices){
+		String groupId = getGroupParentServices.getId();
+		
+		log.debug ("GetGroupParentServices: " + groupId);
+		final Page.Builder<Service> builder = new Page.Builder<> ();
+		
+		final AsyncSQLQuery getGroupsFromLayerStructureQuery =  
+			db.query()
+			.from(genericLayer)
+			.where(genericLayer.id.in(
+				new SQLSubQuery()
+					.from(layerStructure)
+					.join(genericLayer).on(genericLayer.id.eq(layerStructure.childLayerId))
+					.leftJoin(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
+					.where(genericLayer.identification.eq(groupId)
+						.and(service.genericLayerId.isNotNull()))
+					.list(layerStructure.parentLayerId)
+			))
+			.orderBy(genericLayer.name.asc());
+		
+		return getGroupsFromLayerStructureQuery.list(
+			genericLayer.identification,
+			genericLayer.name
+			).thenApply(groups -> {
+				for (Tuple group : groups.list()) {
+					builder.add(new Service(
+						group.get(genericLayer.identification),
+						group.get(genericLayer.name),
+						null,
+						null,
+						null,
+						null, null, null, null
+						));
 				}
 				return builder.build();
 			});
