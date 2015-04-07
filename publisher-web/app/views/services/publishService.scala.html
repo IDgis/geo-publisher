@@ -1,6 +1,7 @@
 @import nl.idgis.publisher.domain.web._ 
 
-@(serviceForm: Form[controllers.Services.ServiceForm], servicePublishForm: Form[controllers.Services.ServicePublishForm])
+@(serviceForm: Form[controllers.Services.ServiceForm], 
+	servicePublishForm: Form[controllers.Services.ServicePublishForm])
 
 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),
@@ -11,7 +12,7 @@
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.services.form.header.publish", serviceForm("name").value)</h1>
 
-	<div class="row">
+	<div class="list-group">
 		<div class="col-lg-9">
 			<div class="row">
 				<div class="list-group-item">

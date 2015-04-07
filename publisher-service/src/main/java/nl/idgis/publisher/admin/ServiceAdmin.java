@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
+
+import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
@@ -30,6 +32,8 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.ServicePublish;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -61,6 +65,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		doPut(Service.class, this::handlePutService);
 		doDelete(Service.class, this::handleDeleteService);
 		
+		doQuery(ListEnvironments.class, this::handleListEnvironments);
+		
 		doQuery(ListServiceKeywords.class, this::handleListServiceKeywords);
 		doQuery(PutServiceKeywords.class, this::handlePutServiceKeywords);
 		
@@ -70,7 +76,24 @@ public class ServiceAdmin extends AbstractAdmin {
 	private CompletableFuture<Page<Service>> handleListServices () {
 		return handleListServicesWithQuery (new ListServices (null, null, null));
 	}
-
+	
+	private CompletableFuture<List<ServicePublish>> handleListEnvironments(ListEnvironments listEnvironments) {
+		String serviceId = listEnvironments.getServiceId();
+		
+		return db.transactional(tx ->
+		// Check if there is another service with the same id
+			tx.query().from(service)
+			.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+			.leftJoin(publishedServiceEnvironment).on(service.id.eq(publishedServiceEnvironment.serviceId))
+			.leftJoin(environment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
+			.where(genericLayer.identification.eq(serviceId))
+			.list()
+			.thenApply(msg -> {
+				
+			})
+		);
+	}
+	
 	private BooleanExpression isConfidential () {
 		return new SQLSubQuery ()
 			.from (serviceStructure)
@@ -295,7 +318,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					.where(serviceKeyword.serviceId.eq(svId.get()))
 					.list(serviceKeyword.keyword)
 					.thenApply(resp -> resp.list());
-				})
+			})
 		);
 	}
 	

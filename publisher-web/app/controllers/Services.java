@@ -14,6 +14,7 @@ import models.Domain.Function3;
 import models.Domain.Function4;
 import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
+import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
@@ -300,12 +301,25 @@ public class Services extends Controller {
 			});
 	}
 	
-	public static Promise<Result> publishService (final String serviceId) {
+	public static Promise<Result> publishService (final String serviceId, final long page) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		Logger.debug ("publish Service");
-		final Form<ServiceForm> serviceForm = Form.form (ServiceForm.class).fill (new ServiceForm ());
+		
 		final Form<ServicePublishForm> servicePublishForm = Form.form (ServicePublishForm.class).fill (new ServicePublishForm ());
-				
-		return renderCreatePublishForm (serviceForm, servicePublishForm);
+		
+		return from (database)
+			.get (Service.class, serviceId)
+			.executeFlat (new Function<Service, Promise<Result>> () {
+
+				@Override
+				public Promise<Result> apply (final Service service) throws Throwable {
+					ServiceForm  serviceForm = new ServiceForm (service);
+					final Form<ServiceForm> formServiceForm = Form
+							.form (ServiceForm.class)
+							.fill (serviceForm);
+					return renderCreatePublishForm (formServiceForm, servicePublishForm);
+				}
+			});
 	}
 
 	public static Promise<Result> create () {
@@ -364,6 +378,8 @@ public class Services extends Controller {
 	}
 	
 	public static class ServicePublishForm {
+		private String identification;
+		private String name;
 		private Boolean guaranteedSV = false;
 		private Boolean publicSV = false;
 		private Boolean secureSV = false;
@@ -373,9 +389,27 @@ public class Services extends Controller {
 		}
 		
 		public ServicePublishForm (ServicePublish servicePublish){
+			this.identification = servicePublish.identification();
+			this.name = servicePublish.name();			
 			this.guaranteedSV = servicePublish.guaranteedSV();
 			this.publicSV = servicePublish.publicSV();
 			this.secureSV = servicePublish.secureSV();
+		}
+		
+		public String getIdentification() {
+			return identification;
+		}
+		
+		public void setIdentification(String identification) {
+			this.identification = identification;
+		}
+		
+		public String getName() {
+			return name;
+		}
+		
+		public void setName(String name) {
+			this.name = name;
 		}
 		
 		public Boolean getGuaranteedSV() {

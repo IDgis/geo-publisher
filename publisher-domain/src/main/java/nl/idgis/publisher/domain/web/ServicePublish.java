@@ -15,38 +15,39 @@ import com.mysema.query.annotations.QueryProjection;
 public class ServicePublish extends Identifiable {
 	private static final long serialVersionUID = 3470435136806376628L;
 	
-	private final Boolean guaranteedSV;
-	private final Boolean publicSV;
-	private final Boolean secureSV;
+	private final String identification;
+	private final String name;
+	private final Boolean inUse;
 
 	
 	@JsonCreator
 	@QueryProjection
 	public ServicePublish(
 			final @JsonProperty("") String id, 
-			final @JsonProperty("") Boolean guaranteedSV, 
-			final @JsonProperty("") Boolean publicSV, 
-			final @JsonProperty("") Boolean secureSV
+			final @JsonProperty("") String identification,
+			final @JsonProperty("") String name,
+			final @JsonProperty("") Boolean inUse
 			) {
 		super(id);
-		this.guaranteedSV = guaranteedSV;
-		this.publicSV = publicSV;
-		this.secureSV = secureSV;
+		this.identification = identification;
+		this.name = name;
+		this.inUse = inUse;
 	}
 
+
+	@JsonGetter
+	public String identification() {
+		return identification;
+	}
+	
+	@JsonGetter
+	public String name() {
+		return name;
+	}
+	
 	@JsonGetter
 	public Boolean guaranteedSV() {
-		return guaranteedSV;
-	}
-
-	@JsonGetter
-	public Boolean publicSV() {
-		return publicSV;
-	}
-
-	@JsonGetter
-	public Boolean secureSV() {
-		return secureSV;
+		return inUse;
 	}
 
 
