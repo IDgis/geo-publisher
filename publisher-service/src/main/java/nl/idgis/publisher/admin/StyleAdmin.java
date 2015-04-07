@@ -162,8 +162,8 @@ public class StyleAdmin extends AbstractAdmin {
 			return getLayersFromLayerStyleQuery.list(
 				genericLayer.identification,
 				genericLayer.name
-				).thenApply(sryleLayers -> {
-					for (Tuple layer : sryleLayers.list()) {
+				).thenApply(styleLayers -> {
+					for (Tuple layer : styleLayers.list()) {
 						builder.add(new Layer(
 							layer.get(genericLayer.identification),
 							layer.get(genericLayer.name),
