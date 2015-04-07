@@ -494,8 +494,8 @@ public class DatasetManager extends UntypedActor {
 						.execute(),
 						
 						tx.delete (category)
-						.where (category.id.notIn (new SQLSubQuery ().from (sourceDatasetVersion).list (sourceDatasetVersion.categoryId)))
-						.execute ()
+							.where (new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.categoryId.eq (category.id)).notExists ())
+							.execute ()
 					)).thenApply(results ->
 							results.stream()
 								.collect(Collectors.summingLong(Long::longValue)));
