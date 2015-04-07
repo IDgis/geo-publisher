@@ -27,12 +27,15 @@ import javax.xml.validation.Validator;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import models.Domain.Function3;
+import nl.idgis.publisher.domain.query.GetStyleParentGroups;
 import nl.idgis.publisher.domain.query.GetStyleParentLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Layer;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
 
 import org.xml.sax.ErrorHandler;
@@ -79,7 +82,7 @@ public class Styles extends Controller {
 		 return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
-                 return ok (form.render (styleForm, null, true, Optional.empty (), Optional.empty ()));
+                 return ok (form.render (styleForm, null, null, true, Optional.empty (), Optional.empty ()));
              }
          });
 	}
@@ -116,7 +119,7 @@ public class Styles extends Controller {
 					}
 					
 					if (form.hasErrors ()) {
-						return Promise.pure ((Result) ok (views.html.styles.form.render (form, null, form.field ("id").equals (ID), Optional.empty (), Optional.empty ())));
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, null, null, form.field ("id").equals (ID), Optional.empty (), Optional.empty ())));
 					}
 
 					final StyleForm styleForm = form.get ();
@@ -136,7 +139,7 @@ public class Styles extends Controller {
 					}
 					
 					if (form.hasErrors ()) {
-						return Promise.pure ((Result) ok (views.html.styles.form.render (form, null, form.field ("id").equals (ID), errorLine, errorMessage)));
+						return Promise.pure ((Result) ok (views.html.styles.form.render (form, null, null, form.field ("id").equals (ID), errorLine, errorMessage)));
 					}
 					// validation end
 					
@@ -253,17 +256,18 @@ public class Styles extends Controller {
 		return from (database)
 			.get (Style.class, styleId)
 			.query(new GetStyleParentLayers(styleId))
-			.execute (new Function2<Style, Page<Layer>, Result> () {
+			.query(new GetStyleParentGroups(styleId))
+			.execute (new Function3<Style, Page<Layer>, Page<LayerGroup>, Result> () {
 
 				@Override
-				public Result apply (final Style style, final Page<Layer> layers) throws Throwable {
+				public Result apply (final Style style, final Page<Layer> layers, final Page<LayerGroup> groups) throws Throwable {
 					final Form<StyleForm> styleForm = Form
 							.form (StyleForm.class)
 							.fill (new StyleForm (style));
 					
 					Logger.debug ("Edit styleForm: " + styleForm);						
 					Logger.debug ("Style is in layers: " + layers.values().toString());						
-					return ok (form.render (styleForm, layers, false, Optional.empty (), Optional.empty ()));
+					return ok (form.render (styleForm, layers, groups, false, Optional.empty (), Optional.empty ()));
 				}
 			});
 	}

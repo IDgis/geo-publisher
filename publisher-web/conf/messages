@@ -669,9 +669,12 @@ web.application.page.styles.form.field.browse.label=Selecteer uit bestand
 web.application.page.styles.form.field.type.label=Type stijl
 web.application.page.styles.form.field.browse.button=Geselecteerde bestand inladen
 
-web.application.page.styles.form.field.parentlayers.label=Zit in de laag/lagen
+web.application.page.styles.form.field.parentlayers.label=Zit in de lagen
 web.application.page.styles.form.field.parentlayers.none=geen
-web.application.page.styles.form.field.parentlayers.help=Laat alleen de lagen zien waar deze stijl direct onder zit
+web.application.page.styles.form.field.parentlayers.help=Laat de lagen zien waar deze stijl in gebruikt wordt
+web.application.page.styles.form.field.parentgroups.label=Zit in de groepen
+web.application.page.styles.form.field.parentgroups.none=geen
+web.application.page.styles.form.field.parentgroups.help=Laat de groepen zien waar deze stijl voor een laag is aangepast
 
 web.application.page.styles.form.field.type.select=Selecteer om wat voor type stijl het gaat
 web.application.page.styles.form.field.type.point=Punt

@@ -1,7 +1,12 @@
 @import nl.idgis.publisher.domain.web._ 
 @import nl.idgis.publisher.domain.response._ 
 
-@(styleForm: Form[controllers.Styles.StyleForm], layers: Page[Layer], create:Boolean, errorLine: java.util.Optional[Integer] = java.util.Optional.empty(), errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
+@(styleForm: Form[controllers.Styles.StyleForm], 
+layers: Page[Layer], 
+groups: Page[LayerGroup],
+create:Boolean, 
+errorLine: java.util.Optional[Integer] = java.util.Optional.empty(), 
+errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
 
@@ -92,6 +97,10 @@
 					Domain.message("web.application.page.styles.form.field.parentlayers.label"), 
 					Domain.message("web.application.page.styles.form.field.parentlayers.none"),
 					Domain.message("web.application.page.styles.form.field.parentlayers.help"))
+				@helper.parents(groups, routes.Groups.edit, 
+					Domain.message("web.application.page.styles.form.field.parentgroups.label"), 
+					Domain.message("web.application.page.styles.form.field.parentgroups.none"),
+					Domain.message("web.application.page.styles.form.field.parentgroups.help"))
 		
 				<!-- fields that are not user editable but must be passed on -->
 				<input type="hidden" class="form-control" id="input-format" name="format" value="@styleForm("format").value" readonly>
