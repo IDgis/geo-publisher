@@ -265,7 +265,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		log.debug("requesting columns: " + requestColumnNames);
 		
 		startLoaderSession(new FetchVectorDataset(
-			importJob.getSourceDatasetId(), 
+			importJob.getExternalSourceDatasetId(), 
 			requestColumnNames, 
 			VectorLoaderSession.props(								
 				getContext().parent(), // loader

@@ -567,6 +567,7 @@ public class JobManager extends UntypedActor {
 								importJob.filterConditions,
 								category.identification,
 								dataSource.identification,
+								sourceDataset.identification,
 								sourceDataset.externalIdentification,
 								sourceDatasetVersion.type,
 								dataset.id,
@@ -640,6 +641,7 @@ public class JobManager extends UntypedActor {
 											t.get(category.identification),
 											t.get(dataSource.identification), 
 											t.get(sourceDataset.identification),
+											t.get(sourceDataset.externalIdentification),
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											notifications));
@@ -650,6 +652,7 @@ public class JobManager extends UntypedActor {
 											t.get(category.identification),
 											t.get(dataSource.identification), 
 											t.get(sourceDataset.identification),
+											t.get(sourceDataset.externalIdentification),
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											t.get(importJob.filterConditions),
