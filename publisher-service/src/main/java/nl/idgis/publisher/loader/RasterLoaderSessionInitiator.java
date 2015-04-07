@@ -64,7 +64,7 @@ public class RasterLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	}
 	
 	private void startReceiver() {
-		String fileName = importJob.getExternalSourceDatasetId() + ".tif";		
+		String fileName = importJob.getDatasetId() + ".tif";		
 		rasterFolder.tell(new GetFileReceiver(Paths.get(fileName)), getSelf());
 		become("waiting for receiver", waitingForReceiver());
 	}
