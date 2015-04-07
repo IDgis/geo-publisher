@@ -86,7 +86,7 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		
 		int sourceDatasetId = 
 			query().from(sourceDataset)
-			.where(sourceDataset.identification.eq(sourceDatasetIdentification))
+			.where(sourceDataset.externalIdentification.eq(sourceDatasetIdentification))
 			.singleResult(sourceDataset.id);
 		
 		int datasetId = 
@@ -123,7 +123,7 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 		
 		int sourceDatasetId = 
 			query().from(sourceDataset)
-			.where(sourceDataset.identification.eq(sourceDatasetIdentification))
+			.where(sourceDataset.externalIdentification.eq(sourceDatasetIdentification))
 			.singleResult(sourceDataset.id);
 		
 		int datasetId = insert(dataset)

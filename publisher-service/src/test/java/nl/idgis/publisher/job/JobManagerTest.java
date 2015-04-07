@@ -106,7 +106,8 @@ public class JobManagerTest extends AbstractServiceTest {
 		int sourceDatasetId = 
 			insert(sourceDataset)
 				.set(sourceDataset.dataSourceId, dataSourceId)
-				.set(sourceDataset.identification, "testSourceDataset")
+				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.externalIdentification, "testSourceDataset")
 				.executeWithKey(sourceDataset.id);
 		
 		int categoryId =

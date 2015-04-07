@@ -205,7 +205,7 @@ public class Harvester extends UntypedActor {
 							.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
 							.where(sourceDataset.deleteTime.isNull()
 								.and(dataSource.identification.eq(dataSourceId)))
-							.list(sourceDataset.identification).thenAccept(datasetIds ->						
+							.list(sourceDataset.externalIdentification).thenAccept(datasetIds ->						
 								self.tell(
 									new StartHarvesting(
 										sender, 

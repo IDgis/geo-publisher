@@ -567,7 +567,7 @@ public class JobManager extends UntypedActor {
 								importJob.filterConditions,
 								category.identification,
 								dataSource.identification,
-								sourceDataset.identification,
+								sourceDataset.externalIdentification,
 								sourceDatasetVersion.type,
 								dataset.id,
 								dataset.name,
