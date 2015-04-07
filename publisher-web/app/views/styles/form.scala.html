@@ -92,6 +92,10 @@
 					Domain.message("web.application.page.styles.form.field.parentlayers.label"), 
 					Domain.message("web.application.page.styles.form.field.parentlayers.none"),
 					Domain.message("web.application.page.styles.form.field.parentlayers.help"))
+				@helper.parents(layers, routes.Layers.edit, 
+					Domain.message("web.application.page.styles.form.field.parentgroups.label"), 
+					Domain.message("web.application.page.styles.form.field.parentgroups.none"),
+					Domain.message("web.application.page.styles.form.field.parentgroups.help"))
 		
 				<!-- fields that are not user editable but must be passed on -->
 				<input type="hidden" class="form-control" id="input-format" name="format" value="@styleForm("format").value" readonly>
