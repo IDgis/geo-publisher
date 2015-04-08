@@ -464,7 +464,7 @@ public class DefaultGeoServerRestTest {
 	
 	@Test
 	public void testRaster() throws Exception {
-		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/cea.tif");
+		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
 		assertEquals("file", testRasterUrl.getProtocol());
 		
 		File testRasterFile = new File(testRasterUrl.getFile());
@@ -475,5 +475,9 @@ public class DefaultGeoServerRestTest {
 		
 		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
 		service.postCoverageStore(workspace, coverageStore).get();
+	
+		// TODO: figure out how to create a coverage with a name different from nativeName
+		Coverage coverage = new Coverage("albers27", "albers27");
+		service.postCoverage(workspace, coverageStore, coverage).get();
 	}
 }

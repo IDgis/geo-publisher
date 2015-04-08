@@ -549,6 +549,45 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return os.toByteArray();		
 	}
 	
+	private String getCoverageStorePath(Workspace workspace, CoverageStore coverageStore) {
+		return getCoverageStoresPath(workspace) + "/" + coverageStore.getName();
+	}
+	
+	private String getCoveragesPath(Workspace workspace, CoverageStore coverageStore) {
+		return getCoverageStorePath(workspace, coverageStore) + "/coverages";
+	}
+	
+	private byte[] getCoverageDocument(Coverage coverage) throws XMLStreamException, IOException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		sw.writeStartDocument();
+		sw.writeStartElement("coverage");
+			sw.writeStartElement("name");
+				sw.writeCharacters(coverage.getName());
+			sw.writeEndElement();
+			sw.writeStartElement("nativeName");
+				sw.writeCharacters(coverage.getNativeName());
+			sw.writeEndElement();
+		sw.writeEndElement();
+		sw.writeEndDocument();
+		sw.close();
+		
+		os.close();
+		
+		return os.toByteArray();
+	}
+	
+	@Override
+	public CompletableFuture<Void> postCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
+		try {
+			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage));
+		} catch(Exception e) {
+			return f.failed(e);
+		}
+	}
+	
 	@Override
 	public CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
