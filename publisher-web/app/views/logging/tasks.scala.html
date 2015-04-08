@@ -54,7 +54,7 @@
 							</div>
 							<div class="col-lg-4">
 								@if(task.message().properties() != null){
-									@task.message().properties().getIdentification()
+									@task.message().properties().getTitle()
 								}
 							</div>
 							<div class="col-lg-2">
@@ -65,8 +65,10 @@
 								}
 							</div>
 							<div class="col-lg-2">
-								@if(task.message().properties() != null) {
-									 @Domain.message(task.message().properties().getTitle())
+								@if(task.active){
+									<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+								}else{
+									 @Domain.message(task.getStatusString())
 								}
 							</div>
 							<div class="col-lg-3">

@@ -2,6 +2,8 @@ package nl.idgis.publisher.domain.web;
 
 import java.sql.Timestamp;
 
+import nl.idgis.publisher.domain.StatusType;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -60,9 +62,40 @@ public final class ActiveTask extends DashboardItem {
 	public Integer progress () {
 		return this.progress;
 	}
-
+	
+	@JsonGetter
 	public Timestamp time() {
 		return time;
 	}
 
+	@JsonGetter
+	public String getStatusString () {
+		if (message() != null) {
+			if (message().properties() != null) {
+				StatusType status = message().properties().getStatus();
+				if (status instanceof Enum<?>) {
+					return status.getClass ().getCanonicalName ()  + "." + ((Enum<?>) status).name ();
+				} else {
+					return status.toString ();
+				}
+			}
+		}
+		return "";
+	}
+	
+	@JsonGetter
+	public String getStatusCategoryString () {
+		if (message() != null) {
+			if (message().properties() != null) {
+				StatusType status = message().properties().getStatus();
+				return status.statusCategory().getClass ().getCanonicalName ()  
+					+ "." 
+					+ status.statusCategory().name();
+			}
+		}
+		return "";
+	}
+
+
+	
 }
