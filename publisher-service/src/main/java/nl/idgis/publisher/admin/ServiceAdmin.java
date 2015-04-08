@@ -8,7 +8,11 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJobLog.jobLog;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -21,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.database.AsyncSQLDeleteClause;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 
@@ -37,6 +42,7 @@ import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.Tuple;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -85,22 +91,25 @@ public class ServiceAdmin extends AbstractAdmin {
 		String serviceId = listEnvironments.getServiceId();
 		final Page.Builder<ServicePublish> builder = new Page.Builder<> ();
 		
-		return db.query().from(service)
+		BooleanExpression inUse = new SQLSubQuery().from(publishedServiceEnvironment)
+			.join(service).on(publishedServiceEnvironment.serviceId.eq(service.id))
 			.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-			.leftJoin(publishedServiceEnvironment).on(service.id.eq(publishedServiceEnvironment.serviceId))
-			.leftJoin(environment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
-			.where(genericLayer.identification.eq(serviceId))
+			.where(genericLayer.identification.eq(serviceId)
+					.and(publishedServiceEnvironment.environmentId.eq(environment.id)))
+			.exists().as("inUse");
+		
+		return db.query().from(environment)
 			.list(
 					environment.identification,
 					environment.name,
-					publishedServiceEnvironment.environmentId
+					inUse
 					).thenApply(publish -> {
 						for (Tuple service : publish.list()) {
 							builder.add(new ServicePublish(
 									serviceId,
 									service.get(environment.identification),
 									service.get(environment.name),
-									service.get(publishedServiceEnvironment.environmentId)!=null
+									service.get(inUse)
 									));
 						}
 						return builder.build();

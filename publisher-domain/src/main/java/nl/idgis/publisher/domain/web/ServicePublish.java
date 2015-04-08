@@ -51,4 +51,11 @@ public class ServicePublish extends Identifiable {
 	}
 
 
+	@Override
+	public String toString() {
+		return "ServicePublish [identification=" + identification + ", name="
+				+ name + ", inUse=" + inUse + "]";
+	}
+
+
 }

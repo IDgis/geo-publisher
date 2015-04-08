@@ -66,7 +66,7 @@ public class Services extends Controller {
 				});
 	}
 	
-	private static Promise<Result> renderPublishForm (final String serviceFormName, final Form<ServicePublishForm> servicePublishForm) {
+	private static Promise<Result> renderPublishForm (final String serviceFormName, final Page<ServicePublish> servicePublishForm) {
 		return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
@@ -83,7 +83,7 @@ public class Services extends Controller {
 		return renderForm(serviceForm, groupLayer, false);
 	}
 	
-	private static Promise<Result> renderCreatePublishForm (final String serviceFormName, final Form<ServicePublishForm> servicePublishForm) {
+	private static Promise<Result> renderCreatePublishForm (final String serviceFormName, final Page<ServicePublish> servicePublishForm) {
 		return renderPublishForm(serviceFormName, servicePublishForm);
 	}
 	
@@ -313,10 +313,10 @@ public class Services extends Controller {
 				@Override
 				public Promise<Result> apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
 					Logger.debug("Service publish: " + servicePublish);
-					final Form<ServicePublishForm> formServicePublishForm = Form
-							.form (ServicePublishForm.class)
-							.fill (new ServicePublishForm ());
-					return renderCreatePublishForm (service.name(), formServicePublishForm);
+					for (ServicePublish sp : servicePublish.values()) {
+						Logger.debug("SP: " + sp.toString());
+					}
+					return renderCreatePublishForm (service.name(), servicePublish);
 				}
 			});
 	}
