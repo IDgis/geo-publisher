@@ -88,4 +88,6 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer);
 
 	CompletableFuture<Void> postCoverageStore(Workspace workspace, CoverageStore coverageStore);
+
+	CompletableFuture<Void> postCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage);
 }
