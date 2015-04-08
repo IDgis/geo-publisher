@@ -178,7 +178,7 @@ public class FolderTest {
 		assertTrue(Arrays.equals(bytesWritten, testFileContent));
 	}
 	
-	@Test
+	//@Test disabled: consumes too much time / requires too much disk space
 	public void testStoreLargeFiles() throws Exception {
 		for(int j = 0; j < 10; j++) { // write 1GiB in total
 			Path path = Paths.get("test4-" + j + ".tif");
