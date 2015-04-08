@@ -367,6 +367,47 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					name -> getDataStore(workspace, name.string().get())
 						.thenApply(this::optionalPresent))));
 	}
+	
+	private String getCoverageStoresPath(Workspace workspace) {
+		return getWorkspacesPath() + "/" + workspace.getName() + "/coveragestores";
+	}
+	
+	@Override
+	public CompletableFuture<Void> postCoverageStore(Workspace workspace, CoverageStore coverageStore) {
+		try {
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			
+			XMLOutputFactory of = XMLOutputFactory.newInstance();
+			XMLStreamWriter sw = of.createXMLStreamWriter(os);
+			sw.writeStartDocument();
+			sw.writeStartElement("coverageStore");
+				sw.writeStartElement("name");
+					sw.writeCharacters(coverageStore.getName());
+				sw.writeEndElement();
+				sw.writeStartElement("type");
+					sw.writeCharacters("GeoTIFF");
+				sw.writeEndElement();
+				// workspace name in url is apparently not enough: 
+				// omitting the workspace here results in an exception
+				sw.writeStartElement("workspace");
+					sw.writeStartElement("name");
+						sw.writeCharacters(workspace.getName());
+					sw.writeEndElement();
+				sw.writeEndElement();
+				sw.writeStartElement("url");
+					sw.writeCharacters(coverageStore.getUrl().toExternalForm());
+				sw.writeEndElement();
+			sw.writeEndElement();
+			sw.writeEndDocument();
+			sw.close();
+			
+			os.close();
+			
+			return post(getCoverageStoresPath(workspace), os.toByteArray());
+		} catch(Exception e) {
+			return f.failed(e);
+		}
+	}
 
 	@Override
 	public CompletableFuture<Void> postDataStore(Workspace workspace, DataStore dataStore) {

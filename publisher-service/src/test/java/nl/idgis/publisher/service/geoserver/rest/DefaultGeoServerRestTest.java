@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -480,5 +482,20 @@ public class DefaultGeoServerRestTest {
 				
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		assertEquals(Arrays.asList("anotherTest"), service.getTiledLayerNames(anotherWorkspace).get());
+	}
+	
+	@Test
+	public void testRaster() throws Exception {
+		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/cea.tif");
+		assertEquals("file", testRasterUrl.getProtocol());
+		
+		File testRasterFile = new File(testRasterUrl.getFile());
+		assertTrue(testRasterFile.exists());
+		
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
+		service.postCoverageStore(workspace, coverageStore).get();
 	}
 }
