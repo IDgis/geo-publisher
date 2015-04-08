@@ -66,6 +66,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
@@ -121,7 +122,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 	}
 	
-	int datasetId;
+	int vectorDatasetId, rasterDatasetId;
 		
 	@Before
 	public void databaseContent() throws Exception {
@@ -135,14 +136,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(category.name, "category-name0")
 			.executeWithKey(category.id);
 		
-		int sourceDatasetId = insert(sourceDataset)
+		int vectorSourceDatasetId = insert(sourceDataset)
 			.set(sourceDataset.identification, UUID.randomUUID().toString())
 			.set(sourceDataset.externalIdentification, "sourcedataset0")
 			.set(sourceDataset.dataSourceId, dataSourceId)
 			.executeWithKey(sourceDataset.id);
 		
-		int sourceDatasetVersionId = insert(sourceDatasetVersion)
-			.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
+		int vectorSourceDatasetVersionId = insert(sourceDatasetVersion)
+			.set(sourceDatasetVersion.sourceDatasetId, vectorSourceDatasetId)
 			.set(sourceDatasetVersion.categoryId, categoryId)
 			.set(sourceDatasetVersion.name, "sourcedataset-name0")
 			.set(sourceDatasetVersion.type, "VECTOR")
@@ -151,19 +152,19 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		for(int i = 0; i < 2; i++) {
 			insert(sourceDatasetVersionColumn)
-			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, sourceDatasetVersionId)
+			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, vectorSourceDatasetVersionId)
 			.set(sourceDatasetVersionColumn.index, i)
 			.set(sourceDatasetVersionColumn.name, "column" + i)
 			.set(sourceDatasetVersionColumn.dataType, "TEXT")
 			.execute();
 		}
 		
-		datasetId = insert(dataset)
+		vectorDatasetId = insert(dataset)
 			.set(dataset.identification, "dataset0")
 			.set(dataset.name, "dataset-name0")
 			.set(dataset.fileUuid, UUID.randomUUID().toString())
 			.set(dataset.uuid, UUID.randomUUID().toString())
-			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.sourceDatasetId, vectorSourceDatasetId)
 			.executeWithKey(dataset.id);
 		
 		insert(datasetColumn)
@@ -173,22 +174,22 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				datasetColumn.name,
 				datasetColumn.dataType)
 			.select(new SQLSubQuery().from(sourceDatasetVersionColumn)
-				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersionId))
+				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(vectorSourceDatasetVersionId))
 				.list(
-					datasetId,
+					vectorDatasetId,
 					sourceDatasetVersionColumn.index,
 					sourceDatasetVersionColumn.name,
 					sourceDatasetVersionColumn.dataType))
 			.execute();
 		
-		int jobId = insert(job)
+		int vectorJobId = insert(job)
 			.set(job.type, "IMPORT")
 			.executeWithKey(job.id);
 		
-		int importJobId = insert(importJob)
-			.set(importJob.jobId, jobId)
-			.set(importJob.sourceDatasetVersionId, sourceDatasetVersionId)
-			.set(importJob.datasetId, datasetId)
+		int vectorImportJobId = insert(importJob)
+			.set(importJob.jobId, vectorJobId)
+			.set(importJob.sourceDatasetVersionId, vectorSourceDatasetVersionId)
+			.set(importJob.datasetId, vectorDatasetId)
 			.set(importJob.filterConditions, "{ \"expression\": null }")
 			.executeWithKey(importJob.id);
 		
@@ -199,9 +200,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				importJobColumn.name,
 				importJobColumn.dataType)
 			.select(new SQLSubQuery().from(datasetColumn)
-				.where(datasetColumn.datasetId.eq(datasetId))
+				.where(datasetColumn.datasetId.eq(vectorDatasetId))
 				.list(
-					importJobId,
+					vectorImportJobId,
 					datasetColumn.index,
 					datasetColumn.name,
 					datasetColumn.dataType))
@@ -211,9 +212,128 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.columns(
 				jobState.jobId,
 				jobState.state)
-			.values(jobId, "STARTED").addBatch()
-			.values(jobId, "SUCCEEDED").addBatch()
+			.values(vectorJobId, "STARTED").addBatch()
+			.values(vectorJobId, "SUCCEEDED").addBatch()
 			.execute();
+		
+		int rasterSourceDatasetId = insert(sourceDataset)
+			.set(sourceDataset.identification, UUID.randomUUID().toString())
+			.set(sourceDataset.externalIdentification, "sourcedataset1")
+			.set(sourceDataset.dataSourceId, dataSourceId)
+			.executeWithKey(sourceDataset.id);
+		
+		int rasterSourceDatasetVersionId = insert(sourceDatasetVersion)
+			.set(sourceDatasetVersion.sourceDatasetId, rasterSourceDatasetId)
+			.set(sourceDatasetVersion.categoryId, categoryId)
+			.set(sourceDatasetVersion.name, "sourcedataset-name1")
+			.set(sourceDatasetVersion.type, "RASTER")
+			.set(sourceDatasetVersion.confidential, false)
+			.executeWithKey(sourceDatasetVersion.id);
+		
+		rasterDatasetId = insert(dataset)
+			.set(dataset.identification, "dataset1")
+			.set(dataset.name, "dataset-name1")
+			.set(dataset.fileUuid, UUID.randomUUID().toString())
+			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.sourceDatasetId, rasterSourceDatasetId)
+			.executeWithKey(dataset.id);
+		
+		int rasterJobId = insert(job)
+			.set(job.type, "IMPORT")
+			.executeWithKey(job.id);
+		
+		insert(importJob)
+			.set(importJob.jobId, rasterJobId)
+			.set(importJob.sourceDatasetVersionId, rasterSourceDatasetVersionId)
+			.set(importJob.datasetId, rasterDatasetId)
+			.set(importJob.filterConditions, "{ \"expression\": null }")
+			.executeWithKey(importJob.id);
+		
+		insert(jobState)
+			.columns(
+				jobState.jobId,
+				jobState.state)
+			.values(rasterJobId, "STARTED").addBatch()
+			.values(rasterJobId, "SUCCEEDED").addBatch()
+			.execute();
+	}
+	
+	@Test
+	public void testVectorRasterMix() throws Exception {
+		int vectorLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "vector")
+			.set(genericLayer.name, "vector-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, vectorLayerId)
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.executeWithKey(leafLayer.id);
+		
+		int rasterLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "raster")
+			.set(genericLayer.name, "raster-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, rasterLayerId)
+			.set(leafLayer.datasetId, rasterDatasetId)
+			.executeWithKey(leafLayer.id);
+		
+		int serviceLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.columns(
+				layerStructure.childLayerId,
+				layerStructure.parentLayerId,
+				layerStructure.layerOrder)
+			.values(vectorLayerId, serviceLayerId, 0).addBatch()
+			.values(rasterLayerId, serviceLayerId, 1).addBatch()
+			.execute();
+		
+		insert(service)
+			.set(service.genericLayerId, serviceLayerId)			
+			.executeWithKey(service.id);
+		
+		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		
+		List<LayerRef<? extends Layer>> layerRefs = service.getLayers();
+		assertNotNull(layerRefs);
+		
+		Iterator<LayerRef<? extends Layer>> layerRefItr = layerRefs.iterator();
+		assertNotNull(layerRefItr);
+		
+		assertTrue(layerRefItr.hasNext());
+		LayerRef<? extends Layer> vectorLayerRef = layerRefItr.next();
+		assertNotNull(vectorLayerRef);
+		assertFalse(vectorLayerRef.isGroupRef());
+		
+		DatasetLayer vectorLayer = vectorLayerRef.asDatasetRef().getLayer();
+		assertNotNull(vectorLayer);
+		assertTrue(vectorLayer.isVectorLayer());
+		
+		VectorDatasetLayer vectorDatasetLayer = vectorLayer.asVectorLayer();
+		assertNotNull(vectorDatasetLayer);
+		assertEquals("dataset0", vectorDatasetLayer.getTableName());
+		assertEquals(Arrays.asList("column0", "column1"), vectorDatasetLayer.getColumnNames());
+		
+		assertTrue(layerRefItr.hasNext());
+		LayerRef<? extends Layer> rasterLayerRef = layerRefItr.next();
+		assertNotNull(rasterLayerRef);
+		assertFalse(rasterLayerRef.isGroupRef());
+		
+		DatasetLayer rasterLayer = rasterLayerRef.asDatasetRef().getLayer();
+		assertNotNull(rasterLayer);
+		assertTrue(rasterLayer.isRasterLayer());
+		
+		RasterDatasetLayer rasterDatasetLayer = rasterLayer.asRasterLayer();
+		assertNotNull(rasterDatasetLayer);
+		assertEquals("dataset1.tif", rasterDatasetLayer.getFileName());
+		
+		assertFalse(layerRefItr.hasNext());
 	}
 		
 	@Test
@@ -244,7 +364,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		int leafLayerId = insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId0)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.executeWithKey(leafLayer.id);
 		
 		insert(leafLayerKeyword)
@@ -474,7 +594,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -668,7 +788,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -809,7 +929,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
 		int root0Id = insert(genericLayer)
@@ -924,7 +1044,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			
 			insert(leafLayer)
 				.set(leafLayer.genericLayerId, layer)
-				.set(leafLayer.datasetId, datasetId)
+				.set(leafLayer.datasetId, vectorDatasetId)
 				.execute();
 			
 			layerIds.add(layer);
@@ -988,7 +1108,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId0)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
 		int rootId = insert(genericLayer)
@@ -1063,8 +1183,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				leafLayer.filter,
 				leafLayer.genericLayerId,
 				leafLayer.datasetId)
-			.values(1, null, null, 1, datasetId).addBatch()
-			.values(2, null, null, 2, datasetId).addBatch()
+			.values(1, null, null, 1, vectorDatasetId).addBatch()
+			.values(2, null, null, 2, vectorDatasetId).addBatch()
 			.execute();
 		
 		for(String identification : Arrays.asList(
@@ -1118,8 +1238,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				leafLayer.id,
 				leafLayer.genericLayerId,
 				leafLayer.datasetId)
-			.values(0, 3, datasetId).addBatch()
-			.values(1, 4, datasetId).addBatch()
+			.values(0, 3, vectorDatasetId).addBatch()
+			.values(1, 4, vectorDatasetId).addBatch()
 			.execute();
 		
 		insert(layerStructure)
@@ -1179,7 +1299,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					layerIdFuture.thenCompose(layerId ->
 						tx.insert(leafLayer)
 							.set(leafLayer.genericLayerId, layerId.get())
-							.set(leafLayer.datasetId, datasetId)
+							.set(leafLayer.datasetId, vectorDatasetId)
 							.execute());
 					
 				CompletableFuture<Optional<Integer>> rootIdFuture = 
@@ -1288,7 +1408,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
 		int rootId = insert(genericLayer)

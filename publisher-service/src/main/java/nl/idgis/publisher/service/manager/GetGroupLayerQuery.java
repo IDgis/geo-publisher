@@ -22,7 +22,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayer;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -201,7 +201,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 		return new GroupQuery(log).result();
 	}
 	
-	private CompletableFuture<TypedList<DefaultVectorDatasetLayer>> datasets() {
+	private CompletableFuture<TypedList<AbstractDatasetLayer>> datasets() {
 		return new DatasetQuery(log).result();
 	}
 

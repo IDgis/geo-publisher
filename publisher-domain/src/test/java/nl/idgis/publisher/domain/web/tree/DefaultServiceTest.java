@@ -26,7 +26,7 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testNoGroup() {
-		List<DefaultVectorDatasetLayer> datasets = Arrays.asList(
+		List<AbstractDatasetLayer> datasets = Arrays.asList(
 			new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 				null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
 			new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
@@ -89,7 +89,7 @@ public class DefaultServiceTest {
 				root,
 				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null));
 		
-		List<DefaultVectorDatasetLayer> datasets = Arrays.asList(
+		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
 				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 

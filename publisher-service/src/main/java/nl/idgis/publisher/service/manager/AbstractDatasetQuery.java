@@ -26,6 +26,8 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
+import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultRasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
@@ -34,7 +36,7 @@ import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.utils.TypedList;
 
-public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<DefaultVectorDatasetLayer>> {
+public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<AbstractDatasetLayer>> {
 	
 	protected abstract AsyncSQLQuery filter(AsyncSQLQuery query);
 	
@@ -148,30 +150,49 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 	}
 
 	@Override
-	protected CompletableFuture<TypedList<DefaultVectorDatasetLayer>> result() {
+	protected CompletableFuture<TypedList<AbstractDatasetLayer>> result() {
 		return 
 			tilingDatasetMimeFormats().thenCompose(tilingMimeFormats ->
 			datasetColumns().thenCompose(columns ->
 			datasetKeywords().thenCompose(keywords ->
 			datasetStyles().thenCompose(styles ->			
 			datasetInfo().thenApply(resp ->
-				new TypedList<>(DefaultVectorDatasetLayer.class, 
+				new TypedList<>(AbstractDatasetLayer.class,
 					resp.list().stream()
 						.map(t -> {
 							String type = t.get(sourceDatasetVersion.type);
 							
+							String id = t.get(genericLayer.identification);
+							String name = t.get(genericLayer.name);							
+							String title = t.get(genericLayer.title);
+							String abstr = t.get(genericLayer.abstractCol);							
+							Tiling tiling = getTiling(tilingMimeFormats, t);
+							
 							switch(type) {
-								// TODO: add raster data support
+								case "RASTER": 
+									String fileName = t.get(dataset.identification) + ".tif";
+									
+									return new DefaultRasterDatasetLayer(
+											id,
+											name,
+											title,
+											abstr,
+											tiling,
+											getList(keywords, t),
+											fileName,
+											getStyleRefs(styles, t));
 							
 								case "VECTOR":
+									String tableName = t.get(dataset.identification); 
+									
 									return new DefaultVectorDatasetLayer(
-										t.get(genericLayer.identification),
-										t.get(genericLayer.name),
-										t.get(genericLayer.title),
-										t.get(genericLayer.abstractCol),								
-										getTiling(tilingMimeFormats, t),
+										id,
+										name,
+										title,
+										abstr,								
+										tiling,
 										getList(keywords, t),
-										t.get(dataset.identification),
+										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t));
 									
