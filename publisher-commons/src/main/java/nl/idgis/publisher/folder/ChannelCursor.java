@@ -16,9 +16,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChunk> {
-	
-	private static final int CHUNK_SIZE = 102400;
-	
+		
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ByteBuffer buffer;
@@ -29,15 +27,16 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 	
 	private CompletableFuture<FileChunk> future;
 
-	public ChannelCursor(AsynchronousFileChannel channel) {
+	public ChannelCursor(AsynchronousFileChannel channel, int chunkSize) {
 		super(channel);
 		
-		buffer = ByteBuffer.allocateDirect(CHUNK_SIZE);
+		buffer = ByteBuffer.allocateDirect(chunkSize);
 	}
 	
 	@Override
 	public final void postStop() throws Exception {
-		t.close();
+		t.close();		
+		log.debug("channel closed");
 	}
 	
 	protected void preStartElse() throws Exception {
@@ -46,8 +45,8 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 		eof = false;
 	}
 	
-	public static Props props(AsynchronousFileChannel channel) {
-		return Props.create(ChannelCursor.class, channel);
+	public static Props props(AsynchronousFileChannel channel, int chunkSize) {
+		return Props.create(ChannelCursor.class, channel, chunkSize);
 	}
 
 	@Override

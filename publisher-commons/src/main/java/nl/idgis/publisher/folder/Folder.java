@@ -24,18 +24,27 @@ import akka.event.LoggingAdapter;
 
 public class Folder extends UntypedActor {
 	
+	private static final int DEFAULT_CURSOR_CHUNK_SIZE = 102400;
+	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final Path root;
 	
-	public Folder(Path root) {
+	private final int cursorChunkSize;
+	
+	public Folder(Path root, int cursorChunkSize) {
 		this.root = root;
+		this.cursorChunkSize = cursorChunkSize;
 	}
 	
 	public static Props props(Path root) {
-		return Props.create(Folder.class, root);
+		return props(root, DEFAULT_CURSOR_CHUNK_SIZE);
+	}
+	
+	public static Props props(Path root, int cursorChunkSize) {
+		return Props.create(Folder.class, root, cursorChunkSize);
 	}
 
 	@Override
@@ -128,15 +137,17 @@ public class Folder extends UntypedActor {
 	private void handleFetchFile(FetchFile msg) throws Exception {
 		Path file = msg.getFile();
 		
-		log.debug("fetching file: {}", file);
+		log.debug("fetching file: {}, cursorChunkSize: {}", file, cursorChunkSize);
 		
 		ActorRef sender = getSender();
 		resolveFile(msg, file, resolvedFile -> {
 			try {
 				ActorRef cursor = getContext().actorOf(
-					ChannelCursor.props(AsynchronousFileChannel.open(
-						resolvedFile, 
-						StandardOpenOption.READ)),
+					ChannelCursor.props(
+						AsynchronousFileChannel.open(
+							resolvedFile, 
+							StandardOpenOption.READ),
+						cursorChunkSize),
 					nameGenerator.getName(ChannelCursor.class));
 				cursor.tell(new NextItem(), sender);
 			} catch(Exception e) {

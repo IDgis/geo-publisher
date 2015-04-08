@@ -34,7 +34,20 @@ public class ProviderPropsFactory {
 	}	
 	
 	private ProviderProps raster(String name, Config providerConfig) {
-		Props folder = Folder.props(new File(providerConfig.getString("data.folder")).toPath());
+		Config data = providerConfig.getConfig("data");
+		
+		Props folder;
+		if(data.hasPath("cursorChunkSize")) {
+			int cursorChunkSize = data.getInt("cursorChunkSize");
+			log.debug("custom cursorChunkSize: {}", cursorChunkSize);
+			
+			folder = Folder.props(
+				new File(data.getString("folder")).toPath(), 
+				cursorChunkSize);
+		} else {
+			folder = Folder.props(new File(data.getString("folder")).toPath());
+		}
+		
 		Props metadata = metadata(providerConfig);
 		
 		log.info("creating raster provider: {}", name);
@@ -46,14 +59,18 @@ public class ProviderPropsFactory {
 		String name = providerConfig.getString("name");
 		String type = providerConfig.getString("type");
 		
-		switch(type) {
-			case "VECTOR":
-				return Optional.of(vector(name, providerConfig));
-			case "RASTER":
-				return Optional.of(raster(name, providerConfig));
+		try {
+			switch(type) {
+				case "VECTOR":
+					return Optional.of(vector(name, providerConfig));
+				case "RASTER":
+					return Optional.of(raster(name, providerConfig));
+			}
+			
+			log.error("unknown provider type: {}, name: {}", type, name);
+		} catch(Exception e) {
+			log.error("couldn't start provider type: {}, name: {}, error: {}", type, name, e);
 		}
-		
-		log.error("unknown provider type: {}, name: {}", type, name);
 		
 		return Optional.empty();
 	}
