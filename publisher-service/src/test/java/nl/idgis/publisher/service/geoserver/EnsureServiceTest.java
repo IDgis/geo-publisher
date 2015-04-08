@@ -379,7 +379,7 @@ public class EnsureServiceTest {
 		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayerRef));
 		
 		f.ask(geoServerService, new Ensure(service, new End()), Ack.class).get();
-		f.ask(recorder, new Wait(4), Waited.class).get();
+		f.ask(recorder, new Wait(3), Waited.class).get();
 		
 		Recording recording = f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(EnsureWorkspace.class, workspace -> {
@@ -387,7 +387,6 @@ public class EnsureServiceTest {
 			});
 		
 		recording
-			.assertNext(FinishEnsure.class)
 			.assertNext(FinishEnsure.class)
 			.assertNext(Terminated.class)
 			.assertNotHasNext();

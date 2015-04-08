@@ -11,6 +11,8 @@
 
    <logger name="org.apache.zookeeper" level="off"/>
 
+	<logger name="nl.idgis.publisher.service.geoserver" level="debug"/>
+	
   <!-- 
   	<logger name="nl.idgis.publisher.dataset" level="debug"/>
   -->

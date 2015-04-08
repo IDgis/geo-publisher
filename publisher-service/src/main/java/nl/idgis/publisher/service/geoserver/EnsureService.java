@@ -92,19 +92,23 @@ public class EnsureService extends UntypedActor {
 				if(msg instanceof Ensured) {
 					log.debug("ensured (layers)");
 					
-					if(itr.hasNext()) {
+					while(itr.hasNext()) {
 						LayerRef<?> layerRef = itr.next();
 						
 						if(layerRef.isGroupRef()) {
 							GroupLayer layer = layerRef.asGroupRef().getLayer();
 							
-							target.tell(
-								new EnsureGroupLayer(
-									getUniqueLayerName(layer.getName()), 
-									layer.getTitle(), 
-									layer.getAbstract(),
-									layer.getTiling().orElse(null)), getSelf());							
-							getContext().become(layers(layer.getLayers(), depth + 1), false);
+							if (!layer.getLayers ().isEmpty ()) {
+								target.tell(
+									new EnsureGroupLayer(
+										getUniqueLayerName(layer.getName()), 
+										layer.getTitle(), 
+										layer.getAbstract(),
+										layer.getTiling().orElse(null)), getSelf());							
+								getContext().become(layers(layer.getLayers(), depth + 1), false);
+							} else {
+								continue;
+							}
 						} else {
 							DatasetLayerRef datasetRef = layerRef.asDatasetRef();
 							DatasetLayer layer = datasetRef.getLayer();
@@ -141,12 +145,14 @@ public class EnsureService extends UntypedActor {
 										: datasetRef.getStyleRef().getName(),
 									additionalStyleNames), getSelf());
 						}
-					} else {
-						log.debug("unbecome {}", depth);
 						
-						target.tell(new FinishEnsure(), getSelf());
-						getContext().unbecome();
-					}
+						return;
+					} 
+					
+					log.debug("unbecome {}", depth);
+						
+					target.tell(new FinishEnsure(), getSelf());
+					getContext().unbecome();
 				} else {
 					log.debug("unhandled (layers): {}", msg);
 					
