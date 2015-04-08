@@ -1,6 +1,8 @@
 package nl.idgis.publisher.metadata;
 
 import java.io.IOException;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,13 @@ public class MetadataDocument {
 	public byte[] getContent() throws IOException {
 		return xmlDocument.getContent();
 	}
+	
+	
+	protected String dateToString(String pattern, Date date){		
+		Format formatter = new SimpleDateFormat(pattern);
+		return formatter.format(date);
+	}
+	
 	
 	public String getTitle() throws NotFound {
 		return xmlDocument.getString(namespaces, 
