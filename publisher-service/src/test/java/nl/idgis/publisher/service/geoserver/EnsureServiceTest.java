@@ -359,6 +359,41 @@ public class EnsureServiceTest {
 	}
 	
 	@Test
+	public void testEmptyGroup () throws Throwable {
+		GroupLayer groupLayer = mock(GroupLayer.class);		
+		when(groupLayer.getName()).thenReturn("group0");
+		when(groupLayer.getTitle()).thenReturn("groupTitle0");
+		when(groupLayer.getAbstract()).thenReturn("groupAbstract0");
+		when(groupLayer.getLayers()).thenReturn(Collections.<LayerRef<?>>emptyList ());
+		when(groupLayer.getTiling()).thenReturn(Optional.empty());
+		
+		GroupLayerRef groupLayerRef = mock(GroupLayerRef.class);
+		when(groupLayerRef.isGroupRef()).thenReturn(true);
+		when(groupLayerRef.asGroupRef()).thenReturn(groupLayerRef);
+		when(groupLayerRef.getLayer()).thenReturn(groupLayer);
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service0");
+		when(service.getName()).thenReturn("serviceName0");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(groupLayerRef));
+		
+		f.ask(geoServerService, new Ensure(service, new End()), Ack.class).get();
+		f.ask(recorder, new Wait(4), Waited.class).get();
+		
+		Recording recording = f.ask(recorder, new GetRecording(), Recording.class).get()
+			.assertNext(EnsureWorkspace.class, workspace -> {
+				assertEquals("serviceName0", workspace.getWorkspaceId());
+			});
+		
+		recording
+			.assertNext(FinishEnsure.class)
+			.assertNext(FinishEnsure.class)
+			.assertNext(Terminated.class)
+			.assertNotHasNext();
+	}
+	
+	@Test
 	public void testDuplicateLayer() throws Exception {
 		final int numberOfDuplicates = 10;
 		

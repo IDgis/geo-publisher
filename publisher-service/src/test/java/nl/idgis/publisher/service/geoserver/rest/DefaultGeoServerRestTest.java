@@ -1,10 +1,11 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,16 +17,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
-import nl.idgis.publisher.service.geoserver.rest.Attribute;
-import nl.idgis.publisher.service.geoserver.rest.DataStore;
-import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
-import nl.idgis.publisher.service.geoserver.rest.FeatureType;
-import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 
@@ -219,6 +216,31 @@ public class DefaultGeoServerRestTest {
 		
 		service.deleteTiledLayer(workspace, layerGroup).get();		
 		assertFalse(service.getTiledLayer(workspace, layerGroup).get().isPresent());
+	}
+	
+	@Test
+	public void testLayerEmptyGroup () throws Exception {
+		Workspace workspace = new Workspace("workspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		LayerGroup layerGroup = new LayerGroup("group", "title", "abstract", Arrays.asList ());
+		try {
+			service.postLayerGroup(workspace, layerGroup).get();
+		} catch (ExecutionException e) {
+			assertNotNull (e.getCause ());
+			assertTrue (e.getCause () instanceof GeoServerException);
+			
+			final GeoServerException geoServerException = (GeoServerException) e.getCause ();
+			
+			assertEquals (Integer.valueOf (400), geoServerException.getHttpResponse ());
+			
+			return; 
+		}
+		
+		fail ("Expected: GeoServerException");
 	}
 
 	private Map<String, String> getConnectionParameters() {
