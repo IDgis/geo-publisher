@@ -19,4 +19,9 @@ public class JsonRasterDatasetLayer extends AbstractJsonDatasetLayer implements 
 	public RasterDatasetLayer asRasterLayer() {
 		return this;
 	}
+
+	@Override
+	public String getFileName() {		
+		return jsonNode.get("fileName").asText();
+	}
 }

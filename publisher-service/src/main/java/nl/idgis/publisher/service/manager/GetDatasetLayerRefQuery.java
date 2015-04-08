@@ -10,7 +10,7 @@ import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayerRef;
 
@@ -46,14 +46,14 @@ public class GetDatasetLayerRefQuery extends AbstractQuery<Object> {
 	@Override
 	CompletableFuture<Object> result() {
 		return new DatasetQuery(log).result().thenApply(typedList -> {
-			List<DefaultVectorDatasetLayer> list = typedList.list();
+			List<AbstractDatasetLayer> list = typedList.list();
 			
 			if(list.isEmpty()) {
 				return new NotFound();
 			} else {
-				Iterator<DefaultVectorDatasetLayer> itr = list.iterator();
+				Iterator<AbstractDatasetLayer> itr = list.iterator();
 				
-				DefaultVectorDatasetLayer datasetlayer = itr.next();
+				AbstractDatasetLayer datasetlayer = itr.next();
 				
 				if(itr.hasNext()) {
 					throw new IllegalStateException("multiple datasets found");
