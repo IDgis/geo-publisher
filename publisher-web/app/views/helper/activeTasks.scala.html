@@ -30,20 +30,17 @@
 	<ul class="list-group">
 		@for(task <- tasks.values) {
 			<li class="list-group-item task">
-					<strong>@Domain.message(task.title)</strong>
-					@if(task.active){
-						@if(task.message().properties() != null){
-							@task.message().properties().getTitle()
-						}
-						<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
-					}else{
-						@if(task.message().properties() != null){
-							@task.message().properties().getTitle()
-							<div class="text-muted">
-								@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @Domain.message(task.message().properties().getTitle())
-							</div>
-						}
-					}
+				<strong>@Domain.message(task.title)</strong>
+				@if(task.message().properties() != null){
+					@task.message().properties().getTitle()
+				}
+				@if(task.active){
+					<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+				}else{
+					<div class="text-muted">
+						@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @Domain.message(task.getStatusString())
+					</div>
+				}
 				@if(task.progress != null) {
 					<div class="progress progress-striped active" >
 						<div class="progress-bar progress-bar-success" role="progressbar" 
