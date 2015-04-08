@@ -66,11 +66,11 @@ public class Services extends Controller {
 				});
 	}
 	
-	private static Promise<Result> renderPublishForm (final Form<ServiceForm> serviceForm, final Form<ServicePublishForm> servicePublishForm) {
+	private static Promise<Result> renderPublishForm (final String serviceFormName, final Form<ServicePublishForm> servicePublishForm) {
 		return Promise.promise(new F.Function0<Result>() {
              @Override
              public Result apply() throws Throwable {
-            	 return ok (publishService.render (serviceForm.name(), servicePublishForm));
+            	 return ok (publishService.render (serviceFormName, servicePublishForm));
              }
         });
 	}
@@ -83,8 +83,8 @@ public class Services extends Controller {
 		return renderForm(serviceForm, groupLayer, false);
 	}
 	
-	private static Promise<Result> renderCreatePublishForm (final Form<ServiceForm> serviceForm, final Form<ServicePublishForm> servicePublishForm) {
-		return renderPublishForm(serviceForm.name(), servicePublishForm);
+	private static Promise<Result> renderCreatePublishForm (final String serviceFormName, final Form<ServicePublishForm> servicePublishForm) {
+		return renderPublishForm(serviceFormName, servicePublishForm);
 	}
 	
 	public static Promise<Result> submitCreate () {
@@ -313,11 +313,10 @@ public class Services extends Controller {
 				@Override
 				public Promise<Result> apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
 					Logger.debug("Service publish: " + servicePublish);
-					ServicePublishForm  servicePublishForm = new ServicePublishForm (servicePublish);
 					final Form<ServicePublishForm> formServicePublishForm = Form
 							.form (ServicePublishForm.class)
-							.fill (servicePublishForm);
-					return renderCreatePublishForm (service.name(), servicePublishForm);
+							.fill (new ServicePublishForm ());
+					return renderCreatePublishForm (service.name(), formServicePublishForm);
 				}
 			});
 	}
@@ -380,9 +379,7 @@ public class Services extends Controller {
 	public static class ServicePublishForm {
 		private String identification;
 		private String name;
-		private Boolean guaranteedSV = false;
-		private Boolean publicSV = false;
-		private Boolean secureSV = false;
+		private Boolean inUse = false;
 		
 		public ServicePublishForm () {
 			super();
@@ -391,9 +388,7 @@ public class Services extends Controller {
 		public ServicePublishForm (ServicePublish servicePublish){
 			this.identification = servicePublish.identification();
 			this.name = servicePublish.name();			
-			this.guaranteedSV = servicePublish.guaranteedSV();
-			this.publicSV = servicePublish.publicSV();
-			this.secureSV = servicePublish.secureSV();
+			this.inUse = servicePublish.guaranteedSV();
 		}
 		
 		public String getIdentification() {
@@ -412,28 +407,12 @@ public class Services extends Controller {
 			this.name = name;
 		}
 		
-		public Boolean getGuaranteedSV() {
-			return guaranteedSV;
+		public Boolean getInUse() {
+			return inUse;
 		}
 		
-		public void setGuaranteedSV(Boolean guaranteedSV) {
-			this.guaranteedSV = guaranteedSV;
-		}
-		
-		public Boolean getPublicSV() {
-			return publicSV;
-		}
-		
-		public void setPublicSV(Boolean publicSV) {
-			this.publicSV = publicSV;
-		}
-		
-		public Boolean getSecureSV() {
-			return secureSV;
-		}
-		
-		public void setSecureSV(Boolean secureSV) {
-			this.secureSV = secureSV;
+		public void setInUse(Boolean inUse) {
+			this.inUse = inUse;
 		}
 
 

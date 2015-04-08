@@ -47,7 +47,7 @@ GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.lis
 # 
 
 GET		/services										controllers.Services.list(q: String ?= null, published: java.lang.Boolean ?= null, page: Long ?= 1)
-GET		/services/:serviceId/publish					controllers.Services.publishService(serviceId: String)
+GET		/services/:serviceId/publish					controllers.Services.publishService(serviceId: String, page: Long ?= 1)
 GET 	/services/-/create								controllers.Services.create()
 POST 	/services/-/create								controllers.Services.submitCreate()
 POST 	/services/:serviceId/update						controllers.Services.submitUpdate(serviceId: String)
