@@ -4,10 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
@@ -73,7 +77,30 @@ public class FolderTest {
 	@After
 	public void shutdown() {
 		actorSystem.shutdown();
-	}	
+	}
+	
+	@After
+	public void removeFiles() throws Exception {
+		Files.walkFileTree(tempFolder, new SimpleFileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.delete(file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+				if(exc != null) {
+					throw exc;
+				}
+				
+				Files.delete(dir);
+				return FileVisitResult.CONTINUE;
+			}
+			
+		});
+	}
 
 	@Test
 	public void testNotExists() throws Exception {		
@@ -149,5 +176,27 @@ public class FolderTest {
 		byte[] bytesWritten = Files.readAllBytes(tempFolder.resolve(Paths.get("test3.tif")));
 		assertEquals(testFileContent.length, bytesWritten.length);
 		assertTrue(Arrays.equals(bytesWritten, testFileContent));
+	}
+	
+	@Test
+	public void testStoreLargeFiles() throws Exception {
+		for(int j = 0; j < 10; j++) { // write 1GiB in total
+			Path path = Paths.get("test4-" + j + ".tif");
+			
+			ActorRef fileReceiver = f.ask(folder, new GetFileReceiver(path), FileReceiver.class).get().getReceiver();
+			assertNotNull(fileReceiver);
+			
+			for(int i = 0; i < 100; i++) {
+				byte[] bytes = new byte[1024 * 1024];
+				new Random().nextBytes(bytes);
+				f.ask(fileReceiver, new FileChunk(bytes), Ack.class).get();
+			}
+			
+			f.ask(fileReceiver, new End(), Ack.class).get();
+			
+			Path resolvedPath = tempFolder.resolve(path); 
+			assertEquals(1024 * 1024 * 100, Files.size(resolvedPath));
+			Files.delete(resolvedPath);
+		}
 	}
 }
