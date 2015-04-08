@@ -62,17 +62,21 @@ public class ChannelReceiver extends UntypedActor {
 
 			@Override
 			public void completed(Integer result, ActorRef sender) {
+				log.debug("ack: {} {}", result, content.length);
 				sender.tell(new Ack(), getSelf());				
 			}
 
 			@Override
 			public void failed(Throwable exc, ActorRef sender) {
+				log.error("failure: {}", exc);
 				sender.tell(new Failure(exc), getSelf());
 				getSelf().tell(PoisonPill.getInstance(), getSelf());				
 			}
 		});
 		
 		position += content.length;
+		
+		log.debug("position: {}", position);
 	}
 
 }

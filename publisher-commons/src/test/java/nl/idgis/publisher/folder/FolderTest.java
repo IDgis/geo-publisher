@@ -4,10 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
@@ -73,7 +77,30 @@ public class FolderTest {
 	@After
 	public void shutdown() {
 		actorSystem.shutdown();
-	}	
+	}
+	
+	@After
+	public void removeFiles() throws Exception {
+		Files.walkFileTree(tempFolder, new SimpleFileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.delete(file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+				if(exc != null) {
+					throw exc;
+				}
+				
+				Files.delete(dir);
+				return FileVisitResult.CONTINUE;
+			}
+			
+		});
+	}
 
 	@Test
 	public void testNotExists() throws Exception {		
