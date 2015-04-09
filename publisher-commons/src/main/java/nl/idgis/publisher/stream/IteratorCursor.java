@@ -9,16 +9,16 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.stream.messages.Item;
 
-public class ListCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
+public class IteratorCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	public ListCursor(Iterator<T> t) {
+	public IteratorCursor(Iterator<T> t) {
 		super(t);
 	}
 	
 	public static <T extends Item> Props props(Iterator<T> t) {
-		return Props.create(ListCursor.class, t);
+		return Props.create(IteratorCursor.class, t);
 	}
 
 	@Override

@@ -16,7 +16,7 @@ import nl.idgis.publisher.provider.mock.messages.PutTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
-import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.IteratorCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 import akka.actor.ActorRef;
@@ -104,7 +104,7 @@ public class DatabaseMock extends UntypedActor {
 					records.add(new Records(currentRecords));
 				}
 				
-				ActorRef cursor = getContext().actorOf(ListCursor.props(records.iterator()));
+				ActorRef cursor = getContext().actorOf(IteratorCursor.props(records.iterator()));
 				cursor.tell(new NextItem(), getSender()); 
 			} else {
 				log.debug("table not found");

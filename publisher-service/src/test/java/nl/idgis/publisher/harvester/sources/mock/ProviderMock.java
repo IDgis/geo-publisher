@@ -20,7 +20,7 @@ import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
-import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.IteratorCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 public class ProviderMock extends UntypedActor {
@@ -61,7 +61,7 @@ public class ProviderMock extends UntypedActor {
 				datasetInfos.add(dataset.getDatasetInfo());
 			}
 			
-			ActorRef cursor = getContext().actorOf(ListCursor.props(datasetInfos.iterator()));
+			ActorRef cursor = getContext().actorOf(IteratorCursor.props(datasetInfos.iterator()));
 			cursor.tell(new NextItem(), getSender());
 		} else if(msg instanceof GetDatasetInfo) {
 			log.debug("get dataset info");
@@ -95,7 +95,7 @@ public class ProviderMock extends UntypedActor {
 					recordPacks.add(new Records(records));					
 				}
 				
-				getContext().actorOf(ListCursor.props(recordPacks.iterator())).tell(new NextItem(), getSender());
+				getContext().actorOf(IteratorCursor.props(recordPacks.iterator())).tell(new NextItem(), getSender());
 			}
 		} else {
 			unhandled(msg);

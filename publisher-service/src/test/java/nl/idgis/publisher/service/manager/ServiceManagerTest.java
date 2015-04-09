@@ -35,13 +35,16 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -85,6 +88,7 @@ import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
@@ -93,11 +97,13 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.manager.messages.PublishedService;
+import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
@@ -1471,5 +1477,137 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(query().from(publishedService).exists());
 		assertFalse(query().from(publishedServiceEnvironment).exists());
+	}
+	
+	@Test
+	public void testPublishedServiceIndex() throws Exception {
+		int rootId0 = insert(genericLayer)
+			.set(genericLayer.identification, "service0")
+			.set(genericLayer.name, "service-name0")			
+			.executeWithKey(genericLayer.id);
+		
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		StringWriter sw = new StringWriter();
+		Transformer t = TransformerFactory.newInstance().newTransformer();
+		t.transform(new DOMSource(TestStyle.getGreenSld()), new StreamResult(sw));
+		
+		int styleId0 = insert(style)
+			.set(style.identification, "style0")
+			.set(style.name, "style-name0")
+			.set(style.definition, sw.toString())
+			.executeWithKey(style.id);
+		
+		int leafLayerId = insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)			
+			.set(leafLayer.datasetId, datasetId)
+			.executeWithKey(leafLayer.id);
+		
+		insert(layerStyle)
+			.set(layerStyle.layerId, leafLayerId)
+			.set(layerStyle.styleId, styleId0)
+			.set(layerStyle.defaultStyle, true)
+			.set(layerStyle.styleOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.parentLayerId, rootId0)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.genericLayerId, rootId0)			
+			.execute();
+		
+		f.ask(serviceManager, new GetPublishedServiceIndex(), End.class).get();
+		
+		f.ask(serviceManager, new PublishService("service0", environmentIds), Ack.class).get();
+		
+		Map<String, ServiceIndex> publishedEnvironments = getPublishedServiceIndex();
+		
+		for(String environment : environmentIds) {
+			assertTrue(environment + " missing", publishedEnvironments.containsKey(environment));
+			
+			ServiceIndex serviceIndex = publishedEnvironments.get(environment);
+			assertNotNull(serviceIndex);
+			
+			assertEquals(Arrays.asList("service-name0"), serviceIndex.getServiceNames());
+			assertEquals(Arrays.asList("style-name0"), serviceIndex.getStyleNames());
+		}
+		
+		// TODO: move this insert to the top of the test
+		// as soon as the missing 'where clause' of the 'insert' on 'publishedServiceStyle' 
+		// in PublishServiceQuery is added
+		int styleId1 = insert(style)
+			.set(style.identification, "style1")
+			.set(style.name, "style-name1")
+			.set(style.definition, sw.toString())
+			.executeWithKey(style.id);
+		
+		insert(layerStyle)
+			.set(layerStyle.layerId, leafLayerId)
+			.set(layerStyle.styleId, styleId1)
+			.set(layerStyle.defaultStyle, false)
+			.set(layerStyle.styleOrder, 1)
+			.execute();
+		
+		f.ask(serviceManager, new PublishService("service0", Collections.singleton("environment0")), Ack.class).get();
+		
+		publishedEnvironments = getPublishedServiceIndex();
+		assertEquals(1, publishedEnvironments.size());
+		assertTrue(publishedEnvironments.containsKey("environment0"));
+		
+		ServiceIndex serviceIndex = publishedEnvironments.get("environment0");
+		assertNotNull(serviceIndex);
+		
+		assertEquals(Arrays.asList("service-name0"), serviceIndex.getServiceNames());
+		assertEquals(new HashSet<>(Arrays.asList("style-name0", "style-name1")), new HashSet<>(serviceIndex.getStyleNames()));
+		
+		int rootId1 = insert(genericLayer)
+			.set(genericLayer.identification, "service1")
+			.set(genericLayer.name, "service-name1")
+			.executeWithKey(genericLayer.id);
+		
+		insert(service)
+			.set(service.genericLayerId, rootId1)			
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.parentLayerId, rootId1)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		f.ask(serviceManager, new PublishService("service1", Collections.singleton("environment0")), Ack.class).get();
+		
+		publishedEnvironments = getPublishedServiceIndex();
+		assertEquals(1, publishedEnvironments.size());
+		assertTrue(publishedEnvironments.containsKey("environment0"));
+		
+		serviceIndex = publishedEnvironments.get("environment0");
+		assertNotNull(serviceIndex);
+		
+		assertEquals(new HashSet<>(Arrays.asList("service-name0", "service-name1")), new HashSet<>(serviceIndex.getServiceNames()));
+		assertEquals(new HashSet<>(Arrays.asList("style-name0", "style-name1")), new HashSet<>(serviceIndex.getStyleNames()));
+	}
+
+	private Map<String, ServiceIndex> getPublishedServiceIndex() throws InterruptedException, ExecutionException {
+		Map<String, ServiceIndex> publishedEnvironments = new HashMap<>();
+		
+		for(AskResponse<Object> resp = f.askWithSender(serviceManager, new GetPublishedServiceIndex()).get();
+			resp.getMessage() instanceof PublishedServiceIndex;
+			resp = f.askWithSender(resp.getSender(), new NextItem()).get()) {
+			
+			PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)resp.getMessage();
+			publishedEnvironments.put(
+				publishedServiceIndex.getEnvironmentId(),
+				publishedServiceIndex.getServiceIndex());
+		}
+		
+		return publishedEnvironments;
 	}
 }
