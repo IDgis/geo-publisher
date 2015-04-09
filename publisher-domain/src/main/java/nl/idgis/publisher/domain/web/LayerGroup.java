@@ -25,6 +25,9 @@ public class LayerGroup extends Identifiable implements Selectable {
 	private final Boolean published;
 	
 	private final TiledLayer tiledLayer;
+	
+	private final boolean confidential;
+	
 
 	@JsonCreator
 	@QueryProjection
@@ -34,13 +37,15 @@ public class LayerGroup extends Identifiable implements Selectable {
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
 			final @JsonProperty("") Boolean published,
-			final @JsonProperty("") TiledLayer tiledLayer) {
+			final @JsonProperty("") TiledLayer tiledLayer,
+			final @JsonProperty("confidential") boolean confidential) {
 		super(id);
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
 		this.published = published;
 		this.tiledLayer = tiledLayer;
+		this.confidential = confidential;
 	}
 
 	@JsonGetter
@@ -70,6 +75,6 @@ public class LayerGroup extends Identifiable implements Selectable {
 	@Override
 	@JsonGetter
 	public boolean confidential () {
-		return false;
+		return this.confidential;
 	}
 }
