@@ -403,6 +403,7 @@ web.application.page.constants.form.field.email.help=Vul het e-mailadres in
 
 # SourceDatasets
 web.application.page.sourcedatasets.title=Brongegevens
+web.application.page.sourcedatasets.list.confidential=Vertrouwelijk
 web.application.page.sourcedatasets.list.search.placeholder=Zoek op naam ...
 web.application.page.sourcedatasets.list.alert.nosourcedatasets=Er zijn geen brongegevens gevonden die voldoen aan de criteria.
 web.application.page.sourcedatasets.list.alert.adapt=Pas de criteria aan of toon 
