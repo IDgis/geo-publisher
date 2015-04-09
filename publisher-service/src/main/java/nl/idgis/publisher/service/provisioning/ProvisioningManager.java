@@ -229,7 +229,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 					
 					String environmentId = publishedServiceIndex.getEnvironmentId();
 					if(environmentTargets.containsKey(environmentId)) {
-						log.debug("dispatching service indices for environment: {}", environmentId);
+						log.debug("dispatching service index for environment: {}", environmentId);
 						
 						ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
 						

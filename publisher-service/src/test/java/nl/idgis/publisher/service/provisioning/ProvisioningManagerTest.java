@@ -506,11 +506,43 @@ public class ProvisioningManagerTest  {
 			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
 		
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
-			f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 			
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
 		
 		VacuumServiceJobInfo serviceJobInfo = new VacuumServiceJobInfo(0);
+		provisioningManager.tell(serviceJobInfo, jobRecorder);
+		
+		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
+		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(ServiceActorStarted.class)
+			.assertNext(ServiceIndex.class)
+			.assertNotHasNext();
+		
+		f.ask(jobRecorder, new Wait(3), Waited.class).get();
+		f.ask(jobRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.STARTED, update.getState());
+			})
+			.assertNext(Ack.class)
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.SUCCEEDED, update.getState());
+			})
+			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testVacuumServiceJobInfoPublished() throws Exception {
+		ServiceInfo publicationServiceInfo = new ServiceInfo(
+				new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
+				new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			
+		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
+			
+		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
+		
+		VacuumServiceJobInfo serviceJobInfo = new VacuumServiceJobInfo(0, true);
 		provisioningManager.tell(serviceJobInfo, jobRecorder);
 		
 		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
