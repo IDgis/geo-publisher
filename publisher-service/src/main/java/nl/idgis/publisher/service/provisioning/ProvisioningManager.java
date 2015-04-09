@@ -32,11 +32,13 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
+import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
@@ -44,14 +46,17 @@ import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
 import nl.idgis.publisher.service.provisioning.messages.RemovePublicationService;
 import nl.idgis.publisher.service.provisioning.messages.RemoveStagingService;
 import nl.idgis.publisher.service.provisioning.messages.UpdateServiceInfo;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
-
 import static java.util.Collections.singletonList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Stream.empty;
 import static java.util.Arrays.asList;
 
@@ -203,7 +208,45 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Procedure<Object> vacuuming(ServiceJobInfo serviceJob, ActorRef initiator, Set<ActorRef> targets) {
+	private Procedure<Object> vacuumingPublication(ServiceJobInfo serviceJob, ActorRef initiator, Map<String, Set<ActorRef>> environmentTargets) {
+		return new Procedure<Object>() {			
+			
+			Set<ActorRef> targets = environmentTargets.values().stream()
+				.flatMap(Collection::stream)
+				.collect(toCollection(() -> new HashSet<>()));
+			Set<JobState> state = new HashSet<>();
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof UpdateServiceInfo) {
+					handleUpdateServiceInfo((UpdateServiceInfo)msg);
+				} else if(msg instanceof PublishedServiceIndex) {
+					getSender().tell(new NextItem(), getSelf());
+					
+					PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)msg;
+					
+					String environmentId = publishedServiceIndex.getEnvironmentId();
+					if(environmentTargets.containsKey(environmentId)) {
+						log.debug("dispatching service indices for environment: {}", environmentId);
+						
+						ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
+						
+						environmentTargets.get(environmentId).stream()
+							.forEach(target -> target.tell(serviceIndex, getSelf()));
+					} else {
+						log.debug("no targets for environment: {}", environmentId);
+					}
+				} else if(msg instanceof End) {
+					log.debug("all service indices received");
+				} else {
+					elseProvisioning(msg, serviceJob, initiator, Optional.empty(), targets, state);
+				}
+			}
+			
+		};
+	}
+	
+	private Procedure<Object> vacuumingStaging(ServiceJobInfo serviceJob, ActorRef initiator, Set<ActorRef> targets) {
 		return new Procedure<Object>() {
 			
 			Set<JobState> state = new HashSet<>();
@@ -221,7 +264,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Set<ActorRef> staging() {
+	private Set<ActorRef> stagingTargets() {
 		log.debug("target: staging");
 		
 		return staging.stream()
@@ -229,15 +272,18 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			.collect(toSet());
 	}
 	
-	private Set<ActorRef> publication() {
+	private Map<String, Set<ActorRef>> publicationTargets() {
 		log.debug("target: publication");
 		
-		return publication.values().stream()
-			.map(services::get)
-			.collect(toSet());
+		return publication.entrySet().stream()			
+			.collect(toMap(
+				entry -> entry.getKey(),
+				entry -> entry.getValue().stream()
+					.map(services::get)
+					.collect(toSet())));
 	}
 	
-	private Set<ActorRef> publication(Collection<String> environmentIds) {
+	private Set<ActorRef> publicationTargets(Collection<String> environmentIds) {
 		log.debug("target: publication for environments: {}", environmentIds);
 		
 		return environmentIds.stream()
@@ -295,8 +341,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		
 		Set<ActorRef> targets =		
 			msg.getEnvironmentIds()
-				.map(environmentIds -> publication(environmentIds.list()))
-				.orElse(staging());
+				.map(environmentIds -> publicationTargets(environmentIds.list()))
+				.orElse(stagingTargets());
 
 		ActorRef jobHandler = getContext().actorOf(
 				provisioningPropsFactory.ensureJobProps(targets),
@@ -360,8 +406,13 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			
 			getContext().become(collectingProvisioningInfo());
 		} else if(msg instanceof VacuumServiceJobInfo) {
-			serviceManager.tell(new GetServiceIndex(), getSelf());
-			getContext().become(vacuuming(msg, initiator, msg.isPublished() ? publication() : staging()));
+			if(msg.isPublished()) {
+				serviceManager.tell(new GetPublishedServiceIndex(), getSelf());
+				getContext().become(vacuumingPublication(msg, initiator, publicationTargets()));
+			} else {
+				serviceManager.tell(new GetServiceIndex(), getSelf());
+				getContext().become(vacuumingStaging(msg, initiator, stagingTargets()));
+			}
 		} else {
 			unhandled(msg);
 		}
