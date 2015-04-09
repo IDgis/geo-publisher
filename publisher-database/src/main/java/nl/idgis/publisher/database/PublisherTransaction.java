@@ -451,7 +451,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				datasetActiveNotification.notificationResult,
 				datasetActiveNotification.jobId,
 				datasetActiveNotification.jobType,
-				new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)
+				new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
+				sourceDatasetVersion.confidential
 			)) {
 			
 			if (t.get (datasetActiveNotification.notificationId) != null) {
@@ -505,7 +506,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
 				notifications,
-				t.get (layerCountPath)
+				t.get (layerCountPath),
+				t.get (sourceDatasetVersion.confidential)
 			);
 	}
 
