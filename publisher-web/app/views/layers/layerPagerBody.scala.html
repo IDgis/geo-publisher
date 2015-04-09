@@ -12,11 +12,16 @@
 					<div class="col-lg-6">
 						@layer.name
 					</div>
-					<div class="col-lg-6">
+					<div class="col-lg-3">
 						@if(layer.published){
 							<strong>@Domain.message("web.application.page.list.published")</strong>
 						}else{
 							@Domain.message("web.application.page.list.notpublished")
+						}
+					</div>
+					<div class="col-lg-3">
+						@if(layer.confidential) {
+							<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
 						}
 					</div>
 				</div>

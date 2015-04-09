@@ -525,6 +525,7 @@ web.application.page.layers.list.button.create=Maak een nieuwe laag met een data
 web.application.page.layers.list.search.showAll=Hef filter op laagnaam op ...
 web.application.page.layers.list.filterpublished.title=Publicatiestatus
 web.application.page.layers.list.search.placeholder=Zoek een laag ...
+web.application.page.layers.list.confidential=Vertrouwelijk
 
 web.application.page.layers.form.title=Laag formulier
 web.application.page.layers.form.header.new=Nieuwe laag toevoegen

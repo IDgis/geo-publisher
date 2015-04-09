@@ -1,6 +1,8 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
@@ -19,16 +21,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
-
 import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<DefaultDatasetLayer>> {
@@ -36,6 +37,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 	protected abstract AsyncSQLQuery filter(AsyncSQLQuery query);
 	
 	protected final AsyncSQLQuery query;
+	
+	private PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
 	
 	AbstractDatasetQuery(LoggingAdapter log, AsyncSQLQuery query) {
 		super(log);
@@ -117,7 +120,16 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 				tiledLayer.metaHeight,
 				tiledLayer.expireCache,
 				tiledLayer.expireClients,
-				tiledLayer.gutter);
+				tiledLayer.gutter,
+				new SQLSubQuery ()
+					.from (sourceDataset)
+					.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+					.where (dataset.sourceDatasetId.eq (sourceDataset.id))
+					.orderBy (sourceDatasetVersion.createTime.desc ())
+					.limit (1)
+					.list (sourceDatasetVersion.confidential)
+					.as (confidentialPath)
+			);
 	}
 	
 	private CompletableFuture<Map<Integer, List<String>>> datasetColumns() {
@@ -174,7 +186,9 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 								: Collections.emptyList(),
 							styles.containsKey(t.get(genericLayer.id))
 								? styles.get(t.get(genericLayer.id))
-								: Collections.emptyList()))
+								: Collections.emptyList(),
+							t.get (confidentialPath)
+						))
 						.collect(Collectors.toList())))))));
 	}
 }

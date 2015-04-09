@@ -131,7 +131,7 @@ public class Layers extends GroupsLayersCommon {
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
 							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
-							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList());
+							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList(), false);
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
 					return from (database)

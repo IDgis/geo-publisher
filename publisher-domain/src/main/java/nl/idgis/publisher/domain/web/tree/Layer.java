@@ -14,4 +14,6 @@ public interface Layer  {
 	
 	Optional<Tiling> getTiling();
 	
+	boolean isConfidential ();
+	
 }

@@ -1,14 +1,11 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
-import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QStyle.style;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +22,6 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Style;
-import nl.idgis.publisher.domain.web.TiledLayer;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -172,7 +168,7 @@ public class StyleAdmin extends AbstractAdmin {
 							null,
 							null,
 							null,
-							null, null, null)
+							null, null, null, false)
 						);
 					}
 					return builder.build();

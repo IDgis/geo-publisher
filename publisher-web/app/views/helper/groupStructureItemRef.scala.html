@@ -7,5 +7,8 @@
 	}else{
 		<li>
 			<a href="@routes.Layers.edit(layerRef.getLayer().getId())">@layerRef.getLayer().getName()</a>
+			@if(layerRef.getLayer().isConfidential) {
+				<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
+			}
 		</li>
 	}

@@ -32,6 +32,8 @@ public class Layer extends Identifiable implements Selectable {
 	
 	private final List<String> keywords;
 	private final List<Style> styles;
+	
+	private final boolean confidential;
 
 	
 	@JsonCreator
@@ -46,8 +48,8 @@ public class Layer extends Identifiable implements Selectable {
 			final @JsonProperty("") String datasetName,
 			final @JsonProperty("") TiledLayer tiledLayer,
 			final @JsonProperty("") List<String> keywords,
-			final @JsonProperty("") List<Style> styles
-			) {
+			final @JsonProperty("") List<Style> styles,
+			final @JsonProperty("confidential") boolean confidential) {
 		super(id);
 		this.name = name;
 		this.title = title;
@@ -58,6 +60,7 @@ public class Layer extends Identifiable implements Selectable {
 		this.tiledLayer = tiledLayer;
 		this.keywords = keywords;
 		this.styles = styles;
+		this.confidential = confidential;
 	}
 
 	@JsonGetter
@@ -101,5 +104,8 @@ public class Layer extends Identifiable implements Selectable {
 		return styles;
 	}
 
-
+	@JsonGetter
+	public boolean confidential () {
+		return this.confidential;
+	}
 }

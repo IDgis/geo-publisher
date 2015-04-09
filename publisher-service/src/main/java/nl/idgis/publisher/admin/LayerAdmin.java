@@ -2,14 +2,16 @@ package nl.idgis.publisher.admin;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,10 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
 import nl.idgis.publisher.domain.query.GetLayerParentServices;
@@ -36,25 +36,26 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
-import nl.idgis.publisher.domain.web.QLayer;
-import nl.idgis.publisher.domain.web.Service;
-import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.QStyle;
+import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.LoggingAdapter;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.ConstantImpl;
-import com.mysema.query.types.ConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Path;
+import com.mysema.query.types.expr.DslExpression;
+import com.mysema.query.types.path.PathBuilder;
 
 public class LayerAdmin extends LayerGroupCommonAdmin {
+	
+	private final static PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
 	
 	public LayerAdmin(ActorRef database) {
 		super(database); 
@@ -85,6 +86,17 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {
 		return handleListLayersWithQuery (new ListLayers (null, null, null));
+	}
+	
+	private DslExpression<Boolean> confidentialExpression () {
+		return new SQLSubQuery ()
+			.from (sourceDataset)
+			.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+			.where (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.orderBy (sourceDatasetVersion.createTime.desc ())
+			.limit (1)
+			.list (sourceDatasetVersion.confidential)
+			.as (confidentialPath);
 	}
 	
 	private CompletableFuture<Page<Layer>> handleListLayersWithQuery (final ListLayers listLayers) {
@@ -135,7 +147,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							genericLayer.published,
 							dataset.identification,
 							dataset.name,
-							tiledLayer.genericLayerId
+							tiledLayer.genericLayerId,
+							confidentialExpression ()
 							)
 					.thenApply ((layers) -> {
 						for (Tuple layer : layers.list()) {
@@ -160,7 +173,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 											layer.get(null),
 											null)
 										: null),
-									null, null));
+									null, null,
+									layer.get (confidentialPath)
+								));
 						}
 						return builder.build ();
 					});
@@ -170,11 +185,12 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 	private CompletableFuture<Optional<Layer>> handleGetLayer (String layerId) {
 		log.debug("handleGetLayer: " + layerId);
 		
-		List<Path<?>> layerColumns = new ArrayList<>();
+		List<Expression<?>> layerColumns = new ArrayList<>();
 		layerColumns.addAll(Arrays.asList(genericLayer.all()));
 		layerColumns.addAll(Arrays.asList(tiledLayer.all()));
 		layerColumns.addAll(Arrays.asList(leafLayer.all()));
 		layerColumns.addAll(Arrays.asList(dataset.all()));
+		layerColumns.add (confidentialExpression ());
 
 		return db.transactional(tx -> 
 			tx.query()
@@ -183,7 +199,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layerId))
-			.singleResult(layerColumns.toArray (new Path<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
+			.singleResult(layerColumns.toArray (new Expression<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
 					Tuple layer = optionalLayer.get();					
 					log.debug("generic layer id: " + layer.get(genericLayer.id));
@@ -235,7 +251,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													mimeFormats.list())
 												: null)
 										,
-										keywords.list(), styles.list() ))));
+										keywords.list(), styles.list(),
+										layer.get (confidentialPath)
+									))));
 						});
 				} else {
 					return f.successful(Optional.empty());

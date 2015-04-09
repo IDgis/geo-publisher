@@ -47,6 +47,11 @@ public class JsonDatasetLayer implements DatasetLayer {
 			getOptional(jsonNode, "tiling")
 				.map(JsonTiling::new);
 	}
+	
+	@Override
+	public boolean isConfidential () {
+		return jsonNode.path ("confidential").asBoolean ();
+	}
 
 	@Override
 	public List<String> getKeywords() {

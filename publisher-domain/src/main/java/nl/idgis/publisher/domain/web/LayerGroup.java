@@ -66,6 +66,10 @@ public class LayerGroup extends Identifiable implements Selectable {
 	public Optional<TiledLayer> tiledLayer() {
 		return Optional.ofNullable(tiledLayer);
 	}
-	
 
+	@Override
+	@JsonGetter
+	public boolean confidential () {
+		return false;
+	}
 }

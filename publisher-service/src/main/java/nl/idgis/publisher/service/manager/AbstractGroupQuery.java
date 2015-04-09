@@ -43,7 +43,9 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 								t.get(tiledLayer.metaHeight),
 								t.get(tiledLayer.expireCache),
 								t.get(tiledLayer.expireClients),
-								t.get(tiledLayer.gutter))))
+								t.get(tiledLayer.gutter)),
+						false
+					))
 					.collect(Collectors.toList()))));
 	}
 	
