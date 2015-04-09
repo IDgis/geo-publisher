@@ -25,7 +25,6 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QJobState.jobState;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -35,6 +34,7 @@ import static org.junit.Assert.fail;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -123,6 +123,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	int datasetId;
 		
+	Set<String> environmentIds;
+	
 	@Before
 	public void databaseContent() throws Exception {
 		int dataSourceId = insert(dataSource)
@@ -214,6 +216,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.values(jobId, "STARTED").addBatch()
 			.values(jobId, "SUCCEEDED").addBatch()
 			.execute();
+		
+		environmentIds = new HashSet<>();
+		environmentIds.add("environment0");
+		environmentIds.add("environment1");
+		environmentIds.add("environment2");
+		
+		for(String environmentId : environmentIds) {
+			insert(environment)
+				.set(environment.identification, environmentId)
+				.set(environment.name, environmentId + "-name")
+				.execute();
+		}
 	}
 		
 	@Test
@@ -1367,18 +1381,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testPublishService() throws Exception {
-		Set<String> environmentIds = new HashSet<>();
-		environmentIds.add("environment0");
-		environmentIds.add("environment1");
-		environmentIds.add("environment2");
-		
-		for(String environmentId : environmentIds) {
-			insert(environment)
-				.set(environment.identification, environmentId)
-				.set(environment.name, environmentId + "-name")
-				.execute();
-		}
-		
 		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "service")
 			.set(genericLayer.name, "service-name")			
@@ -1444,5 +1446,30 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		PublishedService ps = f.ask(serviceManager, new GetPublishedService("service"), PublishedService.class).get();		
 		assertEquals(environmentIds, ps.getEnvironmentIds());		
 		assertEquals("service", ps.getService().getId());
+	}
+	
+	@Test
+	public void testUndoPublishService() throws Exception {
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		insert(service)
+			.set(service.genericLayerId, rootId)			
+			.execute();
+		
+		assertFalse(query().from(publishedService).exists());
+		assertFalse(query().from(publishedServiceEnvironment).exists());
+		
+		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		
+		assertEquals(1, query().from(publishedService).count());
+		assertEquals(3, query().from(publishedServiceEnvironment).count());
+		
+		f.ask(serviceManager, new PublishService("service", Collections.emptySet()), Ack.class).get();
+		
+		assertFalse(query().from(publishedService).exists());
+		assertFalse(query().from(publishedServiceEnvironment).exists());
 	}
 }

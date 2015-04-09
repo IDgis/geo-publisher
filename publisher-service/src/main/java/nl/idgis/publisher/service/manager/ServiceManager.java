@@ -3,13 +3,9 @@ package nl.idgis.publisher.service.manager;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
-import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
-import static nl.idgis.publisher.database.QEnvironment.environment;
 import static java.util.Collections.emptyMap;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
