@@ -41,4 +41,6 @@ public interface Service {
 	String getRootId();
 	
 	List<LayerRef<? extends Layer>> getLayers();
+	
+	boolean isConfidential ();
 }

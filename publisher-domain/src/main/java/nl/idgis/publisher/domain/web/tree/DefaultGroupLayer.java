@@ -101,6 +101,17 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	public Optional<Tiling> getTiling() {
 		return partialGroupLayer.getTiling();
 	}	
+
+	@Override
+	public boolean isConfidential () {
+		for (final DefaultDatasetLayer datasetLayer: datasets.values ()) {
+			if (datasetLayer.isConfidential ()) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 	
 	private void toTree(StringBuilder sb, int depth) {
 		for(LayerRef<? extends Layer> layerRef : getLayers()) {

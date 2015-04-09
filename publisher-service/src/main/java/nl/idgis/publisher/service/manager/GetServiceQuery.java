@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -173,7 +174,8 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								serviceInfoTuple.get(genericLayer.name),
 								serviceInfoTuple.get(genericLayer.title),
 								serviceInfoTuple.get(genericLayer.abstractCol),
-								null), // a root group doesn't have (or need) tiling
+								null,
+								false), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),
 							transformedStructure.getStructureItems(),

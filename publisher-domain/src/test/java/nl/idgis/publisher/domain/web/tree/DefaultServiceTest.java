@@ -28,11 +28,11 @@ public class DefaultServiceTest {
 	public void testNoGroup() {
 		List<DefaultDatasetLayer> datasets = Arrays.asList(
 			new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
-				null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
+				null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList(), false),
 			new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
-				null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList()),
+				null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList(), false),
 			new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
-				null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList()));
+				null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 			
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0"));
@@ -41,7 +41,7 @@ public class DefaultServiceTest {
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null);
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null, false);
 		Service service = new DefaultService(
 			"service0",
 			"service-name0",
@@ -83,19 +83,19 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testGroup() {
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null);
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null, false);
 		
 		List<PartialGroupLayer> groups = Arrays.asList(
 				root,
-				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null));
+				new PartialGroupLayer("group1", "name1", "title1", "abstract1", null, false));
 		
 		List<DefaultDatasetLayer> datasets = Arrays.asList(
 				new DefaultDatasetLayer("leaf0", "name0", "title0", "abstract0", 
-					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList()),
+					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList(), false),
 				new DefaultDatasetLayer("leaf1", "name1", "title1", "abstract1", 
-					null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList()),
+					null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList(), false),
 				new DefaultDatasetLayer("leaf2", "name2", "title2", "abstract2", 
-					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList()));
+					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 				
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0"));

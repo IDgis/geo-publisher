@@ -115,7 +115,7 @@ public class Services extends Controller {
 					final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
 							serviceForm.metadata, serviceForm.published,
-							serviceForm.rootGroupId,serviceForm.constantsId);
+							serviceForm.rootGroupId,serviceForm.constantsId, false);
 					Logger.debug ("Update/create service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
@@ -206,7 +206,7 @@ public class Services extends Controller {
 					final Service service = new Service(serviceIdentification, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
 							serviceForm.metadata, serviceForm.published,
-							serviceIdentification,serviceForm.constantsId);
+							serviceIdentification,serviceForm.constantsId, false);
 					Logger.debug ("Update service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			

@@ -56,4 +56,9 @@ public class JsonGroupLayer implements GroupLayer {
 				.map(AbstractJsonLayerRef::fromJson)
 				.collect(toList());
 	}
+	
+	@Override
+	public boolean isConfidential () {
+		return jsonNode.path ("confidential").asBoolean ();
+	}
 }

@@ -26,6 +26,8 @@ public class SourceDatasetInfo implements Serializable {
 	private Timestamp lastLogTime;
 	
 	private Timestamp deleteTime;
+	
+	private final boolean confidential;
 
 	@QueryProjection
 	public SourceDatasetInfo(String id, String name, String alternateTitle, String dataSourceId,
@@ -34,7 +36,8 @@ public class SourceDatasetInfo implements Serializable {
 			final String lastLogType,
 			final String lastLogParameters,
 			final Timestamp lastLogTime,
-			final Timestamp deleteTime) {
+			final Timestamp deleteTime,
+			final boolean confidential) {
 		super();
 		
 		if (type == null) {
@@ -54,6 +57,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.lastLogParameters = lastLogParameters == null || lastLogParameters.isEmpty () ? null : parseLogParameters (this.lastLogType, lastLogParameters); 
 		this.lastLogTime = lastLogTime;
 		this.deleteTime = deleteTime;
+		this.confidential = confidential;
 	}
 
 	private DatasetLog<?> parseLogParameters (final DatasetLogType logType, final String value) {
@@ -119,5 +123,9 @@ public class SourceDatasetInfo implements Serializable {
 	
 	public Timestamp getDeleteTime () {
 		return deleteTime;
+	}
+	
+	public boolean isConfidential () {
+		return confidential;
 	}
 }

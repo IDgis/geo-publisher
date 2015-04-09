@@ -135,4 +135,9 @@ public class DefaultService implements Service, Serializable {
 	public List<LayerRef<?>> getLayers() {
 		return root.getLayers();
 	}
+	
+	@Override
+	public boolean isConfidential () {
+		return root.isConfidential ();
+	}
 }

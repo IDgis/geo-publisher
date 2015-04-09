@@ -22,6 +22,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 public class GetStylesQuery extends AbstractServiceQuery<List<Style>, AsyncSQLQuery> {
 	

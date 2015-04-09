@@ -19,6 +19,7 @@ public final class Dataset extends Identifiable {
 	private final EntityRef sourceDataset;
 	private final Filter filterConditions;
 	private final long layerCount;
+	private final boolean confidential;
 	
 	@JsonCreator
 	public Dataset (
@@ -29,7 +30,8 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("activeNotifications") List<DashboardItem> activeNotifications,
 			final @JsonProperty("sourceDataset") EntityRef sourceDataset,
 			final @JsonProperty("filterConditions") Filter filterConditions,
-			final @JsonProperty("layerCount") long layerCount) {
+			final @JsonProperty("layerCount") long layerCount,
+			final @JsonProperty("confidential") boolean confidential) {
 		
 		super (id);
 		
@@ -40,6 +42,7 @@ public final class Dataset extends Identifiable {
 		this.sourceDataset = sourceDataset;
 		this.filterConditions = filterConditions;
 		this.layerCount = layerCount;
+		this.confidential = confidential;
 	}
 	
 	@JsonGetter
@@ -75,5 +78,10 @@ public final class Dataset extends Identifiable {
 	@JsonGetter
 	public long layerCount () {
 		return this.layerCount;
+	}
+	
+	@JsonGetter
+	public boolean confidential () {
+		return this.confidential;
 	}
 }

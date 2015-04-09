@@ -11,12 +11,15 @@ public abstract class AbstractLayer implements Layer, Serializable {
 	
 	protected final Tiling tiling;
 	
-	public AbstractLayer(String id, String name, String title, String abstr, Tiling tiling) {
+	protected final boolean confidential;
+	
+	public AbstractLayer(String id, String name, String title, String abstr, Tiling tiling, final boolean confidential) {
 		this.id = id;
 		this.name = name;
 		this.title = title;
 		this.abstr = abstr;
 		this.tiling = tiling;
+		this.confidential = confidential;
 	}
 
 	@Override
@@ -42,5 +45,10 @@ public abstract class AbstractLayer implements Layer, Serializable {
 	@Override
 	public Optional<Tiling> getTiling() {
 		return Optional.ofNullable(tiling);
+	}
+	
+	@Override
+	public boolean isConfidential () {
+		return confidential;
 	}
 }

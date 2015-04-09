@@ -170,7 +170,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				notifications, // notification list
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class),
-				datasetInfo.getLayerCount ()
+				datasetInfo.getLayerCount (),
+				datasetInfo.isConfidential ()
 		);
 	}
 	
@@ -188,7 +189,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				t.get (lastImportJob.finishTime),
 				t.get (lastImportJob.finishState),
 				notifications,
-				t.get (layerCountPath)
+				t.get (layerCountPath),
+				t.get (sourceDatasetVersion.confidential)
 			);
 	}
 	
@@ -271,7 +273,8 @@ public class DatasetAdmin extends AbstractAdmin {
 			datasetActiveNotification.notificationResult,
 			datasetActiveNotification.jobId,
 			datasetActiveNotification.jobType,
-			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath)
+			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
+			sourceDatasetVersion.confidential
 		};
 	}
 	

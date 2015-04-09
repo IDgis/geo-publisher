@@ -97,6 +97,9 @@
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Groups.edit(group.id)" class="text-warning">@group.name</a>
 							</h4>
+							@if(group.confidential) {
+								<span class="label label-warning">sjkldfhksjdfsdf</span>
+							}
 						</div>
 						<div class="col-md-2">
 							@if(group.published){

@@ -99,6 +99,9 @@
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Layers.edit(layer.id)" class="text-warning">@layer.name</a>
 							</h4>
+							@if(layer.confidential) {
+								<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
+							}
 						</div>
 						<div class="col-md-2">
 							@if(layer.published){

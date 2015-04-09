@@ -4,6 +4,9 @@
 
 <li>
 <a href="@routes.Groups.edit(groupLayer.getId())"><strong>@groupLayer.getName()</strong></a>
+@if(groupLayer.isConfidential) {
+	<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
+}
 <ul>
 	@for(layerRef <- groupLayer.getLayers()){
 		@helper.groupStructureItemRef(layerRef)

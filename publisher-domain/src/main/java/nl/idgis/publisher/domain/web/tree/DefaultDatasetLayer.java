@@ -15,9 +15,10 @@ public class DefaultDatasetLayer extends AbstractLayer implements DatasetLayer {
 	private final List<StyleRef> styleRef;
 	
 	public DefaultDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, 
-		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef) {
+		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef,
+		final boolean confidential) {
 		
-		super(id, name, title, abstr, tiling);
+		super(id, name, title, abstr, tiling, confidential);
 		
 		this.keywords = keywords;
 		this.tableName = tableName;

@@ -123,6 +123,9 @@
 								<h4 class="list-group-item-heading">
 									<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 								</h4>
+								@if(service.confidential) {
+									<span class="label label-warning">@Domain.message("web.application.page.services.list.confidential")</span>
+								}
 							</div>
 							<div class="col-md-2">
 								@if(service.published){

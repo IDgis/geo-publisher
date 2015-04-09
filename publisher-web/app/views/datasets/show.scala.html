@@ -53,6 +53,10 @@
 								<th>@Domain.message("web.application.page.datasets.show.field.datasethasfilters") </th>
 								<td>@if(dataset.filterConditions.getExpression() != null){ @Domain.message("web.application.yes") } else { @Domain.message("web.application.no") }</td>
 							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasets.show.field.confidential")</th>
+								<td>@if(dataset.confidential){ @Domain.message("web.application.yes") } else { @Domain.message("web.application.no") }</td>
+							</tr>
 						</tbody>
 					</table>
 				</div>

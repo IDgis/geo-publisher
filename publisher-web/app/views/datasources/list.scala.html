@@ -273,6 +273,9 @@
 										}
 										@categoryRefLink(dataset.sourceDataset.category, "label label-info")
 										@dataSourceRefLink(dataset.sourceDataset.dataSource, "label label-info")
+										@if(dataset.sourceDataset.confidential) {
+											<span class="label label-warning">@Domain.message("web.application.page.sourcedatasets.list.confidential")</span>
+										}
 									</div>
 									<div class="col-md-5">
 										@sourceDatasetDetails(dataset)

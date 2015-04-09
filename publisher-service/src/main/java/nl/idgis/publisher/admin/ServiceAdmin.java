@@ -1,11 +1,17 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QConstants.constants;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
+import static nl.idgis.publisher.service.manager.QServiceStructure.withServiceStructure;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
@@ -23,13 +30,17 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
-
-import com.mysema.query.sql.SQLSubQuery;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.Ops;
+import com.mysema.query.types.expr.BooleanExpression;
+
 public class ServiceAdmin extends AbstractAdmin {
+	
+	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
 	
 	private final ActorRef serviceManager;
 	
@@ -60,6 +71,17 @@ public class ServiceAdmin extends AbstractAdmin {
 		return handleListServicesWithQuery (new ListServices (null, null, null));
 	}
 
+	private BooleanExpression isConfidential () {
+		return new SQLSubQuery ()
+			.from (serviceStructure)
+			.join (leafLayer).on (serviceStructure.childLayerId.eq (leafLayer.genericLayerId))
+			.join (dataset).on (leafLayer.datasetId.eq (dataset.id))
+			.join (sourceDataset).on (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.where (serviceStructure.serviceIdentification.eq (genericLayer.identification))
+			.where (Expressions.booleanOperation (Ops.EQ, Expressions.constant (true), new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id)).orderBy (sourceDatasetVersion.createTime.desc ()).limit (1).list (sourceDatasetVersion.confidential)))
+			.exists ();
+	}
+	
 	private CompletableFuture<Page<Service>> handleListServicesWithQuery (final ListServices listServices) {
 		final AsyncSQLQuery baseQuery = db
 				.query()
@@ -84,6 +106,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		singlePage (listQuery, listServices.getPage ());
 		
+		withServiceStructure (listQuery, parent, child);
+		
 		return baseQuery
 				.count ()
 				.thenCompose ((count) -> {
@@ -101,7 +125,8 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.metadata,
 								genericLayer.published,
 								genericLayer.identification,					
-								constants.identification					
+								constants.identification,
+								isConfidential ()
 							))
 						.thenApply ((styles) -> {
 							builder.addAll (styles.list ());
@@ -113,8 +138,9 @@ public class ServiceAdmin extends AbstractAdmin {
 	private CompletableFuture<Optional<Service>> handleGetService (String serviceId) {
 		log.debug ("handleGetService: " + serviceId);
 		
+		
 		return 
-			db.query().from(service)
+			withServiceStructure (db.query (), parent, child).from(service)
 			.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 			.leftJoin(constants).on(service.constantsId.eq(constants.id))
 			.where(genericLayer.identification.eq(serviceId))
@@ -127,7 +153,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.metadata,
 					genericLayer.published,
 					genericLayer.identification,					
-					constants.identification
+					constants.identification,
+					isConfidential ()
 			));		
 	}
 	

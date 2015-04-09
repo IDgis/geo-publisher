@@ -193,6 +193,9 @@
 									
 									@categoryRefLink(dataset.category)
 									<span class="label label-default">@Domain.message("web.application.page.datasets.list.sourcedatasetref"): @dataset.sourceDataset.name</span>
+									@if(dataset.confidential) {
+										<span class="label label-warning">@Domain.message("web.application.page.datasets.list.confidential")</span>
+									}
 								</div>
 								<div class="col-md-4">
 									@if(!dataset.activeNotifications.isEmpty) {

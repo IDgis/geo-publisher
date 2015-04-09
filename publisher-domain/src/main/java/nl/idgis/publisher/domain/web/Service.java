@@ -3,8 +3,6 @@
  */
 package nl.idgis.publisher.domain.web;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -27,6 +25,7 @@ public class Service extends Identifiable implements Nameable{
 	private final Boolean published;
 	private final String genericLayerId;
 	private final String constantsId;
+	private final boolean confidential;
 
 	
 	@JsonCreator
@@ -40,8 +39,9 @@ public class Service extends Identifiable implements Nameable{
 			final @JsonProperty("") String metadata, 
 			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") String genericLayerId,
-			final @JsonProperty("") String constantsId
-			) {
+			final @JsonProperty("") String constantsId,
+			final @JsonProperty("confidential") boolean confidential
+		) {
 		super(id);
 		this.name = name;
 		this.title = title;
@@ -51,6 +51,7 @@ public class Service extends Identifiable implements Nameable{
 		this.published = published;
 		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
+		this.confidential = confidential;
 	}
 
 	@JsonGetter
@@ -90,6 +91,9 @@ public class Service extends Identifiable implements Nameable{
 	public String constantsId() {
 		return constantsId;
 	}
-
-
+	
+	@JsonGetter
+	public boolean confidential () {
+		return this.confidential;
+	}
 }

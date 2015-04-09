@@ -1,13 +1,18 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
+import static nl.idgis.publisher.service.manager.QGroupStructure.groupStructure;
+import static nl.idgis.publisher.service.manager.QGroupStructure.withGroupStructure;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +25,8 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.QGenericLayer;
+import nl.idgis.publisher.database.QLeafLayer;
 import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetGroupParentGroups;
 import nl.idgis.publisher.domain.query.GetGroupParentServices;
@@ -53,11 +60,20 @@ import akka.actor.Props;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.Ops;
 import com.mysema.query.types.Path;
+import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.path.PathBuilder;
 
 public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
+	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
+	
 	private final ActorRef serviceManager;
+
+	private final PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
 	
 	public LayerGroupAdmin(ActorRef database, ActorRef serviceManager) {
 		super(database); 
@@ -141,6 +157,19 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		return handleListLayerGroupsWithQuery (new ListLayerGroups (null, null, null));
 	}
 
+	private BooleanExpression isConfidential () {
+		final QLeafLayer leafLayer = new QLeafLayer ("leaf_layer2");
+		
+		return new SQLSubQuery ()
+			.from (groupStructure)
+			.join (leafLayer).on (groupStructure.childLayerId.eq (leafLayer.genericLayerId))
+			.join (dataset).on (leafLayer.datasetId.eq (dataset.id))
+			.join (sourceDataset).on (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.where (groupStructure.groupLayerIdentification.eq (genericLayer.identification))
+			.where (Expressions.booleanOperation (Ops.EQ, Expressions.constant (true), new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id)).orderBy (sourceDatasetVersion.createTime.desc ()).limit (1).list (sourceDatasetVersion.confidential)))
+			.exists ();
+	}
+	
 	private CompletableFuture<Page<LayerGroup>> handleListLayerGroupsWithQuery (final ListLayerGroups listLayerGroups) {
 		final AsyncSQLQuery baseQuery = db
 			.query()
@@ -168,6 +197,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		
 		singlePage (listQuery, listLayerGroups.getPage ());
 		
+		withGroupStructure (listQuery, parent, child);
+		
 		return baseQuery
 				.count ()
 				.thenCompose ((count) -> {
@@ -182,7 +213,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							genericLayer.title,
 							genericLayer.abstractCol,
 							genericLayer.published,
-							tiledLayer.genericLayerId
+							tiledLayer.genericLayerId,
+							isConfidential ().as (confidentialPath)
 						)
 						.thenApply ((groups) -> {
 							for (Tuple group : groups.list()) {
@@ -204,8 +236,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 												group.get(null),
 												group.get(null),
 												null)
-											: null)
-										));
+											: null),
+										group.get (confidentialPath)
+									));
 							}
 							return builder.build ();
 						});
@@ -215,16 +248,17 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	private CompletableFuture<Optional<LayerGroup>> handleGetLayergroup (String layergroupId) {
 		log.debug("handleGetLayergroup: " + layergroupId);
 		
-		List<Path<?>> groupColumns = new ArrayList<>();
+		List<Expression<?>> groupColumns = new ArrayList<>();
 		groupColumns.addAll(Arrays.asList(genericLayer.all()));
 		groupColumns.addAll(Arrays.asList(tiledLayer.all()));
+		groupColumns.add (isConfidential ().as (confidentialPath));
 
 		return db.transactional(tx -> 
-			tx.query()
+			withGroupStructure (tx.query(), parent, child)
 			.from(genericLayer)
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layergroupId))
-			.singleResult(groupColumns.toArray (new Path<?>[groupColumns.size ()])).thenCompose(optionalGroup -> {
+			.singleResult(groupColumns.toArray (new Expression<?>[groupColumns.size ()])).thenCompose(optionalGroup -> {
 				if(optionalGroup.isPresent()) {
 					Tuple group = optionalGroup.get();					
 					log.debug("generic layer id: " + group.get(genericLayer.id));
@@ -259,8 +293,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 											group.get(tiledLayer.expireClients),
 											group.get(tiledLayer.gutter),
 											mimeFormats.list())
-										: null)
-								)));
+										: null),
+								group.get (confidentialPath)
+							)));
 				} else {
 					return f.successful(Optional.empty());
 				}
@@ -567,8 +602,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							null,
 							null,
 							null,
-							null
-							));
+							null,
+							false
+						));
 				}
 				return builder.build();
 			});
@@ -605,7 +641,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
-						null, null, null, null
+						null, null, null, null,
+						false
 						));
 				}
 				return builder.build();
