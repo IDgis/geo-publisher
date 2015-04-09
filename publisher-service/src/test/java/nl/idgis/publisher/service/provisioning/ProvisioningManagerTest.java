@@ -1,7 +1,10 @@
 package nl.idgis.publisher.service.provisioning;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.Arrays;
 
@@ -24,7 +27,9 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.DatabaseMock;
+
 import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -35,6 +40,10 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
+import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
@@ -109,6 +118,7 @@ public class ProvisioningManagerTest  {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
+			recorder.tell(msg, getSender());
 			unhandled(msg);	
 		}
 	};
@@ -152,6 +162,7 @@ public class ProvisioningManagerTest  {
 		
 		@Override
 		public void onReceive(Object msg) throws Exception {
+			recorder.tell(msg, getSender());
 			if(msg instanceof FinishJob) {
 				targets.stream().forEach(target ->
 					getContext().parent().tell(new UpdateJobState(JobState.SUCCEEDED), target));
@@ -176,14 +187,21 @@ public class ProvisioningManagerTest  {
 		}
 	}
 	
-	public static class ServiceManagerMock extends UntypedActor {		
+	public static class ServiceManagerMock extends UntypedActor {
 		
-		static Props props() {
-			return Props.create(ServiceManagerMock.class);
+		private final ActorRef recorder;
+		
+		public ServiceManagerMock(ActorRef recorder) {
+			this.recorder = recorder;
+		}
+		
+		static Props props(ActorRef recorder) {
+			return Props.create(ServiceManagerMock.class, recorder);
 		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
+			recorder.tell(msg, getSender());
 			getSender().tell(new ServiceManagerResponse(msg), getSelf());
 		}
 	}
@@ -230,7 +248,7 @@ public class ProvisioningManagerTest  {
 	
 	ActorSystem actorSystem;
 	
-	ActorRef recorder, provisioningManager;
+	ActorRef serviceActorRecorder, jobActorRecorder, serviceManagerRecorder, provisioningManager;
 	
 	@Before
 	public void start() {
@@ -239,22 +257,26 @@ public class ProvisioningManagerTest  {
 			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
 		
 		actorSystem = ActorSystem.create("test", akkaConfig);
-		recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");
+		
+		serviceActorRecorder = actorSystem.actorOf(AnyRecorder.props(), "serviceActorRecorder");
+		jobActorRecorder = actorSystem.actorOf(AnyRecorder.props(), "jobActorRecorder");
+		serviceManagerRecorder = actorSystem.actorOf(AnyRecorder.props(), "serviceManagerRecorder");
+		
 		provisioningManager = actorSystem.actorOf(
 			ProvisioningManager.props(
 				actorSystem.actorOf(DatabaseMock.props()),
-				actorSystem.actorOf(ServiceManagerMock.props()),
+				actorSystem.actorOf(ServiceManagerMock.props(serviceManagerRecorder)),
 				
 				new ProvisioningPropsFactory() {
 					
 					@Override
 					public Props serviceProps(ServiceInfo serviceInfo, String schema) {
-						return ServiceActor.props(recorder, serviceInfo, schema);
+						return ServiceActor.props(serviceActorRecorder, serviceInfo, schema);
 					}
 					
 					@Override
 					public Props ensureJobProps(Set<ActorRef> targets) {
-						return JobActor.props(recorder, targets);
+						return JobActor.props(jobActorRecorder, targets);
 					}
 
 					@Override
@@ -272,13 +294,13 @@ public class ProvisioningManagerTest  {
 	}
 	
 	@Test
-	public void testServiceJobInfo() throws Exception {
+	public void testEnsureServiceJobInfoStaging() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
 			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
 		
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
-		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 		
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
 		
@@ -312,6 +334,98 @@ public class ProvisioningManagerTest  {
 				assertEquals(JobState.SUCCEEDED, update.getState());
 			})
 			.assertNotHasNext();
+		
+		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
+		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(ServiceActorStarted.class)
+			.assertNext(FinishJob.class)
+			.assertNotHasNext();
+		
+		Map<Class<?>, Object> serviceManagerRequests = new HashMap<>();
+		f.ask(jobActorRecorder, new Wait(4), Waited.class).get();
+		f.ask(jobActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(JobActorStarted.class)
+			.assertNext(ServiceManagerResponse.class, resp -> {
+				Object request = resp.getRequest();
+				serviceManagerRequests.put(request.getClass(), request);
+			})
+			.assertNext(ServiceManagerResponse.class, resp -> {
+				Object request = resp.getRequest();
+				serviceManagerRequests.put(request.getClass(), request);
+			})
+			.assertNext(FinishJob.class)
+			.assertNotHasNext();
+		
+		assertTrue(serviceManagerRequests.containsKey(GetService.class));
+		GetService getService = (GetService)serviceManagerRequests.get(GetService.class);
+		assertEquals("service", getService.getServiceId());
+		
+		assertTrue(serviceManagerRequests.containsKey(GetStyles.class));
+		GetStyles getStyles = (GetStyles)serviceManagerRequests.get(GetStyles.class);
+		assertEquals("service", getStyles.getServiceId());
+	}
+	
+	@Test
+	public void testEnsureServiceJobInfoPublished() throws Exception {
+		ServiceInfo publicationServiceInfo = new ServiceInfo(
+			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+		
+		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
+		
+		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
+		
+		EnsureServiceJobInfo serviceJobInfo = new EnsureServiceJobInfo(0, "service", true);
+		provisioningManager.tell(serviceJobInfo, jobRecorder);
+		
+		f.ask(jobRecorder, new Wait(2), Waited.class).get();
+		f.ask(jobRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.STARTED, update.getState());
+			})
+			.assertNext(Ack.class)
+			.assertNotHasNext();
+		
+		f.ask(jobRecorder, new Clear(), Cleared.class).get();
+		
+		ActorSelection.apply(provisioningManager, "*").tell(new FinishJob(), ActorRef.noSender());
+		
+		f.ask(jobRecorder, new Wait(1), Waited.class).get();
+		f.ask(jobRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.SUCCEEDED, update.getState());
+			})
+			.assertNotHasNext();
+		
+		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
+		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(ServiceActorStarted.class)
+			.assertNext(FinishJob.class)
+			.assertNotHasNext();
+		
+		Map<Class<?>, Object> serviceManagerRequests = new HashMap<>();
+		f.ask(jobActorRecorder, new Wait(4), Waited.class).get();
+		f.ask(jobActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(JobActorStarted.class)
+			.assertNext(ServiceManagerResponse.class, resp -> {
+				Object request = resp.getRequest();
+				serviceManagerRequests.put(request.getClass(), request);
+			})
+			.assertNext(ServiceManagerResponse.class, resp -> {
+				Object request = resp.getRequest();
+				serviceManagerRequests.put(request.getClass(), request);
+			})
+			.assertNext(FinishJob.class)
+			.assertNotHasNext();
+		
+		assertTrue(serviceManagerRequests.containsKey(GetPublishedService.class));
+		GetPublishedService getService = (GetPublishedService)serviceManagerRequests.get(GetPublishedService.class);
+		assertEquals("service", getService.getServiceId());
+		
+		assertTrue(serviceManagerRequests.containsKey(GetPublishedStyles.class));
+		GetPublishedStyles getStyles = (GetPublishedStyles)serviceManagerRequests.get(GetPublishedStyles.class);
+		assertEquals("service", getStyles.getServiceId());
 	}
 
 	@Test
@@ -326,20 +440,20 @@ public class ProvisioningManagerTest  {
 		
 		// we wait after every message to ensure a fixed order in the recording
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
-		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
-		f.ask(recorder, new Wait(2), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
 		
 		// services already registered -> should not have any effect
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
 		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
 		
 		provisioningManager.tell(new RemoveStagingService(stagingServiceInfo), ActorRef.noSender());
-		f.ask(recorder, new Wait(3), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(3), Waited.class).get();
 		provisioningManager.tell(new RemovePublicationService(publicationServiceInfo), ActorRef.noSender());
-		f.ask(recorder, new Wait(4), Waited.class).get();
+		f.ask(serviceActorRecorder, new Wait(4), Waited.class).get();
 		
-		f.ask(recorder, new GetRecording(), Recording.class).get()
+		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
 			.assertNext(ServiceActorStarted.class, started -> {
 				assertEquals(stagingServiceInfo, started.getServiceInfo());
 				assertEquals("staging_data", started.getSchema());

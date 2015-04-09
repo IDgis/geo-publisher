@@ -221,6 +221,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				if(msg instanceof UpdateServiceInfo) {
 					handleUpdateServiceInfo((UpdateServiceInfo)msg);
 				} else if(msg instanceof PublishedServiceIndex) {
+					log.debug("published service index received");
+					
 					getSender().tell(new NextItem(), getSelf());
 					
 					PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)msg;
@@ -256,6 +258,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				if(msg instanceof UpdateServiceInfo) {
 					handleUpdateServiceInfo((UpdateServiceInfo)msg);
 				} else if(msg instanceof ServiceIndex) {
+					log.debug("service index received");
 					targets.stream().forEach(target -> target.tell(msg, getSelf()));
 				} else {
 					elseProvisioning(msg, serviceJob, initiator, Optional.empty(), targets, state);
@@ -342,21 +345,21 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		Set<ActorRef> targets =		
 			msg.getEnvironmentIds()
 				.map(environmentIds -> publicationTargets(environmentIds.list()))
-				.orElse(stagingTargets());
-
-		ActorRef jobHandler = getContext().actorOf(
-				provisioningPropsFactory.ensureJobProps(targets),
-				nameGenerator.getName(msg.getClass()));
-		
-		getContext().watch(jobHandler);		
-		msg.getResponses().stream().forEach(response -> 
-			response.forward(jobHandler));
+				.orElseGet(this::stagingTargets);
 		
 		if (targets.isEmpty ()) {
 			log.error ("No targets for provisioning, aborting provisioning job");
 			initiator.tell (new UpdateJobState (JobState.FAILED), getSelf ());
 			getContext ().become (receive ());
 		} else {
+			ActorRef jobHandler = getContext().actorOf(
+					provisioningPropsFactory.ensureJobProps(targets),
+					nameGenerator.getName(msg.getClass()));
+			
+			getContext().watch(jobHandler);		
+			msg.getResponses().stream().forEach(response -> 
+				response.forward(jobHandler));
+			
 			getContext().become(provisioning(jobInfo, initiator, jobHandler, targets));
 		}
 	}
@@ -377,6 +380,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		initiator.tell(new Ack(), getSelf()); 
 		
 		if(msg instanceof EnsureServiceJobInfo) {
+			log.debug("ensuring");
+			
 			EnsureServiceJobInfo jobInfo = ((EnsureServiceJobInfo)msg);
 			String serviceId = jobInfo.getServiceId();
 			
@@ -384,8 +389,10 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			db.transactional(tx -> {
 				Optional<AsyncTransactionRef> transactionRef = Optional.of(tx.getTransactionRef());
 				
-				return jobInfo.isPublished()
-					? 
+				if(jobInfo.isPublished()) {
+					log.debug("published");
+					
+					return
 						f.askWithSender(serviceManager, new GetPublishedService(transactionRef, serviceId)).thenCompose(service ->
 						f.askWithSender(serviceManager, new GetPublishedStyles(transactionRef, serviceId)).thenCompose(styles ->
 						getEnvironments(transactionRef, serviceId).thenApply(environmentIds ->					
@@ -393,23 +400,32 @@ public class ProvisioningManager extends UntypedActorWithStash {
 									initiator, 
 									jobInfo, 
 									asList(service, styles),
-									Optional.of(environmentIds)))))
-					:
+									Optional.of(environmentIds)))));
+				} else {
+					log.debug("staging");
+					
+					return
 						f.askWithSender(serviceManager, new GetService(transactionRef, serviceId)).thenCompose(service ->
 						f.askWithSender(serviceManager, new GetStyles(transactionRef, serviceId)).thenApply(styles ->
 							new StartProvisioning(
 									initiator, 
 									jobInfo, 
 									asList(service, styles))));
-			
+				}
 			}).thenAccept(result -> self.tell(result, self));
 			
 			getContext().become(collectingProvisioningInfo());
 		} else if(msg instanceof VacuumServiceJobInfo) {
+			log.debug("vacuuming");
+			
 			if(msg.isPublished()) {
+				log.debug("published");
+				
 				serviceManager.tell(new GetPublishedServiceIndex(), getSelf());
 				getContext().become(vacuumingPublication(msg, initiator, publicationTargets()));
 			} else {
+				log.debug("staging");
+				
 				serviceManager.tell(new GetServiceIndex(), getSelf());
 				getContext().become(vacuumingStaging(msg, initiator, stagingTargets()));
 			}
