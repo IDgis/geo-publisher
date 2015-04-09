@@ -32,6 +32,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
+import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -41,9 +42,13 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
+import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
 import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
+import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
+import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
@@ -119,7 +124,12 @@ public class ProvisioningManagerTest  {
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			recorder.tell(msg, getSender());
-			unhandled(msg);	
+			
+			if(msg instanceof ServiceIndex) {
+				getContext().parent().tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+			} else {
+				unhandled(msg);
+			}
 		}
 	};
 	
@@ -202,7 +212,23 @@ public class ProvisioningManagerTest  {
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			recorder.tell(msg, getSender());
-			getSender().tell(new ServiceManagerResponse(msg), getSelf());
+			
+			if(msg instanceof GetServiceIndex) {
+				ServiceIndex serviceIndex = new ServiceIndex(
+					Arrays.asList("service"), 
+					Arrays.asList("style"));
+				getSender().tell(serviceIndex, getSelf());
+			} else if(msg instanceof GetPublishedServiceIndex) {
+				PublishedServiceIndex publishedServiceIndex = new PublishedServiceIndex(
+					"environmentId", 
+					new ServiceIndex(
+						Arrays.asList("service"), 
+						Arrays.asList("style")));
+				
+				getSender().tell(publishedServiceIndex, getSelf());
+			} else {
+				getSender().tell(new ServiceManagerResponse(msg), getSelf());
+			}
 		}
 	}
 	
@@ -469,6 +495,38 @@ public class ProvisioningManagerTest  {
 			.assertNext(ServiceActorStopped.class, stopped -> {
 				assertEquals(publicationServiceInfo, stopped.getServiceInfo());
 				assertEquals("data", stopped.getSchema());
+			})
+			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testVacuumServiceJobInfoStaging() throws Exception {
+		ServiceInfo stagingServiceInfo = new ServiceInfo(
+			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+		
+		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
+			f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
+			
+		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
+		
+		VacuumServiceJobInfo serviceJobInfo = new VacuumServiceJobInfo(0);
+		provisioningManager.tell(serviceJobInfo, jobRecorder);
+		
+		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
+		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(ServiceActorStarted.class)
+			.assertNext(ServiceIndex.class)
+			.assertNotHasNext();
+		
+		f.ask(jobRecorder, new Wait(3), Waited.class).get();
+		f.ask(jobRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.STARTED, update.getState());
+			})
+			.assertNext(Ack.class)
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.SUCCEEDED, update.getState());
 			})
 			.assertNotHasNext();
 	}
