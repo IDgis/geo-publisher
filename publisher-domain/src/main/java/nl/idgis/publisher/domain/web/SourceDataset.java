@@ -7,14 +7,15 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class SourceDataset extends Identifiable {
-
-	private static final long serialVersionUID = 3117616774767959933L;
+	
+	private static final long serialVersionUID = 6062677731979126026L;
 	
 	private final String name, alternateTitle;
 	private final EntityRef category;
 	private final EntityRef dataSource;
 	private final SourceDatasetType	type;
 	private final boolean deleted;
+	private final boolean confidential;
 	
 	@JsonCreator
 	public SourceDataset (
@@ -24,7 +25,8 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("category") EntityRef category,
 			final @JsonProperty("dataSource") EntityRef dataSource,
 			final @JsonProperty("type") SourceDatasetType type,
-			final @JsonProperty("deleted") boolean deleted) {
+			final @JsonProperty("deleted") boolean deleted,
+			final @JsonProperty("confidential") boolean confidential) {
 		super(id);
 		
 		if (type == null) {
@@ -37,6 +39,7 @@ public final class SourceDataset extends Identifiable {
 		this.dataSource = dataSource;
 		this.type = type;
 		this.deleted = deleted;
+		this.confidential = confidential;
 	}
 
 	@JsonGetter
@@ -67,5 +70,10 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public boolean deleted () {
 		return this.deleted;
+	}
+	
+	@JsonGetter
+	public boolean confidential () {
+		return this.confidential;
 	}
 }
