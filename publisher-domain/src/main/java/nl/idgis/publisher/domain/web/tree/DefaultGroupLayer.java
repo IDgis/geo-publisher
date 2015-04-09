@@ -104,7 +104,13 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 
 	@Override
 	public boolean isConfidential () {
-		return partialGroupLayer.isConfidential ();
+		for (final DefaultDatasetLayer datasetLayer: datasets.values ()) {
+			if (datasetLayer.isConfidential ()) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	private void toTree(StringBuilder sb, int depth) {

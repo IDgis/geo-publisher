@@ -141,6 +141,11 @@ public class JsonService implements Service {
 				.collect(toList());
 	}
 	
+	@Override
+	public boolean isConfidential () {
+		return jsonNode.path ("confidential").asBoolean ();
+	}
+	
 	private interface EnrichedService extends Service {
 		
 		String getFormatRevision();
