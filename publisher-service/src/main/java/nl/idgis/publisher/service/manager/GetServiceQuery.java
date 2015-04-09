@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 import java.util.concurrent.CompletableFuture;
 

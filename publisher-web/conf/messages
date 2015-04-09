@@ -451,6 +451,7 @@ web.application.page.services.list.empty=Er zijn geen services gevonden die vold
 web.application.page.services.list.button.create=Maak een nieuwe service ...
 web.application.page.layers.services.search.placeholder=Zoek een service ...
 web.application.page.services.list.search.showAll=Hef filter op servicenaam op
+web.application.page.services.list.confidential=Vertrouwelijk
 
 web.application.page.services.form.title=Service formulier
 web.application.page.services.form.header.new=Nieuwe service toevoegen
