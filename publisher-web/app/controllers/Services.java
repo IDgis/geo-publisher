@@ -3,8 +3,10 @@ package controllers;
 import static models.Domain.from;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import models.Domain;
@@ -18,6 +20,7 @@ import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
@@ -66,25 +69,12 @@ public class Services extends Controller {
 				});
 	}
 	
-	private static Promise<Result> renderPublishForm (final String serviceFormName, final Page<ServicePublish> servicePublishForm) {
-		return Promise.promise(new F.Function0<Result>() {
-             @Override
-             public Result apply() throws Throwable {
-            	 return ok (publishService.render (serviceFormName, servicePublishForm));
-             }
-        });
-	}
-	
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
 		return renderForm(serviceForm, null, true);
 	}
 	
 	private static Promise<Result> renderEditForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer) {
 		return renderForm(serviceForm, groupLayer, false);
-	}
-	
-	private static Promise<Result> renderCreatePublishForm (final String serviceFormName, final Page<ServicePublish> servicePublishForm) {
-		return renderPublishForm(serviceFormName, servicePublishForm);
 	}
 	
 	public static Promise<Result> submitCreate () {
@@ -301,6 +291,28 @@ public class Services extends Controller {
 			});
 	}
 	
+	public static Promise<Result> submitPublishService(String serviceId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		Set<String> environmentIds = new HashSet<>(request().body().asFormUrlEncoded().keySet());
+		
+		return from(database)
+			.query(new PerformPublish(serviceId, environmentIds))
+			//.execute(result -> ok("saved: " + result));
+			.executeFlat(new Function <Boolean, Promise<Result>> () {
+				@Override
+				public Promise<Result> apply (final Boolean result) throws Throwable {
+					if (result) {
+						flash ("success", Domain.message("web.application.page.datasets.list.environments.success"));
+					} else{
+						flash ("danger", Domain.message("web.application.page.datasets.list.environments.failure"));
+					}
+					
+					return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+				}
+			});
+	}
+	
 	public static Promise<Result> publishService (final String serviceId, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		Logger.debug ("publish Service");
@@ -308,15 +320,16 @@ public class Services extends Controller {
 		return from (database)
 			.get(Service.class,  serviceId)
 			.query (new ListEnvironments (serviceId))
-			.executeFlat (new Function2 <Service, Page<ServicePublish>, Promise<Result>> () {
+			.execute (new Function2 <Service, Page<ServicePublish>, Result> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
+				public Result apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
 					Logger.debug("Service publish: " + servicePublish);
 					for (ServicePublish sp : servicePublish.values()) {
 						Logger.debug("SP: " + sp.toString());
 					}
-					return renderCreatePublishForm (service.name(), servicePublish);
+					
+					return ok(publishService.render(serviceId, service.name(), servicePublish));
 				}
 			});
 	}
@@ -375,49 +388,6 @@ public class Services extends Controller {
 			}
 		});
 	}
-	
-	public static class ServicePublishForm {
-		private String identification;
-		private String name;
-		private Boolean inUse = false;
-		
-		public ServicePublishForm () {
-			super();
-		}
-		
-		public ServicePublishForm (ServicePublish servicePublish){
-			this.identification = servicePublish.identification();
-			this.name = servicePublish.name();			
-			this.inUse = servicePublish.guaranteedSV();
-		}
-		
-		public String getIdentification() {
-			return identification;
-		}
-		
-		public void setIdentification(String identification) {
-			this.identification = identification;
-		}
-		
-		public String getName() {
-			return name;
-		}
-		
-		public void setName(String name) {
-			this.name = name;
-		}
-		
-		public Boolean getInUse() {
-			return inUse;
-		}
-		
-		public void setInUse(Boolean inUse) {
-			this.inUse = inUse;
-		}
-
-
-	}
-	
 	
 	public static class ServiceForm {
 

@@ -454,6 +454,9 @@ web.application.page.services.list.search.showAll=Hef filter op servicenaam op
 web.application.page.services.list.confidential=Vertrouwelijk
 web.application.page.services.list.publish=Publiceren
 
+web.application.page.datasets.list.environments.success=Het publiceren is gestart.
+web.application.page.datasets.list.environments.failure=Fout! Het publiceren is niet gestart.
+
 web.application.page.services.form.title=Service formulier
 web.application.page.services.form.header.new=Nieuwe service toevoegen
 web.application.page.services.form.header.edit=Service {0} aanpassen

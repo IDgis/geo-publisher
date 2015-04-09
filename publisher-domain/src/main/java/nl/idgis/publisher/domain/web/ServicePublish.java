@@ -46,7 +46,7 @@ public class ServicePublish extends Identifiable {
 	}
 	
 	@JsonGetter
-	public Boolean guaranteedSV() {
+	public Boolean inUse() {
 		return inUse;
 	}
 

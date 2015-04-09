@@ -32,6 +32,7 @@ import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -41,6 +42,8 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.manager.messages.PublishService;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.Tuple;
@@ -76,11 +79,22 @@ public class ServiceAdmin extends AbstractAdmin {
 		doDelete(Service.class, this::handleDeleteService);
 		
 		doQuery(ListEnvironments.class, this::handleListEnvironments);
+		doQuery(PerformPublish.class, this::handlePerformPublish);
 		
 		doQuery(ListServiceKeywords.class, this::handleListServiceKeywords);
 		doQuery(PutServiceKeywords.class, this::handlePutServiceKeywords);
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
+	}
+	
+	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {
+		return f.ask(
+			serviceManager, 
+			new PublishService(
+				performPublish.getServiceId(), 
+				performPublish.getEnvironmentIds()), Ack.class)
+					.thenApply(ack -> true)
+					.exceptionally(t -> false);
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
@@ -99,6 +113,7 @@ public class ServiceAdmin extends AbstractAdmin {
 			.exists().as("inUse");
 		
 		return db.query().from(environment)
+			.orderBy(environment.name.asc())
 			.list(
 					environment.identification,
 					environment.name,

@@ -1,7 +1,8 @@
 @import nl.idgis.publisher.domain.web._ 
 
-@(serviceFormName: String, 
-	servicePublishName: Form[controllers.Services.ServicePublishForm])
+@(serviceId: String,
+	serviceFormName: String, 
+	environments: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ServicePublish])
 
 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),
@@ -14,18 +15,30 @@
 
 	<div class="list-group">
 		<div class="col-lg-9">
-			<div class="row">
-				<div class="list-group-item">
+			<form method="post" action="@routes.Services.submitPublishService(serviceId)"> 
+				<div class="form-group">
 					<div class="row">
-						<div class="col-md-12">
-							<h4 class="list-group-item-heading">
-								<a href="" class="text-warning">abc</a>
-								<input type="checkbox" class="pull-right">
-							</h4>
-						</div>
+						@for(environment <- environments.values) {
+							<div class="list-group-item">
+								<div class="row">
+									<div class="col-md-12">
+										<h4 class="list-group-item-heading">
+											<a class="text-warning">@environment.name</a>
+											<input name="@environment.identification" type="checkbox" class="pull-right" @if(environment.inUse()){checked}>
+										</h4>
+									</div>
+								</div>
+							</div>
+						}			
 					</div>
-				</div>			
-			</div>
+				</div>
+				<div class="form-group">
+					<div class="row">
+						<button type="submit" class="btn btn-primary">@Domain.message("web.application.button.save")</button>
+						<a href="@routes.Services.list()" type="button" class="btn btn-default">@Domain.message("web.application.button.cancel")</a>
+					</div>
+				</div>
+			</form>
 		</div>
 	</div>
 </div>
