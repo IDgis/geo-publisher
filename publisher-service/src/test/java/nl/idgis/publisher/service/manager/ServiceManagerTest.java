@@ -1716,6 +1716,107 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals(new HashSet<>(Arrays.asList("service-name0", "service-name1")), new HashSet<>(serviceIndex.getServiceNames()));
 		assertEquals(new HashSet<>(Arrays.asList("style-name0", "style-name1")), new HashSet<>(serviceIndex.getStyleNames()));
 	}
+	
+	@Test
+	public void testPublishServiceConfidential () throws Throwable {
+		// Mark the source datasets as confidential:
+		assertEquals (2, update (sourceDatasetVersion)
+			.set (sourceDatasetVersion.confidential, true)
+			.execute ());
+		
+		// Mark environment 1 as confidential:
+		assertEquals (1, update (environment)
+			.set (environment.confidential, true)
+			.where (environment.identification.eq ("environment1"))
+			.execute ());
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		StringWriter sw = new StringWriter();
+		Transformer t = TransformerFactory.newInstance().newTransformer();
+		t.transform(new DOMSource(TestStyle.getGreenSld()), new StreamResult(sw));
+		
+		int styleId0 = insert(style)
+			.set(style.identification, "style0")
+			.set(style.name, "style-name0")
+			.set(style.definition, sw.toString())
+			.executeWithKey(style.id);
+		
+		int leafLayerId = insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)			
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.executeWithKey(leafLayer.id);
+		
+		insert(layerStyle)
+			.set(layerStyle.layerId, leafLayerId)
+			.set(layerStyle.styleId, styleId0)
+			.set(layerStyle.defaultStyle, true)
+			.set(layerStyle.styleOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(service)
+			.set(service.genericLayerId, rootId)			
+			.execute();
+		
+		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
+		assertEquals("service", stagingService.getId());
+		assertTrue (stagingService.isConfidential ());
+		
+		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
+		
+		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		
+		Iterator<Tuple> publishedServiceItr = 
+			query().from(publishedService)
+			.list(publishedService.all()).iterator();
+		
+		assertTrue(publishedServiceItr.hasNext());
+		
+		Tuple publishedServiceTuple = publishedServiceItr.next();
+		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
+		assertNotNull(publishedServiceContent);
+		
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent);
+		assertNotNull(reconstrucedPublishedService);
+		assertEquals("service", reconstrucedPublishedService.getId());
+		
+		assertFalse(publishedServiceItr.hasNext());
+		
+		Iterator<Tuple> publishedServiceEnvironmentItr =
+			query().from(publishedServiceEnvironment)
+				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.orderBy(environment.identification.asc())
+				.list(
+					genericLayer.identification,
+					environment.identification).iterator();
+		
+		assertTrue(publishedServiceEnvironmentItr.hasNext());
+		
+		Tuple publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
+		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
+		assertEquals("environment1", publishedServiceEnvironmentTuple.get(environment.identification));
+		
+		assertFalse(publishedServiceEnvironmentItr.hasNext());
+		
+		Service publishedService = f.ask(serviceManager, new GetPublishedService("service"), Service.class).get();
+		assertEquals("service", publishedService.getId());
+	}
 
 	private Map<String, ServiceIndex> getPublishedServiceIndex() throws InterruptedException, ExecutionException {
 		Map<String, ServiceIndex> publishedEnvironments = new HashMap<>();
