@@ -25,6 +25,7 @@ import java.util.function.Function;
 
 import nl.idgis.publisher.admin.messages.QSourceDatasetInfo;
 import nl.idgis.publisher.admin.messages.SourceDatasetInfo;
+
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QSourceDataset;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
@@ -40,6 +41,7 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.projections.QColumn;
+
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.MessageType;
 import nl.idgis.publisher.domain.job.JobType;
@@ -68,6 +70,7 @@ import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 import nl.idgis.publisher.domain.web.Status;
+
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
@@ -76,6 +79,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.utils.TypedList;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -476,7 +480,7 @@ private String getEnumName(Enum e){
 			.groupBy(sourceDatasetVersion.confidential)
 			.singleResult(
 				new QSourceDatasetInfo(
-						sourceDataset.identification, 
+						sourceDataset.identification,
 						sourceDatasetVersion.name,
 						sourceDatasetVersion.alternateTitle,
 						dataSource.identification, 
@@ -495,7 +499,8 @@ private String getEnumName(Enum e){
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
 						selectLastLog ("time", sourceDataset, l -> l.createTime),
 						sourceDataset.deleteTime,
-						sourceDatasetVersion.confidential
+						sourceDatasetVersion.confidential,
+						sourceDataset.externalIdentification
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -512,7 +517,8 @@ private String getEnumName(Enum e){
 									sourceDatasetInfo.getDataSourceName()),
 								sourceDatasetInfo.getType (),
 								sourceDatasetInfo.getDeleteTime () != null,
-								sourceDatasetInfo.isConfidential ()
+								sourceDatasetInfo.isConfidential (),
+								sourceDatasetInfo.externalId()
 							)));	
 	}
 
@@ -521,7 +527,7 @@ private String getEnumName(Enum e){
 		log.debug("handleListIssues logLevels=" + listIssues.getLogLevels () + ", since=" + listIssues.getSince () + ", page=" + listIssues.getPage () + ", limit=" + listIssues.getLimit ());
 		
 		final Long page = listIssues.getPage () != null ? Math.max (1, listIssues.getPage ()) : 1;
-		final long limit = listIssues.getLimit () != null ? Math.max (1, listIssues.getLimit ()) : ITEMS_PER_PAGE;
+		final long limit = listIssues.getLimit () != null ? Math.max (1, listIssues.getLimit ()) : DEFAULT_ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 		
 		final CompletableFuture<Object> issues = f.ask (database, new GetJobLog (Order.DESC, offset, limit, listIssues.getLogLevels (), listIssues.getSince ()));
@@ -647,8 +653,11 @@ private String getEnumName(Enum e){
 			AsyncSQLQuery listQuery = baseQuery.clone()					
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 			
+			
+			
 			Long page = msg.getPage();
-			singlePage(listQuery, page);
+			Optional<Long> itemsPerPage = msg.itemsPerPage();			
+			singlePage(listQuery, page, itemsPerPage);			
 			
 			return f
 				.collect(listQuery					
@@ -658,6 +667,7 @@ private String getEnumName(Enum e){
 					.groupBy(sourceDatasetVersion.alternateTitle)
 					.groupBy(sourceDataset.deleteTime)
 					.groupBy(sourceDatasetVersion.confidential)
+					.groupBy(sourceDataset.externalIdentification)
 					.orderBy(sourceDatasetVersion.name.trim().asc())
 					.list(new QSourceDatasetInfo(
 						sourceDataset.identification, 
@@ -673,7 +683,8 @@ private String getEnumName(Enum e){
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
 						selectLastLog ("time", sourceDataset, l -> l.createTime),
 						sourceDataset.deleteTime,
-						sourceDatasetVersion.confidential
+						sourceDatasetVersion.confidential,
+						sourceDataset.externalIdentification
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -687,7 +698,8 @@ private String getEnumName(Enum e){
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
 							sourceDatasetInfo.getType (),
 							sourceDatasetInfo.getDeleteTime () != null,
-							sourceDatasetInfo.isConfidential ()
+							sourceDatasetInfo.isConfidential (),
+							sourceDatasetInfo.externalId()
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (
@@ -700,7 +712,7 @@ private String getEnumName(Enum e){
 							));
 					}
 					
-					addPageInfo(pageBuilder, page, count);
+					addPageInfo(pageBuilder, page, count, itemsPerPage);
 					
 					return pageBuilder.build();
 				});

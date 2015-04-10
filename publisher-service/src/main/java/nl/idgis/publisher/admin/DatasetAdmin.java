@@ -405,7 +405,7 @@ public class DatasetAdmin extends AbstractAdmin {
 	
 	private CompletableFuture<Page<Notification>> handleListActiveNotifications (final ListActiveNotifications listNotifications) {
 		final long page = listNotifications.getPage () != null ? Math.max (1, listNotifications.getPage ()) : 1;
-		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : ITEMS_PER_PAGE;
+		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : DEFAULT_ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 
 		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));

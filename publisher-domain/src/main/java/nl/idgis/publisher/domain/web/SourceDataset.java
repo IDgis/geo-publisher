@@ -16,6 +16,7 @@ public final class SourceDataset extends Identifiable {
 	private final SourceDatasetType	type;
 	private final boolean deleted;
 	private final boolean confidential;
+	private final String externalId;
 	
 	@JsonCreator
 	public SourceDataset (
@@ -26,7 +27,8 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("dataSource") EntityRef dataSource,
 			final @JsonProperty("type") SourceDatasetType type,
 			final @JsonProperty("deleted") boolean deleted,
-			final @JsonProperty("confidential") boolean confidential) {
+			final @JsonProperty("confidential") boolean confidential,
+			final @JsonProperty("externalId") String externalId) {
 		super(id);
 		
 		if (type == null) {
@@ -40,6 +42,7 @@ public final class SourceDataset extends Identifiable {
 		this.type = type;
 		this.deleted = deleted;
 		this.confidential = confidential;
+		this.externalId = externalId;
 	}
 
 	@JsonGetter
@@ -75,5 +78,10 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public boolean confidential () {
 		return this.confidential;
+	}
+	
+	@JsonGetter
+	public String externalId() {
+		return this.externalId;
 	}
 }
