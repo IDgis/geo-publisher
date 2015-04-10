@@ -504,8 +504,8 @@ public class ProvisioningManagerTest  {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
 			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
-		
-		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
+
+		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();		
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 			
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
@@ -537,7 +537,7 @@ public class ProvisioningManagerTest  {
 				new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
 				new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
 			
-		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 			
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
