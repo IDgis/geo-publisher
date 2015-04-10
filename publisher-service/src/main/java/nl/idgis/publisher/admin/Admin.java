@@ -476,7 +476,7 @@ private String getEnumName(Enum e){
 			.groupBy(sourceDatasetVersion.confidential)
 			.singleResult(
 				new QSourceDatasetInfo(
-						sourceDataset.identification, 
+						sourceDataset.identification,
 						sourceDatasetVersion.name,
 						sourceDatasetVersion.alternateTitle,
 						dataSource.identification, 
@@ -495,7 +495,8 @@ private String getEnumName(Enum e){
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
 						selectLastLog ("time", sourceDataset, l -> l.createTime),
 						sourceDataset.deleteTime,
-						sourceDatasetVersion.confidential
+						sourceDatasetVersion.confidential,
+						sourceDataset.externalIdentification
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -512,7 +513,8 @@ private String getEnumName(Enum e){
 									sourceDatasetInfo.getDataSourceName()),
 								sourceDatasetInfo.getType (),
 								sourceDatasetInfo.getDeleteTime () != null,
-								sourceDatasetInfo.isConfidential ()
+								sourceDatasetInfo.isConfidential (),
+								sourceDatasetInfo.externalId()
 							)));	
 	}
 
@@ -658,6 +660,7 @@ private String getEnumName(Enum e){
 					.groupBy(sourceDatasetVersion.alternateTitle)
 					.groupBy(sourceDataset.deleteTime)
 					.groupBy(sourceDatasetVersion.confidential)
+					.groupBy(sourceDataset.externalIdentification)
 					.orderBy(sourceDatasetVersion.name.trim().asc())
 					.list(new QSourceDatasetInfo(
 						sourceDataset.identification, 
@@ -673,7 +676,8 @@ private String getEnumName(Enum e){
 						selectLastLog ("parameters", sourceDataset, l -> l.content),
 						selectLastLog ("time", sourceDataset, l -> l.createTime),
 						sourceDataset.deleteTime,
-						sourceDatasetVersion.confidential
+						sourceDatasetVersion.confidential,
+						sourceDataset.externalIdentification
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -687,7 +691,8 @@ private String getEnumName(Enum e){
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
 							sourceDatasetInfo.getType (),
 							sourceDatasetInfo.getDeleteTime () != null,
-							sourceDatasetInfo.isConfidential ()
+							sourceDatasetInfo.isConfidential (),
+							sourceDatasetInfo.externalId()
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (

@@ -147,7 +147,6 @@ public class DataSources extends Controller {
 			}
 			
 			private Void processPage(Chunks.Out<String> out, Page<SourceDatasetStats> sourceDatasetStats) {
-				//out.write("\npage: " + sourceDatasetStats.currentPage() + "\n");
 				out.write(
 					sourceDatasetStats.values().stream()
 						.map(sourceDatasetStat -> {
@@ -155,7 +154,7 @@ public class DataSources extends Controller {
 							EntityRef category = sourceDataset.category(); 
 							
 							return toLine(Arrays.asList(
-								sourceDataset.id(),
+								sourceDataset.externalId(),
 								sourceDataset.name(),
 								category == null
 									? ""
