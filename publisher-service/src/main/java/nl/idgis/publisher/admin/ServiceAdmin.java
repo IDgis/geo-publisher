@@ -183,7 +183,6 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.alternateTitle, 
 								genericLayer.abstractCol,
 								service.metadata,
-								genericLayer.published,
 								genericLayer.identification,					
 								constants.identification,
 								isConfidential ()
@@ -211,7 +210,6 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.alternateTitle, 
 					genericLayer.abstractCol,
 					service.metadata,
-					genericLayer.published,
 					genericLayer.identification,					
 					constants.identification,
 					isConfidential ()
@@ -238,7 +236,6 @@ public class ServiceAdmin extends AbstractAdmin {
 						.set(genericLayer.name, serviceName)
 						.set(genericLayer.title, theService.title())
 						.set(genericLayer.abstractCol, theService.abstractText())
-						.set(genericLayer.published, theService.published())
 						.execute()
 						.thenCompose(n -> {
 							return tx.query().from(genericLayer)
@@ -277,7 +274,6 @@ public class ServiceAdmin extends AbstractAdmin {
 									.set(genericLayer.name, serviceName)
 									.set(genericLayer.title, theService.title())
 									.set(genericLayer.abstractCol, theService.abstractText())
-									.set(genericLayer.published, theService.published())
 									.where(genericLayer.id.eq(glId.get()))
 									.execute()
 									.thenCompose(n -> {

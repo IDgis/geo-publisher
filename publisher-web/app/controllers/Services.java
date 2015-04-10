@@ -55,7 +55,7 @@ public class Services extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_SERVICE#";
 	
-	private static Promise<Result> renderForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer, final Boolean create) {
+	private static Promise<Result> renderForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer, final Boolean create, final Page<ServicePublish> servicePublish) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
 				.list (LayerGroup.class)
@@ -64,17 +64,17 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						return ok (form.render (serviceForm, create, groups, layers, groupLayer));
+						return ok (form.render (serviceForm, create, groups, layers, groupLayer, servicePublish));
 					}
 				});
 	}
 	
 	private static Promise<Result> renderCreateForm (final Form<ServiceForm> serviceForm) {
-		return renderForm(serviceForm, null, true);
+		return renderForm(serviceForm, null, true, null);
 	}
 	
-	private static Promise<Result> renderEditForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer) {
-		return renderForm(serviceForm, groupLayer, false);
+	private static Promise<Result> renderEditForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer, final Page<ServicePublish> servicePublish) {
+		return renderForm(serviceForm, groupLayer, false, servicePublish);
 	}
 	
 	public static Promise<Result> submitCreate () {
@@ -118,8 +118,7 @@ public class Services extends Controller {
 					final ServiceForm serviceForm = form.get ();
 					final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle,serviceForm.abstractText,
-							serviceForm.metadata, serviceForm.published,
-							serviceForm.rootGroupId,serviceForm.constantsId, false);
+							serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, false);
 					Logger.debug ("Update/create service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
@@ -193,24 +192,24 @@ public class Services extends Controller {
 		return from (database)
 			.list (Service.class)
 			.query (new GetGroupStructure(serviceIdentification))
-			.executeFlat (new Function2<Page<Service>, GroupLayer, Promise<Result>> () {
+			.query (new ListEnvironments (serviceIdentification))
+			.executeFlat (new Function3<Page<Service>, GroupLayer, Page<ServicePublish>, Promise<Result>> () {
 	
 				@Override
-				public Promise<Result> apply (final Page<Service> services, final GroupLayer groupLayer) throws Throwable {
+				public Promise<Result> apply (final Page<Service> services, final GroupLayer groupLayer, final Page<ServicePublish> servicePublish) throws Throwable {
 					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
 					Logger.debug ("UPDATE Service: " + form.field("name").value() + " ID: " + serviceIdentification);
 					Logger.debug ("Form: "+ form);
 					// validation start
 					if (form.hasErrors ()) {
-						return renderEditForm (form, groupLayer);
+						return renderEditForm (form, groupLayer, servicePublish);
 					}
 					// validation end
 					
 					final ServiceForm serviceForm = form.get ();
 					final Service service = new Service(serviceIdentification, serviceForm.name, serviceForm.title, 
-							serviceForm.alternateTitle,serviceForm.abstractText,
-							serviceForm.metadata, serviceForm.published,
-							serviceIdentification,serviceForm.constantsId, false);
+							serviceForm.alternateTitle, serviceForm.abstractText,
+							serviceForm.metadata, serviceIdentification,serviceForm.constantsId, false);
 					Logger.debug ("Update service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
@@ -250,7 +249,7 @@ public class Services extends Controller {
 																form.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.cycle"));
 															}
 															if (form.hasErrors ()) {
-																return renderEditForm (form, groupLayer);
+																return renderEditForm (form, groupLayer, servicePublish);
 															} else {
 																String msg;
 																if (CrudOperation.CREATE.equals (responseService.getOperation())) {
@@ -303,9 +302,9 @@ public class Services extends Controller {
 				@Override
 				public Promise<Result> apply (final Boolean result) throws Throwable {
 					if (result) {
-						flash ("success", Domain.message("web.application.page.datasets.list.environments.success"));
+						flash ("success", Domain.message("web.application.page.services.list.environments.success"));
 					} else{
-						flash ("danger", Domain.message("web.application.page.datasets.list.environments.failure"));
+						flash ("danger", Domain.message("web.application.page.services.list.environments.failure"));
 					}
 					
 					return Promise.pure (redirect (routes.Services.list (null, null, 1)));
@@ -333,7 +332,7 @@ public class Services extends Controller {
 				}
 			});
 	}
-
+	
 	public static Promise<Result> create () {
 		Logger.debug ("create Service");
 		final Form<ServiceForm> serviceForm = Form.form (ServiceForm.class).fill (new ServiceForm ());
@@ -348,10 +347,11 @@ public class Services extends Controller {
 		return from (database)
 			.get (Service.class, serviceId)			
 			.query(new ListServiceKeywords(serviceId))
-			.executeFlat (new Function2<Service, List<String>, Promise<Result>> () {
+			.query (new ListEnvironments (serviceId))
+			.executeFlat (new Function3<Service, List<String>, Page<ServicePublish>, Promise<Result>> () {
 
 				@Override
-				public Promise<Result> apply (final Service service, final List<String> keywords) throws Throwable {
+				public Promise<Result> apply (final Service service, final List<String> keywords, final Page<ServicePublish> servicePublish) throws Throwable {
 
 					return from (database)
 						.query (new GetGroupStructure(service.genericLayerId()))
@@ -367,8 +367,8 @@ public class Services extends Controller {
 										.form (ServiceForm.class)
 										.fill (serviceForm);
 								
-//								return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
-								return renderEditForm (formServiceForm, groupLayer);
+								//return ok (form.render (formServiceForm, false, groups, layers, groupLayer, keywords));
+								return renderEditForm (formServiceForm, groupLayer, servicePublish);
 							}
 					});
 				}
@@ -402,7 +402,6 @@ public class Services extends Controller {
 		private List<String> keywords;
 		private String metadata;
 		private String watermark;
-		private Boolean published = false;
 		private String rootGroupId = "";
 		private String constantsId = "";
 		/**
@@ -428,7 +427,6 @@ public class Services extends Controller {
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
 			this.metadata = service.metadata();
-			this.published = service.published();
 			this.rootGroupId =service.genericLayerId();
 			this.constantsId =service.constantsId();
 		}
@@ -518,14 +516,6 @@ public class Services extends Controller {
 			this.watermark = watermark;
 		}
 
-		public Boolean getPublished() {
-			return published;
-		}
-
-		public void setPublished(Boolean published) {
-			this.published = published;
-		}
-		
 		public List<String> getStructure() {
 			return structure;
 		}
@@ -548,7 +538,7 @@ public class Services extends Controller {
 					+ title + ", alternateTitle=" + alternateTitle
 					+ ", abstractText=" + abstractText + ", keywords="
 					+ keywords + ", metadata=" + metadata + ", watermark="
-					+ watermark + ", published=" + published + ", rootGroupId="
+					+ watermark + ", published=" + ", rootGroupId="
 					+ rootGroupId + ", constantsId=" + constantsId
 					+ ", structure=" + structure + ", styles=" + styles + "]";
 		}

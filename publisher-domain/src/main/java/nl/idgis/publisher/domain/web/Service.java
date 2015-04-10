@@ -22,7 +22,6 @@ public class Service extends Identifiable implements Nameable{
 	private final String alternateTitle;
 	private final String abstractText;
 	private final String metadata;
-	private final Boolean published;
 	private final String genericLayerId;
 	private final String constantsId;
 	private final boolean confidential;
@@ -36,8 +35,7 @@ public class Service extends Identifiable implements Nameable{
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String alternateTitle, 
 			final @JsonProperty("") String abstractText, 
-			final @JsonProperty("") String metadata, 
-			final @JsonProperty("") Boolean published,
+			final @JsonProperty("") String metadata,
 			final @JsonProperty("") String genericLayerId,
 			final @JsonProperty("") String constantsId,
 			final @JsonProperty("confidential") boolean confidential
@@ -48,7 +46,6 @@ public class Service extends Identifiable implements Nameable{
 		this.alternateTitle = alternateTitle;
 		this.abstractText = abstractText;
 		this.metadata = metadata;
-		this.published = published;
 		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
 		this.confidential = confidential;
@@ -77,11 +74,6 @@ public class Service extends Identifiable implements Nameable{
 	@JsonGetter
 	public String metadata() {
 		return metadata;
-	}
-
-	@JsonGetter
-	public Boolean published() {
-		return published;
 	}
 
 	public String genericLayerId() {
