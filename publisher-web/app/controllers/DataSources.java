@@ -145,31 +145,29 @@ public class DataSources extends Controller {
 				return values.stream()
 					.map(s -> s == null ? "" : s)
 					.map(s -> quote + s.replace(quote, quote + quote) + quote)
-					.collect(Collectors.joining(separator));
+					.collect(Collectors.joining(separator)) + "\n";
 			}
 			
 			private Void processPage(Chunks.Out<String> out, Page<SourceDatasetStats> sourceDatasetStats) {
-				out.write(
-					sourceDatasetStats.values().stream()
-						.map(sourceDatasetStat -> {
-							SourceDataset sourceDataset = sourceDatasetStat.sourceDataset();
-							EntityRef category = sourceDataset.category(); 
-							
-							return toLine(Arrays.asList(
-								sourceDataset.externalId(),
-								sourceDataset.name(),
-								category == null
-									? ""
-									: category.name(),										
-								"" + sourceDatasetStat.datasetCount(),
-								sourceDatasetStat.lastLogMessage() == null
-									? ""
-									: Domain.message(sourceDatasetStat.lastLogMessage())));
-						})
-						.collect(Collectors.joining("\n")));
 				
-				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {
-					out.write("\n");
+				sourceDatasetStats.values().stream()
+					.forEach(sourceDatasetStat -> {
+						SourceDataset sourceDataset = sourceDatasetStat.sourceDataset();
+						EntityRef category = sourceDataset.category(); 
+						
+						out.write(toLine(Arrays.asList(
+							sourceDataset.externalId(),
+							sourceDataset.name(),
+							category == null
+								? ""
+								: category.name(),										
+							"" + sourceDatasetStat.datasetCount(),
+							sourceDatasetStat.lastLogMessage() == null
+								? ""
+								: Domain.message(sourceDatasetStat.lastLogMessage()))));
+					});
+				
+				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {					
 					from(database)
 						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, sourceDatasetStats.currentPage() + 1, itemsPerPage))
 						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
@@ -185,7 +183,7 @@ public class DataSources extends Controller {
 			}
 
 	        public void onReady(Chunks.Out<String> out) {
-	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")) + "\n");
+	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")));
 	        	
 	        	from(database)
 					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, 1l, itemsPerPage))
