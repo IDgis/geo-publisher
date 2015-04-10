@@ -128,12 +128,11 @@
 								}
 							</div>
 							<div class="col-md-2">
-								@if(service.published){
-									<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
-								}else{
-									<span>@Domain.message("web.application.page.list.notpublished")</span>
-								}
-							</div>
+								<a href="@routes.Services.publishService(service.id)"
+										class="btn btn-default" title="">
+										<span>@Domain.message("web.application.page.services.list.publish")</span>
+									</a> 
+							</div>							
 							<div class="col-md-2">
 								<div class="btn-group pull-left">
 									<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"

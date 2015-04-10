@@ -6,7 +6,8 @@
 	create: Boolean,
 	groups: Page[LayerGroup],
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
-	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer
+	groupLayer: nl.idgis.publisher.domain.web.tree.GroupLayer, 
+	environments: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ServicePublish]
 )
 
 @layerPageRef(page: Long) = @{
@@ -109,16 +110,28 @@
 						</div>
 					</div>
 				</div>
+				
 				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.services.form.field.publish.label")</label>
-					<div class="col-lg-8">
-						<div class="input-group input-group-sm checkbox-fix">
-							<input type="checkbox" id="input-published" name="published" value="true" @if("true".equals (serviceForm("published").value)){checked}>
-						</div>
-					
-						@helper.fielderrors(serviceForm("published").errors)
+					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.publish.environments")</label>
+					<div class="col-sm-8"> 
+						<ol class="breadcrumb">
+							@if(!create){
+								@for(environment <- environments.values) {
+									 @if(environment.inUse()){
+									 <li>
+										<span>@environment.name</span>
+									</li>
+									
+									}
+								}
+							} else {
+								<li>
+									<span>@Domain.message("web.application.page.services.form.field.environments.none")</span>
+								</li>
+							}
+						</ol>
 					</div>
-					@helper.tooltips("web.application.page.services.form.field.publish.help")
+					@helper.tooltips("web.application.page.services.form.field.environments.help")
 				</div>
 				
 				@helper.groupStructure(layers, groups, groupLayer, serviceForm("structure").errors)

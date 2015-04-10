@@ -132,6 +132,7 @@ web.application.button.add=Toevoegen
 web.application.button.edit=Bewerken
 web.application.button.remove=Verwijderen
 web.application.button.getcap=GetCapabilities
+web.application.button.publish=Publiceren
 
 
 # Filtering:
@@ -445,6 +446,8 @@ web.application.page.datasources.all=Alle gegevensbronnen
 
 # Services
 web.application.page.services.name=Service
+web.application.page.services.publish=Service publiceren
+web.application.page.services.publish.environments=Omgevingen
 
 web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
@@ -452,10 +455,18 @@ web.application.page.services.list.button.create=Maak een nieuwe service ...
 web.application.page.layers.services.search.placeholder=Zoek een service ...
 web.application.page.services.list.search.showAll=Hef filter op servicenaam op
 web.application.page.services.list.confidential=Vertrouwelijk
+web.application.page.services.list.publish=Publiceren
+
+web.application.page.services.list.environments.success=Het publiceren is gestart.
+web.application.page.services.list.environments.failure=Fout! Het publiceren is niet gestart.
+
+web.application.page.services.form.publish.environments.help=Vink de omgevingen aan waar de service gepubliceerd moet worden
+web.application.page.services.form.field.environments.help=Laat de omgevingen zien waarin deze service gepubliceerd is
 
 web.application.page.services.form.title=Service formulier
 web.application.page.services.form.header.new=Nieuwe service toevoegen
 web.application.page.services.form.header.edit=Service {0} aanpassen
+web.application.page.services.form.header.publish=Service {0}
 
 web.application.page.services.form.field.name.label=Naam
 web.application.page.services.form.field.name.placeholder=Naam
@@ -486,6 +497,8 @@ web.application.page.services.form.field.keywords.help=De trefwoorden voor de se
 
 web.application.page.services.form.field.publish.label=Publiceren
 web.application.page.services.form.field.publish.help=Geef aan of de service gepubliceerd wordt
+
+web.application.page.services.form.field.environments.none=geen
 
 web.application.page.services.form.field.structure.label=Structuur
 

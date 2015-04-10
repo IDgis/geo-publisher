@@ -1,0 +1,46 @@
+@import nl.idgis.publisher.domain.web._ 
+
+@(serviceId: String,
+	serviceFormName: String, 
+	environments: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ServicePublish])
+
+
+@layout.application( title = Domain.message("web.application.page.services.publish"),
+	docPath = "services/publish"
+) {
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.page.services.form.header.publish", serviceFormName)</h1>
+	
+	<h3>@Domain.message("web.application.page.services.publish.environments")</h3>
+	
+	<form method="post" action="@routes.Services.submitPublishService(serviceId)"> 
+		<div class="form-group col-lg-8">
+			<div class="row">
+				<div class="list-group">
+					@for(environment <- environments.values) {
+						<div class="list-group-item">
+							<div class="row">
+								<div class="col-md-12">
+									<h4 class="list-group-item-heading">
+										<a class="text-warning">@environment.name</a>
+										<input name="@environment.identification" type="checkbox" class="pull-right" @if(environment.inUse()){checked}>
+									</h4>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+		@helper.tooltips("web.application.page.services.form.publish.environments.help")
+		<div class="form-group col-lg-8">
+			<div class="row">
+				<button type="submit" class="btn btn-primary">@Domain.message("web.application.button.publish")</button>
+				<a href="@routes.Services.list()" type="button" class="btn btn-default">@Domain.message("web.application.button.cancel")</a>
+			</div>
+		</div>
+	</form>
+	
+</div>
+}

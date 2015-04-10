@@ -1,12 +1,18 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJobLog.jobLog;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -19,17 +25,28 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.database.AsyncSQLDeleteClause;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
+
+import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
+import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
+import nl.idgis.publisher.domain.web.ServicePublish;
+import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.service.manager.messages.PublishService;
+
+import com.mysema.query.Tuple;
+import com.mysema.query.Tuple;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -61,16 +78,59 @@ public class ServiceAdmin extends AbstractAdmin {
 		doPut(Service.class, this::handlePutService);
 		doDelete(Service.class, this::handleDeleteService);
 		
+		doQuery(ListEnvironments.class, this::handleListEnvironments);
+		doQuery(PerformPublish.class, this::handlePerformPublish);
+		
 		doQuery(ListServiceKeywords.class, this::handleListServiceKeywords);
 		doQuery(PutServiceKeywords.class, this::handlePutServiceKeywords);
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
 	}
+	
+	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {
+		return f.ask(
+			serviceManager, 
+			new PublishService(
+				performPublish.getServiceId(), 
+				performPublish.getEnvironmentIds()), Ack.class)
+					.thenApply(ack -> true)
+					.exceptionally(t -> false);
+	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
 		return handleListServicesWithQuery (new ListServices (null, null, null));
 	}
-
+	
+	private CompletableFuture<Page<ServicePublish>> handleListEnvironments(ListEnvironments listEnvironments) {
+		String serviceId = listEnvironments.getServiceId();
+		final Page.Builder<ServicePublish> builder = new Page.Builder<> ();
+		
+		BooleanExpression inUse = new SQLSubQuery().from(publishedServiceEnvironment)
+			.join(service).on(publishedServiceEnvironment.serviceId.eq(service.id))
+			.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+			.where(genericLayer.identification.eq(serviceId)
+					.and(publishedServiceEnvironment.environmentId.eq(environment.id)))
+			.exists().as("inUse");
+		
+		return db.query().from(environment)
+			.orderBy(environment.name.asc())
+			.list(
+					environment.identification,
+					environment.name,
+					inUse
+					).thenApply(publish -> {
+						for (Tuple service : publish.list()) {
+							builder.add(new ServicePublish(
+									serviceId,
+									service.get(environment.identification),
+									service.get(environment.name),
+									service.get(inUse)
+									));
+						}
+						return builder.build();
+					});
+	}
+	
 	private BooleanExpression isConfidential () {
 		return new SQLSubQuery ()
 			.from (serviceStructure)
@@ -123,7 +183,6 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.alternateTitle, 
 								genericLayer.abstractCol,
 								service.metadata,
-								genericLayer.published,
 								genericLayer.identification,					
 								constants.identification,
 								isConfidential ()
@@ -151,7 +210,6 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.alternateTitle, 
 					genericLayer.abstractCol,
 					service.metadata,
-					genericLayer.published,
 					genericLayer.identification,					
 					constants.identification,
 					isConfidential ()
@@ -178,7 +236,6 @@ public class ServiceAdmin extends AbstractAdmin {
 						.set(genericLayer.name, serviceName)
 						.set(genericLayer.title, theService.title())
 						.set(genericLayer.abstractCol, theService.abstractText())
-						.set(genericLayer.published, theService.published())
 						.execute()
 						.thenCompose(n -> {
 							return tx.query().from(genericLayer)
@@ -217,7 +274,6 @@ public class ServiceAdmin extends AbstractAdmin {
 									.set(genericLayer.name, serviceName)
 									.set(genericLayer.title, theService.title())
 									.set(genericLayer.abstractCol, theService.abstractText())
-									.set(genericLayer.published, theService.published())
 									.where(genericLayer.id.eq(glId.get()))
 									.execute()
 									.thenCompose(n -> {
@@ -295,7 +351,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					.where(serviceKeyword.serviceId.eq(svId.get()))
 					.list(serviceKeyword.keyword)
 					.thenApply(resp -> resp.list());
-				})
+			})
 		);
 	}
 	

@@ -641,7 +641,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
-						null, null, null, null,
+						null, null, null,
 						false
 					));
 				}
