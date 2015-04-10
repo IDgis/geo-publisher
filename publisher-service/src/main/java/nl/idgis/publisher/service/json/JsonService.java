@@ -4,23 +4,27 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
+import com.fasterxml.jackson.databind.ser.impl.ObjectIdWriter;
+import com.fasterxml.jackson.databind.ser.std.BeanSerializerBase;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
@@ -146,12 +150,12 @@ public class JsonService implements Service {
 		return jsonNode.path ("confidential").asBoolean ();
 	}
 	
-	private interface EnrichedService extends Service {
-		
-		String getFormatRevision();
-	}
-	
 	// annotation mixins below are required to serialize Mockito objects
+	
+	@JsonSerialize(as=Service.class)
+	private interface ServiceMixin {
+		
+	}
 	
 	@JsonSerialize(as=DatasetLayerRef.class)
 	private interface DatasetLayerRefMixin {
@@ -161,6 +165,8 @@ public class JsonService implements Service {
 	@JsonSerialize(as=DatasetLayer.class)
 	private interface DatasetLayerMixin {
 		
+		@JsonIgnore
+		boolean isVectorLayer();
 	}
 	
 	@JsonSerialize(as=GroupLayerRef.class)
@@ -205,16 +211,161 @@ public class JsonService implements Service {
 		
 	}
 	
+	private static class ServiceSerializer extends BeanSerializerBase {
+
+		ServiceSerializer(BeanSerializerBase src) {
+			super(src);
+		}
+		
+		ServiceSerializer(BeanSerializerBase  src, ObjectIdWriter objectIdWriter) {
+            super(src, objectIdWriter);
+        }
+		
+		ServiceSerializer(BeanSerializerBase src, String[] toIgnore) {
+            super(src, toIgnore);
+        }
+		
+		ServiceSerializer(BeanSerializerBase src, ObjectIdWriter objectIdWriter, Object filterId) {
+			super(src, objectIdWriter, filterId);
+		}
+
+		@Override
+		public BeanSerializerBase withObjectIdWriter(ObjectIdWriter objectIdWriter) {
+			return new ServiceSerializer(this, objectIdWriter);
+		}
+
+		@Override
+		protected BeanSerializerBase withIgnorals(String[] toIgnore) {
+			return new ServiceSerializer(this, toIgnore);
+		}
+
+		@Override
+		protected BeanSerializerBase asArraySerializer() {			
+			return null;
+		}
+
+		@Override
+		protected BeanSerializerBase withFilterId(Object filterId) {
+			return new ServiceSerializer(this, _objectIdWriter, filterId);
+		}
+
+		@Override
+		public void serialize(Object bean, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonGenerationException {
+			jgen.writeStartObject();
+			jgen.writeNumberField("formatRevision", 1);
+            serializeFields(bean, jgen, provider);             
+            jgen.writeEndObject();
+		}
+		
+	}
+	
+	private static class DatasetLayerSerializer extends BeanSerializerBase {
+
+		DatasetLayerSerializer(BeanSerializerBase src) {
+			super(src);
+		}
+		
+		DatasetLayerSerializer(BeanSerializerBase  src, ObjectIdWriter objectIdWriter) {
+            super(src, objectIdWriter);
+        }
+		
+		DatasetLayerSerializer(BeanSerializerBase src, String[] toIgnore) {
+            super(src, toIgnore);
+        }
+		
+		DatasetLayerSerializer(BeanSerializerBase src, ObjectIdWriter objectIdWriter, Object filterId) {
+			super(src, objectIdWriter, filterId);
+		}
+
+		@Override
+		public BeanSerializerBase withObjectIdWriter(ObjectIdWriter objectIdWriter) {
+			return new DatasetLayerSerializer(this, objectIdWriter);
+		}
+
+		@Override
+		protected BeanSerializerBase withIgnorals(String[] toIgnore) {
+			return new DatasetLayerSerializer(this, toIgnore);
+		}
+
+		@Override
+		protected BeanSerializerBase asArraySerializer() {			
+			return null;
+		}
+
+		@Override
+		protected BeanSerializerBase withFilterId(Object filterId) {
+			return new DatasetLayerSerializer(this, _objectIdWriter, filterId);
+		}
+
+		@Override
+		public void serialize(Object bean, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonGenerationException {
+			jgen.writeStartObject();
+            
+            if(bean instanceof DatasetLayer) {            
+            	DatasetLayer datasetLayer = (DatasetLayer)bean;            	
+            	
+            	String type;
+            	if(datasetLayer.isVectorLayer()) {
+            		type = "vector";
+            	} else if(datasetLayer.isRasterLayer()) {
+            		type = "raster";
+            	} else {
+            		throw new IllegalArgumentException("unknown layer type");
+            	}
+            	
+            	jgen.writeStringField("type", type);
+            } else {
+            	throw new IllegalArgumentException("DatasetLayer bean expected");
+            }
+            
+            serializeFields(bean, jgen, provider);
+            
+            jgen.writeEndObject();
+		}
+		
+	}
+	
 	public static String toJson(Service service) {
 		ObjectMapper objectMapper = new ObjectMapper();
 		
-		SimpleModule module = new SimpleModule("JsonService", Version.unknownVersion());
-		module.addSerializer(new OptionalJsonSerializer());
+		SimpleModule module = new SimpleModule("JsonService", Version.unknownVersion()) {
+			
+			private static final long serialVersionUID = -5062700192805231474L;
 		
+			@Override
+			public void setupModule(SetupContext context) {
+				context.addBeanSerializerModifier(new BeanSerializerModifier() {
+
+					@Override
+					public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
+						Class<?> handledType = serializer.handledType();
+						if(Optional.class.equals(handledType)) {
+							return new OptionalJsonSerializer();
+						}
+						
+						if(serializer instanceof BeanSerializerBase) {
+							BeanSerializerBase beanSerializerBase = (BeanSerializerBase)serializer;
+							
+							if(Service.class.equals(handledType)) {
+								return new ServiceSerializer(beanSerializerBase);
+							}
+							
+							if(DatasetLayer.class.equals(handledType)) {
+								return new DatasetLayerSerializer(beanSerializerBase);
+							}
+						}
+						
+						return serializer;
+					}
+				});
+			}		
+		};
+				
 		objectMapper.registerModule(module);
 		
 		objectMapper.setSerializationInclusion(Include.NON_EMPTY);
 		
+		objectMapper.addMixInAnnotations(Service.class, ServiceMixin.class);
 		objectMapper.addMixInAnnotations(DatasetLayerRef.class, DatasetLayerRefMixin.class);
 		objectMapper.addMixInAnnotations(DatasetLayer.class, DatasetLayerMixin.class);
 		objectMapper.addMixInAnnotations(GroupLayerRef.class, GroupLayerRefMixin.class);
@@ -223,23 +374,7 @@ public class JsonService implements Service {
 		objectMapper.addMixInAnnotations(Tiling.class, TilingMixin.class);
 		
 		try {
-			return objectMapper.writeValueAsString(
-				Proxy.newProxyInstance(
-					JsonService.class.getClassLoader(), 
-					new Class[]{EnrichedService.class},
-					new InvocationHandler() {
-						
-						Method getFormatRevision = EnrichedService.class.getMethod("getFormatRevision");
-						
-						@Override
-						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-							if(method.equals(getFormatRevision)) {
-								return "1";
-							} else {
-								return method.invoke(service, args);
-							}
-						}
-					})); 
+			return objectMapper.writeValueAsString(service);
 		} catch(Exception e) {
 			throw new RuntimeException("Couldn't generate json from service", e);
 		}

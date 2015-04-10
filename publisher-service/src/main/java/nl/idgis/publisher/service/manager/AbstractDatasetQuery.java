@@ -13,6 +13,7 @@ import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimefo
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
+import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,13 +27,17 @@ import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayer;
+
+import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultRasterDatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
+import nl.idgis.publisher.domain.web.tree.Tiling;
 import nl.idgis.publisher.utils.TypedList;
 
-public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<DefaultDatasetLayer>> {
+public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<AbstractDatasetLayer>> {
 	
 	protected abstract AsyncSQLQuery filter(AsyncSQLQuery query);
 	
@@ -107,7 +112,9 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 			.from(leafLayer)
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
-			.join(dataset).on(dataset.id.eq(leafLayer.datasetId)))				
+			.join(dataset).on(dataset.id.eq(leafLayer.datasetId)))
+			.join(lastSourceDatasetVersion).on(lastSourceDatasetVersion.datasetId.eq(dataset.id))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(lastSourceDatasetVersion.sourceDatasetVersionId))
 			.list(
 				genericLayer.id,
 				genericLayer.identification, 
@@ -121,6 +128,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 				tiledLayer.expireCache,
 				tiledLayer.expireClients,
 				tiledLayer.gutter,
+				sourceDatasetVersion.type,
 				new SQLSubQuery ()
 					.from (sourceDataset)
 					.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
@@ -154,41 +162,82 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Defau
 	}
 
 	@Override
-	protected CompletableFuture<TypedList<DefaultDatasetLayer>> result() {
+	protected CompletableFuture<TypedList<AbstractDatasetLayer>> result() {
 		return 
 			tilingDatasetMimeFormats().thenCompose(tilingMimeFormats ->
 			datasetColumns().thenCompose(columns ->
 			datasetKeywords().thenCompose(keywords ->
 			datasetStyles().thenCompose(styles ->			
 			datasetInfo().thenApply(resp ->
-				new TypedList<>(DefaultDatasetLayer.class, 
+				new TypedList<>(AbstractDatasetLayer.class,
 					resp.list().stream()
-						.map(t -> new DefaultDatasetLayer(
-							t.get(genericLayer.identification),
-							t.get(genericLayer.name),
-							t.get(genericLayer.title),
-							t.get(genericLayer.abstractCol),								
-							t.get(tiledLayer.genericLayerId) == null 
-								? null
-								: new DefaultTiling(
-									tilingMimeFormats.get(t.get(genericLayer.id)),
-									t.get(tiledLayer.metaWidth),
-									t.get(tiledLayer.metaHeight),
-									t.get(tiledLayer.expireCache),
-									t.get(tiledLayer.expireClients),
-									t.get(tiledLayer.gutter)),
-							keywords.containsKey(t.get(genericLayer.id)) 
-								? keywords.get(t.get(genericLayer.id))									
-								: Collections.emptyList(),
-							t.get(dataset.identification),
-							columns.containsKey(t.get(genericLayer.id))
-								? columns.get(t.get(genericLayer.id))
-								: Collections.emptyList(),
-							styles.containsKey(t.get(genericLayer.id))
-								? styles.get(t.get(genericLayer.id))
-								: Collections.emptyList(),
-							t.get (confidentialPath)
-						))
+						.map(t -> {
+							String type = t.get(sourceDatasetVersion.type);
+							
+							String id = t.get(genericLayer.identification);
+							String name = t.get(genericLayer.name);							
+							String title = t.get(genericLayer.title);
+							String abstr = t.get(genericLayer.abstractCol);							
+							Tiling tiling = getTiling(tilingMimeFormats, t);
+							boolean confidential = t.get (confidentialPath);
+							
+							switch(type) {
+								case "RASTER": 
+									String fileName = t.get(dataset.identification) + ".tif";
+									
+									return new DefaultRasterDatasetLayer(
+											id,
+											name,
+											title,
+											abstr,
+											tiling,
+											getList(keywords, t),
+											fileName,
+											getStyleRefs(styles, t),
+											confidential);
+							
+								case "VECTOR":
+									String tableName = t.get(dataset.identification); 
+									
+									return new DefaultVectorDatasetLayer(
+										id,
+										name,
+										title,
+										abstr,								
+										tiling,
+										getList(keywords, t),
+										tableName,
+										getList(columns, t),
+										getStyleRefs(styles, t),
+										confidential);									
+								default:
+									throw new IllegalStateException("unknown dataset type: " + type);
+							}
+						})
 						.collect(Collectors.toList())))))));
+	}
+
+	private List<StyleRef> getStyleRefs(Map<Integer, List<StyleRef>> styles, Tuple t) {
+		return styles.containsKey(t.get(genericLayer.id))
+			? styles.get(t.get(genericLayer.id))
+			: Collections.emptyList();
+	}
+
+	private <T> List<T> getList(Map<Integer, List<T>> keywords, Tuple t) {
+		return keywords.containsKey(t.get(genericLayer.id)) 
+			? keywords.get(t.get(genericLayer.id))
+			: Collections.emptyList();
+	}
+
+	private Tiling getTiling(Map<Integer, List<String>> tilingMimeFormats, Tuple t) {
+		return t.get(tiledLayer.genericLayerId) == null 
+			? null
+			: new DefaultTiling(
+				tilingMimeFormats.get(t.get(genericLayer.id)),
+				t.get(tiledLayer.metaWidth),
+				t.get(tiledLayer.metaHeight),
+				t.get(tiledLayer.expireCache),
+				t.get(tiledLayer.expireClients),
+				t.get(tiledLayer.gutter));
 	}
 }

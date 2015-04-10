@@ -9,7 +9,7 @@ import nl.idgis.publisher.domain.web.tree.StyleRef;
 public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> implements DatasetLayerRef {
 	
 	public JsonDatasetLayerRef(JsonNode jsonNode) {
-		super(jsonNode, new JsonDatasetLayer(jsonNode.get("layer")));
+		super(jsonNode, AbstractJsonDatasetLayer.fromJson(jsonNode.get("layer")));
 	}
 
 	@Override

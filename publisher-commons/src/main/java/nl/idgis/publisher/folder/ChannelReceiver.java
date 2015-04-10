@@ -3,10 +3,14 @@ package nl.idgis.publisher.folder;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.TimeUnit;
+
+import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -33,6 +37,11 @@ public class ChannelReceiver extends UntypedActor {
 	}
 	
 	@Override
+	public final void preStart() throws Exception {
+		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
+	}
+	
+	@Override
 	public final void postStop() throws Exception {
 		channel.close();
 	}
@@ -43,6 +52,9 @@ public class ChannelReceiver extends UntypedActor {
 			handleFileChunk((FileChunk)msg);			
 		} else if(msg instanceof End) {
 			handleEnd();			
+		} else if(msg instanceof ReceiveTimeout) {
+			log.error("timeout");
+			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
 		}
@@ -62,17 +74,21 @@ public class ChannelReceiver extends UntypedActor {
 
 			@Override
 			public void completed(Integer result, ActorRef sender) {
+				log.debug("ack: {} {}", result, content.length);
 				sender.tell(new Ack(), getSelf());				
 			}
 
 			@Override
 			public void failed(Throwable exc, ActorRef sender) {
+				log.error("failure: {}", exc);
 				sender.tell(new Failure(exc), getSelf());
 				getSelf().tell(PoisonPill.getInstance(), getSelf());				
 			}
 		});
 		
 		position += content.length;
+		
+		log.debug("position: {}", position);
 	}
 
 }

@@ -46,7 +46,6 @@ import nl.idgis.publisher.DatabaseMock;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
-import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
@@ -54,6 +53,7 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
@@ -80,7 +80,6 @@ import nl.idgis.publisher.service.provisioning.ConnectionInfo;
 import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
-import nl.idgis.publisher.service.provisioning.ProvisioningManagerTest.EnvironmentInfoProviderMock;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
 import nl.idgis.publisher.stream.IteratorCursor;
@@ -337,10 +336,12 @@ public class GeoServerServiceTest {
 			f.ask(serviceManager, new PutStyle(styleName, TestStyle.getGreenSld())).get();
 		}
 		
-		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		VectorDatasetLayer datasetLayer = mock(VectorDatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
@@ -403,8 +404,10 @@ public class GeoServerServiceTest {
 			when(tilingSettings.getMetaWidth()).thenReturn(4);
 			when(tilingSettings.getGutter()).thenReturn(0);
 			
-			DatasetLayer layer = mock(DatasetLayer.class);			
+			VectorDatasetLayer layer = mock(VectorDatasetLayer.class);			
 			when(layer.getName()).thenReturn("layer" + i);
+			when(layer.isVectorLayer()).thenReturn(true);
+			when(layer.asVectorLayer()).thenReturn(layer);
 			when(layer.getTableName()).thenReturn("myTable");			
 			when(layer.getTiling()).thenReturn(Optional.of(tilingSettings));
 			
@@ -474,8 +477,10 @@ public class GeoServerServiceTest {
 	
 	@Test
 	public void testRemoveLayer() throws Exception{
-		DatasetLayer datasetLayer = mock(DatasetLayer.class);
-		when(datasetLayer.getName()).thenReturn("layer");		
+		VectorDatasetLayer datasetLayer = mock(VectorDatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer");
+		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
@@ -518,10 +523,12 @@ public class GeoServerServiceTest {
 	
 	@Test
 	public void testGroupInGroup() throws Exception {
-		DatasetLayer datasetLayer = mock(DatasetLayer.class);
+		VectorDatasetLayer datasetLayer = mock(VectorDatasetLayer.class);
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		

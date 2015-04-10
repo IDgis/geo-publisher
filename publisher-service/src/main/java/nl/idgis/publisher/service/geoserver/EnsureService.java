@@ -23,6 +23,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
@@ -130,20 +131,27 @@ public class EnsureService extends UntypedActor {
 									.collect(Collectors.toList());
 							}
 							
-							target.tell(
-								new EnsureFeatureTypeLayer(
-									getUniqueLayerName(layer.getName()), 
-									layer.getTitle(), 
-									layer.getAbstract(), 
-									layer.getKeywords(),
-									layer.getTableName(),
-									layer.getColumnNames(),
-									layer.getTiling().orElse(null),
-									defaultStyleName,
-									datasetRef.getStyleRef() == null 
-										? null
-										: datasetRef.getStyleRef().getName(),
-									additionalStyleNames), getSelf());
+							if(layer.isVectorLayer()) {
+								VectorDatasetLayer vectorLayer = layer.asVectorLayer();
+								
+								target.tell(
+									new EnsureFeatureTypeLayer(
+										getUniqueLayerName(layer.getName()), 
+										layer.getTitle(), 
+										layer.getAbstract(), 
+										layer.getKeywords(),
+										vectorLayer.getTableName(),
+										vectorLayer.getColumnNames(),
+										layer.getTiling().orElse(null),
+										defaultStyleName,
+										datasetRef.getStyleRef() == null 
+											? null
+											: datasetRef.getStyleRef().getName(),
+										additionalStyleNames), getSelf());
+							} else { // TODO: add support for raster layers
+								log.error("unsupported layer type");
+								getSelf().tell(new Ensured(), getSelf());
+							}
 						}
 						
 						return;

@@ -25,6 +25,7 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.service.json.JsonService;
 
@@ -122,9 +123,11 @@ public class JsonServiceTest {
 	
 	@Test
 	public void testLayers() {
-		DatasetLayer firstDatasetLayerMock = mock(DatasetLayer.class);
+		VectorDatasetLayer firstDatasetLayerMock = mock(VectorDatasetLayer.class);
 		when(firstDatasetLayerMock.getTiling()).thenReturn(Optional.empty());
 		when(firstDatasetLayerMock.getId()).thenReturn("dataset-id-0");
+		when(firstDatasetLayerMock.isVectorLayer()).thenReturn(true);
+		when(firstDatasetLayerMock.asVectorLayer()).thenReturn(firstDatasetLayerMock);
 		
 		DatasetLayerRef firstDatasetLayerRefMock = mock(DatasetLayerRef.class);
 		when(firstDatasetLayerRefMock.isGroupRef()).thenReturn(false);
@@ -135,9 +138,11 @@ public class JsonServiceTest {
 		Tiling tilingMock = mock(Tiling.class);
 		when(tilingMock.getMimeFormats()).thenReturn(asList("image/jpg", "image/png"));
 		
-		DatasetLayer secondDatasetLayerMock = mock(DatasetLayer.class);
+		VectorDatasetLayer secondDatasetLayerMock = mock(VectorDatasetLayer.class);
 		when(secondDatasetLayerMock.getTiling()).thenReturn(Optional.of(tilingMock));
 		when(secondDatasetLayerMock.getId()).thenReturn("dataset-id-1");
+		when(secondDatasetLayerMock.isVectorLayer()).thenReturn(true);
+		when(secondDatasetLayerMock.asVectorLayer()).thenReturn(secondDatasetLayerMock);
 		
 		DatasetLayerRef secondDatasetLayerRefMock = mock(DatasetLayerRef.class);
 		when(secondDatasetLayerRefMock.isGroupRef()).thenReturn(false);
@@ -162,9 +167,7 @@ public class JsonServiceTest {
 		
 		String json = JsonService.toJson(serviceMock);
 		assertNotNull(json);
-		
-		System.out.println(json);
-				
+						
 		Service fromJson = JsonService.fromJson(json);
 		assertNotNull(fromJson);
 		
