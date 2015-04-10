@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import models.Domain;
 import models.Domain.Function;
@@ -17,9 +16,11 @@ import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
+import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
+import play.Logger;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
@@ -125,52 +126,76 @@ public class DataSources extends Controller {
 	 * If empty select all sourcedatasets.
 	 * @return
 	 */
-	public static Promise<Result> download(final String search, final Boolean withErrors, final String separator, final String quote, final String encoding) { 
-		final String filename = "sourcedatasets.csv";
-
+	public static Result download(final String search, final Boolean withErrors, final String separator, final String quote, final String encoding) { 
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
+		final String filename = "sourcedatasets.csv";
+		
+		response().setContentType("application/x-download; charset=" + encoding);  
+		response().setHeader("Content-disposition", "attachment; filename=" + filename);
+
 		String currentDataSource = null; 
 		String currentCategory = null;
-		return from (database)
-			.query (new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null))
-			.execute (new Function<Page<SourceDatasetStats>, Result> () {
-				
-				private String toLine(List<String> values) {
-					return values.stream()						
-						.map(s -> quote + s.replace(quote, quote + quote) + quote)
-						.collect(Collectors.joining(separator));
-				}
-				
-				@Override
-				public Result apply (final Page<SourceDatasetStats> sourceDatasetStats) throws Throwable {
-					response().setContentType("application/x-download; charset=" + encoding);  
-					response().setHeader("Content-disposition", "attachment; filename=" + filename);
-					
-					return ok(
-						Stream.concat(
-							Stream.of(
-								toLine(Arrays.asList("id", "name", "category", "datasets", "error"))),
-						
-							sourceDatasetStats.values().stream()
-								.map(sourceDatasetStat -> {
-									SourceDataset sourceDataset = sourceDatasetStat.sourceDataset();
-									
-									return toLine(Arrays.asList(
-										sourceDataset.id(),
-										sourceDataset.name(),
-										sourceDataset.category().name(),										
-										"" + sourceDatasetStat.datasetCount(),
-										sourceDatasetStat.lastLogMessage() == null
-											? ""
-											: Domain.message(sourceDatasetStat.lastLogMessage())));
-								}))
-								
-							.collect(Collectors.joining("\n")),
+		
+		return ok(new StringChunks(encoding) {
+			
+			private String toLine(List<String> values) {
+				return values.stream()
+					.map(s -> s == null ? "" : s)
+					.map(s -> quote + s.replace(quote, quote + quote) + quote)
+					.collect(Collectors.joining(separator));
+			}
+			
+			private Void processPage(Chunks.Out<String> out, Page<SourceDatasetStats> sourceDatasetStats) {
+				//out.write("\npage: " + sourceDatasetStats.currentPage() + "\n");
+				out.write(
+					sourceDatasetStats.values().stream()
+						.map(sourceDatasetStat -> {
+							SourceDataset sourceDataset = sourceDatasetStat.sourceDataset();
+							EntityRef category = sourceDataset.category(); 
 							
-						encoding);
+							return toLine(Arrays.asList(
+								sourceDataset.id(),
+								sourceDataset.name(),
+								category == null
+									? ""
+									: category.name(),										
+								"" + sourceDatasetStat.datasetCount(),
+								sourceDatasetStat.lastLogMessage() == null
+									? ""
+									: Domain.message(sourceDatasetStat.lastLogMessage())));
+						})
+						.collect(Collectors.joining("\n")));
+				
+				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {
+					out.write("\n");
+					from(database)
+						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, sourceDatasetStats.currentPage() + 1))
+						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
+						.onFailure(t -> {
+							Logger.error("generating csv output failed", t);
+							out.close();
+						});
+				} else {
+					out.close();
 				}
-			});
+				
+				return null;
+			}
+
+	        public void onReady(Chunks.Out<String> out) {
+	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")) + "\n");
+	        	
+	        	from(database)
+					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, 1l))
+					.execute(sourceDatasetStats -> processPage(out, sourceDatasetStats))
+					.onFailure(t -> {
+						Logger.error("generating csv output failed", t);
+						out.close();
+					});
+	        }
+	        
+	    });	    
 	}
 	
 	public static Promise<Result> refreshDatasources () {
