@@ -18,6 +18,7 @@ public class ServicePublish extends Identifiable {
 	private final String identification;
 	private final String name;
 	private final Boolean inUse;
+	private final boolean confidential;
 
 	
 	@JsonCreator
@@ -26,12 +27,14 @@ public class ServicePublish extends Identifiable {
 			final @JsonProperty("") String id, 
 			final @JsonProperty("") String identification,
 			final @JsonProperty("") String name,
-			final @JsonProperty("") Boolean inUse
+			final @JsonProperty("") Boolean inUse,
+			final @JsonProperty("confidential") boolean confidential
 			) {
 		super(id);
 		this.identification = identification;
 		this.name = name;
 		this.inUse = inUse;
+		this.confidential = confidential;
 	}
 
 
@@ -50,11 +53,15 @@ public class ServicePublish extends Identifiable {
 		return inUse;
 	}
 
+	@JsonGetter
+	public boolean confidential () {
+		return confidential;
+	}
 
 	@Override
 	public String toString() {
 		return "ServicePublish [identification=" + identification + ", name="
-				+ name + ", inUse=" + inUse + "]";
+				+ name + ", inUse=" + inUse + ", confidential=" + confidential + "]";
 	}
 
 
