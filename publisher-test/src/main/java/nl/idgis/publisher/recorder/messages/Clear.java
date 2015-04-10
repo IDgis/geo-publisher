@@ -1,12 +1,28 @@
 package nl.idgis.publisher.recorder.messages;
 
-public class Clear extends RecorderCommand {
+import java.util.Optional;
 
-	private static final long serialVersionUID = 3885336546943362634L;
+public class Clear extends RecorderCommand {	
+
+	private static final long serialVersionUID = 5149790923729597701L;
+	
+	private final Integer count;
+	
+	public Clear() {
+		this.count = null;
+	}
+	
+	public Clear(int count) {
+		this.count = count;
+	}
+
+	public Optional<Integer> getCount() {
+		return Optional.ofNullable(count);
+	}
 
 	@Override
 	public String toString() {
-		return "Clear []";
+		return "Clear [count=" + count + "]";
 	}
 
 }

@@ -341,7 +341,7 @@ public class ProvisioningManagerTest  {
 			.assertNext(Ack.class)
 			.assertNotHasNext();
 		
-		f.ask(jobRecorder, new Clear(), Cleared.class).get();
+		f.ask(jobRecorder, new Clear(2), Cleared.class).get();
 		
 		// provisioningManager should be busy (= not starting another job) 
 		provisioningManager.tell(serviceJobInfo, jobRecorder);
@@ -350,7 +350,7 @@ public class ProvisioningManagerTest  {
 			.assertNext(Ack.class)
 			.assertNotHasNext();
 		
-		f.ask(jobRecorder, new Clear(), Cleared.class).get();
+		f.ask(jobRecorder, new Clear(1), Cleared.class).get();
 		
 		ActorSelection.apply(provisioningManager, "*").tell(new FinishJob(), ActorRef.noSender());
 		
@@ -413,7 +413,7 @@ public class ProvisioningManagerTest  {
 			.assertNext(Ack.class)
 			.assertNotHasNext();
 		
-		f.ask(jobRecorder, new Clear(), Cleared.class).get();
+		f.ask(jobRecorder, new Clear(2), Cleared.class).get();
 		
 		ActorSelection.apply(provisioningManager, "*").tell(new FinishJob(), ActorRef.noSender());
 		
