@@ -9,13 +9,16 @@ import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
+
 import nl.idgis.publisher.domain.query.HarvestDatasources;
+import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
+
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
@@ -26,6 +29,7 @@ import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
 import nl.idgis.publisher.utils.TypedIterable;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -85,6 +89,8 @@ public class JobCreator extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
+		onQuery(PerformPublish.class, this::createPublishedServiceJobs);
+		
 		onDelete(Style.class, this::createVacuumServiceJob);		
 		onPut(Style.class, (style, styleId) -> createEnsureServiceJobsForStyle(styleId));
 		
@@ -108,6 +114,21 @@ public class JobCreator extends AbstractAdmin {
 		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
 		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);
+	}
+	
+	private void createPublishedServiceJobs(PerformPublish performPublish) {
+		log.debug("creating published service jobs");
+		
+		String serviceId = performPublish.getServiceId();
+		Set<String> environmentIds = performPublish.getEnvironmentIds();
+		
+		jobSystem.tell(new CreateVacuumServiceJob(true), getSelf());
+		if(environmentIds.isEmpty()) {
+			log.debug("not published -> not creating ensure job");
+		} else {
+			log.debug("published -> creating ensure job");
+			jobSystem.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
