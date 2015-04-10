@@ -415,6 +415,15 @@ public class ProvisioningManagerTest  {
 		
 		f.ask(jobRecorder, new Clear(2), Cleared.class).get();
 		
+		// provisioningManager should be busy (= not starting another job) 
+		provisioningManager.tell(serviceJobInfo, jobRecorder);
+		f.ask(jobRecorder, new Wait(1), Waited.class).get();
+		f.ask(jobRecorder, new GetRecording(), Recording.class).get()
+			.assertNext(Ack.class)
+			.assertNotHasNext();
+		
+		f.ask(jobRecorder, new Clear(1), Cleared.class).get();
+		
 		ActorSelection.apply(provisioningManager, "*").tell(new FinishJob(), ActorRef.noSender());
 		
 		f.ask(jobRecorder, new Wait(1), Waited.class).get();
