@@ -97,6 +97,8 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	}
 	
 	protected void addPageInfo(Page.Builder<?> pageBuilder, Long page, long count) {
+		log.debug("adding page info, page: {}, count: {}", page, count);
+		
 		if(page != null) {
 			long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
 			
