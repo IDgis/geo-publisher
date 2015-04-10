@@ -450,6 +450,7 @@ web.application.page.datasources.all=Alle gegevensbronnen
 web.application.page.services.name=Service
 web.application.page.services.publish=Service publiceren
 web.application.page.services.publish.environments=Omgevingen
+web.application.page.services.publish.environmentNotConfidential=Kan niet publiceren naar deze omgeving omdat de brongegevens vertrouwelijk zijn en de omgeving niet beveiligd is.
 
 web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
