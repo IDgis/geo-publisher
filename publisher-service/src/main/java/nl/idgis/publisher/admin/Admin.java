@@ -453,7 +453,7 @@ private String getEnumName(Enum e){
 								.from(sourceDatasetVersionSub)
 								.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)
 										.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id))).notExists()))
-				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId)).join(category)
+				.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId)).leftJoin(category)
 				.on(sourceDatasetVersion.categoryId.eq(category.id));
 
 		if (sourceDatasetId != null) {
@@ -502,7 +502,7 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.getId(), 
 								sourceDatasetInfo.getName(),
 								sourceDatasetInfo.getAlternateTitle(),
-								new EntityRef(
+								sourceDatasetInfo.getCategoryId () == null ? null : new EntityRef(
 									EntityType.CATEGORY, 
 									sourceDatasetInfo.getCategoryId(), 
 									sourceDatasetInfo.getCategoryName()), 
@@ -615,7 +615,7 @@ private String getEnumName(Enum e){
 							.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
 						.notExists()))
 				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.join (category).on(sourceDatasetVersion.categoryId.eq(category.id));
+				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id));
 			
 			String categoryId = msg.categoryId();
 			if(categoryId != null) {				
@@ -683,7 +683,7 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.getId(), 
 							sourceDatasetInfo.getName(),
 							sourceDatasetInfo.getAlternateTitle(),
-							new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
+							sourceDatasetInfo.getCategoryId () == null ? null : new EntityRef (EntityType.CATEGORY, sourceDatasetInfo.getCategoryId(),sourceDatasetInfo.getCategoryName()),
 							new EntityRef (EntityType.DATA_SOURCE, sourceDatasetInfo.getDataSourceId(), sourceDatasetInfo.getDataSourceName()),
 							sourceDatasetInfo.getType (),
 							sourceDatasetInfo.getDeleteTime () != null,

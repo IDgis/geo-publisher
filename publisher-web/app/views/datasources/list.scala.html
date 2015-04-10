@@ -271,7 +271,11 @@
 										@if(dataset.sourceDataset.alternateTitle != null) {
 											<h6>@dataset.sourceDataset.alternateTitle</h6>
 										}
-										@categoryRefLink(dataset.sourceDataset.category, "label label-info")
+										@if(dataset.sourceDataset.category != null) {
+											@categoryRefLink(dataset.sourceDataset.category, "label label-info")
+										} else {
+											<span class="label label-default">@Domain.message("web.application.page.datasets.list.nocategory")</span>
+										}
 										@dataSourceRefLink(dataset.sourceDataset.dataSource, "label label-info")
 										@if(dataset.sourceDataset.confidential) {
 											<span class="label label-warning">@Domain.message("web.application.page.sourcedatasets.list.confidential")</span>
@@ -281,7 +285,7 @@
 										@sourceDatasetDetails(dataset)
 									</div>
 									<div class="col-md-2 text-right">
-										@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE && !dataset.sourceDataset.deleted) {
+										@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE && !dataset.sourceDataset.deleted && dataset.sourceDataset.category != null) {
 											<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")"><span class="glyphicon glyphicon-plus"></span></a>
 										}
 									</div>

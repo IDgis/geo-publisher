@@ -190,8 +190,12 @@
 							<div class="row">
 								<div class="col-md-4">
 									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning">@dataset.name</a></h4>
-									
-									@categoryRefLink(dataset.category)
+
+									@if(dataset.category != null) {									
+										@categoryRefLink(dataset.category)
+									} else {
+										<span class="label label-default">@Domain.message("web.application.page.datasets.list.nocategory")</span>
+									}
 									<span class="label label-default">@Domain.message("web.application.page.datasets.list.sourcedatasetref"): @dataset.sourceDataset.name</span>
 									@if(dataset.confidential) {
 										<span class="label label-warning">@Domain.message("web.application.page.datasets.list.confidential")</span>
