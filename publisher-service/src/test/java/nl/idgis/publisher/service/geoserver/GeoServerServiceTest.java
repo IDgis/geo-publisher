@@ -83,7 +83,7 @@ import nl.idgis.publisher.service.provisioning.ServiceInfo;
 import nl.idgis.publisher.service.provisioning.ProvisioningManagerTest.EnvironmentInfoProviderMock;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
-import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.IteratorCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
@@ -178,7 +178,7 @@ public class GeoServerServiceTest {
 					getSender().tell(serviceIndex, getSelf());
 				}
 			} else if(msg instanceof GetStyles) {
-				getContext().actorOf(ListCursor.props(styles.iterator())).tell(new NextItem(), getSender());
+				getContext().actorOf(IteratorCursor.props(styles.iterator())).tell(new NextItem(), getSender());
 			} else if(msg instanceof PutService) {
 				PutService putService = (PutService)msg;
 				services.put(putService.getServiceId(), putService.getService());

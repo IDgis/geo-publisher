@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 import nl.idgis.publisher.database.messages.CreateTable;
+import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
+import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
@@ -275,6 +277,29 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 				jobContext)));
 	}
 	
+	private Procedure<Object> waitingForViewDropped() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("view dropped");
+					
+					CreateTable ct = new CreateTable(
+							"staging_data",
+							importJob.getDatasetId(),  
+							importJob.getColumns());
+					
+					transaction.tell(ct, getSelf());
+					become("creating table", waitingForTableCreated());
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
 	private Procedure<Object> waitingForTableCreated() {
 		return new Procedure<Object>() {
 
@@ -282,6 +307,31 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
 					log.debug("table created");
+					
+					String datasetId = importJob.getDatasetId();
+					CreateView cv = new CreateView(
+						"data",
+						datasetId,
+						"staging_data",
+						datasetId);
+					
+					transaction.tell(cv, getSelf());
+					become("creating view", waitingForViewCreated());
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}
+	
+	private Procedure<Object> waitingForViewCreated() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("view created");
 					
 					startLoaderSession();
 				} else {
@@ -302,13 +352,12 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 					
 					transaction = ((TransactionCreated) msg).getActor();
 					
-					CreateTable ct = new CreateTable(
-							"staging_data",
-							importJob.getDatasetId(),  
-							importJob.getColumns());
+					DropView dv = new DropView(
+						"data",
+						importJob.getDatasetId());
 					
-					transaction.tell(ct, getSelf());
-					become("creating table", waitingForTableCreated());
+					transaction.tell(dv, getSelf());					
+					become("dropping view", waitingForViewDropped());
 				} else {
 					unhandled(msg);
 				}

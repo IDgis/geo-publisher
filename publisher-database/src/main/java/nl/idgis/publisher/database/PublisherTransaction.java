@@ -30,8 +30,10 @@ import java.util.List;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
 import nl.idgis.publisher.database.messages.CreateTable;
+import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
+import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceStatus;
@@ -76,6 +78,7 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.utils.TypedList;
+
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -171,10 +174,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeCreateTable((CreateTable)query);
 		} else if (query instanceof InsertRecord) {
 			return executeInsertRecord((InsertRecord)query);
+		} else if (query instanceof CreateView) {
+			return executeCreateView((CreateView)query);
+		} else if (query instanceof DropView) {
+			return executeDropView((DropView)query);
 		} else {
 			return null;
 		}
-	}
+	}	
 
 	private Object executePerformQuery(PerformQuery query) {
 		QueryMetadata metadata = query.getMetadata();
@@ -657,6 +664,28 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		log.debug("ack");
 
+		return new Ack();
+	}
+	
+	private Object executeDropView(DropView query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String viewName = query.getViewName();
+		
+		execute("drop view if exists \"" + schemaName + "\".\"" + viewName + "\"");
+		
+		return new Ack();
+	}
+	
+	private Object executeCreateView(CreateView query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String viewName = query.getViewName();
+		String sourceSchemaName = query.getSourceSchemaName();
+		String sourceTableName = query.getSourceTableName();
+		
+		execute("create schema if not exists \"" + schemaName + "\"");
+		
+		execute("create view \"" + schemaName + "\".\"" + viewName + "\" as select * from \"" + sourceSchemaName + "\".\"" + sourceTableName + "\"");
+		
 		return new Ack();
 	}
 	

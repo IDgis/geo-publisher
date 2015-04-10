@@ -82,6 +82,12 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 			deleteExisting().thenCompose(publishedServices -> {
 			log.debug("existing published_service records deleted: {}", publishedServices);
 			
+			if(environmentIds.isEmpty()) {
+				log.debug("no environmentIds given -> not publishing");
+				
+				return f.successful(new Ack());
+			}
+			
 			return tx.query().from(service)
 					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 					.where(genericLayer.identification.eq(serviceIdentification))

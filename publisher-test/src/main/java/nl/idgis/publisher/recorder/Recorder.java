@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
 import nl.idgis.publisher.recorder.messages.Clear;
+import nl.idgis.publisher.recorder.messages.ClearFailed;
 import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.RecordedMessage;
@@ -45,7 +47,21 @@ public class Recorder extends UntypedActor {
 				waiting.remove(size);
 			}
 		} else if(msg instanceof Clear) {
-			recording.clear();
+			Optional<Integer> optionalCount = ((Clear)msg).getCount();
+			if(optionalCount.isPresent()) {
+				int count = optionalCount.get();
+				if(recording.size() < count) {
+					getSender().tell(new ClearFailed(), getSelf());
+					return;
+				}
+				
+				for(int i = 0; i < count; i++) {
+					recording.remove(0);
+				}
+			} else {
+				recording.clear();
+			}
+			
 			getSender().tell(new Cleared(), getSelf());
 		} else if(msg instanceof Wait) {
 			int count = ((Wait)msg).getCount();

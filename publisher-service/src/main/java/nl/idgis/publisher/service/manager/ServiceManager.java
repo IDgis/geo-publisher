@@ -3,24 +3,33 @@ package nl.idgis.publisher.service.manager;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
 import static nl.idgis.publisher.database.QEnvironment.environment;
-import static java.util.Collections.emptyMap;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
+
+import com.mysema.query.Tuple;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+
 import nl.idgis.publisher.domain.web.tree.Service;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
@@ -38,7 +47,7 @@ import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.manager.messages.Style;
-import nl.idgis.publisher.stream.ListCursor;
+import nl.idgis.publisher.stream.IteratorCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
@@ -111,7 +120,7 @@ public class ServiceManager extends UntypedActor {
 		} else if(msg instanceof GetPublishedStyles) {
 			handleGetPublishedStyles((GetPublishedStyles)msg);
 		} else if(msg instanceof GetPublishedServiceIndex) {
-			toSender(handleGetPublishedServiceIndex((GetPublishedServiceIndex)msg));
+			handleGetPublishedServiceIndex((GetPublishedServiceIndex)msg);
 		} else {
 			unhandled(msg);
 		}
@@ -156,8 +165,8 @@ public class ServiceManager extends UntypedActor {
 
 	private void handleCreateStyleCursor(CreateStyleCursor msg) {
 		ActorRef cursor = getContext().actorOf(
-			ListCursor.props(msg.getStyles().iterator()), 
-			nameGenerator.getName(ListCursor.class));
+			IteratorCursor.props(msg.getStyles().iterator()), 
+			nameGenerator.getName(IteratorCursor.class));
 		cursor.tell(new NextItem(), getSender());
 	}
 
@@ -173,8 +182,48 @@ public class ServiceManager extends UntypedActor {
 			});
 	}
 	
-	private CompletableFuture<PublishedServiceIndex> handleGetPublishedServiceIndex(GetPublishedServiceIndex msg) {
-		return f.successful(new PublishedServiceIndex(emptyMap()));					
+	private void handleGetPublishedServiceIndex(GetPublishedServiceIndex msg) {
+		ActorRef sender = getSender();
+		db.transactional(tx ->
+			tx.query().from(environment)
+				.join(publishedServiceEnvironment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
+				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.list(environment.identification, genericLayer.name).<List<TypedList<Tuple>>>thenCompose(services ->
+					tx.query().from(environment)
+						.join(publishedServiceEnvironment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
+						.join(publishedServiceStyle).on(publishedServiceStyle.serviceId.eq(publishedServiceEnvironment.serviceId))
+						.list(environment.identification, publishedServiceStyle.name).<List<TypedList<Tuple>>>thenApply(styles ->
+							Arrays.asList(services, styles)))).thenAccept(result -> {
+								Map<String, List<String>> services = 
+									result.get(0).list().stream()
+										.collect(Collectors.groupingBy(
+											service -> service.get(environment.identification),
+											Collectors.mapping(
+												service -> service.get(genericLayer.name),
+												Collectors.toList())));
+								
+								Map<String, List<String>> styles = 
+									result.get(1).list().stream()
+										.collect(Collectors.groupingBy(
+											service -> service.get(environment.identification),
+											Collectors.mapping(
+												service -> service.get(publishedServiceStyle.name),
+												Collectors.toList())));								
+								
+								Iterator<PublishedServiceIndex> itr =
+									services.entrySet().stream()
+										.map(entry -> new PublishedServiceIndex(
+											entry.getKey(), 
+											entry.getValue(), 
+											styles.get(entry.getKey())))
+										.collect(Collectors.toList()).iterator();
+								
+								ActorRef cursor = getContext().actorOf(
+										IteratorCursor.props(itr),
+										nameGenerator.getName(IteratorCursor.class));
+								cursor.tell(new NextItem(), sender);
+							});
 	}
 
 	private CompletableFuture<ServiceIndex> handleGetServiceIndex(GetServiceIndex msg) {

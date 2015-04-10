@@ -1,25 +1,38 @@
 package nl.idgis.publisher.service.manager.messages;
 
-import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
-public class PublishedServiceIndex implements Serializable {	
+import nl.idgis.publisher.stream.messages.Item;
 
-	private static final long serialVersionUID = 3315418160630655190L;
+public class PublishedServiceIndex extends Item {	
 	
-	private final Map<String, List<String>> services;
+	private static final long serialVersionUID = -856411132258539171L;
 	
-	public PublishedServiceIndex(Map<String, List<String>> services) {
-		this.services = services;
+	private final String environmentId;
+
+	private final ServiceIndex serviceIndex;
+	
+	public PublishedServiceIndex(String environmentId, List<String> serviceNames, List<String> styleNames) {
+		this(environmentId, new ServiceIndex(serviceNames, styleNames));
 	}
 	
-	public Map<String, List<String>> getServices() {
-		return services;
+	public PublishedServiceIndex(String environmentId, ServiceIndex serviceIndex) {
+		this.environmentId = environmentId;
+		this.serviceIndex = serviceIndex;
+	}
+	
+	public String getEnvironmentId() {
+		return environmentId;
+	}
+	
+	public ServiceIndex getServiceIndex() {
+		return serviceIndex;
 	}
 
 	@Override
 	public String toString() {
-		return "PublishedServiceIndex [services=" + services + "]";
+		return "PublishedServiceIndex [environmentId=" + environmentId
+				+ ", serviceIndex=" + serviceIndex + "]";
 	}
+	
 }

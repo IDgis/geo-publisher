@@ -1,5 +1,6 @@
 package nl.idgis.publisher.recorder;
 
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -38,7 +39,13 @@ class DefaultRecording implements Recording {
 	
 	@Override	
 	public Recording assertNotHasNext(String message) {
-		assertFalse(message, iterator.hasNext());
+		if(iterator.hasNext()) {
+			if(message == null) {
+				fail("next message: " + iterator.next());
+			} else {
+				fail(message);
+			}
+		}
 		
 		return this;
 	}
