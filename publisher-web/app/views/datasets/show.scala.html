@@ -8,7 +8,11 @@
 @import nl.idgis.publisher.domain.service.ColumnDiffOperation
 
 @categoryRefLink(cat: Category, cls: String = null) = {
-	<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+	@if(cat == null) {
+		-
+	} else {
+		<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+	}
 }
 
 @pageRef(page: Long) = @{

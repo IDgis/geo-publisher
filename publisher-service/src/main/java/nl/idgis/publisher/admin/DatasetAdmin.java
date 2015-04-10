@@ -165,7 +165,7 @@ public class DatasetAdmin extends AbstractAdmin {
 		}
 		
 		return new Dataset (datasetInfo.getId().toString(), datasetInfo.getName(),
-				new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
+				datasetInfo.getCategoryId () == null ? null : new Category(datasetInfo.getCategoryId(), datasetInfo.getCategoryName()),
 				importStatus,
 				notifications, // notification list
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),

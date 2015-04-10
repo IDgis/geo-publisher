@@ -601,7 +601,9 @@ public class Datasets extends Controller {
 		public DatasetForm (final Dataset ds, String dataSourceId, List<Column> columns) {
 			setName (ds.name ());
 			setDataSourceId (dataSourceId);
-			setCategoryId (ds.category ().id ());
+			if (ds.category () != null) {
+				setCategoryId (ds.category ().id ());
+			}
 			setSourceDatasetId (ds.sourceDataset ().id ());
 			Map<String, String> map = new HashMap<String, String>();
 			for (Column column : columns) {
