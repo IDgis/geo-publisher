@@ -12,3 +12,6 @@ env:
 cache:
   directories:
     - $HOME/.m2/repository/
+    - $HOME/.ivy2/cache
+before_cache:
+    - rm -fr $HOME/.ivy2/cache/nl.idgis.publisher
