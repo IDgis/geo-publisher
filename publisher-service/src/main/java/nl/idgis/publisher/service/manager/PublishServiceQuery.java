@@ -9,7 +9,6 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
