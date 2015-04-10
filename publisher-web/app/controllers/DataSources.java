@@ -137,6 +137,8 @@ public class DataSources extends Controller {
 		String currentDataSource = null; 
 		String currentCategory = null;
 		
+		long itemsPerPage = 400;
+		
 		return ok(new StringChunks(encoding) {
 			
 			private String toLine(List<String> values) {
@@ -169,7 +171,7 @@ public class DataSources extends Controller {
 				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {
 					out.write("\n");
 					from(database)
-						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, sourceDatasetStats.currentPage() + 1))
+						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, sourceDatasetStats.currentPage() + 1, itemsPerPage))
 						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
 						.onFailure(t -> {
 							Logger.error("generating csv output failed", t);
@@ -186,7 +188,7 @@ public class DataSources extends Controller {
 	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")) + "\n");
 	        	
 	        	from(database)
-					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, 1l))
+					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, 1l, itemsPerPage))
 					.execute(sourceDatasetStats -> processPage(out, sourceDatasetStats))
 					.onFailure(t -> {
 						Logger.error("generating csv output failed", t);

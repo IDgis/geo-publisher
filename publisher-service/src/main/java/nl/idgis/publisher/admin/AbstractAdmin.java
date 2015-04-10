@@ -60,7 +60,7 @@ import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractAdmin extends UntypedActorWithStash {
 	
-	protected static final long ITEMS_PER_PAGE = 20;
+	protected static final long DEFAULT_ITEMS_PER_PAGE = 20;
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -84,23 +84,47 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	}
 	
 	protected void singlePage(SimpleQuery<?> query, Long page) {
+		singlePage(query, page, DEFAULT_ITEMS_PER_PAGE);
+	}
+	
+	protected void singlePage(SimpleQuery<?> query, Long page, Optional<Long> itemsPerPage) {
+		if(itemsPerPage.isPresent()) {
+			singlePage(query, page, itemsPerPage.get());
+		} else {
+			singlePage(query, page);
+		}
+	}
+	
+	protected void singlePage(SimpleQuery<?> query, Long page, long itemsPerPage) {
 		if(page == null) {
 			return;
 		}
 		
 		if(page > 0) {
-			query.offset((page - 1) * ITEMS_PER_PAGE);
-			query.limit(ITEMS_PER_PAGE);
+			query.offset((page - 1) * itemsPerPage);
+			query.limit(itemsPerPage);
 		} else {
 			throw new IllegalArgumentException("page parameter should be > 0");
 		}
 	}
 	
 	protected void addPageInfo(Page.Builder<?> pageBuilder, Long page, long count) {
+		addPageInfo(pageBuilder, page, count, DEFAULT_ITEMS_PER_PAGE);
+	}
+	
+	protected void addPageInfo(Page.Builder<?> pageBuilder, Long page, long count, Optional<Long> itemsPerPage) {
+		if(itemsPerPage.isPresent()) {
+			addPageInfo(pageBuilder, page, count, itemsPerPage.get());
+		} else {
+			addPageInfo(pageBuilder, page, count);
+		}
+	}
+	
+	protected void addPageInfo(Page.Builder<?> pageBuilder, Long page, long count, long itemsPerPage) {
 		log.debug("adding page info, page: {}, count: {}", page, count);
 		
 		if(page != null) {
-			long pages = count / ITEMS_PER_PAGE + Math.min(1, count % ITEMS_PER_PAGE);
+			long pages = count / itemsPerPage + Math.min(1, count % itemsPerPage);
 			
 			if(pages > 1) {
 				pageBuilder
