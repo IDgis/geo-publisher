@@ -5,16 +5,12 @@ import static models.Domain.from;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
-import models.Domain.Function4;
-import models.Domain.Function5;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -37,7 +33,6 @@ import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
-import play.libs.F;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.Result;
@@ -328,7 +323,7 @@ public class Services extends Controller {
 						Logger.debug("SP: " + sp.toString());
 					}
 					
-					return ok(publishService.render(serviceId, service.name(), servicePublish));
+					return ok(publishService.render(serviceId, service, servicePublish));
 				}
 			});
 	}

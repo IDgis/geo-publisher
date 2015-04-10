@@ -1,18 +1,14 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
-import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QJobLog.jobLog;
-import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -25,10 +21,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.database.AsyncSQLDeleteClause;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
-
 import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
@@ -38,18 +32,15 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.PublishService;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.Tuple;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Ops;
@@ -117,15 +108,17 @@ public class ServiceAdmin extends AbstractAdmin {
 			.list(
 					environment.identification,
 					environment.name,
-					inUse
+					inUse,
+					environment.confidential
 					).thenApply(publish -> {
 						for (Tuple service : publish.list()) {
 							builder.add(new ServicePublish(
 									serviceId,
 									service.get(environment.identification),
 									service.get(environment.name),
-									service.get(inUse)
-									));
+									service.get(inUse),
+									service.get (environment.confidential)
+								));
 						}
 						return builder.build();
 					});
