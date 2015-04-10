@@ -1720,7 +1720,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	@Test
 	public void testPublishServiceConfidential () throws Throwable {
 		// Mark the source datasets as confidential:
-		assertEquals (1, update (sourceDatasetVersion)
+		assertEquals (2, update (sourceDatasetVersion)
 			.set (sourceDatasetVersion.confidential, true)
 			.execute ());
 		
@@ -1752,7 +1752,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		int leafLayerId = insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)			
-			.set(leafLayer.datasetId, datasetId)
+			.set(leafLayer.datasetId, vectorDatasetId)
 			.executeWithKey(leafLayer.id);
 		
 		insert(layerStyle)
