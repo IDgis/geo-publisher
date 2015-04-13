@@ -59,6 +59,8 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
+						Logger.debug("IsPublished: " + serviceForm.field("isPublished").value());
+						
 						return ok (form.render (serviceForm, create, groups, layers, groupLayer, servicePublish));
 					}
 				});
@@ -399,6 +401,7 @@ public class Services extends Controller {
 		private String watermark;
 		private String rootGroupId = "";
 		private String constantsId = "";
+		private Boolean isPublished = false;
 		/**
 		 * List of id's of layers/groups in this service
 		 */
@@ -424,6 +427,7 @@ public class Services extends Controller {
 			this.metadata = service.metadata();
 			this.rootGroupId =service.genericLayerId();
 			this.constantsId =service.constantsId();
+			this.isPublished = service.isPublished();
 		}
 
 		public String getName() {
@@ -501,6 +505,14 @@ public class Services extends Controller {
 		public void setConstantsId(String constantsId) {
 			this.constantsId = constantsId;
 		}
+		
+		public Boolean getIsPublished() {
+			return isPublished;
+		}
+
+		public void setIsPublished(Boolean isPublished) {
+			this.isPublished = isPublished;
+		}
 
 		public String getWatermark() {
 			return watermark;
@@ -529,13 +541,13 @@ public class Services extends Controller {
 
 		@Override
 		public String toString() {
-			return "ServiceForm [name=" + name + ", title="
-					+ title + ", alternateTitle=" + alternateTitle
-					+ ", abstractText=" + abstractText + ", keywords="
-					+ keywords + ", metadata=" + metadata + ", watermark="
-					+ watermark + ", published=" + ", rootGroupId="
+			return "ServiceForm [name=" + name + ", title=" + title
+					+ ", alternateTitle=" + alternateTitle + ", abstractText="
+					+ abstractText + ", keywords=" + keywords + ", metadata="
+					+ metadata + ", watermark=" + watermark + ", rootGroupId="
 					+ rootGroupId + ", constantsId=" + constantsId
-					+ ", structure=" + structure + ", styles=" + styles + "]";
+					+ ", isPublished=" + isPublished + ", structure="
+					+ structure + ", styles=" + styles + "]";
 		}
 		
 		

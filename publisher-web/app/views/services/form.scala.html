@@ -115,7 +115,7 @@
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.services.publish.environments")</label>
 					<div class="col-sm-8"> 
 						<ol class="breadcrumb">
-							@if(!create){
+							@if(serviceForm("isPublished").value == "true") {
 								@for(environment <- environments.values) {
 									 @if(environment.inUse()){
 									 <li>
