@@ -24,7 +24,7 @@ public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> impl
 
 	@Override
 	public StyleRef getStyleRef() {
-		return new JsonStyleRef(jsonNode.get("styleRef"));		
+		return jsonNode.has ("styleRef") ? new JsonStyleRef(jsonNode.get("styleRef")) : null;		
 	}
 
 }
