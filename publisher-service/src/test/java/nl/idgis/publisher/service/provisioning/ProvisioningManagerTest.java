@@ -3,6 +3,7 @@ package nl.idgis.publisher.service.provisioning;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,8 @@ import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
 import nl.idgis.publisher.service.provisioning.messages.RemovePublicationService;
 import nl.idgis.publisher.service.provisioning.messages.RemoveStagingService;
+import nl.idgis.publisher.stream.IteratorCursor;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -225,7 +228,10 @@ public class ProvisioningManagerTest  {
 						Arrays.asList("service"), 
 						Arrays.asList("style")));
 				
-				getSender().tell(publishedServiceIndex, getSelf());
+				ActorRef cursor = getContext().actorOf(
+					IteratorCursor.props(Collections.singleton(publishedServiceIndex).iterator()));
+				
+				cursor.tell(new NextItem(), getSender());
 			} else {
 				getSender().tell(new ServiceManagerResponse(msg), getSelf());
 			}

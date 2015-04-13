@@ -19,6 +19,7 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.messages.JobInfo;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -56,7 +57,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Stream.empty;
 import static java.util.Arrays.asList;
 
@@ -145,14 +145,20 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator, Optional<ActorRef> watching, Set<ActorRef> targets, Set<JobState> state) {
+	private void elseJobHandling(Object msg, JobInfo job) {
 		if(msg instanceof ServiceJobInfo) {
 			// this shouldn't happen too often, TODO: rethink job mechanism
 			log.debug("receiving service job while already provisioning");
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetActiveJobs) {
-			getSender().tell(new ActiveJobs(singletonList(new ActiveJob(serviceJob))), getSelf());
-		} else if(msg instanceof UpdateJobState) {
+			getSender().tell(new ActiveJobs(singletonList(new ActiveJob(job))), getSelf());
+		} else {
+			unhandled(msg);
+		}
+	}
+	
+	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator, Optional<ActorRef> watching, Set<ActorRef> targets, Set<JobState> state) {
+		if(msg instanceof UpdateJobState) {
 			log.debug("update job state received: {}", msg);
 			
 			ActorRef target = getSender(); 
@@ -183,7 +189,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		} else if(msg instanceof StoreLog) {
 			initiator.tell(msg, getSender());
 		} else {
-			unhandled(msg);
+			elseJobHandling(msg, serviceJob);
 		}
 	}
 	
@@ -208,40 +214,68 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Procedure<Object> vacuumingPublication(ServiceJobInfo serviceJob, ActorRef initiator, Map<String, Set<ActorRef>> environmentTargets) {
-		return new Procedure<Object>() {			
+	private Procedure<Object> vacuumingPublication(ServiceJobInfo serviceJob, ActorRef initiator, Set<ActorRef> targets) {
+		return new Procedure<Object>() {
 			
-			Set<ActorRef> targets = environmentTargets.values().stream()
-				.flatMap(Collection::stream)
-				.collect(toCollection(() -> new HashSet<>()));
 			Set<JobState> state = new HashSet<>();
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof UpdateServiceInfo) {
 					handleUpdateServiceInfo((UpdateServiceInfo)msg);
+				} else {
+					elseProvisioning(msg, serviceJob, initiator, Optional.empty(), targets, state);
+				}
+			}
+		};
+	}
+	
+	private Procedure<Object> receivingPublishedServiceIndices(ServiceJobInfo serviceJob, ActorRef initiator, Map<String, Set<ActorRef>> environmentTargets) {
+		return new Procedure<Object>() {
+			
+			Map<String, ServiceIndex> indices = new HashMap<String, ServiceIndex>();
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof UpdateServiceInfo) {
+					handleUpdateServiceInfo((UpdateServiceInfo)msg);
 				} else if(msg instanceof PublishedServiceIndex) {
-					log.debug("published service index received");
-					
-					getSender().tell(new NextItem(), getSelf());
-					
 					PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)msg;
 					
 					String environmentId = publishedServiceIndex.getEnvironmentId();
-					if(environmentTargets.containsKey(environmentId)) {
-						log.debug("dispatching service index for environment: {}", environmentId);
-						
-						ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
-						
-						environmentTargets.get(environmentId).stream()
-							.forEach(target -> target.tell(serviceIndex, getSelf()));
-					} else {
-						log.debug("no targets for environment: {}", environmentId);
-					}
+					ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
+					indices.put(environmentId, serviceIndex);
+					
+					log.debug("published service index received, environmentId: {}", environmentId);
+					
+					getSender().tell(new NextItem(), getSelf());
 				} else if(msg instanceof End) {
 					log.debug("all service indices received");
+					
+					Set<ActorRef> targets = new HashSet<>();
+					indices.entrySet().stream()
+						.forEach(entry -> {
+							String environmentId = entry.getKey();
+							ServiceIndex serviceIndex = entry.getValue();
+							
+							log.debug("dispatching index for environment: {}", environmentId);
+							
+							environmentTargets.get(environmentId).forEach(target -> {
+								targets.add(target);
+								target.tell(serviceIndex, getSelf());
+							});
+						});
+					
+					if(targets.isEmpty()) {
+						log.debug("no service index dispatched");						
+						initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+						getContext().become(receive());
+					} else {
+						log.debug("waiting for status updates");
+						getContext().become(vacuumingPublication(serviceJob, initiator, targets));
+					}
 				} else {
-					elseProvisioning(msg, serviceJob, initiator, Optional.empty(), targets, state);
+					elseJobHandling(msg, serviceJob);
 				}
 			}
 			
@@ -422,7 +456,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				log.debug("published");
 				
 				serviceManager.tell(new GetPublishedServiceIndex(), getSelf());
-				getContext().become(vacuumingPublication(msg, initiator, publicationTargets()));
+				getContext().become(receivingPublishedServiceIndices(msg, initiator, publicationTargets()));
 			} else {
 				log.debug("staging");
 				
