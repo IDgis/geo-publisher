@@ -642,7 +642,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null, null, null,
-						false
+						false, false
 					));
 				}
 				return builder.build();

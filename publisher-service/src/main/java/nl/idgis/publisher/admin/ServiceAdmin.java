@@ -37,6 +37,7 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.PublishService;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -45,6 +46,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Ops;
 import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.expr.StringExpression;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
@@ -135,6 +137,13 @@ public class ServiceAdmin extends AbstractAdmin {
 			.exists ();
 	}
 	
+	private BooleanExpression isPublished () {		
+		return new SQLSubQuery ()			
+			.from(publishedServiceEnvironment)			
+			.where(service.id.eq(publishedServiceEnvironment.serviceId))
+			.exists().as("isPublished");
+	}
+	
 	private CompletableFuture<Page<Service>> handleListServicesWithQuery (final ListServices listServices) {
 		final AsyncSQLQuery baseQuery = db
 				.query()
@@ -178,7 +187,8 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.metadata,
 								genericLayer.identification,					
 								constants.identification,
-								isConfidential ()
+								isConfidential (),
+								isPublished ()
 							))
 						.thenApply ((styles) -> {
 							builder.addAll (styles.list ());
@@ -205,7 +215,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.metadata,
 					genericLayer.identification,					
 					constants.identification,
-					isConfidential ()
+					isConfidential (),
+					isPublished ()
 			));		
 	}
 	
