@@ -1058,6 +1058,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getLayerPath(workspace, layer.getName());
 	}
 	
+	private String getLayerPath(Workspace workspace, Coverage coverage) {
+		return getLayerPath(workspace, coverage.getName());
+	}
+	
 	private String getLayerPath(Workspace workspace, FeatureType featureType) {
 		return getLayerPath(workspace, featureType.getName());
 	}
@@ -1068,6 +1072,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		// the layer index is not usable because of name collisions (same layer name in different workspaces)
 		// but the layer name seems always identical to the feature type name
 		return restLocation + "layers/" + workspace.getName() + ":" + name;
+	}
+	
+	public CompletableFuture<Layer> getLayer(Workspace workspace, Coverage coverage) {
+		return get(getLayerPath(workspace, coverage)).thenApply(optionalDocument -> {			
+			XPathHelper layer = xpath(optionalDocument.get()).node("layer").get();
+			
+			String defaultStyleName = layer.string("defaultStyle/name").get();
+			StyleRef defaultStyle = new StyleRef(defaultStyleName);
+			
+			List<StyleRef> additionalStyles = layer.map("styles/style/name", 
+				name -> new StyleRef(name.string().get())); 
+			
+			return new Layer(coverage.getName(), defaultStyle, additionalStyles);
+		});
 	}
 	
 	public CompletableFuture<Layer> getLayer(Workspace workspace, FeatureType featureType) {

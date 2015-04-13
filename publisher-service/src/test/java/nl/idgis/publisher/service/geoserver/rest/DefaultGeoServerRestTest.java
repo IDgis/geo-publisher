@@ -498,8 +498,10 @@ public class DefaultGeoServerRestTest {
 		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
 		service.postCoverageStore(workspace, coverageStore).get();
 	
-		// TODO: figure out how to create a coverage with a name different from nativeName
-		Coverage coverage = new Coverage("albers27", "albers27");
+		Coverage coverage = new Coverage("test", "albers27");
 		service.postCoverage(workspace, coverageStore, coverage).get();
+		
+		Layer layer = service.getLayer(workspace, coverage).get();
+		assertEquals("raster", layer.getDefaultStyle().getStyleName());
 	}
 }
