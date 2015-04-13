@@ -199,6 +199,7 @@ public class Admin extends AbstractAdmin {
 				.orderBy(jobState.createTime.desc(),job.createTime.desc(),job.type.asc())
 				.where(job.createTime.between(since, new Timestamp(new java.util.Date().getTime()))
 					.and(jobState.state.isNull().or(jobState.state.ne("STARTED")))
+					.and(serviceJob.type.isNull().or(serviceJob.type.ne("VACUUM")))
 				);
 
 	}
@@ -217,7 +218,8 @@ public class Admin extends AbstractAdmin {
 				genericLayer.name,
 				dataSource.identification,
 				dataset.identification,
-				genericLayer.identification
+				genericLayer.identification,
+				serviceJob.type
 			);
 	}
 	
