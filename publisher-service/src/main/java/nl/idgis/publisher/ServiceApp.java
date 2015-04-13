@@ -202,6 +202,7 @@ public class ServiceApp extends UntypedActor {
 				provisioningManager,
 				zooKeeperConfig.getString ("hosts"),
 				zooKeeperConfig.getString ("stagingEnvironmentId"),
+				zooKeeperConfig.hasPath ("serviceIdPrefix") ? zooKeeperConfig.getString ("serviceIdPrefix") : null,
 				zooKeeperConfig.hasPath ("namespace") ? zooKeeperConfig.getString ("namespace") : null
 			), "zookeeper-service-info-provider");
 		

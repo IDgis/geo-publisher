@@ -37,13 +37,14 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 	private final String zooKeeperHosts;
 	private final String namespace;
 	private final String stagingEnvironmentId;
+	private final String serviceIdPrefix;
 	private final Map<String, Service> activeServices = new HashMap<> ();
 	
 	private CuratorFramework client = null;
 	private TreeCache serviceTreeCache = null;
 	private boolean hasDefaultStaging = false;
 	
-	public ZooKeeperServiceInfoProvider (final ServiceInfo stagingServiceInfo, final ActorRef target, final String zooKeeperHosts, final String stagingEnvironmentId, final String namespace) {
+	public ZooKeeperServiceInfoProvider (final ServiceInfo stagingServiceInfo, final ActorRef target, final String zooKeeperHosts, final String stagingEnvironmentId, final String serviceIdPrefix, final String namespace) {
 		if (stagingServiceInfo == null) {
 			throw new NullPointerException ("stagingServiceInfo cannot be null");
 		}
@@ -61,10 +62,11 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 		this.target = target;
 		this.zooKeeperHosts = zooKeeperHosts;
 		this.stagingEnvironmentId = stagingEnvironmentId;
+		this.serviceIdPrefix = serviceIdPrefix;
 		this.namespace = namespace;
 	}
 	
-	public static Props props (final ServiceInfo stagingServiceInfo, final ActorRef target, final String zooKeeperHosts, final String stagingEnvironmentId, final String namespace) {
+	public static Props props (final ServiceInfo stagingServiceInfo, final ActorRef target, final String zooKeeperHosts, final String stagingEnvironmentId, final String serviceIdPrefix, final String namespace) {
 		if (stagingServiceInfo == null) {
 			throw new NullPointerException ("stagingServiceInfo cannot be null");
 		}
@@ -78,7 +80,7 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 			throw new NullPointerException ("stagingEnvironmentId cannot be null");
 		}
 
-		return Props.create (ZooKeeperServiceInfoProvider.class, stagingServiceInfo, target, zooKeeperHosts, stagingEnvironmentId, namespace);
+		return Props.create (ZooKeeperServiceInfoProvider.class, stagingServiceInfo, target, zooKeeperHosts, stagingEnvironmentId, serviceIdPrefix, namespace);
 	}
 
 	@Override
@@ -117,6 +119,11 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 			final String serviceType = serviceId.substring (0, offset);
 			final JsonNode urlNode = readJson (event.getData ().getData ()).path ("url");
 			final String serviceUrl = urlNode.isMissingNode () ? null : urlNode.asText ();
+			
+			if (serviceIdPrefix != null && !serviceType.startsWith (serviceIdPrefix)) {
+				log.debug ("Skipping event for service of type " + serviceType);
+				return;
+			}
 
 			if (TreeCacheEvent.Type.NODE_ADDED.equals (event.getType ())) {
 				getSelf ().tell (new Event (EventType.ADDED, serviceId, serviceType, serviceUrl), getSelf ());
