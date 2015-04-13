@@ -21,8 +21,8 @@
 					@for(environment <- environments.values) {
 						<label class="list-group-item@if(!environment.confidential && service.confidential){ list-group-item-warning}">
 							<h4 class="list-group-item-heading">
-								@environment.name
-								<input name="@environment.identification" type="checkbox" class="pull-right" @if(environment.inUse()){checked}@if(!environment.confidential && service.confidential){ disabled}>
+								<input name="@environment.identification" type="checkbox" class="pull-left" @if(environment.inUse()){checked}@if(!environment.confidential && service.confidential){ disabled}>
+								<span class="checkbox-environment">@environment.name</span>
 							</h4>
 							@if(!environment.confidential && service.confidential) {
 								<p class="list-group-item-text">
