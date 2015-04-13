@@ -103,9 +103,17 @@ public class StreamUtils {
 		return zip(first, second, (t, u) -> new ZippedEntry<>(t, u));
 	}
 	
+	/**
+	 * Creates a zipped map.
+	 * 
+	 * @param first
+	 * @param second
+	 * @return a map with elements of <code>first</code> as keys 
+	 * 			and elements of <code>second</code> as values.
+	 */
 	public static <T, U> Map<T, U> zipToMap(Stream<T> first, Stream<U> second) {
 		return 
-			zip(first, second, (t, u) -> new ZippedEntry<>(t, u))
+			zip(first, second)
 				.collect(Collectors.toMap(
 					ZippedEntry::getFirst, 
 					ZippedEntry::getSecond));

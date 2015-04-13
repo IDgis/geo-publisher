@@ -2,6 +2,8 @@ package nl.idgis.publisher.utils;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -10,7 +12,6 @@ import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 
 import static nl.idgis.publisher.utils.StreamUtils.zip;
 import static nl.idgis.publisher.utils.StreamUtils.index;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -65,5 +66,19 @@ public class StreamUtilsTest {
 		assertEquals("world", second.getValue());
 		
 		assertFalse(i.hasNext());
+	}
+	
+	@Test
+	public void testZipToMap() {
+		Map<Integer, String> result = StreamUtils.zipToMap(
+			Stream.of(1, 2, 3),
+			Stream.of("a", "b", "c"));
+		
+		result.containsKey(1);
+		assertEquals("a", result.get(1));
+		result.containsKey(2);
+		assertEquals("b", result.get(2));
+		result.containsKey(3);
+		assertEquals("c", result.get(3));
 	}
 }
