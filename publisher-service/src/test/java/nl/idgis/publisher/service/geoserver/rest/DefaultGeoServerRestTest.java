@@ -503,5 +503,28 @@ public class DefaultGeoServerRestTest {
 		
 		Layer layer = service.getLayer(workspace, coverage).get();
 		assertEquals("raster", layer.getDefaultStyle().getStyleName());
+		
+		List<Coverage> coverages = service.getCoverages(workspace, coverageStore).get();
+		assertEquals(1, coverages.size());
+		
+		Coverage retrievedCoverage = coverages.get(0);
+		assertNotNull(retrievedCoverage);
+		
+		assertEquals("test", retrievedCoverage.getName());
+		// figure out if it is possible to retrieve the original nativeName
+		// assertEquals("albers27", retrievedCoverage.getNativeName());
+		
+		Map<CoverageStore, List<Coverage>> allCoverages = service.getCoverages(workspace).get();
+		assertEquals(1, allCoverages.size());
+		allCoverages.entrySet().stream().forEach(entry -> {
+			CoverageStore retrievedCoverageStore = entry.getKey();
+			
+			assertEquals("test", retrievedCoverageStore.getName());
+			assertEquals(testRasterUrl, retrievedCoverageStore.getUrl());
+			
+			List<Coverage> retrievedCoverages = entry.getValue();
+			assertEquals(1, retrievedCoverages.size());
+			assertEquals("test", retrievedCoverages.get(0).getName());
+		});
 	}
 }

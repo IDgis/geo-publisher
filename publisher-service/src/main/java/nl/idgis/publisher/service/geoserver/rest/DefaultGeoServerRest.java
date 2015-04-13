@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -368,6 +369,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						.thenApply(this::optionalPresent))));
 	}
 	
+	private CompletableFuture<Optional<CoverageStore>> getCoverageStore(Workspace workspace, String coverageStoreName) {
+		return get(getCoverageStorePath(workspace, coverageStoreName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {
+				XPathHelper coverageStore = xpath(document).node("coverageStore").get();
+				try {
+					return new CoverageStore(
+						coverageStore.string("name").get(),
+						new URL(coverageStore.string("url").get()));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}));
+	}
+	
+	public CompletableFuture<List<CoverageStore>> getCoverageStores(Workspace workspace) {
+		return get(getCoverageStoresPath(workspace)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).map("/coverageStores/coverageStore/name",
+					name -> getCoverageStore(workspace, name.string().get())
+						.thenApply(this::optionalPresent))));
+	}
+	
 	private String getCoverageStoresPath(Workspace workspace) {
 		return getWorkspacesPath() + "/" + workspace.getName() + "/coveragestores";
 	}
@@ -475,6 +498,35 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					getFeatureType(workspace, dataStore, name.string().get()).thenApply(this::optionalPresent))));
 	}
 	
+	private CompletableFuture<Optional<Coverage>> getCoverage(Workspace workspace, CoverageStore coverageStore, String coverageName) {
+		return get(getCoveragePath(workspace, coverageStore, coverageName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {
+				XPathHelper coverage = xpath(document).node("coverage").get();				
+				return new Coverage(
+					coverage.string("name").get(),
+					coverage.string("nativeName").get());
+			}));
+	}
+	
+	@Override
+	public CompletableFuture<List<Coverage>> getCoverages(Workspace workspace, CoverageStore coverageStore) {
+		return get(getCoveragesPath(workspace, coverageStore)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).map("/coverages/coverage/name", name ->
+					getCoverage(workspace, coverageStore, name.string().get()).thenApply(this::optionalPresent))));
+	}
+	
+	@Override
+	public CompletableFuture<Map<CoverageStore, List<Coverage>>> getCoverages(Workspace workspace) {
+		return getCoverageStores(workspace).thenCompose(coverageStores ->
+			f.sequence(coverageStores.stream()
+				.map(coverageStore -> getCoverages(workspace, coverageStore))
+				.collect(Collectors.toList())).thenApply(coverages ->
+					StreamUtils.zipToMap(
+						coverageStores.stream(), 
+						coverages.stream())));
+	}
+	
 	@Override
 	public CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
@@ -549,12 +601,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return os.toByteArray();		
 	}
 	
+	private String getCoverageStorePath(Workspace workspace, String coverageStoreName) {
+		return getCoverageStoresPath(workspace) + "/" + coverageStoreName;
+	}
+	
 	private String getCoverageStorePath(Workspace workspace, CoverageStore coverageStore) {
-		return getCoverageStoresPath(workspace) + "/" + coverageStore.getName();
+		return getCoverageStorePath(workspace, coverageStore.getName());
 	}
 	
 	private String getCoveragesPath(Workspace workspace, CoverageStore coverageStore) {
 		return getCoverageStorePath(workspace, coverageStore) + "/coverages";
+	}
+	
+	private String getCoveragePath(Workspace workspace, CoverageStore coverageStore, String coverageName) {
+		return getCoveragesPath(workspace, coverageStore) + "/" + coverageName;
 	}
 	
 	private byte[] getCoverageDocument(Coverage coverage) throws XMLStreamException, IOException {
