@@ -397,11 +397,11 @@ public class JsonService implements Service {
 	}
 	
 	static Stream<JsonNode> getStream(JsonNode jsonNode, String fieldName) {
-		JsonNode array = jsonNode.get(fieldName);
+		JsonNode array = jsonNode.path(fieldName);
 		
 		return 
 			range(0, array.size())
-				.mapToObj(array::get);
+				.mapToObj(array::path);
 	}
 	
 	static Optional<JsonNode> getOptional(JsonNode jsonNode, String fieldName) {
