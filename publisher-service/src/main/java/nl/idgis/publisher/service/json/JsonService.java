@@ -32,9 +32,11 @@ import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 public class JsonService implements Service {
 	
@@ -162,11 +164,24 @@ public class JsonService implements Service {
 		
 	}
 	
-	@JsonSerialize(as=DatasetLayer.class)
-	private interface DatasetLayerMixin {
+	@JsonSerialize(as=VectorDatasetLayer.class)
+	private interface VectorDatasetLayerMixin {
 		
 		@JsonIgnore
 		boolean isVectorLayer();
+		
+		@JsonIgnore
+		boolean isRasterLayer();
+	}
+	
+	@JsonSerialize(as=RasterDatasetLayer.class)
+	private interface RasterDatasetLayerMixin {
+		
+		@JsonIgnore
+		boolean isVectorLayer();
+		
+		@JsonIgnore
+		boolean isRasterLayer();
 	}
 	
 	@JsonSerialize(as=GroupLayerRef.class)
@@ -350,7 +365,7 @@ public class JsonService implements Service {
 								return new ServiceSerializer(beanSerializerBase);
 							}
 							
-							if(DatasetLayer.class.equals(handledType)) {
+							if(DatasetLayer.class.isAssignableFrom(handledType)) {
 								return new DatasetLayerSerializer(beanSerializerBase);
 							}
 						}
@@ -367,7 +382,7 @@ public class JsonService implements Service {
 		
 		objectMapper.addMixInAnnotations(Service.class, ServiceMixin.class);
 		objectMapper.addMixInAnnotations(DatasetLayerRef.class, DatasetLayerRefMixin.class);
-		objectMapper.addMixInAnnotations(DatasetLayer.class, DatasetLayerMixin.class);
+		objectMapper.addMixInAnnotations(VectorDatasetLayer.class, VectorDatasetLayerMixin.class);
 		objectMapper.addMixInAnnotations(GroupLayerRef.class, GroupLayerRefMixin.class);
 		objectMapper.addMixInAnnotations(GroupLayer.class, GroupLayerMixin.class);
 		objectMapper.addMixInAnnotations(StyleRef.class, StyleRefMixin.class);		

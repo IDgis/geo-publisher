@@ -128,6 +128,7 @@ public class JsonServiceTest {
 		when(firstDatasetLayerMock.getId()).thenReturn("dataset-id-0");
 		when(firstDatasetLayerMock.isVectorLayer()).thenReturn(true);
 		when(firstDatasetLayerMock.asVectorLayer()).thenReturn(firstDatasetLayerMock);
+		when(firstDatasetLayerMock.getTableName()).thenReturn("tableName");
 		
 		DatasetLayerRef firstDatasetLayerRefMock = mock(DatasetLayerRef.class);
 		when(firstDatasetLayerRefMock.isGroupRef()).thenReturn(false);
@@ -192,6 +193,11 @@ public class JsonServiceTest {
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertNotNull(datasetLayer);
 		assertEquals("dataset-id-0", datasetLayer.getId());
+		
+		assertTrue(datasetLayer.isVectorLayer());
+		
+		VectorDatasetLayer vectorDatasetLayer = datasetLayer.asVectorLayer();
+		assertEquals("tableName", vectorDatasetLayer.getTableName());
 		
 		assertTrue(layerRefsItr.hasNext());
 		
