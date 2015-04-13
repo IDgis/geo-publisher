@@ -480,6 +480,7 @@ private String getEnumName(Enum e){
 			.groupBy(category.name)
 			.groupBy(sourceDataset.deleteTime)
 			.groupBy(sourceDatasetVersion.confidential)
+			.groupBy(sourceDataset.externalIdentification)
 			.singleResult(
 				new QSourceDatasetInfo(
 						sourceDataset.identification,
