@@ -56,72 +56,72 @@ public class JsonService implements Service {
 
 	@Override
 	public String getTitle() {
-		return jsonNode.get("title").asText();
+		return asTextWithDefault (jsonNode.path ("title"), null);
 	}
 
 	@Override
 	public String getAbstract() {
-		return jsonNode.get("abstract").asText();
+		return asTextWithDefault (jsonNode.path ("abstract"), null);
 	}
 
 	@Override
 	public String getContact() {
-		return jsonNode.get("contact").asText();
+		return asTextWithDefault (jsonNode.path ("contact"), null);
 	}
 
 	@Override
 	public String getOrganization() {
-		return jsonNode.get("organization").asText();
+		return asTextWithDefault (jsonNode.path ("organization"), null);
 	}
 
 	@Override
 	public String getPosition() {
-		return jsonNode.get("position").asText();
+		return asTextWithDefault (jsonNode.path ("position"), null);
 	}
 
 	@Override
 	public String getAddressType() {
-		return jsonNode.get("addressType").asText();
+		return asTextWithDefault (jsonNode.path ("addressType"), null);
 	}
 
 	@Override
 	public String getAddress() {
-		return jsonNode.get("address").asText();
+		return asTextWithDefault (jsonNode.path ("address"), null);
 	}
 
 	@Override
 	public String getCity() {
-		return jsonNode.get("city").asText();
+		return asTextWithDefault (jsonNode.path ("city"), null);
 	}
 
 	@Override
 	public String getState() {
-		return jsonNode.get("state").asText();
+		return asTextWithDefault (jsonNode.path ("state"), null);
 	}
 
 	@Override
 	public String getZipcode() {
-		return jsonNode.get("zipcode").asText();
+		return asTextWithDefault (jsonNode.path ("zipcode"), null);
 	}
 
 	@Override
 	public String getCountry() {
-		return jsonNode.get("country").asText();
+		return asTextWithDefault (jsonNode.path ("country"), null);
 	}
 
 	@Override
 	public String getTelephone() {
-		return jsonNode.get("telephone").asText();
+		return asTextWithDefault (jsonNode.path ("telephone"), null);
 	}
 
 	@Override
 	public String getFax() {
-		return jsonNode.get("fax").asText();
+		return asTextWithDefault (jsonNode.path ("fax"), null);
 	}
 
 	@Override
 	public String getEmail() {
-		return jsonNode.get("email").asText();
+		return asTextWithDefault (jsonNode.path ("email"), null);
 	}
 
 	@Override
@@ -412,4 +412,11 @@ public class JsonService implements Service {
 		}
 	}
 
+	static String asTextWithDefault (final JsonNode jsonNode, final String defaultValue) {
+		if (jsonNode.isMissingNode () || !jsonNode.isValueNode ()) {
+			return defaultValue;
+		} else {
+			return jsonNode.asText ();
+		}
+	}
 }

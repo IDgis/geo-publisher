@@ -489,7 +489,7 @@ public class DefaultGeoServerRestTest {
 		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
 		assertEquals("file", testRasterUrl.getProtocol());
 		
-		File testRasterFile = new File(testRasterUrl.getFile());
+		File testRasterFile = new File(testRasterUrl.toURI ().getPath ());
 		assertTrue(testRasterFile.exists());
 		
 		Workspace workspace = new Workspace("workspace");
