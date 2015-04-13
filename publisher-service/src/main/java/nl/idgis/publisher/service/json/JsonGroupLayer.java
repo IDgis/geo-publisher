@@ -13,6 +13,7 @@ import nl.idgis.publisher.domain.web.tree.Tiling;
 import static java.util.stream.Collectors.toList;
 import static nl.idgis.publisher.service.json.JsonService.getOptional;
 import static nl.idgis.publisher.service.json.JsonService.getStream;
+import static nl.idgis.publisher.service.json.JsonService.asTextWithDefault;
 
 public class JsonGroupLayer implements GroupLayer {
 
@@ -34,12 +35,12 @@ public class JsonGroupLayer implements GroupLayer {
 
 	@Override
 	public String getTitle() {
-		return jsonNode.get("title").asText();
+		return asTextWithDefault (jsonNode.path ("title"), null);
 	}
 
 	@Override
 	public String getAbstract() {
-		return jsonNode.get("abstract").asText();
+		return asTextWithDefault (jsonNode.path ("abstract"), null);
 	}
 
 	@Override
