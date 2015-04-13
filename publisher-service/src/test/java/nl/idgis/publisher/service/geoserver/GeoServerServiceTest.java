@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.Serializable;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -50,6 +52,7 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
@@ -67,6 +70,7 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.TestStyle;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRestTest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Style;
@@ -341,6 +345,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
 		when(datasetLayer.isVectorLayer()).thenReturn(true);
+		when(datasetLayer.isRasterLayer()).thenReturn(false);
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
@@ -652,5 +657,61 @@ public class GeoServerServiceTest {
 				.map(style -> style.getName())
 				.collect(Collectors.toSet())
 					.contains("style"));
+	}
+	
+	@Test
+	public void testRasterLayer() throws Exception {
+		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
+		assertEquals("file", testRasterUrl.getProtocol());
+		
+		File testRasterFile = new File(testRasterUrl.getFile());
+		assertTrue(testRasterFile.exists());
+		
+		String[] styleNames = {"style0", "style1"};
+		
+		for(String styleName : styleNames)  {
+			f.ask(serviceManager, new PutStyle(styleName, TestStyle.getRasterSld())).get();
+		}
+		
+		RasterDatasetLayer datasetLayer = mock(RasterDatasetLayer.class);
+		when(datasetLayer.getName()).thenReturn("layer");
+		when(datasetLayer.getTitle()).thenReturn("title");
+		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.isVectorLayer()).thenReturn(false);
+		when(datasetLayer.isRasterLayer()).thenReturn(true);
+		when(datasetLayer.asRasterLayer()).thenReturn(datasetLayer);
+		when(datasetLayer.getFileName()).thenReturn(testRasterUrl.toExternalForm());
+		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		
+		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
+			.map(styleName -> {
+				StyleRef styleRef = mock(StyleRef.class);					
+				when(styleRef.getName()).thenReturn(styleName);
+				
+				return styleRef;
+			})
+			.collect(Collectors.toList());
+		
+		when(datasetLayer.getStyleRefs()).thenReturn(styleRefs);
+		
+		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
+		when(datasetLayerRef.isGroupRef()).thenReturn(false);
+		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
+		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		
+		Service service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
+		
+		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
+		
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
+		
+		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
+		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 	}
 }

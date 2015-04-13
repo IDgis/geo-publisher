@@ -30,14 +30,18 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.service.geoserver.messages.EnsureDatasetLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureCoverageLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.geoserver.rest.Attribute;
+import nl.idgis.publisher.service.geoserver.rest.Coverage;
+import nl.idgis.publisher.service.geoserver.rest.CoverageStore;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
@@ -210,16 +214,26 @@ public class GeoServerService extends UntypedActor {
 								DataStore dataStore = optionalDataStore.get();										
 								return 
 									rest.getFeatureTypes(workspace, dataStore).thenCompose(featureTypes ->
+									rest.getCoverages(workspace).thenCompose(allCoverages ->
 									rest.getLayerGroups(workspace).thenCompose(layerGroups ->
 										f.sequence(featureTypes.stream()
 											.map(featureType -> rest.getLayer(workspace, featureType))
 											.collect(Collectors.toList())).thenCompose(layers -> {
 										
 									log.debug("feature types and layer groups retrieved");
+									
+									List<CoverageStore> coverageStores = 
+										allCoverages.keySet().stream()
+											.collect(Collectors.toList());
+									
+									List<Coverage> coverages = 
+										allCoverages.values().stream()
+											.flatMap(List::stream)
+											.collect(Collectors.toList());
 																				
 									return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->											
-										new EnsuringWorkspace(workspace, dataStore, featureTypes, layerGroups, layers));
-								})));
+										new EnsuringWorkspace(workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, layers));
+								}))));
 							}
 							
 							throw new IllegalStateException("publisher-geometry data store is missing");
@@ -314,16 +328,43 @@ public class GeoServerService extends UntypedActor {
 	
 	private static class StyleEnsured { }
 	
-	private static class FeatureTypeEnsured {
+	private static class DatasetEnsured<T extends EnsureDatasetLayer> {
 		
-		private final EnsureFeatureTypeLayer ensure;
+		private final T ensure;
 		
-		public FeatureTypeEnsured(EnsureFeatureTypeLayer ensure) {
+		public DatasetEnsured(T ensure) {
 			this.ensure = ensure;
 		}
 		
-		EnsureFeatureTypeLayer getEnsure() {
+		T getEnsure() {
 			return ensure;
+		}
+	}
+	
+	private static class FeatureTypeEnsured extends DatasetEnsured<EnsureFeatureTypeLayer> {
+		
+		public FeatureTypeEnsured(EnsureFeatureTypeLayer ensure) {
+			super(ensure);
+		}
+	}
+	
+	private static class CoverageStoreEnsured {
+		
+		private final EnsureCoverageLayer ensure;
+		
+		public CoverageStoreEnsured(EnsureCoverageLayer ensure) {
+			this.ensure = ensure;
+		}
+		
+		EnsureCoverageLayer getEnsure() {
+			return ensure;
+		}
+	}
+	
+	private static class CoverageEnsured extends DatasetEnsured<EnsureCoverageLayer> {
+		
+		public CoverageEnsured(EnsureCoverageLayer ensure) {
+			super(ensure);
 		}
 	}
 	
@@ -338,11 +379,13 @@ public class GeoServerService extends UntypedActor {
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
+			Map<String, CoverageStore> coverageStores,
+			Map<String, Coverage> coverages,
 			Map<String, LayerGroup> layerGroups,
 			Map<String, TiledLayer> tiledLayers,
 			Map<String, Layer> layers) {
 		
-		return layers(null, initiator, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers);
+		return layers(null, initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers);
 	}
 	
 	private Procedure<Object> layers(
@@ -351,6 +394,8 @@ public class GeoServerService extends UntypedActor {
 			Workspace workspace, 
 			DataStore dataStore,
 			Map<String, FeatureType> featureTypes,
+			Map<String, CoverageStore> coverageStores,
+			Map<String, Coverage> coverages,
 			Map<String, LayerGroup> layerGroups,
 			Map<String, TiledLayer> tiledLayers,
 			Map<String, Layer> layers) {
@@ -361,7 +406,7 @@ public class GeoServerService extends UntypedActor {
 		
 		return new Procedure<Object>() {
 			
-			private boolean unchanged(Layer restLayer, EnsureFeatureTypeLayer ensure) {
+			private boolean unchanged(Layer restLayer, EnsureDatasetLayer ensure) {
 				log.debug("checking if layer is changed");
 				
 				String currentDefaultStyleName = Optional.ofNullable(restLayer.getDefaultStyle())
@@ -442,6 +487,42 @@ public class GeoServerService extends UntypedActor {
 				return true;
 			}
 			
+			private boolean unchanged(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
+				// TODO: actually compare something
+				
+				return false;
+			}
+			
+			private boolean unchanged(Coverage coverage, EnsureCoverageLayer ensureLayer) {
+				// TODO: actually compare something
+				
+				return false;
+			}
+			
+			void putCoverageStore(EnsureCoverageLayer ensureLayer) {
+				// TODO: actually perform a put request
+				
+				toSelf(new CoverageStoreEnsured(ensureLayer));
+			}
+			
+			void putCoverage(EnsureCoverageLayer ensureLayer) {
+				// TODO: actually perform a put request
+				
+				toSelf(new CoverageEnsured(ensureLayer));
+			}
+			
+			void postCoverageStore(EnsureCoverageLayer ensureLayer) {
+				// TODO: actually perform a post request
+				
+				toSelf(new CoverageStoreEnsured(ensureLayer));
+			}
+			
+			void postCoverage(EnsureCoverageLayer ensureLayer) {
+				// TODO: actually perform a post request
+				
+				toSelf(new CoverageEnsured(ensureLayer));
+			}
+			
 			void putFeatureType(EnsureFeatureTypeLayer ensureLayer) {
 				log.debug("putting feature type");
 				
@@ -482,7 +563,7 @@ public class GeoServerService extends UntypedActor {
 				}));
 			}
 			
-			void putLayer(EnsureFeatureTypeLayer ensureLayer) {
+			void putLayer(EnsureDatasetLayer ensureLayer) {
 				Layer layer = ensureLayer.getLayer();
 				
 				log.debug("putting layer: {}", layer);
@@ -515,7 +596,7 @@ public class GeoServerService extends UntypedActor {
 					ensured(initiator);
 					groupLayerContent.add(new GroupRef(ensureLayer.getLayerId()));
 					getContext().become(layers(ensureLayer, initiator, 
-						workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers), false);
+						workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
 					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;					
 					String layerId = ensureLayer.getLayerId();
@@ -545,8 +626,59 @@ public class GeoServerService extends UntypedActor {
 						
 						postFeatureType(ensureLayer);
 					}
-				} else if(msg instanceof FeatureTypeEnsured) {
-					EnsureFeatureTypeLayer ensureLayer = ((FeatureTypeEnsured)msg).getEnsure();										
+				} else if(msg instanceof EnsureCoverageLayer) {
+					EnsureCoverageLayer ensureLayer = (EnsureCoverageLayer)msg;					
+					String layerId = ensureLayer.getLayerId();
+					
+					String groupStyleName = ensureLayer.getGroupStyleName();
+					if(groupStyleName == null) {					
+						groupLayerContent.add(new LayerRef(layerId));
+					} else {
+						groupLayerContent.add(new LayerRef(layerId, groupStyleName));
+					}
+					
+					if(coverageStores.containsKey(layerId)) {
+						log.debug("existing coverage store found: {}", layerId);
+						
+						CoverageStore coverageStore = coverageStores.get(layerId);
+						if(unchanged(coverageStore, ensureLayer)) {
+							log.debug("coverage store unchanged");
+							toSelf(new CoverageEnsured(ensureLayer));
+						} else {
+							log.debug("coverage store changed");
+							putCoverageStore(ensureLayer);
+						}
+						
+						coverageStores.remove(layerId);
+					} else {
+						log.debug("coverage store missing: {}", layerId);
+						
+						postCoverageStore(ensureLayer);
+					}
+				} else if(msg instanceof CoverageStoreEnsured) {
+					EnsureCoverageLayer ensureLayer = ((CoverageStoreEnsured) msg).getEnsure();
+					String layerId = ensureLayer.getLayerId();
+					
+					if(coverages.containsKey(layerId)) {
+						log.debug("existing coverage found: {}", layerId);
+						
+						Coverage coverage = coverages.get(layerId);
+						if(unchanged(coverage, ensureLayer)) {
+							log.debug("coverage unchanged");
+							toSelf(new CoverageEnsured(ensureLayer));
+						} else {
+							log.debug("coverage changed");
+							putCoverage(ensureLayer);
+						}
+						
+						coverages.remove(layerId);
+					} else {
+						log.debug("coverage missing: {}", layerId);
+						
+						postCoverage(ensureLayer);
+					}
+				} else if(msg instanceof DatasetEnsured) {
+					EnsureDatasetLayer ensureLayer = ((DatasetEnsured<?>)msg).getEnsure();										
 					String layerId = ensureLayer.getLayerId();
 					
 					if(layers.containsKey(layerId)) {
@@ -654,7 +786,7 @@ public class GeoServerService extends UntypedActor {
 				} else {
 					elseProvisioning(msg, initiator);
 				}
-			}						
+			}									
 		};
 	}
 	
@@ -666,22 +798,34 @@ public class GeoServerService extends UntypedActor {
 		
 		private final Map<String, FeatureType> featureTypes;
 		
+		private final Map<String, CoverageStore> coverageStores;
+		
+		private final Map<String, Coverage> coverages;
+		
 		private final Map<String, LayerGroup> layerGroups;
 		
 		private final Map<String, Layer> layers;
 		
 		EnsuringWorkspace(Workspace workspace, DataStore dataStore) {
-			this(workspace, dataStore, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+			this(workspace, dataStore, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 		}
 		
-		EnsuringWorkspace(Workspace workspace, DataStore dataStore, List<FeatureType> featureTypes, 
-				List<LayerGroup> layerGroups, List<Layer> layers) {
+		EnsuringWorkspace(Workspace workspace, DataStore dataStore, List<FeatureType> featureTypes, List<CoverageStore> coverageStores,
+				List<Coverage> coverages, List<LayerGroup> layerGroups, List<Layer> layers) {
 			this.workspace = workspace;
 			this.dataStore = dataStore;			
 			this.featureTypes = featureTypes.stream()
 				.collect(Collectors.toMap(
 					featureType -> featureType.getName(),
-					Function.identity()));			
+					Function.identity()));
+			this.coverageStores = coverageStores.stream()
+				.collect(Collectors.toMap(
+					coverageStore -> coverageStore.getName(),
+					Function.identity()));
+			this.coverages = coverages.stream()
+				.collect(Collectors.toMap(
+					coverage -> coverage.getName(),
+					Function.identity()));
 			this.layerGroups = layerGroups.stream()
 				.collect(Collectors.toMap(
 					layerGroup -> layerGroup.getName(),
@@ -710,6 +854,14 @@ public class GeoServerService extends UntypedActor {
 		
 		Map<String, Layer> getLayers() {
 			return layers;
+		}
+		
+		Map<String, CoverageStore> getCoverageStores() {
+			return coverageStores;
+		}
+
+		Map<String, Coverage> getCoverages() {
+			return coverages;
 		}
 	};
 	
@@ -774,10 +926,12 @@ public class GeoServerService extends UntypedActor {
 					Workspace workspace = workspaceEnsured.getWorkspace();
 					DataStore dataStore = workspaceEnsured.getDataStore();
 					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
+					Map<String, CoverageStore> coverageStores = workspaceEnsured.getCoverageStores();
+					Map<String, Coverage> coverages = workspaceEnsured.getCoverages();
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
 					Map<String, TiledLayer> tiledLayers = new HashMap<>();
 					Map<String, Layer> layers = workspaceEnsured.getLayers();
-					getContext().become(layers(initiator, workspace, dataStore, featureTypes, layerGroups, tiledLayers, layers));
+					getContext().become(layers(initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers));
 				} else if(msg instanceof StyleEnsured) {
 					log.debug("style ensured");
 					ensured(initiator);
