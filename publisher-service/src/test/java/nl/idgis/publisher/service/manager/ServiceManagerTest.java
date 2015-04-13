@@ -1645,12 +1645,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(service.genericLayerId, rootId0)			
 			.execute();
 		
-		f.ask(serviceManager, new GetPublishedServiceIndex(), End.class).get();
+		Map<String, ServiceIndex> publishedEnvironments = getPublishedServiceIndex();
+		for(String environmentId : environmentIds) {
+			ServiceIndex serviceIndex = publishedEnvironments.get(environmentId);
+			assertNotNull(serviceIndex);
+			assertTrue(serviceIndex.getServiceNames().isEmpty());
+			assertTrue(serviceIndex.getStyleNames().isEmpty());
+		}
 		
 		f.ask(serviceManager, new PublishService("service0", environmentIds), Ack.class).get();
 		
-		Map<String, ServiceIndex> publishedEnvironments = getPublishedServiceIndex();
-		
+		publishedEnvironments = getPublishedServiceIndex();
+		assertEquals(3, publishedEnvironments.size());
 		for(String environment : environmentIds) {
 			assertTrue(environment + " missing", publishedEnvironments.containsKey(environment));
 			
@@ -1679,10 +1685,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(serviceManager, new PublishService("service0", Collections.singleton("environment0")), Ack.class).get();
 		
-		publishedEnvironments = getPublishedServiceIndex();
-		assertEquals(1, publishedEnvironments.size());
+		publishedEnvironments = getPublishedServiceIndex();	
 		assertTrue(publishedEnvironments.containsKey("environment0"));
-		
 		ServiceIndex serviceIndex = publishedEnvironments.get("environment0");
 		assertNotNull(serviceIndex);
 		
@@ -1707,9 +1711,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		f.ask(serviceManager, new PublishService("service1", Collections.singleton("environment0")), Ack.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();
-		assertEquals(1, publishedEnvironments.size());
-		assertTrue(publishedEnvironments.containsKey("environment0"));
-		
+		assertTrue(publishedEnvironments.containsKey("environment0"));		
 		serviceIndex = publishedEnvironments.get("environment0");
 		assertNotNull(serviceIndex);
 		
