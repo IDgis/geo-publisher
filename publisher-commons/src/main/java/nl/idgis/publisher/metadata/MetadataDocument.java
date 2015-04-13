@@ -103,8 +103,10 @@ public class MetadataDocument {
 		} catch(NotFound nf) {}
 		
 		if(date == null) {		
-			String dateString = xmlDocument.getString(namespaces, datePath + "/gco:Date");		
-			date = SimpleDateFormatMapper.isoDate().apply(dateString);
+			try { 
+				String dateString = xmlDocument.getString(namespaces, datePath + "/gco:Date");		
+				date = SimpleDateFormatMapper.isoDate().apply(dateString);
+			} catch(NotFound nf) {}
 		}
 		
 		return date;
@@ -188,9 +190,7 @@ public class MetadataDocument {
 			"/gmd:MD_Metadata" +
 			"/gmd:identificationInfo" +
 			(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
-			"/gmd:citation" +
-			"/gmd:CI_Citation" +
-			"/gmd:Abstract" +
+			"/gmd:abstract" +
 			"/gco:CharacterString";
 	}
 		
@@ -221,7 +221,7 @@ public class MetadataDocument {
 				"/gmd:identificationInfo" +
 				(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
 				"/gmd:descriptiveKeywords" +
-				"/<gmd:MD_Keywords>"
+				"/gmd:MD_Keywords"
 				;
 	}
 
@@ -229,12 +229,14 @@ public class MetadataDocument {
 		return xmlDocument.removeNodes(namespaces, getKeywordPath(Topic.DATASET));
 	}
 	
-	private void addKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {	
-		String parentPath = getKeywordPath(Topic.DATASET);		
+	private void addKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
+		String parentPath = getKeywordPath(topic);		
+		String keywordsPath = xmlDocument.addNode(namespaces, parentPath, "/gmd:MD_Keywords");
+		
 		for (String keyword : keywords) {
-			xmlDocument.addNode(namespaces, parentPath, "gmd:keyword/gco:CharacterString", keyword);
+			xmlDocument.addNode(namespaces, keywordsPath, "gmd:keyword/gco:CharacterString", keyword);
 		}
-		String thesaurusPath = xmlDocument.addNode(namespaces, parentPath, "gmd:thesaurusName/gmd:CI_Citation");
+		String thesaurusPath = xmlDocument.addNode(namespaces, keywordsPath, "gmd:thesaurusName/gmd:CI_Citation");
 		xmlDocument.addNode(namespaces, thesaurusPath, "gmd:title/gco:CharacterString", thesaurusTitle);
 		
 		String thesaurusDatePath = xmlDocument.addNode(namespaces, thesaurusPath, "gmd:date/gmd:CI_Date");
@@ -248,20 +250,28 @@ public class MetadataDocument {
 		xmlDocument.addNode(namespaces, thesaurusDatePath, "gmd:dateType/gmd:CI_DateTypeCode", attributes);
 	}
 	
-	public int removeDatasetKeywords(Topic topic) throws NotFound {
+	public int removeDatasetKeywords() throws NotFound {
 		return removeKeywords(Topic.DATASET);
 	}
 	
-	public void addDatasetKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
+	public void addDatasetKeywords(List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
 		addKeywords(Topic.DATASET, keywords, thesaurusTitle, thesaurusDate, thesaurusCodeList, thesaurusCodeListValue);
 	}
 	
-	public int removeServiceKeywords(Topic topic) throws NotFound {
+	public String getDatasetKeywords() throws NotFound{
+		return xmlDocument.getString(namespaces, getKeywordPath(Topic.DATASET));
+	}
+	
+	public int removeServiceKeywords() throws NotFound {
 		return removeKeywords(Topic.SERVICE);
 	}
 	
-	public void addServiceKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
+	public void addServiceKeywords(List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
 		addKeywords(Topic.SERVICE, keywords, thesaurusTitle, thesaurusDate, thesaurusCodeList, thesaurusCodeListValue);
+	}
+	
+	public String getServiceKeywords() throws NotFound{
+		return xmlDocument.getString(namespaces, getKeywordPath(Topic.SERVICE));
 	}
 	
 	/*
@@ -435,6 +445,9 @@ public class MetadataDocument {
 	 * DATASET
 	 * 
 	 */
+	private String getDatasetIdentificationPath(){
+		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
+	}
 	
 	/*
 	 * alternate title

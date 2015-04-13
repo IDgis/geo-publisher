@@ -7,8 +7,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -34,9 +36,13 @@ public class MetadataDocumentTest {
 		return factory.parseDocument(content);
 	}
 	
+	/**
+	 * 
+	 * Dataset metadata: read several items
+	 */
 	@Test
-	public void testRead() throws Exception {
-		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("metadata.xml");
+	public void testReadDataset() throws Exception {
+		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("dataset_metadata.xml");
 		assertNotNull("test metadata document not found", stream);
 		
 		byte[] content = IOUtils.toByteArray(stream);
@@ -46,19 +52,28 @@ public class MetadataDocumentTest {
 		MetadataDocument document = factory.parseDocument(content);
 		
 		String result = document.getDatasetTitle();		
-		assertEquals("wrong title", "Zeer kwetsbare gebieden", result);
+		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
 		
 		result = document.getAlternateTitle();		
-		assertEquals("wrong alternate title", "B4.wav_polygon (b4\\b46)", result);
+		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
 		
-		Date date = document.getDatasetRevisionDate();
+		result = document.getDatasetAbstract();		
+		assertTrue("wrong abstract: " + result, result.startsWith("De bestuurlijk vastgestelde gemeentegrenzen "));
 		
+		Date date = document.getDatasetRevisionDate();		
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(date);
+		assertEquals(2013, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
+		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		assertEquals(2009, calendar.get(Calendar.YEAR));
-		assertEquals(Calendar.AUGUST, calendar.get(Calendar.MONTH));
-		assertEquals(14, calendar.get(Calendar.DAY_OF_MONTH));
+		result = document.getDatasetResponsiblePartyName();
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Provincie Overijssel"));
+		result = document.getDatasetResponsiblePartyEmail();
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("beleidsinformatie@overijssel.nl"));
+		
+		result = document.getMetaDataIdentifier();
+		assertTrue("wrong MetaDataIdentifier", result.startsWith("46647460-d8cf-4955-bcac-f1c192d57cc4"));
 	}
 	
 	@Test(expected=NotParseable.class)
@@ -121,6 +136,112 @@ public class MetadataDocumentTest {
 		// check the new dataset id is correct 
 		result = document.getDatasetIdentifier();	
 		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());		
+	}
+	
+	/**
+	 * Dataset metadata: title, alternate title, abstract
+	 */	
+	@Test
+	public void testDatasetTitleAbstract() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		// check the current values 
+		String result = document.getDatasetTitle();		
+		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
+		
+		result = document.getAlternateTitle();		
+		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
+		
+		result = document.getDatasetAbstract();		
+		assertTrue("wrong abstract: " + result, result.startsWith("De bestuurlijk vastgestelde gemeentegrenzen "));
+		
+
+		// set new values
+		document.setDatasetTitle("Overijssel Gemeentegrenzen");
+		document.setAlternateTitle("Alternate ");
+		document.setDatasetAbstract("De gemeentegrenzen, bestuurlijk vastgesteld ");
+
+		
+		// check new values
+		result = document.getDatasetTitle();		
+		assertEquals("wrong title", "Overijssel Gemeentegrenzen", result);
+		
+		result = document.getAlternateTitle();		
+		assertEquals("wrong alternate title", "Alternate ", result);
+		
+		result = document.getDatasetAbstract();		
+		assertTrue("wrong abstract: " + result, result.startsWith("De gemeentegrenzen, bestuurlijk vastgesteld "));
+		
+	}
+	
+	/**
+	 * Dataset: keywords 
+	 */
+	
+	public void testDatasetKeywords() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		// check the current values 
+		String result = document.getDatasetKeywords();
+		System.out.println("1. result keywords: " + result);
+		assertTrue("wrong keyword", result.indexOf("gemeenten") > 0);
+		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") > 0);
+		assertTrue("wrong date", result.indexOf("2013-09-11") > 0);
+
+		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") > 0);
+		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") > 0);
+		assertFalse("unexpected date", result.indexOf("2015-01-01") > 0);
+
+		document.removeDatasetKeywords();
+		
+		List<String> keywords = new ArrayList<String>();
+		keywords.add("aaa-bbb");
+		keywords.add("ccc-ddd");
+		document.addDatasetKeywords(keywords, "thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
+		
+		// check the new values 
+		result = document.getDatasetKeywords();		
+		System.out.println("2. result keywords: " + result);
+		assertTrue("wrong keyword", result.indexOf("ccc-ddd") > 0);
+		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") > 0);
+		assertTrue("wrong date", result.indexOf("2015-01-01") > 0);
+		
+	}
+	
+	/**
+	 * Service metadata: read several items
+	 */	
+	@Test
+	public void testReadService() throws Exception {
+		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("service_metadata.xml");
+		assertNotNull("test metadata document not found", stream);
+		
+		byte[] content = IOUtils.toByteArray(stream);
+		
+		MetadataDocumentFactory factory = new MetadataDocumentFactory();
+		
+		MetadataDocument document = factory.parseDocument(content);
+		
+		String result = document.getServiceTitle();		
+		assertEquals("wrong title", "INSPIRE View service Beschermde gebieden", result);
+		
+		result = document.getServiceAbstract();		
+		assertTrue("wrong abstract", result.startsWith("Deze View service"));
+		
+		Date date = document.getServiceRevisionDate();		
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		assertEquals(2011, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.APRIL, calendar.get(Calendar.MONTH));
+		assertEquals(20, calendar.get(Calendar.DAY_OF_MONTH));
+		
+		result = document.getServiceResponsiblePartyName();
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Interprovinciaal Overleg"));
+		result = document.getServiceResponsiblePartyEmail();
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("inspire@gbo-provincies.nl"));
+		
+		result = document.getMetaDataIdentifier();
+		assertTrue("wrong MetaDataIdentifier", result.startsWith("5a69e9d5-611c-4818-a181-685ef4c81085"));
 	}
 	
 	
