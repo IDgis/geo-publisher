@@ -43,11 +43,11 @@
 							</div>
 						</div>
 				@for(task <- tasks.values) {
-				@if(task.active){			
+					@if(task.active){			
 					<div class="list-group-item well well-sm">
-				}else{
+					}else{
 					<div class="list-group-item js-style-item">
-				}
+					}
 						<div class="row">
 							<div class="col-lg-1">
 								<strong>@Domain.message(task.title)</strong>
@@ -66,9 +66,16 @@
 							</div>
 							<div class="col-lg-2">
 								@if(task.active){
-									<div class="text-muted">@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)</div>
+									@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)
 								}else{
 									 @Domain.message(task.getStatusString())
+								}
+								@if(task.published() != null){
+									@if(task.published()){
+										(@Domain.message("web.application.log.tasks.service.publication"))
+									}else{
+										(@Domain.message("web.application.log.tasks.service.staging"))
+									}
 								}
 							</div>
 							<div class="col-lg-3">
