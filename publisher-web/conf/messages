@@ -204,6 +204,9 @@ web.application.log.tasks.list.heading.time=Tijd
 web.application.log.tasks.list.heading.result=Resultaat
 web.application.log.tasks.list.heading.progress=Voortgang
 
+web.application.log.tasks.service.publication=publicatie
+web.application.log.tasks.service.staging=staging
+
 # Dashboard
 web.application.page.dashboard.title=Dashboard
 web.application.page.dashboard.showlog=Bekijk logboek

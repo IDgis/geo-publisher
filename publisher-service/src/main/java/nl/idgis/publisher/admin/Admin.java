@@ -219,7 +219,7 @@ public class Admin extends AbstractAdmin {
 				dataSource.identification,
 				dataset.identification,
 				genericLayer.identification,
-				serviceJob.type
+				serviceJob.published
 			);
 	}
 	
@@ -236,6 +236,7 @@ private String getEnumName(Enum e){
 					List<ActiveTask> recentJobList = new ArrayList<>();
 					JobType jt = null ;
 					Status js = null;
+					
 					String identifier = "";
 					String title = "";
 					Timestamp now = new Timestamp(new java.util.Date().getTime());
@@ -290,7 +291,13 @@ private String getEnumName(Enum e){
 									identifier, 
 									title,
 									js.type ())
-								), js.since(), false)//active is false because these are past tasks
+								), js.since(),
+								//active is false because these are past tasks
+								false, 
+								// published is false if servicejob is for staging, 
+								// true for publication, null for none servicejobs
+								t.get(serviceJob.published) 
+							)
 						); 
 					}
 					return recentJobList;
@@ -336,7 +343,9 @@ private String getEnumName(Enum e){
 									harvestJob.getDataSourceId (),
 									dsn.get(harvestJob.getDataSourceId()), 
 									JobStatusType.RUNNING)), 
-									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
+									// active is true because this is a current task
+									// published is null because this is not a service job
+									new Timestamp(new java.util.Date().getTime()), true, null)));
 					}
 					
 					return f.sequence(activeTasks);					
@@ -374,11 +383,13 @@ private String getEnumName(Enum e){
 										"",
 										getEnumName(JobType.IMPORT),
 										new Message(JobType.IMPORT, new DefaultMessageProperties (
-												EntityType.DATASET,
-												datasetInfo.getId (),
-												datasetInfo.getName (), 
-												JobStatusType.RUNNING)),
-										(int)(progress.getCount() * 100 / progress.getTotalCount()), true);//active is true because this is a current tasks
+											EntityType.DATASET,
+											datasetInfo.getId (),
+											datasetInfo.getName (), 
+											JobStatusType.RUNNING)),
+										// active is true because this is a current task
+										// published is null because this is not a service job
+										(int)(progress.getCount() * 100 / progress.getTotalCount()), true, null);
 								}));
 							}
 							
@@ -393,7 +404,9 @@ private String getEnumName(Enum e){
 											"",
 											"", 
 											JobStatusType.RUNNING)),
-									new Timestamp(new java.util.Date().getTime()), true)));//active is true because this is a current tasks
+										// active is true because this is a current task
+										// published is not null because this is a service job
+									new Timestamp(new java.util.Date().getTime()), true, job.isPublished())));
 							}
 							
 							return f.sequence(activeTasks);

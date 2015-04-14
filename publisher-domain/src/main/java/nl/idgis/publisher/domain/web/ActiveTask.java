@@ -13,6 +13,7 @@ public final class ActiveTask extends DashboardItem {
 	private static final long serialVersionUID = 5377556601944221922L;
 	
 	private final Boolean active;
+	private final Boolean published;
 	private final String title;
 	private final Integer progress;
 	private final Timestamp time; 
@@ -23,13 +24,15 @@ public final class ActiveTask extends DashboardItem {
 			final @JsonProperty("title") String title,
 			final @JsonProperty("message") Message message,
 			final @JsonProperty("progress") Integer progress,
-			final @JsonProperty("active") Boolean active) {
+			final @JsonProperty("active") Boolean active,
+			final @JsonProperty("published") Boolean published) {
 		
 		super(id, message);
 		
 		this.title = title;
 		this.progress = progress;
 		this.active = active;
+		this.published = published;
 		this.time = new Timestamp(new java.util.Date().getTime());//currentTime
 	}
 	
@@ -39,18 +42,24 @@ public final class ActiveTask extends DashboardItem {
 			final @JsonProperty("title") String title,
 			final @JsonProperty("message") Message message,
 			final @JsonProperty("time") Timestamp time,
-			final @JsonProperty("active") Boolean active) {
+			final @JsonProperty("active") Boolean active,
+			final @JsonProperty("published") Boolean published) {
 		
 		super(id, message);
 		
 		this.title = title;
 		this.progress = null;
 		this.active = active;
+		this.published = published;
 		this.time = time;
 	}
 	
 	public Boolean active() {
 		return active;
+	}
+
+	public Boolean published() {
+		return published;
 	}
 
 	@JsonGetter
