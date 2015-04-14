@@ -525,9 +525,15 @@ public class GeoServerService extends UntypedActor {
 				return fileName.split("\\.")[0];
 			}
 			
+			String getCoverageStoreName(String fileName) {
+				return "publisher-raster-" + getBaseName(fileName); 
+			}
+			
 			void putCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
-				String name = ensureLayer.getLayerId();				
-				URL url = getRasterUrl(ensureLayer.getFileName());
+				String fileName = ensureLayer.getFileName();
+				
+				String name = getCoverageStoreName(fileName);			
+				URL url = getRasterUrl(fileName);
 				
 				CoverageStore coverageStore = new CoverageStore(name, url);
 				
@@ -552,8 +558,10 @@ public class GeoServerService extends UntypedActor {
 			}
 			
 			void postCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
-				String name = ensureLayer.getLayerId();				
-				URL url = getRasterUrl(ensureLayer.getFileName());
+				String fileName = ensureLayer.getFileName();
+				
+				String name = getCoverageStoreName(fileName);			
+				URL url = getRasterUrl(fileName);
 				
 				CoverageStore coverageStore = new CoverageStore(name, url);
 				
@@ -681,8 +689,9 @@ public class GeoServerService extends UntypedActor {
 						postFeatureType(ensureLayer);
 					}
 				} else if(msg instanceof EnsureCoverageLayer) {
-					EnsureCoverageLayer ensureLayer = (EnsureCoverageLayer)msg;					
+					EnsureCoverageLayer ensureLayer = (EnsureCoverageLayer)msg;
 					String layerId = ensureLayer.getLayerId();
+					String coveragStoreName = getCoverageStoreName(ensureLayer.getFileName());					
 					
 					String groupStyleName = ensureLayer.getGroupStyleName();
 					if(groupStyleName == null) {					
@@ -691,10 +700,10 @@ public class GeoServerService extends UntypedActor {
 						groupLayerContent.add(new LayerRef(layerId, groupStyleName));
 					}
 					
-					if(coverageStores.containsKey(layerId)) {
-						log.debug("existing coverage store found: {}", layerId);
+					if(coverageStores.containsKey(coveragStoreName)) {
+						log.debug("existing coverage store found: {}", coveragStoreName);
 						
-						CoverageStore coverageStore = coverageStores.get(layerId);
+						CoverageStore coverageStore = coverageStores.get(coveragStoreName);
 						if(unchanged(coverageStore, ensureLayer)) {
 							log.debug("coverage store unchanged");
 							toSelf(new CoverageEnsured(ensureLayer));
@@ -703,9 +712,9 @@ public class GeoServerService extends UntypedActor {
 							putCoverageStore(ensureLayer);
 						}
 						
-						coverageStores.remove(layerId);
+						coverageStores.remove(coveragStoreName);
 					} else {
-						log.debug("coverage store missing: {}", layerId);
+						log.debug("coverage store missing: {}", coveragStoreName);
 						
 						postCoverageStore(ensureLayer);
 					}
