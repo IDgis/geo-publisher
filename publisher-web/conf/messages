@@ -701,6 +701,7 @@ web.application.page.styles.form.field.type.select=Selecteer om wat voor type st
 web.application.page.styles.form.field.type.point=Punt
 web.application.page.styles.form.field.type.line=Lijn
 web.application.page.styles.form.field.type.polygon=Vlak
+web.application.page.styles.form.field.type.raster=Raster
 
 web.application.page.styles.list.delete.warning.body=Weet u zeker dat u deze stijl wilt verwijderen?
 
