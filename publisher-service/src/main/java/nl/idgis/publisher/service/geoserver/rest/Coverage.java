@@ -1,19 +1,10 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
-public class Coverage {
+import java.util.List;
 
-	private final String name, nativeName;
+public class Coverage extends Dataset {	
 	
-	public Coverage(String name, String nativeName) {
-		this.name = name;
-		this.nativeName = nativeName;
-	}
-	
-	public String getName() {
-		return name;
-	}
-	
-	public String getNativeName() {
-		return nativeName;
+	public Coverage(String name, String nativeName, String title, String abstr, List<String> keywords) {
+		super(name, nativeName, title, abstr, keywords);
 	}
 }

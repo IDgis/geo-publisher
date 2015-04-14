@@ -500,7 +500,8 @@ public class DefaultGeoServerRestTest {
 		service.postCoverageStore(workspace, coverageStore).get();
 	
 		String nativeName = testRasterFile.getName().split("\\.")[0];
-		Coverage coverage = new Coverage("test", nativeName);
+		Coverage coverage = new Coverage("test", nativeName, "title", 
+			"abstract", Arrays.asList("keyword0", "keyword1"));
 		service.postCoverage(workspace, coverageStore, coverage).get();
 		
 		Layer layer = service.getLayer(workspace, coverage).get();

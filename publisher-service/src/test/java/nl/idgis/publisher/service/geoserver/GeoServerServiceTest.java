@@ -69,7 +69,6 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRestTest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Style;
@@ -349,6 +348,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.getName()).thenReturn("layer");
 		when(datasetLayer.getTitle()).thenReturn("title");
 		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("vector", "layer"));
 		when(datasetLayer.isVectorLayer()).thenReturn(true);
 		when(datasetLayer.isRasterLayer()).thenReturn(false);
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
@@ -389,7 +389,8 @@ public class GeoServerServiceTest {
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
 		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
 		assertEquals("title", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Title", capabilities));
-		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));
+		assertEquals("abstract", h.getText("//wms:Layer[wms:Name = 'layer']/wms:Abstract", capabilities));		
+		assertEquals(Arrays.asList("vector", "layer"), h.getText(h.getNodeList("//wms:Layer[wms:Name = 'layer']/wms:KeywordList/wms:Keyword", capabilities)));
 		
 		NodeList styles = h.getNodeList("//wms:Layer/wms:Style/wms:Name", capabilities);
 		assertEquals(styleNames.length, styles.getLength());
@@ -679,9 +680,10 @@ public class GeoServerServiceTest {
 		}
 		
 		RasterDatasetLayer datasetLayer = mock(RasterDatasetLayer.class);
-		when(datasetLayer.getName()).thenReturn("layer");
-		when(datasetLayer.getTitle()).thenReturn("title");
-		when(datasetLayer.getAbstract()).thenReturn("abstract");
+		when(datasetLayer.getName()).thenReturn("raster-layer");
+		when(datasetLayer.getTitle()).thenReturn("raster-title");
+		when(datasetLayer.getAbstract()).thenReturn("raster-abstract");
+		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("raster", "layer"));
 		when(datasetLayer.isVectorLayer()).thenReturn(false);
 		when(datasetLayer.isRasterLayer()).thenReturn(true);
 		when(datasetLayer.asRasterLayer()).thenReturn(datasetLayer);
@@ -717,7 +719,10 @@ public class GeoServerServiceTest {
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
-		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
+		assertEquals("raster-layer", h.getText("//wms:Layer/wms:Name", capabilities));
+		assertEquals("raster-title", h.getText("//wms:Layer[wms:Name = 'raster-layer']/wms:Title", capabilities));
+		assertEquals("raster-abstract", h.getText("//wms:Layer[wms:Name = 'raster-layer']/wms:Abstract", capabilities));
+		assertEquals(Arrays.asList("raster", "layer"), h.getText(h.getNodeList("//wms:Layer[wms:Name = 'raster-layer']/wms:KeywordList/wms:Keyword", capabilities)));
 		
 		// remove raster layer
 		Service emptyService = mock(Service.class);

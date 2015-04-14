@@ -4,7 +4,7 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
-import nl.idgis.publisher.service.geoserver.rest.CoverageStore;
+import nl.idgis.publisher.service.geoserver.rest.Coverage;
 
 public class EnsureCoverageLayer extends EnsureDatasetLayer {	
 	
@@ -21,6 +21,14 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 
 	public String getFileName() {
 		return fileName;
+	}
+	
+	public String getNativeName() {
+		return fileName.split("\\.")[0];
+	}
+	
+	public Coverage getCoverage() {
+		return new Coverage(layerId, getNativeName(), title, abstr, keywords);
 	}
 	
 	@Override

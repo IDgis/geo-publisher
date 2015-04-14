@@ -513,38 +513,13 @@ public class GeoServerService extends UntypedActor {
 				return Paths.get(rasterFolder, fileName).toUri().toURL();
 			}
 			
-			String getBaseName(String fileName) {
-				log.debug("creating basename for fileName: {}", fileName);
-				
-				return fileName.split("\\.")[0];
-			}
-			
-			String getCoverageStoreName(String fileName) {
-				return "publisher-raster-" + getBaseName(fileName); 
-			}
-			
-			void putCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
-				String fileName = ensureLayer.getFileName();
-				
-				String name = getCoverageStoreName(fileName);			
-				URL url = getRasterUrl(fileName);
-				
-				CoverageStore coverageStore = new CoverageStore(name, url);
-				
-				toSelf(
-					rest.putCoverageStore(workspace, coverageStore).thenApply(v -> {
-						log.debug("coverage store updated");
-						
-						return new CoverageStoreEnsured(ensureLayer, coverageStore);
-				}));
+			String getCoverageStoreName(EnsureCoverageLayer ensureLayer) {
+				return "publisher-raster-" + ensureLayer.getNativeName(); 
 			}
 			
 			void putCoverage(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
-				String name = ensureLayer.getLayerId();
-				String nativeName = getBaseName(ensureLayer.getFileName());				
-				
 				toSelf(
-					rest.putCoverage(workspace, coverageStore, new Coverage(name, nativeName)).thenApply(v -> {
+					rest.putCoverage(workspace, coverageStore, ensureLayer.getCoverage()).thenApply(v -> {
 						log.debug("coverage created");
 						
 						return new CoverageEnsured(ensureLayer);
@@ -554,7 +529,7 @@ public class GeoServerService extends UntypedActor {
 			void postCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
 				String fileName = ensureLayer.getFileName();
 				
-				String name = getCoverageStoreName(fileName);			
+				String name = getCoverageStoreName(ensureLayer);			
 				URL url = getRasterUrl(fileName);
 				
 				CoverageStore coverageStore = new CoverageStore(name, url);
@@ -568,11 +543,8 @@ public class GeoServerService extends UntypedActor {
 			}
 			
 			void postCoverage(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
-				String name = ensureLayer.getLayerId();
-				String nativeName = getBaseName(ensureLayer.getFileName());				
-				
 				toSelf(
-					rest.postCoverage(workspace, coverageStore, new Coverage(name, nativeName)).thenApply(v -> {
+					rest.postCoverage(workspace, coverageStore, ensureLayer.getCoverage()).thenApply(v -> {
 						log.debug("coverage created");
 						
 						return new CoverageEnsured(ensureLayer);
@@ -685,7 +657,7 @@ public class GeoServerService extends UntypedActor {
 				} else if(msg instanceof EnsureCoverageLayer) {
 					EnsureCoverageLayer ensureLayer = (EnsureCoverageLayer)msg;
 					String layerId = ensureLayer.getLayerId();
-					String coveragStoreName = getCoverageStoreName(ensureLayer.getFileName());					
+					String coveragStoreName = getCoverageStoreName(ensureLayer);					
 					
 					String groupStyleName = ensureLayer.getGroupStyleName();
 					if(groupStyleName == null) {					

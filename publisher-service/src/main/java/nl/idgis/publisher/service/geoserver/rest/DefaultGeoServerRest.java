@@ -521,7 +521,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				XPathHelper coverage = xpath(document).node("coverage").get();				
 				return new Coverage(
 					coverage.string("name").get(),
-					coverage.string("nativeName").get());
+					coverage.string("nativeName").get(),
+					coverage.string("title").orElse(null),
+					coverage.string("abstract").orElse(null),
+					coverage.strings("keywords/string"));
 			}));
 	}
 	
@@ -560,38 +563,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("featureType");
-			sw.writeStartElement("name");
-				sw.writeCharacters(featureType.getName());
-			sw.writeEndElement();
-			
-			String nativeName = featureType.getNativeName();				
-			sw.writeStartElement("nativeName");
-				sw.writeCharacters(nativeName);
-			sw.writeEndElement();				
-			
-			String title = featureType.getTitle();
-			if(title != null) {
-				sw.writeStartElement("title");
-					sw.writeCharacters(title);
-				sw.writeEndElement();
-			}
-			
-			String abstr = featureType.getAbstract();
-			if(abstr != null) {
-				sw.writeStartElement("abstract");
-					sw.writeCharacters(abstr);
-				sw.writeEndElement();
-			}
-			
-			sw.writeStartElement("keywords");
-			List<String> keywords = featureType.getKeywords();
-			for(String keyword : keywords) {
-				sw.writeStartElement("strings");
-					sw.writeCharacters(keyword);
-				sw.writeEndElement();
-			}
-			sw.writeEndElement();
-						
+			writeDatasetInfo(featureType, sw);
 			
 			List<Attribute> attributes = featureType.getAttributes();				
 			
@@ -604,11 +576,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					sw.writeEndElement();
 				}
 			sw.writeEndElement();
-			
-			sw.writeStartElement("enabled");
-				sw.writeCharacters("true");
-			sw.writeEndElement();
-			
 		sw.writeEndElement();
 		sw.writeEndDocument();
 		sw.close();
@@ -616,6 +583,44 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		os.close();
 		
 		return os.toByteArray();		
+	}
+
+	private void writeDatasetInfo(Dataset dataset, XMLStreamWriter sw) throws XMLStreamException {
+		sw.writeStartElement("name");
+			sw.writeCharacters(dataset.getName());
+		sw.writeEndElement();
+		
+		String nativeName = dataset.getNativeName();				
+		sw.writeStartElement("nativeName");
+			sw.writeCharacters(nativeName);
+		sw.writeEndElement();				
+		
+		String title = dataset.getTitle();
+		if(title != null) {
+			sw.writeStartElement("title");
+				sw.writeCharacters(title);
+			sw.writeEndElement();
+		}
+		
+		String abstr = dataset.getAbstract();
+		if(abstr != null) {
+			sw.writeStartElement("abstract");
+				sw.writeCharacters(abstr);
+			sw.writeEndElement();
+		}
+		
+		sw.writeStartElement("keywords");
+		List<String> keywords = dataset.getKeywords();
+		for(String keyword : keywords) {
+			sw.writeStartElement("strings");
+				sw.writeCharacters(keyword);
+			sw.writeEndElement();
+		}
+		sw.writeEndElement();
+		
+		sw.writeStartElement("enabled");
+			sw.writeCharacters("true");
+		sw.writeEndElement();
 	}
 	
 	private String getCoverageStorePath(Workspace workspace, String coverageStoreName) {
@@ -641,16 +646,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("coverage");
-			sw.writeStartElement("name");
-				sw.writeCharacters(coverage.getName());
-			sw.writeEndElement();
-			sw.writeStartElement("nativeName");
-				sw.writeCharacters(coverage.getNativeName());
-			sw.writeEndElement();
-			
-			sw.writeStartElement("enabled");
-				sw.writeCharacters("true");
-			sw.writeEndElement();
+			writeDatasetInfo(coverage, sw);
 		sw.writeEndElement();
 		sw.writeEndDocument();
 		sw.close();
