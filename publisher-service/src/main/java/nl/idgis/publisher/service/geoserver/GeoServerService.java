@@ -501,12 +501,6 @@ public class GeoServerService extends UntypedActor {
 				return true;
 			}
 			
-			private boolean unchanged(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
-				// TODO: actually compare something
-				
-				return false;
-			}
-			
 			private boolean unchanged(Coverage coverage, EnsureCoverageLayer ensureLayer) {
 				// TODO: actually compare something
 				
@@ -702,16 +696,6 @@ public class GeoServerService extends UntypedActor {
 					
 					if(coverageStores.containsKey(coveragStoreName)) {
 						log.debug("existing coverage store found: {}", coveragStoreName);
-						
-						CoverageStore coverageStore = coverageStores.get(coveragStoreName);
-						if(unchanged(coverageStore, ensureLayer)) {
-							log.debug("coverage store unchanged");
-							toSelf(new CoverageEnsured(ensureLayer));
-						} else {
-							log.debug("coverage store changed");
-							putCoverageStore(ensureLayer);
-						}
-						
 						coverageStores.remove(coveragStoreName);
 					} else {
 						log.debug("coverage store missing: {}", coveragStoreName);
