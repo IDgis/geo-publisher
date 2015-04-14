@@ -178,8 +178,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								false), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),
-							transformedStructure.getStructureItems(),
-							transformedStructure.getStyles()));
+							transformedStructure.getStructureItems()));
 					} catch(CycleException e) {
 						log.debug("CycleException: " + e);
 						return f.failed(e);

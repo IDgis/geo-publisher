@@ -443,6 +443,13 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, layerId0)
+			.set(layerStructure.styleId, styleId1)
+			.set(layerStructure.layerOrder, 1)
+			.execute();
+		
 		delete(constants).execute();
 		
 		int constantsId = insert(constants)
@@ -498,8 +505,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(layerRef.isGroupRef());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
-		StyleRef styleRef = datasetLayerRef.getStyleRef();
-		assertNotNull(styleRef);
+		Optional<StyleRef> optionalStyleRef = datasetLayerRef.getStyleRef();
+		assertNotNull(optionalStyleRef);
+		assertTrue(optionalStyleRef.isPresent());
+		
+		StyleRef styleRef = optionalStyleRef.get();
 		assertEquals("style0", styleRef.getId());
 		assertEquals("styleName0", styleRef.getName());
 		
@@ -549,6 +559,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(styleRef);
 		assertEquals("styleName1", styleRef.getName());
 				
+		assertTrue(itr.hasNext());
+		
+		layerRef = itr.next();
+		assertFalse(layerRef.isGroupRef());
+		datasetLayerRef = layerRef.asDatasetRef();
+		optionalStyleRef = datasetLayerRef.getStyleRef();
+		assertNotNull(optionalStyleRef);
+		assertTrue(optionalStyleRef.isPresent());
+		
+		styleRef = optionalStyleRef.get();
+		assertEquals("styleName1", styleRef.getName());
+		
 		assertFalse(itr.hasNext());
 		
 		ActorRef recorder = actorOf(StreamRecorder.props(), "stream-recorder");

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -35,9 +36,9 @@ public class DefaultServiceTest {
 				null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 			
 		List<StructureItem> structure = new ArrayList<>();
-		structure.add(new StructureItem("leaf0", "group0"));
-		structure.add(new StructureItem("leaf1", "group0"));
-		structure.add(new StructureItem("leaf2", "group0"));
+		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf1", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf2", "group0", Optional.empty()));
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
@@ -66,8 +67,7 @@ public class DefaultServiceTest {
 			root, 
 			datasets, 
 			Collections.singletonList(root), 
-			structure,
-			styles);
+			structure);
 		assertEquals("group0", service.getRootId());
 		
 		List<LayerRef<?>> layers = service.getLayers();
@@ -98,10 +98,10 @@ public class DefaultServiceTest {
 					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
 				
 		List<StructureItem> structure = new ArrayList<>();
-		structure.add(new StructureItem("leaf0", "group0"));
-		structure.add(new StructureItem("leaf1", "group0"));
-		structure.add(new StructureItem("group1", "group0"));
-		structure.add(new StructureItem("leaf2", "group1"));
+		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf1", "group0", Optional.empty()));
+		structure.add(new StructureItem("group1", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf2", "group1", Optional.empty()));
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
@@ -129,8 +129,7 @@ public class DefaultServiceTest {
 			root, 
 			datasets, 
 			groups, 
-			structure,
-			styles);
+			structure);
 		assertEquals("group0", service.getRootId());
 		
 		List<LayerRef<?>> layers = service.getLayers();

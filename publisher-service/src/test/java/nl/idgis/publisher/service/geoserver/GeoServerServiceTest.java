@@ -370,6 +370,7 @@ public class GeoServerServiceTest {
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
 		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -426,6 +427,7 @@ public class GeoServerServiceTest {
 			when(layerRef.isGroupRef()).thenReturn(false);
 			when(layerRef.asDatasetRef()).thenReturn(layerRef);
 			when(layerRef.getLayer()).thenReturn(layer);
+			when(layerRef.getStyleRef()).thenReturn(Optional.empty());
 			
 			layers.add(layerRef);
 		}
@@ -499,6 +501,8 @@ public class GeoServerServiceTest {
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
 		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");
@@ -547,6 +551,7 @@ public class GeoServerServiceTest {
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
 		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 		
 		GroupLayer group0 = mock(GroupLayer.class);		
 		when(group0.getName()).thenReturn("group0");
@@ -705,6 +710,7 @@ public class GeoServerServiceTest {
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
 		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service");

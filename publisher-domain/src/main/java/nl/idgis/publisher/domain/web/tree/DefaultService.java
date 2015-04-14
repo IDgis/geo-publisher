@@ -2,7 +2,6 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 public class DefaultService implements Service, Serializable {	
 
@@ -19,7 +18,7 @@ public class DefaultService implements Service, Serializable {
 			String contact, String organization, String position, String addressType, String address, 
 			String city, String state, String zipcode, String country, String telephone, String fax,
 			String email, PartialGroupLayer root, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-			List<StructureItem> structure, Map<String, StyleRef> styles) {
+			List<StructureItem> structure) {
 		
 		this.id = id;
 		this.name = name;
@@ -38,7 +37,7 @@ public class DefaultService implements Service, Serializable {
 		this.telephone = telephone;
 		this.fax = fax;
 		this.email = email;
-		this.root = new DefaultGroupLayer(root, datasets, groups, structure, styles);
+		this.root = new DefaultGroupLayer(root, datasets, groups, structure);
 	}
 	
 	@Override

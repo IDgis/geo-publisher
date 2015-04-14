@@ -24,6 +24,7 @@ import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
@@ -144,9 +145,9 @@ public class EnsureService extends UntypedActor {
 										layer.getKeywords(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
-										datasetRef.getStyleRef() == null 
-											? null
-											: datasetRef.getStyleRef().getName(),
+										datasetRef.getStyleRef()
+											.map(StyleRef::getName)
+											.orElse(null),
 										additionalStyleNames,
 										vectorLayer.getTableName(),
 										vectorLayer.getColumnNames()), getSelf());
@@ -161,9 +162,9 @@ public class EnsureService extends UntypedActor {
 										layer.getKeywords(),										
 										layer.getTiling().orElse(null),
 										defaultStyleName,
-										datasetRef.getStyleRef() == null 
-											? null
-											: datasetRef.getStyleRef().getName(),
+										datasetRef.getStyleRef()
+											.map(StyleRef::getName)
+											.orElse(null),
 										additionalStyleNames, 
 										rasterLayer.getFileName()), getSelf());
 							} else {
