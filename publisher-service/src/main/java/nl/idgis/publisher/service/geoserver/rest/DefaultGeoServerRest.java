@@ -426,6 +426,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			sw.writeStartElement("type");
 				sw.writeCharacters("GeoTIFF");
 			sw.writeEndElement();
+			// a coverage store is disabled by default
+			sw.writeStartElement("enabled");
+				sw.writeCharacters("true");
+			sw.writeEndElement();
 			// workspace name in url is apparently not enough: 
 			// omitting the workspace here results in an exception
 			sw.writeStartElement("workspace");
@@ -642,6 +646,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			sw.writeEndElement();
 			sw.writeStartElement("nativeName");
 				sw.writeCharacters(coverage.getNativeName());
+			sw.writeEndElement();
+			
+			sw.writeStartElement("enabled");
+				sw.writeCharacters("true");
 			sw.writeEndElement();
 		sw.writeEndElement();
 		sw.writeEndDocument();
