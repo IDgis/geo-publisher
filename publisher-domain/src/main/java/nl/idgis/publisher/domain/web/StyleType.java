@@ -4,5 +4,6 @@ public enum StyleType {
 
 	POINT,
 	LINE,
-	POLYGON
+	POLYGON,
+	RASTER
 }

@@ -81,6 +81,9 @@
 							@if(style.styleType == StyleType.POLYGON) {
 								<span>@Domain.message("web.application.page.styles.form.field.type.polygon")</span>
 							}
+							@if(style.styleType == StyleType.RASTER) {
+								<span>@Domain.message("web.application.page.styles.form.field.type.raster")</span>
+							}
 						</div>
 						<div class="col-md-2">
 							<div class="btn-group pull-right">
