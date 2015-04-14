@@ -150,6 +150,8 @@ public class ServiceAdmin extends AbstractAdmin {
 				.from(service)
 				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 				.leftJoin(constants).on(service.constantsId.eq(constants.id))
+				.leftJoin(publishedServiceEnvironment).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.distinct()
 				.orderBy (genericLayer.name.asc ());
 		
 		// Add a filter for the query string:
@@ -161,7 +163,12 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		// Add a filter for the published flag:
 		if (listServices.getPublished () != null) {
-			baseQuery.where (genericLayer.published.eq (listServices.getPublished ()));
+			if(listServices.getPublished () == true) {
+				baseQuery.where (publishedServiceEnvironment.serviceId.isNotNull().eq((listServices.getPublished ())));
+			} if(listServices.getPublished () == false) {
+				baseQuery.where (publishedServiceEnvironment.serviceId.isNotNull().eq((listServices.getPublished ())));
+			}
+			
 		}
 		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();

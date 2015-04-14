@@ -59,8 +59,6 @@ public class Services extends Controller {
 
 					@Override
 					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						Logger.debug("IsPublished: " + serviceForm.field("isPublished").value());
-						
 						return ok (form.render (serviceForm, create, groups, layers, groupLayer, servicePublish));
 					}
 				});
@@ -281,6 +279,7 @@ public class Services extends Controller {
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
+					Logger.debug("Publiceren: " + published);
 					Logger.debug ("List Service: #" + services.values().size());
 					return ok (list.render (services, query, published));
 				}
