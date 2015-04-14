@@ -685,7 +685,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.isVectorLayer()).thenReturn(false);
 		when(datasetLayer.isRasterLayer()).thenReturn(true);
 		when(datasetLayer.asRasterLayer()).thenReturn(datasetLayer);
-		when(datasetLayer.getFileName()).thenReturn(testRasterUrl.toExternalForm());
+		when(datasetLayer.getFileName()).thenReturn(testRasterFile.getName());
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		
 		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()

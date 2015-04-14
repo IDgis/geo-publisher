@@ -1,5 +1,8 @@
 package nl.idgis.publisher.service.geoserver;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -71,15 +74,18 @@ public class GeoServerService extends UntypedActor {
 	
 	private final Map<String, String> databaseConnectionParameters;
 	
+	private final String rasterFolder;
+	
 	private FutureUtils f;
 	
 	private GeoServerRest rest;
 
-	public GeoServerService(String url, String user, String password, Map<String, String> databaseConnectionParameters) throws Exception {
+	public GeoServerService(String url, String user, String password, Map<String, String> databaseConnectionParameters, String rasterFolder) throws Exception {
 		this.url = url;
 		this.user = user;
 		this.password = password;
 		this.databaseConnectionParameters = Collections.unmodifiableMap(databaseConnectionParameters);
+		this.rasterFolder = rasterFolder;
 	}
 	
 	public static Props props(
@@ -105,7 +111,7 @@ public class GeoServerService extends UntypedActor {
 		connectionParameters.put("passwd", databasePassword);
 		connectionParameters.put("schema", schema);
 		
-		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters);
+		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);
 	}
 	
 	@Override
@@ -353,12 +359,19 @@ public class GeoServerService extends UntypedActor {
 		
 		private final EnsureCoverageLayer ensure;
 		
-		public CoverageStoreEnsured(EnsureCoverageLayer ensure) {
+		private final CoverageStore coverageStore;
+		
+		public CoverageStoreEnsured(EnsureCoverageLayer ensure, CoverageStore coverageStore) {
 			this.ensure = ensure;
+			this.coverageStore = coverageStore;
 		}
 		
 		EnsureCoverageLayer getEnsure() {
 			return ensure;
+		}
+		
+		CoverageStore getCoverageStore() {
+			return coverageStore;
 		}
 	}
 	
@@ -500,31 +513,68 @@ public class GeoServerService extends UntypedActor {
 				return false;
 			}
 			
-			void putCoverageStore(EnsureCoverageLayer ensureLayer) {
-				String layerId = ensureLayer.getLayerId();
+			URL getRasterUrl(String fileName) throws MalformedURLException {
+				log.debug("creating raster url for fileName: {}, rasterFolder: {}", fileName, rasterFolder);
 				
-				
-				// TODO: actually perform a put request
-				
-				toSelf(new CoverageStoreEnsured(ensureLayer));
+				return Paths.get(rasterFolder, fileName).toUri().toURL();
 			}
 			
-			void putCoverage(EnsureCoverageLayer ensureLayer) {
-				// TODO: actually perform a put request
+			String getBaseName(String fileName) {
+				log.debug("creating basename for fileName: {}", fileName);
 				
-				toSelf(new CoverageEnsured(ensureLayer));
+				return fileName.split("\\.")[0];
 			}
 			
-			void postCoverageStore(EnsureCoverageLayer ensureLayer) {
-				// TODO: actually perform a post request
+			void putCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
+				String name = ensureLayer.getLayerId();				
+				URL url = getRasterUrl(ensureLayer.getFileName());
 				
-				toSelf(new CoverageStoreEnsured(ensureLayer));
+				CoverageStore coverageStore = new CoverageStore(name, url);
+				
+				toSelf(
+					rest.putCoverageStore(workspace, coverageStore).thenApply(v -> {
+						log.debug("coverage store updated");
+						
+						return new CoverageStoreEnsured(ensureLayer, coverageStore);
+				}));
 			}
 			
-			void postCoverage(EnsureCoverageLayer ensureLayer) {
-				// TODO: actually perform a post request
+			void putCoverage(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
+				String name = ensureLayer.getLayerId();
+				String nativeName = getBaseName(ensureLayer.getFileName());				
 				
-				toSelf(new CoverageEnsured(ensureLayer));
+				toSelf(
+					rest.putCoverage(workspace, coverageStore, new Coverage(name, nativeName)).thenApply(v -> {
+						log.debug("coverage created");
+						
+						return new CoverageEnsured(ensureLayer);
+				}));
+			}
+			
+			void postCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
+				String name = ensureLayer.getLayerId();				
+				URL url = getRasterUrl(ensureLayer.getFileName());
+				
+				CoverageStore coverageStore = new CoverageStore(name, url);
+				
+				toSelf(
+					rest.postCoverageStore(workspace, coverageStore).thenApply(v -> {
+						log.debug("coverage store created");
+						
+						return new CoverageStoreEnsured(ensureLayer, coverageStore);
+				}));
+			}
+			
+			void postCoverage(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
+				String name = ensureLayer.getLayerId();
+				String nativeName = getBaseName(ensureLayer.getFileName());				
+				
+				toSelf(
+					rest.postCoverage(workspace, coverageStore, new Coverage(name, nativeName)).thenApply(v -> {
+						log.debug("coverage created");
+						
+						return new CoverageEnsured(ensureLayer);
+				}));
 			}
 			
 			void putFeatureType(EnsureFeatureTypeLayer ensureLayer) {
@@ -660,7 +710,10 @@ public class GeoServerService extends UntypedActor {
 						postCoverageStore(ensureLayer);
 					}
 				} else if(msg instanceof CoverageStoreEnsured) {
-					EnsureCoverageLayer ensureLayer = ((CoverageStoreEnsured) msg).getEnsure();
+					CoverageStoreEnsured ensured = (CoverageStoreEnsured)msg;
+					
+					CoverageStore coverageStore = ensured.getCoverageStore();
+					EnsureCoverageLayer ensureLayer = ensured.getEnsure();					
 					String layerId = ensureLayer.getLayerId();
 					
 					if(coverages.containsKey(layerId)) {
@@ -672,14 +725,14 @@ public class GeoServerService extends UntypedActor {
 							toSelf(new CoverageEnsured(ensureLayer));
 						} else {
 							log.debug("coverage changed");
-							putCoverage(ensureLayer);
+							putCoverage(coverageStore, ensureLayer);
 						}
 						
 						coverages.remove(layerId);
 					} else {
 						log.debug("coverage missing: {}", layerId);
 						
-						postCoverage(ensureLayer);
+						postCoverage(coverageStore, ensureLayer);
 					}
 				} else if(msg instanceof DatasetEnsured) {
 					EnsureDatasetLayer ensureLayer = ((DatasetEnsured<?>)msg).getEnsure();										
