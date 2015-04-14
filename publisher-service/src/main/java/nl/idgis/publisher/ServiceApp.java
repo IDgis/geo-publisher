@@ -178,8 +178,8 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
-		File rasterFolderFile = new File(config.getString("raster.folder"));
-		ActorRef rasterFolder = getContext().actorOf(Folder.props(rasterFolderFile.toPath()), "rasterFolder");
+		String rasterFolderConfig = config.getString("raster.folder");
+		ActorRef rasterFolder = getContext().actorOf(Folder.props(rasterFolderConfig), "rasterFolder");
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(database, rasterFolder, harvester), "loader");
 		
@@ -197,7 +197,9 @@ public class ServiceApp extends UntypedActor {
 						new ConnectionInfo(		
 							databaseConfig.getString("url"),
 							databaseConfig.getString("user"),
-							databaseConfig.getString("password"))
+							databaseConfig.getString("password")),
+						
+						rasterFolderConfig
 					),
 				provisioningManager,
 				zooKeeperConfig.getString ("hosts"),

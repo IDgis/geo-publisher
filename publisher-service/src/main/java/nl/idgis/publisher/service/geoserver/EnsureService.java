@@ -22,11 +22,13 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
+import nl.idgis.publisher.service.geoserver.messages.EnsureCoverageLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
@@ -140,15 +142,31 @@ public class EnsureService extends UntypedActor {
 										layer.getTitle(), 
 										layer.getAbstract(), 
 										layer.getKeywords(),
-										vectorLayer.getTableName(),
-										vectorLayer.getColumnNames(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef() == null 
 											? null
 											: datasetRef.getStyleRef().getName(),
-										additionalStyleNames), getSelf());
-							} else { // TODO: add support for raster layers
+										additionalStyleNames,
+										vectorLayer.getTableName(),
+										vectorLayer.getColumnNames()), getSelf());
+							} else if(layer.isRasterLayer()) {
+								RasterDatasetLayer rasterLayer = layer.asRasterLayer();
+								
+								target.tell(
+									new EnsureCoverageLayer(
+										getUniqueLayerName(layer.getName()), 
+										layer.getTitle(), 
+										layer.getAbstract(), 
+										layer.getKeywords(),										
+										layer.getTiling().orElse(null),
+										defaultStyleName,
+										datasetRef.getStyleRef() == null 
+											? null
+											: datasetRef.getStyleRef().getName(),
+										additionalStyleNames, 
+										rasterLayer.getFileName()), getSelf());
+							} else {
 								log.error("unsupported layer type");
 								getSelf().tell(new Ensured(), getSelf());
 							}

@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.geoserver.rest;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -57,6 +58,8 @@ public interface GeoServerRest extends Closeable {
 	
 	CompletableFuture<Layer> getLayer(Workspace workspace, FeatureType featureType);
 	
+	CompletableFuture<Layer> getLayer(Workspace workspace, Coverage coverage);
+	
 	CompletableFuture<Void> putLayer(Workspace workspace, Layer layer);
 	
 	CompletableFuture<Void> deleteStyle(Style style);
@@ -90,4 +93,14 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> postCoverageStore(Workspace workspace, CoverageStore coverageStore);
 
 	CompletableFuture<Void> postCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage);
+
+	CompletableFuture<List<Coverage>> getCoverages(Workspace workspace, CoverageStore coverageStore);
+
+	CompletableFuture<Map<CoverageStore, List<Coverage>>> getCoverages(Workspace workspace);
+
+	CompletableFuture<Void> putCoverageStore(Workspace workspace, CoverageStore coverageStore);
+
+	CompletableFuture<Void> putCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage);
+
+	CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore);
 }

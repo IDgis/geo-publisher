@@ -23,8 +23,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
+import nl.idgis.publisher.service.raster.TestRaster;
+import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 
@@ -486,7 +487,7 @@ public class DefaultGeoServerRestTest {
 	
 	@Test
 	public void testRaster() throws Exception {
-		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
+		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
 		File testRasterFile = new File(testRasterUrl.toURI ().getPath ());
@@ -498,8 +499,39 @@ public class DefaultGeoServerRestTest {
 		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
 		service.postCoverageStore(workspace, coverageStore).get();
 	
-		// TODO: figure out how to create a coverage with a name different from nativeName
-		Coverage coverage = new Coverage("albers27", "albers27");
+		String nativeName = testRasterFile.getName().split("\\.")[0];
+		Coverage coverage = new Coverage("test", nativeName, "title", 
+			"abstract", Arrays.asList("keyword0", "keyword1"));
 		service.postCoverage(workspace, coverageStore, coverage).get();
+		
+		Layer layer = service.getLayer(workspace, coverage).get();
+		assertEquals("raster", layer.getDefaultStyle().getStyleName());
+		
+		List<Coverage> coverages = service.getCoverages(workspace, coverageStore).get();
+		assertEquals(1, coverages.size());
+		
+		Coverage retrievedCoverage = coverages.get(0);
+		assertNotNull(retrievedCoverage);
+		
+		assertEquals("test", retrievedCoverage.getName());
+		assertEquals(nativeName, retrievedCoverage.getNativeName());
+		
+		Map<CoverageStore, List<Coverage>> allCoverages = service.getCoverages(workspace).get();
+		assertEquals(1, allCoverages.size());
+		allCoverages.entrySet().stream().forEach(entry -> {
+			CoverageStore retrievedCoverageStore = entry.getKey();
+			
+			assertEquals("test", retrievedCoverageStore.getName());
+			assertEquals(testRasterUrl, retrievedCoverageStore.getUrl());
+			
+			List<Coverage> retrievedCoverages = entry.getValue();
+			assertEquals(1, retrievedCoverages.size());
+			assertEquals("test", retrievedCoverages.get(0).getName());
+		});
+		
+		service.deleteCoverageStore(workspace, coverageStore).get();
+		
+		allCoverages = service.getCoverages(workspace).get();
+		assertTrue(allCoverages.isEmpty());
 	}
 }

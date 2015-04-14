@@ -3,6 +3,7 @@ package nl.idgis.publisher.folder;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
@@ -30,12 +31,12 @@ public class Folder extends UntypedActor {
 	
 	private final Path root;
 	
-	public Folder(Path root) {
-		this.root = root;
+	public Folder(String first, String... more) {
+		this.root = Paths.get(first, more);
 	}
 	
-	public static Props props(Path root) {
-		return Props.create(Folder.class, root);
+	public static Props props(String first, String... more) {
+		return Props.create(Folder.class, first, more);
 	}
 
 	@Override

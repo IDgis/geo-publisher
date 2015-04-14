@@ -5,7 +5,6 @@ import java.util.List;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
-import nl.idgis.publisher.service.geoserver.rest.LayerRef;
 import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
 
 public class EnsureGroupLayer extends EnsureLayer {

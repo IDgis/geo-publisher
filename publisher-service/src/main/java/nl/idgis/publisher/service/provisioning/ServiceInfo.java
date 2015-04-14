@@ -4,15 +4,18 @@ import java.io.Serializable;
 
 public class ServiceInfo implements Serializable {
 
-	private static final long serialVersionUID = 751619442106975726L;
+	private static final long serialVersionUID = -5328308866073768223L;
 
 	private final ConnectionInfo service;
 	
 	private final ConnectionInfo database;
 	
-	public ServiceInfo(ConnectionInfo service, ConnectionInfo database) {
+	private final String rasterFolder;
+	
+	public ServiceInfo(ConnectionInfo service, ConnectionInfo database, String rasterFolder) {
 		this.service = service;
 		this.database = database;
+		this.rasterFolder = rasterFolder;
 	}
 
 	public ConnectionInfo getService() {
@@ -22,6 +25,10 @@ public class ServiceInfo implements Serializable {
 	public ConnectionInfo getDatabase() {
 		return database;
 	}
+	
+	public String getRasterFolder() {
+		return rasterFolder;
+	}
 
 	@Override
 	public int hashCode() {
@@ -29,6 +36,8 @@ public class ServiceInfo implements Serializable {
 		int result = 1;
 		result = prime * result
 				+ ((database == null) ? 0 : database.hashCode());
+		result = prime * result
+				+ ((rasterFolder == null) ? 0 : rasterFolder.hashCode());
 		result = prime * result + ((service == null) ? 0 : service.hashCode());
 		return result;
 	}
@@ -47,6 +56,11 @@ public class ServiceInfo implements Serializable {
 				return false;
 		} else if (!database.equals(other.database))
 			return false;
+		if (rasterFolder == null) {
+			if (other.rasterFolder != null)
+				return false;
+		} else if (!rasterFolder.equals(other.rasterFolder))
+			return false;
 		if (service == null) {
 			if (other.service != null)
 				return false;
@@ -58,7 +72,6 @@ public class ServiceInfo implements Serializable {
 	@Override
 	public String toString() {
 		return "ServiceInfo [service=" + service + ", database=" + database
-				+ "]";
-	}
-	
+				+ ", rasterFolder=" + rasterFolder + "]";
+	}	
 }

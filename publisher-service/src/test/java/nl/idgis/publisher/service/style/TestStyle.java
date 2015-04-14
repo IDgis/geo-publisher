@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.style;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -11,6 +11,10 @@ import org.w3c.dom.Document;
 
 public class TestStyle {
 	
+	public static Document getRasterSld() throws Exception {
+		return getSld("raster.sld");
+	}
+	
 	public static Document getRegiosSld() throws Exception {
 		return getSld("regios.sld");
 	}
@@ -21,13 +25,13 @@ public class TestStyle {
 
 	private static Document getSld(String name) throws Exception {
 		
-		InputStream green = TestStyle.class.getResourceAsStream(name);
-		assertNotNull(green);
+		InputStream content = TestStyle.class.getResourceAsStream(name);
+		assertNotNull(content);
 		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document sld = db.parse(green);
+		Document sld = db.parse(content);
 			
 		return sld;
 	}

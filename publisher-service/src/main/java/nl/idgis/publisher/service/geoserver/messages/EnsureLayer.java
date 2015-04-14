@@ -18,8 +18,8 @@ public abstract class EnsureLayer implements Serializable {
 	protected EnsureLayer(String layerId, String title, String abstr, Tiling tilingSettings) {
 		this.layerId = layerId;
 		this.title = title;
-		this.abstr = abstr;
-		this.tilingSettings = tilingSettings;
+		this.abstr = abstr;		
+		this.tilingSettings = tilingSettings;		
 	}
 
 	public String getLayerId() {

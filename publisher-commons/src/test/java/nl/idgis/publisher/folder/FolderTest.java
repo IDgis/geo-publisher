@@ -69,7 +69,7 @@ public class FolderTest {
 		new Random().nextBytes(testFileContent);
 		Files.write(testFile, testFileContent, StandardOpenOption.CREATE_NEW);
 		
-		folder = actorSystem.actorOf(Folder.props(tempFolder));
+		folder = actorSystem.actorOf(Folder.props(tempFolder.toString()));
 		
 		f = new FutureUtils(actorSystem);
 	}

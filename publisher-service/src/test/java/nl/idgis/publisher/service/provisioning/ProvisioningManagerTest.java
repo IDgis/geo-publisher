@@ -3,6 +3,9 @@ package nl.idgis.publisher.service.provisioning;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -282,8 +285,10 @@ public class ProvisioningManagerTest  {
 	
 	ActorRef serviceActorRecorder, jobActorRecorder, serviceManagerRecorder, provisioningManager;
 	
+	Path tempDir;
+	
 	@Before
-	public void start() {
+	public void start() throws IOException {
 		Config akkaConfig = ConfigFactory.empty()
 			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
 			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
@@ -318,6 +323,8 @@ public class ProvisioningManagerTest  {
 				}));
 		
 		f = new FutureUtils(actorSystem);
+		
+		tempDir = Files.createTempDirectory("provision-manager-test");
 	}
 	
 	@After
@@ -329,7 +336,8 @@ public class ProvisioningManagerTest  {
 	public void testEnsureServiceJobInfoStaging() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+			tempDir.toString());
 		
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
@@ -401,7 +409,8 @@ public class ProvisioningManagerTest  {
 	public void testEnsureServiceJobInfoPublished() throws Exception {
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+			tempDir.toString());
 		
 		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
@@ -473,11 +482,13 @@ public class ProvisioningManagerTest  {
 	public void testServiceInfoUpdate() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+			tempDir.toString());
 		
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+			tempDir.toString());
 		
 		// we wait after every message to ensure a fixed order in the recording
 		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
@@ -518,7 +529,8 @@ public class ProvisioningManagerTest  {
 	public void testVacuumServiceJobInfoStaging() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+			tempDir.toString());
 
 		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();		
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
@@ -550,7 +562,8 @@ public class ProvisioningManagerTest  {
 	public void testVacuumServiceJobInfoPublished() throws Exception {
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 				new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-				new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"));
+				new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
+				tempDir.toString());
 			
 		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();

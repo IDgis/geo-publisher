@@ -1,10 +1,12 @@
 package nl.idgis.publisher.utils;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -99,6 +101,22 @@ public class StreamUtils {
 	 */
 	public static <T, U> Stream<ZippedEntry<T, U>> zip(Stream<T> first, Stream<U> second) {
 		return zip(first, second, (t, u) -> new ZippedEntry<>(t, u));
+	}
+	
+	/**
+	 * Creates a zipped map.
+	 * 
+	 * @param first
+	 * @param second
+	 * @return a map with elements of <code>first</code> as keys 
+	 * 			and elements of <code>second</code> as values.
+	 */
+	public static <T, U> Map<T, U> zipToMap(Stream<T> first, Stream<U> second) {
+		return 
+			zip(first, second)
+				.collect(Collectors.toMap(
+					ZippedEntry::getFirst, 
+					ZippedEntry::getSecond));
 	}
 
 	/**

@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -368,6 +369,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						.thenApply(this::optionalPresent))));
 	}
 	
+	private CompletableFuture<Optional<CoverageStore>> getCoverageStore(Workspace workspace, String coverageStoreName) {
+		return get(getCoverageStorePath(workspace, coverageStoreName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {
+				XPathHelper coverageStore = xpath(document).node("coverageStore").get();
+				try {
+					return new CoverageStore(
+						coverageStore.string("name").get(),
+						new URL(coverageStore.string("url").get()));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}));
+	}
+	
+	public CompletableFuture<List<CoverageStore>> getCoverageStores(Workspace workspace) {
+		return get(getCoverageStoresPath(workspace)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).map("/coverageStores/coverageStore/name",
+					name -> getCoverageStore(workspace, name.string().get())
+						.thenApply(this::optionalPresent))));
+	}
+	
 	private String getCoverageStoresPath(Workspace workspace) {
 		return getWorkspacesPath() + "/" + workspace.getName() + "/coveragestores";
 	}
@@ -375,38 +398,55 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> postCoverageStore(Workspace workspace, CoverageStore coverageStore) {
 		try {
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			
-			XMLOutputFactory of = XMLOutputFactory.newInstance();
-			XMLStreamWriter sw = of.createXMLStreamWriter(os);
-			sw.writeStartDocument();
-			sw.writeStartElement("coverageStore");
-				sw.writeStartElement("name");
-					sw.writeCharacters(coverageStore.getName());
-				sw.writeEndElement();
-				sw.writeStartElement("type");
-					sw.writeCharacters("GeoTIFF");
-				sw.writeEndElement();
-				// workspace name in url is apparently not enough: 
-				// omitting the workspace here results in an exception
-				sw.writeStartElement("workspace");
-					sw.writeStartElement("name");
-						sw.writeCharacters(workspace.getName());
-					sw.writeEndElement();
-				sw.writeEndElement();
-				sw.writeStartElement("url");
-					sw.writeCharacters(coverageStore.getUrl().toExternalForm());
-				sw.writeEndElement();
-			sw.writeEndElement();
-			sw.writeEndDocument();
-			sw.close();
-			
-			os.close();
-			
-			return post(getCoverageStoresPath(workspace), os.toByteArray());
+			return post(getCoverageStoresPath(workspace), getCoverageStoreDocument(workspace, coverageStore));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
+	}
+	
+	@Override
+	public CompletableFuture<Void> putCoverageStore(Workspace workspace, CoverageStore coverageStore) {
+		try {
+			return put(getCoverageStoresPath(workspace), getCoverageStoreDocument(workspace, coverageStore));
+		} catch(Exception e) {
+			return f.failed(e);
+		}
+	}
+
+	private byte[] getCoverageStoreDocument(Workspace workspace, CoverageStore coverageStore) throws FactoryConfigurationError, XMLStreamException, IOException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		sw.writeStartDocument();
+		sw.writeStartElement("coverageStore");
+			sw.writeStartElement("name");
+				sw.writeCharacters(coverageStore.getName());
+			sw.writeEndElement();
+			sw.writeStartElement("type");
+				sw.writeCharacters("GeoTIFF");
+			sw.writeEndElement();
+			// a coverage store is disabled by default
+			sw.writeStartElement("enabled");
+				sw.writeCharacters("true");
+			sw.writeEndElement();
+			// workspace name in url is apparently not enough: 
+			// omitting the workspace here results in an exception
+			sw.writeStartElement("workspace");
+				sw.writeStartElement("name");
+					sw.writeCharacters(workspace.getName());
+				sw.writeEndElement();
+			sw.writeEndElement();
+			sw.writeStartElement("url");
+				sw.writeCharacters(coverageStore.getUrl().toExternalForm());
+			sw.writeEndElement();
+		sw.writeEndElement();
+		sw.writeEndDocument();
+		sw.close();
+		
+		os.close();
+		
+		return os.toByteArray();		
 	}
 
 	@Override
@@ -475,6 +515,38 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					getFeatureType(workspace, dataStore, name.string().get()).thenApply(this::optionalPresent))));
 	}
 	
+	private CompletableFuture<Optional<Coverage>> getCoverage(Workspace workspace, CoverageStore coverageStore, String coverageName) {
+		return get(getCoveragePath(workspace, coverageStore, coverageName)).thenApply(optionalDocument ->
+			optionalDocument.map(document -> {
+				XPathHelper coverage = xpath(document).node("coverage").get();				
+				return new Coverage(
+					coverage.string("name").get(),
+					coverage.string("nativeName").get(),
+					coverage.string("title").orElse(null),
+					coverage.string("abstract").orElse(null),
+					coverage.strings("keywords/string"));
+			}));
+	}
+	
+	@Override
+	public CompletableFuture<List<Coverage>> getCoverages(Workspace workspace, CoverageStore coverageStore) {
+		return get(getCoveragesPath(workspace, coverageStore)).thenCompose(optionalDocument ->
+			f.sequence(
+				xpath(optionalDocument.get()).map("/coverages/coverage/name", name ->
+					getCoverage(workspace, coverageStore, name.string().get()).thenApply(this::optionalPresent))));
+	}
+	
+	@Override
+	public CompletableFuture<Map<CoverageStore, List<Coverage>>> getCoverages(Workspace workspace) {
+		return getCoverageStores(workspace).thenCompose(coverageStores ->
+			f.sequence(coverageStores.stream()
+				.map(coverageStore -> getCoverages(workspace, coverageStore))
+				.collect(Collectors.toList())).thenApply(coverages ->
+					StreamUtils.zipToMap(
+						coverageStores.stream(), 
+						coverages.stream())));
+	}
+	
 	@Override
 	public CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
@@ -491,38 +563,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("featureType");
-			sw.writeStartElement("name");
-				sw.writeCharacters(featureType.getName());
-			sw.writeEndElement();
-			
-			String nativeName = featureType.getNativeName();				
-			sw.writeStartElement("nativeName");
-				sw.writeCharacters(nativeName);
-			sw.writeEndElement();				
-			
-			String title = featureType.getTitle();
-			if(title != null) {
-				sw.writeStartElement("title");
-					sw.writeCharacters(title);
-				sw.writeEndElement();
-			}
-			
-			String abstr = featureType.getAbstract();
-			if(abstr != null) {
-				sw.writeStartElement("abstract");
-					sw.writeCharacters(abstr);
-				sw.writeEndElement();
-			}
-			
-			sw.writeStartElement("keywords");
-			List<String> keywords = featureType.getKeywords();
-			for(String keyword : keywords) {
-				sw.writeStartElement("strings");
-					sw.writeCharacters(keyword);
-				sw.writeEndElement();
-			}
-			sw.writeEndElement();
-						
+			writeDatasetInfo(featureType, sw);
 			
 			List<Attribute> attributes = featureType.getAttributes();				
 			
@@ -535,11 +576,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					sw.writeEndElement();
 				}
 			sw.writeEndElement();
-			
-			sw.writeStartElement("enabled");
-				sw.writeCharacters("true");
-			sw.writeEndElement();
-			
 		sw.writeEndElement();
 		sw.writeEndDocument();
 		sw.close();
@@ -548,13 +584,59 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		
 		return os.toByteArray();		
 	}
+
+	private void writeDatasetInfo(Dataset dataset, XMLStreamWriter sw) throws XMLStreamException {
+		sw.writeStartElement("name");
+			sw.writeCharacters(dataset.getName());
+		sw.writeEndElement();
+		
+		String nativeName = dataset.getNativeName();				
+		sw.writeStartElement("nativeName");
+			sw.writeCharacters(nativeName);
+		sw.writeEndElement();				
+		
+		String title = dataset.getTitle();
+		if(title != null) {
+			sw.writeStartElement("title");
+				sw.writeCharacters(title);
+			sw.writeEndElement();
+		}
+		
+		String abstr = dataset.getAbstract();
+		if(abstr != null) {
+			sw.writeStartElement("abstract");
+				sw.writeCharacters(abstr);
+			sw.writeEndElement();
+		}
+		
+		sw.writeStartElement("keywords");
+		List<String> keywords = dataset.getKeywords();
+		for(String keyword : keywords) {
+			sw.writeStartElement("strings");
+				sw.writeCharacters(keyword);
+			sw.writeEndElement();
+		}
+		sw.writeEndElement();
+		
+		sw.writeStartElement("enabled");
+			sw.writeCharacters("true");
+		sw.writeEndElement();
+	}
+	
+	private String getCoverageStorePath(Workspace workspace, String coverageStoreName) {
+		return getCoverageStoresPath(workspace) + "/" + coverageStoreName;
+	}
 	
 	private String getCoverageStorePath(Workspace workspace, CoverageStore coverageStore) {
-		return getCoverageStoresPath(workspace) + "/" + coverageStore.getName();
+		return getCoverageStorePath(workspace, coverageStore.getName());
 	}
 	
 	private String getCoveragesPath(Workspace workspace, CoverageStore coverageStore) {
 		return getCoverageStorePath(workspace, coverageStore) + "/coverages";
+	}
+	
+	private String getCoveragePath(Workspace workspace, CoverageStore coverageStore, String coverageName) {
+		return getCoveragesPath(workspace, coverageStore) + "/" + coverageName;
 	}
 	
 	private byte[] getCoverageDocument(Coverage coverage) throws XMLStreamException, IOException {
@@ -564,12 +646,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("coverage");
-			sw.writeStartElement("name");
-				sw.writeCharacters(coverage.getName());
-			sw.writeEndElement();
-			sw.writeStartElement("nativeName");
-				sw.writeCharacters(coverage.getNativeName());
-			sw.writeEndElement();
+			writeDatasetInfo(coverage, sw);
 		sw.writeEndElement();
 		sw.writeEndDocument();
 		sw.close();
@@ -581,6 +658,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	@Override
 	public CompletableFuture<Void> postCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
+		try {
+			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage));
+		} catch(Exception e) {
+			return f.failed(e);
+		}
+	}
+	
+	@Override
+	public CompletableFuture<Void> putCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
 		try {
 			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage));
 		} catch(Exception e) {
@@ -752,6 +838,11 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> deleteDataStore(Workspace workspace, DataStore dataStore) {		
 		return delete(getDataStorePath(workspace, dataStore.getName()) + RECURSE);
+	}
+	
+	@Override
+	public CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore) {		
+		return delete(getCoverageStorePath(workspace, coverageStore) + RECURSE);
 	}
 
 	@Override
@@ -1058,6 +1149,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getLayerPath(workspace, layer.getName());
 	}
 	
+	private String getLayerPath(Workspace workspace, Coverage coverage) {
+		return getLayerPath(workspace, coverage.getName());
+	}
+	
 	private String getLayerPath(Workspace workspace, FeatureType featureType) {
 		return getLayerPath(workspace, featureType.getName());
 	}
@@ -1068,6 +1163,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		// the layer index is not usable because of name collisions (same layer name in different workspaces)
 		// but the layer name seems always identical to the feature type name
 		return restLocation + "layers/" + workspace.getName() + ":" + name;
+	}
+	
+	public CompletableFuture<Layer> getLayer(Workspace workspace, Coverage coverage) {
+		return get(getLayerPath(workspace, coverage)).thenApply(optionalDocument -> {			
+			XPathHelper layer = xpath(optionalDocument.get()).node("layer").get();
+			
+			String defaultStyleName = layer.string("defaultStyle/name").get();
+			StyleRef defaultStyle = new StyleRef(defaultStyleName);
+			
+			List<StyleRef> additionalStyles = layer.map("styles/style/name", 
+				name -> new StyleRef(name.string().get())); 
+			
+			return new Layer(coverage.getName(), defaultStyle, additionalStyles);
+		});
 	}
 	
 	public CompletableFuture<Layer> getLayer(Workspace workspace, FeatureType featureType) {
