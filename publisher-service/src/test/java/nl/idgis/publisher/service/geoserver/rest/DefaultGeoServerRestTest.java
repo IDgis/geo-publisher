@@ -23,8 +23,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.GeoServerTestHelper;
+import nl.idgis.publisher.service.raster.TestRaster;
+import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 
@@ -486,7 +487,7 @@ public class DefaultGeoServerRestTest {
 	
 	@Test
 	public void testRaster() throws Exception {
-		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
+		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
 		File testRasterFile = new File(testRasterUrl.toURI ().getPath ());

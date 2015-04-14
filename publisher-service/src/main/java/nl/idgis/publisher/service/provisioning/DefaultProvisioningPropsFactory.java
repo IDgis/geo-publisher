@@ -22,7 +22,9 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 			
 			databaseConnectionInfo.getUrl(), 
 			databaseConnectionInfo.getUser(), 
-			databaseConnectionInfo.getPassword(), 
+			databaseConnectionInfo.getPassword(),
+			
+			serviceInfo.getRasterFolder(),
 			
 			schema);
 	}

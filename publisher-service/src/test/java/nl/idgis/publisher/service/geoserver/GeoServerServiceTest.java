@@ -69,7 +69,6 @@ import nl.idgis.publisher.recorder.messages.Cleared;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
-import nl.idgis.publisher.service.TestStyle;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRestTest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
@@ -86,6 +85,8 @@ import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
 import nl.idgis.publisher.service.provisioning.messages.GetEnvironments;
+import nl.idgis.publisher.service.raster.TestRaster;
+import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.stream.IteratorCursor;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -301,6 +302,8 @@ public class GeoServerServiceTest {
 		
 		ActorRef updateServiceInfoRecorder = actorSystem.actorOf(AnyRecorder.props(), "update-service-info-recorder");
 		
+		String rasterFolder = TestRaster.getRasterFolder();
+		
 		provisioningManager.tell(new AddStagingService(new ServiceInfo(
 			new ConnectionInfo(
 					"http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/",
@@ -310,7 +313,9 @@ public class GeoServerServiceTest {
 			new ConnectionInfo(
 					"jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test",
 					"postgres",
-					"postgres"))), 
+					"postgres"),
+					
+			rasterFolder)), 
 					
 			updateServiceInfoRecorder);
 		
@@ -661,7 +666,7 @@ public class GeoServerServiceTest {
 	
 	@Test
 	public void testRasterLayer() throws Exception {
-		URL testRasterUrl = DefaultGeoServerRestTest.class.getClassLoader().getResource("nl/idgis/publisher/service/albers27.tif");
+		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
 		File testRasterFile = new File(testRasterUrl.getFile());

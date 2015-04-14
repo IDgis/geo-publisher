@@ -84,7 +84,8 @@ public class GeoServerService extends UntypedActor {
 	
 	public static Props props(
 		String serviceUrl, String serviceUser, String servicePassword, 
-		String databaseUrl, String databaseUser, String databasePassword, 
+		String databaseUrl, String databaseUser, String databasePassword,
+		String rasterFolder,
 		
 		String schema) {
 		
@@ -500,6 +501,9 @@ public class GeoServerService extends UntypedActor {
 			}
 			
 			void putCoverageStore(EnsureCoverageLayer ensureLayer) {
+				String layerId = ensureLayer.getLayerId();
+				
+				
 				// TODO: actually perform a put request
 				
 				toSelf(new CoverageStoreEnsured(ensureLayer));

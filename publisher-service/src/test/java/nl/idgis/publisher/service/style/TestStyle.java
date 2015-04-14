@@ -1,4 +1,4 @@
-package nl.idgis.publisher.service;
+package nl.idgis.publisher.service.style;
 
 import static org.junit.Assert.assertNotNull;
 

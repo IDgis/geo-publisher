@@ -34,7 +34,7 @@ public class ProviderPropsFactory {
 	}	
 	
 	private ProviderProps raster(String name, Config providerConfig) {
-		Props folder = Folder.props(new File(providerConfig.getString("data.folder")).toPath());
+		Props folder = Folder.props(providerConfig.getString("data.folder"));
 		Props metadata = metadata(providerConfig);
 		
 		log.info("creating raster provider: {}", name);

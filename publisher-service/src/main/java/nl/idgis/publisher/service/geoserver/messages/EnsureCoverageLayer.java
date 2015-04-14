@@ -4,6 +4,8 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
 
+import nl.idgis.publisher.service.geoserver.rest.CoverageStore;
+
 public class EnsureCoverageLayer extends EnsureDatasetLayer {	
 	
 	private static final long serialVersionUID = 5426047481751227694L;
@@ -20,7 +22,7 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 	public String getFileName() {
 		return fileName;
 	}
-
+	
 	@Override
 	public String toString() {
 		return "EnsureCoverageLayer [fileName=" + fileName + ", layerId="
