@@ -843,6 +843,11 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> deleteDataStore(Workspace workspace, DataStore dataStore) {		
 		return delete(getDataStorePath(workspace, dataStore.getName()) + RECURSE);
 	}
+	
+	@Override
+	public CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore) {		
+		return delete(getCoverageStorePath(workspace, coverageStore) + RECURSE);
+	}
 
 	@Override
 	public CompletableFuture<Void> deleteFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {

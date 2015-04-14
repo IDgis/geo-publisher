@@ -499,7 +499,8 @@ public class DefaultGeoServerRestTest {
 		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
 		service.postCoverageStore(workspace, coverageStore).get();
 	
-		Coverage coverage = new Coverage("test", "albers27");
+		String nativeName = testRasterFile.getName().split("\\.")[0];
+		Coverage coverage = new Coverage("test", nativeName);
 		service.postCoverage(workspace, coverageStore, coverage).get();
 		
 		Layer layer = service.getLayer(workspace, coverage).get();
@@ -512,8 +513,7 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(retrievedCoverage);
 		
 		assertEquals("test", retrievedCoverage.getName());
-		// figure out if it is possible to retrieve the original nativeName
-		// assertEquals("albers27", retrievedCoverage.getNativeName());
+		assertEquals(nativeName, retrievedCoverage.getNativeName());
 		
 		Map<CoverageStore, List<Coverage>> allCoverages = service.getCoverages(workspace).get();
 		assertEquals(1, allCoverages.size());
@@ -527,5 +527,10 @@ public class DefaultGeoServerRestTest {
 			assertEquals(1, retrievedCoverages.size());
 			assertEquals("test", retrievedCoverages.get(0).getName());
 		});
+		
+		service.deleteCoverageStore(workspace, coverageStore).get();
+		
+		allCoverages = service.getCoverages(workspace).get();
+		assertTrue(allCoverages.isEmpty());
 	}
 }

@@ -763,7 +763,12 @@ public class GeoServerService extends UntypedActor {
 						for(LayerGroup layerGroup : layerGroups.values()) {
 							log.debug("deleting layer group {}", layerGroup.getName());
 							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
-						}						
+						}
+
+						for(CoverageStore coverageStore : coverageStores.values()) {
+							log.debug("deleting coverage store {}", coverageStore.getName());
+							futures.add(rest.deleteCoverageStore(workspace, coverageStore));
+						}
 									
 						/* We can't use the usual 'ensure' strategy for tiled layers because 
 						 creating layers (feature types / coverages) implicitly creates

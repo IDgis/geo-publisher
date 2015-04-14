@@ -718,5 +718,23 @@ public class GeoServerServiceTest {
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
 		assertEquals("layer", h.getText("//wms:Layer/wms:Name", capabilities));
+		
+		// remove raster layer
+		Service emptyService = mock(Service.class);
+		when(emptyService.getId()).thenReturn("service");
+		when(emptyService.getName()).thenReturn("serviceName");
+		when(emptyService.getRootId()).thenReturn("root");
+		when(emptyService.getLayers()).thenReturn(Collections.emptyList());
+		
+		f.ask(serviceManager, new PutService("service", emptyService), Ack.class).get();
+		
+		f.ask(recorder, new Clear(), Cleared.class);
+		
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
+		
+		capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
+		assertEquals(0, h.getNodeList("//wms:Layer/wms:Name", capabilities).getLength());
 	}
 }
