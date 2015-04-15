@@ -41,24 +41,8 @@ public class MetadataDocumentTest {
 	 * Dataset metadata: read several items
 	 */
 	@Test
-	public void testReadDataset() throws Exception {
-		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("dataset_metadata.xml");
-		assertNotNull("test metadata document not found", stream);
-		
-		byte[] content = IOUtils.toByteArray(stream);
-		
-		MetadataDocumentFactory factory = new MetadataDocumentFactory();
-		
-		MetadataDocument document = factory.parseDocument(content);
-		
-		String result = document.getDatasetTitle();		
-		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
-		
-		result = document.getAlternateTitle();		
-		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
-		
-		result = document.getDatasetAbstract();		
-		assertTrue("wrong abstract: " + result, result.startsWith("De bestuurlijk vastgestelde gemeentegrenzen "));
+	public void testReadDatasetMetadata() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
 		Date date = document.getDatasetRevisionDate();		
 		Calendar calendar = Calendar.getInstance();
@@ -67,13 +51,21 @@ public class MetadataDocumentTest {
 		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
 		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		result = document.getDatasetResponsiblePartyName();
+		String result = document.getDatasetResponsiblePartyName("custodian");
 		assertTrue("wrong ResponsiblePartyName", result.startsWith("Provincie Overijssel"));
-		result = document.getDatasetResponsiblePartyEmail();
+		result = document.getDatasetResponsiblePartyEmail("custodian");
 		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("beleidsinformatie@overijssel.nl"));
+		
+		result = document.getDatasetResponsiblePartyName("owner");
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Provincie Overijssel:"));
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("NRJ.Eilers@overijssel.nl"));
 		
 		result = document.getMetaDataIdentifier();
 		assertTrue("wrong MetaDataIdentifier", result.startsWith("46647460-d8cf-4955-bcac-f1c192d57cc4"));
+		
+		result = document.getMetaDataCreationDate();
+		assertTrue("wrong MetaDataCreationDate", result.startsWith("2014-04-11"));
 	}
 	
 	@Test(expected=NotParseable.class)
@@ -209,7 +201,7 @@ public class MetadataDocumentTest {
 	}
 	
 	@Test
-	public void testDatasetMetadata() throws Exception{
+	public void testDatasetMetadataPointOfContact() throws Exception{
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		String name = "contactname";
@@ -233,7 +225,34 @@ public class MetadataDocumentTest {
 	}
 	
 	@Test
-	public void testServiceMetadata() throws Exception{
+	public void testDatasetResponsibleParty() throws Exception{
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getDatasetResponsiblePartyName("owner");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setDatasetResponsiblePartyName("owner", name);
+		document.setDatasetResponsiblePartyEmail("owner", email);
+		
+		// check new values again
+		result = document.getDatasetResponsiblePartyName("owner");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertEquals("wrong email", email, result);
+	}
+	
+	
+	
+	
+	@Test
+	public void testServiceMetadataPointOfContact() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 		String name = "somename";
 		String email = "someaddress";
@@ -256,21 +275,38 @@ public class MetadataDocumentTest {
 		assertEquals("wrong email", email, result);
 	}
 	
+	@Test
+	public void testServerResponsibleParty() throws Exception{
+		MetadataDocument document = getDocument("service_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getServiceResponsiblePartyName("pointOfContact");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setServiceResponsiblePartyName("pointOfContact", name);
+		document.setServiceResponsiblePartyEmail("pointOfContact", email);
+		
+		// check new values again
+		result = document.getServiceResponsiblePartyName("pointOfContact");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
+		assertEquals("wrong email", email, result);
+	}
+	
 	
 	
 	/**
 	 * Service metadata: read several items
 	 */	
 	@Test
-	public void testReadService() throws Exception {
-		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("service_metadata.xml");
-		assertNotNull("test metadata document not found", stream);
-		
-		byte[] content = IOUtils.toByteArray(stream);
-		
-		MetadataDocumentFactory factory = new MetadataDocumentFactory();
-		
-		MetadataDocument document = factory.parseDocument(content);
+	public void testReadServiceMetadata() throws Exception {
+		MetadataDocument document = getDocument("service_metadata.xml");
 		
 		String result = document.getServiceTitle();		
 		assertEquals("wrong title", "INSPIRE View service Beschermde gebieden", result);
@@ -285,14 +321,17 @@ public class MetadataDocumentTest {
 		assertEquals(Calendar.APRIL, calendar.get(Calendar.MONTH));
 		assertEquals(20, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		result = document.getServiceResponsiblePartyName();
+		result = document.getServiceResponsiblePartyName("pointOfContact");
 		assertTrue("wrong ResponsiblePartyName", result.startsWith("Interprovinciaal Overleg"));
-		result = document.getServiceResponsiblePartyEmail();
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
 		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("inspire@gbo-provincies.nl"));
 		
 		result = document.getMetaDataIdentifier();
 		assertTrue("wrong MetaDataIdentifier", result.startsWith("5a69e9d5-611c-4818-a181-685ef4c81085"));
-	}
+
+		result = document.getMetaDataCreationDate();
+		assertTrue("wrong MetaDataCreationDate", result.startsWith("2013-12-03"));
+}
 	
 	
 	/**

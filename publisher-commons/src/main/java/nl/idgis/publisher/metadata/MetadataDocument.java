@@ -282,21 +282,26 @@ public class MetadataDocument {
 	 * 
 	 */
 
-	private String getResponsiblePartyPath(Topic topic) {
+	private String getResponsiblePartyPath(Topic topic, String role) {
 		return getIdentificationPath(topic) +
 			"/gmd:pointOfContact" +
-			"/gmd:CI_ResponsibleParty" 
+			"/gmd:CI_ResponsibleParty" + 
+
+			"[gmd:role" +
+			"/gmd:CI_RoleCode" +
+			"/@codeListValue" +
+				"='" + role + "']"
 			;
 	}
 	
-	private String getResponsiblePartyNamePath(Topic topic) {
-		return getResponsiblePartyPath(topic) + 
+	private String getResponsiblePartyNamePath(Topic topic, String role) {
+		return getResponsiblePartyPath(topic, role) + 
 			"/gmd:organisationName" +
 			"/gco:CharacterString";
 	}
 	
-	private String getResponsiblePartyEmailPath(Topic topic) {
-		return getResponsiblePartyPath(topic) + 
+	private String getResponsiblePartyEmailPath(Topic topic, String role) {
+		return getResponsiblePartyPath(topic, role) + 
 			"/gmd:contactInfo" +
 			"/gmd:CI_Contact" +
 			"/gmd:address" +
@@ -305,36 +310,36 @@ public class MetadataDocument {
 			"/gco:CharacterString";
 	}
 	
-	public String getServiceResponsiblePartyName() throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE));
+	public String getServiceResponsiblePartyName(String role) throws Exception{
+		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role));
 	}
 	
-	public void setServiceResponsiblePartyName(String name) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE), name);
+	public void setServiceResponsiblePartyName(String role, String name) throws Exception{
+		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role), name);
 	}
 	
-	public String getServiceResponsiblePartyEmail() throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE));
+	public String getServiceResponsiblePartyEmail(String role) throws Exception{
+		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role));
 	}
 	
-	public void setServiceResponsiblePartyEmail(String email) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE), email);
+	public void setServiceResponsiblePartyEmail(String role, String email) throws Exception{
+		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role), email);
 	}
 	
-	public String getDatasetResponsiblePartyName() throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.DATASET));
+	public String getDatasetResponsiblePartyName(String role) throws Exception{
+		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role));
 	}
 	
-	public void setDatasetResponsiblePartyName(String name) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.DATASET), name);
+	public void setDatasetResponsiblePartyName(String role, String name) throws Exception{
+		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role), name);
 	}
 	
-	public String getDatasetResponsiblePartyEmail() throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET));
+	public String getDatasetResponsiblePartyEmail(String role) throws Exception{
+		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role));
 	}
 	
-	public void setDatasetResponsiblePartyEmail(String email) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET), email);
+	public void setDatasetResponsiblePartyEmail(String role, String email) throws Exception{
+		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role), email);
 	}
 	
 	
