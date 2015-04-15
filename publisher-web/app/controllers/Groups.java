@@ -56,7 +56,7 @@ public class Groups extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-			.query (new ListLayerGroups(1l, null, null))
+			.query (new ListLayerGroups(1l, null))
 			.query (new ListLayers (1l, null, null))
 			.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
 
@@ -117,7 +117,7 @@ public class Groups extends GroupsLayersCommon {
 					Logger.debug ("Group layer style list: " + layerStyleIds);
 					
 					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
-							groupForm.abstractText,groupForm.published, (groupForm.enabled ? groupForm.getTiledLayer() : null), false);
+							groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false);
 					
 					return from (database)
 						.put(group)
@@ -151,7 +151,7 @@ public class Groups extends GroupsLayersCommon {
 													flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
 												}
 											}
-											return Promise.pure (redirect (routes.Groups.list (null, null, 1)));
+											return Promise.pure (redirect (routes.Groups.list (null, 1)));
 										}
 									});
 							}
@@ -161,17 +161,17 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> list (final String query, final Boolean published, final long page) {
+	public static Promise<Result> list (final String query, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Groups ");
 		
 		return from (database)
-			.query (new ListLayerGroups (page, query, published))
+			.query (new ListLayerGroups (page, query))
 			.execute (new Function<Page<LayerGroup>, Result> () {
 				@Override
 				public Result apply (final Page<LayerGroup> groups) throws Throwable {
-					return ok (list.render (groups, query, published));
+					return ok (list.render (groups, query));
 				}
 			});
 	}
@@ -194,7 +194,7 @@ public class Groups extends GroupsLayersCommon {
 		return from (database)
 			.get (LayerGroup.class, groupId)
 			.query (new GetGroupStructure(groupId))
-			.query (new ListLayerGroups(1l, null, null))
+			.query (new ListLayerGroups(1l, null))
 			.query (new ListLayers (1l, null, null))
 			.query(new GetLayerServices(groupId))
 			.executeFlat (new Function5<LayerGroup, GroupLayer, Page<LayerGroup>, Page<Layer>, List<String>, Promise<Result>> () {
@@ -231,7 +231,7 @@ public class Groups extends GroupsLayersCommon {
 										Domain.message("web.application.page.groups.name").toLowerCase() + " " + 
 										Domain.message("web.application.failed").toLowerCase()
 										+ " ("+Domain.message("web.application.page.groups.structure.error")+ ")");
-									return redirect(routes.Groups.list (null, null, 1));
+									return redirect(routes.Groups.list (null, 1));
 								}
 								
 								Logger.debug ("GROUP LAYER group name:" + groupLayer.getName() + " id:" + groupLayer.getId());
@@ -278,7 +278,7 @@ public class Groups extends GroupsLayersCommon {
 						Domain.message("web.application.succeeded").toLowerCase()
 						);
 				}
-				return redirect (routes.Groups.list (null, null, 1));
+				return redirect (routes.Groups.list (null, 1));
 			}
 		});
 		
@@ -295,7 +295,6 @@ public class Groups extends GroupsLayersCommon {
 		private String name;
 		private String title;
 		private String abstractText;
-		private Boolean published = false;
 		/**
 		 * List of id's of layers/groups in this group
 		 */
@@ -319,7 +318,6 @@ public class Groups extends GroupsLayersCommon {
 			this.name = group.name();
 			this.title = group.title();
 			this.abstractText = group.abstractText();
-			this.published = group.published();
 			this.enabled = group.tiledLayer().isPresent();
 
 		}
@@ -354,14 +352,6 @@ public class Groups extends GroupsLayersCommon {
 
 		public void setAbstractText(String abstractText) {
 			this.abstractText = abstractText;
-		}
-
-		public Boolean getPublished() {
-			return published;
-		}
-
-		public void setPublished(Boolean published) {
-			this.published = published;
 		}
 
 		public List<String> getStructure() {
@@ -399,23 +389,23 @@ public class Groups extends GroupsLayersCommon {
 				ok(groupStructureItem.render(groupLayerRef)));
 	}
 	
-	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+	public static Promise<Result> listJson (final String query, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		return from (database)
-			.query (new ListLayerGroups (page, query, published))
+			.query (new ListLayerGroups (page, query))
 			.execute (new Function<Page<LayerGroup>, Result> () {
 				@Override
 				public Result apply (final Page<LayerGroup> layerGroups) throws Throwable {
 					final ObjectNode result = Json.newObject ();
 					
-					result.put ("header", layerPagerHeader.render (query, published).toString ());
+					result.put ("header", layerPagerHeader.render (query).toString ());
 					result.put ("body", layerPagerBody.render (layerGroups).toString ());
 					result.put ("footer", layerPagerFooter.render (layerGroups, new AbstractFunction1<Long, Call>() {
 
 						@Override
 						public Call apply(Long page) {
-							return routes.Groups.listJson(query, published, page);
+							return routes.Groups.listJson(query, page);
 						}
 						
 					}).toString ());

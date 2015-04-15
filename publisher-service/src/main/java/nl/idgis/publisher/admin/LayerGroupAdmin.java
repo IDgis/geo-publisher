@@ -154,7 +154,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	}
 
 	private CompletableFuture<Page<LayerGroup>> handleListLayergroups () {
-		return handleListLayerGroupsWithQuery (new ListLayerGroups (null, null, null));
+		return handleListLayerGroupsWithQuery (new ListLayerGroups (null, null));
 	}
 
 	private BooleanExpression isConfidential () {
@@ -188,11 +188,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				);
 		}
 		
-		// Add a filter for the published flag:
-		if (listLayerGroups.getPublished () != null) {
-			baseQuery.where (genericLayer.published.eq (listLayerGroups.getPublished ()));
-		}
-		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();
 		
 		singlePage (listQuery, listLayerGroups.getPage ());
@@ -212,7 +207,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							genericLayer.name,
 							genericLayer.title,
 							genericLayer.abstractCol,
-							genericLayer.published,
 							tiledLayer.genericLayerId,
 							isConfidential ().as (confidentialPath)
 						)
@@ -225,7 +219,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 										group.get(genericLayer.name),
 										group.get(genericLayer.title),
 										group.get(genericLayer.abstractCol),
-										group.get(genericLayer.published),
 										(hasTiledLayer
 											? new TiledLayer(
 												group.get(genericLayer.identification),
@@ -282,7 +275,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 								group.get(genericLayer.name),
 								group.get(genericLayer.title),
 								group.get(genericLayer.abstractCol),
-								group.get(genericLayer.published),
 									(hasTiledLayer
 										? new TiledLayer(
 											group.get(genericLayer.identification),
@@ -323,7 +315,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, layergroupName)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
-							.set(genericLayer.published, theLayergroup.published())
 							.execute()
 							.thenCompose(
 								n -> {
@@ -354,7 +345,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						return tx.update(genericLayer)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
-							.set(genericLayer.published, theLayergroup.published())
 							.where(genericLayer.identification.eq(layergroupId))
 							.execute()
 							.thenCompose(
@@ -599,7 +589,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 					builder.add(new LayerGroup(
 							group.get(genericLayer.identification),
 							group.get(genericLayer.name),
-							null,
 							null,
 							null,
 							null,

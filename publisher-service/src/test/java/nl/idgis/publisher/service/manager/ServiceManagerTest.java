@@ -1193,7 +1193,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				genericLayer.name,
 				genericLayer.title,
 				genericLayer.abstractCol,
-				genericLayer.published,
 				genericLayer.identification)
 			.values(1, "Aantal_koop-_en_huurwoningen_per_buurt", "", "", false, "fd12e3ef-5ae6-4fed-acbc-0dfad83c8936").addBatch()
 			.values(2, "koop-_en_huurwoningen_per_buurt", "titel", "", false, "81567e62-9e32-47ec-8c92-eae119e81957").addBatch()				
@@ -1266,7 +1265,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				genericLayer.name,
 				genericLayer.title,
 				genericLayer.abstractCol,
-				genericLayer.published,
 				genericLayer.identification)
 			.values(0, "service", "title0", "abstract0", false, "service").addBatch()
 			.values(1, "group0", "title1", "abstract1", false, "group0").addBatch()

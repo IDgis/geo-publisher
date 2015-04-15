@@ -8,17 +8,15 @@ public class ListLayers implements DomainQuery<Page<Layer>> {
 	
 	private final Long page;
 	private final String query;
-	private final Boolean published;
 	private final String datasetId;
 	
-	public ListLayers (final Long page, final String query, final Boolean published) {
-		this (page, query, published, null);
+	public ListLayers (final Long page, final String query) {
+		this (page, query, null);
 	}
 	
-	public ListLayers (final Long page, final String query, final Boolean published, final String datasetId) {
+	public ListLayers (final Long page, final String query, final String datasetId) {
 		this.page = page;
 		this.query = query;
-		this.published = published;
 		this.datasetId = datasetId;
 	}
 
@@ -28,10 +26,6 @@ public class ListLayers implements DomainQuery<Page<Layer>> {
 
 	public String getQuery () {
 		return query;
-	}
-
-	public Boolean getPublished () {
-		return published;
 	}
 
 	public String getDatasetId () {

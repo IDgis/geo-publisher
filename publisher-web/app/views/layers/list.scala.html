@@ -1,7 +1,7 @@
-@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], query: String, published: java.lang.Boolean)
+@(layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], query: String)
 
 @pageRef(targetPage: Long) = @{	  
-	routes.Layers.list (query, published, targetPage)		
+	routes.Layers.list (query, targetPage)		
 }
 
 @import nl.idgis.publisher.domain.web._ 
@@ -17,7 +17,7 @@
 	
 		@* Filters and search: *@
 		<div class="col-lg-3 col-lg-push-9">
-			<form class="form-horizontal" role="form" method="GET" action="@routes.Layers.list(null, published)">
+			<form class="form-horizontal" role="form" method="GET" action="@routes.Layers.list(null)">
 			
 				@* Add layer button: *@
 				<div class="form-group">
@@ -40,36 +40,8 @@
 							@if(query != null){value="@query"}>
 						<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
 						@if(query != null) {
-							<a href="@routes.Layers.list(null, published)"><small>@Domain.message("web.application.page.layers.list.search.showAll")</small></a>
+							<a href="@routes.Layers.list(null)"><small>@Domain.message("web.application.page.layers.list.search.showAll")</small></a>
 						}
-					</div>
-				</div>
-				
-				@* Filter on "published": *@
-				<div class="panel-group" id="filters-accordion">
-					<div class="panel panel-default">
-						<div class="panel-heading">
-							<h4 class="panel-title">
-								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-tags">
-									@Domain.message("web.application.filters.published.title")
-								</a>
-							</h4>
-						</div>
-						<div id="collapse-filter-tags" class="panel-collapse collapse in">
-							<div class="panel-body">
-								<ul class="nav nav-pills nav-stacked">
-									<li@if(published == null){ class="active"}>
-										<a href="@routes.Layers.list(query, null)">@Domain.message("web.application.filters.published.both")</a>
-									</li>
-									<li@if(published != null && published){ class="active"}>
-										<a href="@routes.Layers.list(query, true)">@Domain.message("web.application.filters.published.published")</a>
-									</li>
-									<li@if(published != null && !published){ class="active"}>
-										<a href="@routes.Layers.list(query, false)">@Domain.message("web.application.filters.published.unpublished")</a>
-									</li>
-								</ul>
-							</div>
-						</div>
 					</div>
 				</div>
 								
@@ -103,14 +75,7 @@
 								<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
 							}
 						</div>
-						<div class="col-md-2">
-							@if(layer.published){
-								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
-							}else{
-								<span>@Domain.message("web.application.page.list.notpublished")</span>
-							}
-						</div>
-						<div class="col-md-2">
+						<div class="col-md-4">
 							@if(layer.tiledLayer.isPresent()){
 								<span><strong>@Domain.message("web.application.page.list.tiled")</strong></span>
 							}else{

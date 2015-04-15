@@ -3,12 +3,11 @@
 @(
 	layers: nl.idgis.publisher.domain.response.Page[_ <: nl.idgis.publisher.domain.web.Selectable], 
 	query: String, 
-	published: java.lang.Boolean,
 	pageRef: (Long) => Call)
 
 @helper.pager(
 	pageRef(if(layers.currentPage < 1 ) 1 else layers.currentPage).url,	
-	layerPagerHeader(query, published),
+	layerPagerHeader(query),
 	layerPagerBody(layers),
 	layerPagerFooter(layers, pageRef)
 )

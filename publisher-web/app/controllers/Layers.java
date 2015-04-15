@@ -130,7 +130,7 @@ public class Layers extends GroupsLayersCommon {
 					
 					final LayerForm layerForm = form.get ();
 					final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
-							layerForm.abstractText,layerForm.published,layerForm.datasetId, layerForm.datasetName,
+							layerForm.abstractText,layerForm.datasetId, layerForm.datasetName,
 							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList(), false);
 					Logger.debug ("Create Update layerForm: " + layerForm);						
 					
@@ -158,7 +158,7 @@ public class Layers extends GroupsLayersCommon {
 												Logger.debug ("Updated layer " + layer);
 												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.updated").toLowerCase());
 											}
-											return Promise.pure (redirect (routes.Layers.list (null, null, 1)));
+											return Promise.pure (redirect (routes.Layers.list (null, 1)));
 										}
 									});
 							}
@@ -167,18 +167,18 @@ public class Layers extends GroupsLayersCommon {
 			});
 	}
 	
-	public static Promise<Result> list (final String query, final Boolean published, final long page) {
+	public static Promise<Result> list (final String query, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Layers ");
 		
 		return from (database)
-			.query (new ListLayers (page, query, published))
+			.query (new ListLayers (page, query))
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
 					Logger.debug ("Layer list : #" + layers.values().size());
-					return ok (list.render (layers, query, published));
+					return ok (list.render (layers, query));
 				}
 			});
 	}
@@ -192,23 +192,23 @@ public class Layers extends GroupsLayersCommon {
 				ok(groupStructureItem.render(layerRef)));
 	}
 	
-	public static Promise<Result> listJson (final String query, final Boolean published, final long page) {
+	public static Promise<Result> listJson (final String query, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		return from (database)
-			.query (new ListLayers (page, query, published))
+			.query (new ListLayers (page, query))
 			.execute (new Function<Page<Layer>, Result> () {
 				@Override
 				public Result apply (final Page<Layer> layers) throws Throwable {
 					final ObjectNode result = Json.newObject ();
 					
-					result.put ("header", layerPagerHeader.render (query, published).toString ());
+					result.put ("header", layerPagerHeader.render (query).toString ());
 					result.put ("body", layerPagerBody.render (layers).toString ());
 					result.put ("footer", layerPagerFooter.render (layers, new AbstractFunction1<Long, Call>() {
 
 						@Override
 						public Call apply(Long page) {
-							return routes.Layers.listJson(query, published, page);
+							return routes.Layers.listJson(query, page);
 						}
 						
 					}).toString ());
@@ -331,7 +331,7 @@ public class Layers extends GroupsLayersCommon {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Layers.list (null, null, 1));
+				return redirect (routes.Layers.list (null, 1));
 			}
 		});
 		
@@ -350,7 +350,6 @@ public class Layers extends GroupsLayersCommon {
 		private String title;
 		private String abstractText;
 		private List<String> keywords;
-		private Boolean published = false;
 		private String datasetId;
 		private String datasetName;
 		/**
@@ -376,7 +375,6 @@ public class Layers extends GroupsLayersCommon {
 			this.name = layer.name();
 			this.title = layer.title();
 			this.abstractText = layer.abstractText();
-			this.published = layer.published();
 			this.datasetId = layer.datasetId();
 			this.datasetName = layer.datasetName();
 			this.keywords = layer.getKeywords();
@@ -428,14 +426,6 @@ public class Layers extends GroupsLayersCommon {
 			}
 		}
 
-		public Boolean getPublished() {
-			return published;
-		}
-
-		public void setPublished(Boolean published) {
-			this.published = published;
-		}
-
 		public List<Style> getStyleList() {
 			return styleList;
 		}
@@ -479,7 +469,7 @@ public class Layers extends GroupsLayersCommon {
 		@Override
 		public String toString() {
 			return "LayerForm [id=" + getId() + ", name=" + getName() + ", title=" + title + ", abstractText=" + abstractText
-					+ ", keywords=" + keywords + ", published=" + published + ", datasetId=" + datasetId
+					+ ", keywords=" + keywords + ", datasetId=" + datasetId
 					+ ", datasetName=" + datasetName + ", styleList=" + styles + ", enabled=" + enabled + ", toString()=" + super.toString() + "]";
 		}
 		
