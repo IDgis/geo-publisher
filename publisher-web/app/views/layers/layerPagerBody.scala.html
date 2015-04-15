@@ -9,15 +9,8 @@
 		@for(layer <- layers.values) {
 			<a href="@routes.Layers.edit(layer.id)" class="list-group-item" data-id="@layer.id" data-label="@layer.name">
 				<div class="row">
-					<div class="col-lg-6">
+					<div class="col-lg-9">
 						@layer.name
-					</div>
-					<div class="col-lg-3">
-						@if(layer.published){
-							<strong>@Domain.message("web.application.page.list.published")</strong>
-						}else{
-							@Domain.message("web.application.page.list.notpublished")
-						}
 					</div>
 					<div class="col-lg-3">
 						@if(layer.confidential) {

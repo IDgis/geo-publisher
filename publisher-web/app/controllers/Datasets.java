@@ -90,7 +90,7 @@ public class Datasets extends Controller {
 		return from (database)
 			.get (Dataset.class, datasetId)
 			.query (new ListDatasetColumnDiff (datasetId))
-			.query (new ListLayers (1l, null, null, datasetId))
+			.query (new ListLayers (1l, null, datasetId))
 			.execute ((dataset, diffs, layers) -> {
 				return ok (show.render (dataset, diffs, layers));
 			});

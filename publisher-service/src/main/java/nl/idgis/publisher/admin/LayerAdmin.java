@@ -116,11 +116,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 				);
 		}
 		
-		// Add a filter for the published flag:
-		if (listLayers.getPublished () != null) {
-			baseQuery.where (genericLayer.published.eq (listLayers.getPublished ()));
-		}
-		
 		// Add a filter for the dataset id:
 		if (listLayers.getDatasetId () != null) {
 			baseQuery.join (dataset).on (dataset.id.eq (leafLayer.datasetId))
@@ -144,7 +139,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							genericLayer.name,
 							genericLayer.title,
 							genericLayer.abstractCol,
-							genericLayer.published,
 							dataset.identification,
 							dataset.name,
 							tiledLayer.genericLayerId,
@@ -159,7 +153,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 									layer.get(genericLayer.name),
 									layer.get(genericLayer.title),
 									layer.get(genericLayer.abstractCol),
-									layer.get(genericLayer.published),
 									layer.get(dataset.identification),
 									layer.get(dataset.name),
 									(hasTiledLayer
@@ -236,7 +229,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 										layer.get(genericLayer.name),
 										layer.get(genericLayer.title),
 										layer.get(genericLayer.abstractCol),
-										layer.get(genericLayer.published),
 										layer.get(dataset.identification),
 										layer.get(dataset.name),
 											(hasTiledLayer
@@ -286,7 +278,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, theLayer.name())
 							.set(genericLayer.title, theLayer.title())
 							.set(genericLayer.abstractCol, theLayer.abstractText())
-							.set(genericLayer.published, theLayer.published())
 							.execute()
 							.thenCompose(
 								gl -> {
@@ -341,7 +332,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, theLayer.name())
 							.set(genericLayer.title, theLayer.title())
 							.set(genericLayer.abstractCol, theLayer.abstractText())
-							.set(genericLayer.published, theLayer.published())
 							.where(genericLayer.identification.eq(layerId))
 							.execute()
 							.thenCompose(
@@ -598,7 +588,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					builder.add(new LayerGroup(
 						group.get(genericLayer.identification),
 						group.get(genericLayer.name),
-						null,
 						null,
 						null,
 						null,

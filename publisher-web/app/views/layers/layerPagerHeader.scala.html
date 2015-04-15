@@ -1,9 +1,3 @@
-@(query: String, published: java.lang.Boolean)
+@(query: String)
 
 <input type="text" class="form-control" placeholder="@Domain.message("web.application.page.layers.list.search.placeholder")" data-pager-parameter="q" @if(query!=null){value="@query"}else{value=""}>
-
-<select data-pager-parameter="published" class="form-control">
-	<option value=""@if(published == null){ selected}>@Domain.message("web.application.filters.published.both")</option>
-	<option value="true"@if(published != null && published){ selected}>@Domain.message("web.application.filters.published.published")</option>
-	<option value="false"@if(published != null && !published){ checked}>@Domain.message("web.application.filters.published.unpublished")</option>
-</select>

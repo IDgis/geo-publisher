@@ -11,11 +11,11 @@
 )
 
 @layersPageRef(page: Long) = @{
-	routes.Layers.listJson(null, null, page)
+	routes.Layers.listJson(null, page)
 }
 
 @groupsPageRef(page: Long) = @{
-	routes.Groups.listJson(null, null, page)
+	routes.Groups.listJson(null, page)
 }
 
 <div class="form-group">
@@ -35,7 +35,7 @@
 				@Domain.message("web.application.page.groups.form.field.addlayer.button")
 			</button>
 			<div class="dropdown js-dropdown">
-				@views.html.layers.layerPager(layers, null, null, layersPageRef)
+				@views.html.layers.layerPager(layers, null, layersPageRef)
 			</div>
 		</span>
 		
@@ -45,7 +45,7 @@
 				@Domain.message("web.application.page.groups.form.field.addgroup.button")
 			</button>
 			<div class="dropdown js-dropdown">
-				@views.html.layers.layerPager(groups, null, null, groupsPageRef)
+				@views.html.layers.layerPager(groups, null, groupsPageRef)
 			</div>
 		</span>
 		

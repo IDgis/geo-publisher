@@ -172,7 +172,6 @@ public class StyleAdmin extends AbstractAdmin {
 							null,
 							null,
 							null,
-							null,
 							null, null, null, false)
 						);
 					}
@@ -206,7 +205,6 @@ public class StyleAdmin extends AbstractAdmin {
 						builder.add(new LayerGroup(
 								group.get(genericLayer.identification),
 								group.get(genericLayer.name),
-								null,
 								null,
 								null,
 								null,

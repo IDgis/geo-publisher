@@ -69,16 +69,6 @@
 					'placeholder -> Domain.message("web.application.page.groups.form.field.abstract.placeholder"),
 					'_help -> Domain.message("web.application.page.groups.form.field.abstract.help")
 				)
-				<div class="form-group">
-					<label class="col-sm-2 control-label" for="input-published">@Domain.message("web.application.page.groups.form.field.publish.label")</label>
-					<div class="col-lg-8">
-						<div class="input-group input-group-sm checkbox-fix">
-							<input type="checkbox" id="input-published" name="published" value="true"  @if("true".equals (groupForm("published").value)){checked}> 
-						</div>
-						@helper.fielderrors(groupForm("publish").errors)
-					</div>
-					@helper.tooltips("web.application.page.groups.form.field.publish.help")
-				</div>
 				
 				@helper.groupStructure(layers, groups, groupLayer, groupForm("structure").errors)
 				

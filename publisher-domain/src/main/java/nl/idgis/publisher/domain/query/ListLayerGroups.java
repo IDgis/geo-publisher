@@ -8,12 +8,10 @@ public class ListLayerGroups implements DomainQuery<Page<LayerGroup>> {
 	
 	private final Long page;
 	private final String query;
-	private final Boolean published;
 
-	public ListLayerGroups (final Long page, final String query, final Boolean published) {
+	public ListLayerGroups (final Long page, final String query) {
 		this.page = page;
 		this.query = query;
-		this.published = published;
 	}
 
 	public Long getPage () {
@@ -22,9 +20,5 @@ public class ListLayerGroups implements DomainQuery<Page<LayerGroup>> {
 
 	public String getQuery () {
 		return query;
-	}
-
-	public Boolean getPublished () {
-		return published;
 	}
 }
