@@ -141,6 +141,13 @@ web.application.filters.published.both=Gepubliceerd en ongepubliceerd
 web.application.filters.published.published=Gepubliceerd
 web.application.filters.published.unpublished=Ongepubliceerd
 
+web.application.filters.styletype.title=Type stijl
+web.application.filters.styletype.all=Allemaal
+web.application.filters.styletype.point=Punt
+web.application.filters.styletype.line=Lijn
+web.application.filters.styletype.polygon=Vlak
+web.application.filters.styletype.raster=Raster
+
 # Application
 web.application.layout.togglenavigation=Toggle navigation
 web.application.layout.nodatasetswithstructuralchange=geen datasets met structuurwijziging

@@ -1,9 +1,9 @@
-@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String)
+@(styles: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Style], query: String, styleType: String)
 
 @import nl.idgis.publisher.domain.web._
 
 @pageRef(targetPage: Long) = @{	  
-	routes.Styles.list (query, targetPage)		
+	routes.Styles.list (query, styleType, targetPage)		
 }
  
 @layout.application( title = Domain.message("web.application.page.styles.list.header"),
@@ -43,6 +43,40 @@
 						@if(query != null) {
 							<a href="@routes.Styles.list()"><small>@Domain.message("web.application.page.styles.list.search.showAll")</small></a>
 						}
+					</div>
+				</div>
+				
+				@* Filter on "style type": *@
+				<div class="panel-group" id="filters-accordion">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-tags">
+									@Domain.message("web.application.filters.styletype.title")
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-tags" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(styleType == null){ class="active"}>
+										<a href="@routes.Styles.list(null, null, 1)">@Domain.message("web.application.filters.styletype.all")</a>
+									</li>
+									<li@if(styleType == "POINT"){ class="active"}>
+										<a href="@routes.Styles.list(null, "POINT", 1)">@Domain.message("web.application.filters.styletype.point")</a>
+									</li>
+									<li@if(styleType == "LINE"){ class="active"}>
+										<a href="@routes.Styles.list(null, "LINE", 1)">@Domain.message("web.application.filters.styletype.line")</a>
+									</li>
+									<li@if(styleType == "POLYGON"){ class="active"}>
+										<a href="@routes.Styles.list(null, "POLYGON", 1)">@Domain.message("web.application.filters.styletype.polygon")</a>
+									</li>
+									<li@if(styleType == "RASTER"){ class="active"}>
+										<a href="@routes.Styles.list(null, "RASTER", 1)">@Domain.message("web.application.filters.styletype.raster")</a>
+									</li>
+								</ul>
+							</div>
+						</div>
 					</div>
 				</div>
 				
