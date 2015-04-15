@@ -24,7 +24,6 @@ public class Layer extends Identifiable implements Selectable {
 	private final String name;
 	private final String title;
 	private final String abstractText;
-	private final Boolean published;
 	private final String datasetId;
 	private final String datasetName;
 	
@@ -43,7 +42,6 @@ public class Layer extends Identifiable implements Selectable {
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
-			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") String datasetId,
 			final @JsonProperty("") String datasetName,
 			final @JsonProperty("") TiledLayer tiledLayer,
@@ -54,7 +52,6 @@ public class Layer extends Identifiable implements Selectable {
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
-		this.published = published;
 		this.datasetId = datasetId;
 		this.datasetName = datasetName;
 		this.tiledLayer = tiledLayer;
@@ -76,11 +73,6 @@ public class Layer extends Identifiable implements Selectable {
 	@JsonGetter
 	public String abstractText() {
 		return abstractText;
-	}
-	
-	@JsonGetter
-	public Boolean published() {
-		return published;
 	}
 
 	public String datasetId() {

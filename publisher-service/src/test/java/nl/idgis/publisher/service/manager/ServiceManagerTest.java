@@ -1193,15 +1193,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				genericLayer.name,
 				genericLayer.title,
 				genericLayer.abstractCol,
-				genericLayer.published,
 				genericLayer.identification)
-			.values(1, "Aantal_koop-_en_huurwoningen_per_buurt", "", "", false, "fd12e3ef-5ae6-4fed-acbc-0dfad83c8936").addBatch()
-			.values(2, "koop-_en_huurwoningen_per_buurt", "titel", "", false, "81567e62-9e32-47ec-8c92-eae119e81957").addBatch()				
-			.values(11, "ondergroep1", "", "", false, "6fc6a513-c625-4902-a30f-c637a5a311b8").addBatch()
-			.values(12, "ondergroep2", "", "", false, "bb0eed56-85be-4817-8495-2810a53abf89").addBatch()
-			.values(16, "bovenstegroep", "", "", false, "6a132ba4-ee31-49f3-9ed1-304a021f85a8").addBatch()
-			.values(14, "bovengroep2", "", "", false, "4da7fd70-c2b2-4513-9917-e3ed417cce87").addBatch()
-			.values(17, "supergroep", "", "", false, "c9d91350-73fc-4cf4-91e6-d3c5b51276f4").addBatch()				
+			.values(1, "Aantal_koop-_en_huurwoningen_per_buurt", "", "", "fd12e3ef-5ae6-4fed-acbc-0dfad83c8936").addBatch()
+			.values(2, "koop-_en_huurwoningen_per_buurt", "titel", "", "81567e62-9e32-47ec-8c92-eae119e81957").addBatch()				
+			.values(11, "ondergroep1", "", "", "6fc6a513-c625-4902-a30f-c637a5a311b8").addBatch()
+			.values(12, "ondergroep2", "", "", "bb0eed56-85be-4817-8495-2810a53abf89").addBatch()
+			.values(16, "bovenstegroep", "", "", "6a132ba4-ee31-49f3-9ed1-304a021f85a8").addBatch()
+			.values(14, "bovengroep2", "", "", "4da7fd70-c2b2-4513-9917-e3ed417cce87").addBatch()
+			.values(17, "supergroep", "", "", "c9d91350-73fc-4cf4-91e6-d3c5b51276f4").addBatch()				
 			.execute();
 		
 		insert(layerStructure)
@@ -1266,13 +1265,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				genericLayer.name,
 				genericLayer.title,
 				genericLayer.abstractCol,
-				genericLayer.published,
 				genericLayer.identification)
-			.values(0, "service", "title0", "abstract0", false, "service").addBatch()
-			.values(1, "group0", "title1", "abstract1", false, "group0").addBatch()
-			.values(2, "group1", "title2", "abstract2", false, "group1").addBatch()
-			.values(3, "leaf0", "title3", "abstract3", false, "leaf0").addBatch()
-			.values(4, "leaf1", "title4", "abstract4", false, "leaf1").addBatch()
+			.values(0, "service", "title0", "abstract0", "service").addBatch()
+			.values(1, "group0", "title1", "abstract1", "group0").addBatch()
+			.values(2, "group1", "title2", "abstract2", "group1").addBatch()
+			.values(3, "leaf0", "title3", "abstract3", "leaf0").addBatch()
+			.values(4, "leaf1", "title4", "abstract4", "leaf1").addBatch()
 			.execute();
 		
 		insert(leafLayer)

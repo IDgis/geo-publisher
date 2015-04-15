@@ -22,7 +22,6 @@ public class LayerGroup extends Identifiable implements Selectable {
 	private final String name;
 	private final String title;
 	private final String abstractText;
-	private final Boolean published;
 	
 	private final TiledLayer tiledLayer;
 	
@@ -36,14 +35,12 @@ public class LayerGroup extends Identifiable implements Selectable {
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
-			final @JsonProperty("") Boolean published,
 			final @JsonProperty("") TiledLayer tiledLayer,
 			final @JsonProperty("confidential") boolean confidential) {
 		super(id);
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
-		this.published = published;
 		this.tiledLayer = tiledLayer;
 		this.confidential = confidential;
 	}
@@ -61,11 +58,6 @@ public class LayerGroup extends Identifiable implements Selectable {
 	@JsonGetter
 	public String abstractText() {
 		return abstractText;
-	}
-	
-	@JsonGetter
-	public Boolean published() {
-		return published;
 	}
 
 	public Optional<TiledLayer> tiledLayer() {
