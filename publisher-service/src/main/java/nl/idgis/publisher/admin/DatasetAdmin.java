@@ -361,22 +361,28 @@ public class DatasetAdmin extends AbstractAdmin {
 					
 					singlePage(baseQuery, page);
 					
+					final AsyncSQLQuery listQuery = baseQuery.clone ();
+					
 					return baseQuery
-						.orderBy (dataset.identification.asc ())
-						.orderBy (datasetActiveNotification.jobCreateTime.desc ())
-						.list (datasetPaths ())
-						.thenApply(tuples -> {
-								final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
-								
-								for (final Dataset dataset: createDatasets (tuples)) {
-									pageBuilder.add (dataset);
-								}
-								
-								log.debug("sending dataset page");
-								
-								addPageInfo(pageBuilder, page, datasetCount);
-								
-								return pageBuilder.build ();
+						.count ()
+						.thenCompose ((count) -> {
+							return listQuery
+								.orderBy (dataset.name.asc ())
+								.orderBy (datasetActiveNotification.jobCreateTime.desc ())
+								.list (datasetPaths ())
+								.thenApply(tuples -> {
+										final Page.Builder<Dataset> pageBuilder = new Page.Builder<> ();
+										
+										for (final Dataset dataset: createDatasets (tuples)) {
+											pageBuilder.add (dataset);
+										}
+										
+										log.debug("sending dataset page");
+										
+										addPageInfo(pageBuilder, page, count);
+										
+										return pageBuilder.build ();
+									});
 							});
 				});
 		});
