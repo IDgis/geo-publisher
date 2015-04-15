@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.manager;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import akka.event.LoggingAdapter;
@@ -11,7 +12,6 @@ import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
-
 import nl.idgis.publisher.domain.web.tree.DefaultDatasetLayerRef;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
@@ -59,7 +59,7 @@ public class GetDatasetLayerRefQuery extends AbstractQuery<Object> {
 					throw new IllegalStateException("multiple datasets found");
 				} 
 				
-				return new DefaultDatasetLayerRef(datasetlayer, null);
+				return new DefaultDatasetLayerRef(datasetlayer, Optional.empty());
 			}
 		});			
 	}
