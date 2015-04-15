@@ -5,6 +5,8 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+
 import nl.idgis.publisher.database.QGenericLayer;
 
 import com.mysema.query.sql.SQLCommonQuery;
@@ -42,6 +44,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 	
 	public BooleanPath cycle = createBoolean("cycle");
 	
+	public NumberPath<Integer> datasetId = createNumber("dataset_id", Integer.class);
+	
 	QServiceStructure(String variable) {
         super(QServiceStructure.class, forVariable(variable));
         
@@ -55,6 +59,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
         add(styleName);
         add(path);
         add(cycle);
+        add(datasetId);
     }
 	
 	@SuppressWarnings("unchecked")
@@ -75,13 +80,15 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 				serviceStructure.styleIdentification,
 				serviceStructure.styleName,
 				serviceStructure.path,
-				serviceStructure.cycle).as(
+				serviceStructure.cycle,
+				serviceStructure.datasetId).as(
 				new SQLSubQuery().unionAll(
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
 						.join(service).on(service.genericLayerId.eq(layerStructure.parentLayerId))
 						.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
+						.leftJoin(leafLayer).on(leafLayer.genericLayerId.eq(child.id))
 						.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 						.list(
 							genericLayer.identification, 
@@ -93,7 +100,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 							style.identification,
 							style.name,
 							pathElement,
-							Expressions.template(Boolean.class, "false")),
+							Expressions.template(Boolean.class, "false"),
+							leafLayer.datasetId),
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -117,6 +125,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 								"{0} like '%(' || {1} || ',' || {2} || ')%'", 
 								serviceStructure.path, 
 								child.id, 
-								parent.id))));
+								parent.id),
+							serviceStructure.datasetId)));
 	}
 }

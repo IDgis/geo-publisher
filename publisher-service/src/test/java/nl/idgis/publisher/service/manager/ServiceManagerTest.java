@@ -1,7 +1,9 @@
 package nl.idgis.publisher.service.manager;
 
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
@@ -54,8 +56,14 @@ import javax.xml.transform.stream.StreamResult;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.QueryFlag;
+import com.mysema.query.QueryMetadata;
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.sql.dml.SQLInsertClause;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.query.ListSubQuery;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -1619,6 +1627,53 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(query().from(publishedService).exists());
 		assertFalse(query().from(publishedServiceEnvironment).exists());
+	}
+	
+	@Test
+	public void testWithServiceStructure() throws Exception {
+		SQLQuery structureQuery = 
+			QServiceStructure.withServiceStructure(query(), AbstractQuery.parent, AbstractQuery.child)
+			.from(serviceStructure);
+		
+		assertFalse(structureQuery.exists());
+		
+		int rootId = insert(genericLayer)
+			.set(genericLayer.identification, "service")
+			.set(genericLayer.name, "service-name")			
+			.executeWithKey(genericLayer.id);
+		
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)			
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.executeWithKey(leafLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		int serviceId = insert(service)
+			.set(service.genericLayerId, rootId)			
+			.executeWithKey(service.id);
+		
+		Tuple result = structureQuery
+			.singleResult(
+				serviceStructure.serviceIdentification,
+				serviceStructure.parentLayerIdentification,
+				serviceStructure.childLayerIdentification,
+				serviceStructure.datasetId);
+		
+		assertNotNull(result);
+		assertEquals("service", result.get(serviceStructure.serviceIdentification));
+		assertEquals("service", result.get(serviceStructure.parentLayerIdentification));
+		assertEquals("layer", result.get(serviceStructure.childLayerIdentification));
+		assertEquals(Integer.valueOf(vectorDatasetId), result.get(serviceStructure.datasetId));
 	}
 	
 	@Test
