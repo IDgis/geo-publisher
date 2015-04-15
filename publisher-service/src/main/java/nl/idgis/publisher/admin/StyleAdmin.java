@@ -28,6 +28,7 @@ import akka.actor.Props;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
+import com.mysema.query.types.expr.BooleanExpression;
 
 public class StyleAdmin extends AbstractAdmin {
 	
@@ -55,10 +56,14 @@ public class StyleAdmin extends AbstractAdmin {
 	}
 	
 	private CompletableFuture<Page<Style>> handleListStylesWithQuery (final ListStyles listStyles) {
+		final BooleanExpression styleInUse = new SQLSubQuery ()
+			.from (layerStyle)
+			.where (layerStyle.styleId.eq (style.id))
+			.exists ();
+		
 		final AsyncSQLQuery baseQuery = db
 			.query()
 			.from(style)
-			.leftJoin(layerStyle).on(style.id.eq(layerStyle.styleId)).distinct()
 			.orderBy (style.name.asc ());
 
 		if (listStyles.getQuery () != null) {
@@ -77,7 +82,7 @@ public class StyleAdmin extends AbstractAdmin {
 				addPageInfo (builder, listStyles.getPage (), count);
 				
 				return listQuery
-					.list (new QStyle (style.identification, style.name, Expressions.constant(""), style.styleType, layerStyle.styleId.isNotNull()))
+					.list (new QStyle (style.identification, style.name, Expressions.constant(""), style.styleType, styleInUse))
 					.thenApply ((styles) -> {
 						builder.addAll (styles.list ());
 						return builder.build ();
