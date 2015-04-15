@@ -177,20 +177,20 @@ public class MetadataDocumentTest {
 	/**
 	 * Dataset: keywords 
 	 */
-	
+	@Test
 	public void testDatasetKeywords() throws Exception {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current values 
 		String result = document.getDatasetKeywords();
 		System.out.println("1. result keywords: " + result);
-		assertTrue("wrong keyword", result.indexOf("gemeenten") > 0);
-		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") > 0);
-		assertTrue("wrong date", result.indexOf("2013-09-11") > 0);
+		assertTrue("wrong keyword", result.indexOf("gemeenten") >= 0);
+		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") >= 0);
+		assertTrue("wrong date", result.indexOf("2013-09-11") >= 0);
 
-		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") > 0);
-		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") > 0);
-		assertFalse("unexpected date", result.indexOf("2015-01-01") > 0);
+		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") >= 0);
+		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") >= 0);
+		assertFalse("unexpected date", result.indexOf("2015-01-01") >= 0);
 
 		document.removeDatasetKeywords();
 		
@@ -202,11 +202,61 @@ public class MetadataDocumentTest {
 		// check the new values 
 		result = document.getDatasetKeywords();		
 		System.out.println("2. result keywords: " + result);
-		assertTrue("wrong keyword", result.indexOf("ccc-ddd") > 0);
-		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") > 0);
-		assertTrue("wrong date", result.indexOf("2015-01-01") > 0);
+		assertTrue("wrong keyword", result.indexOf("ccc-ddd") >= 0);
+		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") >= 0);
+		assertTrue("wrong date", result.indexOf("2015-01-01") >= 0);
 		
 	}
+	
+	@Test
+	public void testDatasetMetadata() throws Exception{
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getMetaDataPointOfContactName("owner");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getMetaDataPointOfContactEmail("owner");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setMetaDataPointOfContactName("owner", name);
+		document.setMetaDataPointOfContactEmail("owner", email);
+		
+		// check new values again
+		result = document.getMetaDataPointOfContactName("owner");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getMetaDataPointOfContactEmail("owner");
+		assertEquals("wrong email", email, result);
+	}
+	
+	@Test
+	public void testServiceMetadata() throws Exception{
+		MetadataDocument document = getDocument("service_metadata.xml");
+		String name = "somename";
+		String email = "someaddress";
+		
+		// check current values
+		String result = document.getMetaDataPointOfContactName("pointOfContact");
+		System.out.println("getMetaDataPointOfContactName: " + result);
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getMetaDataPointOfContactEmail("pointOfContact");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setMetaDataPointOfContactName("pointOfContact", name);
+		document.setMetaDataPointOfContactEmail("pointOfContact", email);
+		
+		// check new values again
+		result = document.getMetaDataPointOfContactName("pointOfContact");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getMetaDataPointOfContactEmail("pointOfContact");
+		assertEquals("wrong email", email, result);
+	}
+	
+	
 	
 	/**
 	 * Service metadata: read several items

@@ -36,6 +36,8 @@ public class MetadataDocument {
 	
 	private static enum Topic {DATASET, SERVICE};
 	
+	private static final String [] ROLE_CODES = {"owner","pointOfContact"}; 
+	
 	private final XMLDocument xmlDocument;
 	private final BiMap<String, String> namespaces;
 	
@@ -70,6 +72,18 @@ public class MetadataDocument {
 	/*
 	 * shared methods for DATASET, SERVICE	
 	 */
+
+	private String getDatasetIdentificationPath(){
+		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
+	}
+	
+	private String getServiceIdentificationPath(){
+		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
+	}
+	
+	private String getIdentificationPath(Topic topic){
+		return (topic==Topic.DATASET?getDatasetIdentificationPath():getServiceIdentificationPath());
+	}
 	
 	/*
 	 * date
@@ -77,10 +91,7 @@ public class MetadataDocument {
 	 */
 
 	private String getDatePath(Topic topic, String codeListValue) {
-		return 
-			"/gmd:MD_Metadata" +
-			"/gmd:identificationInfo" +
-			(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
+		return getIdentificationPath(topic) +
 			"/gmd:citation" +
 			"/gmd:CI_Citation" +
 			"/gmd:date" +
@@ -156,9 +167,7 @@ public class MetadataDocument {
 	 */
 	
 	private String getTitlePath(Topic topic) {
-		return "/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +
-				(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
+		return getIdentificationPath(topic) +
 				"/gmd:citation" +
 				"/gmd:CI_Citation" +
 				"/gmd:title" +
@@ -186,10 +195,7 @@ public class MetadataDocument {
 	 */
 
 	private String getAbstractPath(Topic topic) {
-		return 
-			"/gmd:MD_Metadata" +
-			"/gmd:identificationInfo" +
-			(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
+		return getIdentificationPath(topic) +
 			"/gmd:abstract" +
 			"/gco:CharacterString";
 	}
@@ -216,22 +222,17 @@ public class MetadataDocument {
 	 */
 	
 	private String getKeywordPath(Topic topic) {
-		return 
-				"/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +
-				(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
-				"/gmd:descriptiveKeywords" +
-				"/gmd:MD_Keywords"
+		return getIdentificationPath(topic) +
+				"/gmd:descriptiveKeywords"
 				;
 	}
 
 	private int removeKeywords(Topic topic) throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getKeywordPath(Topic.DATASET));
+		return xmlDocument.removeNodes(namespaces, getKeywordPath(topic));
 	}
 	
 	private void addKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
-		String parentPath = getKeywordPath(topic);		
-		String keywordsPath = xmlDocument.addNode(namespaces, parentPath, "/gmd:MD_Keywords");
+		String keywordsPath = xmlDocument.addNode(namespaces, getIdentificationPath(topic), "gmd:descriptiveKeywords/gmd:MD_Keywords");
 		
 		for (String keyword : keywords) {
 			xmlDocument.addNode(namespaces, keywordsPath, "gmd:keyword/gco:CharacterString", keyword);
@@ -282,10 +283,7 @@ public class MetadataDocument {
 	 */
 
 	private String getResponsiblePartyPath(Topic topic) {
-		return 
-			"/gmd:MD_Metadata" +
-			"/gmd:identificationInfo" +
-			(topic==Topic.DATASET?"/gmd:MD_DataIdentification":"/srv:SV_ServiceIdentification") +
+		return getIdentificationPath(topic) +
 			"/gmd:pointOfContact" +
 			"/gmd:CI_ResponsibleParty" 
 			;
@@ -380,22 +378,27 @@ public class MetadataDocument {
 	 * Metadata PointOfContact
 	 */
 	
-	private String getMetaDataPointOfContactPath() {
+	private String getMetaDataPointOfContactPath(String role) {
 		return 
 			"/gmd:MD_Metadata" +
 			"/gmd:contact" +
-			"/gmd:CI_ResponsibleParty" 
+			"/gmd:CI_ResponsibleParty" +
+
+			"[gmd:role" +
+			"/gmd:CI_RoleCode" +
+			"/@codeListValue" +
+				"='" + role + "']"
 			;
 	}
 	
-	private String getMetaDataPointOfContactNamePath() {
-		return getMetaDataPointOfContactPath() + 
+	private String getMetaDataPointOfContactNamePath(String role) {
+		return getMetaDataPointOfContactPath(role) + 
 			"/gmd:organisationName" +
 			"/gco:CharacterString";
 	}
 	
-	private String getMetaDataPointOfContactEmailPath() {
-		return getMetaDataPointOfContactPath() + 
+	private String getMetaDataPointOfContactEmailPath(String role) {
+		return getMetaDataPointOfContactPath(role) + 
 			"/gmd:contactInfo" +
 			"/gmd:CI_Contact" +
 			"/gmd:address" +
@@ -404,20 +407,20 @@ public class MetadataDocument {
 			"/gco:CharacterString";
 	}
 	
-	public String getMetaDataPointOfContactName() throws Exception{
-		return xmlDocument.getString(namespaces, getMetaDataPointOfContactNamePath());
+	public String getMetaDataPointOfContactName(String role) throws NotFound{
+		return xmlDocument.getString(namespaces, getMetaDataPointOfContactNamePath(role));
 	}
 	
-	public String getMetaDataPointOfContactEmail() throws Exception{
-		return xmlDocument.getString(namespaces, getMetaDataPointOfContactEmailPath());
+	public String getMetaDataPointOfContactEmail(String role) throws Exception{
+		return xmlDocument.getString(namespaces, getMetaDataPointOfContactEmailPath(role));
 	}
 	
-	public void setMetaDataPointOfContactName(String name) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataPointOfContactPath(), name);
+	public void setMetaDataPointOfContactName(String role, String name) throws Exception{
+		xmlDocument.updateString(namespaces, getMetaDataPointOfContactNamePath(role), name);
 	}
 	
-	public void setMetaDataPointOfContactEmail(String email) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataPointOfContactPath(), email);
+	public void setMetaDataPointOfContactEmail(String role, String email) throws Exception{
+		xmlDocument.updateString(namespaces, getMetaDataPointOfContactEmailPath(role), email);
 	}
 	
 
@@ -445,17 +448,11 @@ public class MetadataDocument {
 	 * DATASET
 	 * 
 	 */
-	private String getDatasetIdentificationPath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
-	}
-	
 	/*
 	 * alternate title
 	 */
 	private String getAlternateTitlePath() {
-		return "/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +
-				"/gmd:MD_DataIdentification" +
+		return getDatasetIdentificationPath() +
 				"/gmd:citation" +
 				"/gmd:CI_Citation" +
 				"/gmd:alternateTitle" +
@@ -475,7 +472,7 @@ public class MetadataDocument {
 	 * 
 	 */
 	private String getOtherconstraintsPath() {
-		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints"
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
 				+ "/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
 	}
 	
@@ -540,9 +537,7 @@ public class MetadataDocument {
 	 */	
 	private String getDatasetIdentifierCodePath() {
 		return 
-				"/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +
-				"/gmd:MD_DataIdentification" +
+				getDatasetIdentificationPath() +
 				"/gmd:citation" +
 				"/gmd:CI_Citation" +
 				"/gmd:identifier" +
@@ -574,10 +569,6 @@ public class MetadataDocument {
 	/**
 	 * Service metadata: serviceType
 	 */	
-	private String getServiceIdentificationPath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
-	}
-	
 	private String getServiceTypePath(){
 		return getServiceIdentificationPath() + "/srv:serviceType";
 	}	
@@ -616,7 +607,7 @@ public class MetadataDocument {
 	 * Service metadata: BrowseGraphic
 	 */	
 	private String getGraphicOverviewPath() {
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview";
+		return getServiceIdentificationPath() + "/gmd:graphicOverview";
 	}
 	
 	private String getBrowseGraphicPath() {
@@ -645,7 +636,7 @@ public class MetadataDocument {
 	 * Service metadata: Service Endpoint
 	 */	
 	private String getOperationsPath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:containsOperations";
+		return getServiceIdentificationPath() + "/srv:containsOperations";
 	}
 	
 	private String getOperationMetadataPath(){
@@ -699,7 +690,7 @@ public class MetadataDocument {
 	 * Service metadata: CoupledResource (WMS layers c.q. WFS feature types) 
 	 */
 	private String getCoupledResourcePath(){
-		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:coupledResource";
+		return getServiceIdentificationPath() + "/srv:coupledResource";
 	}
 	
 	private String getSVCoupledResourcePath(){
