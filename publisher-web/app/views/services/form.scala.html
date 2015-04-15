@@ -11,7 +11,7 @@
 )
 
 @layerPageRef(page: Long) = @{
-	routes.Layers.listJson(null, null, page)
+	routes.Layers.listJson(null, page)
 }
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }

@@ -279,7 +279,6 @@ public class Services extends Controller {
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
-					Logger.debug("Publiceren: " + published);
 					Logger.debug ("List Service: #" + services.values().size());
 					return ok (list.render (services, query, published));
 				}
