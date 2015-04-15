@@ -23,7 +23,7 @@
 							<div class="col-sm-6">
 								<select class="form-control js-gp-draggable-exclude" name="styles[]">
 									<option value="">@Domain.message("web.application.page.groups.form.field.structure.style.default")</option>
-									@defining(if(styleRef.isPresent()) null else styleRef.get().getId()) { currentStyleId =>																			
+									@defining(if(styleRef.isPresent()) styleRef.get().getId() else null) { currentStyleId =>																			
 										@for(styleRef <- datasetLayer.getStyleRefs()) {
 											<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>
 										}
