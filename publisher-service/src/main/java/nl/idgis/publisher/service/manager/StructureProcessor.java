@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.path.BooleanPath;
@@ -31,7 +32,7 @@ class StructureProcessor {
 	interface Result {
 		List<StructureItem> getStructureItems();
 		
-		Map<String, StyleRef> getStyles();
+		Map<String, Map<String, List<Optional<StyleRef>>>> getStyles();
 	}
 	
 	StructureProcessor(
@@ -53,7 +54,7 @@ class StructureProcessor {
 	Result transform(List<Tuple> tuples) throws CycleException {
 		List<StructureItem> structureItems = new ArrayList<>();
 		
-		Map<String, StyleRef> styles = new HashMap<>();
+		Map<String, Map<String, List<Optional<StyleRef>>>> styles = new HashMap<>();
 		
 		String lastParentId = null;
 		Integer lastLayerOrder = null;
@@ -69,11 +70,13 @@ class StructureProcessor {
 			}
 			
 			// skip duplicates
-			if(!parentId.equals(lastParentId) || !layerOrder.equals(lastLayerOrder)) { 
-				structureItems.add(new StructureItem(childId, parentId));
-				if(styleId != null) {
-					styles.put(childId, new DefaultStyleRef(styleId, styleName));
-				}
+			if(!parentId.equals(lastParentId) || !layerOrder.equals(lastLayerOrder)) {
+				Optional<StyleRef> styleRef = 
+					Optional.ofNullable(styleId)
+						.map(nonNullStyleId -> 
+							new DefaultStyleRef(nonNullStyleId, styleName));
+				
+				structureItems.add(new StructureItem(childId, parentId, styleRef));				
 			}
 			
 			lastParentId = parentId;
@@ -88,7 +91,7 @@ class StructureProcessor {
 			}
 
 			@Override
-			public Map<String, StyleRef> getStyles() {				
+			public Map<String, Map<String, List<Optional<StyleRef>>>> getStyles() {				
 				return styles;
 			}
 			

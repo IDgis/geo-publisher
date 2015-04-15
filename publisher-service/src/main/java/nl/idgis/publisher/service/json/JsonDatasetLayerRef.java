@@ -1,10 +1,14 @@
 package nl.idgis.publisher.service.json;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
+
+import static nl.idgis.publisher.service.json.JsonService.getOptional;
 
 public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> implements DatasetLayerRef {
 	
@@ -23,8 +27,10 @@ public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> impl
 	}
 
 	@Override
-	public StyleRef getStyleRef() {
-		return jsonNode.has ("styleRef") ? new JsonStyleRef(jsonNode.get("styleRef")) : null;		
+	public Optional<StyleRef> getStyleRef() {
+		return 
+			getOptional(jsonNode, "styleRef")
+				.map(JsonStyleRef::new);		
 	}
 
 }

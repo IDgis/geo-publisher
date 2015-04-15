@@ -120,8 +120,7 @@ public class GetGroupLayerQuery extends AbstractQuery<Object> {
 								groupLayerId,
 								datasets.list(),
 								groups.list(),
-								transformedStructure.getStructureItems(),
-								transformedStructure.getStyles()));
+								transformedStructure.getStructureItems()));
 						} catch (CycleException e) {
 							log.debug("CycleException: " + e + "[" +e.getMessage()+"]");
 							return f.failed(e);

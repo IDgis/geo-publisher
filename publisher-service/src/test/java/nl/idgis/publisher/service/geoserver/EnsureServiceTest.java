@@ -249,6 +249,7 @@ public class EnsureServiceTest {
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
 		when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 		when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+		when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 		
 		when(service.getRootId()).thenReturn("root");
 		when(service.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
@@ -308,6 +309,7 @@ public class EnsureServiceTest {
 			when(layerRef.isGroupRef()).thenReturn(false);
 			when(layerRef.asDatasetRef()).thenReturn(layerRef);
 			when(layerRef.getLayer()).thenReturn(layer);
+			when(layerRef.getStyleRef()).thenReturn(Optional.empty());
 			
 			layers.add(layerRef);
 		}
@@ -422,6 +424,7 @@ public class EnsureServiceTest {
 			when(datasetLayerRef.isGroupRef()).thenReturn(false);
 			when(datasetLayerRef.asDatasetRef()).thenReturn(datasetLayerRef);
 			when(datasetLayerRef.getLayer()).thenReturn(datasetLayer);
+			when(datasetLayerRef.getStyleRef()).thenReturn(Optional.empty());
 			
 			layers.add(datasetLayerRef);
 		}

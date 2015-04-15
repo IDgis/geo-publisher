@@ -149,6 +149,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 			.join(lastImportJob).on(lastImportJob.datasetId.eq(leafLayer.datasetId))
 			.join(importJob).on(importJob.jobId.eq(lastImportJob.jobId))
 			.join(importJobColumn).on(importJobColumn.importJobId.eq(importJob.id)))
+			.groupBy(genericLayer.id, importJobColumn.name, importJobColumn.index)
 			.orderBy(importJobColumn.index.asc())
 			.list(
 				genericLayer.id,
