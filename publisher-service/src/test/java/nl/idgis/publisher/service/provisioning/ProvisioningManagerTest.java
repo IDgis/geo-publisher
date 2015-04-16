@@ -339,7 +339,7 @@ public class ProvisioningManagerTest  {
 			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
-		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 		
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
@@ -412,7 +412,7 @@ public class ProvisioningManagerTest  {
 			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
-		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 		
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
@@ -491,18 +491,18 @@ public class ProvisioningManagerTest  {
 			tempDir.toString());
 		
 		// we wait after every message to ensure a fixed order in the recording
-		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
-		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
 		
 		// services already registered -> should not have any effect
-		provisioningManager.tell(new AddStagingService(stagingServiceInfo), ActorRef.noSender());
-		provisioningManager.tell(new AddPublicationService("environmentId", publicationServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
+		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
 		
-		provisioningManager.tell(new RemoveStagingService(stagingServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new RemoveStagingService(stagingServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(3), Waited.class).get();
-		provisioningManager.tell(new RemovePublicationService(publicationServiceInfo), ActorRef.noSender());
+		f.ask(provisioningManager, new RemovePublicationService(publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(4), Waited.class).get();
 		
 		f.ask(serviceActorRecorder, new GetRecording(), Recording.class).get()
