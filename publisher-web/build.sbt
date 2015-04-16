@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.2.0",
   "org.webjars" % "dojo" % "1.10.0",
   "nl.idgis.publisher" % "publisher-domain" % (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head,
+  "nl.idgis.publisher" % "publisher-schemas" % (xml.XML.loadFile("pom.xml") \\ "project" \ "parent" \ "version" ).map (_.text).head,
   "com.typesafe.akka" %% "akka-remote" % "2.3.3",
   "org.pegdown" % "pegdown" % "1.5.0",
   "org.apache.zookeeper" % "zookeeper" % "3.4.5" exclude("javax.jms", "jms") exclude("com.sun.jdmk", "jmxtools") exclude("com.sun.jmx", "jmxri"),
