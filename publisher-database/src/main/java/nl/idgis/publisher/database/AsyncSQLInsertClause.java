@@ -21,6 +21,7 @@ import com.mysema.query.types.SubQueryExpression;
 import akka.actor.ActorRef;
 
 import nl.idgis.publisher.database.messages.PerformInsert;
+import nl.idgis.publisher.database.messages.PerformInsertBatch;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -31,9 +32,11 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 	@Nullable
     private SubQueryExpression<?> subQuery;
 	
-	private final List<Path<?>> columns = new ArrayList<Path<?>>();
+	private final List<Path<?>> columns = new ArrayList<>();
 
-    private final List<Expression<?>> values = new ArrayList<Expression<?>>();
+    private final List<Expression<?>> values = new ArrayList<>();
+    
+    private final List<PerformInsertBatch> batches = new ArrayList<>();
 	
 	public AsyncSQLInsertClause(ActorRef database, FutureUtils f, RelationalPath<?> entity) {
 		super(database, f);
@@ -43,18 +46,20 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 
 	@Override
 	public CompletableFuture<Long> execute() {
-		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
-		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
+		if(batches.isEmpty()) {
+			addBatch();
+		}
 		
-		return f.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray)).thenApply(TO_LONG);
+		return f.ask(database, new PerformInsert(entity, batches, Optional.empty())).thenApply(TO_LONG);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public <T> CompletableFuture<TypedList<T>> executeWithKeys(Path<T> path) {
-		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
-		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
+		if(batches.isEmpty()) {
+			addBatch();
+		}
 		
-		return f.ask(database, new PerformInsert(entity, subQuery, columnsArray, valuesArray, path)).thenApply(msg -> (TypedList<T>)msg);
+		return f.ask(database, new PerformInsert(entity, batches, Optional.of(path))).thenApply(msg -> (TypedList<T>)msg);
 	}
 	
 	public <T> CompletableFuture<Optional<T>> executeWithKey(Path<T> path) {
@@ -151,4 +156,17 @@ public class AsyncSQLInsertClause extends AbstractAsyncSQLClause<AsyncSQLInsertC
 		}
 	}
 
+	public AsyncSQLInsertClause addBatch() {
+		Path<?>[] columnsArray = columns.toArray(new Path<?>[columns.size()]);
+		Expression<?>[] valuesArray = values.toArray(new Expression<?>[values.size()]);
+		
+		batches.add(new PerformInsertBatch(columnsArray, valuesArray, Optional.ofNullable(subQuery)));
+		
+		columns.clear();
+        values.clear();
+        subQuery = null;
+		
+        return this;
+	}
+	
 }

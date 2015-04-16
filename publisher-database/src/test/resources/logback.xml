@@ -7,6 +7,14 @@
     </layout>
   </appender>
   
+  <!-- 
+  	<logger name="nl.idgis.publisher.database" level="debug"/>
+   -->
+  
+  <!-- 
+  	<logger name="com.mysema.query.sql.dml" level="debug"/>
+   --> 
+  
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
