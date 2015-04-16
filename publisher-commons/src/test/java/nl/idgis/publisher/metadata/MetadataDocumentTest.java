@@ -7,8 +7,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -34,31 +36,36 @@ public class MetadataDocumentTest {
 		return factory.parseDocument(content);
 	}
 	
+	/**
+	 * 
+	 * Dataset metadata: read several items
+	 */
 	@Test
-	public void testRead() throws Exception {
-		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("metadata.xml");
-		assertNotNull("test metadata document not found", stream);
+	public void testReadDatasetMetadata() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
-		byte[] content = IOUtils.toByteArray(stream);
-		
-		MetadataDocumentFactory factory = new MetadataDocumentFactory();
-		
-		MetadataDocument document = factory.parseDocument(content);
-		
-		String result = document.getTitle();		
-		assertEquals("wrong title", "Zeer kwetsbare gebieden", result);
-		
-		result = document.getAlternateTitle();		
-		assertEquals("wrong alternate title", "B4.wav_polygon (b4\\b46)", result);
-		
-		Date date = document.getRevisionDate();
-		
+		Date date = document.getDatasetRevisionDate();		
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(date);
+		assertEquals(2013, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
+		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		assertEquals(2009, calendar.get(Calendar.YEAR));
-		assertEquals(Calendar.AUGUST, calendar.get(Calendar.MONTH));
-		assertEquals(14, calendar.get(Calendar.DAY_OF_MONTH));
+		String result = document.getDatasetResponsiblePartyName("custodian");
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Provincie Overijssel"));
+		result = document.getDatasetResponsiblePartyEmail("custodian");
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("beleidsinformatie@overijssel.nl"));
+		
+		result = document.getDatasetResponsiblePartyName("owner");
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Provincie Overijssel:"));
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("NRJ.Eilers@overijssel.nl"));
+		
+		result = document.getMetaDataIdentifier();
+		assertTrue("wrong MetaDataIdentifier", result.startsWith("46647460-d8cf-4955-bcac-f1c192d57cc4"));
+		
+		result = document.getMetaDataCreationDate();
+		assertTrue("wrong MetaDataCreationDate", result.startsWith("2014-04-11"));
 	}
 	
 	@Test(expected=NotParseable.class)
@@ -71,48 +78,260 @@ public class MetadataDocumentTest {
 	 * Dataset metadata: Service Linkage
 	 */	
 	@Test
-	public void testDatasetServiceLinkage() throws Exception{
+	public void testDatasetTransferOptions() throws Exception{
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// remove all gmd:online child nodes
 		int i = document.removeServiceLinkage();
-		
+		assertEquals("There should be one removed linkage", 1, i);
+		String result ;
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		String result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
-		assertFalse("Still WMS link found", result.contains("OGC:WMS"));
+		try {
+			result = document.getServiceLinkageURL();		
+			assertFalse("Still WMS link found", result.contains("overijssel.geo-hosting.nl"));
+		} catch(Exception e) {}
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath() + "/gmd:offLine/preceding-sibling::gmd:onLine");		
+		result = document.getServiceLinkageURL();		
 		assertNotNull("No service linkage found", result);
+		assertTrue("No name found", result.contains("linkage"));
+		result = document.getServiceLinkageProtocol();		
 		assertTrue("No protocol found", result.contains("protocol"));
+		result = document.getServiceLinkageName();		
+		assertTrue("No name found", result.contains("name"));
 		
 		// remove all gmd:online child nodes		
 		i = document.removeServiceLinkage();
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
-		assertFalse("Unexpected protocol found", result.contains("protocol"));
+		try {
+			result = document.getServiceLinkageName();		
+			assertFalse("Unexpected name found", result.contains("name"));
+		} catch(Exception e) {}
 	}
 	
 	/**
-	 * Dataset metadata: Service Linkage
+	 * Dataset metadata: identifier
 	 */	
 	@Test
 	public void testDatasetIdentifier() throws Exception {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current id
-		String result = document.xmlDocument.getString(document.namespaces, document.getDatasetIdentifierCodePath());	
+		String result = document.getDatasetIdentifier();	
 		assertEquals("Wrong dataset id found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result.trim());
 
 		document.setDatasetIdentifier("aaaa-bbbb-cccc-dddd-eeee");
 		
 		// check the new dataset id is correct 
-		result = document.xmlDocument.getString(document.namespaces, document.getDatasetIdentifierCodePath());		
+		result = document.getDatasetIdentifier();	
 		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());		
 	}
+	
+	/**
+	 * Dataset metadata: title, alternate title, abstract
+	 */	
+	@Test
+	public void testDatasetTitleAbstract() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		// check the current values 
+		String result = document.getDatasetTitle();		
+		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
+		
+		result = document.getAlternateTitle();		
+		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
+		
+		result = document.getDatasetAbstract();		
+		assertTrue("wrong abstract: " + result, result.startsWith("De bestuurlijk vastgestelde gemeentegrenzen "));
+		
+
+		// set new values
+		document.setDatasetTitle("Overijssel Gemeentegrenzen");
+		document.setAlternateTitle("Alternate ");
+		document.setDatasetAbstract("De gemeentegrenzen, bestuurlijk vastgesteld ");
+
+		
+		// check new values
+		result = document.getDatasetTitle();		
+		assertEquals("wrong title", "Overijssel Gemeentegrenzen", result);
+		
+		result = document.getAlternateTitle();		
+		assertEquals("wrong alternate title", "Alternate ", result);
+		
+		result = document.getDatasetAbstract();		
+		assertTrue("wrong abstract: " + result, result.startsWith("De gemeentegrenzen, bestuurlijk vastgesteld "));
+		
+	}
+	
+	/**
+	 * Dataset: keywords 
+	 */
+	@Test
+	public void testDatasetKeywords() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		// check the current values 
+		String result = document.getDatasetKeywords();
+		System.out.println("1. result keywords: " + result);
+		assertTrue("wrong keyword", result.indexOf("gemeenten") >= 0);
+		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") >= 0);
+		assertTrue("wrong date", result.indexOf("2013-09-11") >= 0);
+
+		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") >= 0);
+		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") >= 0);
+		assertFalse("unexpected date", result.indexOf("2015-01-01") >= 0);
+
+		document.removeDatasetKeywords();
+		
+		List<String> keywords = new ArrayList<String>();
+		keywords.add("aaa-bbb");
+		keywords.add("ccc-ddd");
+		document.addDatasetKeywords(keywords, "thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
+		
+		// check the new values 
+		result = document.getDatasetKeywords();		
+		System.out.println("2. result keywords: " + result);
+		assertTrue("wrong keyword", result.indexOf("ccc-ddd") >= 0);
+		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") >= 0);
+		assertTrue("wrong date", result.indexOf("2015-01-01") >= 0);
+		
+	}
+	
+	@Test
+	public void testDatasetMetadataPointOfContact() throws Exception{
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getMetaDataPointOfContactName("owner");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getMetaDataPointOfContactEmail("owner");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setMetaDataPointOfContactName("owner", name);
+		document.setMetaDataPointOfContactEmail("owner", email);
+		
+		// check new values again
+		result = document.getMetaDataPointOfContactName("owner");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getMetaDataPointOfContactEmail("owner");
+		assertEquals("wrong email", email, result);
+	}
+	
+	@Test
+	public void testDatasetResponsibleParty() throws Exception{
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getDatasetResponsiblePartyName("owner");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setDatasetResponsiblePartyName("owner", name);
+		document.setDatasetResponsiblePartyEmail("owner", email);
+		
+		// check new values again
+		result = document.getDatasetResponsiblePartyName("owner");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getDatasetResponsiblePartyEmail("owner");
+		assertEquals("wrong email", email, result);
+	}
+	
+	
+	
+	
+	@Test
+	public void testServiceMetadataPointOfContact() throws Exception{
+		MetadataDocument document = getDocument("service_metadata.xml");
+		String name = "somename";
+		String email = "someaddress";
+		
+		// check current values
+		String result = document.getMetaDataPointOfContactName("pointOfContact");
+		System.out.println("getMetaDataPointOfContactName: " + result);
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getMetaDataPointOfContactEmail("pointOfContact");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setMetaDataPointOfContactName("pointOfContact", name);
+		document.setMetaDataPointOfContactEmail("pointOfContact", email);
+		
+		// check new values again
+		result = document.getMetaDataPointOfContactName("pointOfContact");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getMetaDataPointOfContactEmail("pointOfContact");
+		assertEquals("wrong email", email, result);
+	}
+	
+	@Test
+	public void testServerResponsibleParty() throws Exception{
+		MetadataDocument document = getDocument("service_metadata.xml");
+
+		String name = "contactname";
+		String email = "emailaddress";
+		
+		// check current values
+		String result = document.getServiceResponsiblePartyName("pointOfContact");
+		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
+		assertFalse("unexpected email", result.indexOf(email) >= 0);
+		
+		// set new values
+		document.setServiceResponsiblePartyName("pointOfContact", name);
+		document.setServiceResponsiblePartyEmail("pointOfContact", email);
+		
+		// check new values again
+		result = document.getServiceResponsiblePartyName("pointOfContact");
+		assertEquals("wrong responsibleparty", name, result);		
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
+		assertEquals("wrong email", email, result);
+	}
+	
+	
+	
+	/**
+	 * Service metadata: read several items
+	 */	
+	@Test
+	public void testReadServiceMetadata() throws Exception {
+		MetadataDocument document = getDocument("service_metadata.xml");
+		
+		String result = document.getServiceTitle();		
+		assertEquals("wrong title", "INSPIRE View service Beschermde gebieden", result);
+		
+		result = document.getServiceAbstract();		
+		assertTrue("wrong abstract", result.startsWith("Deze View service"));
+		
+		Date date = document.getServiceRevisionDate();		
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		assertEquals(2011, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.APRIL, calendar.get(Calendar.MONTH));
+		assertEquals(20, calendar.get(Calendar.DAY_OF_MONTH));
+		
+		result = document.getServiceResponsiblePartyName("pointOfContact");
+		assertTrue("wrong ResponsiblePartyName", result.startsWith("Interprovinciaal Overleg"));
+		result = document.getServiceResponsiblePartyEmail("pointOfContact");
+		assertTrue("wrong ResponsiblePartyEmail", result.startsWith("inspire@gbo-provincies.nl"));
+		
+		result = document.getMetaDataIdentifier();
+		assertTrue("wrong MetaDataIdentifier", result.startsWith("5a69e9d5-611c-4818-a181-685ef4c81085"));
+
+		result = document.getMetaDataCreationDate();
+		assertTrue("wrong MetaDataCreationDate", result.startsWith("2013-12-03"));
+}
 	
 	
 	/**
@@ -127,8 +346,7 @@ public class MetadataDocumentTest {
 		
 		// add new srv:serviceType childnode
 		document.addServiceType("OGC:WMS");
-		String result = document.xmlDocument.getString(document.namespaces, document.getServiceIdentificationPath() 
-				+ "/srv:serviceTypeVersion/preceding-sibling::srv:serviceType/gco:LocalName");		
+		String result = document.getServiceType();		
 		assertEquals("No service type found", "OGC:WMS", result);
 		
 		// remove all srv:serviceType child nodes		
@@ -137,7 +355,7 @@ public class MetadataDocumentTest {
 		
 		// check srv:SV_ServiceIdentification has no srv:serviceType child node anymore
 		try {
-			document.xmlDocument.getString(document.namespaces, document.getServiceTypePath());
+			document.getServiceType();
 			fail("Unexpected service type found");
 		} catch(Exception e) {}
 	}
@@ -159,7 +377,7 @@ public class MetadataDocumentTest {
 				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=";
 		document.addBrowseGraphic(fileName);
 		
-		String result = document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath() + "/gmd:fileName/gco:CharacterString");		
+		String result = document.getBrowseGraphic();		
 		assertNotNull("No browse graphic found", result);
 		assertEquals("No protocol found", fileName, result);
 		
@@ -169,7 +387,7 @@ public class MetadataDocumentTest {
 		
 		// check no node anymore
 		try {
-			document.xmlDocument.getString(document.namespaces, document.getBrowseGraphicPath());
+			document.getBrowseGraphic();
 			fail("Unexpected layer found");
 		} catch(Exception e) {}
 	}
@@ -191,9 +409,15 @@ public class MetadataDocumentTest {
 				"WebServices", 
 				"https://overijssel.geo-hosting.nl/geoserver/wms");
 		
-		String result = document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
+		String result = document.getServiceEndpointOperationName();
 		assertNotNull("No endpoint found", result);
 		assertTrue("No operationName found", result.contains("GetCapabilities"));
+		result = document.getServiceEndpointCodeList();
+		assertTrue("No codelist found", result.contains("gmxCodelists"));
+		result = document.getServiceEndpointCodeListValue();
+		assertTrue("No codelist value found", result.contains("WebServices"));
+		result = document.getServiceEndpointUrl();
+		assertTrue("No url found", result.contains("overijssel.geo-hosting.nl"));
 		
 		// remove all child nodes		
 		i = document.removeServiceEndpoint();
@@ -201,19 +425,19 @@ public class MetadataDocumentTest {
 		
 		// check no node anymore
 		try {
-			document.xmlDocument.getString(document.namespaces, document.getOperationMetadataPath());
-			fail("Unexpected operationName found");
+			document.getServiceEndpointUrl();
+			fail("Unexpected url found");
 		} catch(Exception e) {}
 	}
 	
 	/**
 	 * Service metadata: transfer options: (same as Dataset metadata: Service Linkage)
 	 */	
-	public void testServiceServiceTransferOptions() throws Exception{
+	public void testServiceTransferOptions() throws Exception{
 		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// get gmd:MD_DigitalTransferOptions content
-		String result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
+		String result = document.getServiceLinkageName();		
 		assertTrue("No WMS link found", result.contains("OGC:WMS"));
 
 		// remove all gmd:online child nodes
@@ -221,22 +445,26 @@ public class MetadataDocumentTest {
 		assertEquals("There should be two removed linkages", 2, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
-		assertFalse("Still WMS link found", result.contains("OGC:WMS"));
+		result = document.getServiceLinkageURL();		
+		assertFalse("Still WMS link found", result.contains("overijssel.geo-hosting.nl"));
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());		
-		assertNotNull("No transfer options found", result);
+		result = document.getServiceLinkageURL();		
+		assertNotNull("No service linkage found", result);
+		assertTrue("No name found", result.contains("linkage"));
+		result = document.getServiceLinkageProtocol();		
 		assertTrue("No protocol found", result.contains("protocol"));
+		result = document.getServiceLinkageName();		
+		assertTrue("No name found", result.contains("name"));
 		
 		// remove all gmd:online child nodes		
 		i = document.removeServiceLinkage();
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.xmlDocument.getString(document.namespaces, document.getDigitalTransferOptionsPath());
-		assertFalse("Unexpected protocol found", result.contains("protocol"));
+		result = document.getServiceLinkageName();		
+		assertFalse("Unexpected name found", result.contains("name"));
 	}
 	
 	
@@ -252,9 +480,13 @@ public class MetadataDocumentTest {
 		
 		// add new childnode
 		document.addSVCoupledResource("GetMap", "bc509f92-5d8c-4169-818b-49ff6a7576c3", "PS.ProtectedSiteStilteGebieden");
-		String result = document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());		
+		String result = document.getServiceCoupledResourceOperationName();		
 		assertNotNull("No coupled resource found", result);
 		assertTrue("No operationName found", result.contains("GetMap"));
+		result = document.getServiceCoupledResourceIdentifier();		
+		assertTrue("No identifier found", result.contains("bc509f92-5d8c-4169-818b-49ff6a7576c3"));
+		result = document.getServiceCoupledResourceScopedName();		
+		assertTrue("No name found", result.contains("PS.ProtectedSiteStilteGebieden"));
 		
 		// remove all child nodes		
 		i = document.removeSVCoupledResource();
@@ -262,7 +494,7 @@ public class MetadataDocumentTest {
 		
 		// check no node anymore
 		try {
-			document.xmlDocument.getString(document.namespaces, document.getSVCoupledResourcePath());
+			document.getServiceCoupledResourceOperationName();
 			fail("Unexpected operationName found");
 		} catch(Exception e) {}
 	}
@@ -284,12 +516,10 @@ public class MetadataDocumentTest {
 		// add new childnode
 		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3", href);
 		
-		String uuidrefPath = document.getOperatesOnPath() + "/@uuidref";		
-		String result = document.xmlDocument.getString(document.namespaces, uuidrefPath);
+		String result = document.getOperatesOnUuid();
 		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
 		
-		String hrefPath = document.getOperatesOnPath() + "/@xlink:href";		
-		result = document.xmlDocument.getString(document.namespaces, hrefPath);
+		result = document.getOperatesOnHref();
 		assertEquals("No href found", href, result);
 		
 		// remove all child nodes		
@@ -298,7 +528,7 @@ public class MetadataDocumentTest {
 		
 		// check no node anymore
 		try {
-			document.xmlDocument.getString(document.namespaces, uuidrefPath);
+			document.getOperatesOnHref();
 			fail("Unexpected uuid ref found");
 		} catch(Exception e) {}
 	}
@@ -307,8 +537,8 @@ public class MetadataDocumentTest {
 	public void testFileIdentifier() throws Exception {
 		MetadataDocument document = getDocument("service_metadata.xml");
 		
-		assertEquals("5a69e9d5-611c-4818-a181-685ef4c81085", document.xmlDocument.getString(document.namespaces, document.getFileIdentifierPath())); 
+		assertEquals("5a69e9d5-611c-4818-a181-685ef4c81085", document.getFileIdentifier()); 
 		document.setFileIdentifier("bc509f92-5d8c-4169-818b-49ff6a7576c3");
-		assertEquals("bc509f92-5d8c-4169-818b-49ff6a7576c3", document.xmlDocument.getString(document.namespaces, document.getFileIdentifierPath()));
+		assertEquals("bc509f92-5d8c-4169-818b-49ff6a7576c3", document.getFileIdentifier());
 	}
 }
