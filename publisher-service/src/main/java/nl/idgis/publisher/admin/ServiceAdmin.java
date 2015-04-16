@@ -162,8 +162,8 @@ public class ServiceAdmin extends AbstractAdmin {
 		}
 		
 		// Add a filter for the published flag:
-		if (listServices.getPublished () != null) {
-			baseQuery.where (publishedServiceEnvironment.serviceId.isNotNull().eq(listServices.getPublished ()));
+		if (listServices.getIsPublished () != null) {
+			baseQuery.where (publishedServiceEnvironment.serviceId.isNotNull().eq(listServices.getIsPublished ()));
 		}
 		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();
