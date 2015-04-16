@@ -1,7 +1,7 @@
-@(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service], query: String, published: java.lang.Boolean)
+@(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service], query: String, isPublished: java.lang.Boolean)
 
 @pageRef(targetPage: Long) = @{	  
-	routes.Services.list (query, published, targetPage)		
+	routes.Services.list (query, isPublished, targetPage)		
 }
 
 @import nl.idgis.publisher.domain.web._ 
@@ -17,7 +17,7 @@
 
 		@* Filters and search: *@
 		<div class="col-lg-3 col-lg-push-9">
-			<form class="form-horizontal" role="form" method="GET" action="@routes.Services.list(null, published)">
+			<form class="form-horizontal" role="form" method="GET" action="@routes.Services.list(null, isPublished)">
 			
 				@* Add layer button: *@
 				<div class="form-group">
@@ -40,7 +40,7 @@
 							@if(query != null){value="@query"}>
 						<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
 						@if(query != null) {
-							<a href="@routes.Services.list(null, published)"><small>@Domain.message("web.application.page.services.list.search.showAll")</small></a>
+							<a href="@routes.Services.list(null, isPublished)"><small>@Domain.message("web.application.page.services.list.search.showAll")</small></a>
 						}
 					</div>
 				</div>
@@ -58,13 +58,13 @@
 						<div id="collapse-filter-tags" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(published == null){ class="active"}>
+									<li@if(isPublished == null){ class="active"}>
 										<a href="@routes.Services.list(query, null)">@Domain.message("web.application.filters.published.both")</a>
 									</li>
-									<li@if(published != null && published){ class="active"}>
+									<li@if(isPublished != null && isPublished){ class="active"}>
 										<a href="@routes.Services.list(query, true)">@Domain.message("web.application.filters.published.published")</a>
 									</li>
-									<li@if(published != null && !published){ class="active"}>
+									<li@if(isPublished != null && !isPublished){ class="active"}>
 										<a href="@routes.Services.list(query, false)">@Domain.message("web.application.filters.published.unpublished")</a>
 									</li>
 								</ul>
@@ -78,112 +78,106 @@
 	
 		@* List of services: *@
 		<div class="col-lg-9 col-lg-pull-3">
+			@if(services.values.isEmpty) {
+				<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
+			} else {
 
-			<div class="row">
-				@if(services.values.isEmpty) {
-					<div class="alert alert-info">@Domain.message("web.application.page.services.list.empty")</div>
-				} else {
-	
-				@* buttons for wmts, tms on top of service list *@	
-				<div class="list-group">
-					<div class="list-group-item well well-sm"> 
-						<div class="row">
-							<div class="col-md-8">
+			@* buttons for wmts, tms on top of service list *@	
+			<div class="list-group">
+				<div class="list-group-item well well-sm"> 
+					<div class="row">
+						<div class="col-md-8">
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-left">
+								<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>WMTS</span>
+								</a> 
+								<a href="@models.Service.getTmsGetCapUrl()"  target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>&nbsp;TMS&nbsp;</span>
+								</a> 
 							</div>
-							<div class="col-md-2">
-								<div class="btn-group pull-left">
-									<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
-										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-										<span>WMTS</span>
-									</a> 
-									<a href="@models.Service.getTmsGetCapUrl()"  target="_blank"
-										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-										<span>&nbsp;TMS&nbsp;</span>
-									</a> 
-								</div>
-							</div>
-							<div class="col-md-2">
-							</div>
+						</div>
+						<div class="col-md-2">
 						</div>
 					</div>
 				</div>
-		
-				<div class="list-group" id="service-list">
-					@for(service <- services.values) {
-					<div class="list-group-item js-service-item" 
-						data-service-id="@service.id"
-						data-service-name="@service.name"
+			</div>
+	
+			<div class="list-group" id="service-list">
+				@for(service <- services.values) {
+				<div class="list-group-item js-service-item" 
+					data-service-id="@service.id"
+					data-service-name="@service.name"
+					
+					data-warning-pre-title="@Domain.message("web.application.removing")"
+					data-warning-title="@service.name"
+					data-warning-delete-link="@routes.Services.delete(service.id)"
+					data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
+					<div class="row">
+						<div class="col-md-4">
+							<h4 class="list-group-item-heading">
+								<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
+							</h4>
+							@if(service.confidential) {
+								<span class="label label-warning">@Domain.message("web.application.page.services.list.confidential")</span>
+							}
+						</div>
+						<div class="col-md-2">
+							@if(service.isPublished) {
+								<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
+							} else {
+								<span>@Domain.message("web.application.page.list.notpublished")</span>
+							}
+						</div>
 						
-						data-warning-pre-title="@Domain.message("web.application.removing")"
-						data-warning-title="@service.name"
-						data-warning-delete-link="@routes.Services.delete(service.id)"
-						data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
-						<div class="row">
-							<div class="col-md-4">
-								<h4 class="list-group-item-heading">
-									<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
-								</h4>
-								@if(service.confidential) {
-									<span class="label label-warning">@Domain.message("web.application.page.services.list.confidential")</span>
-								}
+						<div class="col-md-2">
+							<a href="@routes.Services.publishService(service.id)"
+									class="btn btn-default" title="">
+									<span>@Domain.message("web.application.page.services.list.publish")</span>
+								</a> 
+						</div>							
+						<div class="col-md-2">
+							<div class="btn-group pull-left">
+								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>&nbsp;WMS&nbsp;</span>
+								</a> 
+								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
+									<span>&nbsp;WFS&nbsp;</span>
+								</a> 
 							</div>
-							<div class="col-md-2">
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@routes.Services.edit(service.id)"
+									class="btn btn-default" title="@Domain.message("web.application.button.edit")">
+									<span class="glyphicon glyphicon-edit"></span>
+								</a>
 								@if(service.isPublished) {
-									<span><strong>@Domain.message("web.application.page.list.published")</strong></span>
-								} else {
-									<span>@Domain.message("web.application.page.list.notpublished")</span>
-								}
-							</div>
-							
-							<div class="col-md-2">
-								<a href="@routes.Services.publishService(service.id)"
-										class="btn btn-default" title="">
-										<span>@Domain.message("web.application.page.services.list.publish")</span>
-									</a> 
-							</div>							
-							<div class="col-md-2">
-								<div class="btn-group pull-left">
-									<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
-										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-										<span>&nbsp;WMS&nbsp;</span>
-									</a> 
-									<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
-										class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
-										<span>&nbsp;WFS&nbsp;</span>
-									</a> 
-								</div>
-							</div>
-							<div class="col-md-2">
-								<div class="btn-group pull-right">
-									<a href="@routes.Services.edit(service.id)"
-										class="btn btn-default" title="@Domain.message("web.application.button.edit")">
-										<span class="glyphicon glyphicon-edit"></span>
+									<a data-toggle="modal" data-target="#js-delete-warning" 
+										class="btn btn-warning js-delete-button disabled" title="@Domain.message("web.application.button.remove")">
+										<span class="glyphicon glyphicon-remove"></span>
 									</a>
-									@if(service.isPublished) {
-										<a data-toggle="modal" data-target="#js-delete-warning" 
-											class="btn btn-warning js-delete-button disabled" title="@Domain.message("web.application.button.remove")">
-											<span class="glyphicon glyphicon-remove"></span>
-										</a>
-									} else {
-										<a data-toggle="modal" data-target="#js-delete-warning" 
-											class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
-											<span class="glyphicon glyphicon-remove"></span>
-										</a>
-									}
-								</div>
+								} else {
+									<a data-toggle="modal" data-target="#js-delete-warning" 
+										class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								}
 							</div>
 						</div>
 					</div>
-					}
 				</div>
 				}
-				
-				@helper.deleteWarning()
-				@helper.pagination(services, pageRef)
-				
-			</div> @* row *@
+			</div>
+			}
+			@helper.deleteWarning()
+			@helper.pagination(services, pageRef)
 		</div> @* /services*@
-	
 	</div>
 </div>
 }
