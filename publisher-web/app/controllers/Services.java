@@ -269,18 +269,18 @@ public class Services extends Controller {
 			});
 	}
 	
-	public static Promise<Result> list (final String query, final Boolean published, final long page) {
+	public static Promise<Result> list (final String query, final Boolean isPublished, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Services ");
 		
 		return from (database)
-			.query (new ListServices (page, query, published))
+			.query (new ListServices (page, query, isPublished))
 			.execute (new Function<Page<Service>, Result> () {
 				@Override
 				public Result apply (final Page<Service> services) throws Throwable {
 					Logger.debug ("List Service: #" + services.values().size());
-					return ok (list.render (services, query, published));
+					return ok (list.render (services, query, isPublished));
 				}
 			});
 	}
