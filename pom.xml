@@ -25,6 +25,7 @@
 		<deegree.version>3.4-pre13</deegree.version>
 		<querydsl.version>3.4.1</querydsl.version>
 		<curator.version>2.7.1</curator.version>
+		<geoserver.version>2.6.1-gpo-1</geoserver.version>
 		
 		<!-- 
 		Versions of dependencies that are shared with Play. These versions should match the ones used by Play.
@@ -140,8 +141,13 @@
 				<artifactId>gs-web-app</artifactId>
 				<scope>test</scope>
 				<type>war</type>
-				<version>2.6.1-gpo-1</version>
+				<version>${geoserver.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.geoserver</groupId>
+				<artifactId>gs-main</artifactId>
+				<version>${geoserver.version}</version>
+	    	</dependency>
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
@@ -484,6 +490,7 @@
 		<module>publisher-service</module>
 		<module>publisher-domain</module>
 		<module>publisher-test</module>
+		<module>publisher-schemas</module>
 	</modules>
 
 	<reporting>
