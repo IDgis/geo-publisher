@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QStyle.style;
 
 import java.util.Optional;
@@ -52,7 +53,7 @@ public class StyleAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Page<Style>> handleListStyles () {
-		return handleListStylesWithQuery (new ListStyles (null, null));
+		return handleListStylesWithQuery (new ListStyles (null, null, null));
 	}
 	
 	private CompletableFuture<Page<Style>> handleListStylesWithQuery (final ListStyles listStyles) {
@@ -68,6 +69,10 @@ public class StyleAdmin extends AbstractAdmin {
 
 		if (listStyles.getQuery () != null) {
 			baseQuery.where (style.name.containsIgnoreCase (listStyles.getQuery ()));
+		}
+		
+		if (listStyles.getStyleType() != null) {
+			baseQuery.where (style.styleType.eq(listStyles.getStyleType()));
 		}
 		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();

@@ -9,10 +9,12 @@ public class ListStyles implements DomainQuery<Page<Style>> {
 	
 	private final Long page;
 	private final String query;
+	private final String styleType;
 	
-	public ListStyles (final Long page, final String query) {
+	public ListStyles (final Long page, final String query, final String styleType) {
 		this.page = page;
 		this.query = query;
+		this.styleType = styleType;
 	}
 
 	public Long getPage() {
@@ -21,5 +23,9 @@ public class ListStyles implements DomainQuery<Page<Style>> {
 
 	public String getQuery() {
 		return query;
+	}
+	
+	public String getStyleType() {
+		return styleType;
 	}
 }

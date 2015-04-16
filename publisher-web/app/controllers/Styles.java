@@ -157,7 +157,7 @@ public class Styles extends Controller {
 									Logger.debug ("Updated style " + style);
 									flash ("success", Domain.message("web.application.page.styles.name") + " " + styleForm.getName () + " " + Domain.message("web.application.updated").toLowerCase());
 								}
-								return Promise.pure (redirect (routes.Styles.list (null, 1)));
+								return Promise.pure (redirect (routes.Styles.list (null, null, 1)));
 							}
 					});
 				}
@@ -207,26 +207,26 @@ public class Styles extends Controller {
 	    }
 	}
 	
-	public static Promise<Result> list (final String query, final long page) {
+	public static Promise<Result> list (final String query, final String styletype, final long page) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 
 		Logger.debug ("list Styles ");
 		
 		return from (database)
-			.query (new ListStyles (page, query))
+			.query (new ListStyles (page, query, styletype))
 			.execute (new Function<Page<Style>, Result> () {
 				@Override
 				public Result apply (final Page<Style> styles) throws Throwable {
-					return ok (list.render (styles, query));
+					return ok (list.render (styles, query, styletype));
 				}
 			});
 	}
 	
-	public static Promise<Result> listStylesJson (final long page, final String query) {
+	public static Promise<Result> listStylesJson (final long page, final String styletype, final String query) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from (database)
-			.query (new ListStyles (page, query))
+			.query (new ListStyles (page, query, styletype))
 			.execute (new Function<Page<Style>, Result> () {
 				@Override
 				public Result apply (final Page<Style> styles) throws Throwable {
@@ -281,7 +281,7 @@ public class Styles extends Controller {
 			
 			@Override
 			public Result apply(Response<?> a) throws Throwable {
-				return redirect (routes.Styles.list (null, 1));
+				return redirect (routes.Styles.list (null, null, 1));
 			}
 		});
 	}
