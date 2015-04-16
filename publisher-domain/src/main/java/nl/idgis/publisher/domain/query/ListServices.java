@@ -8,12 +8,12 @@ public class ListServices implements DomainQuery<Page<Service>> {
 	
 	private final Long page;
 	private final String query;
-	private final Boolean published;
+	private final Boolean isPublished;
 	
-	public ListServices (final Long page, final String query, final Boolean published) {
+	public ListServices (final Long page, final String query, final Boolean isPublished) {
 		this.page = page;
 		this.query = query;
-		this.published = published;
+		this.isPublished = isPublished;
 	}
 
 	public Long getPage () {
@@ -24,7 +24,7 @@ public class ListServices implements DomainQuery<Page<Service>> {
 		return query;
 	}
 
-	public Boolean getPublished () {
-		return published;
+	public Boolean getIsPublished () {
+		return isPublished;
 	}
 }
