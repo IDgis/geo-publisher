@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -56,14 +57,10 @@ import javax.xml.transform.stream.StreamResult;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.mysema.query.QueryFlag;
-import com.mysema.query.QueryMetadata;
+import com.google.common.collect.Sets;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.sql.dml.SQLInsertClause;
-import com.mysema.query.types.Expression;
-import com.mysema.query.types.query.ListSubQuery;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -1538,10 +1535,42 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testPublishService() throws Exception {
+		int vectorLayerId = insert(genericLayer)
+				.set(genericLayer.identification, "vector-layer")
+				.set(genericLayer.name, "vector-layer-name")
+				.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, vectorLayerId)
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.execute();
+		
+		int rasterLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "raster-layer")
+			.set(genericLayer.name, "raster-layer-name")
+			.executeWithKey(genericLayer.id);
+			
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, rasterLayerId)
+			.set(leafLayer.datasetId, rasterDatasetId)
+			.execute();
+		
 		int rootId = insert(genericLayer)
 			.set(genericLayer.identification, "service")
 			.set(genericLayer.name, "service-name")			
 			.executeWithKey(genericLayer.id);
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, vectorLayerId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.childLayerId, rasterLayerId)
+			.set(layerStructure.layerOrder, 1)
+			.execute();
 		
 		insert(service)
 			.set(service.genericLayerId, rootId)			
@@ -1599,6 +1628,25 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("environment2", publishedServiceEnvironmentTuple.get(environment.identification));
 		
 		assertFalse(publishedServiceEnvironmentItr.hasNext());
+		
+		Map<String, Set<String>> publishedServiceDatasets = 
+			query()
+				.from(publishedServiceDataset)
+				.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))			
+				.list(
+					genericLayer.identification,
+					dataset.identification).stream()
+						.collect(Collectors.groupingBy(
+							t -> t.get(genericLayer.identification),
+							Collectors.mapping(
+								t -> t.get(dataset.identification),
+								Collectors.toSet())));
+		
+		assertEquals(1, publishedServiceDatasets.size());
+		assertTrue(publishedServiceDatasets.containsKey("service"));
+		assertEquals(Sets.newHashSet("dataset0", "dataset1"), publishedServiceDatasets.get("service"));
 		
 		Service publishedService = f.ask(serviceManager, new GetPublishedService("service"), Service.class).get();
 		assertEquals("service", publishedService.getId());

@@ -16,10 +16,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLInsertClause;
+
 import nl.idgis.publisher.domain.web.tree.Service;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.FutureUtils;
+
 import akka.event.LoggingAdapter;
 
 import com.mysema.query.sql.SQLSubQuery;
@@ -158,22 +162,32 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 												.execute().thenCompose(styles -> {
 													log.debug("published service uses {} styles", styles);
 													
-													return 
-														tx.insert(publishedServiceDataset)
-															.columns(
-																publishedServiceDataset.serviceId,
-																publishedServiceDataset.datasetId)
-															.select(QServiceStructure.withServiceStructure(new SQLSubQuery(), parent, child)
-																.from(serviceStructure)
-																.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
-																.list(
-																	serviceId.get(),
-																	serviceStructure.datasetId))
-															.execute().thenApply(datasets -> {
-															log.debug("published service uses {} datasets", datasets);
-													
-															return new Ack();
-														});
+													return
+														QServiceStructure.withServiceStructure(tx.query(), parent, child)
+															.from(serviceStructure)
+															.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
+															.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
+																if(datasetIds.list().isEmpty()) {
+																	return f.successful(0l);
+																} else {																
+																	AsyncSQLInsertClause insert = tx.insert(publishedServiceDataset);
+																	
+																	for(int datasetId : datasetIds) {
+																		log.debug("storing reference to datasetId: " + datasetId);
+																		
+																		insert
+																			.set(publishedServiceDataset.serviceId, serviceId.get()) 
+																			.set(publishedServiceDataset.datasetId, datasetId)
+																			.addBatch();
+																	}
+																	
+																	return insert.execute();
+																}
+															}).thenApply(datasets -> {
+																log.debug("published service uses {} datasets", datasets);
+											
+																return new Ack();
+															});
 												});
 									}));
 			});
