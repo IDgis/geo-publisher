@@ -14,20 +14,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
 import models.Domain;
 import models.Domain.Function;
-import models.Domain.Function2;
 import models.Domain.Function3;
+
 import nl.idgis.publisher.domain.query.GetStyleParentGroups;
 import nl.idgis.publisher.domain.query.GetStyleParentLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
@@ -37,6 +34,8 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
+import nl.idgis.publisher.schemas.SchemaUtils;
+import nl.idgis.publisher.schemas.SchemaRef;
 
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
@@ -63,6 +62,7 @@ import views.html.styles.stylePagerFooter;
 import views.html.styles.stylePagerHeader;
 import views.html.styles.uploadFileForm;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -72,10 +72,8 @@ public class Styles extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_STYLE#";
 	
-	private final static Promise<Schema> schemaPromise = Promise.promise (() -> {
-		final SchemaFactory schemaFactory = SchemaFactory.newInstance (XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		return schemaFactory.newSchema (new StreamSource (Play.application().resourceAsStream ("StyledLayerDescriptor.xsd")));
-	});
+	private final static Promise<Schema> schemaPromise = Promise.promise (() ->
+		SchemaUtils.getSchema(SchemaRef.GEOSERVER_SLD));
 	
 	private static Promise<Result> renderCreateForm (final Form<StyleForm> styleForm) {
 		// No need to go to the database, because the form contains all information needed
