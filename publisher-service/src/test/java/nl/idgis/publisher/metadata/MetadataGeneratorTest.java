@@ -63,7 +63,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	}
 	
 	
-	@Test
+//	@Test
 	public void testGenerate() throws Exception {
 		// TODO: implement a working test
 		System.err.println("Test" );
