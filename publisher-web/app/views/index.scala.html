@@ -7,6 +7,12 @@
 @import org.joda.time.LocalDateTime
 @import nl.idgis.publisher.domain.web.MessageContext
 
+@version() = @{
+	if(publisher.BuildInfo.version.contains("SNAPSHOT"))
+		publisher.BuildInfo.version + "(commit: " + publisher.BuildInfo.commit + ")"
+	else
+		publisher.BuildInfo.version
+}
 
 @layout.application(
 	title = Domain.message("web.application.title"), 
@@ -59,7 +65,7 @@
 	<footer class="container">
 		<div class="row">
 			<div class="col-lg-10">
-				@Domain.message("web.application.name") @publisher.BuildInfo.version
+				@Domain.message("web.application.name") @version()
 			</div>
 			<div class="col-lg-2">
 				<div class="img-container">

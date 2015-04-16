@@ -41,7 +41,23 @@ buildInfoSettings
 
 sourceGenerators in Compile <+= buildInfo
 
-buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
+buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, 
+	"commit" -> new Object() {		
+		override def toString() : String = {
+			import java.io._
+			import java.lang._
+			try {
+				val reader = new InputStreamReader(
+					Runtime
+						.getRuntime()
+						.exec("git rev-parse HEAD")
+						.getInputStream())
+				new BufferedReader(reader).readLine().substring(0, 10)
+			} catch {
+				case e: IOException => { "unknown" }
+			}
+		} 
+})
 
 buildInfoPackage := "planoview"
 
