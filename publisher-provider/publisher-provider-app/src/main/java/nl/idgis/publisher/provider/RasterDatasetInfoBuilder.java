@@ -16,15 +16,15 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	private final ActorRef folder;
 
-	public RasterDatasetInfoBuilder(ActorRef sender, ActorRef converter, ActorRef folder, Set<AttachmentType> requestedAttachmentTypes) {
-		super(sender, converter, requestedAttachmentTypes);
+	public RasterDatasetInfoBuilder(ActorRef sender, ActorRef folder, Set<AttachmentType> requestedAttachmentTypes) {
+		super(sender, requestedAttachmentTypes);
 		
 		this.folder = folder;
 	}
 	
 	public static DatasetInfoBuilderPropsFactory props(ActorRef folder) {
-		return (sender, converter, requestedAttachmentTypes) ->
-			Props.create(RasterDatasetInfoBuilder.class, sender, converter, folder, requestedAttachmentTypes);
+		return (sender, requestedAttachmentTypes) ->
+			Props.create(RasterDatasetInfoBuilder.class, sender, folder, requestedAttachmentTypes);
 	}
 
 	@Override

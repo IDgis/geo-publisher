@@ -2,8 +2,22 @@ package nl.idgis.publisher.stream.messages;
 
 import java.io.Serializable;
 
-public abstract class Item implements Serializable {
-	
-	private static final long serialVersionUID = -5331371810349573659L;
+public final class Item<T> implements Serializable {	
 
+	private static final long serialVersionUID = 3330904797836673942L;
+	
+	private final T content;
+	
+	public Item(T content) {
+		this.content = content;
+	}
+	
+	public T getContent() {
+		return content;
+	}
+
+	@Override
+	public String toString() {
+		return "Item [content=" + content + "]";
+	}
 }

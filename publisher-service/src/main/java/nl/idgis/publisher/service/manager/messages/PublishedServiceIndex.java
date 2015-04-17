@@ -1,13 +1,12 @@
 package nl.idgis.publisher.service.manager.messages;
 
+import java.io.Serializable;
 import java.util.List;
 
-import nl.idgis.publisher.stream.messages.Item;
+public class PublishedServiceIndex implements Serializable {
+	
+	private static final long serialVersionUID = -3765894152552778111L;
 
-public class PublishedServiceIndex extends Item {	
-	
-	private static final long serialVersionUID = -856411132258539171L;
-	
 	private final String environmentId;
 
 	private final ServiceIndex serviceIndex;

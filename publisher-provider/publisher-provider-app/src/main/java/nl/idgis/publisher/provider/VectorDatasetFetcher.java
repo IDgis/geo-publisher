@@ -13,7 +13,7 @@ import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
-import nl.idgis.publisher.provider.protocol.Records;
+import nl.idgis.publisher.stream.messages.Item;
 
 import scala.concurrent.duration.Duration;
 
@@ -84,8 +84,8 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 					
 					sender.tell(new DatasetNotAvailable(request.getIdentification()), getSelf());
 					getContext().stop(getSelf());
-				} else if(msg instanceof Records) {
-					log.debug("records");
+				} else if(msg instanceof Item) {
+					log.debug("item");
 					
 					sender.tell(msg, getSender());					
 					

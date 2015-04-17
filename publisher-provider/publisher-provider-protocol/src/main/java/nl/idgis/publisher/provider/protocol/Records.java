@@ -1,9 +1,8 @@
 package nl.idgis.publisher.provider.protocol;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
-
-import nl.idgis.publisher.stream.messages.Item;
 
 /**
  * Multiple {@link Record} objects packed into a single object.
@@ -11,9 +10,9 @@ import nl.idgis.publisher.stream.messages.Item;
  * @author copierrj
  *
  */
-public class Records extends Item {
+public class Records implements Serializable {
 	
-	private static final long serialVersionUID = -1054052332134834469L;
+	private static final long serialVersionUID = 8326324747896234038L;
 	
 	private final List<Record> records;
 	

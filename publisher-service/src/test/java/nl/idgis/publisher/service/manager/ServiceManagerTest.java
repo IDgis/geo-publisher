@@ -583,8 +583,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
-			.assertNext(Style.class)
-			.assertNext(Style.class)
+			.assertNext(Item.class, item -> {
+				assertTrue(item.getContent() instanceof Style);
+			})
+			.assertNext(Item.class, item -> {
+				assertTrue(item.getContent() instanceof Style);
+			})
 			.assertNext(End.class)
 			.assertNotHasNext();
 		
@@ -1947,10 +1951,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Map<String, ServiceIndex> publishedEnvironments = new HashMap<>();
 		
 		for(AskResponse<Object> resp = f.askWithSender(serviceManager, new GetPublishedServiceIndex()).get();
-			resp.getMessage() instanceof PublishedServiceIndex;
+			resp.getMessage() instanceof Item;
 			resp = f.askWithSender(resp.getSender(), new NextItem()).get()) {
 			
-			PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)resp.getMessage();
+			@SuppressWarnings("unchecked")
+			Item<PublishedServiceIndex> item = (Item<PublishedServiceIndex>)resp.getMessage();
+			PublishedServiceIndex publishedServiceIndex = item.getContent();
 			publishedEnvironments.put(
 				publishedServiceIndex.getEnvironmentId(),
 				publishedServiceIndex.getServiceIndex());

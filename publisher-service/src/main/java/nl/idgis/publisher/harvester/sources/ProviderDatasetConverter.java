@@ -28,7 +28,6 @@ import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
-import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.Start;
 
 public class ProviderDatasetConverter extends StreamConverter {
@@ -58,7 +57,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 	}
 
 	@Override
-	protected void convert(Item msg, ActorRef sender) throws Exception {
+	protected boolean convert(Object msg, ActorRef sender) throws Exception {
 		if(msg instanceof DatasetInfo) {
 			DatasetInfo datasetInfo = (DatasetInfo)msg;
 			
@@ -95,9 +94,10 @@ public class ProviderDatasetConverter extends StreamConverter {
 			
 			log.debug("resulting dataset: {}", dataset);
 			
-			sender.tell(dataset, getSelf());			
+			getSelf().tell(dataset, getSelf());
+			return true;
 		} else {
-			unhandled(msg);
+			return false;
 		}
 	}
 

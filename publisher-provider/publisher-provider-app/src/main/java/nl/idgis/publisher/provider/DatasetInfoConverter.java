@@ -7,7 +7,6 @@ import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
-import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.Start;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -35,13 +34,17 @@ public class DatasetInfoConverter extends StreamConverter {
 	}
 
 	@Override
-	protected void convert(Item item, ActorRef sender) {
-		if(item instanceof MetadataItem) {
-			Props datasetInfoBuilderProps = datasetInfoBuilderPropsFactory.props(sender, getSelf(), requestedAttachmentTypes);
+	protected boolean convert(Object msg, ActorRef sender) {
+		if(msg instanceof MetadataItem) {
+			log.debug("converting metadata item to dataset info");
+			
+			Props datasetInfoBuilderProps = datasetInfoBuilderPropsFactory.props(getSelf(), requestedAttachmentTypes);
 			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName(VectorDatasetInfoBuilder.class));
-			datasetInfoBuilder.forward(item, getContext());
+			datasetInfoBuilder.tell(msg, getSelf());
+			
+			return true;
 		} else {
-			unhandled(item);
+			return false;
 		}
 	}
 
