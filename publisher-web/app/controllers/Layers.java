@@ -64,7 +64,7 @@ public class Layers extends GroupsLayersCommon {
 	private static Promise<Result> renderCreateForm (final Form<LayerForm> layerForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		return from (database)
-				.query (new ListStyles (1l, "all", null))
+				.query (new ListStyles (1l, null, null))
 				.execute (new Function<Page<Style>, Result> () {
 
 					@Override
@@ -104,12 +104,11 @@ public class Layers extends GroupsLayersCommon {
 							}
 						}
 					}
-					if (form.field("styles").value().length() == 0 ) {
+					if (form.field("styles").value().isEmpty() || form.field("styles").value().equals("[]")) {
 						Logger.debug ("Empty style list");
 						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
 					} else {
 						Logger.debug ("Form style list " + form.field("styles").value());
-						
 					}
 					
 					if (form.hasErrors ()) {
