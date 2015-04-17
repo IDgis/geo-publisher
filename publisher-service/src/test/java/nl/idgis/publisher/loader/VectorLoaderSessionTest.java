@@ -53,6 +53,7 @@ import nl.idgis.publisher.recorder.messages.Watching;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class VectorLoaderSessionTest {
@@ -102,7 +103,7 @@ public class VectorLoaderSessionTest {
 		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
-		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), loader, importJob, null /* filterEvaluator */, transaction, jobContext));
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, null /* filterEvaluator */, transaction, jobContext));
 		
 		f = new FutureUtils(actorSystem);
 	}
@@ -284,7 +285,15 @@ public class VectorLoaderSessionTest {
 			values.add(i);
 		}
 		
-		f.ask(loaderSession, new Item<>(0, new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
+		ActorRef cursor = actorSystem.actorOf(AnyRecorder.props(), "cursor");
+		loaderSession.tell(new Item<>(0, new Records(Arrays.asList(new Record(values)))), cursor);
+		
+		f.ask(cursor, new Wait(3), Waited.class).get();
+		f.ask(cursor, new GetRecording(), Recording.class).get()
+			.assertNext(NextItem.class)
+			.assertNext(Retry.class)
+			.assertNext(Retry.class)
+			.assertNotHasNext();
 		
 		f.ask(loader, new Wait(1), Waited.class);
 		f.ask(loader, new Clear(), Cleared.class);

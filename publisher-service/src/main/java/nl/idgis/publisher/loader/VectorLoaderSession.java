@@ -24,7 +24,6 @@ import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Stop;
 
@@ -36,23 +35,23 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	private long insertCount = 0, filteredCount = 0;
 	
-	public VectorLoaderSession(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
-		super(receiveTimeout, loader, importJob, jobContext);
+	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.filterEvaluator = filterEvaluator;
 		this.transaction = transaction;
 	}
 	
-	public static Props props(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(VectorLoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	public static Props props(ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, filterEvaluator, transaction, jobContext);
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, filterEvaluator, transaction, jobContext);
 	}	
 	
 	@Override
-	protected void handleItem(Object content) throws Exception {
+	protected void handleItemContent(Object content) throws Exception {
 		if(content instanceof Records) {			 			
 			handleRecords((Records)content);
 		} else  {

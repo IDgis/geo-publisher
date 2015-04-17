@@ -20,18 +20,18 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	
 	private final ActorRef receiver; 
 	
-	public RasterLoaderSession(Duration receiveTimeout, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		super(receiveTimeout, loader, importJob, jobContext);
+	public RasterLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
+		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.receiver = receiver;
 	}
 	
 	public static Props props(ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, jobContext, receiver);
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, jobContext, receiver);
 	}
 	
-	public static Props props(Duration receiveTimeout, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		return Props.create(RasterLoaderSession.class, receiveTimeout, loader, importJob, jobContext, receiver);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
+		return Props.create(RasterLoaderSession.class, maxRetries, receiveTimeout, loader, importJob, jobContext, receiver);
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	}
 
 	@Override
-	protected void handleItem(Object content) throws Exception {
+	protected void handleItemContent(Object content) throws Exception {
 		if(content instanceof byte[]) {
 			handleFileChunk((byte[])content);
 		} else {
