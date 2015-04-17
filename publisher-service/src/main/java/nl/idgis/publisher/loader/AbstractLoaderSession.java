@@ -25,6 +25,7 @@ import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends StartImport> extends UntypedActor {
@@ -85,7 +86,11 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		getSelf().tell(new FinalizeSession(JobState.ABORTED), getSelf());
 	}
 	
-	protected final void onReceiveElse(Object msg) {
+	protected void onReceiveElse(Object msg) {
+		unhandled(msg);
+	}
+	
+	protected final void onReceiveCommon(Object msg) {
 		if(msg instanceof ReceiveTimeout) {				
 			handleTimeout();
 		} else if(msg instanceof FinalizeSession) {
@@ -95,7 +100,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		} else if(msg instanceof End) {
 			handleEnd((End)msg);
 		} else {
-			unhandled(msg);
+			onReceiveElse(msg);
 		}
 	}
 	
@@ -128,7 +133,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		if(msg instanceof StartImport) {
 			handleStartImport((U)msg);
 		} else {
-			onReceiveElse(msg);
+			onReceiveCommon(msg);
 		}
 	}
 	
@@ -140,7 +145,21 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		loader.tell(new Progress(progress(), progressTarget), getSelf());
 	}
 	
-	protected abstract Procedure<Object> importing();
+	private Procedure<Object> importing() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Item<?>) {
+					handleItem(((Item<?>)msg).getContent());
+				} else {
+					onReceiveCommon(msg);
+				}
+			}			
+		};
+	}
+	
+	protected abstract void handleItem(Object content) throws Exception;
 	
 	private void handleStartImport(U msg) {
 		log.info("starting import");

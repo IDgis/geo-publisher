@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import akka.actor.ActorRef;
 import akka.actor.Identify;
 import akka.actor.Props;
-import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
@@ -53,29 +52,12 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	}	
 	
 	@Override
-	protected Procedure<Object> importing() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Item) {
-					log.debug("item received");
-					
-					Item<?> item = (Item<?>)msg;
-					
-					Object content = item.getContent();					
-					if(content instanceof Records) {			 			
-						handleRecords((Records)content);
-					} else  {
-						log.error("unknown item content: {}" + content);
-					}
-				} else if(msg instanceof Record) {
-					handleRecord((Record)msg);
-				} else {
-					onReceiveElse(msg);
-				}
-			}			
-		};
+	protected void handleItem(Object content) throws Exception {
+		if(content instanceof Records) {			 			
+			handleRecords((Records)content);
+		} else  {
+			log.error("unknown item content: {}" + content);
+		}
 	}
 	
 	@Override
@@ -130,6 +112,14 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 				sender.tell(new NextItem(), self);
 			}
 		});		
+	}
+	
+	protected void onReceiveElse(Object msg) {
+		if(msg instanceof Record) {
+			handleRecord((Record)msg);
+		} else {
+			unhandled(msg);
+		}
 	}
 
 	private void handleRecord(final Record record) {
