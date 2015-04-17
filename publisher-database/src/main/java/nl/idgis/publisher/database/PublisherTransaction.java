@@ -25,7 +25,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
@@ -48,6 +50,7 @@ import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.PerformDelete;
 import nl.idgis.publisher.database.messages.PerformInsert;
+import nl.idgis.publisher.database.messages.PerformInsertBatch;
 import nl.idgis.publisher.database.messages.PerformQuery;
 import nl.idgis.publisher.database.messages.PerformUpdate;
 import nl.idgis.publisher.database.messages.QCategoryInfo;
@@ -222,27 +225,42 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	private Object executePerformInsert(PerformInsert query) {
 		SQLInsertClause insert = insert(query.getEntity());
 		
-		Path<?>[] columns = query.getColumns();
+		Iterator<PerformInsertBatch> batchItr = query.getBatches().iterator();		
 		
-		SubQueryExpression<?> subQuery = query.getSubQuery();
-		if(subQuery != null) {
-			insert
-				.columns(columns)
-				.select(subQuery);
-		} else {
-			insert
-				.columns(columns)
-				.values((Object[])query.getValues());
+		processInsertBatch(insert, batchItr.next());
+		
+		if(batchItr.hasNext()) {
+			insert.addBatch();
+			
+			while(batchItr.hasNext()) {
+				processInsertBatch(insert, batchItr.next());
+				insert.addBatch();
+			}
 		}
 		
-		Path<?> key = query.getKey();
+		Optional<Path<?>> key = query.getKey();
 		
-		if(key != null) {			
-			return toTypedList(insert, key);
+		if(key.isPresent()) {			
+			return toTypedList(insert, key.get());
 		} else {
 			return insert.execute();
 		}
-	}	
+	}
+
+	private void processInsertBatch(SQLInsertClause insert, PerformInsertBatch batch) {
+		Path<?>[] columns = batch.getColumns();
+		
+		Optional<SubQueryExpression<?>> subQuery = batch.getSubQuery();
+		if(subQuery.isPresent()) {
+			insert
+				.columns(columns)
+				.select(subQuery.get());
+		} else {
+			insert
+				.columns(columns)
+				.values((Object[])batch.getValues());
+		}
+	}
 
 	private Object executeAddNotificationResult(AddNotificationResult query) {
 		JobInfo job = query.getJob();

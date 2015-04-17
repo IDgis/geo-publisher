@@ -5,8 +5,10 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
+import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 import java.util.Collections;
 import java.util.Set;
@@ -14,10 +16,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.AsyncSQLInsertClause;
+
 import nl.idgis.publisher.domain.web.tree.Service;
+
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.FutureUtils;
+
 import akka.event.LoggingAdapter;
 
 import com.mysema.query.sql.SQLSubQuery;
@@ -61,10 +67,17 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 							.execute().thenCompose(environments -> {
 								log.debug("existing published_service_environment records deleted: {}", environments);
 								
-								return 
-									tx.delete(publishedService)
-										.where(getServicePredicate(publishedService.serviceId))
-										.execute();
+								return
+									tx.delete(publishedServiceDataset)
+										.where(getServicePredicate(publishedServiceDataset.serviceId))
+										.execute().thenCompose(datasets -> {
+											log.debug("existing published_service_dataset records deleted: {}", datasets);
+								
+											return 
+												tx.delete(publishedService)
+													.where(getServicePredicate(publishedService.serviceId))
+													.execute();
+								});
 							});
 				});
 	}
@@ -91,9 +104,7 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 		String serviceIdentification = stagingService.getId();
 		
 		log.debug("publishing service: {}" , serviceIdentification);
-		
-		new SQLSubQuery();
-		
+				
 		return
 			getEnvironmentIds ().thenCompose (environmentIds -> {
 				return deleteExisting().thenCompose(publishedServices -> {
@@ -148,10 +159,35 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 														style.identification,
 														style.name,
 														style.definition))
-												.execute().thenApply(styles -> {
+												.execute().thenCompose(styles -> {
 													log.debug("published service uses {} styles", styles);
 													
-													return new Ack();
+													return
+														QServiceStructure.withServiceStructure(tx.query(), parent, child)
+															.from(serviceStructure)
+															.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
+															.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
+																if(datasetIds.list().isEmpty()) {
+																	return f.successful(0l);
+																} else {																
+																	AsyncSQLInsertClause insert = tx.insert(publishedServiceDataset);
+																	
+																	for(int datasetId : datasetIds) {
+																		log.debug("storing reference to datasetId: " + datasetId);
+																		
+																		insert
+																			.set(publishedServiceDataset.serviceId, serviceId.get()) 
+																			.set(publishedServiceDataset.datasetId, datasetId)
+																			.addBatch();
+																	}
+																	
+																	return insert.execute();
+																}
+															}).thenApply(datasets -> {
+																log.debug("published service uses {} datasets", datasets);
+											
+																return new Ack();
+															});
 												});
 									}));
 			});

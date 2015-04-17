@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -58,5 +60,43 @@ public class AsyncInsertClauseTest extends AbstractDatabaseHelperTest {
 		
 		assertNotNull(queryResult);
 		assertEquals(queryResult, generatedKey);
+	}
+	
+	@Test
+	public void testAddBatch() throws Exception {
+		assertTrue(query().from(dataSource).notExists());
+		
+		List<Integer> keys =
+			insert(dataSource)
+				.set(dataSource.identification, "id-0")
+				.set(dataSource.name, "name-0")	
+				.addBatch()
+				.set(dataSource.identification, "id-1")
+				.set(dataSource.name, "name-1")
+				.addBatch()
+				.executeWithKeys(dataSource.id);
+		
+		assertEquals(2, query().from(dataSource).count());
+		assertEquals(1, keys.size()); // first batch only (!)
+		
+		keys = 
+			db.insert(dataSource)
+				.set(dataSource.identification, "id-2")
+				.set(dataSource.name, "name-2")	
+				.addBatch()
+				.set(dataSource.identification, "id-3")
+				.set(dataSource.name, "name-3")
+				.addBatch()
+				.executeWithKeys(dataSource.id).get().list();
+		
+		assertEquals(4, query().from(dataSource).count());
+		assertEquals(1, keys.size());
+		
+		assertEquals(
+			Arrays.asList("id-0", "id-1", "id-2", "id-3"),
+			query()
+				.from(dataSource)
+				.orderBy(dataSource.identification.asc())
+				.list(dataSource.identification));
 	}
 }
