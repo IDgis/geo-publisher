@@ -15,7 +15,6 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
@@ -48,8 +47,8 @@ public class ChannelReceiver extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof FileChunk) {
-			handleFileChunk((FileChunk)msg);			
+		if(msg instanceof byte[]) {
+			handleFileChunk((byte[])msg);			
 		} else if(msg instanceof End) {
 			handleEnd();			
 		} else if(msg instanceof ReceiveTimeout) {
@@ -65,10 +64,8 @@ public class ChannelReceiver extends UntypedActor {
 		getContext().stop(getSelf());
 	}
 
-	private void handleFileChunk(FileChunk msg) {
+	private void handleFileChunk(byte[] content) {
 		log.debug("file chunk received");
-		
-		byte[] content = msg.getContent();
 		
 		channel.write(ByteBuffer.wrap(content), position, getSender(), new CompletionHandler<Integer, ActorRef>() {
 

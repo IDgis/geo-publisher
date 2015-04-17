@@ -46,6 +46,7 @@ import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
@@ -256,8 +257,8 @@ public class EnsureServiceTest {
 		
 		f.ask(geoServerService, new Ensure(
 			service, 
-			new Style("style0", TestStyle.getGreenSld()),
-			new Style("style1", TestStyle.getGreenSld()),
+			new Item<>(new Style("style0", TestStyle.getGreenSld())),
+			new Item<>(new Style("style1", TestStyle.getGreenSld())),
 			new End()), Ack.class).get();
 		
 		f.ask(recorder, new Wait(6), Waited.class).get();

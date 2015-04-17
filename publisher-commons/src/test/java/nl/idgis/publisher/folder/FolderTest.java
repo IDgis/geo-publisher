@@ -25,7 +25,6 @@ import com.typesafe.config.ConfigValueFactory;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.folder.messages.FetchFile;
-import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileReceiver;
 import nl.idgis.publisher.folder.messages.FileSize;
@@ -33,6 +32,7 @@ import nl.idgis.publisher.folder.messages.GetFileReceiver;
 import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -108,14 +108,15 @@ public class FolderTest {
 	}
 	
 	@Test
+	@SuppressWarnings("unchecked")
 	public void testFetch() throws Exception {
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		
 		AskResponse<Object> response = f.askWithSender(folder, new FetchFile(Paths.get("test.tif"))).get();
 		for(;;) {
 			Object msg = response.getMessage();
-			if(msg instanceof FileChunk) {
-				stream.write(((FileChunk) msg).getContent());
+			if(msg instanceof Item) {
+				stream.write(((Item<byte[]>) msg).getContent());
 				response = f.askWithSender(response.getSender(), new NextItem()).get();
 			} else {
 				assertTrue(msg instanceof End);
@@ -142,8 +143,8 @@ public class FolderTest {
 		
 		final int chunkSize = 5120;
 		for(int position = 0; position < testFileContent.length; position += chunkSize) {
-			FileChunk fileChunk = new FileChunk(Arrays.copyOfRange(testFileContent, position, 
-				Math.min(position + chunkSize, testFileContent.length)));
+			byte[] fileChunk = Arrays.copyOfRange(testFileContent, position, 
+				Math.min(position + chunkSize, testFileContent.length));
 			f.ask(fileReceiver, fileChunk, Ack.class).get();
 		}
 		
@@ -163,12 +164,14 @@ public class FolderTest {
 		for(;;) {
 			Object msg = response.getMessage();
 			
-			f.ask(fileReceiver, msg, Ack.class).get();
-			
-			if(msg instanceof FileChunk) {				
+			if(msg instanceof Item) {
+				@SuppressWarnings("unchecked")
+				byte[] content = ((Item<byte[]>)msg).getContent();
+				f.ask(fileReceiver, content, Ack.class).get();
 				response = f.askWithSender(response.getSender(), new NextItem()).get();
 			} else {
-				assertTrue(msg instanceof End);
+				f.ask(fileReceiver, msg, Ack.class).get();
+				assertTrue(msg instanceof End);				
 				break;
 			}
 		}

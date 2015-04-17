@@ -8,11 +8,11 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.harvester.sources.messages.StartRasterImport;
 import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobInfo, StartRasterImport> {
@@ -51,8 +51,15 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof FileChunk) {
-					handleFileChunk((FileChunk)msg);
+				if(msg instanceof Item) {
+					Item<?> item = (Item<?>)msg;
+					
+					Object content = item.getContent();
+					if(content instanceof byte[]) {
+						handleFileChunk((byte[])content);
+					} else {
+						log.error("unknown item content: {}" + content);
+					}
 				} else {
 					onReceiveElse(msg);
 				}
@@ -78,15 +85,13 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 		};
 	}
 	
-	private void handleFileChunk(FileChunk msg) {
-		byte[] content = msg.getContent();
-		
+	private void handleFileChunk(byte[] content) {
 		log.debug("file chunk received, size: {}", content.length);
 		
 		progress += content.length;
 		updateProgress();
 		
-		receiver.tell(msg, getSelf());
+		receiver.tell(content, getSelf());
 		
 		getContext().become(waitingForAck(getSender()), false);
 	}

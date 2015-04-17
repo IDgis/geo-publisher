@@ -12,6 +12,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -47,6 +51,7 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.recorder.messages.Watch;
 import nl.idgis.publisher.recorder.messages.Watching;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -76,7 +81,11 @@ public class VectorLoaderSessionTest {
 
 	@Before
 	public void actorSystem() {
-		actorSystem = ActorSystem.create();
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		transaction = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
 		
@@ -133,7 +142,7 @@ public class VectorLoaderSessionTest {
 				recordList.add(new Record(values));
 			}
 			
-			f.ask(loaderSession, new Records(recordList), NextItem.class).get();
+			f.ask(loaderSession, new Item<>(new Records(recordList)), NextItem.class).get();
 		}
 		
 		f.ask(transaction, new Wait(numberOfRecords), Waited.class).get();		
@@ -194,7 +203,7 @@ public class VectorLoaderSessionTest {
 			values.add(i);
 		}
 		
-		f.ask(loaderSession, new Records(Arrays.asList(new Record(values))), NextItem.class).get();
+		f.ask(loaderSession, new Item<>(new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
 		
 		ActorRef deadWatch = actorSystem.actorOf(AnyRecorder.props());
 		f.ask(deadWatch, new Watch(loaderSession), Watching.class).get();
@@ -275,7 +284,7 @@ public class VectorLoaderSessionTest {
 			values.add(i);
 		}
 		
-		f.ask(loaderSession, new Records(Arrays.asList(new Record(values))), NextItem.class).get();
+		f.ask(loaderSession, new Item<>(new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
 		
 		f.ask(loader, new Wait(1), Waited.class);
 		f.ask(loader, new Clear(), Cleared.class);

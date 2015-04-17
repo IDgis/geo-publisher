@@ -16,13 +16,16 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
+
 import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Stop;
 
@@ -55,8 +58,17 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof Records) {			 			
-					handleRecords((Records)msg);
+				if(msg instanceof Item) {
+					log.debug("item received");
+					
+					Item<?> item = (Item<?>)msg;
+					
+					Object content = item.getContent();					
+					if(content instanceof Records) {			 			
+						handleRecords((Records)content);
+					} else  {
+						log.error("unknown item content: {}" + content);
+					}
 				} else if(msg instanceof Record) {
 					handleRecord((Record)msg);
 				} else {

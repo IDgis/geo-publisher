@@ -56,6 +56,7 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -240,9 +241,10 @@ public class VectorProviderTest {
 		
 		clearRecording();
 		
-		AskResponse<UnavailableDatasetInfo> unavailableDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), UnavailableDatasetInfo.class).get();
+		AskResponse<Item> unavailableDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), Item.class).get();
 		
-		UnavailableDatasetInfo unavailableDatasetInfo = unavailableDatasetInfoWithSender.getMessage(); 
+		Item<UnavailableDatasetInfo> unavailableDatasetInfoItem = unavailableDatasetInfoWithSender.getMessage();
+		UnavailableDatasetInfo unavailableDatasetInfo = unavailableDatasetInfoItem.getContent(); 
 		assertEquals("first", unavailableDatasetInfo.getIdentification());
 		
 		f.ask(unavailableDatasetInfoWithSender.getSender(), new NextItem(), End.class);
@@ -256,9 +258,10 @@ public class VectorProviderTest {
 		
 		clearRecording();
 		
-		AskResponse<VectorDatasetInfo> vectorDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class).get();
+		AskResponse<Item> vectorDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), Item.class).get();
 		
-		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoWithSender.getMessage();
+		Item<VectorDatasetInfo> vectorDatasetInfoItem = vectorDatasetInfoWithSender.getMessage();
+		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoItem.getContent();
 		assertEquals("first", vectorDatasetInfo.getIdentification());
 		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
@@ -279,13 +282,15 @@ public class VectorProviderTest {
 		
 		clearRecording();
 		
-		AskResponse<? extends DatasetInfo> datasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), VectorDatasetInfo.class).get();
+		AskResponse<Item> datasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), Item.class).get();
 		
-		DatasetInfo datasetInfo = datasetInfoWithSender.getMessage();
+		Item<DatasetInfo> datasetInfoItem = datasetInfoWithSender.getMessage(); 
+		DatasetInfo datasetInfo = datasetInfoItem.getContent();
 		assertEquals("first", datasetInfo.getIdentification());
 		
-		datasetInfoWithSender = f.askWithSender(datasetInfoWithSender.getSender(), new NextItem(), UnavailableDatasetInfo.class).get();
-		datasetInfo = datasetInfoWithSender.getMessage();
+		datasetInfoWithSender = f.askWithSender(datasetInfoWithSender.getSender(), new NextItem(), Item.class).get();
+		datasetInfoItem = datasetInfoWithSender.getMessage();
+		datasetInfo = datasetInfoItem.getContent();
 		assertEquals("second", datasetInfo.getIdentification());
 		
 		f.ask(datasetInfoWithSender.getSender(), new NextItem(), End.class);
@@ -330,6 +335,7 @@ public class VectorProviderTest {
 	}
 	
 	@Test
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void testGetVectorDataset() throws Exception {
 		GetVectorDataset getVectorDataset = new GetVectorDataset("test", Arrays.asList("id", "title"), 10);
 		DatasetNotFound notFound = f.ask(provider, getVectorDataset, DatasetNotFound.class).get();
@@ -343,12 +349,14 @@ public class VectorProviderTest {
 		final String tableName = getTable();		
 		f.ask(database, new PutTable(tableName, tableInfo, tableContent), Ack.class).get();
 		
-		AskResponse<Records> resultRecordsWithSender = f.askWithSender(provider, getVectorDataset, Records.class).get();
-		Records resultRecords = resultRecordsWithSender.getMessage();
+		AskResponse<Item> resultRecordsWithSender = f.askWithSender(provider, getVectorDataset, Item.class).get();
+		Item<Records> item = (Item<Records>)resultRecordsWithSender.getMessage();
+		Records resultRecords = item.getContent();
 		for(int i = 0; i < 4; i++) {			
 			assertEquals(10, resultRecords.getRecords().size());
-			resultRecordsWithSender = f.askWithSender(resultRecordsWithSender.getSender(), new NextItem(), Records.class).get();
-			resultRecords = resultRecordsWithSender.getMessage();
+			resultRecordsWithSender = f.askWithSender(resultRecordsWithSender.getSender(), new NextItem(), Item.class).get();
+			item = (Item<Records>)resultRecordsWithSender.getMessage();
+			resultRecords = item.getContent();
 		}
 		
 		assertEquals(2, resultRecords.getRecords().size());

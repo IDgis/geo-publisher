@@ -22,6 +22,7 @@ import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -66,13 +67,14 @@ public class HarvestSession extends UntypedActor {
 		
 		log.debug("existing datasets: {}", datasetIds.size());
 	}
-
+	
 	@Override
+	@SuppressWarnings("unchecked")
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ReceiveTimeout) {
 			handleTimeout();
-		} else if(msg instanceof Dataset) {
-			handleDataset((Dataset)msg);			
+		} else if(msg instanceof Item) {
+			handleDataset(((Item<Dataset>)msg).getContent());
 		} else if(msg instanceof End) {
 			handleEnd();
 		} else {

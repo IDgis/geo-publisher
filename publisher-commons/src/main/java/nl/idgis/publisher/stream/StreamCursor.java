@@ -20,7 +20,7 @@ import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.utils.FutureUtils;
 
-public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
+public abstract class StreamCursor<T, V> extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -105,16 +105,18 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			log.error("timeout");
 			getContext().stop(getSelf());
 		} else if (msg instanceof ItemReceived) {
+			log.debug("item received");
+			
 			@SuppressWarnings("unchecked")
 			ItemReceived<V> itemReceived = (ItemReceived<V>)msg;
 			
 			lastItem = itemReceived.getItem();			
-			itemReceived.getSender().tell(lastItem, getSelf());
+			itemReceived.getSender().tell(new Item<>(lastItem), getSelf());
 		} else if (msg instanceof Retry) {
 			if(lastItem == null) {
 				getSender().tell(new Failure(new IllegalStateException("nothing sent yet")), getSelf());
 			} else {
-				getSender().tell(lastItem, getSelf());
+				getSender().tell(new Item<>(lastItem), getSelf());
 			}
 		} else {			
 			onReceiveElse(msg);

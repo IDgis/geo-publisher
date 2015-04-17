@@ -1,12 +1,13 @@
 package nl.idgis.publisher.provider.metadata.messages;
 
-import nl.idgis.publisher.stream.messages.Item;
+import java.io.Serializable;
 
-public class MetadataItem extends Item {	
+public class MetadataItem implements Serializable {
 
-	private static final long serialVersionUID = -9046319680590366968L;
+	private static final long serialVersionUID = 6298109585578693924L;
 	
 	private final String identification;
+	
 	private final byte[] content;
 	
 	public MetadataItem(String identification, byte[] content) {
