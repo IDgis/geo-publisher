@@ -12,7 +12,6 @@ import nl.idgis.publisher.harvester.sources.messages.StartRasterImport;
 import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.End;
-import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 
 public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobInfo, StartRasterImport> {
@@ -46,27 +45,12 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	}
 
 	@Override
-	protected Procedure<Object> importing() {		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Item) {
-					Item<?> item = (Item<?>)msg;
-					
-					Object content = item.getContent();
-					if(content instanceof byte[]) {
-						handleFileChunk((byte[])content);
-					} else {
-						log.error("unknown item content: {}" + content);
-					}
-				} else {
-					onReceiveElse(msg);
-				}
-			}
-
-			
-		};
+	protected void handleItem(Object content) throws Exception {
+		if(content instanceof byte[]) {
+			handleFileChunk((byte[])content);
+		} else {
+			log.error("unknown item content: {}" + content);
+		}
 	}
 	
 	private Procedure<Object> waitingForAck(ActorRef producer) {
