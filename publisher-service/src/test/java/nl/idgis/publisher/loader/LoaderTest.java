@@ -214,13 +214,15 @@ public class LoaderTest extends AbstractServiceTest {
 			
 			return new Procedure<Object>() {
 				
+				long seq = 0;
+				
 				{
 					sendResponse();
 				}
 				
 				void sendResponse() {
 					if(itr.hasNext()) {
-						getSender().tell(new Item<>(0, itr.next()), getSelf());
+						getSender().tell(new Item<>(seq++, itr.next()), getSelf());
 					} else {
 						getSender().tell(new End(), getSelf());
 						getContext().unbecome();
