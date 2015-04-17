@@ -4,12 +4,19 @@ import java.io.Serializable;
 
 public final class Item<T> implements Serializable {	
 
-	private static final long serialVersionUID = 3330904797836673942L;
+	private static final long serialVersionUID = 4918912562028335328L;
+
+	private final long seq;
 	
 	private final T content;
 	
-	public Item(T content) {
+	public Item(long seq, T content) {
+		this.seq = seq;
 		this.content = content;
+	}
+	
+	public long getSequenceNumber() {
+		return seq;
 	}
 	
 	public T getContent() {
@@ -18,6 +25,7 @@ public final class Item<T> implements Serializable {
 
 	@Override
 	public String toString() {
-		return "Item [content=" + content + "]";
+		return "Item [seq=" + seq + ", content=" + content + "]";
 	}
+	
 }

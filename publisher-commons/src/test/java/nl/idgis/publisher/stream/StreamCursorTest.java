@@ -45,6 +45,7 @@ public class StreamCursorTest {
 		actorSystem.shutdown();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testStream() throws Exception {
 		ActorRef cursor = actorSystem.actorOf(
@@ -62,10 +63,17 @@ public class StreamCursorTest {
 			Object msg = j.getMessage();
 			assertTrue(msg instanceof Item);
 			
-			@SuppressWarnings("unchecked")
-			Integer resp = ((Item<Integer>)msg).getContent();
-			assertEquals(resp, f.ask(j.getSender(), new Retry(), Item.class).get().getContent());			
-			assertEquals(i++, ((Integer)resp).intValue());
+			Item<Integer> item = (Item<Integer>)msg;
+			
+			long seq = item.getSequenceNumber();
+			assertEquals(i, seq);
+			
+			Integer content = item.getContent();
+			assertEquals(i++, content.intValue());
+			
+			Item<Integer> retriedItem = (Item<Integer>)f.ask(j.getSender(), new Retry(), Item.class).get();
+			assertEquals(content, retriedItem.getContent());			
+			assertEquals(seq, retriedItem.getSequenceNumber());
 		}
 	}
 }

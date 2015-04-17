@@ -257,8 +257,8 @@ public class EnsureServiceTest {
 		
 		f.ask(geoServerService, new Ensure(
 			service, 
-			new Item<>(new Style("style0", TestStyle.getGreenSld())),
-			new Item<>(new Style("style1", TestStyle.getGreenSld())),
+			new Item<>(0, new Style("style0", TestStyle.getGreenSld())),
+			new Item<>(1, new Style("style1", TestStyle.getGreenSld())),
 			new End()), Ack.class).get();
 		
 		f.ask(recorder, new Wait(6), Waited.class).get();

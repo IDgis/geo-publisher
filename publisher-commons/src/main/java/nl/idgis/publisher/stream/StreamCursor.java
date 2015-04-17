@@ -28,6 +28,8 @@ public abstract class StreamCursor<T, V> extends UntypedActor {
 	
 	protected FutureUtils f;
 	
+	private long seq = -1;
+	
 	private V lastItem;
 		
 	public StreamCursor(T t) {
@@ -79,6 +81,7 @@ public abstract class StreamCursor<T, V> extends UntypedActor {
 		if (msg instanceof NextItem) {
 			log.debug("next");
 			if(hasNext()) {
+				seq++;
 				
 				ActorRef sender = getSender(), self = getSelf();				
 				next().whenComplete((item, throwable) -> {
@@ -110,13 +113,13 @@ public abstract class StreamCursor<T, V> extends UntypedActor {
 			@SuppressWarnings("unchecked")
 			ItemReceived<V> itemReceived = (ItemReceived<V>)msg;
 			
-			lastItem = itemReceived.getItem();			
-			itemReceived.getSender().tell(new Item<>(lastItem), getSelf());
+			lastItem = itemReceived.getItem();
+			itemReceived.getSender().tell(new Item<>(seq, lastItem), getSelf());
 		} else if (msg instanceof Retry) {
 			if(lastItem == null) {
 				getSender().tell(new Failure(new IllegalStateException("nothing sent yet")), getSelf());
 			} else {
-				getSender().tell(new Item<>(lastItem), getSelf());
+				getSender().tell(new Item<>(seq, lastItem), getSelf());
 			}
 		} else {			
 			onReceiveElse(msg);

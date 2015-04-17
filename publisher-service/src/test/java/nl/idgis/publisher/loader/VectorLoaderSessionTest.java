@@ -142,7 +142,7 @@ public class VectorLoaderSessionTest {
 				recordList.add(new Record(values));
 			}
 			
-			f.ask(loaderSession, new Item<>(new Records(recordList)), NextItem.class).get();
+			f.ask(loaderSession, new Item<>(i, new Records(recordList)), NextItem.class).get();
 		}
 		
 		f.ask(transaction, new Wait(numberOfRecords), Waited.class).get();		
@@ -203,7 +203,7 @@ public class VectorLoaderSessionTest {
 			values.add(i);
 		}
 		
-		f.ask(loaderSession, new Item<>(new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
+		f.ask(loaderSession, new Item<>(0, new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
 		
 		ActorRef deadWatch = actorSystem.actorOf(AnyRecorder.props());
 		f.ask(deadWatch, new Watch(loaderSession), Watching.class).get();
@@ -284,7 +284,7 @@ public class VectorLoaderSessionTest {
 			values.add(i);
 		}
 		
-		f.ask(loaderSession, new Item<>(new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
+		f.ask(loaderSession, new Item<>(0, new Records(Arrays.asList(new Record(values)))), NextItem.class).get();
 		
 		f.ask(loader, new Wait(1), Waited.class);
 		f.ask(loader, new Clear(), Cleared.class);
