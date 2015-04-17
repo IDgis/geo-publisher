@@ -16,6 +16,7 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -26,6 +27,8 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	protected final T t;
 	
 	protected FutureUtils f;
+	
+	private V lastItem;
 		
 	public StreamCursor(T t) {
 		this.t = t;
@@ -50,6 +53,26 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	protected void onReceiveElse(Object msg) throws Exception {
 		unhandled(msg);
 	}
+	
+	private static class ItemReceived<T> {
+		
+		final T item;
+		
+		final ActorRef sender;
+		
+		ItemReceived(T item, ActorRef sender) {
+			this.item = item;
+			this.sender = sender;
+		}
+		
+		T getItem() {
+			return item;
+		}
+		
+		ActorRef getSender() {
+			return sender;
+		}
+	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
@@ -58,15 +81,15 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 			if(hasNext()) {
 				
 				ActorRef sender = getSender(), self = getSelf();				
-				next().whenComplete((v, t) -> {
+				next().whenComplete((item, throwable) -> {
 					
-					if(t != null) {
-						log.error("next completed exceptionally: {}", t);
+					if(throwable != null) {
+						log.error("next completed exceptionally: {}", throwable);
 						
-						sender.tell(new Failure(t), self);
+						sender.tell(new Failure(throwable), self);
 						self.tell(PoisonPill.getInstance(), self);
 					} else {
-						sender.tell(v, self);
+						self.tell(new ItemReceived<>(item, sender), self);
 					}					
 				});
 			} else {
@@ -81,6 +104,18 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 		} else if (msg instanceof ReceiveTimeout){
 			log.error("timeout");
 			getContext().stop(getSelf());
+		} else if (msg instanceof ItemReceived) {
+			@SuppressWarnings("unchecked")
+			ItemReceived<V> itemReceived = (ItemReceived<V>)msg;
+			
+			lastItem = itemReceived.getItem();			
+			itemReceived.getSender().tell(lastItem, getSelf());
+		} else if (msg instanceof Retry) {
+			if(lastItem == null) {
+				getSender().tell(new Failure(new IllegalStateException("nothing sent yet")), getSelf());
+			} else {
+				getSender().tell(lastItem, getSelf());
+			}
 		} else {			
 			onReceiveElse(msg);
 		}
