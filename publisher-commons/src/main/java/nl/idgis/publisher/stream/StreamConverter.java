@@ -35,7 +35,7 @@ public abstract class StreamConverter extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				log.debug("converted item received");
 				
-				sender.tell(new Item<>(msg), getSelf());
+				sender.tell(new Item<>(original.getSequenceNumber(), msg), getSelf());
 				getContext().become(receive());
 			}
 			

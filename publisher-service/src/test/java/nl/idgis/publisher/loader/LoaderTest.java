@@ -220,7 +220,7 @@ public class LoaderTest extends AbstractServiceTest {
 				
 				void sendResponse() {
 					if(itr.hasNext()) {
-						getSender().tell(new Item<>(itr.next()), getSelf());
+						getSender().tell(new Item<>(0, itr.next()), getSelf());
 					} else {
 						getSender().tell(new End(), getSelf());
 						getContext().unbecome();
