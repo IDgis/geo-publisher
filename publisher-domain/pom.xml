@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.idgis.publisher</groupId>
 		<artifactId>publisher</artifactId>
-		<version>0.8.1-SNAPSHOT</version>
+		<version>0.9.1-SNAPSHOT</version>
 	</parent>
 	
 	<dependencies>
