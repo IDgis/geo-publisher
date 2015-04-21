@@ -675,7 +675,7 @@ public class GeoServerServiceTest {
 		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
-		File testRasterFile = new File(testRasterUrl.getFile());
+		File testRasterFile = new File(testRasterUrl.toURI ().getPath ());
 		assertTrue(testRasterFile.exists());
 		
 		String[] styleNames = {"style0", "style1"};
