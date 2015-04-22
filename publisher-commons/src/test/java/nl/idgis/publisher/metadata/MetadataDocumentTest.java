@@ -175,7 +175,6 @@ public class MetadataDocumentTest {
 
 		// check the current values 
 		String result = document.getDatasetKeywords();
-		System.out.println("1. result keywords: " + result);
 		assertTrue("wrong keyword", result.indexOf("gemeenten") >= 0);
 		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") >= 0);
 		assertTrue("wrong date", result.indexOf("2013-09-11") >= 0);
@@ -193,7 +192,6 @@ public class MetadataDocumentTest {
 		
 		// check the new values 
 		result = document.getDatasetKeywords();		
-		System.out.println("2. result keywords: " + result);
 		assertTrue("wrong keyword", result.indexOf("ccc-ddd") >= 0);
 		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") >= 0);
 		assertTrue("wrong date", result.indexOf("2015-01-01") >= 0);
@@ -259,7 +257,6 @@ public class MetadataDocumentTest {
 		
 		// check current values
 		String result = document.getMetaDataPointOfContactName("pointOfContact");
-		System.out.println("getMetaDataPointOfContactName: " + result);
 		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
 		result = document.getMetaDataPointOfContactEmail("pointOfContact");
 		assertFalse("unexpected email", result.indexOf(email) >= 0);

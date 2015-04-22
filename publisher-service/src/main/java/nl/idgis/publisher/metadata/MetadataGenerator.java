@@ -102,18 +102,18 @@ public class MetadataGenerator extends UntypedActor {
 	}
 
 	private void generateMetadata() throws InterruptedException, ExecutionException, NotFound {		
-		log.info("generating metadata");
 		
 		final ActorRef sender = getSender();		
 		// TODO: implement metadata generator
 		
+//		log.info("generating metadata");
 		
-		MetadataDocument mdDoc = f.ask(harvester, new GetDatasetMetadata("e8c64317-4e4c-4afb-bdf1-9e0a38e2a924"), MetadataDocument.class).get();
-		
-		log.info("MetadataDocument " + mdDoc);
-		log.info("Dataset title " + mdDoc.getDatasetTitle());
-		
-		sender.tell(new Ack(), getSelf());
+//		MetadataDocument mdDoc = f.ask(harvester, new GetDatasetMetadata("e8c64317-4e4c-4afb-bdf1-9e0a38e2a924"), MetadataDocument.class).get();
+//		
+//		log.info("MetadataDocument " + mdDoc);
+//		log.info("Dataset title " + mdDoc.getDatasetTitle());
+//		
+//		sender.tell(new Ack(), getSelf());
 	}
 	
 	
