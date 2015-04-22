@@ -1,10 +1,10 @@
 package nl.idgis.publisher.provider.protocol;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
-import nl.idgis.publisher.stream.messages.Item;
 
 /**
  * Base class for all DatasetInfo response classes.
@@ -12,9 +12,9 @@ import nl.idgis.publisher.stream.messages.Item;
  * @author copierrj
  *
  */
-public abstract class DatasetInfo extends Item {
+public abstract class DatasetInfo implements Serializable {
 
-	private static final long serialVersionUID = 7930689908022260600L;
+	private static final long serialVersionUID = 4831203786160127733L;
 
 	protected final String identification;
 	

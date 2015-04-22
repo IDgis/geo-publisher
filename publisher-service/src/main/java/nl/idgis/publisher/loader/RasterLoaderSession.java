@@ -8,7 +8,6 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.harvester.sources.messages.StartRasterImport;
 import nl.idgis.publisher.job.manager.messages.RasterImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -21,18 +20,18 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	
 	private final ActorRef receiver; 
 	
-	public RasterLoaderSession(Duration receiveTimeout, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		super(receiveTimeout, loader, importJob, jobContext);
+	public RasterLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
+		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.receiver = receiver;
 	}
 	
 	public static Props props(ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, jobContext, receiver);
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, jobContext, receiver);
 	}
 	
-	public static Props props(Duration receiveTimeout, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		return Props.create(RasterLoaderSession.class, receiveTimeout, loader, importJob, jobContext, receiver);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
+		return Props.create(RasterLoaderSession.class, maxRetries, receiveTimeout, loader, importJob, jobContext, receiver);
 	}
 
 	@Override
@@ -46,20 +45,12 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	}
 
 	@Override
-	protected Procedure<Object> importing() {		
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof FileChunk) {
-					handleFileChunk((FileChunk)msg);
-				} else {
-					onReceiveElse(msg);
-				}
-			}
-
-			
-		};
+	protected void handleItemContent(Object content) throws Exception {
+		if(content instanceof byte[]) {
+			handleFileChunk((byte[])content);
+		} else {
+			log.error("unknown item content: {}" + content);
+		}
 	}
 	
 	private Procedure<Object> waitingForAck(ActorRef producer) {
@@ -78,15 +69,13 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 		};
 	}
 	
-	private void handleFileChunk(FileChunk msg) {
-		byte[] content = msg.getContent();
-		
+	private void handleFileChunk(byte[] content) {
 		log.debug("file chunk received, size: {}", content.length);
 		
 		progress += content.length;
 		updateProgress();
 		
-		receiver.tell(msg, getSelf());
+		receiver.tell(content, getSelf());
 		
 		getContext().become(waitingForAck(getSender()), false);
 	}

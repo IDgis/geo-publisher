@@ -57,6 +57,7 @@ import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -113,8 +114,9 @@ public class ProviderDataSourceTest {
 		
 		f.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class).get();
 		
-		AskResponse<VectorDataset> datasetWithSender = f.askWithSender(providerDataSource, new ListDatasets(), VectorDataset.class).get();
-		VectorDataset dataset = datasetWithSender.getMessage(); 
+		AskResponse<Item> itemWithSender = f.askWithSender(providerDataSource, new ListDatasets(), Item.class).get();
+		Item<VectorDataset>  item = (Item<VectorDataset>)itemWithSender.getMessage();
+		VectorDataset dataset = item.getContent(); 
 		
 		Table table = dataset.getTable();
 		assertNotNull(table);
@@ -135,7 +137,7 @@ public class ProviderDataSourceTest {
 		
 		assertFalse(columnsItr.hasNext());
 		
-		f.ask(datasetWithSender.getSender(), new NextItem(), End.class).get();
+		f.ask(itemWithSender.getSender(), new NextItem(), End.class).get();
 	}
 	
 	@Test
@@ -169,10 +171,10 @@ public class ProviderDataSourceTest {
 				startImportCollector.forward(msg, getContext());
 				
 				getSender().tell(new Ack(), getSelf());
-			} else if(msg instanceof Records) {
+			} else if(msg instanceof Item) {
 				log.debug("records received");
 				
-				records.addAll(((Records)msg).getRecords());
+				records.addAll(((Item<Records>)msg).getContent().getRecords());
 				getSender().tell(new NextItem(), getSelf());
 			} else if(msg instanceof End) {
 				log.debug("end received");

@@ -48,6 +48,7 @@ import nl.idgis.publisher.service.provisioning.messages.RemovePublicationService
 import nl.idgis.publisher.service.provisioning.messages.RemoveStagingService;
 import nl.idgis.publisher.service.provisioning.messages.UpdateServiceInfo;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -239,14 +240,20 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof UpdateServiceInfo) {
 					handleUpdateServiceInfo((UpdateServiceInfo)msg);
-				} else if(msg instanceof PublishedServiceIndex) {
-					PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)msg;
+				} else if(msg instanceof Item) {
+					Object item = ((Item<?>)msg).getContent();
 					
-					String environmentId = publishedServiceIndex.getEnvironmentId();
-					ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
-					indices.put(environmentId, serviceIndex);
-					
-					log.debug("published service index received, environmentId: {}", environmentId);
+					if(item instanceof PublishedServiceIndex) {					
+						PublishedServiceIndex publishedServiceIndex = (PublishedServiceIndex)item;
+						
+						String environmentId = publishedServiceIndex.getEnvironmentId();
+						ServiceIndex serviceIndex = publishedServiceIndex.getServiceIndex();
+						indices.put(environmentId, serviceIndex);
+						
+						log.debug("published service index received, environmentId: {}", environmentId);
+					} else {
+						log.error("unknown item received: {}", item);
+					}
 					
 					getSender().tell(new NextItem(), getSelf());
 				} else if(msg instanceof End) {

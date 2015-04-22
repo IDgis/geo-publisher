@@ -6,7 +6,6 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.folder.messages.Eof;
-import nl.idgis.publisher.folder.messages.FileChunk;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.StreamCursor;
 
@@ -15,7 +14,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChunk> {
+public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, byte[]> {
 	
 	private static final int CHUNK_SIZE = 102400;
 	
@@ -27,7 +26,7 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 	
 	private boolean eof;
 	
-	private CompletableFuture<FileChunk> future;
+	private CompletableFuture<byte[]> future;
 
 	public ChannelCursor(AsynchronousFileChannel channel) {
 		super(channel);
@@ -57,11 +56,11 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 	
 	@Override
 	protected void onReceiveElse(Object msg) {
-		if(msg instanceof FileChunk) {
-			FileChunk chunk = (FileChunk)msg;
+		if(msg instanceof byte[]) {
+			byte[] chunk = (byte[])msg;
 			
 			future.complete(chunk);
-			position += chunk.getContent().length;
+			position += chunk.length;
 		} else if(msg instanceof Eof) {
 			eof = true;
 		} else if(msg instanceof Failure) {
@@ -75,7 +74,7 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 	}
 
 	@Override
-	protected CompletableFuture<FileChunk> next() {
+	protected CompletableFuture<byte[]> next() {
 		future = new CompletableFuture<>();
 		
 		t.read(buffer, position, getSelf(), new CompletionHandler<Integer, ActorRef>() {
@@ -86,14 +85,14 @@ public class ChannelCursor extends StreamCursor<AsynchronousFileChannel, FileChu
 				
 				if(result == -1) {
 					self.tell(new Eof(), self);
-					self.tell(new FileChunk(new byte[0]), self);
+					self.tell(new byte[0], self);
 				} else {
 					buffer.flip();
 					
 					byte[] chunk = new byte[result];
 					buffer.get(chunk);
 					
-					self.tell(new FileChunk(chunk), self);
+					self.tell(chunk, self);
 					
 					buffer.clear();
 				}
