@@ -115,6 +115,64 @@
     						<alias>server</alias>		
     					</configuration>
     				</execution>
+    				<execution>
+    					<id>client-cert</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>exportCertificate</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/client.jks</keystore>
+          					<storepass>client</storepass>
+          					<keypass>client</keypass>          					
+    						<alias>client</alias>
+    						<file>${test.keystore.directory}/client.cer</file>
+    						<rfc>true</rfc>		
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>server-cert</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>exportCertificate</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/server.jks</keystore>
+          					<storepass>server</storepass>
+          					<keypass>server</keypass>          					
+    						<alias>server</alias>
+    						<file>${test.keystore.directory}/server.cer</file>
+    						<rfc>true</rfc>		
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>trusted-keystore-client</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>importCertificate</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/trusted.jks</keystore>
+    						<storepass>trusted</storepass>          					          					
+    						<alias>client</alias>
+    						<file>${test.keystore.directory}/client.cer</file>
+    						<noprompt>true</noprompt>    								
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>trusted-keystore-server</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>importCertificate</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/trusted.jks</keystore>
+    						<storepass>trusted</storepass>          					          					
+    						<alias>server</alias>
+    						<file>${test.keystore.directory}/server.cer</file>
+    						<noprompt>true</noprompt>    								
+    					</configuration>
+    				</execution>
     			</executions>
     		</plugin>
     	</plugins>
@@ -141,6 +199,12 @@
     									</versionRange>
     									<goals>
     										<goal>generateKeyPair</goal>
+    										<goal>
+    											exportCertificate
+    										</goal>
+    										<goal>
+    											importCertificate
+    										</goal>
     									</goals>
     								</pluginExecutionFilter>
     								<action>

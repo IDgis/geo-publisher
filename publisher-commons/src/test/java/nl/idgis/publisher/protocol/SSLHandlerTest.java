@@ -35,17 +35,24 @@ public class SSLHandlerTest {
 	
 	@Before
 	public void config() {
+		URL trustedKeyStore = SSLHandlerTest.class.getResource("trusted.jks");
+		assertNotNull(trustedKeyStore);
+		
+		Config trustedConfig = ConfigFactory.empty()
+			.withValue("trusted.password", ConfigValueFactory.fromAnyRef("trusted"))
+			.withValue("trusted.file", ConfigValueFactory.fromAnyRef(trustedKeyStore.getFile()));
+		
 		URL clientKeyStore = SSLHandlerTest.class.getResource("client.jks");
 		assertNotNull(clientKeyStore);
 		
-		clientConfig = ConfigFactory.empty()
+		clientConfig = trustedConfig
 			.withValue("private.password", ConfigValueFactory.fromAnyRef("client"))
 			.withValue("private.file", ConfigValueFactory.fromAnyRef(clientKeyStore.getFile()));
 		
 		URL serverKeyStore = SSLHandlerTest.class.getResource("server.jks");
 		assertNotNull(serverKeyStore);
 		
-		serverConfig = ConfigFactory.empty()
+		serverConfig = trustedConfig
 			.withValue("private.password", ConfigValueFactory.fromAnyRef("server"))
 			.withValue("private.file", ConfigValueFactory.fromAnyRef(serverKeyStore.getFile()));
 	}
