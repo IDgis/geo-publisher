@@ -118,8 +118,13 @@ public class SSLHandler extends UntypedActorWithStash {
 		
 		log.debug("creating ssl engine");
 		sslEngine = sslContext.createSSLEngine();
-		sslEngine.setUseClientMode(!isServer);
-		sslEngine.setWantClientAuth(false);
+		
+		if(isServer) {
+			sslEngine.setUseClientMode(false);		
+			sslEngine.setNeedClientAuth(true);
+		} else {
+			sslEngine.setUseClientMode(true);
+		}
 		
 		SSLSession sslSession = sslEngine.getSession();
 		int bufferSize = sslSession.getApplicationBufferSize() + 50;
