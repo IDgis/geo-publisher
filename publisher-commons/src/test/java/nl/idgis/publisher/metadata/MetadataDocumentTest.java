@@ -15,6 +15,8 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import nl.idgis.publisher.metadata.MetadataDocument.Topic;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
 
 public class MetadataDocumentTest {
@@ -537,5 +539,37 @@ public class MetadataDocumentTest {
 		assertEquals("5a69e9d5-611c-4818-a181-685ef4c81085", document.getFileIdentifier()); 
 		document.setFileIdentifier("bc509f92-5d8c-4169-818b-49ff6a7576c3");
 		assertEquals("bc509f92-5d8c-4169-818b-49ff6a7576c3", document.getFileIdentifier());
+	}
+	
+	@Test(expected=NotFound.class)
+	public void testGetDatasetRevisionDate() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		// should return the revision date
+		Date date = document.getDatasetRevisionDate(); 
+		
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		assertEquals(2013, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
+		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
+		
+		document.xmlDocument.removeNodes(document.namespaces,
+			document.getDatePath(Topic.DATASET, MetadataDocument.REVISION));
+		
+		// should return the creation date
+		date = document.getDatasetRevisionDate();		
+		
+		calendar = Calendar.getInstance();
+		calendar.setTime(date);
+		assertEquals(1996, calendar.get(Calendar.YEAR));
+		assertEquals(Calendar.JUNE, calendar.get(Calendar.MONTH));
+		assertEquals(9, calendar.get(Calendar.DAY_OF_MONTH));
+		
+		document.xmlDocument.removeNodes(document.namespaces,
+				document.getDatePath(Topic.DATASET, MetadataDocument.CREATION));
+		
+		// should fail (raise NotFound exception)
+		document.getDatasetRevisionDate();
 	}
 }
