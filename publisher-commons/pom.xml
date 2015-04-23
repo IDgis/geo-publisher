@@ -74,4 +74,85 @@
 		</dependency>
     </dependencies>
     
+    <properties>
+    	<test.keystore.directory>${project.build.testOutputDirectory}/nl/idgis/publisher/protocol</test.keystore.directory>
+    </properties>
+    
+    <build>
+    	<plugins>
+    		<plugin>
+    			<groupId>org.codehaus.mojo</groupId>
+    			<artifactId>keytool-maven-plugin</artifactId>
+    			<version>1.5</version>
+    			<configuration>
+    				<keyalg>RSA</keyalg>
+    				<dname>cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL</dname>
+    			</configuration>
+    			<executions>    				
+    				<execution>
+    					<id>client-keystore</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>generateKeyPair</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/client.jks</keystore>
+          					<storepass>client</storepass>
+          					<keypass>client</keypass>          					
+    						<alias>client</alias>		
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>server-keystore</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>generateKeyPair</goal>
+						</goals>
+    					<configuration>
+    						<keystore>${test.keystore.directory}/server.jks</keystore>
+          					<storepass>server</storepass>
+          					<keypass>server</keypass>          					
+    						<alias>server</alias>		
+    					</configuration>
+    				</execution>
+    			</executions>
+    		</plugin>
+    	</plugins>
+    	<pluginManagement>
+    		<plugins>
+    			<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+    			<plugin>
+    				<groupId>org.eclipse.m2e</groupId>
+    				<artifactId>lifecycle-mapping</artifactId>
+    				<version>1.0.0</version>
+    				<configuration>
+    					<lifecycleMappingMetadata>
+    						<pluginExecutions>
+    							<pluginExecution>
+    								<pluginExecutionFilter>
+    									<groupId>
+    										org.codehaus.mojo
+    									</groupId>
+    									<artifactId>
+    										keytool-maven-plugin
+    									</artifactId>
+    									<versionRange>
+    										[1.5,)
+    									</versionRange>
+    									<goals>
+    										<goal>generateKeyPair</goal>
+    									</goals>
+    								</pluginExecutionFilter>
+    								<action>
+    									<ignore></ignore>
+    								</action>
+    							</pluginExecution>
+    						</pluginExecutions>
+    					</lifecycleMappingMetadata>
+    				</configuration>
+    			</plugin>
+    		</plugins>
+    	</pluginManagement>
+    </build>
+    
 </project>
