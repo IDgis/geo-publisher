@@ -3,6 +3,7 @@ package nl.idgis.publisher.protocol;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -14,6 +15,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -136,7 +138,20 @@ public class SSLHandler extends UntypedActorWithStash {
 		
 		if(status == HandshakeStatus.FINISHED) {
 			log.debug("handshake completed: flushing write buffer");
-			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
+			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());			
+						
+			SSLSession session = sslEngine.getSession();
+			log.info("ssl session established");
+			try {
+				Certificate[] certificates = session.getPeerCertificates();
+				log.info("certificate chain length: {}", certificates.length);							
+				for(int i = 0; i < certificates.length; i++) {									
+					log.info("certificate: {} {}", i, certificates[i]);				
+				}
+			} catch(SSLPeerUnverifiedException e) {
+				log.warning("peer unverified");
+			}
+			
 			getContext().become(handshakeCompleted());
 		} else {
 			log.debug("handshake in progress");
