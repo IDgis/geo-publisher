@@ -23,7 +23,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.actor.UntypedActorWithStash;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Tcp;
@@ -34,7 +34,7 @@ import akka.io.Tcp.Received;
 import akka.japi.Procedure;
 import akka.util.ByteString;
 
-public class SSLHandler extends UntypedActor {
+public class SSLHandler extends UntypedActorWithStash {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -45,8 +45,6 @@ public class SSLHandler extends UntypedActor {
 	private SSLEngine sslEngine;	
 	private ByteBuffer netOutput, appInput;
 	private ByteString netInput, appOutput;
-	
-	private boolean waitingForAck = false;
 	
 	private static class Ack implements Event {
 		
@@ -134,13 +132,7 @@ public class SSLHandler extends UntypedActor {
 	}
 	
 	private void handleHandshake(SSLEngineResult sslResult) {		
-		final HandshakeStatus status;
-		
-		if(sslResult == null) {			
-			status = sslEngine.getHandshakeStatus();
-		} else {
-			status = sslResult.getHandshakeStatus();
-		}
+		final HandshakeStatus status = sslResult.getHandshakeStatus();
 		
 		if(status == HandshakeStatus.FINISHED) {
 			log.debug("handshake completed: flushing write buffer");
@@ -191,26 +183,14 @@ public class SSLHandler extends UntypedActor {
 		} else if(msg instanceof Tcp.Write) {
 			final SSLEngineResult sslResult = wrap(msg);
 			
-			handleHandshake(sslResult);			
-			if(sslResult != null) {							
-				sendNetData(sslResult);
-			}
+			handleHandshake(sslResult);
+			sendNetData(sslResult);			
 		} else if(msg instanceof ConnectionClosed) {
 			listener.tell(msg, getSelf());
-		} else if(msg instanceof Ack) {
-			writeAcknowledged();
 		} else {			
 			unhandled(msg);
 		}
-	}
-
-	private void writeAcknowledged() {
-		log.debug("write acknowledged");
-		
-		waitingForAck = false;
-		
-		getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
-	}
+	}	
 	
 	private Procedure<Object> handshakeCompleted() {
 		return new Procedure<Object>() {
@@ -220,18 +200,31 @@ public class SSLHandler extends UntypedActor {
 				if(msg instanceof Received) {			
 					sendAppData(unwrap(msg));
 				} else if(msg instanceof Tcp.Write) {
-					SSLEngineResult sslResult = wrap(msg);
-					if(sslResult != null) {
-						sendNetData(sslResult);
-					}
-				} else if(msg instanceof Ack) {
-					writeAcknowledged();
-				} else if(msg instanceof ConnectionClosed) {
+					sendNetData(wrap(msg));
+				} if(msg instanceof ConnectionClosed) {
 					listener.tell(msg, getSelf());
 				} else {
 					unhandled(msg);
 				}
 			}
+		};
+	}
+	
+	private Procedure<Object> waitingForAck() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("write acknowledged");
+					
+					unstashAll();
+					getContext().unbecome();
+				} else {
+					stash();
+				}
+			}
+			
 		};
 	}
 
@@ -243,7 +236,7 @@ public class SSLHandler extends UntypedActor {
 			connection.tell(TcpMessage.write(ByteString.fromByteBuffer(netOutput), new Ack()), getSelf());
 			netOutput.clear();
 			
-			waitingForAck = true;
+			getContext().become(waitingForAck(), false);
 		}
 	}
 
@@ -252,22 +245,17 @@ public class SSLHandler extends UntypedActor {
 		
 		appOutput = appOutput.concat(((Tcp.Write) msg).data());
 		
-		if(waitingForAck) {
-			log.debug("waiting for acknowledgment");			
-			return null;
-		} else {
-			SSLEngineResult sslResult = sslEngine.wrap(appOutput.asByteBuffer(), netOutput);
-			log.debug("sslResult: " + sslResult);
-			
-			appOutput = appOutput.drop(sslResult.bytesConsumed());
-			log.debug("pending: " + appOutput.size());
-			if(appOutput.size() > 0) {
-				log.debug("requesting wrap");
-				getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
-			}
-			
-			return sslResult;
+		SSLEngineResult sslResult = sslEngine.wrap(appOutput.asByteBuffer(), netOutput);
+		log.debug("sslResult: " + sslResult);
+		
+		appOutput = appOutput.drop(sslResult.bytesConsumed());
+		log.debug("pending: " + appOutput.size());
+		if(appOutput.size() > 0) {
+			log.debug("requesting wrap");
+			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
 		}
+		
+		return sslResult;		
 	}
 
 	private void sendAppData(SSLEngineResult sslResult) {
