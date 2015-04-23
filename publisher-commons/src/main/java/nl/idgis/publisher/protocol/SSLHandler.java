@@ -133,8 +133,14 @@ public class SSLHandler extends UntypedActor {
 		appOutput = ByteString.empty();
 	}
 	
-	private void handleHandshake(SSLEngineResult sslResult) {
-		HandshakeStatus status = sslEngine.getHandshakeStatus();
+	private void handleHandshake(SSLEngineResult sslResult) {		
+		final HandshakeStatus status;
+		
+		if(sslResult == null) {			
+			status = sslEngine.getHandshakeStatus();
+		} else {
+			status = sslResult.getHandshakeStatus();
+		}
 		
 		if(status == HandshakeStatus.FINISHED) {
 			log.debug("handshake completed: flushing write buffer");
