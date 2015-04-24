@@ -268,11 +268,15 @@ public class SSLHandler extends UntypedActorWithStash {
 		SSLEngineResult sslResult = sslEngine.wrap(appOutput.asByteBuffer(), netOutput);
 		log.debug("sslResult: " + sslResult);
 		
-		appOutput = appOutput.drop(sslResult.bytesConsumed());
-		log.debug("pending: " + appOutput.size());
-		if(appOutput.size() > 0) {
-			log.debug("requesting wrap");
-			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
+		int bytesConsumed = sslResult.bytesConsumed();
+		log.debug("bytes consumed: {}", bytesConsumed);
+		if(bytesConsumed > 0) {
+			appOutput = appOutput.drop(bytesConsumed);
+			log.debug("pending: " + appOutput.size());
+			if(appOutput.size() > 0) {
+				log.debug("requesting wrap");
+				getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
+			}
 		}
 		
 		return sslResult;		
@@ -296,11 +300,15 @@ public class SSLHandler extends UntypedActorWithStash {
 		SSLEngineResult sslResult = sslEngine.unwrap(netInput.toByteBuffer(), appInput);		
 		log.debug("sslResult: " + sslResult);
 		
-		netInput = netInput.drop(sslResult.bytesConsumed());		
-		log.debug("pending: " + netInput.size());
-		if(netInput.size() > 0) {
-			log.debug("requesting unwrap");
-			getSelf().tell(new Received(ByteString.empty()), getSelf());
+		int bytesConsumed = sslResult.bytesConsumed();
+		log.debug("bytes consumed: {}", bytesConsumed);
+		if(bytesConsumed > 0) {
+			netInput = netInput.drop(bytesConsumed);
+			log.debug("pending: " + netInput.size());
+			if(netInput.size() > 0) {
+				log.debug("requesting unwrap");
+				getSelf().tell(new Received(ByteString.empty()), getSelf());
+			}
 		}
 		
 		return sslResult;
