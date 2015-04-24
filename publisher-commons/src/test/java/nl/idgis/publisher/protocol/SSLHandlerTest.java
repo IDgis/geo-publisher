@@ -23,7 +23,6 @@ import akka.japi.Procedure;
 import akka.util.ByteString;
 
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import static org.junit.Assert.assertEquals;
@@ -230,7 +229,7 @@ public class SSLHandlerTest {
 	@Test
 	public void testTranceiving() throws Exception {
 		ActorRef clientConnection = actorSystem.actorOf(ConnectionMock.props(), "client-connection");		
-		ActorRef clientListener = actorSystem.actorOf(AnyRecorder.props(), "client-listener");		
+		ActorRef clientListener = actorSystem.actorOf(Receiver.props(), "client-listener");		
 		ActorRef clientHandler = actorSystem.actorOf(
 			SSLHandler.props(clientConfig, false, clientConnection, clientListener),
 			"client-handler");
@@ -246,15 +245,23 @@ public class SSLHandlerTest {
 		
 		serverConnection.tell(new Sync(), clientConnection);
 		
-		ByteString message = ByteString.empty();
+		final int repeatCount = 1000;
+		ByteString message = ByteString.empty();		
+		ByteString messagePart = ByteString.fromString("Hello world!");
 		
-		for(int i = 0; i < 1000; i++) {
-			message = message.concat(ByteString.fromString("Hello world!"));
+		for(int i = 0; i < repeatCount; i++) {
+			clientHandler.tell(TcpMessage.write(messagePart), clientListener);
+			message = message.concat(messagePart);
 		}
 		
-		clientHandler.tell(TcpMessage.write(message), clientListener);
-		
 		ByteString received = f.ask(serverListener, new GetReceived(message.size()), ByteString.class).get();
+		assertEquals(received, message);
+		
+		for(int i = 0; i < repeatCount; i++) {
+			serverHandler.tell(TcpMessage.write(messagePart), serverListener);		
+		}
+		
+		received = f.ask(clientListener, new GetReceived(message.size()), ByteString.class).get();
 		assertEquals(received, message);
 	}
 	
