@@ -88,7 +88,37 @@
     				<keyalg>RSA</keyalg>
     				<dname>cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL</dname>
     			</configuration>
-    			<executions>    				
+    			<executions>
+    				<execution>
+    					<id>clean-client-keystore</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>clean</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/client.jks</keystore>          							
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>clean-server-keystore</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>clean</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/server.jks</keystore>          							
+    					</configuration>
+    				</execution>
+    				<execution>
+    					<id>clean-trusted-keystore</id>
+    					<phase>generate-test-resources</phase>
+    					<goals>
+							<goal>clean</goal>
+						</goals>    				
+    					<configuration>
+    						<keystore>${test.keystore.directory}/trusted.jks</keystore>          							
+    					</configuration>
+    				</execution>
     				<execution>
     					<id>client-keystore</id>
     					<phase>generate-test-resources</phase>
@@ -205,6 +235,7 @@
     										<goal>
     											importCertificate
     										</goal>
+    										<goal>clean</goal>
     									</goals>
     								</pluginExecutionFilter>
     								<action>
