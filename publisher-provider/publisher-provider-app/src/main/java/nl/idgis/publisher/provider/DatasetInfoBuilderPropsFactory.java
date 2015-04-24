@@ -9,5 +9,5 @@ import akka.actor.Props;
 
 public interface DatasetInfoBuilderPropsFactory {
 
-	Props props(ActorRef sender, ActorRef converter, Set<AttachmentType> requestedAttachmentTypes);
+	Props props(ActorRef sender, Set<AttachmentType> requestedAttachmentTypes);
 }

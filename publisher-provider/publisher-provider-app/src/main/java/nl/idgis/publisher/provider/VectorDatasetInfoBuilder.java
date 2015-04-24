@@ -26,15 +26,15 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	private Long numberOfRecords;
 
-	public VectorDatasetInfoBuilder(ActorRef sender, ActorRef converter, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
-		super(sender, converter, requestedAttachmentTypes);
+	public VectorDatasetInfoBuilder(ActorRef sender, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
+		super(sender, requestedAttachmentTypes);
 		
 		this.database = database;
 	}
 	
 	public static DatasetInfoBuilderPropsFactory props(ActorRef database) {
-		return (sender, converter, requestedAttachmentTypes) ->		
-			Props.create(VectorDatasetInfoBuilder.class, sender, converter, database, requestedAttachmentTypes);
+		return (sender, requestedAttachmentTypes) ->		
+			Props.create(VectorDatasetInfoBuilder.class, sender, database, requestedAttachmentTypes);
 	}
 	
 	protected void onReceiveElse(Object msg) throws Exception {

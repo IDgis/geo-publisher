@@ -19,13 +19,17 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.utils.FutureUtils;
 
-public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
+public abstract class StreamCursor<T, V> extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final T t;
 	
 	protected FutureUtils f;
+	
+	private long seq = -1;
+	
+	private V lastItem;
 		
 	public StreamCursor(T t) {
 		this.t = t;
@@ -50,30 +54,61 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 	protected void onReceiveElse(Object msg) throws Exception {
 		unhandled(msg);
 	}
+	
+	private static class ItemReceived<T> {
+		
+		final T item;
+		
+		final ActorRef sender;
+		
+		ItemReceived(T item, ActorRef sender) {
+			this.item = item;
+			this.sender = sender;
+		}
+		
+		T getItem() {
+			return item;
+		}
+		
+		ActorRef getSender() {
+			return sender;
+		}
+	}
 
 	@Override
 	public final void onReceive(Object msg) throws Exception {
 		if (msg instanceof NextItem) {
 			log.debug("next");
-			if(hasNext()) {
-				
-				ActorRef sender = getSender(), self = getSelf();				
-				next().whenComplete((v, t) -> {
+			
+			long requestedSeq = ((NextItem)msg).getSequenceNumber().orElse(seq + 1);
+			if(requestedSeq == seq) {
+				log.debug("resend last item");
+				getSender().tell(new Item<>(seq, lastItem), getSelf());
+			} else if(requestedSeq == seq + 1) {
+				log.debug("new item");
+				if(hasNext()) {
+					seq++;
 					
-					if(t != null) {
-						log.error("next completed exceptionally: {}", t);
+					ActorRef sender = getSender(), self = getSelf();				
+					next().whenComplete((item, throwable) -> {
 						
-						sender.tell(new Failure(t), self);
-						self.tell(PoisonPill.getInstance(), self);
-					} else {
-						sender.tell(v, self);
-					}					
-				});
+						if(throwable != null) {
+							log.error("next completed exceptionally: {}", throwable);
+							
+							sender.tell(new Failure(throwable), self);
+							self.tell(PoisonPill.getInstance(), self);
+						} else {
+							self.tell(new ItemReceived<>(item, sender), self);
+						}					
+					});
+				} else {
+					log.debug("end");
+					
+					getSender().tell(new End(), getSelf());
+					getContext().stop(getSelf());
+				}
 			} else {
-				log.debug("end");
-				
-				getSender().tell(new End(), getSelf());
-				getContext().stop(getSelf());
+				getSender().tell(new Failure(new IllegalStateException("requested sequence number invalid")), getSelf());
 			}
 		} else if (msg instanceof Stop) {
 			log.debug("stopped");
@@ -81,6 +116,14 @@ public abstract class StreamCursor<T, V extends Item> extends UntypedActor {
 		} else if (msg instanceof ReceiveTimeout){
 			log.error("timeout");
 			getContext().stop(getSelf());
+		} else if (msg instanceof ItemReceived) {
+			log.debug("item received");
+			
+			@SuppressWarnings("unchecked")
+			ItemReceived<V> itemReceived = (ItemReceived<V>)msg;
+			
+			lastItem = itemReceived.getItem();
+			itemReceived.getSender().tell(new Item<>(seq, lastItem), getSelf());
 		} else {			
 			onReceiveElse(msg);
 		}

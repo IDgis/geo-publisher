@@ -1,12 +1,12 @@
 package nl.idgis.publisher.service.manager.messages;
 
+import java.io.Serializable;
+
 import org.w3c.dom.Document;
 
-import nl.idgis.publisher.stream.messages.Item;
-
-public class Style extends Item {	
-
-	private static final long serialVersionUID = 3913869022340793843L;
+public class Style implements Serializable {
+	
+	private static final long serialVersionUID = 2837719446303072319L;
 
 	private final String styleName;
 

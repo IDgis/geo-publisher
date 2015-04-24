@@ -25,15 +25,21 @@ import nl.idgis.publisher.messages.Progress;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends StartImport> extends UntypedActor {
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	protected static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(30, TimeUnit.SECONDS);
+	protected static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(15, TimeUnit.SECONDS);
+	
+	protected static final int DEFAULT_MAX_RETRIES = 5;
 	
 	protected final Duration receiveTimeout;
+	
+	private final int maxRetries;
 	
 	private final ActorRef loader;
 	
@@ -44,6 +50,8 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 	protected FutureUtils f;
 	
 	protected long progressTarget = 0;
+	
+	private ActorRef lastItemSender;
 	
 	protected static class FinalizeSession implements Serializable {
 
@@ -65,8 +73,9 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		}		
 	}
 	
-	protected AbstractLoaderSession(Duration receiveTimeout, ActorRef loader, T importJob, ActorRef jobContext) {
+	protected AbstractLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, T importJob, ActorRef jobContext) {
 		this.receiveTimeout = receiveTimeout;
+		this.maxRetries = maxRetries;
 		this.loader = loader;
 		this.importJob = importJob;
 		this.jobContext = jobContext;
@@ -85,7 +94,11 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		getSelf().tell(new FinalizeSession(JobState.ABORTED), getSelf());
 	}
 	
-	protected final void onReceiveElse(Object msg) {
+	protected void onReceiveElse(Object msg) {
+		unhandled(msg);
+	}
+	
+	protected final void onReceiveCommon(Object msg) {
 		if(msg instanceof ReceiveTimeout) {				
 			handleTimeout();
 		} else if(msg instanceof FinalizeSession) {
@@ -95,7 +108,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		} else if(msg instanceof End) {
 			handleEnd((End)msg);
 		} else {
-			unhandled(msg);
+			onReceiveElse(msg);
 		}
 	}
 	
@@ -128,7 +141,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		if(msg instanceof StartImport) {
 			handleStartImport((U)msg);
 		} else {
-			onReceiveElse(msg);
+			onReceiveCommon(msg);
 		}
 	}
 	
@@ -140,7 +153,39 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		loader.tell(new Progress(progress(), progressTarget), getSelf());
 	}
 	
-	protected abstract Procedure<Object> importing();
+	private Procedure<Object> importing() {
+		return new Procedure<Object>() {
+			
+			private long lastSeq = -1;
+			
+			private int retries = maxRetries;
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Item<?>) {
+					Item<?> item = (Item<?>)msg;
+					long seq = item.getSequenceNumber();
+					if(seq == lastSeq + 1) {
+						lastSeq = seq;
+						lastItemSender = getSender();
+						retries = maxRetries;
+						
+						handleItemContent(item.getContent());
+					} else {
+						log.warning("unexpected sequence number: {}, expected: {}", seq, lastSeq + 1);
+					}
+				} else if(msg instanceof ReceiveTimeout && retries > 0) {
+					log.warning("timemout, requesting retry");
+					lastItemSender.tell(new NextItem(lastSeq + 1), getSelf());
+					retries--;
+				} else {
+					onReceiveCommon(msg);
+				}
+			}			
+		};
+	}
+	
+	protected abstract void handleItemContent(Object content) throws Exception;
 	
 	private void handleStartImport(U msg) {
 		log.info("starting import");

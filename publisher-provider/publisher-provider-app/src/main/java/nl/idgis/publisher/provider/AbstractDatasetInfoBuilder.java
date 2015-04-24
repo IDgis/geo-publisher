@@ -33,8 +33,6 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	protected final ActorRef sender, converter;
-	
 	protected final Set<AttachmentType> requestedAttachmentTypes;
 	
 	protected Set<Attachment> attachments;
@@ -49,9 +47,10 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected boolean confidential = false;
 	
-	protected AbstractDatasetInfoBuilder(ActorRef sender, ActorRef converter, Set<AttachmentType> requestedAttachmentTypes) {
-		this.sender = sender;		
-		this.converter = converter;		
+	private final ActorRef sender;
+	
+	protected AbstractDatasetInfoBuilder(ActorRef sender, Set<AttachmentType> requestedAttachmentTypes) {
+		this.sender = sender;
 		this.requestedAttachmentTypes = requestedAttachmentTypes;
 	}
 	
@@ -81,7 +80,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			tellTarget(new DatasetNotFound(((MetadataNotFound) msg).getIdentification()));
 		} else if(msg instanceof MetadataItem) {
 			log.debug("metadata item");
-			
+				
 			handleMetadataItem((MetadataItem)msg);
 		}  else {
 			onReceiveElse(msg);
@@ -91,7 +90,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	protected void tellTarget(Object msg) {
 		log.debug("result: {}", msg);
 		
-		sender.tell(msg, converter);
+		sender.tell(msg, getSelf());
 		getContext().stop(getSelf());
 	}
 	

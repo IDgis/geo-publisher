@@ -34,10 +34,10 @@ import static org.junit.Assert.assertTrue;
 
 public class VectorDatasetInfoBuilderTest {
 	
+	ActorRef database;
+	
 	ActorSystem actorSystem;
-	
-	ActorRef builder, sender, converter;
-	
+		
 	FutureUtils f;
 	
 	byte[] metadata;
@@ -51,11 +51,7 @@ public class VectorDatasetInfoBuilderTest {
 		actorSystem = ActorSystem.apply("test", akkaConfig);
 		
 		ActorRef databaseRecorder = actorSystem.actorOf(Recorder.props(), "database-recorder");		
-		ActorRef database = actorSystem.actorOf(DatabaseMock.props(databaseRecorder), "database");
-		
-		sender = actorSystem.actorOf(AnyRecorder.props(), "sender");		
-		converter = actorSystem.actorOf(Recorder.props(), "converter");		
-		builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database).props(sender, converter, Collections.emptySet()), "builder");
+		database = actorSystem.actorOf(DatabaseMock.props(databaseRecorder), "database");
 		
 		f = new FutureUtils(actorSystem);
 	}
@@ -76,12 +72,14 @@ public class VectorDatasetInfoBuilderTest {
 		
 		assertEquals("alleen voor intern gebruik", metadataDocument.getOtherConstraints());
 		
+		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
+		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database).props(recorder, Collections.emptySet()), "builder");
+		
 		builder.tell(new MetadataItem("id", metadata), ActorRef.noSender());
 		
-		f.ask(sender, new Wait(1), Waited.class).get();
-		f.ask(sender, new GetRecording(), Recording.class).get()
+		f.ask(recorder, new Wait(1), Waited.class).get();
+		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(UnavailableDatasetInfo.class, (datasetInfo, sender) -> {
-				assertEquals(converter, sender);
 				assertTrue(datasetInfo.isConfidential());
 			})
 			.assertNotHasNext();

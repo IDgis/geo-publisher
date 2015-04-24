@@ -76,6 +76,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
@@ -213,13 +214,15 @@ public class LoaderTest extends AbstractServiceTest {
 			
 			return new Procedure<Object>() {
 				
+				long seq = 0;
+				
 				{
 					sendResponse();
 				}
 				
 				void sendResponse() {
 					if(itr.hasNext()) {
-						getSender().tell(itr.next(), getSelf());
+						getSender().tell(new Item<>(seq++, itr.next()), getSelf());
 					} else {
 						getSender().tell(new End(), getSelf());
 						getContext().unbecome();

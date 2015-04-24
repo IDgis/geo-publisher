@@ -7,9 +7,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.stream.messages.Item;
-
-public class IteratorCursor<T extends Item> extends StreamCursor<Iterator<T>, T>{
+public class IteratorCursor<T> extends StreamCursor<Iterator<T>, T>{
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -17,7 +15,7 @@ public class IteratorCursor<T extends Item> extends StreamCursor<Iterator<T>, T>
 		super(t);
 	}
 	
-	public static <T extends Item> Props props(Iterator<T> t) {
+	public static <T> Props props(Iterator<T> t) {
 		return Props.create(IteratorCursor.class, t);
 	}
 

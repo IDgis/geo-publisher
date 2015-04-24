@@ -20,6 +20,7 @@ import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import static java.util.stream.Collectors.toSet;
 
@@ -59,10 +60,18 @@ public class InfoCollector extends UntypedActor {
 			
 			service = (Service)msg;
 			handleContentReceived();
-		} else if(msg instanceof Style) {
-			log.debug("style received");
+		} else if(msg instanceof Item) {
+			log.debug("item received");
 			
-			styles.add((Style)msg);
+			Object item = ((Item<?>)msg).getContent();
+			if(item instanceof Style) {
+				log.debug("style received");
+				
+				styles.add((Style)item);
+			} else {
+				log.error("unknown item received: {}", item);
+			}
+			
 			getSender().tell(new NextItem(), getSelf());
 		} else if(msg instanceof End) {
 			log.debug("all styles received");

@@ -9,15 +9,16 @@ import java.util.concurrent.CompletableFuture;
 import akka.actor.ActorRef;
 import akka.actor.Identify;
 import akka.actor.Props;
-import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.InsertRecord;
 import nl.idgis.publisher.database.messages.Rollback;
+
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
+
 import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
@@ -34,36 +35,28 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	private long insertCount = 0, filteredCount = 0;
 	
-	public VectorLoaderSession(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
-		super(receiveTimeout, loader, importJob, jobContext);
+	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.filterEvaluator = filterEvaluator;
 		this.transaction = transaction;
 	}
 	
-	public static Props props(Duration receiveTimeout, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(VectorLoaderSession.class, receiveTimeout, loader, importJob, filterEvaluator, transaction, jobContext);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, filterEvaluator, transaction, jobContext);
 	}
 	
 	public static Props props(ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, loader, importJob, filterEvaluator, transaction, jobContext);
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, filterEvaluator, transaction, jobContext);
 	}	
 	
 	@Override
-	protected Procedure<Object> importing() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Records) {			 			
-					handleRecords((Records)msg);
-				} else if(msg instanceof Record) {
-					handleRecord((Record)msg);
-				} else {
-					onReceiveElse(msg);
-				}
-			}			
-		};
+	protected void handleItemContent(Object content) throws Exception {
+		if(content instanceof Records) {			 			
+			handleRecords((Records)content);
+		} else  {
+			log.error("unknown item content: {}" + content);
+		}
 	}
 	
 	@Override
@@ -118,6 +111,14 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 				sender.tell(new NextItem(), self);
 			}
 		});		
+	}
+	
+	protected void onReceiveElse(Object msg) {
+		if(msg instanceof Record) {
+			handleRecord((Record)msg);
+		} else {
+			unhandled(msg);
+		}
 	}
 
 	private void handleRecord(final Record record) {

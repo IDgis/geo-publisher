@@ -15,16 +15,31 @@ import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 
 public abstract class StreamConverter extends UntypedActor {
 	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private ActorRef sender, producer;
 	
 	@Override
 	public final void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
+	}
+	
+	private Procedure<Object> converting(Item<?> original, ActorRef sender) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				log.debug("converted item received");
+				
+				sender.tell(new Item<>(original.getSequenceNumber(), msg), getSelf());
+				getContext().become(receive());
+			}
+			
+		};
 	}
 
 	@Override
@@ -43,7 +58,12 @@ public abstract class StreamConverter extends UntypedActor {
 			log.debug("item");
 			
 			producer = getSender();
-			convert((Item)msg, sender);
+			Item<?> item = (Item<?>)msg;
+			if(convert(item.getContent(), sender)) {
+				getContext().become(converting(item, sender));
+			} else {
+				unhandled(msg);
+			}
 		} else if(msg instanceof NextItem) {
 			log.debug("next item");
 			
@@ -65,6 +85,6 @@ public abstract class StreamConverter extends UntypedActor {
 	
 	protected abstract void start(Start msg) throws Exception;
 	
-	protected abstract void convert(Item msg, ActorRef sender) throws Exception;
+	protected abstract boolean convert(Object msg, ActorRef sender) throws Exception;
 	
 }
