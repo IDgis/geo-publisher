@@ -3,6 +3,7 @@ package nl.idgis.publisher.protocol;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -14,6 +15,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -23,7 +25,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.actor.UntypedActorWithStash;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.io.Tcp;
@@ -34,7 +36,7 @@ import akka.io.Tcp.Received;
 import akka.japi.Procedure;
 import akka.util.ByteString;
 
-public class SSLHandler extends UntypedActor {
+public class SSLHandler extends UntypedActorWithStash {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -45,8 +47,6 @@ public class SSLHandler extends UntypedActor {
 	private SSLEngine sslEngine;	
 	private ByteBuffer netOutput, appInput;
 	private ByteString netInput, appOutput;
-	
-	private boolean waitingForAck = false;
 	
 	private static class Ack implements Event {
 		
@@ -118,8 +118,13 @@ public class SSLHandler extends UntypedActor {
 		
 		log.debug("creating ssl engine");
 		sslEngine = sslContext.createSSLEngine();
-		sslEngine.setUseClientMode(!isServer);
-		sslEngine.setWantClientAuth(false);
+		
+		if(isServer) {
+			sslEngine.setUseClientMode(false);		
+			sslEngine.setNeedClientAuth(true);
+		} else {
+			sslEngine.setUseClientMode(true);
+		}
 		
 		SSLSession sslSession = sslEngine.getSession();
 		int bufferSize = sslSession.getApplicationBufferSize() + 50;
@@ -133,12 +138,25 @@ public class SSLHandler extends UntypedActor {
 		appOutput = ByteString.empty();
 	}
 	
-	private void handleHandshake(SSLEngineResult sslResult) {
-		HandshakeStatus status = sslEngine.getHandshakeStatus();
+	private void handleHandshake(SSLEngineResult sslResult) {		
+		final HandshakeStatus status = sslResult.getHandshakeStatus();
 		
 		if(status == HandshakeStatus.FINISHED) {
 			log.debug("handshake completed: flushing write buffer");
-			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
+			getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());			
+						
+			SSLSession session = sslEngine.getSession();
+			log.info("ssl session established");
+			try {
+				Certificate[] certificates = session.getPeerCertificates();
+				log.info("certificate chain length: {}", certificates.length);							
+				for(int i = 0; i < certificates.length; i++) {									
+					log.info("certificate: {} {}", i, certificates[i]);				
+				}
+			} catch(SSLPeerUnverifiedException e) {
+				log.warning("peer unverified");
+			}
+			
 			getContext().become(handshakeCompleted());
 		} else {
 			log.debug("handshake in progress");
@@ -185,26 +203,14 @@ public class SSLHandler extends UntypedActor {
 		} else if(msg instanceof Tcp.Write) {
 			final SSLEngineResult sslResult = wrap(msg);
 			
-			handleHandshake(sslResult);			
-			if(sslResult != null) {							
-				sendNetData(sslResult);
-			}
+			handleHandshake(sslResult);
+			sendNetData(sslResult);			
 		} else if(msg instanceof ConnectionClosed) {
 			listener.tell(msg, getSelf());
-		} else if(msg instanceof Ack) {
-			writeAcknowledged();
 		} else {			
 			unhandled(msg);
 		}
-	}
-
-	private void writeAcknowledged() {
-		log.debug("write acknowledged");
-		
-		waitingForAck = false;
-		
-		getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
-	}
+	}	
 	
 	private Procedure<Object> handshakeCompleted() {
 		return new Procedure<Object>() {
@@ -214,18 +220,31 @@ public class SSLHandler extends UntypedActor {
 				if(msg instanceof Received) {			
 					sendAppData(unwrap(msg));
 				} else if(msg instanceof Tcp.Write) {
-					SSLEngineResult sslResult = wrap(msg);
-					if(sslResult != null) {
-						sendNetData(sslResult);
-					}
-				} else if(msg instanceof Ack) {
-					writeAcknowledged();
-				} else if(msg instanceof ConnectionClosed) {
+					sendNetData(wrap(msg));
+				} if(msg instanceof ConnectionClosed) {
 					listener.tell(msg, getSelf());
 				} else {
 					unhandled(msg);
 				}
 			}
+		};
+	}
+	
+	private Procedure<Object> waitingForAck() {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("write acknowledged");
+					
+					unstashAll();
+					getContext().unbecome();
+				} else {
+					stash();
+				}
+			}
+			
 		};
 	}
 
@@ -237,7 +256,7 @@ public class SSLHandler extends UntypedActor {
 			connection.tell(TcpMessage.write(ByteString.fromByteBuffer(netOutput), new Ack()), getSelf());
 			netOutput.clear();
 			
-			waitingForAck = true;
+			getContext().become(waitingForAck(), false);
 		}
 	}
 
@@ -246,22 +265,21 @@ public class SSLHandler extends UntypedActor {
 		
 		appOutput = appOutput.concat(((Tcp.Write) msg).data());
 		
-		if(waitingForAck) {
-			log.debug("waiting for acknowledgment");			
-			return null;
-		} else {
-			SSLEngineResult sslResult = sslEngine.wrap(appOutput.asByteBuffer(), netOutput);
-			log.debug("sslResult: " + sslResult);
-			
-			appOutput = appOutput.drop(sslResult.bytesConsumed());
+		SSLEngineResult sslResult = sslEngine.wrap(appOutput.asByteBuffer(), netOutput);
+		log.debug("sslResult: " + sslResult);
+		
+		int bytesConsumed = sslResult.bytesConsumed();
+		log.debug("bytes consumed: {}", bytesConsumed);
+		if(bytesConsumed > 0) {
+			appOutput = appOutput.drop(bytesConsumed);
 			log.debug("pending: " + appOutput.size());
 			if(appOutput.size() > 0) {
 				log.debug("requesting wrap");
 				getSelf().tell(TcpMessage.write(ByteString.empty()), getSelf());
 			}
-			
-			return sslResult;
 		}
+		
+		return sslResult;		
 	}
 
 	private void sendAppData(SSLEngineResult sslResult) {
@@ -282,11 +300,15 @@ public class SSLHandler extends UntypedActor {
 		SSLEngineResult sslResult = sslEngine.unwrap(netInput.toByteBuffer(), appInput);		
 		log.debug("sslResult: " + sslResult);
 		
-		netInput = netInput.drop(sslResult.bytesConsumed());		
-		log.debug("pending: " + netInput.size());
-		if(netInput.size() > 0) {
-			log.debug("requesting unwrap");
-			getSelf().tell(new Received(ByteString.empty()), getSelf());
+		int bytesConsumed = sslResult.bytesConsumed();
+		log.debug("bytes consumed: {}", bytesConsumed);
+		if(bytesConsumed > 0) {
+			netInput = netInput.drop(bytesConsumed);
+			log.debug("pending: " + netInput.size());
+			if(netInput.size() > 0) {
+				log.debug("requesting unwrap");
+				getSelf().tell(new Received(ByteString.empty()), getSelf());
+			}
 		}
 		
 		return sslResult;
