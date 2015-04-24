@@ -27,7 +27,7 @@ import akka.actor.Terminated;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.Rollback;
 
 import nl.idgis.publisher.domain.service.Column;
@@ -148,16 +148,16 @@ public class VectorLoaderSessionTest {
 			f.ask(loaderSession, new Item<>(i, new Records(recordList)), NextItem.class).get();
 		}
 		
-		f.ask(transaction, new Wait(numberOfRecords), Waited.class).get();		
+		f.ask(transaction, new Wait(1), Waited.class).get();		
 		
-		Recording insertRecording = f.ask(transaction, new GetRecording(), Recording.class).get();
-		for(int i = 0; i < numberOfRecords; i++) {
-			insertRecording
-				.assertHasNext()
-				.assertNext(InsertRecord.class);
-		}
-		
-		insertRecording.assertNotHasNext();
+		f.ask(transaction, new GetRecording(), Recording.class).get()
+			.assertNext(InsertRecords.class, insertRecords -> {
+				assertEquals(recordsSize, insertRecords.getRecords().size());
+			})
+			.assertNext(InsertRecords.class, insertRecords -> {
+				assertEquals(recordsSize, insertRecords.getRecords().size());
+			})
+			.assertNotHasNext();
 		
 		f.ask(transaction, new Clear(), Cleared.class).get();		
 		f.ask(loader, new Clear(), Cleared.class).get();

@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
-import akka.actor.Identify;
 import akka.actor.Props;
 
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
-import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.Rollback;
 
 import nl.idgis.publisher.domain.job.JobState;
@@ -78,97 +77,65 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	}	
 	
 	private void handleRecords(Records msg) {
+		List<Column> columns = importJob.getColumns();
 		List<Record> records = msg.getRecords();
 		
 		log.debug("records received: {}", records.size());
 		
-		List<CompletableFuture<Object>> futures = new ArrayList<>();
+		List<List<Object>> processedRecords = new ArrayList<>();
 		for(Record record : records) {
-			futures.add(f.ask(getSelf(), record));
-		}
+			log.debug("record received: {} {}/{} (filtered:{})", record, (insertCount + filteredCount), progressTarget,  filteredCount);		
+			
+			if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
+				filteredCount++;
+			} else {
+				insertCount++;
+				
+				List<Object> recordValues = record.getValues();
+				
+				List<Object> values;
+				if(recordValues.size() > columns.size()) {
+					log.debug("creating smaller value list");
+					
+					values = new ArrayList<>(columns.size());
+					
+					Iterator<Object> valueItr = recordValues.iterator();
+					for(int i = 0; i< columns.size(); i++) {
+						values.add(valueItr.next());
+					}
+				} else {
+					log.debug("use value list from source record");
+					
+					values = recordValues;
+				}
+				
+				processedRecords.add(values);
+			}
+		}	
+		
+		log.debug("records processed");
+		
+		updateProgress();
 		
 		ActorRef sender = getSender(), self = getSelf();
-		f.sequence(futures).whenComplete((results, t) -> {
-			if(t != null) {
-				log.error("exception waiting results: {}", t);
-				
-				self.tell(new FinalizeSession(JobState.FAILED), self);
-			} else {
-				for(Object result : results) {
-					if(result instanceof Failure) {
-						log.error("handle record failed: {}", result);
+		f.ask(transaction, new InsertRecords(
+			"staging_data",
+			importJob.getDatasetId(), 
+			columns, 
+			processedRecords))
+				.exceptionally(t -> new Failure(t))
+				.thenAccept(resp -> {
+					if(resp instanceof Failure) {
+						log.error("failed to insert records: {}", records);
 						
 						sender.tell(new Stop(), getSelf());
 						self.tell(new FinalizeSession(JobState.FAILED), self);
-						
-						return;
+					} else {
+						sender.tell(new NextItem(), self);
 					}
-				}
-				
-				log.debug("records processed");
-				
-				updateProgress();
-				sender.tell(new NextItem(), self);
-			}
-		});		
+				});
 	}
 	
-	protected void onReceiveElse(Object msg) {
-		if(msg instanceof Record) {
-			handleRecord((Record)msg);
-		} else {
-			unhandled(msg);
-		}
-	}
-
-	private void handleRecord(final Record record) {
-		
-		log.debug("record received: {} {}/{} (filtered:{})", record, (insertCount + filteredCount), progressTarget,  filteredCount);		
-		
-		if(filterEvaluator != null && !filterEvaluator.evaluate(record)) {
-			filteredCount++;
-			
-			getSender().tell(new NextItem(), getSelf());
-			transaction.tell (new Identify ("keepalive"), getSelf ());
-		} else {
-			insertCount++;
-			
-			List<Object> recordValues = record.getValues();
-			List<Column> columns = importJob.getColumns();			
-			
-			List<Object> values;
-			if(recordValues.size() > columns.size()) {
-				log.debug("creating smaller value list");
-				
-				values = new ArrayList<>(columns.size());
-				
-				Iterator<Object> valueItr = recordValues.iterator();
-				for(int i = 0; i< columns.size(); i++) {
-					values.add(valueItr.next());
-				}
-			} else {
-				log.debug("use value list from source record");
-				
-				values = recordValues;
-			}
-			
-			ActorRef sender = getSender(), self = getSelf();
-			f.ask(transaction, new InsertRecord(
-				"staging_data",
-				importJob.getDatasetId(), 
-				columns, 
-				values))
-					.exceptionally(t -> new Failure(t))
-					.thenAccept(msg -> {
-						if(msg instanceof Failure) {
-							log.error("failed to insert record: {}", record);
-						} 
-						
-						sender.tell(new NextItem(), self);
-					});
-		}
-	}
-
 	@Override
 	protected long progressTarget(StartVectorImport startImport) {
 		return startImport.getCount();
