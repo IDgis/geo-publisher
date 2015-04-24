@@ -16,7 +16,6 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.stream.messages.Stop;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -80,26 +79,36 @@ public abstract class StreamCursor<T, V> extends UntypedActor {
 	public final void onReceive(Object msg) throws Exception {
 		if (msg instanceof NextItem) {
 			log.debug("next");
-			if(hasNext()) {
-				seq++;
-				
-				ActorRef sender = getSender(), self = getSelf();				
-				next().whenComplete((item, throwable) -> {
+			
+			long requestedSeq = ((NextItem)msg).getSequenceNumber().orElse(seq + 1);
+			if(requestedSeq == seq) {
+				log.debug("resend last item");
+				getSender().tell(new Item<>(seq, lastItem), getSelf());
+			} else if(requestedSeq == seq + 1) {
+				log.debug("new item");
+				if(hasNext()) {
+					seq++;
 					
-					if(throwable != null) {
-						log.error("next completed exceptionally: {}", throwable);
+					ActorRef sender = getSender(), self = getSelf();				
+					next().whenComplete((item, throwable) -> {
 						
-						sender.tell(new Failure(throwable), self);
-						self.tell(PoisonPill.getInstance(), self);
-					} else {
-						self.tell(new ItemReceived<>(item, sender), self);
-					}					
-				});
+						if(throwable != null) {
+							log.error("next completed exceptionally: {}", throwable);
+							
+							sender.tell(new Failure(throwable), self);
+							self.tell(PoisonPill.getInstance(), self);
+						} else {
+							self.tell(new ItemReceived<>(item, sender), self);
+						}					
+					});
+				} else {
+					log.debug("end");
+					
+					getSender().tell(new End(), getSelf());
+					getContext().stop(getSelf());
+				}
 			} else {
-				log.debug("end");
-				
-				getSender().tell(new End(), getSelf());
-				getContext().stop(getSelf());
+				getSender().tell(new Failure(new IllegalStateException("requested sequence number invalid")), getSelf());
 			}
 		} else if (msg instanceof Stop) {
 			log.debug("stopped");
@@ -115,12 +124,6 @@ public abstract class StreamCursor<T, V> extends UntypedActor {
 			
 			lastItem = itemReceived.getItem();
 			itemReceived.getSender().tell(new Item<>(seq, lastItem), getSelf());
-		} else if (msg instanceof Retry) {
-			if(lastItem == null) {
-				getSender().tell(new Failure(new IllegalStateException("nothing sent yet")), getSelf());
-			} else {
-				getSender().tell(new Item<>(seq, lastItem), getSelf());
-			}
 		} else {			
 			onReceiveElse(msg);
 		}

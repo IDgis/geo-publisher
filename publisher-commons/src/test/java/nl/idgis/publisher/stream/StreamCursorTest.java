@@ -18,9 +18,9 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.utils.AskResponse;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -56,9 +56,8 @@ public class StreamCursorTest {
 		
 		int i = 0;
 		for(
-			AskResponse<Object> j = f.askWithSender(cursor, new NextItem()).get();
-			j.getMessage() instanceof Item;
-			j = f.askWithSender(j.getSender(), new NextItem()).get()) {
+			AskResponse<Object> j = f.askWithSender(cursor, new NextItem(0)).get();
+			j.getMessage() instanceof Item;) {
 			
 			Object msg = j.getMessage();
 			assertTrue(msg instanceof Item);
@@ -71,9 +70,16 @@ public class StreamCursorTest {
 			Integer content = item.getContent();
 			assertEquals(i++, content.intValue());
 			
-			Item<Integer> retriedItem = (Item<Integer>)f.ask(j.getSender(), new Retry(), Item.class).get();
+			ActorRef sender = j.getSender();
+			Item<Integer> retriedItem = (Item<Integer>)f.ask(sender, new NextItem(seq), Item.class).get();			
 			assertEquals(content, retriedItem.getContent());			
 			assertEquals(seq, retriedItem.getSequenceNumber());
+			
+			// only requesting the same item again or requesting the next item is allowed
+			f.ask(sender, new NextItem(seq - 1), Failure.class).get();
+			f.ask(sender, new NextItem(seq + 2), Failure.class).get();
+			
+			j = f.askWithSender(sender, new NextItem(seq + 1)).get();			
 		}
 	}
 }

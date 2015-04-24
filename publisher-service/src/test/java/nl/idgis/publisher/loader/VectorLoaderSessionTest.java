@@ -1,11 +1,14 @@
 package nl.idgis.publisher.loader;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -53,7 +56,6 @@ import nl.idgis.publisher.recorder.messages.Watching;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.stream.messages.Retry;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class VectorLoaderSessionTest {
@@ -290,9 +292,19 @@ public class VectorLoaderSessionTest {
 		
 		f.ask(cursor, new Wait(3), Waited.class).get();
 		f.ask(cursor, new GetRecording(), Recording.class).get()
-			.assertNext(NextItem.class)
-			.assertNext(Retry.class)
-			.assertNext(Retry.class)
+			.assertNext(NextItem.class, nextItem -> {
+				assertFalse(nextItem.getSequenceNumber().isPresent());
+			})
+			.assertNext(NextItem.class, nextItem -> {
+				Optional<Long> seq = nextItem.getSequenceNumber();
+				assertTrue(seq.isPresent());
+				assertEquals(1, seq.get().longValue());
+			})
+			.assertNext(NextItem.class, nextItem -> {
+				Optional<Long> seq = nextItem.getSequenceNumber();
+				assertTrue(seq.isPresent());
+				assertEquals(1, seq.get().longValue());
+			})
 			.assertNotHasNext();
 		
 		f.ask(loader, new Wait(1), Waited.class);

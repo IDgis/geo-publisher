@@ -26,7 +26,7 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
-import nl.idgis.publisher.stream.messages.Retry;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends StartImport> extends UntypedActor {
@@ -165,18 +165,18 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 				if(msg instanceof Item<?>) {
 					Item<?> item = (Item<?>)msg;
 					long seq = item.getSequenceNumber();
-					if(seq > lastSeq) {
+					if(seq == lastSeq + 1) {
 						lastSeq = seq;
 						lastItemSender = getSender();
 						retries = maxRetries;
 						
 						handleItemContent(item.getContent());
 					} else {
-						log.warning("duplicate item, seq: {}", seq);
+						log.warning("unexpected sequence number: {}, expected: {}", seq, lastSeq + 1);
 					}
 				} else if(msg instanceof ReceiveTimeout && retries > 0) {
 					log.warning("timemout, requesting retry");
-					lastItemSender.tell(new Retry(), getSelf());
+					lastItemSender.tell(new NextItem(lastSeq + 1), getSelf());
 					retries--;
 				} else {
 					onReceiveCommon(msg);
