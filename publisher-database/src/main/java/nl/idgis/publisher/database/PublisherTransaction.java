@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
+import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
@@ -181,10 +182,35 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeCreateView((CreateView)query);
 		} else if (query instanceof DropView) {
 			return executeDropView((DropView)query);
+		} else if (query instanceof CreateIndices) {
+			return executeCreateIndices((CreateIndices)query);
 		} else {
 			return null;
 		}
 	}	
+
+	private Object executeCreateIndices(CreateIndices query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String tableName = query.getTableName();
+		List<Column> columns = query.getColumns();
+		
+		for(Column column : columns) {
+			String columnName = column.getName();			
+			Type dataType = column.getDataType();
+			
+			String indexMethod;
+			if(dataType.equals(Type.GEOMETRY)) {
+				indexMethod = "gist";
+			} else {
+				indexMethod = "btree";
+			}
+			
+			execute("create index \"" + tableName + "_" + columnName + "_idx\" on \"" +
+					schemaName + "\".\"" + tableName + "\" using " + indexMethod + "(\"" + columnName + "\")");
+		}
+
+		return new Ack();
+	}
 
 	private Object executePerformQuery(PerformQuery query) {
 		QueryMetadata metadata = query.getMetadata();
