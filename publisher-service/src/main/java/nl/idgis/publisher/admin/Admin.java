@@ -485,6 +485,7 @@ private String getEnumName(Enum e){
 		return baseQuery
 			.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 			.groupBy(sourceDataset.identification)
+			.groupBy(sourceDatasetVersion.id)
 			.groupBy(sourceDatasetVersion.name)
 			.groupBy(sourceDatasetVersion.alternateTitle)
 			.groupBy(dataSource.identification)
@@ -511,9 +512,9 @@ private String getEnumName(Enum e){
 							.orderBy (sourceDatasetVersion2.createTime.desc ())
 							.limit (1)
 							.unique (sourceDatasetVersion2.type),
-						selectLastLog ("type", sourceDataset, l -> l.type),
-						selectLastLog ("parameters", sourceDataset, l -> l.content),
-						selectLastLog ("time", sourceDataset, l -> l.createTime),
+						selectLastLog ("type", sourceDatasetVersion, l -> l.type),
+						selectLastLog ("parameters", sourceDatasetVersion, l -> l.content),
+						selectLastLog ("time", sourceDatasetVersion, l -> l.createTime),
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
 						sourceDataset.externalIdentification
@@ -596,16 +597,12 @@ private String getEnumName(Enum e){
 			.thenApply(resp -> (Response<?>)resp);
 	}
 
-	private <RT> SimpleSubQuery<RT> selectLastLog (final String prefix, final QSourceDataset sourceDataset, final Function<QSourceDatasetVersionLog, Expression<RT>> resultExpressionBuilder) {
-		final QSourceDataset sd = new QSourceDataset (prefix + "_sd");
-		final QSourceDatasetVersion sdv = new QSourceDatasetVersion (prefix + "_sdv");
+	private <RT> SimpleSubQuery<RT> selectLastLog (final String prefix, final QSourceDatasetVersion sourceDatasetVersion, final Function<QSourceDatasetVersionLog, Expression<RT>> resultExpressionBuilder) {		
 		final QSourceDatasetVersionLog sdvl = new QSourceDatasetVersionLog (prefix + "_sdvl");
 		
 		return new SQLSubQuery ()
-			.from (sdv)
-			.join (sd).on (sd.id.eq (sdv.sourceDatasetId))
-			.leftJoin (sdvl).on (sdv.id.eq (sdvl.sourceDatasetVersionId))
-			.where (sd.identification.eq (sourceDataset.identification))
+			.from (sdvl)
+			.where (sdvl.sourceDatasetVersionId.eq (sourceDatasetVersion.id))			
 			.orderBy (sdvl.createTime.desc ())
 			.limit (1)
 			.unique (resultExpressionBuilder.apply (sdvl));
@@ -680,6 +677,7 @@ private String getEnumName(Enum e){
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)
+					.groupBy(sourceDatasetVersion.id)
 					.groupBy(sourceDatasetVersion.alternateTitle)
 					.groupBy(sourceDataset.deleteTime)
 					.groupBy(sourceDatasetVersion.confidential)
@@ -694,10 +692,10 @@ private String getEnumName(Enum e){
 						category.identification,
 						category.name,
 						dataset.count(), 
-						selectLastVersion ("db_type", sourceDataset, v -> v.type),
-						selectLastLog ("type", sourceDataset, l -> l.type),
-						selectLastLog ("parameters", sourceDataset, l -> l.content),
-						selectLastLog ("time", sourceDataset, l -> l.createTime),
+						sourceDatasetVersion.type,
+						selectLastLog ("type", sourceDatasetVersion, l -> l.type),
+						selectLastLog ("parameters", sourceDatasetVersion, l -> l.content),
+						selectLastLog ("time", sourceDatasetVersion, l -> l.createTime),
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
 						sourceDataset.externalIdentification
