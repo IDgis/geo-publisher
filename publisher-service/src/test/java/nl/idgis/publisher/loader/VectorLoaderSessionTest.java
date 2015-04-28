@@ -27,6 +27,7 @@ import akka.actor.Terminated;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.Rollback;
 
@@ -167,9 +168,9 @@ public class VectorLoaderSessionTest {
 		
 		loaderSession.tell(new End(), ActorRef.noSender());
 		
-		f.ask(transaction, new Wait(1), Waited.class).get();
+		f.ask(transaction, new Wait(2), Waited.class).get();
 		f.ask(transaction, new GetRecording(), Recording.class).get()
-			.assertHasNext()
+			.assertNext(CreateIndices.class)
 			.assertNext(Commit.class)
 			.assertNotHasNext();
 		

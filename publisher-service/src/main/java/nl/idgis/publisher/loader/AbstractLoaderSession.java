@@ -204,7 +204,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 	}
 	
 	protected CompletableFuture<Object> importFailed() {
-		return f.successful(null);
+		return f.successful(new Ack());
 	}
 	
 	private void handleFailure(final Failure failure) {
@@ -213,6 +213,10 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		ActorRef self = getSelf();
 		importFailed().thenApply(msg -> {
 			log.debug("finalizing session (failed)");
+			
+			if(!(msg instanceof Ack)) {			
+				log.error("unexpected result while finalizing session: {}", msg);
+			}
 			
 			return new FinalizeSession(JobState.FAILED);
 		}).exceptionally(t -> {
@@ -225,7 +229,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 	}
 	
 	protected CompletableFuture<Object> importSucceeded() {
-		return f.successful(null);
+		return f.successful(new Ack());
 	}
 	
 	private void handleEnd(final End end) {
@@ -234,9 +238,15 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 		ActorRef self = getSelf();
 						
 		importSucceeded().thenApply(msg -> {
-			log.debug("finalizing session (succeeded)");
+			if(msg instanceof Ack) {
+				log.debug("finalizing session (succeeded)");
 			
-			return new FinalizeSession(JobState.SUCCEEDED);
+				return new FinalizeSession(JobState.SUCCEEDED);
+			} else {
+				log.error("unexpected result while finalizing session: {}", msg);
+				
+				return new FinalizeSession(JobState.FAILED);
+			}
 		}).exceptionally(t -> {
 			log.error("couldn't properly finalize session: {}", t);
 			
