@@ -4,19 +4,21 @@ import java.util.List;
 
 import nl.idgis.publisher.domain.service.Column;
 
-public class InsertRecord extends Query {
+public class InsertRecords extends Query {
 	
-	private static final long serialVersionUID = -6817649274369201580L;
-	
+	private static final long serialVersionUID = -4918284219202902423L;
+
 	private final String schemaName, tableName;
-	private final List<Column> columns;
-	private final List<Object> values;
 	
-	public InsertRecord(String schemaName, String tableName, List<Column> columns, List<Object> values) {
+	private final List<Column> columns;
+	
+	private final List<List<Object>> records;
+	
+	public InsertRecords(String schemaName, String tableName, List<Column> columns, List<List<Object>> records) {
 		this.schemaName = schemaName;
 		this.tableName = tableName;
 		this.columns = columns;
-		this.values = values;
+		this.records = records;
 	}
 	
 	public String getSchemaName() {
@@ -31,14 +33,14 @@ public class InsertRecord extends Query {
 		return columns;
 	}
 
-	public List<Object> getValues() {
-		return values;
+	public List<List<Object>> getRecords() {
+		return records;
 	}
 
 	@Override
 	public String toString() {
-		return "InsertRecord [schemaName=" + schemaName + ", tableName="
-				+ tableName + ", columns=" + columns + ", values=" + values
+		return "InsertRecords [schemaName=" + schemaName + ", tableName="
+				+ tableName + ", columns=" + columns + ", records=" + records
 				+ "]";
 	}
 

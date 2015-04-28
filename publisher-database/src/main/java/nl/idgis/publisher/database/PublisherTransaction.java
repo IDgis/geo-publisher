@@ -45,7 +45,7 @@ import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.GetNotifications;
 import nl.idgis.publisher.database.messages.InfoList;
-import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.ListQuery;
 import nl.idgis.publisher.database.messages.PerformDelete;
@@ -175,8 +175,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executePerformUpdate((PerformUpdate)query);
 		} else if (query instanceof CreateTable) {
 			return executeCreateTable((CreateTable)query);
-		} else if (query instanceof InsertRecord) {
-			return executeInsertRecord((InsertRecord)query);
+		} else if (query instanceof InsertRecords) {
+			return executeInsertRecords((InsertRecords)query);
 		} else if (query instanceof CreateView) {
 			return executeCreateView((CreateView)query);
 		} else if (query instanceof DropView) {
@@ -606,15 +606,23 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			this.stmt = stmt;
 		}
 		
-		public void execute(List<Object> args, Function<Object, Object> converter) throws Exception {
+		public void batch(List<Object> args, Function<Object, Object> converter) throws Exception {
+			setObjects(args, converter);
+			
+			stmt.addBatch();
+		}
+		
+		public void executeBatch() throws Exception {			
+			stmt.executeBatch();
+			stmt.close();
+		}
+
+		private void setObjects(List<Object> args, Function<Object, Object> converter) throws Exception {
 			int i = 1;
 			
 			for(Object arg : args) {
 				stmt.setObject(i++, converter.apply(arg));
 			}
-			
-			stmt.execute();
-			stmt.close();
 		}
 	}
 	
@@ -628,11 +636,17 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		stmt.close();
 	}
 	
-	private Object executeInsertRecord(InsertRecord query) throws Exception {
+	private Object executeInsertRecords(InsertRecords query) throws Exception {
 		String schemaName = query.getSchemaName();
 		String tableName = query.getTableName();
 		List<Column> columns = query.getColumns();
-		List<Object> values = query.getValues();
+		List<List<Object>> records = query.getRecords();
+		
+		if(records.isEmpty()) {
+			log.warning("trying to insert empty record set");
+			
+			return new Ack();
+		}
 		
 		StringBuilder sb = new StringBuilder("insert into \"");
 		sb.append(schemaName);
@@ -668,17 +682,24 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		
 		String sql = sb.toString();
 		log.debug(sql);
-		prepare(sql).execute(values, new Function<Object, Object>() {
-
-			@Override
-			public Object apply(Object o) throws Exception {
-				if(o instanceof WKBGeometry) {
-					return ((WKBGeometry) o).getBytes();
-				} else {
-					return o;
+		
+		Prepared prepared = prepare(sql);
+		
+		for(List<Object> values : records) {
+			prepared.batch(values, new Function<Object, Object>() {
+	
+				@Override
+				public Object apply(Object o) throws Exception {
+					if(o instanceof WKBGeometry) {
+						return ((WKBGeometry) o).getBytes();
+					} else {
+						return o;
+					}
 				}
-			}
-		});
+			});
+		}
+		
+		prepared.executeBatch();
 		
 		log.debug("ack");
 

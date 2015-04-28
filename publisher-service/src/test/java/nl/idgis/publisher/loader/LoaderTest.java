@@ -35,7 +35,7 @@ import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.InfoList;
-import nl.idgis.publisher.database.messages.InsertRecord;
+import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.StoredJobLog;
@@ -106,8 +106,8 @@ public class LoaderTest extends AbstractServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			log.debug("received: " + msg);			
 					
-			if(msg instanceof InsertRecord) {
-				insertCount++;
+			if(msg instanceof InsertRecords) {
+				insertCount += ((InsertRecords)msg).getRecords().size();
 			} else if(msg instanceof Commit) {
 				getContext().parent().tell(new SetInsertCount(insertCount), getSelf());
 				getContext().stop(getSelf());
