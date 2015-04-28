@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -12,14 +13,17 @@ import akka.actor.Props;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.InsertRecords;
 import nl.idgis.publisher.database.messages.Rollback;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Type;
 
 import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
@@ -60,10 +64,22 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	@Override
 	protected CompletableFuture<Object> importSucceeded() {
-		return f.ask(transaction, new Commit()).thenApply(msg -> {				
-			log.debug("transaction committed");
+		List<Column> geometryColumns = importJob.getColumns().stream()
+			.filter(column -> column.getDataType().equals(Type.GEOMETRY))
+			.collect(Collectors.toList());
+		
+		return f.ask(transaction, new CreateIndices("staging_data", importJob.getDatasetId(), geometryColumns)).thenCompose(createIndicesMsg -> {
+			log.debug("indices created");
 			
-			return msg;
+			if(createIndicesMsg instanceof Ack) {			
+				return f.ask(transaction, new Commit()).thenApply(commitMsg -> {				
+					log.debug("transaction committed");
+					
+					return commitMsg;
+				});
+			} else {
+				return f.successful(createIndicesMsg);
+			}
 		});
 	}
 	
