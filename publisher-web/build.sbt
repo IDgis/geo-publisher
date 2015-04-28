@@ -62,3 +62,5 @@ buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion,
 buildInfoPackage := "planoview"
 
 buildInfoPackage := "publisher"
+
+fork in Test := false
