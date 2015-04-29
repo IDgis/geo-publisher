@@ -359,4 +359,24 @@ public class XMLDocument {
 			}
 		}
 	}
+
+	public void setStylesheet(String stylesheet) {
+		String data = "type=\"text/xsl\" href=\"" + stylesheet + "\"";
+		
+		NodeList children = document.getChildNodes();
+		for(int i = 0; i < children.getLength(); i++) {
+			Node n = children.item(i);
+			if(n.getNodeType() == Node.PROCESSING_INSTRUCTION_NODE) {
+				ProcessingInstruction pi = (ProcessingInstruction)n;
+				if("xml-stylesheet".equals(pi.getTarget())) {
+					pi.setData(data);
+					return;
+				}
+			}
+		}
+		
+		document.insertBefore(
+				document.createProcessingInstruction("xml-stylesheet", data),
+				children.item(0));
+	}
 }

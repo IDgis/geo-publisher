@@ -822,4 +822,8 @@ public class MetadataDocument {
 		xmlDocument.removeStylesheet();
 	}
 	
+	public void setStylesheet(String stylesheet) {
+		xmlDocument.setStylesheet(stylesheet);
+	}
+	
 }

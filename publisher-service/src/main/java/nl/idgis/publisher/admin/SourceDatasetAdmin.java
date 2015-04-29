@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import nl.idgis.publisher.domain.query.GetMetadata;
 import nl.idgis.publisher.domain.web.Metadata;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -31,10 +32,11 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		doGet(Metadata.class, this::handleGetMetadata);
+		doQueryOptional(GetMetadata.class, this::handleGetMetadata);
 	}
 	
-	private CompletableFuture<Optional<Metadata>> handleGetMetadata(String sourceDatasetId) {
+	private CompletableFuture<Optional<Metadata>> handleGetMetadata(GetMetadata query) {
+		String sourceDatasetId = query.id();
 		log.debug("fetching metadata of source dataset: {}", sourceDatasetId);
 		
 		return db.query().from(sourceDataset)
@@ -46,7 +48,8 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 					optionalResult
 						.map(result -> getMetadata(
 							result.get(dataSource.identification),
-							result.get(sourceDataset.externalIdentification)))
+							result.get(sourceDataset.externalIdentification),
+							Optional.ofNullable(query.stylesheet())))
 						.orElseGet(() -> {
 							log.warning("source dataset not found: {}", sourceDatasetId);
 							
@@ -54,7 +57,7 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 						}));
 	}
 	
-	private CompletableFuture<Optional<Metadata>> getMetadata(String dataSourceId, String datasetId) {
+	private CompletableFuture<Optional<Metadata>> getMetadata(String dataSourceId, String datasetId, Optional<String> stylesheet) {
 		return f.ask(harvester, new GetDataSource(dataSourceId)).<Optional<Metadata>>thenCompose(resp -> {
 			if(resp instanceof NotConnected) {
 				log.warning("data source not connected: {}" + dataSourceId);
@@ -62,17 +65,21 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 				return f.successful(Optional.empty());
 			} else if(resp instanceof ActorRef) {
 				ActorRef dataSource = (ActorRef)resp;
-				return getMetadata(dataSource, datasetId);
+				return getMetadata(dataSource, datasetId, stylesheet);
 			} else {
 				throw new IllegalStateException("ActorRef or NotConnected expected");
 			}
 		});
 	}
 	
-	private CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId) {
+	private CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId, Optional<String> stylesheet) {
 		return f.ask(dataSource, new GetDatasetMetadata(datasetId), MetadataDocument.class).thenCompose(metadata -> {
 			try {
-				metadata.removeStylesheet();
+				if(stylesheet.isPresent()) {
+					metadata.setStylesheet(stylesheet.get());
+				} else {
+					metadata.removeStylesheet();
+				}
 				return f.successful(Optional.of(new Metadata(datasetId, metadata.getContent())));
 			} catch(Exception e) {
 				log.error("couldn't retrieve metadata: {}", e);

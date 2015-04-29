@@ -3,6 +3,7 @@ package nl.idgis.publisher.xml;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
@@ -200,5 +201,20 @@ public class XMLDocumentTest {
 		
 		String newContent = new String(document.getContent(), "utf-8");
 		assertFalse(newContent.contains("stylesheet.xsl"));
+	}
+	
+	@Test
+	public void testSetStylesheet() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		XMLDocument document = factory.parseDocument("<document/>".getBytes("utf-8"));
+		document.setStylesheet("stylesheet.xsl");
+		
+		String content = new String(document.getContent(), "utf-8");
+		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
+		
+		document.setStylesheet("new-stylesheet.xsl");
+		assertFalse(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
+		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"new-stylesheet.xsl\"?>"));
 	}
 }

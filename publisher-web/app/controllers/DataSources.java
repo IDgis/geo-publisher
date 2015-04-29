@@ -11,13 +11,13 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function4;
 
+import nl.idgis.publisher.domain.query.GetMetadata;
 import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.EntityRef;
-import nl.idgis.publisher.domain.web.Metadata;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
@@ -45,7 +45,7 @@ public class DataSources extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
-			.get(Metadata.class, sourceDatasetId)
+			.query(new GetMetadata(sourceDatasetId, "/assets/xslt/metadata.xslt"))
 			.execute(metadata -> {
 				if(metadata == null) {
 					return notFound();
