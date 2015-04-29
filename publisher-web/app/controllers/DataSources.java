@@ -17,6 +17,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.EntityRef;
+import nl.idgis.publisher.domain.web.Metadata;
 import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
@@ -39,6 +40,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
+	
+	public static Promise<Result> metadata (final String sourceDatasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.get(Metadata.class, sourceDatasetId)
+			.execute(metadata -> {
+				if(metadata == null) {
+					return notFound();
+				}
+				
+				return ok(metadata.content()).as("application/xml");				
+			});
+	}
 
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, page);
