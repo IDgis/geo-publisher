@@ -3,6 +3,7 @@ package nl.idgis.publisher.harvester;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
@@ -33,22 +34,34 @@ public class HarvesterHelper {
 		this.log = log;
 	}
 	
-	public CompletableFuture<Optional<Metadata>> getMetadata(String dataSourceId, String datasetId, Optional<String> stylesheet) {
-		return f.ask(harvester, new GetDataSource(dataSourceId)).<Optional<Metadata>>thenCompose(resp -> {
+	private CompletableFuture<Optional<ActorRef>> getDataSource(String dataSourceId) {
+		return f.ask(harvester, new GetDataSource(dataSourceId)).thenApply(resp -> {
 			if(resp instanceof NotConnected) {
 				log.warning("data source not connected: {}" + dataSourceId);
 				
-				return f.successful(Optional.empty());
+				return Optional.empty();
 			} else if(resp instanceof ActorRef) {
-				ActorRef dataSource = (ActorRef)resp;
-				return getMetadata(dataSource, datasetId, stylesheet);
+				return Optional.of((ActorRef)resp);
 			} else {
 				throw new IllegalStateException("ActorRef or NotConnected expected");
 			}
 		});
 	}
 	
-	public CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId, Optional<String> stylesheet) {
+	private <T> CompletableFuture<Optional<T>> getDataSource(String dataSourceId, Function<ActorRef, CompletableFuture<Optional<T>>> mapper) {
+		return 
+			getDataSource(dataSourceId).thenCompose(optionalDataSource ->
+				optionalDataSource
+					.map(mapper::apply)
+					.orElse(f.successful(Optional.empty())));
+	}
+	
+	public CompletableFuture<Optional<Metadata>> getMetadata(String dataSourceId, String datasetId, Optional<String> stylesheet) {
+		return getDataSource(dataSourceId, dataSource -> 
+			getMetadata(dataSource, datasetId, stylesheet));
+	}
+	
+	private CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId, Optional<String> stylesheet) {
 		return f.ask(dataSource, new GetDatasetMetadata(datasetId), MetadataDocument.class).thenCompose(metadata -> {
 			try {
 				if(stylesheet.isPresent()) {
