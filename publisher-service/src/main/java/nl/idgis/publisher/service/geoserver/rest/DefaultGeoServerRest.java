@@ -317,7 +317,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}	
 	
 	private String getWorkspacePath(String workspaceId) {
-		return getWorkspacesPath() + "/" + workspaceId;
+		return getWorkspacesPath() + "/" + workspaceId.replace(".", "%2E");
 	}
 	
 	private String getWorkspacePath(Workspace workspace) {
