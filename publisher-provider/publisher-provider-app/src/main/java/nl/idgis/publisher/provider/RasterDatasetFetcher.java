@@ -25,7 +25,7 @@ public class RasterDatasetFetcher extends AbstractDatasetFetcher<GetRasterDatase
 
 	@Override
 	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
-		String fileName = metadataDocument.getAlternateTitle() + ".tif";		
+		String fileName = ProviderUtils.getRasterFile(metadataDocument.getAlternateTitle());		
 		folder.tell(new FetchFile(Paths.get(fileName)), sender);
 	}
 

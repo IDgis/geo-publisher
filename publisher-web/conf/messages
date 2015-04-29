@@ -59,6 +59,9 @@ nl.idgis.publisher.domain.service.DatasetLogType.TABLE_NOT_FOUND=Tabel niet gevo
 nl.idgis.publisher.domain.service.DatasetLogType.METADATA_PARSING_ERROR.properties=field,error
 nl.idgis.publisher.domain.service.DatasetLogType.METADATA_PARSING_ERROR=Fout bij het verwerken van de metadata: {0} {1}
 nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_TABLE=Onbekende tabel
+nl.idgis.publisher.domain.service.DatasetLogType.UNKNOWN_FILE=Onbekend bestand
+nl.idgis.publisher.domain.service.DatasetLogType.FILE_NOT_FOUND.properties=fileName
+nl.idgis.publisher.domain.service.DatasetLogType.FILE_NOT_FOUND=Bestand niet gevonden: {0}
 
 # --------------
 # Web applicatie 

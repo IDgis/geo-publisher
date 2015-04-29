@@ -105,6 +105,7 @@ public class FolderTest {
 	@Test
 	public void testNotExists() throws Exception {		
 		f.ask(folder, new FetchFile(Paths.get("not-exists.tif")), FileNotExists.class).get();
+		f.ask(folder, new GetFileSize(Paths.get("not-exists.tif")), FileNotExists.class).get();
 	}
 	
 	@Test

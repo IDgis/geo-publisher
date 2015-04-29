@@ -7,7 +7,10 @@ public enum DatasetLogType implements MessageType<DatasetLog<?>> {
 	METADATA_PARSING_ERROR(MetadataLog.class),
 
 	UNKNOWN_TABLE,
-	TABLE_NOT_FOUND(DatabaseLog.class);
+	TABLE_NOT_FOUND(DatabaseLog.class),
+	
+	UNKNOWN_FILE,
+	FILE_NOT_FOUND(FileLog.class);
 	
 	private DatasetLogType() {
 		this(null);
