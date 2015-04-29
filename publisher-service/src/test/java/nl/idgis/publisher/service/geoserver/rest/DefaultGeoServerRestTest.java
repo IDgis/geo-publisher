@@ -534,4 +534,21 @@ public class DefaultGeoServerRestTest {
 		allCoverages = service.getCoverages(workspace).get();
 		assertTrue(allCoverages.isEmpty());
 	}
+	
+	@Test
+	public void testDeleteWorkspace() throws Exception {
+		assertTrue(service.getWorkspaces().get().isEmpty());
+		
+		String workspaceName = "it.geosolutions";
+		
+		Workspace workspace = new Workspace(workspaceName);
+		service.postWorkspace(workspace).get();		
+		
+		List<Workspace> workspaces = service.getWorkspaces().get();
+		assertFalse(workspaces.isEmpty());
+		assertEquals(workspaceName, workspaces.get(0).getName());
+		
+		service.deleteWorkspace(workspace).get();		
+		assertTrue(service.getWorkspaces().get().isEmpty());
+	}
 }
