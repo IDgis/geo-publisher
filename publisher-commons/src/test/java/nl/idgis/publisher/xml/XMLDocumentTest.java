@@ -214,6 +214,7 @@ public class XMLDocumentTest {
 		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
 		
 		document.setStylesheet("new-stylesheet.xsl");
+		content = new String(document.getContent(), "utf-8");
 		assertFalse(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
 		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"new-stylesheet.xsl\"?>"));
 	}
