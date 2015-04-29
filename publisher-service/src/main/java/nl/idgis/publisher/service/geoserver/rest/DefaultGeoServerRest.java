@@ -1285,6 +1285,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				return
 					new TiledLayer(
 						layer.strings("mimeFormats/string"),
+						layer.strings("gridSubsets/gridSubset/gridSetName"),
 						metaWidth,
 						metaHeight,
 						layer.integerOrNull("expireCache"),
@@ -1352,15 +1353,15 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeEndElement();
 			}			
 			sw.writeEndElement();
-			
-			// TODO: change into the appropriate grid subset(s)
-			
+						
 			sw.writeStartElement("gridSubsets");
-				sw.writeStartElement("gridSubset");
-					sw.writeStartElement("gridSetName");
-						sw.writeCharacters("EPSG:4326");
+				for(String gridSet : tiledLayer.getGridSets()) {
+					sw.writeStartElement("gridSubset");
+						sw.writeStartElement("gridSetName");
+							sw.writeCharacters(gridSet);
+						sw.writeEndElement();
 					sw.writeEndElement();
-				sw.writeEndElement();
+				}
 			sw.writeEndElement();
 			
 			sw.writeStartElement("metaWidthHeight");
