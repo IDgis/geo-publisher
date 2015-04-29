@@ -1,6 +1,7 @@
 package nl.idgis.publisher.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -182,5 +183,22 @@ public class XMLDocumentTest {
 			document.getString(namespaces, "/a:a/a:b");
 			fail();
 		} catch(Exception e) {}
+	}
+	
+	@Test
+	public void testRemoveStylesheet() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		String content = 
+			"<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"no\"?>"
+			+ "<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"
+			+ "<document/>";
+		
+		XMLDocument document = factory.parseDocument(content.getBytes("utf-8"));
+
+		document.removeStylesheet();
+		
+		String newContent = new String(document.getContent(), "utf-8");
+		assertFalse(newContent.contains("stylesheet.xsl"));
 	}
 }

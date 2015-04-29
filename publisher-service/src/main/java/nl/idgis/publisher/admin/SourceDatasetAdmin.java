@@ -72,6 +72,7 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 	private CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId) {
 		return f.ask(dataSource, new GetDatasetMetadata(datasetId), MetadataDocument.class).thenCompose(metadata -> {
 			try {
+				metadata.removeStylesheet();
 				return f.successful(Optional.of(new Metadata(datasetId, metadata.getContent())));
 			} catch(Exception e) {
 				log.error("couldn't retrieve metadata: {}", e);

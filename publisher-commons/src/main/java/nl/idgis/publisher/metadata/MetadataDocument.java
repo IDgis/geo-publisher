@@ -818,4 +818,8 @@ public class MetadataDocument {
 		addOperatesOn(uuidref, href); 		
 	}
 	
+	public void removeStylesheet() {
+		xmlDocument.removeStylesheet();
+	}
+	
 }

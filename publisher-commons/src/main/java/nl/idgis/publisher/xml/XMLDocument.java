@@ -34,6 +34,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.ProcessingInstruction;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -343,6 +344,19 @@ public class XMLDocument {
 			return new XMLDocument((Document)result.getNode());
 		} catch(Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	public void removeStylesheet() {
+		NodeList children = document.getChildNodes();
+		for(int i = 0; i < children.getLength(); i++) {
+			Node n = children.item(i);
+			if(n.getNodeType() == Node.PROCESSING_INSTRUCTION_NODE) {
+				ProcessingInstruction pi = (ProcessingInstruction)n;
+				if("xml-stylesheet".equals(pi.getTarget())) {
+					document.removeChild(pi);
+				}
+			}
 		}
 	}
 }
