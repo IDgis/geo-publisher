@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Optional;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
@@ -38,6 +39,7 @@ public abstract class EnsureLayer implements Serializable {
 		return Optional.ofNullable(tilingSettings).map(tilingSettings -> 
 			new TiledLayer(
 				tilingSettings.getMimeFormats(),
+				Arrays.asList("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale"),
 				tilingSettings.getMetaWidth(),
 				tilingSettings.getMetaHeight(),
 				tilingSettings.getExpireCache(),
