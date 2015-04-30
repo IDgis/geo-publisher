@@ -11,6 +11,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function4;
 
+import nl.idgis.publisher.domain.query.GetMetadata;
 import nl.idgis.publisher.domain.query.HarvestDatasources;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.response.Page;
@@ -39,6 +40,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
+	
+	public static Promise<Result> metadata (final String sourceDatasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new GetMetadata(sourceDatasetId, "/assets/xslt/metadata.xslt"))
+			.execute(metadata -> {
+				if(metadata == null) {
+					return notFound();
+				}
+				
+				return ok(metadata.content()).as("application/xml");				
+			});
+	}
 
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, page);

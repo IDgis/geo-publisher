@@ -1,7 +1,9 @@
 package nl.idgis.publisher.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
@@ -182,5 +184,38 @@ public class XMLDocumentTest {
 			document.getString(namespaces, "/a:a/a:b");
 			fail();
 		} catch(Exception e) {}
+	}
+	
+	@Test
+	public void testRemoveStylesheet() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		String content = 
+			"<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"no\"?>"
+			+ "<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"
+			+ "<document/>";
+		
+		XMLDocument document = factory.parseDocument(content.getBytes("utf-8"));
+
+		document.removeStylesheet();
+		
+		String newContent = new String(document.getContent(), "utf-8");
+		assertFalse(newContent.contains("stylesheet.xsl"));
+	}
+	
+	@Test
+	public void testSetStylesheet() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		XMLDocument document = factory.parseDocument("<document/>".getBytes("utf-8"));
+		document.setStylesheet("stylesheet.xsl");
+		
+		String content = new String(document.getContent(), "utf-8");
+		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
+		
+		document.setStylesheet("new-stylesheet.xsl");
+		content = new String(document.getContent(), "utf-8");
+		assertFalse(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
+		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"new-stylesheet.xsl\"?>"));
 	}
 }
