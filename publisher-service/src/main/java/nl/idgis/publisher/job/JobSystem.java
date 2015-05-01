@@ -1,9 +1,14 @@
 package nl.idgis.publisher.job;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.quartz.CronExpression;
 
 import nl.idgis.publisher.job.creator.Creator;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
@@ -16,6 +21,7 @@ import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.utils.Either;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
@@ -29,6 +35,8 @@ import scala.concurrent.duration.FiniteDuration;
 
 public class JobSystem extends UntypedActor {	
 	
+	protected static final String ON_THE_HOUR = "* 0 * * * ?";
+	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef database, harvester, loader, provisioningManager, serviceManager;
@@ -37,7 +45,7 @@ public class JobSystem extends UntypedActor {
 	
 	private FutureUtils f;
 	
-	private Map<CreateJobs, FiniteDuration> createJobsIntervals;
+	private Map<CreateJobs, Either<FiniteDuration, CronExpression>> createJobsIntervals;
 	
 	private static class ScheduleCreateJobs implements Serializable {
 		
@@ -88,8 +96,8 @@ public class JobSystem extends UntypedActor {
 			"initiator");
 		
 		createJobsIntervals = new HashMap<>();
-		createJobsIntervals.put(new CreateHarvestJobs(), Duration.apply(15, TimeUnit.MINUTES));
-		createJobsIntervals.put(new CreateImportJobs(), Duration.apply(10, TimeUnit.SECONDS));
+		createJobsIntervals.put(new CreateHarvestJobs(), Either.right(new CronExpression(ON_THE_HOUR)));
+		createJobsIntervals.put(new CreateImportJobs(), Either.left(Duration.apply(10, TimeUnit.SECONDS)));
 		
 		createJobsIntervals.keySet().stream()
 			.forEach(msg -> getSelf().tell(msg, getSelf()));
@@ -118,7 +126,7 @@ public class JobSystem extends UntypedActor {
 			});
 		} else if(msg instanceof ScheduleCreateJobs) {
 			CreateJobs createJobs = ((ScheduleCreateJobs)msg).getCreateJobs();
-			FiniteDuration interval = createJobsIntervals.get(createJobs);
+			FiniteDuration interval = createJobsIntervals.get(createJobs).mapRight(this::toInterval);
 			
 			log.debug("scheduling create jobs: {}, interval: {}", createJobs, interval);
 			
@@ -127,6 +135,23 @@ public class JobSystem extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	protected FiniteDuration toInterval(CronExpression cronExpression) {
+		return toInterval(cronExpression, new Date());
+	}
+	
+	protected FiniteDuration toInterval(CronExpression cronExpression, Date now) {
+		log.debug("computing interval based on cron expression: {}", cronExpression.getCronExpression());
+		
+		Date next = cronExpression.getNextValidTimeAfter(now);		
+		
+		if(log.isDebugEnabled()) {
+			DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+			log.debug("next time: {}", dateFormat.format(next));
+		}
+		
+		return Duration.apply(next.getTime() - now.getTime(), TimeUnit.MILLISECONDS);
 	}
 
 }
