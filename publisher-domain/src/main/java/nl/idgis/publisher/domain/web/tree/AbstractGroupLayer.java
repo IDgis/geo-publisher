@@ -9,9 +9,9 @@ public abstract class AbstractGroupLayer implements GroupLayer, Serializable {
 
 	@Override
 	public boolean isConfidential () {
-		List<LayerRef<?>> childLayerRefs = getLayers();
+		List<LayerRef<? extends Layer>> childLayerRefs = getLayers();
 		for(final LayerRef<?> childLayerRef : childLayerRefs) {
-			if(((Layer)childLayerRef.getLayer()).isConfidential()) {
+			if(childLayerRef.getLayer().isConfidential()) {
 				return true;
 			}
 		}
