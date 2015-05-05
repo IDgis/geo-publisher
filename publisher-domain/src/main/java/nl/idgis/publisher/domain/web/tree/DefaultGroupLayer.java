@@ -22,9 +22,9 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	public static DefaultGroupLayer newInstance(String groupId, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure) {
 		
-		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
+		Map<String, PartialGroupLayer> groupsMap = toMap(groups, PartialGroupLayer::getId);
 		if(groupsMap.containsKey(groupId)) {
-			return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets), groupsMap, structure);
+			return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets, Layer::getId), groupsMap, structure);
 		} else {
 			throw new IllegalArgumentException("groupId not in groups list: " + groupId);
 		}
@@ -32,7 +32,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure) {
-		this(partialGroupLayer, toMap(datasets), toMap(groups), structure);
+		this(partialGroupLayer, toMap(datasets, Layer::getId), toMap(groups, PartialGroupLayer::getId), structure);
 	}
 	
 	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, AbstractDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
@@ -44,10 +44,10 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		this.structure = structure;		
 	}
 	
-	private static <T extends AbstractLayer> Map<String, T> toMap(List<T> layers) {
-		return layers.stream()
+	private static <T, U> Map<U, T> toMap(List<T> items, Function<T, U> key) {
+		return items.stream()
 			.collect(Collectors.toMap(
-				layer -> layer.getId(),
+				item -> key.apply(item),
 				Function.identity(),
 				(a, b) -> a)); // list may contain duplicates
 	}

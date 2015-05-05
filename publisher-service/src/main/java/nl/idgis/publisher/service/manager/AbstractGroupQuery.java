@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimefo
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -36,15 +37,15 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 						t.get(genericLayer.name),
 						t.get(genericLayer.title),
 						t.get(genericLayer.abstractCol),
-						t.get(tiledLayer.genericLayerId) == null ? null
-							: new DefaultTiling(
+						t.get(tiledLayer.genericLayerId) == null 
+							? Optional.empty()
+							: Optional.of(new DefaultTiling(
 								tilingMimeFormats.get(t.get(genericLayer.id)),
 								t.get(tiledLayer.metaWidth),
 								t.get(tiledLayer.metaHeight),
 								t.get(tiledLayer.expireCache),
 								t.get(tiledLayer.expireClients),
-								t.get(tiledLayer.gutter)),
-						false
+								t.get(tiledLayer.gutter)))
 					))
 					.collect(Collectors.toList()))));
 	}
