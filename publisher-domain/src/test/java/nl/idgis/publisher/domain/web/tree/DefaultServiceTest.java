@@ -149,6 +149,34 @@ public class DefaultServiceTest {
 		assertFalse(itr.hasNext());
 	}
 	
+	@Test
+	public void testIsConfidential() {
+		PartialGroupLayer partialGroup0 = new PartialGroupLayer("group0", "name0", "title0", "abstract0", null, false);
+		PartialGroupLayer partialGroup1 = new PartialGroupLayer("group1", "name1", "title1", "abstract1", null, false);
+		
+		List<PartialGroupLayer> groups = Arrays.asList(partialGroup0, partialGroup1);
+		
+		List<AbstractDatasetLayer> datasets = Arrays.asList(
+				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
+					null, Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), Collections.emptyList(), true),
+				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
+					null, Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), Collections.emptyList(), false),
+				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
+					null, Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), Collections.emptyList(), false));
+				
+		List<StructureItem> structure = new ArrayList<>();
+		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf1", "group0", Optional.empty()));
+		structure.add(new StructureItem("group1", "group0", Optional.empty()));
+		structure.add(new StructureItem("leaf2", "group1", Optional.empty()));
+		
+		DefaultGroupLayer group0 = new DefaultGroupLayer(partialGroup0, datasets, groups, structure);
+		assertTrue(group0.isConfidential());
+		
+		DefaultGroupLayer group1 = new DefaultGroupLayer(partialGroup1, datasets, groups, structure);
+		assertFalse(group1.isConfidential());
+	}
+	
 	private GroupLayer assertGroupLayer(Iterator<LayerRef<?>> itr, String id) {
 		assertTrue(itr.hasNext());
 		
