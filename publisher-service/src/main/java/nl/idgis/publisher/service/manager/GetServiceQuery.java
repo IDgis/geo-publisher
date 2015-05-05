@@ -174,8 +174,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								serviceInfoTuple.get(genericLayer.name),
 								serviceInfoTuple.get(genericLayer.title),
 								serviceInfoTuple.get(genericLayer.abstractCol),
-								null,
-								false), // a root group doesn't have (or need) tiling
+								Optional.empty()), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),
 							transformedStructure.getStructureItems()));

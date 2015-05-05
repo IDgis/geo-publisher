@@ -1,30 +1,41 @@
 package nl.idgis.publisher.domain.web.tree;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DefaultGroupLayer implements GroupLayer, Serializable {	
-
-	private static final long serialVersionUID = -7304745349251033481L;
+public class DefaultGroupLayer extends AbstractGroupLayer {
+	
+	private static final long serialVersionUID = 5042564217527692364L;
 
 	private final PartialGroupLayer partialGroupLayer;
-
+	
+	/**
+	 * A map containing all {@link AbstractDatasetLayer} of the tree, may contain
+	 * items that are not contained by this group.
+	 */
 	private final Map<String, AbstractDatasetLayer> datasets;
 	
+	/**
+	 * A map containing all {@link PartialGroupLayer} of the tree, may contain
+	 * items that are not contained by this group.
+	 */
 	private final Map<String, PartialGroupLayer> groups;
 	
+	/**
+	 * A list of {@link StructureItem} describing the tree structure, may 
+	 * contain items that are not contained by this group.
+	 */
 	private final List<StructureItem> structure;
 		
 	public static DefaultGroupLayer newInstance(String groupId, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure) {
 		
-		Map<String, PartialGroupLayer> groupsMap = toMap(groups);
+		Map<String, PartialGroupLayer> groupsMap = toMap(groups, PartialGroupLayer::getId);
 		if(groupsMap.containsKey(groupId)) {
-			return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets), groupsMap, structure);
+			return new DefaultGroupLayer(groupsMap.get(groupId), toMap(datasets, Layer::getId), groupsMap, structure);
 		} else {
 			throw new IllegalArgumentException("groupId not in groups list: " + groupId);
 		}
@@ -32,7 +43,7 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	
 	DefaultGroupLayer(PartialGroupLayer partialGroupLayer, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
 		List<StructureItem> structure) {
-		this(partialGroupLayer, toMap(datasets), toMap(groups), structure);
+		this(partialGroupLayer, toMap(datasets, Layer::getId), toMap(groups, PartialGroupLayer::getId), structure);
 	}
 	
 	private DefaultGroupLayer(PartialGroupLayer partialGroupLayer, Map<String, AbstractDatasetLayer> datasets, Map<String, PartialGroupLayer> groups, 
@@ -44,10 +55,10 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 		this.structure = structure;		
 	}
 	
-	private static <T extends AbstractLayer> Map<String, T> toMap(List<T> layers) {
-		return layers.stream()
+	private static <T, U> Map<U, T> toMap(List<T> items, Function<T, U> key) {
+		return items.stream()
 			.collect(Collectors.toMap(
-				layer -> layer.getId(),
+				item -> key.apply(item),
 				Function.identity(),
 				(a, b) -> a)); // list may contain duplicates
 	}
@@ -98,17 +109,6 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	public Optional<Tiling> getTiling() {
 		return partialGroupLayer.getTiling();
 	}	
-
-	@Override
-	public boolean isConfidential () {
-		for (final AbstractDatasetLayer datasetLayer: datasets.values ()) {
-			if (datasetLayer.isConfidential ()) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
 	
 	private void toTree(StringBuilder sb, int depth) {
 		for(LayerRef<? extends Layer> layerRef : getLayers()) {
