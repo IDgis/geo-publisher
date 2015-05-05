@@ -11,11 +11,23 @@ public class DefaultGroupLayer extends AbstractGroupLayer {
 	private static final long serialVersionUID = 5042564217527692364L;
 
 	private final PartialGroupLayer partialGroupLayer;
-
+	
+	/**
+	 * A map containing all {@link AbstractDatasetLayer} of the tree, may contain
+	 * items that are not contained by this group.
+	 */
 	private final Map<String, AbstractDatasetLayer> datasets;
 	
+	/**
+	 * A map containing all {@link PartialGroupLayer} of the tree, may contain
+	 * items that are not contained by this group.
+	 */
 	private final Map<String, PartialGroupLayer> groups;
 	
+	/**
+	 * A list of {@link StructureItem} describing the tree structure, may 
+	 * contain items that are not contained by this group.
+	 */
 	private final List<StructureItem> structure;
 		
 	public static DefaultGroupLayer newInstance(String groupId, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
