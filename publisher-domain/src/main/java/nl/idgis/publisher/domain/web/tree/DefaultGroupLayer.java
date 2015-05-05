@@ -1,15 +1,14 @@
 package nl.idgis.publisher.domain.web.tree;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DefaultGroupLayer implements GroupLayer, Serializable {	
-
-	private static final long serialVersionUID = -7304745349251033481L;
+public class DefaultGroupLayer extends AbstractGroupLayer {
+	
+	private static final long serialVersionUID = 5042564217527692364L;
 
 	private final PartialGroupLayer partialGroupLayer;
 
@@ -98,18 +97,6 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 	public Optional<Tiling> getTiling() {
 		return partialGroupLayer.getTiling();
 	}	
-
-	@Override
-	public boolean isConfidential () {
-		List<LayerRef<?>> childLayerRefs = getLayers();
-		for(final LayerRef<?> childLayerRef : childLayerRefs) {
-			if(((Layer)childLayerRef.getLayer()).isConfidential()) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
 	
 	private void toTree(StringBuilder sb, int depth) {
 		for(LayerRef<? extends Layer> layerRef : getLayers()) {
