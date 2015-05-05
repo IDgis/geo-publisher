@@ -84,7 +84,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 			
 			acknowledgeJobAndStop();
 		} else if(msg instanceof ActorRef) {
-			log.debug("dataSource received");
+			log.debug("dataSource received: {}", msg);
 			
 			dataSource = (ActorRef)msg;
 			
