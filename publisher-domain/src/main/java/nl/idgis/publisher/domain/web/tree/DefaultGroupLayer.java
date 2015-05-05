@@ -101,8 +101,9 @@ public class DefaultGroupLayer implements GroupLayer, Serializable {
 
 	@Override
 	public boolean isConfidential () {
-		for (final AbstractDatasetLayer datasetLayer: datasets.values ()) {
-			if (datasetLayer.isConfidential ()) {
+		List<LayerRef<?>> childLayerRefs = getLayers();
+		for(final LayerRef<?> childLayerRef : childLayerRefs) {
+			if(((Layer)childLayerRef.getLayer()).isConfidential()) {
 				return true;
 			}
 		}
