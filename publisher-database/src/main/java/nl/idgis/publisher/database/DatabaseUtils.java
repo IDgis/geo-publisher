@@ -3,15 +3,14 @@ package nl.idgis.publisher.database;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-
-import scala.Function1;
+import java.util.function.Function;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
 
 public class DatabaseUtils {
 
-	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idPath, Function1<Tuple, T> mapper) {
+	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idPath, Function<Tuple, T> mapper) {
 		List<T> retval = new ArrayList<>();
 		
 		for(; listIterator.hasNext();) {

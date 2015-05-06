@@ -658,24 +658,14 @@ public class JobManager extends UntypedActor {
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											t.get(importJob.filterConditions),
-											consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-												
-												@Override
-												public Column apply(Tuple t) {
-													return new Column(
-														t.get(importJobColumn.name), 
-														t.get(importJobColumn.dataType));
-												}
-											}),
-											consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-												
-												@Override
-												public Column apply(Tuple t) {
-													return new Column(
-														t.get(sourceDatasetVersionColumn.name),
-														t.get(sourceDatasetVersionColumn.dataType));
-												} 
-											}),
+											consumeList(importJobColumns, jobId, job.id, column ->
+												new Column(
+													column.get(importJobColumn.name), 
+													column.get(importJobColumn.dataType))),												
+											consumeList(sourceDatasetColumns, jobId, job.id, column ->
+												new Column(
+													column.get(sourceDatasetVersionColumn.name),
+													column.get(sourceDatasetVersionColumn.dataType))),
 											notifications));
 								break;
 							}
