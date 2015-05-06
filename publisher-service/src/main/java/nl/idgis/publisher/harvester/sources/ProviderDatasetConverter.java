@@ -57,7 +57,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 	}
 
 	@Override
-	protected boolean convert(Object msg, ActorRef sender) throws Exception {
+	protected boolean convert(Object msg) throws Exception {
 		if(msg instanceof DatasetInfo) {
 			DatasetInfo datasetInfo = (DatasetInfo)msg;
 			

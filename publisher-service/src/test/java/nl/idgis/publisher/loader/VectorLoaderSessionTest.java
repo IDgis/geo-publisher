@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,6 +82,11 @@ public class VectorLoaderSessionTest {
 				sender.tell(new Ack(), getSelf());
 			}
 		}
+	}
+	
+	@After
+	public void shutdown() {
+		actorSystem.shutdown();
 	}
 
 	@Before

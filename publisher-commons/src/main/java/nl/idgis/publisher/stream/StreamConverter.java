@@ -9,6 +9,7 @@ import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Start;
 import nl.idgis.publisher.stream.messages.Stop;
+import nl.idgis.publisher.stream.messages.Unavailable;
 
 import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
@@ -59,7 +60,7 @@ public abstract class StreamConverter extends UntypedActor {
 			
 			producer = getSender();
 			Item<?> item = (Item<?>)msg;
-			if(convert(item.getContent(), sender)) {
+			if(convert(item.getContent())) {
 				getContext().become(converting(item, sender));
 			} else {
 				unhandled(msg);
@@ -78,6 +79,11 @@ public abstract class StreamConverter extends UntypedActor {
 			log.error("timeout");
 			
 			getContext().stop(getSelf());
+		} else if(msg instanceof Unavailable) {
+			log.warning("unavailable");
+			
+			sender.tell(msg, getSelf());
+			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
 		}
@@ -85,6 +91,6 @@ public abstract class StreamConverter extends UntypedActor {
 	
 	protected abstract void start(Start msg) throws Exception;
 	
-	protected abstract boolean convert(Object msg, ActorRef sender) throws Exception;
+	protected abstract boolean convert(Object msg) throws Exception;
 	
 }

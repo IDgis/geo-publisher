@@ -10,6 +10,7 @@ import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
+import nl.idgis.publisher.harvester.messages.RetryHarvest;
 import nl.idgis.publisher.harvester.server.Server;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
@@ -128,8 +129,28 @@ public class Harvester extends UntypedActor {
 			handleGetActiveJobs();
 		} else if(msg instanceof StartHarvesting) {
 			handleStartHarvesting((StartHarvesting)msg);
+		} else if(msg instanceof RetryHarvest) {
+			handleRetryHarvest((RetryHarvest)msg);
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void handleRetryHarvest(RetryHarvest msg) {
+		HarvestJobInfo harvestJob = msg.getJobInfo();
+		String dataSourceId = harvestJob.getDataSourceId();
+		
+		log.debug("retrying harvest for dataSource: {}", dataSourceId);
+		
+		if(dataSources.containsKey(dataSourceId)) {
+			if(sessions.containsKey(harvestJob)) {
+				ActorRef session = sessions.get(harvestJob);
+				dataSources.get(dataSourceId).tell(new ListDatasets(), session);
+			} else {
+				log.error("retry requested but not harvesting");
+			}
+		} else {
+			log.error("retry requested but dataSource is not available");
 		}
 	}
 

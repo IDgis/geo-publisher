@@ -20,6 +20,11 @@ public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 	public static Props props(File metadataDirectory) {
 		return Props.create(MetadataListProvider.class, metadataDirectory);
 	}
+	
+	@Override
+	protected boolean isAvailable() {
+		return metadataDirectory.isDirectory();
+	}
 
 	@Override
 	protected Props start(GetAllMetadata msg) {
