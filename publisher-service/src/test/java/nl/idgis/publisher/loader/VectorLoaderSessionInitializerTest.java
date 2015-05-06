@@ -5,8 +5,12 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +26,8 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.CreateTable;
@@ -70,6 +76,8 @@ public class VectorLoaderSessionInitializerTest {
 	
 	static class LoaderTransactionMock extends TransactionMock {
 		
+		Map<String, List<String>> tables = new HashMap<>(); 
+		
 		public static Props props() {
 			return Props.create(LoaderTransactionMock.class);
 		}
@@ -98,11 +106,26 @@ public class VectorLoaderSessionInitializerTest {
 			} else if(query instanceof CreateTable) {
 				log.debug("create table");
 				
+				CreateTable createTable = (CreateTable)query;
+				
+				tables.put(
+					createTable.getSchemaName() + "." + createTable.getTableName(), 
+					createTable.getColumns().stream()
+						.map(Column::getName)
+						.collect(Collectors.toList()));
+				
 				getSender().tell(new Ack(), getSelf());
 			} else if(query instanceof CreateView) {
 				log.debug("create view");
 				
-				getSender().tell(new Ack(), getSelf());
+				CreateView createView = (CreateView)query;
+				
+				List<String> columns = tables.get(createView.getSourceSchemaName() + "." 
+					+ createView.getSourceTableName());
+				
+				if(!columns.isEmpty()) {
+					getSender().tell(new Ack(), getSelf());
+				}
 			} else if(query instanceof InsertRecords) {
 				log.debug("insert records");
 				
@@ -179,7 +202,7 @@ public class VectorLoaderSessionInitializerTest {
 				log.debug("vector import job info");
 				
 				VectorImportJobInfo importJob = (VectorImportJobInfo)msg;
-				ActorRef initiator = getContext().actorOf(VectorLoaderSessionInitiator.props(importJob, jobContext, database), "initiator");
+				ActorRef initiator = getContext().actorOf(VectorLoaderSessionInitiator.props(importJob, jobContext, database, Duration.apply(1, TimeUnit.SECONDS)), "initiator");
 				initiator.tell(dataSource, getSelf());
 			} else if(msg instanceof SessionStarted){
 				log.debug("session started");
@@ -237,7 +260,7 @@ public class VectorLoaderSessionInitializerTest {
 		
 		loader.tell(importJob, ActorRef.noSender());
 		
-		f.ask(jobContext, new Wait(2), Waited.class).get();
+		f.ask(jobContext, new Wait(3), Waited.class).get();
 		f.ask(jobContext, new GetRecording(), Recording.class).get()
 			.assertNext(UpdateJobState.class, update -> {
 				assertEquals(JobState.STARTED, update.getState());
@@ -245,6 +268,25 @@ public class VectorLoaderSessionInitializerTest {
 			.assertNext(Ack.class)
 			.assertNext(UpdateJobState.class, update -> {
 				assertEquals(JobState.SUCCEEDED, update.getState());
+			})
+			.assertNotHasNext();
+	}
+	
+	@Test
+	public void testColumsMissing() throws Exception {
+		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
+				"datasetId", "datasetName", null /* filterCondition */, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+		
+		loader.tell(importJob, ActorRef.noSender());
+		
+		f.ask(jobContext, new Wait(3), Waited.class).get();
+		f.ask(jobContext, new GetRecording(), Recording.class).get()
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.STARTED, update.getState());
+			})			
+			.assertNext(Ack.class)
+			.assertNext(UpdateJobState.class, update -> {
+				assertEquals(JobState.ABORTED, update.getState());
 			})
 			.assertNotHasNext();
 	}

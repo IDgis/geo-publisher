@@ -6,6 +6,8 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Procedure;
 
+import scala.concurrent.duration.Duration;
+
 import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.folder.messages.FileReceiver;
@@ -21,14 +23,18 @@ public class RasterLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	
 	private ActorRef receiver;
 
-	protected RasterLoaderSessionInitiator(RasterImportJobInfo importJob, ActorRef jobContext, ActorRef rasterFolder) {
-		super(importJob, jobContext);
+	protected RasterLoaderSessionInitiator(RasterImportJobInfo importJob, ActorRef jobContext, ActorRef rasterFolder, Duration receiveTimeout) {
+		super(importJob, jobContext, receiveTimeout);
 		
 		this.rasterFolder = rasterFolder;
 	}
 	
 	public static Props props(RasterImportJobInfo importJob, ActorRef jobContext, ActorRef rasterFolder) {
-		return Props.create(RasterLoaderSessionInitiator.class, importJob, jobContext, rasterFolder);
+		return props(importJob, jobContext, rasterFolder, DEFAULT_RECEIVE_TIMEOUT);
+	}
+	
+	public static Props props(RasterImportJobInfo importJob, ActorRef jobContext, ActorRef rasterFolder, Duration receiveTimeout) {
+		return Props.create(RasterLoaderSessionInitiator.class, importJob, jobContext, rasterFolder, receiveTimeout);
 	}
 
 	@Override

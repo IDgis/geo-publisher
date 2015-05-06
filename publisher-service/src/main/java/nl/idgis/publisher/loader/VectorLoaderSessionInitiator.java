@@ -38,6 +38,8 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Procedure;
 
+import scala.concurrent.duration.Duration;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
@@ -59,14 +61,18 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	
 	private ActorRef transaction;	
 	
-	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
-		super(importJob, jobContext);
+	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, Duration receiveTimeout) {
+		super(importJob, jobContext, receiveTimeout);
 				
 		this.database = database;
 	}
 	
 	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
-		return Props.create(VectorLoaderSessionInitiator.class, importJob, jobContext, database);
+		return props(importJob, jobContext, database, DEFAULT_RECEIVE_TIMEOUT);
+	}
+	
+	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, Duration receiveTimeout) {
+		return Props.create(VectorLoaderSessionInitiator.class, importJob, jobContext, database, receiveTimeout);
 	}
 	
 	private Procedure<Object> waitingForDatasetStatusInfo() {
