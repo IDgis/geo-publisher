@@ -9,6 +9,7 @@ import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Start;
 import nl.idgis.publisher.stream.messages.Stop;
+import nl.idgis.publisher.stream.messages.Unavailable;
 
 import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
@@ -77,6 +78,11 @@ public abstract class StreamConverter extends UntypedActor {
 		} else if(msg instanceof ReceiveTimeout){
 			log.error("timeout");
 			
+			getContext().stop(getSelf());
+		} else if(msg instanceof Unavailable) {
+			log.warning("unavailable");
+			
+			sender.tell(msg, getSelf());
 			getContext().stop(getSelf());
 		} else {
 			unhandled(msg);
