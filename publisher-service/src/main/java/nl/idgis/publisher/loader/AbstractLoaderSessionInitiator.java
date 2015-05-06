@@ -11,8 +11,11 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.domain.job.JobState;
+
 import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.FetchDataset;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.loader.messages.Busy;
 import nl.idgis.publisher.loader.messages.SessionStarted;
@@ -20,24 +23,29 @@ import nl.idgis.publisher.protocol.messages.Ack;
 
 public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> extends UntypedActor {
 	
+	protected static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.apply(15, TimeUnit.SECONDS);
+	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final T importJob;
 	
 	protected final ActorRef jobContext;
 	
+	private final Duration receiveTimeout;
+	
 	private boolean acknowledged = false;
 	
 	private ActorRef dataSource;
 	
-	protected AbstractLoaderSessionInitiator(T importJob, ActorRef jobContext) {
+	protected AbstractLoaderSessionInitiator(T importJob, ActorRef jobContext, Duration receiveTimeout) {
 		this.importJob = importJob;
 		this.jobContext = jobContext;
+		this.receiveTimeout = receiveTimeout;
 	}
 	
 	@Override
 	public final void preStart() throws Exception {
-		getContext().setReceiveTimeout(Duration.apply(15, TimeUnit.SECONDS));
+		getContext().setReceiveTimeout(receiveTimeout);
 	}
 
 	protected void become(String message, Procedure<Object> behavior) {
@@ -48,9 +56,13 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof ReceiveTimeout) {
+					log.debug("receive timeout");
+					
 					if(!acknowledged) {
 						acknowledgeJob();
 					}
+					
+					jobContext.tell(new UpdateJobState(JobState.ABORTED), getSelf());
 					
 					getContext().stop(getSelf());
 				} else {
@@ -84,7 +96,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 			
 			acknowledgeJobAndStop();
 		} else if(msg instanceof ActorRef) {
-			log.debug("dataSource received");
+			log.debug("dataSource received: {}", msg);
 			
 			dataSource = (ActorRef)msg;
 			

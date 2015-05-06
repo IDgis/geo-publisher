@@ -112,7 +112,7 @@ public class VectorLoaderSessionTest {
 	}
 	
 	@Test
-	public void testSuccessfull() throws Exception {
+	public void testSuccessful() throws Exception {
 		ActorRef initiator = actorSystem.actorOf(AnyRecorder.props());
 		
 		final int numberOfRecords = 10;

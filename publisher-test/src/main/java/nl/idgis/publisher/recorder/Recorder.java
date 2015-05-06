@@ -9,6 +9,8 @@ import java.util.Optional;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.ClearFailed;
@@ -19,6 +21,8 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 
 public class Recorder extends UntypedActor {
+	
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final List<RecordedMessage> recording = new ArrayList<RecordedMessage>();
 	
@@ -36,7 +40,11 @@ public class Recorder extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof RecordedMessage) {
-			recording.add((RecordedMessage)msg);
+			RecordedMessage recordedMessage = (RecordedMessage)msg;
+			
+			log.debug("recording message: {}", recordedMessage.getMessage());
+			
+			recording.add(recordedMessage);
 			
 			int size = recording.size();
 			if(waiting.containsKey(size)) {
