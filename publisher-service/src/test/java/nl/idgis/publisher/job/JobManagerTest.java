@@ -31,6 +31,7 @@ import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 
+import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
@@ -51,6 +52,7 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -98,6 +100,35 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		assertFalse(jobsItr.hasNext());
 	}	
+	
+	@Test
+	public void testCreateUnavailableDatasetImportJob() throws Exception {
+		int dataSourceId = insertDataSource();
+		
+		int sourceDatasetId = 
+			insert(sourceDataset)
+				.set(sourceDataset.dataSourceId, dataSourceId)
+				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.externalIdentification, "testSourceDataset")
+				.executeWithKey(sourceDataset.id);
+		
+		insert(sourceDatasetVersion)
+			.set(sourceDatasetVersion.name, "My Test SourceDataset")
+			.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())				
+			.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
+			.set(sourceDatasetVersion.confidential, true)
+			.executeWithKey(sourceDatasetVersion.id);
+		 
+		insert(dataset)
+			.set(dataset.name, "My Test Dataset")
+			.set(dataset.identification, "testDataset")
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.fileUuid, UUID.randomUUID().toString())
+			.execute();
+		
+		f.ask(jobManager, new CreateImportJob("testDataset"), Failure.class).get();
+	}
 	
 	@Test
 	public void testImportJob() throws Exception {
