@@ -267,10 +267,14 @@ public class ProvisioningManager extends UntypedActorWithStash {
 							
 							log.debug("dispatching index for environment: {}", environmentId);
 							
-							environmentTargets.get(environmentId).forEach(target -> {
-								targets.add(target);
-								target.tell(serviceIndex, getSelf());
-							});
+							if(environmentTargets.containsKey(environmentId)) {
+								environmentTargets.get(environmentId).forEach(target -> {
+									targets.add(target);
+									target.tell(serviceIndex, getSelf());
+								});
+							} else {
+								log.warning("environmentId unknown: {}", environmentId);
+							}
 						});
 					
 					if(targets.isEmpty()) {
