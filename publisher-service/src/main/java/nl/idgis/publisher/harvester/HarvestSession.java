@@ -18,15 +18,18 @@ import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
 import nl.idgis.publisher.domain.service.Dataset;
 
+import nl.idgis.publisher.harvester.messages.RetryHarvest;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Unavailable;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -47,6 +50,8 @@ public class HarvestSession extends UntypedActor {
 	private final Set<String> datasetIds;
 	
 	private FutureUtils f;
+	
+	private int retriesLeft = 5;
 	
 	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> datasetIds) {
 		this.jobContext = jobContext;
@@ -77,8 +82,30 @@ public class HarvestSession extends UntypedActor {
 			handleDataset(((Item<Dataset>)msg).getContent());
 		} else if(msg instanceof End) {
 			handleEnd();
+		} else if(msg instanceof Unavailable) {
+			handleUnavailable();
 		} else {
 			unhandled(msg);
+		}
+	}
+
+	private void handleUnavailable() {
+		if(retriesLeft > 0) {
+			log.warning("harvest source unavailable: {} -> retrying", harvestJob.getDataSourceId());			
+			
+			ActorSystem system = getContext().system();
+			system.scheduler().scheduleOnce(
+				Duration.create(10, TimeUnit.SECONDS),
+				getContext().parent(),
+				new RetryHarvest(harvestJob),
+				system.dispatcher(),
+				getSelf());
+			
+			retriesLeft--;
+		} else {
+			log.error("harvest source still unavailable: {} -> failed", harvestJob.getDataSourceId());
+			
+			finish(JobState.FAILED);
 		}
 	}
 
