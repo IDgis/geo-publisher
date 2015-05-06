@@ -10,13 +10,19 @@ import com.mysema.query.types.Expression;
 
 public class DatabaseUtils {
 
-	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idPath, Function<Tuple, T> mapper) {
+	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idExpression, Function<Tuple, T> mapper) {
 		List<T> retval = new ArrayList<>();
 		
+		U lastListId = null;
 		for(; listIterator.hasNext();) {
 			Tuple tc = listIterator.next();
 			
-			U listId = tc.get(idPath);
+			U listId = tc.get(idExpression);
+			if(lastListId != null && listId.compareTo(lastListId) < 0) {
+				throw new IllegalArgumentException("listIterator is not ordered by expression");
+			} else {			
+				lastListId = listId;
+			}
 			
 			int cmp = listId.compareTo(id);			
 			if(cmp > 0) {
