@@ -25,13 +25,16 @@ import java.util.UUID;
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 
+import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
 
@@ -51,6 +54,7 @@ import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -98,6 +102,187 @@ public class JobManagerTest extends AbstractServiceTest {
 		
 		assertFalse(jobsItr.hasNext());
 	}	
+	
+	/**
+	 * This test checks if an import jobs for an unavailable dataset is properly skipped. 
+	 * (The JobManager previously allowed the creation of such jobs.)
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetUnavailableDatasetImportJob() throws Exception {		
+		int dataSourceId = insertDataSource();
+		
+		int categoryId =
+			insert(category)
+				.set(category.identification, "testCategory")
+				.set(category.name, "My Test Category")
+				.executeWithKey(category.id);
+		
+		int sourceDatasetId = 
+			insert(sourceDataset)
+				.set(sourceDataset.dataSourceId, dataSourceId)
+				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.externalIdentification, "testSourceDataset")
+				.executeWithKey(sourceDataset.id);
+		
+		int vectorSourceDatasetVersionId =
+			insert(sourceDatasetVersion)
+				.set(sourceDatasetVersion.categoryId, categoryId)
+				.set(sourceDatasetVersion.name, "My Test SourceDataset")
+				.set(sourceDatasetVersion.type, SourceDatasetType.VECTOR.name())				
+				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
+				.set(sourceDatasetVersion.confidential, true)
+				.executeWithKey(sourceDatasetVersion.id);
+				
+		insert(sourceDatasetVersionColumn)
+			.set(sourceDatasetVersionColumn.sourceDatasetVersionId, vectorSourceDatasetVersionId)
+			.set(sourceDatasetVersionColumn.index, 0)
+			.set(sourceDatasetVersionColumn.name, "test")
+			.set(sourceDatasetVersionColumn.dataType, Type.NUMERIC.name())
+			.execute();
+		
+		int datasetId =
+			insert(dataset)
+				.set(dataset.name, "My Test Dataset")
+				.set(dataset.identification, "testDataset")
+				.set(dataset.sourceDatasetId, sourceDatasetId)
+				.set(dataset.uuid, UUID.randomUUID().toString())
+				.set(dataset.fileUuid, UUID.randomUUID().toString())
+				.executeWithKey(dataset.id);
+		
+		insert(datasetColumn)
+			.columns(
+				datasetColumn.datasetId,
+				datasetColumn.index,
+				datasetColumn.name,
+				datasetColumn.dataType)
+			.select(new SQLSubQuery().from(sourceDatasetVersionColumn)
+				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(vectorSourceDatasetVersionId))
+				.list(
+					datasetId,
+					sourceDatasetVersionColumn.index,
+					sourceDatasetVersionColumn.name,
+					sourceDatasetVersionColumn.dataType))
+			.execute();
+		
+		int unavailableSourceDatasetVersionId =
+			insert(sourceDatasetVersion)
+				.set(sourceDatasetVersion.categoryId, categoryId)
+				.set(sourceDatasetVersion.name, "My Test SourceDataset")
+				.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())				
+				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
+				.set(sourceDatasetVersion.confidential, true)
+				.executeWithKey(sourceDatasetVersion.id);
+		
+		int jobId =
+			insert(job)
+				.set(job.type, JobType.IMPORT.name())
+				.executeWithKey(job.id);
+		
+		int importJobId =
+			insert(importJob)
+				.set(importJob.jobId, jobId)
+				.set(importJob.sourceDatasetVersionId, unavailableSourceDatasetVersionId)
+				.set(importJob.filterConditions, "")
+				.set(importJob.datasetId, datasetId)
+				.executeWithKey(importJob.id);
+		
+		insert(importJobColumn)
+			.columns(
+				importJobColumn.importJobId,
+				importJobColumn.index,
+				importJobColumn.dataType,
+				importJobColumn.name)
+			.select(new SQLSubQuery().from(datasetColumn)
+				.where(datasetColumn.datasetId.eq(datasetId))
+				.list(
+					importJobId,
+					datasetColumn.index,
+					datasetColumn.dataType,
+					datasetColumn.name))
+			.execute();
+		
+		TypedIterable<?> resp = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();
+		assertTrue(resp.contains(ImportJobInfo.class));
+		
+		Iterator<ImportJobInfo> importJobItr = resp.cast(ImportJobInfo.class).iterator();
+		assertFalse(importJobItr.hasNext());
+		
+		jobId =
+			insert(job)
+				.set(job.type, JobType.IMPORT.name())
+				.executeWithKey(job.id);
+		
+		importJobId =
+			insert(importJob)
+				.set(importJob.jobId, jobId)
+				.set(importJob.sourceDatasetVersionId, vectorSourceDatasetVersionId)
+				.set(importJob.filterConditions, "")
+				.set(importJob.datasetId, datasetId)
+				.executeWithKey(importJob.id);
+			
+		insert(importJobColumn)
+			.columns(
+				importJobColumn.importJobId,
+				importJobColumn.index,
+				importJobColumn.dataType,
+				importJobColumn.name)
+			.select(new SQLSubQuery().from(datasetColumn)
+				.where(datasetColumn.datasetId.eq(datasetId))
+				.list(
+					importJobId,
+					datasetColumn.index,
+					datasetColumn.dataType,
+					datasetColumn.name))
+			.execute();
+		
+		resp = f.ask(jobManager, new GetImportJobs(), TypedIterable.class).get();
+		assertTrue(resp.contains(ImportJobInfo.class));
+		
+		importJobItr = resp.cast(ImportJobInfo.class).iterator();
+		assertTrue(importJobItr.hasNext());
+		
+		ImportJobInfo importJobInfo = importJobItr.next();
+		assertTrue(importJobInfo instanceof VectorImportJobInfo);
+		
+		VectorImportJobInfo vectorImportJobInfo = (VectorImportJobInfo)importJobInfo;
+		List<Column> columns = vectorImportJobInfo.getColumns();
+		assertNotNull(columns);
+		
+		// previously this list incorrectly contained no columns
+		// when the job was preceded by a job for an unavailable dataset  
+		assertEquals(1, columns.size()); 
+	}
+	
+	@Test
+	public void testCreateUnavailableDatasetImportJob() throws Exception {
+		int dataSourceId = insertDataSource();
+		
+		int sourceDatasetId = 
+			insert(sourceDataset)
+				.set(sourceDataset.dataSourceId, dataSourceId)
+				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.externalIdentification, "testSourceDataset")
+				.executeWithKey(sourceDataset.id);
+		
+		insert(sourceDatasetVersion)
+			.set(sourceDatasetVersion.name, "My Test SourceDataset")
+			.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())				
+			.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
+			.set(sourceDatasetVersion.confidential, true)
+			.executeWithKey(sourceDatasetVersion.id);
+		 
+		insert(dataset)
+			.set(dataset.name, "My Test Dataset")
+			.set(dataset.identification, "testDataset")
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.fileUuid, UUID.randomUUID().toString())
+			.execute();
+		
+		f.ask(jobManager, new CreateImportJob("testDataset"), Failure.class).get();
+	}
 	
 	@Test
 	public void testImportJob() throws Exception {

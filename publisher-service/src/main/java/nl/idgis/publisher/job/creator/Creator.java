@@ -147,6 +147,8 @@ public class Creator extends UntypedActor {
 			(future, t) -> {
 				return future.thenCompose(resp -> {
 					if(resp instanceof Failure) {
+						log.error("job creation failure: {}", resp);
+						
 						return f.successful(resp);
 					} else {
 						return func.apply(t);
@@ -155,6 +157,8 @@ public class Creator extends UntypedActor {
 			},
 			(a, b) -> a.thenCompose(resp -> {
 				if(resp instanceof Failure) {
+					log.error("job creation failure: {}", resp);
+					
 					return f.successful(resp);
 				} else {
 					return b;

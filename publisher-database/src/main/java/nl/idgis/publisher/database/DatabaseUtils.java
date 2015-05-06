@@ -3,27 +3,46 @@ package nl.idgis.publisher.database;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-
-import scala.Function1;
+import java.util.function.Function;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
 
 public class DatabaseUtils {
 
-	public static <T, U> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idPath, Function1<Tuple, T> mapper) {
+	/**
+	 * Consume items from the provided {@link ListIterator} while given id matches the
+	 * result of the given id {@link Expression}.
+	 * 
+	 * @param listIterator
+	 * @param id
+	 * @param idExpression
+	 * @param mapper
+	 * @return
+	 */
+	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idExpression, Function<Tuple, T> mapper) {
 		List<T> retval = new ArrayList<>();
 		
+		U lastListId = null;
 		for(; listIterator.hasNext();) {
 			Tuple tc = listIterator.next();
 			
-			U listId = tc.get(idPath);				
-			if(!listId.equals(id)) {
-				listIterator.previous();
-				break;
+			U listId = tc.get(idExpression);
+			if(lastListId != null && listId.compareTo(lastListId) < 0) {
+				throw new IllegalArgumentException("listIterator is not ordered by expression");
+			} else {			
+				lastListId = listId;
 			}
 			
-			retval.add(mapper.apply(tc));
+			int cmp = listId.compareTo(id);			
+			if(cmp > 0) {
+				listIterator.previous();
+				break;
+			} else if(cmp < 0) {
+				continue;
+			} else {			
+				retval.add(mapper.apply(tc));
+			}
 		}
 		
 		return retval;

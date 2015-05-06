@@ -40,6 +40,7 @@ import nl.idgis.publisher.database.QJobState;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
+import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.Notification;
@@ -338,53 +339,54 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
 		return
 			createJob(tx, JobType.IMPORT).thenCompose(jobId -> 
-				getSourceDatasetVersion(tx, datasetId).thenCompose(datasetVersionId ->
-					tx.insert(importJob)
-						.columns(
-							importJob.jobId,
-							importJob.datasetId,
-							importJob.sourceDatasetVersionId,
-							importJob.filterConditions)
-						.select(new SQLSubQuery().from(dataset)
-								.where(dataset.identification.eq(datasetId))
-								.list(
-									jobId,
-									dataset.id,
-									datasetVersionId,
-									dataset.filterConditions))
-						.executeWithKey(importJob.id).thenCompose(importJobId ->
-							tx.insert(importJobColumn)
-								.columns(
-									importJobColumn.importJobId,
-									importJobColumn.index,
-									importJobColumn.name,
-									importJobColumn.dataType)
-								.select(new SQLSubQuery().from(datasetColumn)
-									.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-									.where(dataset.identification.eq(datasetId))
-									.list(
-										importJobId.orElseThrow(() -> new IllegalStateException("multiple jobs created")),
-										datasetColumn.index,
-										datasetColumn.name,
-										datasetColumn.dataType))
-										.execute())));
+				tx.query().from(sourceDatasetVersion)
+					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+					.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+					.where(dataset.identification.eq(datasetId))
+					.orderBy(sourceDatasetVersion.id.desc())
+					.limit(1)
+					.singleResult(
+						sourceDatasetVersion.id,
+						sourceDatasetVersion.type).thenApply(optionalSourceDatasetVersionInfo -> 
+							optionalSourceDatasetVersionInfo.map(sourceDatasetVersionInfo -> {
+								if(SourceDatasetType.UNAVAILABLE.name().equals(sourceDatasetVersionInfo.get(sourceDatasetVersion.type))) {
+									throw new IllegalStateException("dataset is unavailable, cannot create import job");
+								} else {
+									return sourceDatasetVersionInfo.get(sourceDatasetVersion.id); 
+								}
+							})).thenCompose(sourceDatasetVersionId ->						
+								tx.insert(importJob)
+									.columns(
+										importJob.jobId,
+										importJob.datasetId,
+										importJob.sourceDatasetVersionId,
+										importJob.filterConditions)
+									.select(new SQLSubQuery().from(dataset)
+											.where(dataset.identification.eq(datasetId))
+											.list(
+												jobId,
+												dataset.id,
+												sourceDatasetVersionId.orElseThrow(
+													() -> new IllegalStateException("source dataset version not found")),
+												dataset.filterConditions))
+									.executeWithKey(importJob.id).thenCompose(importJobId ->
+										tx.insert(importJobColumn)
+											.columns(
+												importJobColumn.importJobId,
+												importJobColumn.index,
+												importJobColumn.name,
+												importJobColumn.dataType)
+											.select(new SQLSubQuery().from(datasetColumn)
+												.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+												.where(dataset.identification.eq(datasetId))
+												.list(
+													importJobId.orElseThrow(
+														() -> new IllegalStateException("no import job created")),
+													datasetColumn.index,
+													datasetColumn.name,
+													datasetColumn.dataType))
+											.execute())));
 	}	
-
-	private CompletableFuture<Integer> getSourceDatasetVersion(AsyncHelper tx, String datasetId) {
-		return tx.query().from(sourceDatasetVersion)
-			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
-			.join(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
-			.where(dataset.identification.eq(datasetId))
-			.singleResult(sourceDatasetVersion.id.max()).thenApply(id -> {			
-				// Optional.orElseThrow cannot be used here because of a bug in javac (JDK-8054569)
-				if(id.isPresent()) {
-					return id.get();
-				} else {					 
-					throw new IllegalStateException("dataset missing");
-				}
-			});
-							
-	}
 
 	private CompletableFuture<Integer> createJob(AsyncHelper tx, JobType jobType) {
 		return tx.insert(job)
@@ -656,24 +658,14 @@ public class JobManager extends UntypedActor {
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											t.get(importJob.filterConditions),
-											consumeList(importJobColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-												
-												@Override
-												public Column apply(Tuple t) {
-													return new Column(
-														t.get(importJobColumn.name), 
-														t.get(importJobColumn.dataType));
-												}
-											}),
-											consumeList(sourceDatasetColumns, jobId, job.id, new Mapper<Tuple, Column>() {
-												
-												@Override
-												public Column apply(Tuple t) {
-													return new Column(
-														t.get(sourceDatasetVersionColumn.name),
-														t.get(sourceDatasetVersionColumn.dataType));
-												} 
-											}),
+											consumeList(importJobColumns, jobId, job.id, column ->
+												new Column(
+													column.get(importJobColumn.name), 
+													column.get(importJobColumn.dataType))),												
+											consumeList(sourceDatasetColumns, jobId, job.id, column ->
+												new Column(
+													column.get(sourceDatasetVersionColumn.name),
+													column.get(sourceDatasetVersionColumn.dataType))),
 											notifications));
 								break;
 							}
