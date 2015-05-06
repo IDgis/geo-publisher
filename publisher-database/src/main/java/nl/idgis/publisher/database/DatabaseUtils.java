@@ -10,6 +10,16 @@ import com.mysema.query.types.Expression;
 
 public class DatabaseUtils {
 
+	/**
+	 * Consume items from the provided {@link ListIterator} while given id matches the
+	 * result of the given id {@link Expression}.
+	 * 
+	 * @param listIterator
+	 * @param id
+	 * @param idExpression
+	 * @param mapper
+	 * @return
+	 */
 	public static <T, U extends Comparable<U>> List<T> consumeList(ListIterator<Tuple> listIterator, U id, Expression<U> idExpression, Function<Tuple, T> mapper) {
 		List<T> retval = new ArrayList<>();
 		
