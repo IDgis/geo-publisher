@@ -34,7 +34,7 @@ public class DatasetInfoConverter extends StreamConverter {
 	}
 
 	@Override
-	protected boolean convert(Object msg, ActorRef sender) {
+	protected boolean convert(Object msg) {
 		if(msg instanceof MetadataItem) {
 			log.debug("converting metadata item to dataset info");
 			

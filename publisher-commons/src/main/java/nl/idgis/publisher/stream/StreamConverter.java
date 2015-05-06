@@ -59,7 +59,7 @@ public abstract class StreamConverter extends UntypedActor {
 			
 			producer = getSender();
 			Item<?> item = (Item<?>)msg;
-			if(convert(item.getContent(), sender)) {
+			if(convert(item.getContent())) {
 				getContext().become(converting(item, sender));
 			} else {
 				unhandled(msg);
@@ -85,6 +85,6 @@ public abstract class StreamConverter extends UntypedActor {
 	
 	protected abstract void start(Start msg) throws Exception;
 	
-	protected abstract boolean convert(Object msg, ActorRef sender) throws Exception;
+	protected abstract boolean convert(Object msg) throws Exception;
 	
 }
