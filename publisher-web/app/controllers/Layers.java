@@ -182,13 +182,13 @@ public class Layers extends GroupsLayersCommon {
 			});
 	}
 	
-	public static Promise<Result> structureItem(String layerId) {
+	public static Promise<Result> structureItem(String layerId, boolean showStyleSelect) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
 			.query(new GetLayerRef(layerId))
 			.execute(layerRef ->
-				ok(groupStructureItem.render(layerRef)));
+				ok(groupStructureItem.render(layerRef, showStyleSelect)));
 	}
 	
 	public static Promise<Result> listJson (final String query, final long page) {

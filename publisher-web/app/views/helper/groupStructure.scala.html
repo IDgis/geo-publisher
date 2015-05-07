@@ -7,7 +7,8 @@
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
 	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	container: LayerContainer,
-	errors: java.util.List[play.data.validation.ValidationError]
+	errors: java.util.List[play.data.validation.ValidationError],
+	showStyleSelect: Boolean = true
 )
 
 @layersPageRef(page: Long) = @{
@@ -24,7 +25,7 @@
 		<div class="list-group" id="groupLayerStructure">
 			@if(container != null) {			
 				@for(layerRef <- container.getLayers()) {
-					@helper.groupStructureItem(layerRef)									
+					@helper.groupStructureItem(layerRef, showStyleSelect)									
 				}
 			}
 		</div>

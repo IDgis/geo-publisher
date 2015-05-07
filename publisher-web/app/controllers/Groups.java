@@ -380,13 +380,13 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> structureItem(String groupId) {
+	public static Promise<Result> structureItem(String groupId, boolean showStyleSelect) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
 			.query(new GetGroupLayerRef(groupId))
 			.execute(groupLayerRef ->
-				ok(groupStructureItem.render(groupLayerRef)));
+				ok(groupStructureItem.render(groupLayerRef, showStyleSelect)));
 	}
 	
 	public static Promise<Result> listJson (final String query, final long page) {
