@@ -1757,8 +1757,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
-			.set(layerStyle.styleId, styleId0)
-			.set(layerStyle.defaultStyle, true)
+			.set(layerStyle.styleId, styleId0)			
 			.set(layerStyle.styleOrder, 0)
 			.execute();
 		
@@ -1805,8 +1804,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
-			.set(layerStyle.styleId, styleId1)
-			.set(layerStyle.defaultStyle, false)
+			.set(layerStyle.styleId, styleId1)			
 			.set(layerStyle.styleOrder, 1)
 			.execute();
 		
@@ -1886,8 +1884,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
-			.set(layerStyle.styleId, styleId0)
-			.set(layerStyle.defaultStyle, true)
+			.set(layerStyle.styleId, styleId0)			
 			.set(layerStyle.styleOrder, 0)
 			.execute();
 		

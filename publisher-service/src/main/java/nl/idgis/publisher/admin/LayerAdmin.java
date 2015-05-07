@@ -541,14 +541,12 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 											.insert(layerStyle)
 											.columns(
 												layerStyle.layerId, 
-												layerStyle.styleId,
-												layerStyle.defaultStyle)
+												layerStyle.styleId)
 											.select(new SQLSubQuery().from(style)
 												.where(style.identification.eq(indexed.getValue()))
 												.list(
 													llId.get(),
-													style.id,
-													indexed.getIndex()==0)
+													style.id)
 											)
 											.execute())
 											.collect(Collectors.toList())).thenApply(whatever ->
