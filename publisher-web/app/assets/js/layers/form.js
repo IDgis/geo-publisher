@@ -13,7 +13,7 @@ require ([
 	'dojo/NodeList-traverse',
 	'dojo/domReady!'
 ], function (dom, on, domStyle, win, query, domattr, domConstruct, TreeSelect, Pager, put) {
-	var treeSelect = new TreeSelect ('.gp-tree-select', '.gp-tree-values'),
+	var treeSelect = new TreeSelect ('.gp-tree-select', '.gp-tree-values', { firstIsDefault: true }),
 		pager = new Pager ('.gp-tree-values .js-pager');
 	var keywordbutton = dom.byId('add-keyword');
 	var keywordlist = dom.byId('keyword-list');

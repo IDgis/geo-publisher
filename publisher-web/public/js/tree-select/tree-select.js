@@ -36,8 +36,13 @@ define ([
 		
 		this.values = [ ];
 
-		if (options && options.onChange) {
-			this.onChange = options.onChange;
+		if (options) {
+			if (options.onChange) {
+				this.onChange = options.onChange;
+			}
+			if (options.firstIsDefault) {
+				this.firstIsDefault = options.firstIsDefault;
+			}
 		}
 		
 		// Set the current control value:
@@ -182,6 +187,11 @@ define ([
 			
 			query ('.term[data-id="' + id + '"]', this.containerNode).forEach (function (n) { put (n, '!'); });
 			
+			if (this.firstIsDefault && this.values.length > 0) {
+				query ('.term[data-id="' + this.values[0][1] + '"]', this.containerNode)
+					.forEach (function (n) { put(n, '!label-primary.label-default'); });
+			}
+			
 			this._updateInput ();
 		},
 		
@@ -194,7 +204,12 @@ define ([
 				}
 			}
 	
-			var labelType = 'label-primary';
+			var labelType;
+			if (this.firstIsDefault && (this.values.length == 0 || this.values[0][1] == id)) {
+				labelType = 'label-default';
+			} else {
+				labelType = 'label-primary';
+			}
 			
 			put (this.addButton, '- span.term.label.' + labelType + '[data-id=$] $ button[type="button"][aria-hidden="true"].close', id, label, { innerHTML: '&times;' });
 			
