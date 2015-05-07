@@ -1,6 +1,6 @@
 @import nl.idgis.publisher.domain.web.tree._
 
-@(layerRef: LayerRef[_ <: Layer])
+@(layerRef: LayerRef[_ <: Layer], showStyleSelect: Boolean)
 
 @defining(layerRef.getLayer()) { layer =>
 	<div value="@layer.getId()" class="list-group-item js-gp-draggable tree-item">
@@ -17,20 +17,24 @@
 				} else {
 					@defining(layerRef.asDatasetRef()) { datasetRef =>
 					@defining(datasetRef.getLayer()) { datasetLayer =>
-					@defining(datasetRef.getStyleRef()) { styleRef =>															
-						<div class="form-group">
-							<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groups.form.field.structure.style.label")</label>
-							<div class="col-sm-6">
-								<select class="form-control js-gp-draggable-exclude" name="styles[]">
-									<option value="">@Domain.message("web.application.page.groups.form.field.structure.style.default")</option>
-									@defining(if(styleRef.isPresent()) styleRef.get().getId() else null) { currentStyleId =>																			
-										@for(styleRef <- datasetLayer.getStyleRefs()) {
-											<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>
+					@defining(datasetRef.getStyleRef()) { styleRef =>
+						@if(showStyleSelect) {															
+							<div class="form-group">
+								<label class="control-label col-sm-6" for="styles[]">@Domain.message("web.application.page.groups.form.field.structure.style.label")</label>
+								<div class="col-sm-6">								
+									<select class="form-control js-gp-draggable-exclude" name="styles[]">
+										<option value="">@Domain.message("web.application.page.groups.form.field.structure.style.default")</option>
+										@defining(if(styleRef.isPresent()) styleRef.get().getId() else null) { currentStyleId =>																			
+											@for(styleRef <- datasetLayer.getStyleRefs()) {
+												<option value="@styleRef.getId()"@if(styleRef.getId() == currentStyleId) {selected }>@styleRef.getName()</option>
+											}
 										}
-									}
-								</select>
+									</select>								 
+								</div>
 							</div>
-						</div>
+						} else {							
+							<input type="hidden" name="styles[]" value="">
+						}
 					}}}
 				}
 			</div>

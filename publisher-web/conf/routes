@@ -62,7 +62,7 @@ GET 	/layers/:datasetId/create						controllers.Layers.create(datasetId : String
 POST 	/layers/-/createupdate							controllers.Layers.submitCreateUpdate()
 GET		/layers/:layerId/edit							controllers.Layers.edit(layerId: String)
 POST 	/layers/:layerId/delete							controllers.Layers.delete(layerId : String)
-GET 	/layers/:layerId/structure-item					controllers.Layers.structureItem(layerId : String)
+GET 	/layers/:layerId/structure-item					controllers.Layers.structureItem(layerId : String, showStyleSelect: Boolean ?= true)
 
 GET		/groups											controllers.Groups.list(q: String ?= null, page: Long ?= 1)
 GET		/groups.json									controllers.Groups.listJson(q: String ?= null, page: Long ?= 1)
@@ -70,7 +70,7 @@ GET 	/groups/-/create								controllers.Groups.create()
 POST 	/groups/-/createupdate							controllers.Groups.submitCreateUpdate()
 GET		/groups/:groupId/edit							controllers.Groups.edit(groupId: String)
 POST 	/groups/:groupId/delete							controllers.Groups.delete(groupId : String)
-GET 	/groups/:groupId/structure-item					controllers.Groups.structureItem(groupId : String)
+GET 	/groups/:groupId/structure-item					controllers.Groups.structureItem(groupId : String, showStyleSelect: Boolean ?= true)
 
 GET		/styles											controllers.Styles.list(q: String ?= null, styleType: String ?= null, page : Long ?= 1)
 GET		/styles.json									controllers.Styles.listStylesJson(page: Long ?= 1, styleType: String ?= null, q: String ?= null)

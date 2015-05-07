@@ -601,7 +601,7 @@ web.application.page.layers.form.field.parentServices.help=Laat alleen de servic
 
 web.application.page.layers.form.field.styles.label=Gebruikt de stijl(en)
 web.application.page.layers.form.field.styles.default=Default stijl
-web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen
+web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen, de eerste stijl is de standaard stijl
 web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 1 stijl worden toegevoegd
 
 web.application.page.layers.list.delete.warning.body=Weet u zeker dat u deze laag wilt verwijderen? Deze laag is aan de dataset {0} gekoppeld.

@@ -67,7 +67,7 @@ require ([
 	
 	new Select ('#layers-select', {
 		onSelect: function (item) {
-			xhr (jsRoutes.controllers.Layers.structureItem (item.id).url)
+			xhr (jsRoutes.controllers.Layers.structureItem (item.id, false).url)
 				.then (function (data) {
 					domConstruct.place(data, main);				
 				});
@@ -77,7 +77,7 @@ require ([
 	
 	new Select ('#groups-select', {
 		onSelect: function (item) {
-			xhr (jsRoutes.controllers.Groups.structureItem (item.id).url)
+			xhr (jsRoutes.controllers.Groups.structureItem (item.id, false).url)
 				.then (function (data) {
 					domConstruct.place(data, main);				
 				});

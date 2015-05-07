@@ -534,21 +534,17 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 									llNr -> {
 										// B. insert items of layerStyles	
 										return f.sequence(
-												StreamUtils.index(
-													layerStyles.stream()
-												)
-											    .map(indexed -> tx
+												layerStyles.stream()												
+											    .map(layerStyleId -> tx
 											.insert(layerStyle)
 											.columns(
 												layerStyle.layerId, 
-												layerStyle.styleId,
-												layerStyle.defaultStyle)
+												layerStyle.styleId)
 											.select(new SQLSubQuery().from(style)
-												.where(style.identification.eq(indexed.getValue()))
+												.where(style.identification.eq(layerStyleId))
 												.list(
 													llId.get(),
-													style.id,
-													indexed.getIndex()==0)
+													style.id)
 											)
 											.execute())
 											.collect(Collectors.toList())).thenApply(whatever ->
