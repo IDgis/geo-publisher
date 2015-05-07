@@ -75,8 +75,10 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.join(layerStyle).on(layerStyle.layerId.eq(leafLayer.id))
 			.join(style).on(style.id.eq(layerStyle.styleId)))
+			.orderBy(layerStyle.styleOrder.asc())
 			.distinct()
 			.list(
+				layerStyle.styleOrder,
 				genericLayer.id,
 				style.identification,
 				style.name).thenApply(resp ->
