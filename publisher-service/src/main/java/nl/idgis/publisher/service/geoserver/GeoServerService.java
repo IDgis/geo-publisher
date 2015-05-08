@@ -168,7 +168,7 @@ public class GeoServerService extends UntypedActor {
 					}
 				});
 			
-			getContext().become(vacuuming(initiator));
+			getContext().become(vacuuming());
 		} else if(msg instanceof EnsureStyle) {
 			EnsureStyle ensureStyle = (EnsureStyle)msg;					
 			log.debug("ensure style: {}", ensureStyle.getName());
@@ -267,7 +267,7 @@ public class GeoServerService extends UntypedActor {
 	
 	private static class Vacuumed {}
 	
-	private Procedure<Object> vacuuming(ActorRef initiator) {
+	private Procedure<Object> vacuuming() {
 		return new Procedure<Object>() {
 
 			@Override
@@ -279,7 +279,7 @@ public class GeoServerService extends UntypedActor {
 					log.error("timeout while vacuuming");
 					vacuumed(JobState.FAILED);
 				} else {
-					elseProvisioning(msg, initiator);
+					elseProvisioning(msg);
 				}
 			}
 
@@ -293,21 +293,25 @@ public class GeoServerService extends UntypedActor {
 		};
 	}
 	
-	private void elseProvisioning(Object msg, ActorRef initiator) {
+	private void elseProvisioning(Object msg) throws Exception {
 		if(msg instanceof Failure) {
-			log.error("failure: {}", msg);
-			
-			ensureFailure(initiator);
+			handleFailure((Failure)msg);
 		} else {
 			log.debug("unhandled: {}", msg);			
 			unhandled(msg);
 		}
 	}
 
-	private void ensureFailure(ActorRef initiator) {
+	private void handleFailure(Failure failure) throws Exception {
 		// TODO: add logging
-		getContext().parent().tell(new UpdateJobState(JobState.FAILED), getSelf());
-		getContext().become(receive());
+		log.error("failure: {}", failure);
+		
+		Throwable cause = failure.getCause();
+		if(cause instanceof Exception) {
+			throw (Exception)cause;
+		} else {
+			throw new RuntimeException(cause);
+		}
 	}
 	
 	private void toSelf(Object msg) {
@@ -811,7 +815,7 @@ public class GeoServerService extends UntypedActor {
 					ensured(initiator);
 					getContext().unbecome();
 				} else {
-					elseProvisioning(msg, initiator);
+					elseProvisioning(msg);
 				}
 			}									
 		};
@@ -964,7 +968,7 @@ public class GeoServerService extends UntypedActor {
 					ensured(initiator);
 					getContext().become(receive());
 				} else {
-					elseProvisioning(msg, initiator);
+					elseProvisioning(msg);
 				}
 			}
 			
