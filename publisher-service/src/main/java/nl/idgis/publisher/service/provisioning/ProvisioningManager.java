@@ -85,6 +85,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	private ActorRef environmentInfoProvider;
 	
+	private Set<ActorRef> jobContexts;
+	
 	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {
 		this.database = database;
 		this.serviceManager = serviceManager;
@@ -105,6 +107,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		publication = new HashMap<>();
 		publicationReverse = new HashMap<>();
 		services = new HashMap<>();
+		jobContexts = new HashSet<>();
 		
 		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, f, log);
@@ -112,6 +115,12 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		environmentInfoProvider = getContext().actorOf(
 			provisioningPropsFactory.environmentInfoProviderProps(database),
 			"environment-info-provider");
+	}
+	
+	@Override
+	public void postStop() {
+		jobContexts.stream().forEach(jobContext -> 
+			jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf()));
 	}
 
 	@Override
@@ -174,11 +183,11 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				log.debug("all targets reported a state");
 				
 				if(state.contains(JobState.FAILED)) {
-					initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());
+					jobFailed(initiator);
 				} else if(state.contains(JobState.ABORTED)) {
-					initiator.tell(new UpdateJobState(JobState.ABORTED), getSelf());
+					jobAborted(initiator);					
 				} else {
-					initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+					jobSucceeded(initiator);
 				}
 				
 				if(watching.isPresent()) {
@@ -206,7 +215,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				} else if(msg instanceof Terminated) {
 					log.error("actor terminated unexpectedly");
 					
-					initiator.tell(new UpdateJobState(JobState.FAILED), getSelf());						
+					jobFailed(initiator);						
 					getContext().become(receive());
 				} else {
 					elseProvisioning(msg, serviceJob, initiator, Optional.of(watching), targets, state);
@@ -279,7 +288,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 					
 					if(targets.isEmpty()) {
 						log.debug("no service index dispatched");						
-						initiator.tell(new UpdateJobState(JobState.SUCCEEDED), getSelf());
+						jobSucceeded(initiator);
 						getContext().become(receive());
 					} else {
 						log.debug("waiting for status updates");
@@ -394,7 +403,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		
 		if (targets.isEmpty ()) {
 			log.error ("No targets for provisioning, aborting provisioning job");
-			initiator.tell (new UpdateJobState (JobState.FAILED), getSelf ());
+			jobFailed(initiator);
 			getContext ().become (receive ());
 		} else {
 			ActorRef jobHandler = getContext().actorOf(
@@ -417,12 +426,34 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			TypedList.class).thenApply(environmentIds -> (TypedList<String>)environmentIds.cast(String.class)); 
 	}
 	
+	private void startJob(ActorRef initiator) {
+		initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
+		initiator.tell(new Ack(), getSelf());		
+		jobContexts.add(initiator);
+	}
+	
+	private void finishJob(JobState state, ActorRef initiator) {
+		initiator.tell(new UpdateJobState(state), getSelf());
+		jobContexts.remove(initiator);
+	}
+	
+	private void jobSucceeded(ActorRef initiator) {
+		finishJob(JobState.SUCCEEDED, initiator);
+	}
+	
+	private void jobFailed(ActorRef initiator) {
+		finishJob(JobState.FAILED, initiator);		
+	}
+	
+	private void jobAborted(ActorRef initiator) {
+		finishJob(JobState.ABORTED, initiator);		
+	}
+	
 	private void handleServiceJobInfo(ServiceJobInfo msg) {
 		log.debug("service job received");
 		
 		ActorRef initiator = getSender();
-		initiator.tell(new UpdateJobState(JobState.STARTED), getSelf());
-		initiator.tell(new Ack(), getSelf()); 
+		startJob(initiator);
 		
 		if(msg instanceof EnsureServiceJobInfo) {
 			log.debug("ensuring");
