@@ -40,7 +40,10 @@ public abstract class EnsureLayer implements Serializable {
 		return Optional.ofNullable(tilingSettings).map(tilingSettings -> 
 			new TiledLayer(
 				tilingSettings.getMimeFormats(),
-				Arrays.asList(new GridSubset("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale")),
+				Arrays.asList(new GridSubset(
+					"urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale",
+					Optional.empty(), // minCachedLevel
+					Optional.of(11))), // maxCachedLevel
 				tilingSettings.getMetaWidth(),
 				tilingSettings.getMetaHeight(),
 				tilingSettings.getExpireCache(),

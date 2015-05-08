@@ -1286,7 +1286,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					new TiledLayer(
 						layer.strings("mimeFormats/string"),
 						layer.nodes("gridSubsets/gridSubset").stream()
-							.map(gridSubset -> new GridSubset(gridSubset.string("gridSetName").get()))
+							.map(gridSubset -> new GridSubset(
+								gridSubset.string("gridSetName").get(),
+								gridSubset.integer("minCachedLevel"),
+								gridSubset.integer("maxCachedLevel")))
 							.collect(Collectors.toList()),
 						metaWidth,
 						metaHeight,
@@ -1362,6 +1365,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 						sw.writeStartElement("gridSetName");
 							sw.writeCharacters(gridSubset.getGridSetName());
 						sw.writeEndElement();
+						
+						Optional<Integer> minCachedLevel = gridSubset.getMinCachedLevel();
+						if(minCachedLevel.isPresent()) {
+							sw.writeStartElement("minCachedLevel");
+								sw.writeCharacters("" + minCachedLevel.get());
+							sw.writeEndElement();
+						}
+						
+						Optional<Integer> maxCachedLevel = gridSubset.getMaxCachedLevel();
+						if(maxCachedLevel.isPresent()) {
+							sw.writeStartElement("maxCachedLevel");
+								sw.writeCharacters("" + maxCachedLevel.get());
+							sw.writeEndElement();
+						}
 					sw.writeEndElement();
 				}
 			sw.writeEndElement();

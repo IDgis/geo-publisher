@@ -454,7 +454,12 @@ public class DefaultGeoServerRestTest {
 		// remove default tiled layer
 		service.deleteTiledLayer(workspace, featureType).get(); 
 		// new tiled layer (in GWC put and post are swapped)
-		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), Arrays.asList(new GridSubset("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale")), 4, 4, 0, 0, 0)).get(); 
+		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), 
+			Arrays.asList(new GridSubset(
+				"urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale",
+				Optional.of(1),
+				Optional.of(13))), 
+			4, 4, 0, 0, 0)).get(); 
 		
 		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
 		assertTrue(tiledLayer.isPresent());
@@ -463,20 +468,30 @@ public class DefaultGeoServerRestTest {
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		
 		List<GridSubset> gridSubsets = tiledLayer.get().getGridSubsets();
-		assertEquals(1, gridSubsets.size());
+		assertEquals(1, gridSubsets.size());		
 		
 		GridSubset gridSubset = gridSubsets.get(0);
 		assertEquals("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale", gridSubset.getGridSetName());
+		assertEquals(Optional.of(1), gridSubset.getMinCachedLevel());
+		assertEquals(Optional.of(13), gridSubset.getMaxCachedLevel());
 		
 		// update tiled layer
-		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"), Arrays.asList(new GridSubset("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale")), 4, 4, 0, 0, 0)).get();
-		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());
+		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"),
+			Arrays.asList(new GridSubset(
+				"urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale",
+				Optional.empty(),
+				Optional.of(11))), 
+				4, 4, 0, 0, 0)).get();
+		tiledLayer = service.getTiledLayer(workspace, featureType).get();
+		assertEquals(Arrays.asList("image/jpg"), tiledLayer.get().getMimeFormats());
 		
 		gridSubsets = tiledLayer.get().getGridSubsets();
 		assertEquals(1, gridSubsets.size());
 		
 		gridSubset = gridSubsets.get(0);
 		assertEquals("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale", gridSubset.getGridSetName());
+		assertFalse(gridSubset.getMinCachedLevel().isPresent());
+		assertEquals(Optional.of(11), gridSubset.getMaxCachedLevel());
 		
 		Workspace anotherWorkspace = new Workspace("anotherWorkspace");
 		service.postWorkspace(anotherWorkspace).get();
