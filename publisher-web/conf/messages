@@ -12,6 +12,8 @@ nl.idgis.publisher.domain.web.JobStatusType.OK=Uitgevoerd
 nl.idgis.publisher.domain.web.JobStatusType.PLANNED=Ingepland
 nl.idgis.publisher.domain.web.JobStatusType.RUNNING=In uitvoering
 nl.idgis.publisher.domain.web.JobStatusType.NOT_CONNECTED=Niet verbonden
+nl.idgis.publisher.domain.web.JobStatusType.ABORTED=Afgebroken
+nl.idgis.publisher.domain.web.JobStatusType.FAILED=Foutsituatie
 
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
@@ -42,10 +44,13 @@ nl.idgis.publisher.domain.web.DashboardNotificationType.STRUCTUURWIJZIGING=Struc
 
 nl.idgis.publisher.domain.web.DataSourceStatusType.OK=Ok
 nl.idgis.publisher.domain.web.DataSourceStatusType.NOT_CONNECTED=Niet verbonden
+nl.idgis.publisher.domain.web.DataSourceStatusType.ABORTED=Afgebroken
+nl.idgis.publisher.domain.web.DataSourceStatusType.FAILED=Foutsituatie
 
 nl.idgis.publisher.domain.web.DatasetImportStatusType.NOT_IMPORTED=Nog niet geïmporteerd
 nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTING=Bezig met importeren
 nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORTED=Geïmporteerd
+nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORT_ABORTED=Import afgebroken
 nl.idgis.publisher.domain.web.DatasetImportStatusType.IMPORT_FAILED=Fout bij importeren
 
 nl.idgis.publisher.domain.web.DatasetServiceStatusType.NOT_VERIFIED=Nog geen laag beschikbaar 

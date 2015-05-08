@@ -250,8 +250,10 @@ private String getEnumName(Enum e){
 							} else {
 								if (t.get(jobState.state).equals("SUCCEEDED")) {
 									js = new Status(DataSourceStatusType.OK, t.get(jobState.createTime));
+								} else if (t.get(jobState.state).equals("ABORTED")) {
+									js = new Status(DataSourceStatusType.ABORTED, t.get(jobState.createTime));
 								} else{
-									js = new Status(DataSourceStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+									js = new Status(DataSourceStatusType.FAILED, t.get(jobState.createTime));
 								}
 							}
 						} else if (t.get(job.type).equals("IMPORT")){
@@ -263,6 +265,8 @@ private String getEnumName(Enum e){
 							} else {
 								if (t.get(jobState.state).equals("SUCCEEDED")) {
 									js = new Status(DatasetImportStatusType.IMPORTED, t.get(jobState.createTime));
+								} else if (t.get(jobState.state).equals("ABORTED")) {
+									js = new Status(DatasetImportStatusType.IMPORT_ABORTED, t.get(jobState.createTime));
 								} else{
 									js = new Status(DatasetImportStatusType.IMPORT_FAILED, t.get(jobState.createTime));
 								}
@@ -276,8 +280,10 @@ private String getEnumName(Enum e){
 							} else {
 								if (t.get(jobState.state).equals("SUCCEEDED")) {
 									js = new Status(JobStatusType.OK, t.get(jobState.createTime));
+								} else if (t.get(jobState.state).equals("ABORTED")) {
+									js = new Status(JobStatusType.ABORTED, t.get(jobState.createTime));
 								} else{
-									js = new Status(JobStatusType.NOT_CONNECTED, t.get(jobState.createTime));
+									js = new Status(JobStatusType.FAILED, t.get(jobState.createTime));
 								}
 							}
 						}
