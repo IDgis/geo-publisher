@@ -1285,7 +1285,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				return
 					new TiledLayer(
 						layer.strings("mimeFormats/string"),
-						layer.strings("gridSubsets/gridSubset/gridSetName"),
+						layer.nodes("gridSubsets/gridSubset").stream()
+							.map(gridSubset -> new GridSubset(gridSubset.string("gridSetName").get()))
+							.collect(Collectors.toList()),
 						metaWidth,
 						metaHeight,
 						layer.integerOrNull("expireCache"),
@@ -1355,10 +1357,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			sw.writeEndElement();
 						
 			sw.writeStartElement("gridSubsets");
-				for(String gridSet : tiledLayer.getGridSets()) {
+				for(GridSubset gridSubset : tiledLayer.getGridSubsets()) {
 					sw.writeStartElement("gridSubset");
 						sw.writeStartElement("gridSetName");
-							sw.writeCharacters(gridSet);
+							sw.writeCharacters(gridSubset.getGridSetName());
 						sw.writeEndElement();
 					sw.writeEndElement();
 				}

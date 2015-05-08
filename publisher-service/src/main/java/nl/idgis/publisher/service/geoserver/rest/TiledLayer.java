@@ -4,13 +4,15 @@ import java.util.List;
 
 public class TiledLayer {
 	
-	private final List<String> mimeFormats, gridSets;
+	private final List<String> mimeFormats;
+	
+	private final List<GridSubset> gridSubsets;
 	
 	private final Integer metaWidth, metaHeight, expireCache, expireClients, gutter;
 	
-	public TiledLayer(List<String> mimeFormats, List<String> gridSets, Integer metaWidth, Integer metaHeight, Integer expireCache, Integer expireClients, Integer gutter) {		
+	public TiledLayer(List<String> mimeFormats, List<GridSubset> gridSubsets, Integer metaWidth, Integer metaHeight, Integer expireCache, Integer expireClients, Integer gutter) {		
 		this.mimeFormats = mimeFormats;
-		this.gridSets = gridSets;
+		this.gridSubsets = gridSubsets;
 		this.metaWidth = metaWidth;
 		this.metaHeight = metaHeight;
 		this.expireCache = expireCache;
@@ -22,8 +24,8 @@ public class TiledLayer {
 		return mimeFormats;
 	}
 	
-	public List<String> getGridSets() {
-		return gridSets;
+	public List<GridSubset> getGridSubsets() {
+		return gridSubsets;
 	}
 
 	public Integer getMetaWidth() {
@@ -48,8 +50,8 @@ public class TiledLayer {
 
 	@Override
 	public String toString() {
-		return "TiledLayer [mimeFormats=" + mimeFormats + ", gridSets="
-				+ gridSets + ", metaWidth=" + metaWidth + ", metaHeight="
+		return "TiledLayer [mimeFormats=" + mimeFormats + ", gridSubsets="
+				+ gridSubsets + ", metaWidth=" + metaWidth + ", metaHeight="
 				+ metaHeight + ", expireCache=" + expireCache
 				+ ", expireClients=" + expireClients + ", gutter=" + gutter
 				+ "]";

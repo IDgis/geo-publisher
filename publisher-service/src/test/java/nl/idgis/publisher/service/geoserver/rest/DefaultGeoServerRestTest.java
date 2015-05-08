@@ -454,19 +454,29 @@ public class DefaultGeoServerRestTest {
 		// remove default tiled layer
 		service.deleteTiledLayer(workspace, featureType).get(); 
 		// new tiled layer (in GWC put and post are swapped)
-		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), Arrays.asList("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale"), 4, 4, 0, 0, 0)).get(); 
+		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), Arrays.asList(new GridSubset("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale")), 4, 4, 0, 0, 0)).get(); 
 		
 		Optional<TiledLayer> tiledLayer = service.getTiledLayer(workspace, featureType).get();
 		assertTrue(tiledLayer.isPresent());
 		
 		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());
-		assertEquals(Arrays.asList("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale"), tiledLayer.get().getGridSets());
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
 		
+		List<GridSubset> gridSubsets = tiledLayer.get().getGridSubsets();
+		assertEquals(1, gridSubsets.size());
+		
+		GridSubset gridSubset = gridSubsets.get(0);
+		assertEquals("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale", gridSubset.getGridSetName());
+		
 		// update tiled layer
-		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"), Arrays.asList("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale"), 4, 4, 0, 0, 0)).get();
+		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"), Arrays.asList(new GridSubset("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale")), 4, 4, 0, 0, 0)).get();
 		assertEquals(Arrays.asList("image/png"), tiledLayer.get().getMimeFormats());
-		assertEquals(Arrays.asList("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale"), tiledLayer.get().getGridSets());
+		
+		gridSubsets = tiledLayer.get().getGridSubsets();
+		assertEquals(1, gridSubsets.size());
+		
+		gridSubset = gridSubsets.get(0);
+		assertEquals("urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale", gridSubset.getGridSetName());
 		
 		Workspace anotherWorkspace = new Workspace("anotherWorkspace");
 		service.postWorkspace(anotherWorkspace).get();
