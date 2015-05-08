@@ -4,7 +4,9 @@ import nl.idgis.publisher.domain.StatusType;
 
 public enum DataSourceStatusType implements StatusType {
 	OK(StatusCategory.SUCCESS),
-	NOT_CONNECTED((StatusCategory.ERROR));
+	NOT_CONNECTED(StatusCategory.ERROR),
+	FAILED(StatusCategory.ERROR),
+	ABORTED(StatusCategory.ERROR);
 	
 	private final StatusCategory statusCategory;
 	
