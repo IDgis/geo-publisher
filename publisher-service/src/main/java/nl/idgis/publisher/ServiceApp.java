@@ -30,11 +30,7 @@ import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.service.manager.ServiceManager;
-import nl.idgis.publisher.service.provisioning.ConnectionInfo;
-import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
-import nl.idgis.publisher.service.provisioning.ProvisioningManager;
-import nl.idgis.publisher.service.provisioning.ServiceInfo;
-import nl.idgis.publisher.service.provisioning.ZooKeeperServiceInfoProvider;
+import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -185,32 +181,12 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		ActorRef provisioningManager = getContext().actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), "provisioning-manager");
+		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, 
+			geoserverConfig, databaseConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
 		
-		getContext ().actorOf (ZooKeeperServiceInfoProvider.props (
-				new ServiceInfo(
-						new ConnectionInfo(
-							geoserverConfig.getString("url"),
-							geoserverConfig.getString("user"),
-							geoserverConfig.getString("password")),
-							
-						new ConnectionInfo(		
-							databaseConfig.getString("url"),
-							databaseConfig.getString("user"),
-							databaseConfig.getString("password")),
-						
-						rasterFolderConfig
-					),
-				provisioningManager,
-				zooKeeperConfig.getString ("hosts"),
-				zooKeeperConfig.getString ("stagingEnvironmentId"),
-				zooKeeperConfig.hasPath ("serviceIdPrefix") ? zooKeeperConfig.getString ("serviceIdPrefix") : null,
-				zooKeeperConfig.hasPath ("namespace") ? zooKeeperConfig.getString ("namespace") : null
-			), "zookeeper-service-info-provider");
+		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningSystem, serviceManager), "jobs");
 		
-		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningManager, serviceManager), "jobs");
-		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningManager, jobSystem, serviceManager), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobSystem, serviceManager), "admin");
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
