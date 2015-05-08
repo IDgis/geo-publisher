@@ -10,12 +10,18 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import akka.actor.ActorRef;
+import akka.actor.AllForOneStrategy;
 import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.actor.UntypedActorWithStash;
+import akka.actor.SupervisorStrategy.Directive;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.japi.Procedure;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
@@ -62,6 +68,16 @@ import static java.util.stream.Stream.empty;
 import static java.util.Arrays.asList;
 
 public class ProvisioningManager extends UntypedActorWithStash {
+	
+	private final static SupervisorStrategy supervisorStrategy = new AllForOneStrategy(10, Duration.create("1 minute"), 
+		new Function<Throwable, Directive>() {
+
+		@Override
+		public Directive apply(Throwable t) throws Exception {			
+			return AllForOneStrategy.escalate();
+		}
+		
+	});
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -612,4 +628,10 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				provisioningPropsFactory.serviceProps(serviceInfo, schema),
 				nameGenerator.getName(GeoServerService.class)));
 	}
+	
+	@Override
+	public SupervisorStrategy supervisorStrategy() {
+		return supervisorStrategy;
+	}
+	
 }
