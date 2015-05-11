@@ -125,6 +125,7 @@ public class VectorLoaderSessionTest {
 		
 		f.ask(loaderSession, new StartVectorImport(initiator, numberOfRecords), Ack.class).get();
 		
+		f.ask(initiator, new Wait(1), Waited.class).get();
 		f.ask(initiator, new GetRecording(), Recording.class).get()
 			.assertHasNext()
 			.assertNext(Ack.class)
