@@ -13,7 +13,7 @@ import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimefo
 import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
-import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
+import static nl.idgis.publisher.database.QJobState.jobState;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +26,10 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
+
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultRasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
@@ -35,6 +37,7 @@ import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
+
 import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<AbstractDatasetLayer>> {
@@ -115,8 +118,16 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
 			.join(dataset).on(dataset.id.eq(leafLayer.datasetId)))
-			.join(lastSourceDatasetVersion).on(lastSourceDatasetVersion.datasetId.eq(dataset.id))
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(lastSourceDatasetVersion.sourceDatasetVersionId))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.in(
+				new SQLSubQuery().from(importJob)
+				.groupBy(importJob.datasetId)
+				.where(
+					importJob.datasetId.eq(dataset.id)
+					.and(new SQLSubQuery().from(jobState)
+						.where(jobState.jobId.eq(importJob.jobId)
+							.and(jobState.state.eq(JobState.SUCCEEDED.name())))
+						.exists()))
+				.list(importJob.sourceDatasetVersionId.max())))
 			.list(
 				genericLayer.id,
 				genericLayer.identification, 

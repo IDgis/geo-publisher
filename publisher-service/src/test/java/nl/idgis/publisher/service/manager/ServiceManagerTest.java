@@ -69,10 +69,12 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
+import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
@@ -92,6 +94,7 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.json.JsonService;
+import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
 import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
@@ -1960,5 +1963,34 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 		
 		return publishedEnvironments;
+	}
+	
+	@Test
+	public void testGetDatasetLayerRef() throws Exception {	
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "layer")
+			.set(genericLayer.name, "layer-name")
+			.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, layerId)
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.execute();
+		
+		f.ask(serviceManager, new GetDatasetLayerRef("layer"), DatasetLayerRef.class).get();
+		
+		insert(sourceDatasetVersion)
+			.columns(
+				sourceDatasetVersion.type,
+				sourceDatasetVersion.confidential,
+				sourceDatasetVersion.sourceDatasetId)
+			.select(new SQLSubQuery().from(dataset)
+				.list(
+					"UNAVAILABLE", 
+					false,
+					dataset.sourceDatasetId))
+			.execute();
+		
+		f.ask(serviceManager, new GetDatasetLayerRef("layer"), DatasetLayerRef.class).get();
 	}
 }
