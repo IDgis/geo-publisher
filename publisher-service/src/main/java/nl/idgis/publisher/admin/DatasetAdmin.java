@@ -14,6 +14,8 @@ import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QNotification.notification;
+import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -489,6 +491,25 @@ public class DatasetAdmin extends AbstractAdmin {
 						.exists ()
 					);
 				
+				final AsyncSQLDeleteClause deleteNotificationResult = tx
+					.delete (notificationResult)
+					.where (new SQLSubQuery ()
+						.from (importJob)
+						.join (dataset).on (importJob.datasetId.eq (dataset.id))
+						.join (notification).on (notification.jobId.eq (importJob.jobId))
+						.where (notificationResult.notificationId.eq (notification.id).and (dataset.identification.eq (id)))
+						.exists ()
+					);
+				
+				final AsyncSQLDeleteClause deleteNotification = tx
+					.delete (notification)
+					.where (new SQLSubQuery ()
+						.from (importJob)
+						.join (dataset).on (importJob.datasetId.eq (dataset.id))
+						.where (importJob.jobId.eq (notification.jobId).and (dataset.identification.eq (id)))
+						.exists ()
+					);
+				
 				final AsyncSQLDeleteClause deleteJob = tx
 					.delete (job)
 					.where (new SQLSubQuery ()
@@ -522,7 +543,7 @@ public class DatasetAdmin extends AbstractAdmin {
 					.delete (dataset)
 					.where (dataset.identification.eq (id));
 				
-				return deleteHelper (id, deleteJobLog, deleteJobState, deleteJob, deleteDatasetColumn, deleteLayer, deleteDataset);
+				return deleteHelper (id, deleteJobLog, deleteJobState, deleteNotificationResult, deleteNotification, deleteJob, deleteDatasetColumn, deleteLayer, deleteDataset);
 			});
 	}
 	
