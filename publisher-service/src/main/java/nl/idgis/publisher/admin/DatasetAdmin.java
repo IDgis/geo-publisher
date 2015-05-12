@@ -478,7 +478,7 @@ public class DatasetAdmin extends AbstractAdmin {
 							.from (importJob)
 							.join (dataset).on (importJob.datasetId.eq (dataset.id))
 							.join (jobState).on (jobState.jobId.eq (importJob.jobId))
-							.where (importJob.jobId.eq (jobState.jobId).and (dataset.identification.eq (id)))
+							.where (jobLog.jobStateId.eq (jobState.id).and (dataset.identification.eq (id)))
 							.exists ()
 						);
 				
