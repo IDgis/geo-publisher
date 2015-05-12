@@ -74,7 +74,6 @@ public class ConnectionInfo implements Serializable {
 
 	@Override
 	public String toString() {
-		return "ConnectionInfo [url=" + url + ", user=" + user + ", password="
-				+ password + "]";
+		return "ConnectionInfo [url=" + url + ", user=" + user + "]";
 	}
 }
