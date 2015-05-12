@@ -1,7 +1,5 @@
 # Dashboard
 
-
-
 ## Algemeen
 
 Het dashboard geeft een overzicht van de werking van de GIS publicatieomgeving.
@@ -13,7 +11,7 @@ Het menu bevindt zich aan de linkerkant.
 Rechtsboven staat actuele meldingen over datasets en systeemtaken. 
 Hier kan ook uitgelogd worden.
 De onderste helft van de pagina is gereserveerd voor het overzicht (zie hieronder).
-
+ 
 ## Overzicht
 
 Drie onderdelen die een overzicht geven van de actuele situatie.
@@ -25,7 +23,41 @@ Welke gegevens bronnen zijn er en zijn zij verbonden met de publicatieomgeving.
 Hier staan acties die nog niet afgerond zijn, zoals ...
 
 ### Systeemtaken 
-Taken die momenteel lopen of in de afgelopen 24 uur zijn afgerond worden worden hier getoond.
-De lijst op deze pagina is beperkt tot 5 meldingen. Voor een volledig overzicht wordt verwezen naar het [Systeemtaken logboek](logging/tasks.md). 
+Taken die momenteel lopen of in de afgelopen 24 uur zijn afgerond worden hier getoond.
+De lijst op deze pagina is beperkt tot 5 meldingen. Voor een volledig overzicht wordt verwezen naar het [Systeemtaken logboek](logging/tasks.md).
+
+## Workflow
+Hier wordt een workflow beschreven waarmee in korte tijd een kaartlaag zichtbaar kan worden gemaakt in een GIS viewer.
+
+### Stappen
+
+* Kijk op het Dashboard of de gegevensbronnen zijn verbonden (OK).
+* Ga naar [stijlen](styles/list.md) en maak ten minste 1 stijl aan.
+* Ga naar [Brongegevens](datasources/list.md) en druk op de + knop om bij een brongegeven een dataset aan te maken.
+* Neem bij de dataset de gegevens over en druk op ``Opslaan``. Importeer de data bij deze nieuwe dataset.
+* Als het importeren gelukt is: Druk op `` + Nieuwe laag`` om een kaartlag voor deze data te maken.
+* Voeg een stijl toe en druk op ``Opslaan``.
+* Ga naar [Groepen](groups/list.md) en maak een nieuwe groep aan: ``+ maak een nieuwe groep``.
+* Geef een naam voor deze groep en voeg de zojuist gemaakte laag toe. Druk op ``Opslaan``.
+* Ga naar [Services](services/list.md) en maak een nieuwe service aan: ``+ maak een nieuwe service``.
+* Geef een naam voor deze service en voeg de zojuist gemaakte groep toe. Druk op ``Opslaan``. 
+* Kijk op het Dashboard of de systeemtaken voor dataset (import) en service (service) zijn uitgevoerd.
+* Als alles goed is gegaan, ga dan terug naar de toegevoegde laag en klik op de preview knop. 
+Een eenvoudige viewer laat de laag zien met de gekozen stijl.
+* Ga naar de toegevoegde service en klik op de ``WMS`` knop. 
+Neem de url over in een GIS view zoals QuantumGis om de service met zijn laag/lagen daarin zichtbaar te maken. 
+
+#### long text
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quod autem ratione actum est, id officium appellamus. Quippe: habes enim a rhetoribus; Utrum igitur tibi litteram videor an totas paginas commovere? Quid turpius quam sapientis vitam ex insipientium sermone pendere? Vide, quaeso, rectumne sit. Duo Reges: constructio interrete. Ratio enim nostra consentit, pugnat oratio. Age, inquies, ista parva sunt.
+
+Sed eum qui audiebant, quoad poterant, defendebant sententiam suam. Satisne ergo pudori consulat, si quis sine teste libidini pareat? Mihi vero, inquit, placet agi subtilius et, ut ipse dixisti, pressius. Age, inquies, ista parva sunt.
+
+Recte, inquit, intellegis. Fatebuntur Stoici haec omnia dicta esse praeclare, neque eam causam Zenoni desciscendi fuisse. Primum cur ista res digna odio est, nisi quod est turpis? Cupit enim dícere nihil posse ad beatam vitam deesse sapienti. Deinde prima illa, quae in congressu solemus: Quid tu, inquit, huc? Ergo illi intellegunt quid Epicurus dicat, ego non intellego?
+
+Collige omnia, quae soletis: Praesidium amicorum. Post enim Chrysippum eum non sane est disputatum. Nam si amitti vita beata potest, beata esse non potest. Non est igitur summum malum dolor.
+
+Cum ageremus, inquit, vitae beatum et eundem supremum diem, scribebamus haec. Nam quid possumus facere melius? Estne, quaeso, inquam, sitienti in bibendo voluptas? Te enim iudicem aequum puto, modo quae dicat ille bene noris. Cur tantas regiones barbarorum pedibus obiit, tot maria transmisit? Sic enim censent, oportunitatis esse beate vivere.
+
+ 
 
 [Inhoudsopgave](index.md)
