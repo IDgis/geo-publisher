@@ -31,7 +31,7 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 	}
 	
 	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, RasterImportJobInfo importJob, ActorRef jobContext, ActorRef receiver) {
-		return Props.create(RasterLoaderSession.class, maxRetries, receiveTimeout, loader, importJob, jobContext, receiver);
+		return Props.create(RasterLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, jobContext, receiver);
 	}
 
 	@Override
