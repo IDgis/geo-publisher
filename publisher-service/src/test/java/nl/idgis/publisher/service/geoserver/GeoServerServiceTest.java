@@ -486,6 +486,20 @@ public class GeoServerServiceTest {
 			TiledLayer tiledLayer = tiledLayerOptional.get();
 			assertEquals(Arrays.asList("image/png"), tiledLayer.getMimeFormats());
 		}
+		
+		// remove group layer and its content
+		service = mock(Service.class);
+		when(service.getId()).thenReturn("service");
+		when(service.getName()).thenReturn("serviceName");
+		when(service.getRootId()).thenReturn("root");
+		when(service.getLayers()).thenReturn(Collections.emptyList());
+		
+		f.ask(serviceManager, new PutService("service", service), Ack.class).get();
+		
+		f.ask(recorder, new Clear(), Cleared.class).get();
+		provisioningManager.tell(new EnsureServiceJobInfo(0, "service"), recorder);
+		f.ask(recorder, new Wait(3), Waited.class).get();
+		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 	}
 	
 	@Test
