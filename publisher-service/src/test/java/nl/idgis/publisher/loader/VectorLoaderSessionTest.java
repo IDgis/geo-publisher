@@ -156,7 +156,7 @@ public class VectorLoaderSessionTest {
 			f.ask(loaderSession, new Item<>(i, new Records(recordList)), NextItem.class).get();
 		}
 		
-		f.ask(transaction, new Wait(1), Waited.class).get();		
+		f.ask(transaction, new Wait(2), Waited.class).get();		
 		
 		f.ask(transaction, new GetRecording(), Recording.class).get()
 			.assertNext(InsertRecords.class, insertRecords -> {
