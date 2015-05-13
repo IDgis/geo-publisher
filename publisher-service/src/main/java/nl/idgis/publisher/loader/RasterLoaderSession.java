@@ -85,7 +85,7 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 		return f.ask(receiver, new End(), Ack.class).thenApply(ack -> {
 			log.debug("closed");
 			
-			return null;
+			return ack;
 		});
 	}
 
@@ -94,7 +94,7 @@ public class RasterLoaderSession extends AbstractLoaderSession<RasterImportJobIn
 		return f.ask(receiver, new End(), Ack.class).thenApply(ack -> {
 			log.debug("closed");
 			
-			return null;
+			return ack;
 		});
 	}
 
