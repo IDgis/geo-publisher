@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -730,7 +731,7 @@ public class GeoServerService extends UntypedActor {
 					if(groupLayer == null) {
 						toSelf(
 							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames -> {
-								List<CompletableFuture<Void>> futures = new ArrayList<>();
+								List<Supplier<CompletableFuture<Void>>> futures = new ArrayList<>();
 								
 								/* We can't use the usual 'ensure' strategy for tiled layers because 
 								 creating layers (feature types / coverages) implicitly creates
@@ -744,17 +745,17 @@ public class GeoServerService extends UntypedActor {
 										TiledLayer tiledLayer = entry.getValue();
 										
 										log.debug("putting tiled layer {}", tiledLayerName);
-										futures.add(rest.putTiledLayer(workspace, tiledLayerName, tiledLayer));
+										futures.add(() -> rest.putTiledLayer(workspace, tiledLayerName, tiledLayer));
 									}
 								}
 								
 								for(String tiledLayerName : tiledLayerNames) {
 									if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
 										log.debug("posting tiled layer {}", tiledLayerName);
-										futures.add(rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName)));
+										futures.add(() -> rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName)));
 									} else { // obsolete tiled layers
 										log.debug("deleting tiled layer {}", tiledLayerName);
-										futures.add(rest.deleteTiledLayer(workspace, tiledLayerName));
+										futures.add(() -> rest.deleteTiledLayer(workspace, tiledLayerName));
 									}
 								}
 								
@@ -764,20 +765,20 @@ public class GeoServerService extends UntypedActor {
 								remove a feature type or a coverage that is still part of a group. */
 								for(LayerGroup layerGroup : layerGroups.values()) {
 									log.debug("deleting layer group {}", layerGroup.getName());
-									futures.add(rest.deleteLayerGroup(workspace, layerGroup));
+									futures.add(() -> rest.deleteLayerGroup(workspace, layerGroup));
 								}
 								
 								for(FeatureType featureType : featureTypes.values()) {
 									log.debug("deleting feature type {}", featureType.getName());
-									futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
+									futures.add(() -> rest.deleteFeatureType(workspace, dataStore, featureType));
 								}
 
 								for(CoverageStore coverageStore : coverageStores.values()) {
 									log.debug("deleting coverage store {}", coverageStore.getName());
-									futures.add(rest.deleteCoverageStore(workspace, coverageStore));
+									futures.add(() -> rest.deleteCoverageStore(workspace, coverageStore));
 								}
 								
-								return f.sequence(futures).thenApply(v -> new WorkspaceEnsured());									
+								return f.supplierSequence(futures).thenApply(v -> new WorkspaceEnsured());									
 							}));
 					} else {
 						String groupLayerId = groupLayer.getLayerId();
