@@ -728,63 +728,57 @@ public class GeoServerService extends UntypedActor {
 					ensured(initiator);				
 				} else if(msg instanceof FinishEnsure) {
 					if(groupLayer == null) {
-						log.debug("deleting removed items");
-						
-						/* Remove layer groups first because it is not allowed to
-						remove a feature type or a coverage that is still part of a group. */
-						List<CompletableFuture<Void>> futures = new ArrayList<>();
-						for(LayerGroup layerGroup : layerGroups.values()) {
-							log.debug("deleting layer group {}", layerGroup.getName());
-							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
-						}
-						
-						for(FeatureType featureType : featureTypes.values()) {
-							log.debug("deleting feature type {}", featureType.getName());
-							futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
-						}
+						toSelf(
+							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames -> {
+								List<CompletableFuture<Void>> futures = new ArrayList<>();
+								
+								/* We can't use the usual 'ensure' strategy for tiled layers because 
+								 creating layers (feature types / coverages) implicitly creates
+								 a tiled layer that we have to delete when we are done.
+								
+								N.B. post and put are used the other way around in GWC*/
+								log.debug("configuring tiled layers");
+								for(Map.Entry<String, TiledLayer> entry : tiledLayers.entrySet()) {
+									if(!tiledLayerNames.contains(entry.getKey())) {
+										String tiledLayerName = entry.getKey();
+										TiledLayer tiledLayer = entry.getValue();
+										
+										log.debug("putting tiled layer {}", tiledLayerName);
+										futures.add(rest.putTiledLayer(workspace, tiledLayerName, tiledLayer));
+									}
+								}
+								
+								for(String tiledLayerName : tiledLayerNames) {
+									if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
+										log.debug("posting tiled layer {}", tiledLayerName);
+										futures.add(rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName)));
+									} else { // obsolete tiled layers
+										log.debug("deleting tiled layer {}", tiledLayerName);
+										futures.add(rest.deleteTiledLayer(workspace, tiledLayerName));
+									}
+								}
+								
+								log.debug("deleting removed items");
+								
+								/* Remove layer groups first because it is not allowed to
+								remove a feature type or a coverage that is still part of a group. */
+								for(LayerGroup layerGroup : layerGroups.values()) {
+									log.debug("deleting layer group {}", layerGroup.getName());
+									futures.add(rest.deleteLayerGroup(workspace, layerGroup));
+								}
+								
+								for(FeatureType featureType : featureTypes.values()) {
+									log.debug("deleting feature type {}", featureType.getName());
+									futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
+								}
 
-						for(CoverageStore coverageStore : coverageStores.values()) {
-							log.debug("deleting coverage store {}", coverageStore.getName());
-							futures.add(rest.deleteCoverageStore(workspace, coverageStore));
-						}
-									
-						/* We can't use the usual 'ensure' strategy for tiled layers because 
-						 creating layers (feature types / coverages) implicitly creates
-						 a tiled layer that we have to delete when we are done.
-						
-						 N.B. post and put are used the other way around in GWC*/
-						log.debug("configuring tiled layers");
-						futures.add(
-							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames ->
-								f.sequence(Arrays.asList(
-									f.sequence(
-										tiledLayers.entrySet().stream()
-											.filter(entry -> !tiledLayerNames.contains(entry.getKey())) // missing tiled layers
-											.map(entry -> {																				
-												String tiledLayerName = entry.getKey();
-												TiledLayer tiledLayer = entry.getValue();
-												
-												log.debug("putting tiled layer {}", tiledLayerName);
-												return rest.putTiledLayer(workspace, tiledLayerName, tiledLayer);
-											})
-											.collect(Collectors.toList())),
-							
-									f.sequence(
-										tiledLayerNames.stream()
-											.map(tiledLayerName -> {	
-												if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
-													log.debug("posting tiled layer {}", tiledLayerName);
-													return rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName));
-												} else { // obsolete tiled layers
-													log.debug("deleting tiled layer {}", tiledLayerName);
-													return rest.deleteTiledLayer(workspace, tiledLayerName);
-												}
-											})
-											.collect(Collectors.toList()))))
-
-									.thenApply(v -> null)));
-						
-						toSelf(f.sequence(futures).thenApply(v -> new WorkspaceEnsured()));
+								for(CoverageStore coverageStore : coverageStores.values()) {
+									log.debug("deleting coverage store {}", coverageStore.getName());
+									futures.add(rest.deleteCoverageStore(workspace, coverageStore));
+								}
+								
+								return f.sequence(futures).thenApply(v -> new WorkspaceEnsured());									
+							}));
 					} else {
 						String groupLayerId = groupLayer.getLayerId();
 						
