@@ -730,15 +730,17 @@ public class GeoServerService extends UntypedActor {
 					if(groupLayer == null) {
 						log.debug("deleting removed items");
 						
+						/* Remove layer groups first because it is not allowed to
+						remove a feature type or a coverage that is still part of a group. */
 						List<CompletableFuture<Void>> futures = new ArrayList<>();
-						for(FeatureType featureType : featureTypes.values()) {
-							log.debug("deleting feature type {}", featureType.getName());
-							futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
-						}
-						
 						for(LayerGroup layerGroup : layerGroups.values()) {
 							log.debug("deleting layer group {}", layerGroup.getName());
 							futures.add(rest.deleteLayerGroup(workspace, layerGroup));
+						}
+						
+						for(FeatureType featureType : featureTypes.values()) {
+							log.debug("deleting feature type {}", featureType.getName());
+							futures.add(rest.deleteFeatureType(workspace, dataStore, featureType));
 						}
 
 						for(CoverageStore coverageStore : coverageStores.values()) {
