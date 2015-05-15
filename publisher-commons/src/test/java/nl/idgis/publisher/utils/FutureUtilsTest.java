@@ -149,6 +149,24 @@ public class FutureUtilsTest {
 	}
 	
 	@Test
+	public void testSupplierSequence() {
+		f.supplierSequence(
+			Arrays.asList(
+				() -> f.successful("Hello"),
+				() -> f.successful("world")))
+				
+				.thenAccept(list -> {
+					try {
+						assertEquals(list, Arrays.asList("Hello", "world"));
+						
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+				});
+	}
+	
+	@Test
 	public void testSequence() {
 		f.sequence(
 			Arrays.asList(

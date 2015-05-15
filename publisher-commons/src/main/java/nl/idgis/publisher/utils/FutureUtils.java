@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -410,19 +411,19 @@ public class FutureUtils {
 	}
 	
 	/**
-	 * Transforms an {@link Iterable} with {@link CompletableFuture} objects into a single {@link CompletableFuture} 
-	 * providing an {@link Iterable} with resulting values.
+	 * Transforms an {@link Iterable} with {@link Supplier} objects generating {@link CompletableFuture} objects 
+	 * into a single {@link CompletableFuture} providing an {@link List} with resulting values.
 	 * 
-	 * @param sequence the futures
+	 * @param sequence the future suppliers
 	 * @return a single future with the results
 	 */
-	public <T> CompletableFuture<List<T>> sequence(Iterable<CompletableFuture<T>> sequence) {
-		Iterator<CompletableFuture<T>> i = sequence.iterator();
+	public <T> CompletableFuture<List<T>> supplierSequence(Iterable<Supplier<CompletableFuture<T>>> sequence) {
+		Iterator<Supplier<CompletableFuture<T>>> i = sequence.iterator();
 		
 		if(i.hasNext()) {
 			CompletableFuture<List<T>> completableFuture = new CompletableFuture<>();
 			
-			i.next().whenComplete(new BiConsumer<T, Throwable>() {
+			i.next().get().whenComplete(new BiConsumer<T, Throwable>() {
 				
 				ArrayList<T> result = new ArrayList<>();
 
@@ -432,7 +433,7 @@ public class FutureUtils {
 						result.add(t);
 						
 						if(i.hasNext()) {
-							i.next().whenComplete(this);
+							i.next().get().whenComplete(this);
 						} else {
 							completableFuture.complete(result);							
 						}
@@ -446,6 +447,39 @@ public class FutureUtils {
 		} else {
 			return successful(Collections.emptyList());
 		}
+	}
+	
+	/**
+	 * Transforms an {@link Iterable} with {@link CompletableFuture} objects into a single {@link CompletableFuture} 
+	 * providing an {@link List} with resulting values.
+	 * 
+	 * @param sequence the futures
+	 * @return a single future with the results
+	 */
+	public <T> CompletableFuture<List<T>> sequence(final Iterable<CompletableFuture<T>> sequence) {
+		return supplierSequence(new Iterable<Supplier<CompletableFuture<T>>>() {
+
+			@Override
+			public Iterator<Supplier<CompletableFuture<T>>> iterator() {
+				
+				return new Iterator<Supplier<CompletableFuture<T>>>() {
+					
+					Iterator<CompletableFuture<T>> i = sequence.iterator();
+
+					@Override
+					public boolean hasNext() {
+						return i.hasNext();
+					}
+
+					@Override
+					public Supplier<CompletableFuture<T>> next() {
+						return () -> i.next();
+					}
+					
+				};
+			}
+			
+		});
 	}
 	
 	/**
