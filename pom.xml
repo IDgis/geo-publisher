@@ -25,7 +25,7 @@
 		<deegree.version>3.4-pre13</deegree.version>
 		<querydsl.version>3.4.1</querydsl.version>
 		<curator.version>2.7.1</curator.version>
-		<geoserver.version>2.6.1-gpo-2</geoserver.version>
+		<geoserver.version>2.6.1-gpo-3</geoserver.version>
 		
 		<!-- 
 		Versions of dependencies that are shared with Play. These versions should match the ones used by Play.
