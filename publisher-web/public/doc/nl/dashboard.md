@@ -47,17 +47,5 @@ Een eenvoudige viewer laat de laag zien met de gekozen stijl.
 * Ga naar de toegevoegde service en klik op de ``WMS`` knop. 
 Neem de url over in een GIS view zoals QuantumGis om de service met zijn laag/lagen daarin zichtbaar te maken. 
 
-#### long text
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quod autem ratione actum est, id officium appellamus. Quippe: habes enim a rhetoribus; Utrum igitur tibi litteram videor an totas paginas commovere? Quid turpius quam sapientis vitam ex insipientium sermone pendere? Vide, quaeso, rectumne sit. Duo Reges: constructio interrete. Ratio enim nostra consentit, pugnat oratio. Age, inquies, ista parva sunt.
-
-Sed eum qui audiebant, quoad poterant, defendebant sententiam suam. Satisne ergo pudori consulat, si quis sine teste libidini pareat? Mihi vero, inquit, placet agi subtilius et, ut ipse dixisti, pressius. Age, inquies, ista parva sunt.
-
-Recte, inquit, intellegis. Fatebuntur Stoici haec omnia dicta esse praeclare, neque eam causam Zenoni desciscendi fuisse. Primum cur ista res digna odio est, nisi quod est turpis? Cupit enim dícere nihil posse ad beatam vitam deesse sapienti. Deinde prima illa, quae in congressu solemus: Quid tu, inquit, huc? Ergo illi intellegunt quid Epicurus dicat, ego non intellego?
-
-Collige omnia, quae soletis: Praesidium amicorum. Post enim Chrysippum eum non sane est disputatum. Nam si amitti vita beata potest, beata esse non potest. Non est igitur summum malum dolor.
-
-Cum ageremus, inquit, vitae beatum et eundem supremum diem, scribebamus haec. Nam quid possumus facere melius? Estne, quaeso, inquam, sitienti in bibendo voluptas? Te enim iudicem aequum puto, modo quae dicat ille bene noris. Cur tantas regiones barbarorum pedibus obiit, tot maria transmisit? Sic enim censent, oportunitatis esse beate vivere.
-
- 
 
 [Inhoudsopgave](index.md)
