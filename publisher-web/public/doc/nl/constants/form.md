@@ -1,6 +1,6 @@
-Gegevens invullen
+Organisatiekenmerken 
 =================
 
-Instructietekst bij de pagina "gegevens invullen".
+Instructietekst bij de pagina "Organisatiekenmerken".
 
 [Inhoudsopgave](../index.md)
