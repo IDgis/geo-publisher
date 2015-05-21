@@ -15,6 +15,7 @@ import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJobState.jobState;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +119,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
 			.join(dataset).on(dataset.id.eq(leafLayer.datasetId)))
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.in(
+			.join(importJob).on(importJob.id.in(
 				new SQLSubQuery().from(importJob)
 				.groupBy(importJob.datasetId)
 				.where(
@@ -127,7 +128,10 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 						.where(jobState.jobId.eq(importJob.jobId)
 							.and(jobState.state.eq(JobState.SUCCEEDED.name())))
 						.exists()))
-				.list(importJob.sourceDatasetVersionId.max())))
+				.list(importJob.id.max())))
+			.join(jobState).on(jobState.jobId.eq(importJob.jobId)
+				.and(jobState.state.eq(JobState.SUCCEEDED.name())))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
 			.list(
 				genericLayer.id,
 				genericLayer.identification, 
@@ -142,6 +146,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				tiledLayer.expireClients,
 				tiledLayer.gutter,
 				sourceDatasetVersion.type,
+				jobState.createTime,
 				new SQLSubQuery ()
 					.from (sourceDataset)
 					.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
@@ -194,6 +199,9 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String abstr = t.get(genericLayer.abstractCol);							
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);
+							Timestamp importTime = t.get(jobState.createTime);
+							
+							log.debug("importTime: {}", importTime);
 							
 							switch(type) {
 								case "RASTER": 
@@ -208,7 +216,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											getList(keywords, t),
 											fileName,
 											getStyleRefs(styles, t),
-											confidential);
+											confidential,
+											importTime);
 							
 								case "VECTOR":
 									String tableName = t.get(dataset.identification); 
@@ -223,7 +232,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),
-										confidential);									
+										confidential,
+										importTime);									
 								default:
 									throw new IllegalStateException("unknown dataset type: " + type);
 							}

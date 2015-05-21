@@ -1,5 +1,6 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.sql.Timestamp;
 import java.util.Optional;
 
 public interface Layer  {
@@ -15,5 +16,7 @@ public interface Layer  {
 	Optional<Tiling> getTiling();
 	
 	boolean isConfidential ();
+	
+	Optional<Timestamp> getImportTime();
 	
 }

@@ -317,7 +317,9 @@ public class JsonService implements Service {
 			jgen.writeStartObject();
             
             if(bean instanceof DatasetLayer) {            
-            	DatasetLayer datasetLayer = (DatasetLayer)bean;            	
+            	DatasetLayer datasetLayer = (DatasetLayer)bean;
+            	
+            	System.out.println(datasetLayer.getImportTime());
             	
             	String type;
             	if(datasetLayer.isVectorLayer()) {

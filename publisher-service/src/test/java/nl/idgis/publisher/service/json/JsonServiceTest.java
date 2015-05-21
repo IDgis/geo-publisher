@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -129,6 +130,7 @@ public class JsonServiceTest {
 		when(firstDatasetLayerMock.isVectorLayer()).thenReturn(true);
 		when(firstDatasetLayerMock.asVectorLayer()).thenReturn(firstDatasetLayerMock);
 		when(firstDatasetLayerMock.getTableName()).thenReturn("tableName");
+		when(firstDatasetLayerMock.getImportTime()).thenReturn(Optional.of(new Timestamp(1)));
 		
 		DatasetLayerRef firstDatasetLayerRefMock = mock(DatasetLayerRef.class);
 		when(firstDatasetLayerRefMock.isGroupRef()).thenReturn(false);
@@ -144,6 +146,7 @@ public class JsonServiceTest {
 		when(secondDatasetLayerMock.getId()).thenReturn("dataset-id-1");
 		when(secondDatasetLayerMock.isVectorLayer()).thenReturn(true);
 		when(secondDatasetLayerMock.asVectorLayer()).thenReturn(secondDatasetLayerMock);
+		when(secondDatasetLayerMock.getImportTime()).thenReturn(Optional.of(new Timestamp(2)));
 		
 		DatasetLayerRef secondDatasetLayerRefMock = mock(DatasetLayerRef.class);
 		when(secondDatasetLayerRefMock.isGroupRef()).thenReturn(false);
@@ -184,7 +187,7 @@ public class JsonServiceTest {
 		
 		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
-		assertEquals("dataset-id-0", layer.getId());
+		assertEquals("dataset-id-0", layer.getId());		
 		assertFalse(layer.getTiling().isPresent());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
@@ -198,10 +201,14 @@ public class JsonServiceTest {
 		
 		VectorDatasetLayer vectorDatasetLayer = datasetLayer.asVectorLayer();
 		assertEquals("tableName", vectorDatasetLayer.getTableName());
+		assertEquals(Optional.of(new Timestamp(1)), vectorDatasetLayer.getImportTime());
 		
 		assertTrue(layerRefsItr.hasNext());
 		
-		Optional<Tiling> optionalTiling = layerRefsItr.next().asDatasetRef().getLayer().getTiling();
+		datasetLayer = layerRefsItr.next().asDatasetRef().getLayer();
+		assertEquals(Optional.of(new Timestamp(2)), datasetLayer.getImportTime());
+		
+		Optional<Tiling> optionalTiling = datasetLayer.getTiling();
 		assertTrue(optionalTiling.isPresent());
 		
 		Tiling tiling = optionalTiling.get();
