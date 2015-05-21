@@ -635,6 +635,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getCoverageStorePath(workspace, coverageStore) + "/coverages";
 	}
 	
+	private String getCoveragePath(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
+		return getCoveragePath(workspace, coverageStore, coverage.getName());
+	}
+	
 	private String getCoveragePath(Workspace workspace, CoverageStore coverageStore, String coverageName) {
 		return getCoveragesPath(workspace, coverageStore) + "/" + coverageName;
 	}
@@ -668,7 +672,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> putCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
 		try {
-			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage));
+			return put(getCoveragePath(workspace, coverageStore, coverage), getCoverageDocument(coverage));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
