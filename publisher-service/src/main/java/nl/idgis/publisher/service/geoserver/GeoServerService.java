@@ -673,7 +673,11 @@ public class GeoServerService extends UntypedActor {
 					
 					if(coverageStores.containsKey(coveragStoreName)) {
 						log.debug("existing coverage store found: {}", coveragStoreName);
+						
+						CoverageStore coverageStore = coverageStores.get(coveragStoreName);
 						coverageStores.remove(coveragStoreName);
+						
+						toSelf(new CoverageStoreEnsured(ensureLayer, coverageStore));
 					} else {
 						log.debug("coverage store missing: {}", coveragStoreName);
 						
