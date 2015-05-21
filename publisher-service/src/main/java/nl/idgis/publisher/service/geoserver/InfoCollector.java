@@ -6,12 +6,16 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import akka.actor.ActorRef;
+import akka.actor.AllForOneStrategy;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
+import akka.actor.SupervisorStrategy.Directive;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
@@ -25,6 +29,16 @@ import nl.idgis.publisher.stream.messages.NextItem;
 import static java.util.stream.Collectors.toSet;
 
 public class InfoCollector extends UntypedActor {
+	
+	private final static SupervisorStrategy supervisorStrategy = new AllForOneStrategy(10, Duration.create("1 minute"), 
+		new Function<Throwable, Directive>() {
+
+		@Override
+		public Directive apply(Throwable t) throws Exception {			
+			return AllForOneStrategy.escalate();
+		}
+		
+	});
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -129,5 +143,10 @@ public class InfoCollector extends UntypedActor {
 		log.error("timeout");
 		
 		getContext().stop(getSelf());
+	}
+	
+	@Override
+	public SupervisorStrategy supervisorStrategy() {
+		return supervisorStrategy;
 	}
 }

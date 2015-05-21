@@ -534,6 +534,10 @@ public class DefaultGeoServerRestTest {
 		Layer layer = service.getLayer(workspace, coverage).get();
 		assertEquals("raster", layer.getDefaultStyle().getStyleName());
 		
+		Coverage modifiedCoveraged = new Coverage(coverage.getName(), coverage.getNativeName(), 
+			"modified title", coverage.getAbstract(), coverage.getKeywords());
+		service.putCoverage(workspace, coverageStore, modifiedCoveraged).get();
+		
 		List<Coverage> coverages = service.getCoverages(workspace, coverageStore).get();
 		assertEquals(1, coverages.size());
 		
@@ -542,6 +546,7 @@ public class DefaultGeoServerRestTest {
 		
 		assertEquals("test", retrievedCoverage.getName());
 		assertEquals(nativeName, retrievedCoverage.getNativeName());
+		assertEquals("modified title", retrievedCoverage.getTitle());
 		
 		Map<CoverageStore, List<Coverage>> allCoverages = service.getCoverages(workspace).get();
 		assertEquals(1, allCoverages.size());
