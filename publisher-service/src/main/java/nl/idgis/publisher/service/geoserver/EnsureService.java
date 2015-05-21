@@ -180,6 +180,8 @@ public class EnsureService extends UntypedActor {
 						
 					target.tell(new FinishEnsure(), getSelf());
 					getContext().unbecome();
+				} else if(msg instanceof ReceiveTimeout) {
+					handleReceiveTimeout();				
 				} else {
 					log.debug("unhandled (layers): {}", msg);
 					
@@ -206,6 +208,8 @@ public class EnsureService extends UntypedActor {
 						getContext().become(receive());
 						processService();
 					}
+				} else if(msg instanceof ReceiveTimeout) {
+					handleReceiveTimeout();
 				} else {
 					log.debug("unhandled (styles): {}", msg);
 					
@@ -246,7 +250,7 @@ public class EnsureService extends UntypedActor {
 	private void handleReceiveTimeout() {
 		log.error("timeout");
 		
-		getContext().stop(getSelf());
+		throw new RuntimeException("timeout");
 	}
 	
 	private String getUniqueLayerName(String layerName) {
