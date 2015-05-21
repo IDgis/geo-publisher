@@ -19,9 +19,9 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 	protected final List<String> keywords;
 
 	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, Tiling tilingSettings,
-		String defaultStyleName, String groupStyleName, List<String> additionalStyleNames) {
+		String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported) {
 		
-		super(layerId, title, abstr, tilingSettings);
+		super(layerId, title, abstr, tilingSettings, reimported);
 		
 		this.keywords = keywords;
 		this.defaultStyleName = defaultStyleName;

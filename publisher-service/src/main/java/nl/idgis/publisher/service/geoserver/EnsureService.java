@@ -108,7 +108,9 @@ public class EnsureService extends UntypedActor {
 										getUniqueLayerName(layer.getName()), 
 										layer.getTitle(), 
 										layer.getAbstract(),
-										layer.getTiling().orElse(null)), getSelf());							
+										layer.getTiling().orElse(null),
+										false), // reimported 
+										getSelf());							
 								getContext().become(layers(layer.getLayers(), depth + 1), false);
 							} else {
 								continue;
@@ -149,6 +151,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames,
+										false, // reimported
 										vectorLayer.getTableName(),
 										vectorLayer.getColumnNames()), getSelf());
 							} else if(layer.isRasterLayer()) {
@@ -166,6 +169,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames, 
+										false, // reimported
 										rasterLayer.getFileName()), getSelf());
 							} else {
 								log.error("unsupported layer type");
