@@ -67,6 +67,10 @@ import nl.idgis.publisher.utils.XMLUtils;
 
 public class GeoServerService extends UntypedActor {
 	
+	private static final int SEED_ZOOM_STOP = 9;
+
+	private static final int SEED_ZOOM_START = 0;
+
 	private static final List<ServiceType> SERVICE_TYPES = Arrays.asList(ServiceType.WMS, ServiceType.WFS);
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -750,13 +754,22 @@ public class GeoServerService extends UntypedActor {
 										
 										log.debug("putting tiled layer {}", tiledLayerName);
 										futures.add(() -> rest.putTiledLayer(workspace, tiledLayerName, tiledLayer));
+										
+										log.debug("seeding tiled layer {}", tiledLayerName);
+										futures.add(() -> rest.seedTiledLayer(workspace, tiledLayerName, tiledLayer, SEED_ZOOM_START, SEED_ZOOM_STOP));
 									}
 								}
 								
 								for(String tiledLayerName : tiledLayerNames) {
 									if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
-										log.debug("posting tiled layer {}", tiledLayerName);
+										log.debug("posting tiled layer {}", tiledLayerName);										
+										
 										futures.add(() -> rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName)));
+										
+										// TODO: make reseeding conditional
+										TiledLayer tiledLayer = tiledLayers.get(tiledLayerName);
+										log.debug("(re)seeding tiled layer {}", tiledLayerName);
+										futures.add(() -> rest.reseedTiledLayer(workspace, tiledLayerName, tiledLayer, SEED_ZOOM_START, SEED_ZOOM_STOP));
 									} else { // obsolete tiled layers
 										log.debug("deleting tiled layer {}", tiledLayerName);
 										futures.add(() -> rest.deleteTiledLayer(workspace, tiledLayerName));

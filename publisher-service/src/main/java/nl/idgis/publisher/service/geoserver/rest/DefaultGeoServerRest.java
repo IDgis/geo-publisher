@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -1255,12 +1256,28 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		}
 	}
 	
+	private String getTiledLayerSeedPath(String tiledLayerName) { 
+		return getTiledLayersSeedPath() + "/" + tiledLayerName;
+	}
+	
 	private String getTiledLayerPath(String tiledLayerName) {
 		return getTiledLayersPath() + "/" + tiledLayerName;
 	}
 	
 	private String getTiledLayersPath() {
-		return serviceLocation + "gwc/rest/layers";
+		return getGWCServiceLocation() + "/layers";
+	}
+	
+	private String getTiledLayersSeedPath() {
+		return getGWCServiceLocation() + "/seed";
+	}
+	
+	private String getGWCServiceLocation() {
+		return serviceLocation + "gwc/rest" ;
+	}
+	
+	private String getTiledLayerSeedPath(Workspace workspace, String layerName) {
+		return getTiledLayerSeedPath(workspace.getName() + ":" + layerName);
 	}
 	
 	private String getTiledLayerPath(Workspace workspace, String layerName) {
@@ -1437,5 +1454,88 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		} catch(Exception e) {
 			return f.failed(e);
 		}	
+	}
+	
+	@Override
+	public CompletableFuture<Void> seedTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop) {
+		return seedTiledLayer(workspace, layerName, tiledLayer, zoomStart, zoomStop, "seed");
+	}
+	
+	@Override
+	public CompletableFuture<Void> reseedTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop) {
+		return seedTiledLayer(workspace, layerName, tiledLayer, zoomStart, zoomStop, "reseed");
+	}
+	
+	@Override
+	public CompletableFuture<Void> truncateTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop) {
+		return seedTiledLayer(workspace, layerName, tiledLayer, zoomStart, zoomStop, "truncate");
+	}
+	
+	private CompletableFuture<Void> seedTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop, String type) {
+		ArrayList<CompletableFuture<Void>> futures = new ArrayList<>();
+		for(GridSubset gridSubset : tiledLayer.getGridSubsets()) {
+			for(String mimeFormat : tiledLayer.getMimeFormats()) {
+				try {
+					futures.add(
+						post(
+							getTiledLayerSeedPath(workspace, layerName) + ".xml",
+							getSeedRequestDocument(
+								workspace.getName() + ":" + layerName, 
+								gridSubset.getGridSetName(),
+								zoomStart,
+								zoomStop,
+								mimeFormat,
+								type),
+							HttpURLConnection.HTTP_OK));
+				} catch(Exception e) {
+					return f.failed(e);
+				}
+			}
+		}
+		
+		return f.sequence(futures).thenApply(result -> null);
+	}	
+
+	private byte[] getSeedRequestDocument(String tiledLayerName, String gridSetId, int zoomStart, int zoomStop, String format, String type) throws IOException, XMLStreamException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		
+		XMLOutputFactory of = XMLOutputFactory.newInstance();
+		XMLStreamWriter sw = of.createXMLStreamWriter(os);
+		
+		sw.writeStartDocument();
+		
+		sw.writeStartElement("seedRequest");
+			sw.writeStartElement("name");
+				sw.writeCharacters(tiledLayerName);				
+			sw.writeEndElement();
+			
+			sw.writeStartElement("gridSetId");
+				sw.writeCharacters(gridSetId);
+			sw.writeEndElement();
+			
+			sw.writeStartElement("zoomStart");
+				sw.writeCharacters("" + zoomStart);
+			sw.writeEndElement();
+			
+			sw.writeStartElement("zoomStop");
+				sw.writeCharacters("" + zoomStop);
+			sw.writeEndElement();
+			
+			sw.writeStartElement("format");
+				sw.writeCharacters(format);
+			sw.writeEndElement();
+			
+			sw.writeStartElement("threadCount");
+				sw.writeCharacters("1");
+			sw.writeEndElement();
+			
+		sw.writeEndElement();
+		
+		sw.writeEndDocument();
+		
+		sw.close();		
+		os.close();
+		
+		return os.toByteArray();
 	}
 }
