@@ -454,7 +454,7 @@ public class DefaultGeoServerRestTest {
 		// remove default tiled layer
 		service.deleteTiledLayer(workspace, featureType).get(); 
 		// new tiled layer (in GWC put and post are swapped)
-		service.putTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/png"), 
+		service.putTiledLayer(workspace, featureType.getName(), new TiledLayer(Arrays.asList("image/png"), 
 			Arrays.asList(new GridSubset(
 				"urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale",
 				Optional.of(1),
@@ -476,7 +476,7 @@ public class DefaultGeoServerRestTest {
 		assertEquals(Optional.of(13), gridSubset.getMaxCachedLevel());
 		
 		// update tiled layer
-		service.postTiledLayer(workspace, featureType, new TiledLayer(Arrays.asList("image/jpg"),
+		service.postTiledLayer(workspace, featureType.getName(), new TiledLayer(Arrays.asList("image/jpg"),
 			Arrays.asList(new GridSubset(
 				"urn:ogc:def:wkss:OGC:1.0:NLDEPSG28992Scale",
 				Optional.empty(),

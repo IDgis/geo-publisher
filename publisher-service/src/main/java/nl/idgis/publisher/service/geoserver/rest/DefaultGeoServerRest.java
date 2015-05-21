@@ -1428,16 +1428,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<Void> putTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer) {
-		return putTiledLayer(workspace, featureType.getName(), tiledLayer);
-	}
-	
-	@Override
-	public CompletableFuture<Void> putTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer) {
-		return putTiledLayer(workspace, layerGroup.getName(), tiledLayer);
-	}
-	
-	@Override
 	public CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer) {
 		try {
 			return post(
@@ -1447,15 +1437,5 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		} catch(Exception e) {
 			return f.failed(e);
 		}	
-	}
-	
-	@Override
-	public CompletableFuture<Void> postTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer) {
-		return postTiledLayer(workspace, featureType.getName(), tiledLayer);
-	}
-	
-	@Override
-	public CompletableFuture<Void> postTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer) {
-		return postTiledLayer(workspace, layerGroup.getName(), tiledLayer);
 	}
 }
