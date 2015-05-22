@@ -26,6 +26,11 @@ public abstract class PreviousEnsureInfo implements Serializable {
 			public Timestamp getEnsuredTime() {
 				throw new IllegalStateException("never ensured before");
 			}
+			
+			@Override
+			public String toString() {
+				return "PreviousEnsureInfo []";
+			}
 		};
 	}
 	
@@ -46,6 +51,10 @@ public abstract class PreviousEnsureInfo implements Serializable {
 				return ensuredTime;
 			}
 			
+			@Override
+			public String toString() {
+				return "PreviousEnsureInfo [ensuredTime: " + ensuredTime + "]";
+			}			
 		};
 	}
 }
