@@ -43,11 +43,9 @@ import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-import nl.idgis.publisher.database.messages.PerformQuery;
-import nl.idgis.publisher.database.messages.Query;
 
 import nl.idgis.publisher.DatabaseMock;
-import nl.idgis.publisher.TransactionMock;
+import nl.idgis.publisher.EmptyQueryResultTransactionMock;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
@@ -276,23 +274,6 @@ public class GeoServerServiceTest {
 	@After
 	public void clean() throws Exception {
 		h.clean(f, log);
-	}
-	
-	static class EmptyQueryResultTransactionMock extends TransactionMock {
-		
-		public static Props props() {
-			return Props.create(EmptyQueryResultTransactionMock.class);
-		}
-
-		@Override
-		protected void handleQuery(Query query) throws Exception {
-			if(query instanceof PerformQuery) {
-				getSender().tell(new TypedList<>(Object.class, Collections.emptyList()), getSelf());
-			} else {
-				super.handleQuery(query);
-			}
-		}		
-		
 	}
 	
 	@Before

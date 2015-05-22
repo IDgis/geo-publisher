@@ -31,6 +31,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.DatabaseMock;
+import nl.idgis.publisher.EmptyQueryResultTransactionMock;
 
 import nl.idgis.publisher.domain.job.JobState;
 
@@ -45,6 +46,7 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetPublishedStyles;
@@ -301,7 +303,7 @@ public class ProvisioningManagerTest  {
 		
 		provisioningManager = actorSystem.actorOf(
 			ProvisioningManager.props(
-				actorSystem.actorOf(DatabaseMock.props()),
+				actorSystem.actorOf(DatabaseMock.props(EmptyQueryResultTransactionMock.props())),
 				actorSystem.actorOf(ServiceManagerMock.props(serviceManagerRecorder)),
 				
 				new ProvisioningPropsFactory() {
@@ -382,9 +384,10 @@ public class ProvisioningManagerTest  {
 			.assertNotHasNext();
 		
 		Map<Class<?>, Object> serviceManagerRequests = new HashMap<>();
-		f.ask(jobActorRecorder, new Wait(4), Waited.class).get();
+		f.ask(jobActorRecorder, new Wait(5), Waited.class).get();
 		f.ask(jobActorRecorder, new GetRecording(), Recording.class).get()
 			.assertNext(JobActorStarted.class)
+			.assertNext(PreviousEnsureInfo.class)
 			.assertNext(ServiceManagerResponse.class, resp -> {
 				Object request = resp.getRequest();
 				serviceManagerRequests.put(request.getClass(), request);
@@ -455,9 +458,10 @@ public class ProvisioningManagerTest  {
 			.assertNotHasNext();
 		
 		Map<Class<?>, Object> serviceManagerRequests = new HashMap<>();
-		f.ask(jobActorRecorder, new Wait(4), Waited.class).get();
+		f.ask(jobActorRecorder, new Wait(5), Waited.class).get();
 		f.ask(jobActorRecorder, new GetRecording(), Recording.class).get()
 			.assertNext(JobActorStarted.class)
+			.assertNext(PreviousEnsureInfo.class)
 			.assertNext(ServiceManagerResponse.class, resp -> {
 				Object request = resp.getRequest();
 				serviceManagerRequests.put(request.getClass(), request);
