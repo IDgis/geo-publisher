@@ -421,7 +421,7 @@ public class JsonService implements Service {
 	
 	static Optional<JsonNode> getOptional(JsonNode jsonNode, String fieldName) {
 		if(jsonNode.has(fieldName)) {
-			return Optional.of(jsonNode.get("tiling"));
+			return Optional.of(jsonNode.get(fieldName));
 		} else {
 			return Optional.empty();
 		}
