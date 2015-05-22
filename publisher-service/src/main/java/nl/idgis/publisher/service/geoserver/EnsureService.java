@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
@@ -59,7 +61,7 @@ public class EnsureService extends UntypedActor {
 	private Set<String> layerNames;
 	
 	public static Props props(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
-		return Props.create(EnsureService.class, target, service, styles, previousEnsureInfo);
+		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, styles, previousEnsureInfo);
 	}
 	
 	public void preStart() throws Exception {
@@ -88,6 +90,17 @@ public class EnsureService extends UntypedActor {
 		return layers(layers, 0);
 	}
 	
+	private boolean isReimported(Layer layer) {
+		if(previousEnsureInfo.isEnsuredBefore()) {
+			return 
+				layer.getImportTime()
+					.map(importTime -> importTime.compareTo(previousEnsureInfo.getEnsuredTime()) > 0)
+					.orElse(false);
+		}
+		
+		return false;
+	}
+	
 	private Procedure<Object> layers(List<LayerRef<?>> layers, int depth) {
 		log.debug("-> layers {}", depth);
 		
@@ -113,7 +126,7 @@ public class EnsureService extends UntypedActor {
 										layer.getTitle(), 
 										layer.getAbstract(),
 										layer.getTiling().orElse(null),
-										false), // reimported 
+										isReimported(layer)), 
 										getSelf());							
 								getContext().become(layers(layer.getLayers(), depth + 1), false);
 							} else {
@@ -155,7 +168,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames,
-										false, // reimported
+										isReimported(layer),
 										vectorLayer.getTableName(),
 										vectorLayer.getColumnNames()), getSelf());
 							} else if(layer.isRasterLayer()) {
@@ -173,7 +186,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames, 
-										false, // reimported
+										isReimported(layer),
 										rasterLayer.getFileName()), getSelf());
 							} else {
 								log.error("unsupported layer type");
