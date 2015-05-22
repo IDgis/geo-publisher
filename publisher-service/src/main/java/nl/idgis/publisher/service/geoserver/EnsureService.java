@@ -34,6 +34,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 
 public class EnsureService extends UntypedActor {
@@ -46,16 +47,19 @@ public class EnsureService extends UntypedActor {
 	
 	private final List<Style> styles;
 	
-	public EnsureService(ActorRef target, Service service, List<Style> styles) {
+	private final PreviousEnsureInfo previousEnsureInfo;
+	
+	public EnsureService(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
 		this.target = target;
 		this.service = service;
 		this.styles = styles;
+		this.previousEnsureInfo = previousEnsureInfo;
 	}
 	
 	private Set<String> layerNames;
 	
-	public static Props props(ActorRef target, Service service, List<Style> styles) {
-		return Props.create(EnsureService.class, target, service, styles);
+	public static Props props(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
+		return Props.create(EnsureService.class, target, service, styles, previousEnsureInfo);
 	}
 	
 	public void preStart() throws Exception {

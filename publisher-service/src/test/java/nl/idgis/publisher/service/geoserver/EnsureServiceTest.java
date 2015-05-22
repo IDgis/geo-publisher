@@ -43,6 +43,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.stream.messages.End;
@@ -172,6 +173,8 @@ public class EnsureServiceTest {
 				ActorRef infoCollector = getContext().actorOf(
 					InfoCollector.props(singleton(getSelf())), 
 					nameGenerator.getName(EnsureService.class));
+				
+				infoCollector.tell(PreviousEnsureInfo.neverEnsured(), getSelf());
 				
 				Ensure ensure = (Ensure)msg;
 				ensure.getMessages().stream()

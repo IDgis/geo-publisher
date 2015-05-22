@@ -39,6 +39,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
@@ -425,6 +426,9 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			ActorRef jobHandler = getContext().actorOf(
 					provisioningPropsFactory.ensureJobProps(targets),
 					nameGenerator.getName(msg.getClass()));
+			
+			// TODO: fetch last ensure time from database
+			jobHandler.tell(PreviousEnsureInfo.neverEnsured(), getSelf());
 			
 			getContext().watch(jobHandler);		
 			msg.getResponses().stream().forEach(response -> 

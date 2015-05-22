@@ -22,6 +22,7 @@ import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.web.tree.Service;
 
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
@@ -49,6 +50,8 @@ public class InfoCollector extends UntypedActor {
 	private List<Style> styles;
 	
 	private boolean stylesReceived;
+	
+	private PreviousEnsureInfo previousEnsureInfo;
 	
 	public InfoCollector(Set<ActorRef> targets) {
 		this.targets = targets;
@@ -92,7 +95,14 @@ public class InfoCollector extends UntypedActor {
 			
 			stylesReceived = true;			
 			handleContentReceived();
+		} else if(msg instanceof PreviousEnsureInfo) {
+			log.debug("info about previous ensure received: {}", msg);
+			
+			previousEnsureInfo = (PreviousEnsureInfo)msg;
+			handleContentReceived();
 		} else {
+			log.debug("unhandled message received: {}", msg);
+			
 			unhandled(msg);
 		}
 	}
@@ -124,7 +134,7 @@ public class InfoCollector extends UntypedActor {
 	}
 	
 	private void handleContentReceived() {
-		if(service == null || !stylesReceived) {
+		if(service == null || !stylesReceived || previousEnsureInfo == null) {
 			return;
 		}
 		
@@ -132,7 +142,7 @@ public class InfoCollector extends UntypedActor {
 				
 		Set<ActorRef> ensureServices = 
 			targets.stream()
-				.map(target -> getContext().actorOf(EnsureService.props(target, service, styles)))
+				.map(target -> getContext().actorOf(EnsureService.props(target, service, styles, previousEnsureInfo)))
 				.collect(toSet());
 		
 		ensureServices.stream().forEach(getContext()::watch);
