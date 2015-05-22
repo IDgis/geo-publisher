@@ -55,9 +55,9 @@
   	<logger name="nl.idgis.publisher.ServiceApp" level="debug"/>
    -->
 
-
+   <!--
     <logger name="nl.idgis.publisher.service" level="debug"/>
-
+  -->
 
    <!-- 
     <logger name="nl.idgis.publisher.service.geoserver.GeoServerService" level="debug"/>

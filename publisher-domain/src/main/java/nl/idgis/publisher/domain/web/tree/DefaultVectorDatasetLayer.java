@@ -1,5 +1,6 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements VectorDatasetLayer {
@@ -11,9 +12,9 @@ public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements V
 	private final List<String> columnNames;
 	
 	public DefaultVectorDatasetLayer(String id, String name, String title, String abstr, Tiling tiling,
-		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential) {
+		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, Timestamp importTime) {
 		
-		super(id, name, title, abstr, tiling, confidential, keywords, styleRef);
+		super(id, name, title, abstr, tiling, confidential, importTime, keywords, styleRef);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;

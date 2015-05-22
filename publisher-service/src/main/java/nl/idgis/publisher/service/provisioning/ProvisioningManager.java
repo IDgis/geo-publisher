@@ -39,6 +39,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
@@ -66,6 +67,10 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.empty;
 import static java.util.Arrays.asList;
+import static nl.idgis.publisher.database.QServiceJob.serviceJob;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QJobState.jobState;
 
 public class ProvisioningManager extends UntypedActorWithStash {
 	
@@ -374,17 +379,20 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		
 		private final EnsureServiceJobInfo jobInfo;
 		
+		private final PreviousEnsureInfo previousEnsureInfo;
+		
 		private final TypedList<String> environmentIds;
 		
 		private final List<AskResponse<Object>> responses;
 		
-		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, List<AskResponse<Object>> responses) {
-			this(initiator, jobInfo, responses, Optional.empty());
+		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, PreviousEnsureInfo previousEnsureInfo, List<AskResponse<Object>> responses) {
+			this(initiator, jobInfo, previousEnsureInfo, responses, Optional.empty());
 		}
 	
-		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, List<AskResponse<Object>> responses, Optional<TypedList<String>> environmentIds) {
+		StartProvisioning(ActorRef initiator, EnsureServiceJobInfo jobInfo, PreviousEnsureInfo previousEnsureInfo, List<AskResponse<Object>> responses, Optional<TypedList<String>> environmentIds) {
 			this.initiator = initiator;
 			this.jobInfo = jobInfo;
+			this.previousEnsureInfo = previousEnsureInfo;
 			this.environmentIds = environmentIds.orElse(null);
 			this.responses = responses;			
 		}
@@ -395,6 +403,10 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		
 		public EnsureServiceJobInfo getJobInfo() {
 			return jobInfo;
+		}
+		
+		public PreviousEnsureInfo getPreviousEnsureInfo() {
+			return previousEnsureInfo;
 		}
 
 		public Optional<TypedList<String>> getEnvironmentIds() {
@@ -410,7 +422,10 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		log.debug("start provisioning");
 		
 		EnsureServiceJobInfo jobInfo = msg.getJobInfo();
+		PreviousEnsureInfo previousEnsureInfo = msg.getPreviousEnsureInfo();
 		ActorRef initiator = msg.getInitiator();
+		
+		log.debug("previous ensure info: {}", previousEnsureInfo);
 		
 		Set<ActorRef> targets =		
 			msg.getEnvironmentIds()
@@ -424,7 +439,9 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		} else {
 			ActorRef jobHandler = getContext().actorOf(
 					provisioningPropsFactory.ensureJobProps(targets),
-					nameGenerator.getName(msg.getClass()));
+					nameGenerator.getName(msg.getClass()));			
+ 
+			jobHandler.tell(previousEnsureInfo, getSelf());
 			
 			getContext().watch(jobHandler);		
 			msg.getResponses().stream().forEach(response -> 
@@ -481,29 +498,44 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			db.transactional(tx -> {
 				Optional<AsyncTransactionRef> transactionRef = Optional.of(tx.getTransactionRef());
 				
-				if(jobInfo.isPublished()) {
-					log.debug("published");
-					
-					return
-						f.askWithSender(serviceManager, new GetPublishedService(transactionRef, serviceId)).thenCompose(service ->
-						f.askWithSender(serviceManager, new GetPublishedStyles(transactionRef, serviceId)).thenCompose(styles ->
-						getEnvironments(transactionRef, serviceId).thenApply(environmentIds ->					
-							new StartProvisioning(
-									initiator, 
-									jobInfo, 
-									asList(service, styles),
-									Optional.of(environmentIds)))));
-				} else {
-					log.debug("staging");
-					
-					return
-						f.askWithSender(serviceManager, new GetService(transactionRef, serviceId)).thenCompose(service ->
-						f.askWithSender(serviceManager, new GetStyles(transactionRef, serviceId)).thenApply(styles ->
-							new StartProvisioning(
-									initiator, 
-									jobInfo, 
-									asList(service, styles))));
-				}
+				return tx.query().from(serviceJob)
+					.join(jobState).on(jobState.jobId.eq(serviceJob.jobId))
+					.join(service).on(service.id.eq(serviceJob.serviceId))
+					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+					.where(genericLayer.identification.eq(serviceId)
+						.and(serviceJob.published.eq(jobInfo.isPublished())
+						.and(jobState.state.eq(JobState.SUCCEEDED.name()))))
+					.singleResult(jobState.createTime.max()).thenApply(optionalEnsureTime ->
+						optionalEnsureTime
+							.map(ensureTime -> PreviousEnsureInfo.ensured(ensureTime))
+							.orElse(PreviousEnsureInfo.neverEnsured())).thenCompose(previousEnsureInfo -> {						
+				
+					if(jobInfo.isPublished()) {
+						log.debug("published");	
+						
+						return
+							f.askWithSender(serviceManager, new GetPublishedService(transactionRef, serviceId)).thenCompose(service ->
+							f.askWithSender(serviceManager, new GetPublishedStyles(transactionRef, serviceId)).thenCompose(styles ->
+							getEnvironments(transactionRef, serviceId).thenApply(environmentIds ->					
+								new StartProvisioning(
+										initiator, 
+										jobInfo, 
+										previousEnsureInfo,
+										asList(service, styles),
+										Optional.of(environmentIds)))));
+					} else {
+						log.debug("staging");
+						
+						return
+							f.askWithSender(serviceManager, new GetService(transactionRef, serviceId)).thenCompose(service ->
+							f.askWithSender(serviceManager, new GetStyles(transactionRef, serviceId)).thenApply(styles ->
+								new StartProvisioning(
+										initiator, 
+										jobInfo, 
+										previousEnsureInfo,
+										asList(service, styles))));
+					} 
+				});
 			}).thenAccept(result -> self.tell(result, self));
 			
 			getContext().become(collectingProvisioningInfo());

@@ -5,7 +5,6 @@ import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
@@ -27,7 +26,7 @@ import nl.idgis.publisher.job.creator.messages.CreateServiceJobs;
 import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
+import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
@@ -82,8 +81,8 @@ public class Creator extends UntypedActor {
 		JobInfo jobInfo = msg.getJobInfo();
 		JobState jobState = msg.getJobState();
 		
-		if(jobInfo instanceof VectorImportJobInfo) {
-			String datasetId = ((VectorImportJobInfo)jobInfo).getDatasetId();
+		if(JobState.SUCCEEDED.equals(jobState) && jobInfo instanceof ImportJobInfo) {
+			String datasetId = ((ImportJobInfo)jobInfo).getDatasetId();
 			
 			log.debug("dataset imported: {}", datasetId);
 			

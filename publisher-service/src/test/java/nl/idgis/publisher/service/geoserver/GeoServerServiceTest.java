@@ -45,6 +45,7 @@ import akka.util.Timeout;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
 import nl.idgis.publisher.DatabaseMock;
+import nl.idgis.publisher.EmptyQueryResultTransactionMock;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
@@ -288,7 +289,7 @@ public class GeoServerServiceTest {
 		
 		serviceManager = actorSystem.actorOf(ServiceManagerMock.props(), "service-manager");
 		
-		ActorRef database = actorSystem.actorOf(DatabaseMock.props(), "database");
+		ActorRef database = actorSystem.actorOf(DatabaseMock.props(EmptyQueryResultTransactionMock.props()), "database");
 		
 		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory() {
 
@@ -354,6 +355,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
 			.map(styleName -> {
@@ -422,6 +424,7 @@ public class GeoServerServiceTest {
 			when(layer.asVectorLayer()).thenReturn(layer);
 			when(layer.getTableName()).thenReturn("myTable");			
 			when(layer.getTiling()).thenReturn(Optional.of(tilingSettings));
+			when(layer.getImportTime()).thenReturn(Optional.empty());
 			
 			DatasetLayerRef layerRef = mock(DatasetLayerRef.class);
 			when(layerRef.isGroupRef()).thenReturn(false);
@@ -438,6 +441,7 @@ public class GeoServerServiceTest {
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		when(groupLayer.getTiling()).thenReturn(Optional.empty());
+		when(groupLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		GroupLayerRef groupLayerRef = mock(GroupLayerRef.class);
 		when(groupLayerRef.isGroupRef()).thenReturn(true);
@@ -510,6 +514,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
@@ -560,6 +565,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getTableName()).thenReturn("myTable");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		DatasetLayerRef datasetLayerRef = mock(DatasetLayerRef.class);
 		when(datasetLayerRef.isGroupRef()).thenReturn(false);
@@ -573,6 +579,7 @@ public class GeoServerServiceTest {
 		when(group0.getAbstract()).thenReturn("groupAbstract0");
 		when(group0.getLayers()).thenReturn(Collections.singletonList(datasetLayerRef));
 		when(group0.getTiling()).thenReturn(Optional.empty());
+		when(group0.getImportTime()).thenReturn(Optional.empty());
 		
 		GroupLayerRef group0Ref = mock(GroupLayerRef.class);
 		when(group0Ref.isGroupRef()).thenReturn(true);
@@ -585,6 +592,7 @@ public class GeoServerServiceTest {
 		when(group1.getAbstract()).thenReturn("groupAbstract1");
 		when(group1.getLayers()).thenReturn(Collections.singletonList(group0Ref));
 		when(group1.getTiling()).thenReturn(Optional.empty());
+		when(group1.getImportTime()).thenReturn(Optional.empty());
 		
 		GroupLayerRef group1Ref = mock(GroupLayerRef.class);
 		when(group1Ref.isGroupRef()).thenReturn(true);
@@ -708,6 +716,7 @@ public class GeoServerServiceTest {
 		when(datasetLayer.asRasterLayer()).thenReturn(datasetLayer);
 		when(datasetLayer.getFileName()).thenReturn(testRasterFile.getName());
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
+		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
 			.map(styleName -> {

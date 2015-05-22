@@ -67,6 +67,10 @@ import nl.idgis.publisher.utils.XMLUtils;
 
 public class GeoServerService extends UntypedActor {
 	
+	private static final int SEED_ZOOM_STOP = 9;
+
+	private static final int SEED_ZOOM_START = 0;
+
 	private static final List<ServiceType> SERVICE_TYPES = Arrays.asList(ServiceType.WMS, ServiceType.WFS);
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -393,6 +397,18 @@ public class GeoServerService extends UntypedActor {
 	
 	private static class WorkspaceEnsured { }
 	
+	private static class TiledLayerInfo {
+		
+		final TiledLayer tiledLayer;
+		
+		final boolean reimported;
+		
+		TiledLayerInfo(TiledLayer tiledLayer, boolean reimported) {
+			this.tiledLayer = tiledLayer;
+			this.reimported = reimported;
+		}
+	}
+	
 	private Procedure<Object> layers(
 			ActorRef initiator,
 			Workspace workspace, 
@@ -401,7 +417,7 @@ public class GeoServerService extends UntypedActor {
 			Map<String, CoverageStore> coverageStores,
 			Map<String, Coverage> coverages,
 			Map<String, LayerGroup> layerGroups,
-			Map<String, TiledLayer> tiledLayers,
+			Map<String, TiledLayerInfo> tiledLayers,
 			Map<String, Layer> layers) {
 		
 		return layers(null, initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers);
@@ -416,7 +432,7 @@ public class GeoServerService extends UntypedActor {
 			Map<String, CoverageStore> coverageStores,
 			Map<String, Coverage> coverages,
 			Map<String, LayerGroup> layerGroups,
-			Map<String, TiledLayer> tiledLayers,
+			Map<String, TiledLayerInfo> tiledLayers,
 			Map<String, Layer> layers) {
 		
 		List<PublishedRef> groupLayerContent = new ArrayList<>();
@@ -619,7 +635,7 @@ public class GeoServerService extends UntypedActor {
 					if(tiledLayerOptional.isPresent()) {
 						log.debug("tiling settings found for layer: {}", ensureLayer.getLayerId());
 						
-						tiledLayers.put(ensureLayer.getLayerId(), tiledLayerOptional.get());
+						tiledLayers.put(ensureLayer.getLayerId(), new TiledLayerInfo(tiledLayerOptional.get(), ensureLayer.isReimported()));
 					}
 				}
 				
@@ -743,20 +759,33 @@ public class GeoServerService extends UntypedActor {
 								
 								N.B. post and put are used the other way around in GWC*/
 								log.debug("configuring tiled layers");
-								for(Map.Entry<String, TiledLayer> entry : tiledLayers.entrySet()) {
+								for(Map.Entry<String, TiledLayerInfo> entry : tiledLayers.entrySet()) {
 									if(!tiledLayerNames.contains(entry.getKey())) {
 										String tiledLayerName = entry.getKey();
-										TiledLayer tiledLayer = entry.getValue();
+										TiledLayer tiledLayer = entry.getValue().tiledLayer;
 										
 										log.debug("putting tiled layer {}", tiledLayerName);
 										futures.add(() -> rest.putTiledLayer(workspace, tiledLayerName, tiledLayer));
+										
+										log.debug("seeding tiled layer {}", tiledLayerName);
+										futures.add(() -> rest.seedTiledLayer(workspace, tiledLayerName, tiledLayer, SEED_ZOOM_START, SEED_ZOOM_STOP));
 									}
 								}
 								
 								for(String tiledLayerName : tiledLayerNames) {
 									if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
-										log.debug("posting tiled layer {}", tiledLayerName);
-										futures.add(() -> rest.postTiledLayer(workspace, tiledLayerName, tiledLayers.get(tiledLayerName)));
+										log.debug("posting tiled layer {}", tiledLayerName);										
+										
+										TiledLayerInfo tiledLayerInfo = tiledLayers.get(tiledLayerName);
+										
+										futures.add(() -> rest.postTiledLayer(workspace, tiledLayerName, tiledLayerInfo.tiledLayer));
+										
+										if(tiledLayerInfo.reimported) {										
+											log.debug("reseeding tiled layer {}", tiledLayerName);
+											futures.add(() -> rest.reseedTiledLayer(workspace, tiledLayerName, tiledLayerInfo.tiledLayer, SEED_ZOOM_START, SEED_ZOOM_STOP));
+										} else {
+											log.debug("reseeding tiled layer ({}) not necessary", tiledLayerName);
+										}
 									} else { // obsolete tiled layers
 										log.debug("deleting tiled layer {}", tiledLayerName);
 										futures.add(() -> rest.deleteTiledLayer(workspace, tiledLayerName));
@@ -961,7 +990,7 @@ public class GeoServerService extends UntypedActor {
 					Map<String, CoverageStore> coverageStores = workspaceEnsured.getCoverageStores();
 					Map<String, Coverage> coverages = workspaceEnsured.getCoverages();
 					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
-					Map<String, TiledLayer> tiledLayers = new HashMap<>();
+					Map<String, TiledLayerInfo> tiledLayers = new HashMap<>();
 					Map<String, Layer> layers = workspaceEnsured.getLayers();
 					getContext().become(layers(initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers));
 				} else if(msg instanceof StyleEnsured) {

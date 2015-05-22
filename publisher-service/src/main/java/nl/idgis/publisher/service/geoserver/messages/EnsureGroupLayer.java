@@ -11,8 +11,8 @@ public class EnsureGroupLayer extends EnsureLayer {
 
 	private static final long serialVersionUID = 7394934345489321332L;
 
-	public EnsureGroupLayer(String layerId, String title, String abstr, Tiling tilingSettings) {
-		super(layerId, title, abstr, tilingSettings);
+	public EnsureGroupLayer(String layerId, String title, String abstr, Tiling tilingSettings, boolean reimported) {
+		super(layerId, title, abstr, tilingSettings, reimported);
 	}
 	
 	public LayerGroup getLayerGroup(List<PublishedRef> groupLayerContent) {

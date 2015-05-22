@@ -317,7 +317,9 @@ public class JsonService implements Service {
 			jgen.writeStartObject();
             
             if(bean instanceof DatasetLayer) {            
-            	DatasetLayer datasetLayer = (DatasetLayer)bean;            	
+            	DatasetLayer datasetLayer = (DatasetLayer)bean;
+            	
+            	System.out.println(datasetLayer.getImportTime());
             	
             	String type;
             	if(datasetLayer.isVectorLayer()) {
@@ -421,7 +423,7 @@ public class JsonService implements Service {
 	
 	static Optional<JsonNode> getOptional(JsonNode jsonNode, String fieldName) {
 		if(jsonNode.has(fieldName)) {
-			return Optional.of(jsonNode.get("tiling"));
+			return Optional.of(jsonNode.get(fieldName));
 		} else {
 			return Optional.empty();
 		}

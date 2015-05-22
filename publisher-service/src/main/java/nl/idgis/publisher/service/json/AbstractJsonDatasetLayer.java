@@ -2,61 +2,23 @@ package nl.idgis.publisher.service.json;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
-import nl.idgis.publisher.domain.web.tree.Tiling;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
-import static nl.idgis.publisher.service.json.JsonService.getOptional;
 import static nl.idgis.publisher.service.json.JsonService.getStream;
-import static nl.idgis.publisher.service.json.JsonService.asTextWithDefault;
 import static java.util.stream.Collectors.toList;
 
-public abstract class AbstractJsonDatasetLayer implements DatasetLayer {
-	
-	protected final JsonNode jsonNode;
+public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer implements DatasetLayer {
 	
 	public AbstractJsonDatasetLayer(JsonNode jsonNode) {
-		this.jsonNode = jsonNode;
-	}
-
-	@Override
-	public String getId() {
-		return jsonNode.get("id").asText();
-	}
-
-	@Override
-	public String getName() {
-		return jsonNode.get("name").asText();
-	}
-
-	@Override
-	public String getTitle() {
-		return asTextWithDefault (jsonNode.path ("title"), null);
-	}
-
-	@Override
-	public String getAbstract() {
-		return asTextWithDefault (jsonNode.path ("abstract"), null);
-	}
-
-	@Override
-	public Optional<Tiling> getTiling() {
-		return 
-			getOptional(jsonNode, "tiling")
-				.map(JsonTiling::new);
+		super(jsonNode);
 	}
 	
-	@Override
-	public boolean isConfidential () {
-		return jsonNode.path ("confidential").asBoolean ();
-	}
-
 	@Override
 	public List<String> getKeywords() {
 		return 
@@ -106,5 +68,5 @@ public abstract class AbstractJsonDatasetLayer implements DatasetLayer {
 			default:
 				throw new IllegalArgumentException("unknown layer type: " + layerType);
 		}
-	}
+	}	
 }

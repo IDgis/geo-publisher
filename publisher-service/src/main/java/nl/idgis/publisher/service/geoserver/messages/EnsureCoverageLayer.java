@@ -13,8 +13,8 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 	private final String fileName;
 
 	public EnsureCoverageLayer(String layerId, String title, String abstr, List<String> keywords, Tiling tilingSettings, 
-		String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, String fileName) {
-		super(layerId, title, abstr, keywords, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames);
+		String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, String fileName) {
+		super(layerId, title, abstr, keywords, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
 		
 		this.fileName = fileName;
 	}

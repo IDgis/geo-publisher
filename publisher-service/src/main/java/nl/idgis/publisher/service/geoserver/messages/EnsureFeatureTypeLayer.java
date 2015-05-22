@@ -17,8 +17,8 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 	private final List<String> columnNames;
 	
 	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, Tiling tilingSettings, 
-			String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, String tableName, List<String> columnNames) {
-		super(layerId, title, abstr, keywords, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames);
+			String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, String tableName, List<String> columnNames) {
+		super(layerId, title, abstr, keywords, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;

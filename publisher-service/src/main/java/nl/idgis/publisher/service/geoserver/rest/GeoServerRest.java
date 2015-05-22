@@ -77,18 +77,16 @@ public interface GeoServerRest extends Closeable {
 	CompletableFuture<Void> deleteTiledLayer(Workspace workspace, LayerGroup layerGroup);
 	
 	CompletableFuture<Void> deleteTiledLayer(Workspace workspace, String layerName);
-
-	CompletableFuture<Void> putTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer);
-	
-	CompletableFuture<Void> putTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer);
 	
 	CompletableFuture<Void> putTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer);
 	
-	CompletableFuture<Void> postTiledLayer(Workspace workspace, FeatureType featureType, TiledLayer tiledLayer);
-	
-	CompletableFuture<Void> postTiledLayer(Workspace workspace, LayerGroup layerGroup, TiledLayer tiledLayer);
-	
 	CompletableFuture<Void> postTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer);
+	
+	CompletableFuture<Void> seedTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop);
+	
+	CompletableFuture<Void> reseedTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop);
+	
+	CompletableFuture<Void> truncateTiledLayer(Workspace workspace, String layerName, TiledLayer tiledLayer, int zoomStart, int zoomStop);
 
 	CompletableFuture<Void> postCoverageStore(Workspace workspace, CoverageStore coverageStore);
 
@@ -102,5 +100,5 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<Void> putCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage);
 
-	CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore);
+	CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore);	
 }

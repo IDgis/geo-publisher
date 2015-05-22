@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +44,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.stream.messages.End;
@@ -50,6 +52,7 @@ import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -173,6 +176,8 @@ public class EnsureServiceTest {
 					InfoCollector.props(singleton(getSelf())), 
 					nameGenerator.getName(EnsureService.class));
 				
+				infoCollector.tell(PreviousEnsureInfo.ensured(new Timestamp(100)), getSelf());
+				
 				Ensure ensure = (Ensure)msg;
 				ensure.getMessages().stream()
 					.forEach(item -> infoCollector.tell(item, getSelf()));
@@ -237,6 +242,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("tableName0");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.of(tilingSettings));
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
+		when(datasetLayer.getImportTime()).thenReturn(Optional.of(new Timestamp(200))); // = more recent than last ensure
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
@@ -282,6 +288,7 @@ public class EnsureServiceTest {
 				assertEquals("abstract0", featureType.getAbstract());
 				assertEquals("tableName0", featureType.getTableName());
 				assertTrue(featureType.getTiledLayer().isPresent());
+				assertTrue(featureType.isReimported());
 				
 				List<String> keywords = featureType.getKeywords();
 				assertNotNull(keywords);
@@ -305,6 +312,7 @@ public class EnsureServiceTest {
 			when(layer.asVectorLayer()).thenReturn(layer);
 			when(layer.getTableName()).thenReturn("tableName" + i);
 			when(layer.getTiling()).thenReturn(Optional.empty());
+			when(layer.getImportTime()).thenReturn(Optional.of(new Timestamp(50))); // = earlier than last ensure 
 			
 			DatasetLayerRef layerRef = mock(DatasetLayerRef.class);
 			when(layerRef.isGroupRef()).thenReturn(false);
@@ -321,6 +329,7 @@ public class EnsureServiceTest {
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract0");
 		when(groupLayer.getLayers()).thenReturn(layers);
 		when(groupLayer.getTiling()).thenReturn(Optional.empty());
+		when(groupLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		GroupLayerRef groupLayerRef = mock(GroupLayerRef.class);
 		when(groupLayerRef.isGroupRef()).thenReturn(true);
@@ -352,6 +361,7 @@ public class EnsureServiceTest {
 			recording.assertNext(EnsureFeatureTypeLayer.class, featureType -> {
 				assertEquals(featureTypeId, featureType.getLayerId());
 				assertEquals(tableName, featureType.getTableName());
+				assertFalse(featureType.isReimported());
 			});
 		}
 			
@@ -409,6 +419,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getTableName()).thenReturn("tableName0");		
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
+		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");

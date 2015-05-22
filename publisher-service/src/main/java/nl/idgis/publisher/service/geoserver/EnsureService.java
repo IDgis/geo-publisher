@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ import scala.concurrent.duration.Duration;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.Service;
@@ -34,6 +36,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
+import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 
 public class EnsureService extends UntypedActor {
@@ -46,16 +49,19 @@ public class EnsureService extends UntypedActor {
 	
 	private final List<Style> styles;
 	
-	public EnsureService(ActorRef target, Service service, List<Style> styles) {
+	private final PreviousEnsureInfo previousEnsureInfo;
+	
+	public EnsureService(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
 		this.target = target;
 		this.service = service;
 		this.styles = styles;
+		this.previousEnsureInfo = previousEnsureInfo;
 	}
 	
 	private Set<String> layerNames;
 	
-	public static Props props(ActorRef target, Service service, List<Style> styles) {
-		return Props.create(EnsureService.class, target, service, styles);
+	public static Props props(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
+		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, styles, previousEnsureInfo);
 	}
 	
 	public void preStart() throws Exception {
@@ -84,6 +90,17 @@ public class EnsureService extends UntypedActor {
 		return layers(layers, 0);
 	}
 	
+	private boolean isReimported(Layer layer) {
+		if(previousEnsureInfo.isEnsuredBefore()) {
+			return 
+				layer.getImportTime()
+					.map(importTime -> importTime.compareTo(previousEnsureInfo.getEnsuredTime()) > 0)
+					.orElse(false);
+		}
+		
+		return false;
+	}
+	
 	private Procedure<Object> layers(List<LayerRef<?>> layers, int depth) {
 		log.debug("-> layers {}", depth);
 		
@@ -108,7 +125,9 @@ public class EnsureService extends UntypedActor {
 										getUniqueLayerName(layer.getName()), 
 										layer.getTitle(), 
 										layer.getAbstract(),
-										layer.getTiling().orElse(null)), getSelf());							
+										layer.getTiling().orElse(null),
+										isReimported(layer)), 
+										getSelf());							
 								getContext().become(layers(layer.getLayers(), depth + 1), false);
 							} else {
 								continue;
@@ -149,6 +168,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames,
+										isReimported(layer),
 										vectorLayer.getTableName(),
 										vectorLayer.getColumnNames()), getSelf());
 							} else if(layer.isRasterLayer()) {
@@ -166,6 +186,7 @@ public class EnsureService extends UntypedActor {
 											.map(StyleRef::getName)
 											.orElse(null),
 										additionalStyleNames, 
+										isReimported(layer),
 										rasterLayer.getFileName()), getSelf());
 							} else {
 								log.error("unsupported layer type");

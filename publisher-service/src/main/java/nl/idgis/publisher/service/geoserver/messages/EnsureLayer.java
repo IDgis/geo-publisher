@@ -17,11 +17,14 @@ public abstract class EnsureLayer implements Serializable {
 	
 	protected final Tiling tilingSettings;
 	
-	protected EnsureLayer(String layerId, String title, String abstr, Tiling tilingSettings) {
+	protected final boolean reimported;
+	
+	protected EnsureLayer(String layerId, String title, String abstr, Tiling tilingSettings, boolean reimported) {
 		this.layerId = layerId;
 		this.title = title;
 		this.abstr = abstr;		
-		this.tilingSettings = tilingSettings;		
+		this.tilingSettings = tilingSettings;
+		this.reimported = reimported;
 	}
 
 	public String getLayerId() {
@@ -34,6 +37,10 @@ public abstract class EnsureLayer implements Serializable {
 
 	public String getAbstract() {
 		return abstr;
+	}
+	
+	public boolean isReimported() {
+		return reimported;
 	}
 	
 	public Optional<TiledLayer> getTiledLayer() {
