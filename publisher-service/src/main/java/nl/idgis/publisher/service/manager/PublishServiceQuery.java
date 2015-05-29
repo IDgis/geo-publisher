@@ -165,7 +165,8 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 													return
 														QServiceStructure.withServiceStructure(tx.query(), parent, child)
 															.from(serviceStructure)
-															.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
+															.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
+																.and(serviceStructure.datasetId.isNotNull()))															
 															.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
 																if(datasetIds.list().isEmpty()) {
 																	return f.successful(0l);

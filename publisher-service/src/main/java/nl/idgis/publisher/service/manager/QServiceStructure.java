@@ -108,6 +108,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 						.join(serviceStructure).on(
 							serviceStructure.childLayerId.eq(layerStructure.parentLayerId)
 							.and(serviceStructure.cycle.not()))
+						.leftJoin(leafLayer).on(leafLayer.genericLayerId.eq(child.id))
 						.leftJoin(style).on(style.id.eq(layerStructure.styleId))
 						.list(
 							serviceStructure.serviceIdentification, 
@@ -126,6 +127,6 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 								serviceStructure.path, 
 								child.id, 
 								parent.id),
-							serviceStructure.datasetId)));
+							leafLayer.datasetId)));
 	}
 }
