@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServic
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
 import java.util.Collections;
@@ -26,6 +27,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.event.LoggingAdapter;
 
+import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
 import com.mysema.query.types.expr.NumberExpression;
@@ -140,55 +142,74 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 										}
 										
 										log.debug("service published for {} environments", environments);
-			
-										return
-											tx.insert(publishedServiceStyle)
-												.columns(
-													publishedServiceStyle.serviceId,
-													publishedServiceStyle.identification,
-													publishedServiceStyle.name,
-													publishedServiceStyle.definition)
-												.select(new SQLSubQuery().from(style)
-													// TODO: get service filter listed below working properly													
-													/*.where(withServiceStructure.from(serviceStructure)
-														.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
-															.and(serviceStructure.styleIdentification.eq(style.identification)))
-														.exists())*/
-													.list(
-														serviceId.get(),
-														style.identification,
-														style.name,
-														style.definition))
-												.execute().thenCompose(styles -> {
-													log.debug("published service uses {} styles", styles);
+										
+									return
+										QServiceStructure.withServiceStructure(tx.query(), parent, child)
+											.from(serviceStructure)
+											.join(layerStyle).on(layerStyle.layerId.eq(serviceStructure.leafLayerId))
+											.join(style).on(style.id.eq(layerStyle.styleId))
+											.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
+											.groupBy(
+												style.identification,
+												style.name,
+												style.definition)
+											.list(
+												style.identification,
+												style.name,
+												style.definition).thenCompose(styles -> {
+												
+												if(styles.list().isEmpty()) {
+													return f.successful(0l);
+												} else {
+													AsyncSQLInsertClause publishedServiceStyleInsert = tx.insert(publishedServiceStyle);
 													
-													return
-														QServiceStructure.withServiceStructure(tx.query(), parent, child)
-															.from(serviceStructure)
-															.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
-																.and(serviceStructure.datasetId.isNotNull()))															
-															.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
-																if(datasetIds.list().isEmpty()) {
-																	return f.successful(0l);
-																} else {																
-																	AsyncSQLInsertClause insert = tx.insert(publishedServiceDataset);
+													for(Tuple currentStyle : styles) {														
+														String styleIdentification = currentStyle.get(style.identification);
+														String styleName = currentStyle.get(style.name);
+														String styleDefinition = currentStyle.get(style.definition);
+														
+														log.debug("storing style: {}", styleName);
+														
+														publishedServiceStyleInsert
+															.set(publishedServiceStyle.serviceId, serviceId.get())
+															.set(publishedServiceStyle.identification, styleIdentification)
+															.set(publishedServiceStyle.name, styleName)
+															.set(publishedServiceStyle.definition, styleDefinition)
+															.addBatch();
+													}
+													
+													return publishedServiceStyleInsert.execute();
+												}
+											}).thenCompose(styles -> {
+												log.debug("published service uses {} styles", styles);
+												
+												return
+													QServiceStructure.withServiceStructure(tx.query(), parent, child)
+														.from(serviceStructure)
+														.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
+															.and(serviceStructure.datasetId.isNotNull()))															
+														.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
+															if(datasetIds.list().isEmpty()) {
+																return f.successful(0l);
+															} else {																
+																AsyncSQLInsertClause publishedServiceDatasetInsert = tx.insert(publishedServiceDataset);
+																
+																for(int datasetId : datasetIds) {
+																	log.debug("storing reference to datasetId: " + datasetId);
 																	
-																	for(int datasetId : datasetIds) {
-																		log.debug("storing reference to datasetId: " + datasetId);
-																		
-																		insert
-																			.set(publishedServiceDataset.serviceId, serviceId.get()) 
-																			.set(publishedServiceDataset.datasetId, datasetId)
-																			.addBatch();
-																	}
-																	
-																	return insert.execute();
+																	publishedServiceDatasetInsert
+																		.set(publishedServiceDataset.serviceId, serviceId.get()) 
+																		.set(publishedServiceDataset.datasetId, datasetId)
+																		.addBatch();
 																}
-															}).thenApply(datasets -> {
-																log.debug("published service uses {} datasets", datasets);
-											
-																return new Ack();
-															});
+																
+																return publishedServiceDatasetInsert.execute();
+															}
+														}).thenApply(datasets -> {
+															log.debug("published service uses {} datasets", datasets);
+										
+															return new Ack();
+														});
 												});
 									}));
 			});

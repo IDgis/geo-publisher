@@ -44,6 +44,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 	
 	public BooleanPath cycle = createBoolean("cycle");
 	
+	public NumberPath<Integer> leafLayerId = createNumber("leaf_layer_id", Integer.class);
+	
 	public NumberPath<Integer> datasetId = createNumber("dataset_id", Integer.class);
 	
 	QServiceStructure(String variable) {
@@ -59,6 +61,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
         add(styleName);
         add(path);
         add(cycle);
+        add(leafLayerId);
         add(datasetId);
     }
 	
@@ -81,6 +84,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 				serviceStructure.styleName,
 				serviceStructure.path,
 				serviceStructure.cycle,
+				serviceStructure.leafLayerId,
 				serviceStructure.datasetId).as(
 				new SQLSubQuery().unionAll(
 					new SQLSubQuery().from(layerStructure)
@@ -101,6 +105,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 							style.name,
 							pathElement,
 							Expressions.template(Boolean.class, "false"),
+							leafLayer.id,
 							leafLayer.datasetId),
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -127,6 +132,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 								serviceStructure.path, 
 								child.id, 
 								parent.id),
+							leafLayer.id,
 							leafLayer.datasetId)));
 	}
 }
