@@ -319,8 +319,6 @@ public class JsonService implements Service {
             if(bean instanceof DatasetLayer) {            
             	DatasetLayer datasetLayer = (DatasetLayer)bean;
             	
-            	System.out.println(datasetLayer.getImportTime());
-            	
             	String type;
             	if(datasetLayer.isVectorLayer()) {
             		type = "vector";
