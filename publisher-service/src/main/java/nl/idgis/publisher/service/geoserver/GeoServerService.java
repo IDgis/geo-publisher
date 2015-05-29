@@ -947,25 +947,25 @@ public class GeoServerService extends UntypedActor {
 		return f.sequence(SERVICE_TYPES.stream()
 			.map(serviceType -> rest.getServiceSettings(workspace, serviceType))
 			.collect(Collectors.toList())).thenCompose(optionalServiceSettings -> {
-				return f.sequence(StreamUtils
+				return f.supplierSequence(StreamUtils
 					.zip(
 						SERVICE_TYPES.stream(),
 						optionalServiceSettings.stream())
-					.map(entry -> {
+					.<Supplier<CompletableFuture<Void>>>map(entry -> {
 						ServiceType serviceType = entry.getFirst();
 						Optional<ServiceSettings> optionalServiceSettigns = entry.getSecond();								
 						if(optionalServiceSettigns.isPresent()) {													
 							ServiceSettings serviceSettings = optionalServiceSettigns.get();
 							if(serviceSettings.equals(ensureServiceSettings)) {
 								log.debug("service settings service type {} unchanged", serviceType);														
-								return f.<Void>successful(null);
+								return () -> f.<Void>successful(null);
 							} else {
 								log.debug("service settings service type {} changed, was: {}, ensure: {}", serviceType, serviceSettings, ensureServiceSettings);														
-								return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
+								return () -> rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
 							}
 						} else {
 							log.debug("service settings for service type {} not found", serviceType);
-							return rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
+							return () -> rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
 						}
 					})
 					.collect(Collectors.toList()));
