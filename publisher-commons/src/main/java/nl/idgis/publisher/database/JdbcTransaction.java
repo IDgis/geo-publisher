@@ -139,7 +139,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 		
 		executorService.execute(() -> {
 			try {
-				log.debug("executing query: {} from {}", msg, getSender());
+				log.debug("executing query: {} from {}", msg, sender);
 				
 				Object queryResult = executeQuery(msg);
 				if(queryResult == null) {
