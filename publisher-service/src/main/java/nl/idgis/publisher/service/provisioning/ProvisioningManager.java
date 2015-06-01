@@ -436,9 +436,11 @@ public class ProvisioningManager extends UntypedActorWithStash {
 			log.error ("No targets for provisioning, aborting provisioning job");
 			jobFailed(initiator);
 			getContext ().become (receive ());
-		} else {
+		} else { 
+			Props jobHandlerProps = provisioningPropsFactory.ensureJobProps(new HashSet<>(targets));
+			
 			ActorRef jobHandler = getContext().actorOf(
-					provisioningPropsFactory.ensureJobProps(targets),
+					jobHandlerProps,
 					nameGenerator.getName(msg.getClass()));			
  
 			jobHandler.tell(previousEnsureInfo, getSelf());
