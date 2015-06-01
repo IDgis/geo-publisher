@@ -31,7 +31,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -69,12 +68,10 @@ import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 
-import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-import nl.idgis.publisher.domain.web.tree.GroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
@@ -1334,18 +1331,18 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	}
 	
 	@Test
-	public void testPreventCycle() throws Throwable {
+	public void testPreventCycle() throws Exception {
 		LoggingAdapter log = nl.idgis.publisher.utils.Logging.getLogger();
 		FutureUtils f = new FutureUtils(system);
-		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);		
+		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);
 		
-		try {
+		assertEquals(
 			db.transactional(tx -> {
 				CompletableFuture<Optional<Integer>> layerIdFuture = 
 					tx.insert(genericLayer)
-					.set(genericLayer.identification, "layer")
-					.set(genericLayer.name, "layer-name")
-					.executeWithKey(genericLayer.id);
+						.set(genericLayer.identification, "layer")
+						.set(genericLayer.name, "layer-name")
+						.executeWithKey(genericLayer.id);
 				
 				CompletableFuture<Long> leafLayerFuture = 
 					layerIdFuture.thenCompose(layerId ->
@@ -1387,7 +1384,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						tx.insert(layerStructure)
 							.set(layerStructure.parentLayerId, groupBId.get())
 							.set(layerStructure.childLayerId, layerId.get())
-							.set(layerStructure.layerOrder, 0)
+							.set(layerStructure.layerOrder, 1)
 							.execute()));
 				
 				CompletableFuture<Long> groupARootFuture = 
@@ -1396,7 +1393,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						tx.insert(layerStructure)
 							.set(layerStructure.parentLayerId, rootId.get())
 							.set(layerStructure.childLayerId, groupAId.get())
-							.set(layerStructure.layerOrder, 0)
+							.set(layerStructure.layerOrder, 2)
 							.execute()));
 				
 				CompletableFuture<Long> groupBRootFuture = 
@@ -1405,7 +1402,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						tx.insert(layerStructure)
 							.set(layerStructure.parentLayerId, rootId.get())
 							.set(layerStructure.childLayerId, groupBId.get())
-							.set(layerStructure.layerOrder, 0)
+							.set(layerStructure.layerOrder, 3)
 							.execute()));
 					
 				CompletableFuture<Long> groupAGroupBFuture =
@@ -1414,7 +1411,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						tx.insert(layerStructure)
 							.set(layerStructure.parentLayerId, groupAId.get())
 							.set(layerStructure.childLayerId, groupBId.get())
-							.set(layerStructure.layerOrder, 0)
+							.set(layerStructure.layerOrder, 4)
 							.execute()));
 					
 				CompletableFuture<Long> groupBGroupAFuture =
@@ -1423,32 +1420,29 @@ public class ServiceManagerTest extends AbstractServiceTest {
 						tx.insert(layerStructure)
 							.set(layerStructure.parentLayerId, groupBId.get())
 							.set(layerStructure.childLayerId, groupAId.get())
-							.set(layerStructure.layerOrder, 0)
+							.set(layerStructure.layerOrder, 5)
 							.execute()));
 				
-				return f.sequence(
-					Arrays.asList(
-						layerIdFuture.thenCompose(resp -> null),
-						leafLayerFuture.thenCompose(resp -> null),
-						rootIdFuture.thenCompose(resp -> null),
-						groupAIdFuture.thenCompose(resp -> null),
-						groupBIdFuture.thenCompose(resp -> null),
-						layerGroupAFuture.thenCompose(resp -> null),
-						layerGroupBFuture.thenCompose(resp -> null),
-						groupARootFuture.thenCompose(resp -> null),
-						groupBRootFuture.thenCompose(resp -> null),
-						groupAGroupBFuture.thenCompose(resp -> null),
-						groupBGroupAFuture.thenCompose(resp -> null))).thenCompose(resp -> 
-							f.ask(
-								serviceManager, 
-								new GetGroupLayer(Optional.of(tx.getTransactionRef()), "root"),
-								GroupLayer.class).thenApply(groupLayer -> "final result"));
-			}).get();
-			
-			fail("transaction succeeded");
-		} catch(Exception e) {
-			log.debug("exception: {}", e);
-		}
+				return CompletableFuture.allOf(
+					layerIdFuture,
+					leafLayerFuture,
+					rootIdFuture,
+					groupAIdFuture,
+					groupBIdFuture,
+					layerGroupAFuture,
+					layerGroupBFuture,
+					groupARootFuture,
+					groupBRootFuture,
+					groupAGroupBFuture,
+					groupBGroupAFuture).<String>thenCompose(resp ->
+						f.ask(
+							serviceManager, 
+							new GetGroupLayer(Optional.of(tx.getTransactionRef()), "root"),
+							GroupLayer.class)
+								.thenApply(groupLayer -> "OK")
+								.exceptionally(t -> "NOT_OK"));
+			}).get(),
+			"NOT_OK");
 	}
 	
 	@Test
@@ -1713,9 +1707,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
-		int serviceId = insert(service)
+		insert(service)
 			.set(service.genericLayerId, rootId)			
-			.executeWithKey(service.id);
+			.execute();
 		
 		Tuple result = structureQuery
 			.singleResult(
