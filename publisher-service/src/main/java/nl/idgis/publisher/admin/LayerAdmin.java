@@ -547,9 +547,17 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													style.id)
 											)
 											.execute())
-											.collect(Collectors.toList())).thenApply(whatever ->
-											new Response<String>(CrudOperation.UPDATE,
-													CrudResponse.OK, layerId));
+											.collect(Collectors.toList())).thenCompose(whatever ->
+												tx.update(layerStructure)
+													.setNull(layerStructure.styleId)
+													.where(layerStructure.childLayerId.eq(llId.get())
+														.and(new SQLSubQuery().from(layerStyle)
+															.where(layerStyle.layerId.eq(layerStructure.childLayerId)
+																.and(layerStyle.styleId.eq(layerStructure.styleId)))
+															.notExists()))
+													.execute().thenApply(l ->
+													new Response<String>(CrudOperation.UPDATE,
+														CrudResponse.OK, layerId)));
 									});
 						});
 		}));
