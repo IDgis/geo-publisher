@@ -1536,6 +1536,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	@Test
 	public void testPublishService() throws Exception {
+		int groupLayerId = insert(genericLayer)
+				.set(genericLayer.identification, "group-layer")
+				.set(genericLayer.name, "group-layer-name")
+				.executeWithKey(genericLayer.id);
+		
 		int vectorLayerId = insert(genericLayer)
 				.set(genericLayer.identification, "vector-layer")
 				.set(genericLayer.name, "vector-layer-name")
@@ -1556,25 +1561,31 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(leafLayer.datasetId, rasterDatasetId)
 			.execute();
 		
-		int rootId = insert(genericLayer)
+		int rootLayerId = insert(genericLayer)
 			.set(genericLayer.identification, "service")
 			.set(genericLayer.name, "service-name")			
 			.executeWithKey(genericLayer.id);
 		
 		insert(layerStructure)
-			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.parentLayerId, groupLayerId)
 			.set(layerStructure.childLayerId, vectorLayerId)
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
-			.set(layerStructure.parentLayerId, rootId)
+			.set(layerStructure.parentLayerId, rootLayerId)
+			.set(layerStructure.childLayerId, groupLayerId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, rootLayerId)
 			.set(layerStructure.childLayerId, rasterLayerId)
 			.set(layerStructure.layerOrder, 1)
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId)			
+			.set(service.genericLayerId, rootLayerId)			
 			.execute();
 		
 		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
@@ -1747,6 +1758,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(style.definition, sw.toString())
 			.executeWithKey(style.id);
 		
+		int styleId1 = insert(style)
+			.set(style.identification, "style1")
+			.set(style.name, "style-name1")
+			.set(style.definition, sw.toString())
+			.executeWithKey(style.id);
+		
 		int leafLayerId = insert(leafLayer)
 			.set(leafLayer.genericLayerId, layerId)			
 			.set(leafLayer.datasetId, vectorDatasetId)
@@ -1789,15 +1806,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			assertEquals(Arrays.asList("service-name0"), serviceIndex.getServiceNames());
 			assertEquals(Arrays.asList("style-name0"), serviceIndex.getStyleNames());
 		}
-		
-		// TODO: move this insert to the top of the test
-		// as soon as the missing 'where clause' of the 'insert' on 'publishedServiceStyle' 
-		// in PublishServiceQuery is added
-		int styleId1 = insert(style)
-			.set(style.identification, "style1")
-			.set(style.name, "style-name1")
-			.set(style.definition, sw.toString())
-			.executeWithKey(style.id);
 		
 		insert(layerStyle)
 			.set(layerStyle.layerId, leafLayerId)
