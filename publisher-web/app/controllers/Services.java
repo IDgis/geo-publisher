@@ -11,6 +11,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListLayers;
@@ -19,6 +20,7 @@ import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.PutServiceKeywords;
+import nl.idgis.publisher.domain.query.ValidateUniqueName;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -28,6 +30,7 @@ import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -41,6 +44,7 @@ import views.html.services.form;
 import views.html.services.list;
 import views.html.services.publishService;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 
@@ -74,112 +78,39 @@ public class Services extends Controller {
 	
 	public static Promise<Result> submitCreate () {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		return from (database)
-			.list (LayerGroup.class)
-			.list (Layer.class)
-			.list (Service.class)
-			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
-	
-				@Override
-				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
-					final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
-					Logger.debug ("CREATE Service: " + form.field("name").value());
-					Logger.debug ("Form: "+ form);
-					
-					// validation start
-					// check if the choosen service name already exists
-					if (ID.equals(form.field("rootGroupId").value())){
-						for (LayerGroup layerGroup : groups.values()) {
-							if (form.field("name").value().trim ().equals(layerGroup.name())){
-								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.groupexists.error"));
-							}
-						}
-						for (Layer layer : layers.values()) {
-							if (form.field("name").value().trim ().equals(layer.name())){
-								form.reject("name", Domain.message("web.application.page.services.form.field.name.validation.layerexists.error"));
-							}
-						}
-						for (Service service: services.values ()) {
-							if (form.field ("name").value ().trim ().equals (service.name ())) {
-								form.reject ("name", Domain.message("web.application.page.services.form.field.name.validation.serviceexists.error"));
-							}
+		
+		final Form<ServiceForm> form = Form.form (ServiceForm.class).bindFromRequest ();
+		final String name = form.field ("name").valueOr (null);
+		
+		if(name == null) {
+			return performCreate(database, form);
+		} else {
+			return from (database)
+				.query (new ValidateUniqueName (name))
+				.executeFlat (validationResult -> {
+					if(validationResult.isValid ()) {
+						Logger.debug("name is valid: " + name);
+					} else {
+						Logger.debug("name is already in use: " + name);
+						
+						switch(validationResult.conflictType ()) {
+							case LAYER:
+								form.reject ("name", "web.application.page.services.form.field.name.validation.layerexists.error");
+								break;
+							case LAYERGROUP:
+								form.reject ("name", "web.application.page.services.form.field.name.validation.groupexists.error");
+								break;
+							case SERVICE:
+								form.reject ("name", "web.application.page.services.form.field.name.validation.serviceexists.error");
+								break;
+							default:
+								break;						
 						}
 					}
-					if (form.hasErrors ()) {
-						return renderCreateForm (form);
-					}
-					// validation end
 					
-					final ServiceForm serviceForm = form.get ();
-					final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
-							serviceForm.alternateTitle,serviceForm.abstractText,
-							serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, false, false);
-					Logger.debug ("Update/create service: " + service);
-					
-					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
-					Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
-					
-					final List<String> layerStyleIds = serviceForm.styles == null ? new ArrayList<>() : serviceForm.styles;
-
-					return from (database)
-						.put(service)
-						.executeFlat (new Function<Response<?>, Promise<Result>> () {
-							@Override
-							public Promise<Result> apply (final Response<?> responseService) throws Throwable {
-								String msg;
-								// Get the id of the service we just put 
-								String serviceId = responseService.getValue().toString();
-								Logger.debug("serviceId: " + serviceId);
-								PutServiceKeywords putServiceKeywords = 
-										new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
-								
-								PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
-								return from (database)
-									.query(putServiceKeywords)
-									.query(putGroupStructure)
-									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
-										@Override
-										public Promise<Result> apply (final Response<?> responseKeywords, final Response<?> responseStructure) throws Throwable {
-											// Check if the structure is valid i.e. does not contain cycles
-											return from (database)
-													.query (new GetGroupStructure(serviceId))
-													.executeFlat (new Function<GroupLayer, Promise<Result>> () {
-														@Override
-														public Promise<Result>  apply (final GroupLayer groupLayer) throws Throwable {
-															serviceForm.rootGroupId = serviceId;
-															final Form<ServiceForm> formServiceForm = Form
-																	.form (ServiceForm.class)
-																	.fill (serviceForm);
-															Logger.debug ("groupLayer: " + groupLayer);
-															if (groupLayer==null){
-																// CYCLE!!
-																formServiceForm.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.cycle"));
-															}
-															if (formServiceForm.hasErrors ()) {
-																
-																return renderCreateForm (formServiceForm);
-															} else {
-																String msg;
-																if (CrudOperation.CREATE.equals (responseService.getOperation())) {
-																	msg = Domain.message("web.application.added").toLowerCase();
-																}else{
-																	msg = Domain.message("web.application.updated").toLowerCase();
-																}									
-																if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
-																	flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
-																}else{
-																	flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
-																}
-																return Promise.pure (redirect (routes.Services.list (null, null, 1)));
-															}
-														}
-												});
-										}
-									});
-							}
-						});
-				}
-			});
+					return performCreate (database, form);
+				});
+		}
 	}
 	
 	public static Promise<Result> submitUpdate (final String serviceIdentification) {
@@ -384,6 +315,82 @@ public class Services extends Controller {
 		});
 	}
 	
+	private static Promise<Result> performCreate(final ActorSelection database, final Form<ServiceForm> form) {
+		if (form.hasErrors ()) {
+			return renderCreateForm (form);
+		}
+		// validation end
+		
+		final ServiceForm serviceForm = form.get ();
+		final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
+				serviceForm.alternateTitle,serviceForm.abstractText,
+				serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, false, false);
+		Logger.debug ("Update/create service: " + service);
+		
+		final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
+		Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
+		
+		final List<String> layerStyleIds = serviceForm.styles == null ? new ArrayList<>() : serviceForm.styles;
+
+		return from (database)
+			.put(service)
+			.executeFlat (new Function<Response<?>, Promise<Result>> () {
+				@Override
+				public Promise<Result> apply (final Response<?> responseService) throws Throwable {
+					String msg;
+					// Get the id of the service we just put 
+					String serviceId = responseService.getValue().toString();
+					Logger.debug("serviceId: " + serviceId);
+					PutServiceKeywords putServiceKeywords = 
+							new PutServiceKeywords (serviceId, serviceForm.getKeywords()==null?new ArrayList<String>():serviceForm.getKeywords());
+					
+					PutGroupStructure putGroupStructure = new PutGroupStructure (serviceId, layerIds, layerStyleIds);
+					return from (database)
+						.query(putServiceKeywords)
+						.query(putGroupStructure)
+						.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
+							@Override
+							public Promise<Result> apply (final Response<?> responseKeywords, final Response<?> responseStructure) throws Throwable {
+								// Check if the structure is valid i.e. does not contain cycles
+								return from (database)
+										.query (new GetGroupStructure(serviceId))
+										.executeFlat (new Function<GroupLayer, Promise<Result>> () {
+											@Override
+											public Promise<Result>  apply (final GroupLayer groupLayer) throws Throwable {
+												serviceForm.rootGroupId = serviceId;
+												final Form<ServiceForm> formServiceForm = Form
+														.form (ServiceForm.class)
+														.fill (serviceForm);
+												Logger.debug ("groupLayer: " + groupLayer);
+												if (groupLayer==null){
+													// CYCLE!!
+													formServiceForm.reject("structure", Domain.message("web.application.page.services.form.field.structure.validation.cycle"));
+												}
+												if (formServiceForm.hasErrors ()) {
+													
+													return renderCreateForm (formServiceForm);
+												} else {
+													String msg;
+													if (CrudOperation.CREATE.equals (responseService.getOperation())) {
+														msg = Domain.message("web.application.added").toLowerCase();
+													}else{
+														msg = Domain.message("web.application.updated").toLowerCase();
+													}									
+													if (CrudResponse.OK.equals (responseService.getOperationResponse())) {
+														flash ("success", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+													}else{
+														flash ("danger", Domain.message("web.application.page.services.name") + " " + service.name() + " " + msg);
+													}
+													return Promise.pure (redirect (routes.Services.list (null, null, 1)));
+												}
+											}
+									});
+							}
+						});
+				}
+			});
+	}
+
 	public static class ServiceForm {
 
 		@Constraints.Required (message = "web.application.page.services.form.field.name.validation.required")

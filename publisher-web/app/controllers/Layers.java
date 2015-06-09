@@ -4,24 +4,21 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
-import models.Domain.Function3;
-import models.Domain.Function4;
 import models.Domain.Function5;
+
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
 import nl.idgis.publisher.domain.query.GetLayerParentServices;
 import nl.idgis.publisher.domain.query.GetLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
-import nl.idgis.publisher.domain.query.ListLayerKeywords;
-import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
 import nl.idgis.publisher.domain.query.PutLayerKeywords;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
+import nl.idgis.publisher.domain.query.ValidateUniqueName;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -30,7 +27,7 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
-import nl.idgis.publisher.domain.web.TiledLayer;
+
 import play.Logger;
 import play.Play;
 import play.api.mvc.Call;
@@ -48,6 +45,7 @@ import views.html.layers.layerPagerHeader;
 import views.html.layers.layerPagerBody;
 import views.html.layers.layerPagerFooter;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,96 +72,104 @@ public class Layers extends GroupsLayersCommon {
 				});
 	}
 	
-	public static Promise<Result> submitCreateUpdate () {
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+	private static Promise<Result> performCreateUpdate(final ActorSelection database, final Form<LayerForm> form) {
+		if (form.field("styles").value().isEmpty() || form.field("styles").value().equals("[]")) {
+			Logger.debug ("Empty style list");
+			form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
+		} else {
+			Logger.debug ("Form style list " + form.field("styles").value());
+		}
+		
+		if (form.hasErrors ()) {
+			Logger.debug ("LayerForm errors " + form.errorsAsJson().toString());
+			return renderCreateForm (form);
+		}
+		// validation end
+		
+			// parse the list of (style.name, style.id) from the json string in the view form
+		String layerStyleList = form.get().getStyles();
+		
+			final List<String> styleIds = new ArrayList<> ();
+		for (final JsonNode n: Json.parse (layerStyleList)) {
+			// get only the second element (style.id)
+			styleIds.add (n.get (1).asText ());
+			}
+		Logger.debug ("layerStyleList: " + styleIds.toString ());
+		
+		final LayerForm layerForm = form.get ();
+		final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
+				layerForm.abstractText,layerForm.datasetId, layerForm.datasetName,
+				(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList(), false);
+		Logger.debug ("Create Update layerForm: " + layerForm);						
+		
 		return from (database)
-			.list (LayerGroup.class)
-			.list (Layer.class)
-			.list (Service.class)
-			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
-	
+			.put(layer)
+			.executeFlat (new Function<Response<?>, Promise<Result>> () {
 				@Override
-				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
-					final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
-					
-					// validation start
-					if (form.field("id").value().equals(ID) && form.field ("name").valueOr (null) != null){
-						for (LayerGroup layerGroup : groups.values()) {
-							if (form.field("name").value().equals(layerGroup.name())){
-								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.groupexists.error"));
-							}
-						}
-						for (Layer layer : layers.values()) {
-							if (form.field("name").value().equals(layer.name())){
-								form.reject("name", Domain.message("web.application.page.layers.form.field.name.validation.layerexists.error"));
-							}
-						}
-						for (final Service service: services.values ()) {
-							if (form.field ("name").value ().equals (service.name ())) {
-								form.reject ("name", "web.application.page.layers.form.field.name.validation.serviceexists.error");
-							}
-						}
-					}
-					if (form.field("styles").value().isEmpty() || form.field("styles").value().equals("[]")) {
-						Logger.debug ("Empty style list");
-						form.reject("styles", Domain.message("web.application.page.layers.form.field.styles.validation.error"));
-					} else {
-						Logger.debug ("Form style list " + form.field("styles").value());
-					}
-					
-					if (form.hasErrors ()) {
-						Logger.debug ("LayerForm errors " + form.errorsAsJson().toString());
-						return renderCreateForm (form);
-					}
-					// validation end
-					
- 					// parse the list of (style.name, style.id) from the json string in the view form
-					String layerStyleList = form.get().getStyles();
-					
- 					final List<String> styleIds = new ArrayList<> ();
-					for (final JsonNode n: Json.parse (layerStyleList)) {
-						// get only the second element (style.id)
-						styleIds.add (n.get (1).asText ());
- 					}
-					Logger.debug ("layerStyleList: " + styleIds.toString ());
-					
-					final LayerForm layerForm = form.get ();
-					final Layer layer = new Layer(layerForm.getId(), layerForm.getName(), layerForm.title, 
-							layerForm.abstractText,layerForm.datasetId, layerForm.datasetName,
-							(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), layerForm.getStyleList(), false);
-					Logger.debug ("Create Update layerForm: " + layerForm);						
-					
+				public Promise<Result> apply (final Response<?> response) throws Throwable {
+					// Get the id of the layer we just put 
+					String layerId = response.getValue().toString();
+					PutLayerKeywords putLayerKeywords = 
+						new PutLayerKeywords (layerId, layerForm.getKeywords()==null?new ArrayList<String>():layerForm.getKeywords());
+					PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
 					return from (database)
-						.put(layer)
-						.executeFlat (new Function<Response<?>, Promise<Result>> () {
+						.query(putLayerStyles)
+						.query(putLayerKeywords)
+						.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
 							@Override
-							public Promise<Result> apply (final Response<?> response) throws Throwable {
-								// Get the id of the layer we just put 
-								String layerId = response.getValue().toString();
-								PutLayerKeywords putLayerKeywords = 
-									new PutLayerKeywords (layerId, layerForm.getKeywords()==null?new ArrayList<String>():layerForm.getKeywords());
-								PutLayerStyles putLayerStyles = new PutLayerStyles(layerId, styleIds);															
-								return from (database)
-									.query(putLayerStyles)
-									.query(putLayerKeywords)
-									.executeFlat (new Function2<Response<?>, Response<?>, Promise<Result>> () {
-										@Override
-										public Promise<Result> apply (final Response<?> responseStyles, final Response<?> responseKeywords) throws Throwable {
-										
-											if (CrudOperation.CREATE.equals (responseStyles.getOperation())) {
-												Logger.debug ("Created layer " + layer);
-												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.added").toLowerCase());
-											}else{
-												Logger.debug ("Updated layer " + layer);
-												flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.updated").toLowerCase());
-											}
-											return Promise.pure (redirect (routes.Layers.list (null, 1)));
-										}
-									});
+							public Promise<Result> apply (final Response<?> responseStyles, final Response<?> responseKeywords) throws Throwable {
+							
+								if (CrudOperation.CREATE.equals (responseStyles.getOperation())) {
+									Logger.debug ("Created layer " + layer);
+									flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.added").toLowerCase());
+								}else{
+									Logger.debug ("Updated layer " + layer);
+									flash ("success", Domain.message("web.application.page.layers.name") + " " + layer.name() + " is " + Domain.message("web.application.updated").toLowerCase());
+								}
+								return Promise.pure (redirect (routes.Layers.list (null, 1)));
 							}
 						});
 				}
 			});
+	}
+	
+	public static Promise<Result> submitCreateUpdate () {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		final Form<LayerForm> form = Form.form (LayerForm.class).bindFromRequest ();
+		final String name = form.field ("name").valueOr (null);
+		
+		Logger.debug ("performing unique check for name: " + name); 
+		
+		if (name == null) {
+			return performCreateUpdate (database, form);
+		} else {
+			return from (database)
+				.query (new ValidateUniqueName (name))
+				.executeFlat (validationResult -> {
+					if(validationResult.isValid ()) {
+						Logger.debug("name is valid: " + name);
+					} else {
+						Logger.debug("name is already in use: " + name);
+						
+						switch(validationResult.conflictType ()) {
+							case LAYER:
+								form.reject ("name", "web.application.page.layers.form.field.name.validation.layerexists.error");
+								break;
+							case LAYERGROUP:
+								form.reject ("name", "web.application.page.layers.form.field.name.validation.groupexists.error");
+								break;
+							case SERVICE:
+								form.reject ("name", "web.application.page.layers.form.field.name.validation.serviceexists.error");
+								break;
+							default:
+								break;						
+						}
+					}
+					
+					return performCreateUpdate (database, form);
+				});
+		}
 	}
 	
 	public static Promise<Result> list (final String query, final long page) {
