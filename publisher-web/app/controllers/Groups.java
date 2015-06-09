@@ -138,9 +138,7 @@ public class Groups extends GroupsLayersCommon {
 		final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
 		final String name = form.field ("name").valueOr (null);
 		
-		if (name == null) {
-			return performCreateUpdate(database, form);
-		} else {
+		if (form.field("id").value().equals(ID) && name != null) {		
 			return from (database)
 				.query (new ValidateUniqueName (name))
 				.executeFlat (validationResult -> {
@@ -166,6 +164,8 @@ public class Groups extends GroupsLayersCommon {
 					
 					return performCreateUpdate (database, form);
 				});
+		} else {
+			return performCreateUpdate (database, form);
 		}
 	}
 	
