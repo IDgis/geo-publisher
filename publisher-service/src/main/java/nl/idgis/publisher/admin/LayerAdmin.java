@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncSQLQuery;
+
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
 import nl.idgis.publisher.domain.query.GetLayerParentServices;
 import nl.idgis.publisher.domain.query.ListLayerKeywords;
@@ -30,8 +31,10 @@ import nl.idgis.publisher.domain.query.ListLayerStyles;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.PutLayerKeywords;
 import nl.idgis.publisher.domain.query.PutLayerStyles;
+import nl.idgis.publisher.domain.query.ValidateUniqueName;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
+import nl.idgis.publisher.domain.response.UniqueNameValidationResult;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
@@ -40,8 +43,9 @@ import nl.idgis.publisher.domain.web.QStyle;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.TiledLayer;
-import nl.idgis.publisher.utils.StreamUtils;
+
 import nl.idgis.publisher.utils.TypedList;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -49,7 +53,6 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.ConstantImpl;
 import com.mysema.query.types.Expression;
-import com.mysema.query.types.Path;
 import com.mysema.query.types.expr.DslExpression;
 import com.mysema.query.types.path.PathBuilder;
 
@@ -82,6 +85,30 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		
 		doQuery (GetLayerParentGroups.class, this::handleGetLayerParentGroups);
 		doQuery (GetLayerParentServices.class, this::handleGetLayerParentServices);
+		
+		doQuery(ValidateUniqueName.class, this::handleValidateUniqueName);
+	}
+	
+	private CompletableFuture<UniqueNameValidationResult> handleValidateUniqueName(ValidateUniqueName validateUniqueName) {
+		return db.query()
+			.from(genericLayer)
+			.leftJoin(leafLayer).on(leafLayer.genericLayerId.eq(genericLayer.id))
+			.leftJoin(service).on(service.genericLayerId.eq(genericLayer.id))
+			.where(genericLayer.name.eq(validateUniqueName.name()))
+			.singleResult(leafLayer.id, service.id).thenApply(optionalResult ->
+				optionalResult
+					.map(result -> {
+						if(result.get(leafLayer.id) != null) {
+							return UniqueNameValidationResult.conflict(UniqueNameValidationResult.ConflictType.LAYER);
+						}
+						
+						if(result.get(service.id) != null) {
+							return UniqueNameValidationResult.conflict(UniqueNameValidationResult.ConflictType.SERVICE);
+						}
+						
+						return UniqueNameValidationResult.conflict(UniqueNameValidationResult.ConflictType.LAYERGROUP);
+					})
+					.orElse(UniqueNameValidationResult.valid()));
 	}
 
 	private CompletableFuture<Page<Layer>> handleListLayers () {

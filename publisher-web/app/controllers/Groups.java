@@ -8,11 +8,13 @@ import java.util.List;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import scala.runtime.AbstractFunction1;
+
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
 import models.Domain.Function5;
+
 import nl.idgis.publisher.domain.query.GetGroupParentGroups;
 import nl.idgis.publisher.domain.query.GetGroupParentServices;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
@@ -21,6 +23,7 @@ import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
+import nl.idgis.publisher.domain.query.ValidateUniqueName;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -29,6 +32,7 @@ import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
+
 import play.Logger;
 import play.Play;
 import play.api.mvc.Call;
@@ -46,6 +50,7 @@ import views.html.layers.layerPagerBody;
 import views.html.layers.layerPagerFooter;
 import views.html.layers.layerPagerHeader;
 import actions.DefaultAuthenticator;
+
 import akka.actor.ActorSelection;
 
 @Security.Authenticated (DefaultAuthenticator.class)
@@ -68,97 +73,100 @@ public class Groups extends GroupsLayersCommon {
 
 	}
 	
-	public static Promise<Result> submitCreateUpdate () {
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+	private static Promise<Result> performCreateUpdate(final ActorSelection database, final Form<GroupForm> form) {
+		if (form.field("structure").value() == null){
+			form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+		}
+		
+		if (form.hasErrors ()) {
+			return renderCreateForm (form);
+		}
+		// validation end
+		
+		final GroupForm groupForm = form.get ();
+		final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
+		Logger.debug ("Group structure list: " + layerIds);
+		
+		final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
+		Logger.debug ("Group layer style list: " + layerStyleIds);
+		
+		final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
+				groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false);
 		
 		return from (database)
-			.list (LayerGroup.class)
-			.list (Layer.class)
-			.list (Service.class)
-			.executeFlat (new Function3<Page<LayerGroup>, Page<Layer>, Page<Service>, Promise<Result>> () {
-	
+			.put(group)
+			.executeFlat (new Function<Response<?>, Promise<Result>> () {
 				@Override
-				public Promise<Result> apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<Service> services) throws Throwable {
-					final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
-					Logger.debug ("submit Group: " + form.field("name").value());
-					
-					// validation start
-					if (form.field("id").value().equals(ID)){
-						for (LayerGroup layerGroup : groups.values()) {
-							if (form.field("name").value().trim ().equals(layerGroup.name())){
-								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.groupexists.error"));
-							}
-						}
-						for (Layer layer : layers.values()) {
-							if (form.field("name").value().trim ().equals(layer.name())){
-								form.reject("name", Domain.message("web.application.page.groups.form.field.name.validation.layerexists.error"));
-							}
-						}
-						for (final Service service: services.values ()) {
-							if (form.field ("name").value ().trim ().equals (service.name ())) {
-								form.reject ("name", Domain.message("web.application.page.groups.form.field.name.validation.serviceexists.error"));
-							}
-						}
-					}
-					if (form.field("structure").value() == null){
-						form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
-					}
-					
-					if (form.hasErrors ()) {
-						return renderCreateForm (form);
-					}
-					// validation end
-					
-					final GroupForm groupForm = form.get ();
-					final List<String> layerIds = (groupForm.structure == null)?(new ArrayList<String>()):(groupForm.structure);			
-					Logger.debug ("Group structure list: " + layerIds);
-					
-					final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
-					Logger.debug ("Group layer style list: " + layerStyleIds);
-					
-					final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
-							groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false);
-					
+				public Promise<Result> apply (final Response<?> response) throws Throwable {
+					// Get the id of the layer we just put 
+					String groupId = response.getValue().toString();
+					PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds, layerStyleIds);															
 					return from (database)
-						.put(group)
+						.query(putGroupStructure)
 						.executeFlat (new Function<Response<?>, Promise<Result>> () {
 							@Override
 							public Promise<Result> apply (final Response<?> response) throws Throwable {
-								// Get the id of the layer we just put 
-								String groupId = response.getValue().toString();
-								PutGroupStructure putGroupStructure = new PutGroupStructure (groupId, layerIds, layerStyleIds);															
-								return from (database)
-									.query(putGroupStructure)
-									.executeFlat (new Function<Response<?>, Promise<Result>> () {
-										@Override
-										public Promise<Result> apply (final Response<?> response) throws Throwable {
-											if (CrudOperation.CREATE.equals (response.getOperation())) {
-												Logger.debug ("Created group " + group);
-												if (response.getOperationResponse().equals(CrudResponse.NOK)){
-													flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
-													form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
-													return Promise.pure (redirect (routes.Groups.edit(groupId)));
-												} else {
-													flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
-												}
-											}else{
-												Logger.debug ("Updated group " + group);
-												if (response.getOperationResponse().equals(CrudResponse.NOK)){
-													flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
-													form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
-													return Promise.pure (redirect (routes.Groups.edit(groupId)));
-												} else {
-													flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
-												}
-											}
-											return Promise.pure (redirect (routes.Groups.list (null, 1)));
-										}
-									});
+								if (CrudOperation.CREATE.equals (response.getOperation())) {
+									Logger.debug ("Created group " + group);
+									if (response.getOperationResponse().equals(CrudResponse.NOK)){
+										flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
+										form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+										return Promise.pure (redirect (routes.Groups.edit(groupId)));
+									} else {
+										flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.added").toLowerCase());
+									}
+								}else{
+									Logger.debug ("Updated group " + group);
+									if (response.getOperationResponse().equals(CrudResponse.NOK)){
+										flash("danger", Domain.message("web.application.page.groups.form.field.structure.validation.cycle", response.getValue().toString()));
+										form.reject("structure", Domain.message("web.application.page.groups.form.field.structure.validation.error"));
+										return Promise.pure (redirect (routes.Groups.edit(groupId)));
+									} else {
+										flash ("success", Domain.message("web.application.page.groups.name") + " " + groupForm.getName () + " is " + Domain.message("web.application.updated").toLowerCase());
+									}
+								}
+								return Promise.pure (redirect (routes.Groups.list (null, 1)));
 							}
 						});
+				}
+			});
+	}
+	
+	public static Promise<Result> submitCreateUpdate () {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
+		final String name = form.field ("name").valueOr (null);
+		
+		if (name == null) {
+			return performCreateUpdate(database, form);
+		} else {
+			return from (database)
+				.query (new ValidateUniqueName (name))
+				.executeFlat (validationResult -> {
+					if(validationResult.isValid ()) {
+						Logger.debug("name is valid: " + name);
+					} else {
+						Logger.debug("name is already in use: " + name);
+						
+						switch(validationResult.conflictType ()) {
+							case LAYER:
+								form.reject ("name", "web.application.page.groups.form.field.name.validation.layerexists.error");
+								break;
+							case LAYERGROUP:
+								form.reject ("name", "web.application.page.groups.form.field.name.validation.groupexists.error");
+								break;
+							case SERVICE:
+								form.reject ("name", "web.application.page.groups.form.field.name.validation.serviceexists.error");
+								break;
+							default:
+								break;						
+						}
 					}
+					
+					return performCreateUpdate (database, form);
 				});
-
+		}
 	}
 	
 	public static Promise<Result> list (final String query, final long page) {
