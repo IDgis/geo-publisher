@@ -141,9 +141,7 @@ public class Layers extends GroupsLayersCommon {
 		
 		Logger.debug ("performing unique check for name: " + name); 
 		
-		if (name == null) {
-			return performCreateUpdate (database, form);
-		} else {
+		if (form.field("id").value().equals(ID) && name != null) {			
 			return from (database)
 				.query (new ValidateUniqueName (name))
 				.executeFlat (validationResult -> {
@@ -169,6 +167,8 @@ public class Layers extends GroupsLayersCommon {
 					
 					return performCreateUpdate (database, form);
 				});
+		} else {
+			return performCreateUpdate (database, form);
 		}
 	}
 	
