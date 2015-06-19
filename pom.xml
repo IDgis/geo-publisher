@@ -137,6 +137,12 @@
 				<scope>test</scope>				
 			</dependency>
 			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-webapp</artifactId>
+				<version>9.2.2.v20140723</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
 				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
 				<version>1.9</version>
@@ -230,6 +236,11 @@
 			<dependency>
 				<groupId>nl.idgis.publisher</groupId>
 				<artifactId>publisher-web</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.idgis.publisher</groupId>
+				<artifactId>publisher-monitoring</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -496,6 +507,7 @@
 		<module>publisher-domain</module>
 		<module>publisher-test</module>
 		<module>publisher-schemas</module>
+		<module>publisher-monitoring</module>
 	</modules>
 
 	<reporting>

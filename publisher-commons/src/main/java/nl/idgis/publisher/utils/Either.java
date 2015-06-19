@@ -1,9 +1,12 @@
 package nl.idgis.publisher.utils;
 
+import java.io.Serializable;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class Either<T, U> {
+public class Either<T, U> implements Serializable {
+
+	private static final long serialVersionUID = -3650620595855073818L;
 
 	private final T t;
 	
@@ -43,6 +46,14 @@ public class Either<T, U> {
 			return mapper.apply(u);
 		} else {
 			return t;
+		}
+	}
+	
+	public <V> V map(Function<? super T, ? extends V> mapperLeft, Function<? super U, ? extends V> mapperRight) {
+		if(t == null) {
+			return mapperRight.apply(u);
+		} else {
+			return mapperLeft.apply(t);
 		}
 	}
 	

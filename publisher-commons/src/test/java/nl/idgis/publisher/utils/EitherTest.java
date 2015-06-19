@@ -54,6 +54,15 @@ public class EitherTest {
 	}
 	
 	@Test
+	public void testMap() {
+		Either<Integer, Double> either = Either.left(42);
+		assertEquals("42", either.map(i -> i.toString(), d -> d.toString()));
+		
+		either = Either.right(42.47);
+		assertEquals("42.47", either.map(i -> i.toString(), d -> d.toString()));
+	}
+	
+	@Test
 	public void testSwap() {
 		Either<?, String> either = Either.left("Hello, world!");
 		assertTrue(either.getLeft().isPresent());

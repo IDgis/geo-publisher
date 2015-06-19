@@ -35,9 +35,15 @@ public class AnyRecorder extends UntypedActor {
 			ActorRef actorRef = getContext().actorOf(((Create)msg).getProps());
 			getSender().tell(new Created(actorRef), getSelf());
 		} else {
-			recorder.tell(new RecordedMessage(getSelf(), getSender(), msg), getSelf());
-			onRecord(msg, getSender());
+			if(doRecord(msg, getSender())) {
+				recorder.tell(new RecordedMessage(getSelf(), getSender(), msg), getSelf());
+				onRecord(msg, getSender());
+			}
 		}
+	}
+	
+	protected boolean doRecord(Object msg, ActorRef sender) {
+		return true;
 	}
 	
 	protected void onRecord(Object msg, ActorRef sender) {

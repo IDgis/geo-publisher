@@ -234,7 +234,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				}
 				
 				@Override
-			    public void onThrowable(Throwable t){
+			    public void onThrowable(Throwable t) {
 					future.completeExceptionally(new GeoServerException(path, t));
 			    }
 			});
