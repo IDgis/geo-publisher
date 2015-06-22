@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.provisioning;
 
+import com.ning.http.client.AsyncHttpClient;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -33,11 +34,14 @@ public class ProvisioningSystem extends UntypedActor {
 	
 	private final String rasterFolderConfig;
 	
+	private final AsyncHttpClient asyncHttpClient;
+	
 	private ActorRef provisioningManager;
 	
-	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+	public ProvisioningSystem(AsyncHttpClient asyncHttpClient, ActorRef database, ActorRef serviceManager, 
+		Config geoserverConfig, Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
 		
+		this.asyncHttpClient = asyncHttpClient;
 		this.database = database;
 		this.serviceManager = serviceManager;
 		this.geoserverConfig = geoserverConfig;
@@ -46,17 +50,17 @@ public class ProvisioningSystem extends UntypedActor {
 		this.zooKeeperConfig = zooKeeperConfig;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+	public static Props props(AsyncHttpClient asyncHttpClient, ActorRef database, ActorRef serviceManager, 
+		Config geoserverConfig, Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
 		
-		return Props.create(ProvisioningSystem.class, database, serviceManager, geoserverConfig, 
+		return Props.create(ProvisioningSystem.class, asyncHttpClient, database, serviceManager, geoserverConfig, 
 			databaseConfig, rasterFolderConfig, zooKeeperConfig);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		provisioningManager = getContext().actorOf(
-			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), 
+			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(asyncHttpClient)), 
 			"provisioning-manager");
 		
 		getContext ().actorOf (ZooKeeperServiceInfoProvider.props (

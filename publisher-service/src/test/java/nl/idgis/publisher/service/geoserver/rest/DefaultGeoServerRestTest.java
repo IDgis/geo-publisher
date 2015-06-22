@@ -37,6 +37,8 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+import com.ning.http.client.AsyncHttpClient;
+
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
@@ -71,7 +73,7 @@ public class DefaultGeoServerRestTest {
 		
 		ActorSystem actorSystem = ActorSystem.create();
 		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
-		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+		service = new DefaultGeoServerRest(new AsyncHttpClient(), f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
 	@After

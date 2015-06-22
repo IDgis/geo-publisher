@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Objects;
+import com.ning.http.client.AsyncHttpClient;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -81,11 +82,14 @@ public class GeoServerService extends UntypedActor {
 	
 	private final String rasterFolder;
 	
+	private final AsyncHttpClient asyncHttpClient;
+	
 	private FutureUtils f;
 	
 	private GeoServerRest rest;
 
-	public GeoServerService(String url, String user, String password, Map<String, String> databaseConnectionParameters, String rasterFolder) throws Exception {
+	public GeoServerService(AsyncHttpClient asyncHttpClient, String url, String user, String password, Map<String, String> databaseConnectionParameters, String rasterFolder) throws Exception {
+		this.asyncHttpClient = asyncHttpClient;
 		this.url = url;
 		this.user = user;
 		this.password = password;
@@ -94,6 +98,7 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	public static Props props(
+		AsyncHttpClient asyncHttpClient,
 		String serviceUrl, String serviceUser, String servicePassword, 
 		String databaseUrl, String databaseUser, String databasePassword,
 		String rasterFolder,
@@ -116,13 +121,13 @@ public class GeoServerService extends UntypedActor {
 		connectionParameters.put("passwd", databasePassword);
 		connectionParameters.put("schema", schema);
 		
-		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);
+		return Props.create(GeoServerService.class, asyncHttpClient, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext());
-		rest = new DefaultGeoServerRest(f, log, url, user, password);		
+		rest = new DefaultGeoServerRest(asyncHttpClient, f, log, url, user, password);		
 	}
 	
 	@Override

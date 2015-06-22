@@ -2,6 +2,8 @@ package nl.idgis.publisher.service.provisioning;
 
 import java.util.Set;
 
+import com.ning.http.client.AsyncHttpClient;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -9,6 +11,12 @@ import nl.idgis.publisher.service.geoserver.GeoServerService;
 import nl.idgis.publisher.service.geoserver.InfoCollector;
 
 public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory {
+	
+	private final AsyncHttpClient asyncHttpClient;
+	
+	public DefaultProvisioningPropsFactory(AsyncHttpClient asyncHttpClient) {
+		this.asyncHttpClient = asyncHttpClient;
+	}
 
 	@Override
 	public Props serviceProps(ServiceInfo serviceInfo, String schema) {
@@ -16,6 +24,8 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 		ConnectionInfo databaseConnectionInfo = serviceInfo.getDatabase();
 		
 		return GeoServerService.props(
+			asyncHttpClient,
+				
 			serviceConnectionInfo.getUrl(), 
 			serviceConnectionInfo.getUser(), 
 			serviceConnectionInfo.getPassword(), 

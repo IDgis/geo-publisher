@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import com.ning.http.client.AsyncHttpClient;
+
 import akka.actor.ActorRef;
 import akka.actor.AllForOneStrategy;
 import akka.actor.Props;
@@ -114,8 +116,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		this.provisioningPropsFactory = provisioningPropsFactory;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return props(database, serviceManager, new DefaultProvisioningPropsFactory());
+	public static Props props(AsyncHttpClient asyncHttpClient, ActorRef database, ActorRef serviceManager) {
+		return props(database, serviceManager, new DefaultProvisioningPropsFactory(asyncHttpClient));
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {

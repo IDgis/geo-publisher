@@ -21,6 +21,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ning.http.client.AsyncHttpClient;
+
 import scala.concurrent.duration.FiniteDuration;
 
 import akka.actor.ActorRef;
@@ -86,6 +88,7 @@ public class ServiceTesterTest {
 		}));
 		serviceTester = actorSystem.actorOf(
 			ServiceTester.props(
+				new AsyncHttpClient(),
 				FiniteDuration.create(1, TimeUnit.MILLISECONDS), 
 				recorder));
 		

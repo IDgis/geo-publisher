@@ -61,24 +61,24 @@ public class RequestHandler extends UntypedActor {
 	
 	private final URL url;
 	
-	private AsyncHttpClient asyncHttpClient;
+	private final AsyncHttpClient asyncHttpClient;
 	
-	public RequestHandler(URL url, Duration timeout) {
+	public RequestHandler(AsyncHttpClient asyncHttpClient, URL url, Duration timeout) {
 		this.url = url;
 		this.timeout = timeout;
+		this.asyncHttpClient = asyncHttpClient;
 	}
 	
-	public static Props props(URL url) {
-		return props(url, DEFAULT_TIMEOUT);
+	public static Props props(AsyncHttpClient asyncHttpClient, URL url) {
+		return props(asyncHttpClient, url, DEFAULT_TIMEOUT);
 	}
 	
-	public static Props props(URL url, Duration timeout) {
-		return Props.create(RequestHandler.class, url, timeout);
+	public static Props props(AsyncHttpClient asyncHttpClient, URL url, Duration timeout) {
+		return Props.create(RequestHandler.class, asyncHttpClient, url, timeout);
 	}
 	
 	@Override
 	public final void preStart() {
-		asyncHttpClient = new AsyncHttpClient();
 		asyncHttpClient
 			.prepareGet(url.toExternalForm())
 			.execute(new AsyncCompletionHandler<Response>() {

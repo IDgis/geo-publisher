@@ -29,6 +29,7 @@ import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
+import nl.idgis.publisher.monitoring.MonitoringManager;
 import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
@@ -49,6 +50,7 @@ import akka.japi.Procedure;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.ning.http.client.AsyncHttpClient;
 import com.typesafe.config.Config;
 
 public class ServiceApp extends UntypedActor {
@@ -181,8 +183,12 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, 
-			geoserverConfig, databaseConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
+		AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+		
+		getContext().actorOf(MonitoringManager.props(asyncHttpClient, serviceManager), "monitoring-manager");
+		
+		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(asyncHttpClient, database, 
+			serviceManager, geoserverConfig, databaseConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
 		
 		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningSystem, serviceManager), "jobs");
 		

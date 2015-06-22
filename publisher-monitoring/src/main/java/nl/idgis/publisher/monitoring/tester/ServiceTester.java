@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.ning.http.client.AsyncHttpClient;
+
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -45,6 +47,8 @@ public class ServiceTester extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
+	private final AsyncHttpClient asyncHttpClient;
+	
 	private final FiniteDuration interval;
 	
 	private final ActorRef target;
@@ -55,7 +59,8 @@ public class ServiceTester extends UntypedActor {
 	
 	private long lastTime, currentCount, failureCount, totalCount;
 	
-	public ServiceTester(FiniteDuration interval, ActorRef target) {
+	public ServiceTester(AsyncHttpClient asyncHttpClient, FiniteDuration interval, ActorRef target) {
+		this.asyncHttpClient = asyncHttpClient;
 		this.interval = interval;
 		this.target = target;
 	}
@@ -68,16 +73,16 @@ public class ServiceTester extends UntypedActor {
 		getSelf().tell(new NextUrl(), getSelf());
 	}
 	
-	public static Props props(ActorRef target) {
-		return props(DEFAULT_INTERVAL, target);
+	public static Props props(AsyncHttpClient asyncHttpClient, ActorRef target) {
+		return props(asyncHttpClient, DEFAULT_INTERVAL, target);
 	}
 	
-	public static Props props(FiniteDuration interval, ActorRef target) {
-		return Props.create(ServiceTester.class, interval, target);
+	public static Props props(AsyncHttpClient asyncHttpClient, FiniteDuration interval, ActorRef target) {
+		return Props.create(ServiceTester.class, asyncHttpClient, interval, target);
 	}
 	
 	protected Props handlerProps(URL url) {
-		return RequestHandler.props(url);
+		return RequestHandler.props(asyncHttpClient, url);
 	}
 	
 	private void createNewIterator() {

@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+import com.ning.http.client.AsyncHttpClient;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -291,7 +292,7 @@ public class GeoServerServiceTest {
 		
 		ActorRef database = actorSystem.actorOf(DatabaseMock.props(EmptyQueryResultTransactionMock.props()), "database");
 		
-		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory() {
+		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(new AsyncHttpClient()) {
 
 			@Override
 			public Props environmentInfoProviderProps(ActorRef database) {				

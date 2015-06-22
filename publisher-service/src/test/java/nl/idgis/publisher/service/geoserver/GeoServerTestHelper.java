@@ -33,6 +33,7 @@ import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.util.Base64;
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -288,7 +289,7 @@ public class GeoServerTestHelper {
 	}
 	
 	public GeoServerRest rest(FutureUtils f, LoggingAdapter log) throws Exception {
-		return new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+		return new DefaultGeoServerRest(new AsyncHttpClient(), f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
 	
 	public void clean(FutureUtils f, LoggingAdapter log) throws Exception {

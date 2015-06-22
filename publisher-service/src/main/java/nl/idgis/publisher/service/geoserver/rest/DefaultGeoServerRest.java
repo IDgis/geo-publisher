@@ -75,14 +75,14 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private final AsyncHttpClient asyncHttpClient;
 	
-	public DefaultGeoServerRest(FutureUtils f, LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {
+	public DefaultGeoServerRest(AsyncHttpClient asyncHttpClient, FutureUtils f, LoggingAdapter log, String serviceLocation, String user, String password) throws Exception {
 		this.f = f;
 		this.log = log;
 		this.restLocation = serviceLocation + "rest/";
 		this.serviceLocation = serviceLocation;
 		this.authorization = "Basic " + new String(Base64.encodeBase64((user + ":" + password).getBytes()));
 		
-		asyncHttpClient = new AsyncHttpClient();
+		this.asyncHttpClient = asyncHttpClient;
 	}
 	
 	private CompletableFuture<Optional<Document>> get(String path) {
