@@ -1,14 +1,21 @@
 package nl.idgis.publisher.domain.web.tree;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.utils.GZIPSerializer;
+
 public class DefaultGroupLayer extends AbstractGroupLayer {
 	
 	private static final long serialVersionUID = 5042564217527692364L;
+	
+	private static final GZIPSerializer<DefaultGroupLayer> serializer = new GZIPSerializer<>(DefaultGroupLayer.class);
 
 	private final PartialGroupLayer partialGroupLayer;
 	
@@ -128,6 +135,14 @@ public class DefaultGroupLayer extends AbstractGroupLayer {
 		StringBuilder sb = new StringBuilder();
 		toTree(sb, 0);
 		return sb.toString();
+	}
+	
+	private void writeObject(ObjectOutputStream stream) throws IOException {
+		serializer.write(stream, this);
+	}
+	
+	private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+		serializer.read(stream, this);
 	}
 
 	@Override
