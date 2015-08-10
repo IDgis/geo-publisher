@@ -1,11 +1,10 @@
 package nl.idgis.publisher.metadata;
 
-import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 public interface MetadataStore {
 
-	Future<Void> deleteAll();
-	Future<Void> put(String name, MetadataDocument metadataDocument, ExecutionContext executionContext);
-	Future<MetadataDocument> get(String name, ExecutionContext executionContext);
+	CompletableFuture<Void> deleteAll();
+	CompletableFuture<Void> put(String name, MetadataDocument metadataDocument);
+	CompletableFuture<MetadataDocument> get(String name);
 }

@@ -190,11 +190,11 @@ public class ServiceApp extends UntypedActor {
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
-		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")));
-		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")));
-		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")));		
+		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")), f);
+		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")), f);
+		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")), f);		
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, serviceManager, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
 		getContext().system().scheduler().schedule(
 				Duration.create(10, TimeUnit.SECONDS), 
 				Duration.create(10, TimeUnit.SECONDS),

@@ -3,13 +3,11 @@ package nl.idgis.publisher.metadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.io.IOUtils;
 
-import akka.dispatch.Futures;
-
-import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
+import nl.idgis.publisher.utils.FutureUtils;
 
 public class FileMetadataStore implements MetadataStore {
 	
@@ -17,8 +15,11 @@ public class FileMetadataStore implements MetadataStore {
 	
 	private final MetadataDocumentFactory documentFactory;
 	
-	public FileMetadataStore(File directory) throws Exception {
+	private final FutureUtils f;
+	
+	public FileMetadataStore(File directory, FutureUtils f) throws Exception {
 		this.directory = directory;
+		this.f = f;
 		
 		documentFactory = new MetadataDocumentFactory();		
 	}
@@ -34,10 +35,10 @@ public class FileMetadataStore implements MetadataStore {
 	}
 
 	@Override
-	public Future<Void> deleteAll() {
+	public CompletableFuture<Void> deleteAll() {
 		deleteAll(directory);
 		
-		return Futures.successful(null);
+		return f.successful(null);
 	}
 	
 	private File getFile(String name) {
@@ -45,32 +46,32 @@ public class FileMetadataStore implements MetadataStore {
 	}
 
 	@Override
-	public Future<Void> put(String name, MetadataDocument metadataDocument, ExecutionContext executionContext) {
+	public CompletableFuture<Void> put(String name, MetadataDocument metadataDocument) {
 		try {
 			FileOutputStream fos = new FileOutputStream(getFile(name));
 			fos.write(metadataDocument.getContent());
 			fos.close();
 		
-			return Futures.successful(null);
+			return f.successful(null);
 		} catch(Exception e) {
-			return Futures.failed(e);
+			return f.failed(e);
 		}
 	}
 
 	@Override
-	public Future<MetadataDocument> get(String name, ExecutionContext executionContext) {
+	public CompletableFuture<MetadataDocument> get(String name) {
 		try {
-			File f = getFile(name);
-			FileInputStream fis = new FileInputStream(f);
+			File file = getFile(name);
+			FileInputStream fis = new FileInputStream(file);
 			
-			byte[] content = new byte[(int) f.length()];
+			byte[] content = new byte[(int) file.length()];
 			IOUtils.readFully(fis, content);
 			
 			fis.close();
 			
-			return Futures.successful(documentFactory.parseDocument(content));
+			return f.successful(documentFactory.parseDocument(content));
 		} catch(Exception e) {
-			return Futures.failed(e);
+			return f.failed(e);
 		}
 	}
 
