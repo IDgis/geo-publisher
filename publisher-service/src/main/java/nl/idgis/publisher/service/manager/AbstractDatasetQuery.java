@@ -85,7 +85,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				layerStyle.styleOrder,
 				genericLayer.id,
 				style.identification,
-				style.name).thenApply(resp ->
+				style.name).<Map<Integer, List<StyleRef>>>thenApply(resp ->
 					resp.list().stream()
 						.collect(Collectors.groupingBy(t ->
 							t.get(genericLayer.id),
