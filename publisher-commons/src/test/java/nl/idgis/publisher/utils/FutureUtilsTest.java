@@ -12,12 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import scala.concurrent.Await;
-import scala.concurrent.Promise;
-import scala.concurrent.duration.Duration;
-
 import akka.actor.ActorSystem;
-import akka.dispatch.Futures;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -29,7 +24,7 @@ public class FutureUtilsTest {
 	
 	private FutureUtils f;
 	
-	private Promise<Object> testPromise;
+	private CompletableFuture<Object> testFuture;
 	
 	@Before
 	public void setUp() {
@@ -37,13 +32,13 @@ public class FutureUtilsTest {
 		ActorSystem system = ActorSystem.create();
 		f = new FutureUtils(system);
 		
-		testPromise = Futures.promise();
+		testFuture = new CompletableFuture<>();
 	}
 	
 	@After
 	public void doAssert() throws Throwable {
 		try {
-			Await.result(testPromise.future(), Duration.create(1, TimeUnit.SECONDS));
+			testFuture.get(1, TimeUnit.SECONDS);
 		} catch(ExecutionException e) {
 			throw e.getCause();
 		}
@@ -59,9 +54,9 @@ public class FutureUtilsTest {
 				try {
 					assertEquals("Hello world!", s);
 					assertEquals(new Integer(42), i);
-					testPromise.success(true);
+					testFuture.complete(true);
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
@@ -77,11 +72,11 @@ public class FutureUtilsTest {
 				try {
 					fail("result received");						
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
-			}).exceptionally(t -> testPromise.success(true));		
+			}).exceptionally(t -> testFuture.complete(true));		
 	}
 	
 	@Test
@@ -97,9 +92,9 @@ public class FutureUtilsTest {
 			.thenApply((Integer i) -> {
 				try {
 					assertEquals(new Integer(47), i);
-					testPromise.success(true);
+					testFuture.complete(true);
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
@@ -119,9 +114,9 @@ public class FutureUtilsTest {
 			.thenApply((Integer i) -> {
 				try {
 					assertEquals(new Integer(47), i);
-					testPromise.success(true);
+					testFuture.complete(true);
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
@@ -140,9 +135,9 @@ public class FutureUtilsTest {
 		outputFuture.thenApply((Map<String, String> output) -> {
 			try {
 				assertEquals("bar", output.get("foo"));
-				testPromise.success(true);
+				testFuture.complete(true);
 			} catch(Throwable t) {
-				testPromise.failure(t);
+				testFuture.completeExceptionally(t);
 			}
 			
 			return null;
@@ -160,9 +155,9 @@ public class FutureUtilsTest {
 					try {
 						assertEquals(list, Arrays.asList("Hello", "world"));
 						
-						testPromise.success(true);
+						testFuture.complete(true);
 					} catch(Throwable t) {
-						testPromise.failure(t);
+						testFuture.completeExceptionally(t);
 					}
 				});
 	}
@@ -178,9 +173,9 @@ public class FutureUtilsTest {
 					try {
 						assertEquals(list, Arrays.asList("Hello", "world"));
 						
-						testPromise.success(true);
+						testFuture.complete(true);
 					} catch(Throwable t) {
-						testPromise.failure(t);
+						testFuture.completeExceptionally(t);
 					}
 				});
 	}
@@ -196,9 +191,9 @@ public class FutureUtilsTest {
 							stream.collect(Collectors.toList()), 
 							Arrays.asList("Hello", "world"));
 						
-						testPromise.success(true);
+						testFuture.complete(true);
 					} catch(Throwable t) {
-						testPromise.failure(t);
+						testFuture.completeExceptionally(t);
 					}
 				});
 	}
@@ -214,9 +209,9 @@ public class FutureUtilsTest {
 					try {
 						assertTrue(e instanceof IllegalStateException);
 						
-						testPromise.success(true);
+						testFuture.complete(true);
 					} catch(Throwable t) {
-						testPromise.failure(t);
+						testFuture.completeExceptionally(t);
 					}
 					
 					return null;
@@ -231,9 +226,9 @@ public class FutureUtilsTest {
 					assertNull(throwable);
 					assertEquals(42, n);
 					
-					testPromise.success(true);
+					testFuture.complete(true);
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
@@ -248,9 +243,9 @@ public class FutureUtilsTest {
 					assertTrue(e instanceof WrongResultException);
 					assertEquals("Hello, world!", ((WrongResultException)e).getResult());
 					
-					testPromise.success(true);
+					testFuture.complete(true);
 				} catch(Throwable t) {
-					testPromise.failure(t);
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
