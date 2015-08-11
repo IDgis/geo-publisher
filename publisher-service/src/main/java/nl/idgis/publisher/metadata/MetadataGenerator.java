@@ -200,10 +200,9 @@ public class MetadataGenerator extends UntypedActor {
 	}
 
 	private CompletableFuture<Map<String, MetadataDocument>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
-		return
-			getDataSources(joinTuples)
-				.thenCompose(dataSources ->
-					f.sequence(joinTuples.list().stream()
+		CompletableFuture<List<CompletableFuture<MetadataDocument>>> metadataDocumentFutures = 
+			getDataSources(joinTuples).thenApply(dataSources ->		
+				joinTuples.list().stream()
 						.flatMap(tuple -> {
 							String dataSourceId = tuple.get(dataSource.identification);
 							
@@ -217,14 +216,14 @@ public class MetadataGenerator extends UntypedActor {
 								return Stream.empty();
 							}
 						})
-						.collect(Collectors.toList())))
-				
-					.thenApply(datasetMetadata ->
-						StreamUtils.zipToMap(
-							joinTuples.list().stream()
-								.map(tuple -> tuple.get(dataset.identification))
-								.collect(Collectors.toList()).stream(),
-							datasetMetadata.stream()));
+						.collect(Collectors.toList()));
+		
+		Stream<String> datasetIds = 
+			joinTuples.list().stream()
+				.map(tuple -> tuple.get(dataset.identification));
+		
+		return metadataDocumentFutures.thenCompose(f::sequence).thenApply(metadataDocuments ->
+			StreamUtils.zipToMap(datasetIds, metadataDocuments.stream()));
 	}
 
 	private CompletableFuture<Map<String, ActorRef>> getDataSources(TypedList<Tuple> joinTuples) {
