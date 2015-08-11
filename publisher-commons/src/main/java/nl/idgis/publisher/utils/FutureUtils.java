@@ -589,6 +589,12 @@ public class FutureUtils {
 		return castWithSender(askWithSender(actor, message), targetClass);
 	}
 	
+	/**
+	 * Returns a {@link Collector} that aggregates {@link CompletableFuture} objects into a 
+	 * single {@link CompletableFuture} containing a {@link Stream}.
+	 * 
+	 * @return the {@link Collector}
+	 */
 	public <T> Collector<CompletableFuture<T>, ?, CompletableFuture<Stream<T>>> collect() {
 		return Collector.of(
 			() -> new ArrayList<CompletableFuture<T>>(), 
