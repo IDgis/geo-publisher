@@ -182,6 +182,22 @@ public class MetadataGenerator extends UntypedActor {
 		
 						.thenAccept(resp -> sender.tell(resp, self));
 	}
+	
+	private CompletableFuture<Map<String, MetadataDocument>> getServiceMetadata(TypedList<Tuple> joinTuples) {
+		List<String> serviceIds =
+			joinTuples.list().stream()
+				.map(tuple -> tuple.get(serviceGenericLayer.identification))
+				.distinct()
+				.collect(Collectors.toList());
+		
+		List<CompletableFuture<MetadataDocument>> metadataDocumentFutures =
+			serviceIds.stream()
+				.map(serviceId -> serviceMetadataSource.get(serviceId))
+				.collect(Collectors.toList());
+		
+		return f.sequence(metadataDocumentFutures).thenApply(metadataDocuments ->
+			StreamUtils.zipToMap(serviceIds.stream(), metadataDocuments.stream()));
+	}
 
 	private CompletableFuture<Map<String, MetadataDocument>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
 		return
