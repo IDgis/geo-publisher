@@ -74,11 +74,13 @@ public class StreamUtilsTest {
 			Stream.of(1, 2, 3),
 			Stream.of("a", "b", "c"));
 		
-		result.containsKey(1);
+		assertTrue(result.containsKey(1));
 		assertEquals("a", result.get(1));
-		result.containsKey(2);
+		
+		assertTrue(result.containsKey(2));
 		assertEquals("b", result.get(2));
-		result.containsKey(3);
+		
+		assertTrue(result.containsKey(3));
 		assertEquals("c", result.get(3));
 	}
 }
