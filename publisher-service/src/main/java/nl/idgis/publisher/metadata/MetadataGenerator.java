@@ -1,20 +1,18 @@
 package nl.idgis.publisher.metadata;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.ctc.wstx.sr.StreamScanner;
-import com.google.common.base.Functions;
 import com.mysema.query.Tuple;
-import com.mysema.query.types.expr.SimpleExpression;
+
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -29,14 +27,11 @@ import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.json.JsonService;
-import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
-import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 import nl.idgis.publisher.utils.TypedList;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
-import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
@@ -44,13 +39,13 @@ import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 
 public class MetadataGenerator extends UntypedActor {
@@ -158,8 +153,14 @@ public class MetadataGenerator extends UntypedActor {
 					sourceDataset.externalIdentification,
 					dataSource.identification)
 	
-				.thenCompose(joinTuples ->
-					tx.query().from(publishedService)			
+				.thenCompose(joinTuples -> {
+					if(log.isDebugEnabled()) {
+						log.debug("joinTuples: {}", joinTuples.list().size());
+						joinTuples.list().stream()
+							.forEach(tuple -> log.debug("joinTuple: {}", tuple));
+					}
+					
+					return tx.query().from(publishedService)			
 						.list(publishedService.content).thenApply(tuples ->
 							tuples.list().stream()
 								.map(JsonService::fromJson)
@@ -167,56 +168,82 @@ public class MetadataGenerator extends UntypedActor {
 									service -> service.getId(),
 									MetadataGenerator::getLayerInfo)))
 						
-						.thenCompose(serviceInfo ->
-							getDatasetMetadata(joinTuples).thenApply(datasetMetadata -> {
-								Map<String, Set<String>> datasetServiceInfo = 
-									joinTuples.list().stream()
-										.collect(Collectors.groupingBy(
-											tuple -> tuple.get(dataset.identification),
-											Collectors.mapping(
-												tuple -> tuple.get(serviceGenericLayer.identification),
-												Collectors.toSet())));
+						.thenCompose(serviceInfo -> {							
+							log.debug("serviceInfo: {}", serviceInfo.size());							
+							
+							return getDatasetMetadata(joinTuples).thenCompose(datasetMetadata -> {
+								log.debug("datasetMetadata: {}", datasetMetadata.size());
 								
-								return new Ack();
-							}))))
-		
-						.thenAccept(resp -> sender.tell(resp, self));
+								return getServiceMetadata(joinTuples).thenApply(serviceMetadata -> {
+									log.debug("serviceMetadata: {}", serviceMetadata.size());
+									
+									Map<String, Set<String>> datasetServiceInfo = 
+										joinTuples.list().stream()
+											.collect(Collectors.groupingBy(
+												tuple -> tuple.get(dataset.identification),
+												Collectors.mapping(
+													tuple -> tuple.get(serviceGenericLayer.identification),
+													Collectors.toSet())));
+									
+									log.debug("datasets: {}", datasetServiceInfo.size());
+									for(Map.Entry<String, Set<String>> dataset : datasetServiceInfo.entrySet()) {
+										log.debug("dataset {}: {}", dataset.getKey(), dataset.getValue());
+									}
+									
+									Map<String, Set<String>> serviceDatasetInfo = 
+										joinTuples.list().stream()
+											.collect(Collectors.groupingBy(
+												tuple -> tuple.get(serviceGenericLayer.identification),
+												Collectors.mapping(
+													tuple -> tuple.get(dataset.identification),
+													Collectors.toSet())));
+									
+									log.debug("services: {}", serviceDatasetInfo.size());
+									for(Map.Entry<String, Set<String>> service : serviceDatasetInfo.entrySet()) {
+										log.debug("service {}: {}", service.getKey(), service.getValue());
+									}
+									
+									log.debug("metadata generation finished");
+									
+									return new Ack();
+								});
+							});
+						});
+					})
+		).thenAccept(resp -> sender.tell(resp, self));
 	}
 	
-	private CompletableFuture<Map<String, MetadataDocument>> getServiceMetadata(TypedList<Tuple> joinTuples) {
+	private CompletableFuture<Map<String, Optional<MetadataDocument>>> getServiceMetadata(TypedList<Tuple> joinTuples) {
 		List<String> serviceIds =
 			joinTuples.list().stream()
 				.map(tuple -> tuple.get(serviceGenericLayer.identification))
 				.distinct()
 				.collect(Collectors.toList());
 		
-		CompletableFuture<Stream<MetadataDocument>> metadataDocumentFutures =
+		CompletableFuture<Stream<Optional<MetadataDocument>>> metadataDocumentFutures =
 			serviceIds.stream()
-				.map(serviceId -> serviceMetadataSource.get(serviceId))
+				.map(serviceId -> serviceMetadataSource.get(serviceId)
+					.thenApply(Optional::of)
+					.exceptionally(t -> Optional.empty()))
 				.collect(f.collect());
 		
 		return metadataDocumentFutures.thenApply(metadataDocuments ->
 			StreamUtils.zipToMap(serviceIds.stream(), metadataDocuments));
 	}
 
-	private CompletableFuture<Map<String, MetadataDocument>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
-		CompletableFuture<Stream<MetadataDocument>> metadataDocumentFutures = 
+	private CompletableFuture<Map<String, Optional<MetadataDocument>>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
+		CompletableFuture<Stream<Optional<MetadataDocument>>> metadataDocumentFutures = 
 			getDataSources(joinTuples).thenCompose(dataSources ->
 				joinTuples.list().stream()
-						.flatMap(tuple -> {
-							String dataSourceId = tuple.get(dataSource.identification);
-							
-							if(dataSources.containsKey(dataSourceId)) {
-								return Stream.of(
-									f.ask(
-										dataSources.get(dataSourceId),
-										new GetDatasetMetadata(tuple.get(sourceDataset.externalIdentification)),
-										MetadataDocument.class));
-							} else {
-								return Stream.empty();
-							}
-						})
-						.collect(f.collect()));
+					.map(tuple -> 
+						dataSources.get(tuple.get(dataSource.identification))
+							.map(dataSource ->
+								f.ask(
+									dataSource,
+									new GetDatasetMetadata(tuple.get(sourceDataset.externalIdentification)),
+									MetadataDocument.class).thenApply(Optional::of))
+							.orElse(f.successful(Optional.empty())))
+					.collect(f.collect()));
 		
 		Stream<String> datasetIds = 
 			joinTuples.list().stream()
@@ -226,7 +253,7 @@ public class MetadataGenerator extends UntypedActor {
 			StreamUtils.zipToMap(datasetIds, metadataDocuments));
 	}
 
-	private CompletableFuture<Map<String, ActorRef>> getDataSources(TypedList<Tuple> joinTuples) {
+	private CompletableFuture<Map<String, Optional<ActorRef>>> getDataSources(TypedList<Tuple> joinTuples) {
 		List<String> dataSourceIds = 
 			joinTuples.list().stream()
 				.map(tuple -> tuple.get(dataSource.identification))
@@ -238,12 +265,12 @@ public class MetadataGenerator extends UntypedActor {
 					.map(dataSourceId -> f.ask(harvester, new GetDataSource(dataSourceId)))
 					.collect(f.collect());
 		
-		CompletableFuture<Stream<ActorRef>> dataSourcesFuture =
+		CompletableFuture<Stream<Optional<ActorRef>>> dataSourcesFuture =
 			harvesterResponseFutures.thenApply(harvesterResponses ->
-				harvesterResponses.flatMap(harvesterResponse ->
+				harvesterResponses.map(harvesterResponse ->
 						harvesterResponse instanceof ActorRef
-							? Stream.of((ActorRef)harvesterResponse)
-							: Stream.empty()));
+							? Optional.of((ActorRef)harvesterResponse)
+							: Optional.empty()));
 		
 		return dataSourcesFuture.thenApply(dataSources ->
 			StreamUtils.zipToMap(dataSourceIds.stream(), dataSources));
