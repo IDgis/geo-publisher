@@ -190,18 +190,18 @@ public class MetadataGenerator extends UntypedActor {
 				.distinct()
 				.collect(Collectors.toList());
 		
-		List<CompletableFuture<MetadataDocument>> metadataDocumentFutures =
+		CompletableFuture<Stream<MetadataDocument>> metadataDocumentFutures =
 			serviceIds.stream()
 				.map(serviceId -> serviceMetadataSource.get(serviceId))
-				.collect(Collectors.toList());
+				.collect(f.collect());
 		
-		return f.sequence(metadataDocumentFutures).thenApply(metadataDocuments ->
-			StreamUtils.zipToMap(serviceIds.stream(), metadataDocuments.stream()));
+		return metadataDocumentFutures.thenApply(metadataDocuments ->
+			StreamUtils.zipToMap(serviceIds.stream(), metadataDocuments));
 	}
 
 	private CompletableFuture<Map<String, MetadataDocument>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
-		CompletableFuture<List<CompletableFuture<MetadataDocument>>> metadataDocumentFutures = 
-			getDataSources(joinTuples).thenApply(dataSources ->		
+		CompletableFuture<Stream<MetadataDocument>> metadataDocumentFutures = 
+			getDataSources(joinTuples).thenCompose(dataSources ->
 				joinTuples.list().stream()
 						.flatMap(tuple -> {
 							String dataSourceId = tuple.get(dataSource.identification);
@@ -216,14 +216,14 @@ public class MetadataGenerator extends UntypedActor {
 								return Stream.empty();
 							}
 						})
-						.collect(Collectors.toList()));
+						.collect(f.collect()));
 		
 		Stream<String> datasetIds = 
 			joinTuples.list().stream()
 				.map(tuple -> tuple.get(dataset.identification));
 		
-		return metadataDocumentFutures.thenCompose(f::sequence).thenApply(metadataDocuments ->
-			StreamUtils.zipToMap(datasetIds, metadataDocuments.stream()));
+		return metadataDocumentFutures.thenApply(metadataDocuments ->
+			StreamUtils.zipToMap(datasetIds, metadataDocuments));
 	}
 
 	private CompletableFuture<Map<String, ActorRef>> getDataSources(TypedList<Tuple> joinTuples) {
@@ -233,15 +233,14 @@ public class MetadataGenerator extends UntypedActor {
 				.distinct()
 				.collect(Collectors.toList());
 		
-		List<CompletableFuture<Object>> harvesterResponseFutures =
+		CompletableFuture<Stream<Object>> harvesterResponseFutures =
 				dataSourceIds.stream()			
 					.map(dataSourceId -> f.ask(harvester, new GetDataSource(dataSourceId)))
-					.collect(Collectors.toList());
+					.collect(f.collect());
 		
 		CompletableFuture<Stream<ActorRef>> dataSourcesFuture =
-			f.sequence(harvesterResponseFutures).thenApply(harvesterResponses ->
-				harvesterResponses.stream()
-					.flatMap(harvesterResponse ->
+			harvesterResponseFutures.thenApply(harvesterResponses ->
+				harvesterResponses.flatMap(harvesterResponse ->
 						harvesterResponse instanceof ActorRef
 							? Stream.of((ActorRef)harvesterResponse)
 							: Stream.empty()));
