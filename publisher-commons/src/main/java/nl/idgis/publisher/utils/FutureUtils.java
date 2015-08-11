@@ -1,6 +1,7 @@
 package nl.idgis.publisher.utils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,6 +12,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -81,7 +84,7 @@ public class FutureUtils {
 		this.timeout = timeout;
 	}
 	
-	public class Collector4<T, U, V, W> extends Collector<W> {
+	public class Collector4<T, U, V, W> extends AbstractCollector<W> {
 		
 		private final Collector3<T, U, V> parent;
 		
@@ -114,7 +117,7 @@ public class FutureUtils {
 		}
 	}
 	
-	public class Collector3<T, U, V> extends Collector<V> {
+	public class Collector3<T, U, V> extends AbstractCollector<V> {
 		
 		private final Collector2<T, U> parent;
 		
@@ -157,7 +160,7 @@ public class FutureUtils {
 		}
 	}
 	
-	public class Collector2<T, U> extends Collector<U> {
+	public class Collector2<T, U> extends AbstractCollector<U> {
 		
 		private final Collector1<T> parent;		
 		
@@ -200,7 +203,7 @@ public class FutureUtils {
 		}
 	}
 	
-	public class Collector1<T> extends Collector<T> {
+	public class Collector1<T> extends AbstractCollector<T> {
 		
 		private Collector1(CompletableFuture<T> future) {
 			super(future);
@@ -239,11 +242,11 @@ public class FutureUtils {
 		}
 	}
 	
-	private abstract static class Collector<T> {
+	private abstract static class AbstractCollector<T> {
 		
 		protected final CompletableFuture<T> future;
 		
-		private Collector(CompletableFuture<T> future) {
+		private AbstractCollector(CompletableFuture<T> future) {
 			this.future = future;
 		} 
 	}
@@ -584,5 +587,21 @@ public class FutureUtils {
 	
 	public <T> CompletableFuture<AskResponse<T>> askWithSender(ActorRef actor, Object message, Class<T> targetClass) {
 		return castWithSender(askWithSender(actor, message), targetClass);
+	}
+	
+	public <T> Collector<CompletableFuture<T>, ?, CompletableFuture<Stream<T>>> collect() {
+		return Collector.of(
+			() -> new ArrayList<CompletableFuture<T>>(), 
+			(ArrayList<CompletableFuture<T>> list, CompletableFuture<T> future) -> { 
+				list.add(future); 
+			}, 
+			(ArrayList<CompletableFuture<T>> left, ArrayList<CompletableFuture<T>> right) -> {
+				ArrayList<CompletableFuture<T>> retval = new ArrayList<>();
+				retval.addAll(left);
+				retval.addAll(right);
+				
+				return retval;
+			},
+			(ArrayList<CompletableFuture<T>> list) -> sequence(list).thenApply(Collection::stream));
 	}
 }

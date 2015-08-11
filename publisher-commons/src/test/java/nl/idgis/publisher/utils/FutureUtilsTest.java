@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -176,6 +177,24 @@ public class FutureUtilsTest {
 				.thenAccept(list -> {
 					try {
 						assertEquals(list, Arrays.asList("Hello", "world"));
+						
+						testPromise.success(true);
+					} catch(Throwable t) {
+						testPromise.failure(t);
+					}
+				});
+	}
+	
+	@Test
+	public void testCollect() {
+		Arrays.asList(
+			f.successful("Hello"), 
+			f.successful("world")).stream()
+				.collect(f.collect()).thenAccept(stream -> {
+					try {
+						assertEquals(
+							stream.collect(Collectors.toList()), 
+							Arrays.asList("Hello", "world"));
 						
 						testPromise.success(true);
 					} catch(Throwable t) {
