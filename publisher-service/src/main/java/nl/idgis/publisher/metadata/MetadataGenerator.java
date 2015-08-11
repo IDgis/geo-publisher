@@ -234,18 +234,21 @@ public class MetadataGenerator extends UntypedActor {
 				.distinct()
 				.collect(Collectors.toList());
 		
-		return f.sequence(			
-			dataSourceIds.stream()			
-				.map(dataSourceId -> f.ask(harvester, new GetDataSource(dataSourceId)))
-				.collect(Collectors.toList()))
-					.thenApply(harvesterResponses ->
-						StreamUtils.zip(
-							dataSourceIds.stream(),
-							harvesterResponses.stream())
-								.filter(entry -> entry.getSecond() instanceof ActorRef)
-								.collect(Collectors.toMap(
-									entry -> entry.getFirst(),
-									entry -> (ActorRef)entry.getSecond())));
+		List<CompletableFuture<Object>> harvesterResponseFutures =
+				dataSourceIds.stream()			
+					.map(dataSourceId -> f.ask(harvester, new GetDataSource(dataSourceId)))
+					.collect(Collectors.toList());
+		
+		CompletableFuture<Stream<ActorRef>> dataSourcesFuture =
+			f.sequence(harvesterResponseFutures).thenApply(harvesterResponses ->
+				harvesterResponses.stream()
+					.flatMap(harvesterResponse ->
+						harvesterResponse instanceof ActorRef
+							? Stream.of((ActorRef)harvesterResponse)
+							: Stream.empty()));
+		
+		return dataSourcesFuture.thenApply(dataSources ->
+			StreamUtils.zipToMap(dataSourceIds.stream(), dataSources));
 	}
 	
 }
