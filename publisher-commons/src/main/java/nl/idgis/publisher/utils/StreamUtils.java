@@ -46,6 +46,11 @@ public class StreamUtils {
 		public U getSecond() {
 			return second;
 		}
+
+		@Override
+		public String toString() {
+			return "ZippedEntry [first=" + first + ", second=" + second + "]";
+		}
 	}
 	
 	/** 

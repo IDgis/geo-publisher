@@ -27,7 +27,7 @@ public class MetadataDocumentTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private MetadataDocument getDocument(String name) throws Exception {
+	public static MetadataDocument getDocument(String name) throws Exception {
 		InputStream stream = MetadataDocumentTest.class.getResourceAsStream(name);
 		assertNotNull("test metadata document not found", stream);
 		

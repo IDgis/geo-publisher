@@ -18,6 +18,8 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.metadata.messages.AddDataSource;
+import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -46,7 +48,7 @@ import static org.junit.Assert.assertFalse;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
-	ActorRef metadataGenerator;
+	ActorRef metadataGenerator, harvester;
 	
 	MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
@@ -54,7 +56,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	public void actor() throws Exception {
 		
 		Config constants = ConfigFactory.empty();
-		ActorRef harvester = actorOf(HarvesterMock.props(), "harvester");
+		harvester = actorOf(HarvesterMock.props(), "harvester");
 		
 		serviceMetadataSource = new MetadataStoreMock(f);
 		datasetMetadataTarget = new MetadataStoreMock(f);
@@ -251,6 +253,21 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				serviceIdentification,
 				Collections.singleton(environmentIdentification)), 
 			Ack.class).get();
+		
+		ActorRef dataSource = actorOf(DataSourceMock.props(), "dataSource");
+		
+		f.ask(harvester, new AddDataSource(dataSourceIdentification, dataSource), Ack.class).get();
+		
+		f.ask(
+			dataSource, 
+			new AddMetadataDocument(
+				sourceDatasetExternalIdentification, 
+				MetadataDocumentTest.getDocument("dataset_metadata.xml")),
+			Ack.class).get();
+		
+		serviceMetadataSource.put(
+			serviceIdentification, 
+			MetadataDocumentTest.getDocument("service_metadata.xml")).get();
 
 		f.ask(metadataGenerator, new GenerateMetadata(), Ack.class).get();
 	}

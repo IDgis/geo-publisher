@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.mysema.query.Tuple;
-
+import com.mysema.query.types.Expression;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -130,6 +130,15 @@ public class MetadataGenerator extends UntypedActor {
 		return layerInfo;
 	}
 	
+	private static Map<String, Set<String>> tuplesToMap(TypedList<Tuple> tuples, Expression<String> groupExpr, Expression<String> valueExpr) {
+		return tuples.list().stream()
+			.collect(Collectors.groupingBy(
+				tuple -> tuple.get(groupExpr),
+				Collectors.mapping(
+					tuple -> tuple.get(valueExpr),
+					Collectors.toSet())));
+	}
+	
 	private void generateMetadata() throws InterruptedException, ExecutionException, NotFound {		
 		
 		log.info("generating metadata");
@@ -169,7 +178,10 @@ public class MetadataGenerator extends UntypedActor {
 									MetadataGenerator::getLayerInfo)))
 						
 						.thenCompose(serviceInfo -> {							
-							log.debug("serviceInfo: {}", serviceInfo.size());							
+							log.debug("serviceInfo: {}", serviceInfo.size());
+							for(Map.Entry<String, Map<String, Set<String>>> service : serviceInfo.entrySet()) {
+								log.debug("service {}: {}", service.getKey(), service.getValue());
+							}
 							
 							return getDatasetMetadata(joinTuples).thenCompose(datasetMetadata -> {
 								log.debug("datasetMetadata: {}", datasetMetadata.size());
@@ -178,29 +190,55 @@ public class MetadataGenerator extends UntypedActor {
 									log.debug("serviceMetadata: {}", serviceMetadata.size());
 									
 									Map<String, Set<String>> datasetServiceInfo = 
-										joinTuples.list().stream()
-											.collect(Collectors.groupingBy(
-												tuple -> tuple.get(dataset.identification),
-												Collectors.mapping(
-													tuple -> tuple.get(serviceGenericLayer.identification),
-													Collectors.toSet())));
+										tuplesToMap(joinTuples, dataset.identification, serviceGenericLayer.identification);
 									
-									log.debug("datasets: {}", datasetServiceInfo.size());
+									log.debug("dataset -> services: {}", datasetServiceInfo.size());
 									for(Map.Entry<String, Set<String>> dataset : datasetServiceInfo.entrySet()) {
 										log.debug("dataset {}: {}", dataset.getKey(), dataset.getValue());
 									}
 									
 									Map<String, Set<String>> serviceDatasetInfo = 
-										joinTuples.list().stream()
-											.collect(Collectors.groupingBy(
-												tuple -> tuple.get(serviceGenericLayer.identification),
-												Collectors.mapping(
-													tuple -> tuple.get(dataset.identification),
-													Collectors.toSet())));
+										tuplesToMap(joinTuples, serviceGenericLayer.identification, dataset.identification);
 									
-									log.debug("services: {}", serviceDatasetInfo.size());
+									log.debug("service -> datasets: {}", serviceDatasetInfo.size());
 									for(Map.Entry<String, Set<String>> service : serviceDatasetInfo.entrySet()) {
 										log.debug("service {}: {}", service.getKey(), service.getValue());
+									}
+									
+									Map<String, Set<String>> datasetLayerInfo = 
+										tuplesToMap(joinTuples, dataset.identification, layerGenericLayer.identification);
+									
+									log.debug("dataset -> layers: {}", datasetLayerInfo.size());
+									for(Map.Entry<String, Set<String>> dataset : datasetLayerInfo.entrySet()) {
+										log.debug("service {}: {}", dataset.getKey(), dataset.getValue());
+									}
+									
+									for(Map.Entry<String, MetadataDocument> dataset : datasetMetadata.entrySet()) {
+										String datasetId = dataset.getKey();
+										
+										if(datasetServiceInfo.containsKey(datasetId)) {
+											for(String serviceId : datasetServiceInfo.get(datasetId)) {
+												if(serviceInfo.containsKey(serviceId)) {
+													Map<String, Set<String>> layerInfo = serviceInfo.get(serviceId);
+													
+													if(datasetLayerInfo.containsKey(datasetId)) {
+														for(String layerId : datasetLayerInfo.get(datasetId)) {
+															if(layerInfo.containsKey(layerId)) {
+																log.debug("dataset: {}, service: {}, layers: {}", datasetId, serviceId, layerInfo.get(layerId));
+															} else {
+																log.error("no layer info found for layer: {} in service: {}", layerId, serviceId);
+															}
+														}
+													} else {
+														log.error("no layer info found for dataset: {}", datasetId);
+													}
+												} else {
+													log.error("no service info found for service: {}", serviceId);
+												}
+											}
+										} else {
+											log.error("no service(s) found for dataset: {}", datasetId);
+										}
 									}
 									
 									log.debug("metadata generation finished");
@@ -213,7 +251,7 @@ public class MetadataGenerator extends UntypedActor {
 		).thenAccept(resp -> sender.tell(resp, self));
 	}
 	
-	private CompletableFuture<Map<String, Optional<MetadataDocument>>> getServiceMetadata(TypedList<Tuple> joinTuples) {
+	private CompletableFuture<Map<String, MetadataDocument>> getServiceMetadata(TypedList<Tuple> joinTuples) {
 		List<String> serviceIds =
 			joinTuples.list().stream()
 				.map(tuple -> tuple.get(serviceGenericLayer.identification))
@@ -228,10 +266,18 @@ public class MetadataGenerator extends UntypedActor {
 				.collect(f.collect());
 		
 		return metadataDocumentFutures.thenApply(metadataDocuments ->
-			StreamUtils.zipToMap(serviceIds.stream(), metadataDocuments));
+			toMap(StreamUtils.zip(serviceIds.stream(), metadataDocuments)));
+	}
+	
+	private <T> Map<String, T> toMap(Stream<StreamUtils.ZippedEntry<String, Optional<T>>> stream) {
+		return stream
+			.filter(entry -> entry.getSecond().isPresent())
+			.collect(Collectors.toMap(
+				StreamUtils.ZippedEntry::getFirst,
+				entry -> entry.getSecond().get()));
 	}
 
-	private CompletableFuture<Map<String, Optional<MetadataDocument>>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
+	private CompletableFuture<Map<String, MetadataDocument>> getDatasetMetadata(TypedList<Tuple> joinTuples) {
 		CompletableFuture<Stream<Optional<MetadataDocument>>> metadataDocumentFutures = 
 			getDataSources(joinTuples).thenCompose(dataSources ->
 				joinTuples.list().stream()
@@ -250,7 +296,7 @@ public class MetadataGenerator extends UntypedActor {
 				.map(tuple -> tuple.get(dataset.identification));
 		
 		return metadataDocumentFutures.thenApply(metadataDocuments ->
-			StreamUtils.zipToMap(datasetIds, metadataDocuments));
+			toMap(StreamUtils.zip(datasetIds, metadataDocuments)));
 	}
 
 	private CompletableFuture<Map<String, Optional<ActorRef>>> getDataSources(TypedList<Tuple> joinTuples) {
