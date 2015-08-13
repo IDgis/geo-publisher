@@ -39,9 +39,9 @@ public class HarvesterMock extends UntypedActor {
 			
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof GetDataSource) {
-			log.debug("dataSource requested");
-			
 			String dataSourceId = ((GetDataSource) msg).getDataSourceId();
+			
+			log.debug("dataSource requested: {}", dataSourceId);
 			if(dataSources.containsKey(dataSourceId)) {
 				getSender().tell(dataSources.get(dataSourceId), getSelf());				
 			} else {
