@@ -11,17 +11,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
-import com.mysema.query.types.Expression;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -36,9 +35,12 @@ import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.DatasetInfo;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
+import nl.idgis.publisher.metadata.messages.ServiceInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 
@@ -71,7 +73,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 	public final void preStart() {
 		f = new FutureUtils(getContext());
 		
-		getContext().setReceiveTimeout(Duration.create(1, TimeUnit.SECONDS));
+		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
 	}
 	
 	private static Map<String, Set<String>> servicesToMap(Service service) {
@@ -110,55 +112,6 @@ public class MetadataInfoProcessor extends UntypedActor {
 		}
 	}
 	
-	static class StartTraversing {}
-	
-	static class ServiceInfo {
-		
-		private final String serviceId;
-		
-		private final Set<String> datasetId;
-		
-		ServiceInfo(String serviceId, Set<String> datasetId) {
-			this.serviceId = serviceId;
-			this.datasetId = datasetId;
-		}
-		
-		String getServiceId() {
-			return serviceId;
-		}
-		
-		Set<String> getDatasetId() {
-			return datasetId;
-		}
-	}
-	
-	static class DatasetInfo {
-		
-		private final String datasetId;
-		
-		private final String dataSourceId;
-		
-		private final String externalDatasetId;
-		
-		DatasetInfo(String datasetId, String dataSourceId, String externalDatasetId) {
-			this.datasetId = datasetId;
-			this.dataSourceId = dataSourceId;
-			this.externalDatasetId = externalDatasetId;
-		}
-
-		String getDatasetId() {
-			return datasetId;
-		}
-
-		String getDataSourceId() {
-			return dataSourceId;
-		}
-
-		String getExternalDatasetId() {
-			return externalDatasetId;
-		}		
-	}
-	
 	private Procedure<Object> traversingServices(
 		MetadataInfo metadataInfo,
 		Iterator<ServiceInfo> serviceItr) {
@@ -171,27 +124,25 @@ public class MetadataInfoProcessor extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				log.debug("message received while traversing services: {}", msg);
 				
-				if(msg instanceof MetadataDocument) {
-					log.debug("service metadata received: {}", serviceInfo.getServiceId());
-				}
-				
 				if(serviceItr.hasNext()) {
 					serviceInfo = serviceItr.next();
 					
-					String serviceId = serviceInfo.getServiceId();
-					log.debug("requesting metadata for service: {}", serviceId);					
+					String serviceId = serviceInfo.getId();
+					log.debug("requesting metadata for service: {}", serviceId);
+					
+					ActorRef generator = getContext().actorOf(ServiceMetadataGenerator.props(serviceInfo));
+					
 					serviceMetadataSource.get(serviceId).whenComplete((metadataDocument, throwable) -> {
 						if(throwable == null) {
-							getSelf().tell(metadataDocument, getSelf());
+							generator.tell(metadataDocument, getSelf());
 						} else {
-							getSelf().tell(new Failure(throwable), getSelf());
+							generator.tell(new Failure(throwable), getSelf());
 						}
 					});
 				} else {
 					log.debug("all services processed");
 					
-					initiator.tell(new Ack(), getContext().parent());
-					getContext().stop(getSelf());
+					terminate();
 				}
 			}
 			
@@ -211,25 +162,23 @@ public class MetadataInfoProcessor extends UntypedActor {
 			public void apply(Object msg) throws Exception {
 				log.debug("message received while traversing datasets: {}", msg);
 				
-				if(msg instanceof MetadataDocument) {
-					log.debug("dataset metadata received: {}", currentDataset.getDatasetId());
-				}
-				
 				if(datasetItr.hasNext()) {
 					currentDataset = datasetItr.next();
 					
-					String datasetId = currentDataset.getDatasetId();
+					String datasetId = currentDataset.getId();
 					String dataSourceId = currentDataset.getDataSourceId();
-					if(dataSources.containsKey(dataSourceId)) {
+					if(dataSources.containsKey(dataSourceId)) {						
 						dataSources.get(dataSourceId).tell(
 							new GetDatasetMetadata(currentDataset.getExternalDatasetId()), 
-							getSelf());
+							getContext().actorOf(DatasetMetadataGenerator.props(currentDataset)));
 					} else {
 						log.warning("cannot process dataset {} because dataSource {} is not available", 
 							datasetId, dataSourceId);
 					}
 				} else {
 					log.debug("all datasets processed");
+					
+					log.debug("traversing services");
 					
 					getContext().become(
 						traversingServices(
@@ -243,7 +192,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 											.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
 											.iterator()));
 					
-					getSelf().tell(new StartTraversing(), getSelf());
+					getSelf().tell(new NextItem(), getSelf());
 				}
 			}
 			
@@ -288,29 +237,11 @@ public class MetadataInfoProcessor extends UntypedActor {
 		return new Procedure<Object>() {
 			
 			Map<String, ActorRef> dataSources = new HashMap<>();
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				log.debug("message receiveding dataSources: {}", msg);
+			
+			private void traverseDatasets() {
+				log.debug("traversing datasets");
 				
-				if(msg instanceof DataSourceReceived) {
-					DataSourceReceived dataSourceReceived = (DataSourceReceived)msg;					
-					String dataSourceId = dataSourceReceived.getDataSourceId();
-					
-					log.debug("dataSource received: {}", dataSourceId);
-					dataSources.put(dataSourceId, dataSourceReceived.getActorRef());
-					dataSourceIds.remove(dataSourceId);
-				} else if(msg instanceof DataSourceFailure) {
-					String dataSourceId = ((DataSourceFailure) msg).getDataSourceId(); 
-					
-					log.debug("dataSource failure: {}", dataSourceId);
-					dataSourceIds.remove(dataSourceId);
-				}
-				
-				if(dataSourceIds.isEmpty()) {
-					log.debug("all dataSources received");
-					
-					getContext().become(
+				getContext().become(
 						traversingDatasets(
 							metadataInfo,
 							dataSources,
@@ -324,7 +255,39 @@ public class MetadataInfoProcessor extends UntypedActor {
 									tuple.get(sourceDataset.externalIdentification)))
 								.iterator()));
 					
-					getSelf().tell(new StartTraversing(), getSelf());
+				getSelf().tell(new NextItem(), getSelf());
+			}
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				log.debug("message received while receiving dataSources: {}", msg);
+				
+				if(msg instanceof DataSourceReceived) {
+					DataSourceReceived dataSourceReceived = (DataSourceReceived)msg;					
+					String dataSourceId = dataSourceReceived.getDataSourceId();
+					
+					log.debug("dataSource received: {}", dataSourceId);
+					dataSources.put(dataSourceId, dataSourceReceived.getActorRef());
+					dataSourceIds.remove(dataSourceId);
+				} else if(msg instanceof DataSourceFailure) {
+					String dataSourceId = ((DataSourceFailure) msg).getDataSourceId(); 
+					
+					log.debug("dataSource failure: {}", dataSourceId);
+					dataSourceIds.remove(dataSourceId);
+				} else if(msg instanceof ReceiveTimeout) {
+					log.error("timeout while receiving dataSources");
+					
+					if(dataSources.isEmpty()) {
+						terminate();
+					} else {
+						traverseDatasets();
+					}
+				}
+				
+				if(dataSourceIds.isEmpty()) {
+					log.debug("all dataSources received");
+					
+					traverseDatasets();
 				}
 			}
 			
@@ -362,6 +325,13 @@ public class MetadataInfoProcessor extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void terminate() {
+		log.debug("terminating");
+		
+		initiator.tell(new Ack(), getContext().parent());
+		getContext().stop(getSelf());
 	}	
 
 }
