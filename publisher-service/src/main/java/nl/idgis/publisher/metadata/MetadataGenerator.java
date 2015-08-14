@@ -95,11 +95,11 @@ public class MetadataGenerator extends UntypedActor {
 					sourceDataset.externalIdentification,
 					dataSource.identification).thenAccept(joinTuples ->
 						tx.query().from(publishedService)			
-							.list(publishedService.content).thenAccept(tuples ->
+							.list(publishedService.content).thenAccept(serviceTuples ->
 								processor.tell(
 									new MetadataInfo(
 										joinTuples.list(),
-										tuples.list().stream()
+										serviceTuples.list().stream()
 											.map(JsonService::fromJson)
 											.collect(Collectors.toList())), 
 									getSelf())))
