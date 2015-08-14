@@ -42,7 +42,7 @@ public class MetadataGenerator extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-	private final ActorRef database, serviceManager, harvester;
+	private final ActorRef database, harvester;
 	
 	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
@@ -52,9 +52,8 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private AsyncDatabaseHelper db;
 	
-	public MetadataGenerator(ActorRef database, ActorRef serviceManager, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		this.database = database;		
-		this.serviceManager = serviceManager;
+	public MetadataGenerator(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		this.database = database;
 		this.harvester = harvester;
 		this.serviceMetadataSource = serviceMetadataSource;
 		this.datasetMetadataTarget = datasetMetadataTarget;
@@ -62,8 +61,8 @@ public class MetadataGenerator extends UntypedActor {
 		this.constants = constants;	
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		return Props.create(MetadataGenerator.class, database, serviceManager, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
+	public static Props props(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		return Props.create(MetadataGenerator.class, database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
 	}
 	
 	@Override
@@ -86,7 +85,13 @@ public class MetadataGenerator extends UntypedActor {
 		log.info("generating metadata");
 		
 		ActorRef processor = getContext().actorOf(
-			MetadataInfoProcessor.props(getSender(), harvester));
+			MetadataInfoProcessor.props(
+				getSender(), 
+				harvester,
+				serviceMetadataSource,
+				datasetMetadataTarget,
+				serviceMetadataTarget,
+				constants));
 
 		db.transactional(tx ->
 			tx.query().from(publishedServiceDataset)

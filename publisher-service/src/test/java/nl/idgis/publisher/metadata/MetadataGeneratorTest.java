@@ -62,7 +62,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		datasetMetadataTarget = new MetadataStoreMock(f);
 		serviceMetadataTarget = new MetadataStoreMock(f);
 		
-		metadataGenerator = actorOf(MetadataGenerator.props(database, serviceManager, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants), "metadataGenerator");
+		metadataGenerator = actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants), "metadataGenerator");
 	}
 	
 	

@@ -12,11 +12,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -24,6 +26,8 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
+
+import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
@@ -34,6 +38,7 @@ import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 
@@ -43,29 +48,30 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final ActorRef initiator, harvester;
 	
+	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
+	
+	private final Config constants;
+	
 	private FutureUtils f;
 	
-	public MetadataInfoProcessor(ActorRef initiator, ActorRef harvester) {
+	public MetadataInfoProcessor(ActorRef initiator, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
 		this.initiator = initiator;
 		this.harvester = harvester;
+		this.serviceMetadataSource = serviceMetadataSource;
+		this.datasetMetadataTarget = datasetMetadataTarget;
+		this.serviceMetadataTarget = serviceMetadataTarget;
+		this.constants = constants;	
 	}
 	
-	public static Props props(ActorRef initiator, ActorRef harvester) {
-		return Props.create(MetadataInfoProcessor.class, initiator, harvester);
+	public static Props props(ActorRef initiator, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+		return Props.create(MetadataInfoProcessor.class, initiator, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
 	}
 	
 	@Override
 	public final void preStart() {
 		f = new FutureUtils(getContext());
-	}
-	
-	private static Map<String, Set<String>> tuplesToMap(List<Tuple> tuples, Expression<String> groupExpr, Expression<String> valueExpr) {
-		return tuples.stream()
-			.collect(Collectors.groupingBy(
-				tuple -> tuple.get(groupExpr),
-				Collectors.mapping(
-					tuple -> tuple.get(valueExpr),
-					Collectors.toSet())));
+		
+		getContext().setReceiveTimeout(Duration.create(1, TimeUnit.SECONDS));
 	}
 	
 	private static Map<String, Set<String>> servicesToMap(Service service) {
@@ -106,6 +112,26 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	static class StartTraversing {}
 	
+	static class ServiceInfo {
+		
+		private final String serviceId;
+		
+		private final Set<String> datasetId;
+		
+		ServiceInfo(String serviceId, Set<String> datasetId) {
+			this.serviceId = serviceId;
+			this.datasetId = datasetId;
+		}
+		
+		String getServiceId() {
+			return serviceId;
+		}
+		
+		Set<String> getDatasetId() {
+			return datasetId;
+		}
+	}
+	
 	static class DatasetInfo {
 		
 		private final String datasetId;
@@ -120,20 +146,60 @@ public class MetadataInfoProcessor extends UntypedActor {
 			this.externalDatasetId = externalDatasetId;
 		}
 
-		public String getDatasetId() {
+		String getDatasetId() {
 			return datasetId;
 		}
 
-		public String getDataSourceId() {
+		String getDataSourceId() {
 			return dataSourceId;
 		}
 
-		public String getExternalDatasetId() {
+		String getExternalDatasetId() {
 			return externalDatasetId;
 		}		
 	}
 	
+	private Procedure<Object> traversingServices(
+		MetadataInfo metadataInfo,
+		Iterator<ServiceInfo> serviceItr) {
+		
+		return new Procedure<Object>() {
+			
+			ServiceInfo serviceInfo;
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				log.debug("message received while traversing services: {}", msg);
+				
+				if(msg instanceof MetadataDocument) {
+					log.debug("service metadata received: {}", serviceInfo.getServiceId());
+				}
+				
+				if(serviceItr.hasNext()) {
+					serviceInfo = serviceItr.next();
+					
+					String serviceId = serviceInfo.getServiceId();
+					log.debug("requesting metadata for service: {}", serviceId);					
+					serviceMetadataSource.get(serviceId).whenComplete((metadataDocument, throwable) -> {
+						if(throwable == null) {
+							getSelf().tell(metadataDocument, getSelf());
+						} else {
+							getSelf().tell(new Failure(throwable), getSelf());
+						}
+					});
+				} else {
+					log.debug("all services processed");
+					
+					initiator.tell(new Ack(), getContext().parent());
+					getContext().stop(getSelf());
+				}
+			}
+			
+		};
+	}			
+	
 	private Procedure<Object> traversingDatasets(
+		MetadataInfo metadataInfo,
 		Map<String, ActorRef> dataSources, 
 		Iterator<DatasetInfo> datasetItr) {
 		
@@ -143,8 +209,10 @@ public class MetadataInfoProcessor extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
+				log.debug("message received while traversing datasets: {}", msg);
+				
 				if(msg instanceof MetadataDocument) {
-					log.debug("dataset received: {}", currentDataset.getDatasetId());
+					log.debug("dataset metadata received: {}", currentDataset.getDatasetId());
 				}
 				
 				if(datasetItr.hasNext()) {
@@ -163,8 +231,19 @@ public class MetadataInfoProcessor extends UntypedActor {
 				} else {
 					log.debug("all datasets processed");
 					
-					initiator.tell(new Ack(), getContext().parent());
-					getContext().stop(getSelf());
+					getContext().become(
+						traversingServices(
+							metadataInfo, 
+							metadataInfo.getJoinTuples().stream()
+								.collect(Collectors.groupingBy(
+									tuple -> tuple.get(serviceGenericLayer.identification),
+									Collectors.mapping(
+										tuple -> tuple.get(dataset.identification),
+										Collectors.toSet()))).entrySet().stream()
+											.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
+											.iterator()));
+					
+					getSelf().tell(new StartTraversing(), getSelf());
 				}
 			}
 			
@@ -212,6 +291,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 
 			@Override
 			public void apply(Object msg) throws Exception {
+				log.debug("message receiveding dataSources: {}", msg);
+				
 				if(msg instanceof DataSourceReceived) {
 					DataSourceReceived dataSourceReceived = (DataSourceReceived)msg;					
 					String dataSourceId = dataSourceReceived.getDataSourceId();
@@ -231,6 +312,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 					
 					getContext().become(
 						traversingDatasets(
+							metadataInfo,
 							dataSources,
 							metadataInfo.getJoinTuples().stream()
 								.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
