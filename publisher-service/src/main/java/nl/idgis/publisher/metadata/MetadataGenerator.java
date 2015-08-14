@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -40,19 +41,24 @@ public class MetadataGenerator extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-	private final ActorRef database, metadataSource;
+	private final ActorRef database, metadataSource, metadataTarget;
 	
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
 	
-	public MetadataGenerator(ActorRef database, ActorRef metadataSource) {
+	public MetadataGenerator(ActorRef database, ActorRef metadataSource, ActorRef metadataTarget) {
 		this.database = database;
-		this.metadataSource = metadataSource;		
+		this.metadataSource = metadataSource;
+		this.metadataTarget = metadataTarget;
 	}
 	
-	public static Props props(ActorRef database, ActorRef metadataSource) {
-		return Props.create(MetadataGenerator.class, database, metadataSource);
+	public static Props props(ActorRef database, ActorRef metadataSource, ActorRef metadataTarget) {
+		return Props.create(
+			MetadataGenerator.class, 
+			Objects.requireNonNull(database, "database must not be null"), 
+			Objects.requireNonNull(metadataSource, "metadataSource must not be null"), 
+			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"));
 	}
 	
 	@Override
@@ -77,7 +83,8 @@ public class MetadataGenerator extends UntypedActor {
 		ActorRef processor = getContext().actorOf(
 			MetadataInfoProcessor.props(
 				getSender(), 
-				metadataSource));
+				metadataSource,
+				metadataTarget));
 
 		db.transactional(tx ->
 			tx.query().from(publishedServiceDataset)

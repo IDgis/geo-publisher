@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,15 +43,20 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef initiator, metadataSource;
+	private final ActorRef initiator, metadataSource, metadataTarget;
 		
-	public MetadataInfoProcessor(ActorRef initiator, ActorRef metadataSource) {
+	public MetadataInfoProcessor(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget) {
 		this.initiator = initiator;
 		this.metadataSource = metadataSource;
+		this.metadataTarget = metadataTarget;
 	}
 	
-	public static Props props(ActorRef initiator, ActorRef metadataSource) {
-		return Props.create(MetadataInfoProcessor.class, initiator, metadataSource);
+	public static Props props(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget) {
+		return Props.create(
+			MetadataInfoProcessor.class, 
+			Objects.requireNonNull(initiator, "initiator must not be null"), 
+			Objects.requireNonNull(metadataSource, "metadataSource must not be null"),
+			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"));
 	}
 	
 	@Override
@@ -114,7 +120,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 
 					metadataSource.tell(
 						new GetServiceMetadata(serviceId), 
-						getContext().actorOf(ServiceMetadataGenerator.props(serviceInfo)));
+						getContext().actorOf(ServiceMetadataGenerator.props(metadataTarget, serviceInfo)));
 				} else {
 					log.debug("all services processed");
 					
@@ -141,8 +147,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 					currentDataset = datasetItr.next();
 					
 					metadataSource.tell(
-						new GetDatasetMetadata(currentDataset.getId(), currentDataset.getExternalDatasetId()),
-						getContext().actorOf(DatasetMetadataGenerator.props(currentDataset)));
+						new GetDatasetMetadata(currentDataset.getDataSourceId(), currentDataset.getExternalDatasetId()),
+						getContext().actorOf(DatasetMetadataGenerator.props(metadataTarget, currentDataset)));
 				} else {
 					log.debug("all datasets processed");
 					

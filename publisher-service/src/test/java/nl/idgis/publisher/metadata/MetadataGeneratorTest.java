@@ -47,13 +47,22 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	MetadataStore serviceMetadataSource;
+	MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
 	@Before
 	public void actor() throws Exception {
 		harvester = actorOf(HarvesterMock.props(), "harvester");		
-		serviceMetadataSource = new MetadataStoreMock(f);		
-		metadataGenerator = actorOf(MetadataGenerator.props(database, actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source")), "metadata-generator");
+		
+		serviceMetadataSource = new MetadataStoreMock(f);
+		datasetMetadataTarget = new MetadataStoreMock(f);
+		serviceMetadataTarget = new MetadataStoreMock(f);
+		
+		metadataGenerator = actorOf(
+			MetadataGenerator.props(
+				database, 
+				actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source"),
+				actorOf(MetadataTarget.props(datasetMetadataTarget, serviceMetadataTarget), "metadata-target")), 
+			"metadata-generator");
 	}
 	
 	
@@ -261,5 +270,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			MetadataDocumentTest.getDocument("service_metadata.xml")).get();
 
 		f.ask(metadataGenerator, new GenerateMetadata(), Ack.class).get();
+		
+		serviceMetadataTarget.get(serviceIdentification).get();
+		datasetMetadataTarget.get(datasetIdentification).get();
 	}
 }
