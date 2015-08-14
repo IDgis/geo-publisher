@@ -167,39 +167,6 @@ public class MetadataInfoProcessor extends UntypedActor {
 		};
 	}
 	
-	static class DataSourceReceived {
-		
-		private final String dataSourceId;
-		
-		private final ActorRef actorRef;
-		
-		public DataSourceReceived(String dataSourceId, ActorRef actorRef) {
-			this.dataSourceId = dataSourceId;
-			this.actorRef = actorRef;
-		}
-
-		public String getDataSourceId() {
-			return dataSourceId;
-		}
-
-		public ActorRef getActorRef() {
-			return actorRef;
-		}
-	}
-	
-	static class DataSourceFailure {
-		
-		private final String dataSourceId;
-				
-		public DataSourceFailure(String dataSourceId) {
-			this.dataSourceId = dataSourceId;			
-		}
-
-		public String getDataSourceId() {
-			return dataSourceId;
-		}
-	}
-	
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataInfo) {
