@@ -38,10 +38,13 @@ import nl.idgis.publisher.metadata.messages.ServiceInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.StreamUtils;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	private final ActorRef initiator, metadataSource, metadataTarget;
 		
@@ -120,7 +123,9 @@ public class MetadataInfoProcessor extends UntypedActor {
 
 					metadataSource.tell(
 						new GetServiceMetadata(serviceId), 
-						getContext().actorOf(ServiceMetadataGenerator.props(metadataTarget, serviceInfo)));
+						getContext().actorOf(
+							ServiceMetadataGenerator.props(metadataTarget, serviceInfo),
+							nameGenerator.getName(ServiceMetadataGenerator.class)));
 				} else {
 					log.debug("all services processed");
 					
@@ -148,7 +153,9 @@ public class MetadataInfoProcessor extends UntypedActor {
 					
 					metadataSource.tell(
 						new GetDatasetMetadata(currentDataset.getDataSourceId(), currentDataset.getExternalDatasetId()),
-						getContext().actorOf(DatasetMetadataGenerator.props(metadataTarget, currentDataset)));
+						getContext().actorOf(
+							DatasetMetadataGenerator.props(metadataTarget, currentDataset),
+							nameGenerator.getName(DatasetMetadataGenerator.class)));
 				} else {
 					log.debug("all datasets processed");
 					

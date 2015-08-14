@@ -25,6 +25,7 @@ import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
 public class MetadataGenerator extends UntypedActor {
@@ -40,6 +41,8 @@ public class MetadataGenerator extends UntypedActor {
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 		
 	private final ActorRef database, metadataSource, metadataTarget;
 	
@@ -84,7 +87,9 @@ public class MetadataGenerator extends UntypedActor {
 			MetadataInfoProcessor.props(
 				getSender(), 
 				metadataSource,
-				metadataTarget));
+				metadataTarget),
+			
+			nameGenerator.getName(MetadataInfoProcessor.class));
 
 		db.transactional(tx ->
 			tx.query().from(publishedServiceDataset)
