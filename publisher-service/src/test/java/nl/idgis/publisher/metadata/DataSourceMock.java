@@ -8,7 +8,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 
@@ -36,10 +36,10 @@ public class DataSourceMock extends UntypedActor {
 			metadataDocuments.put(addMetadataDocument.getDatasetId(), addMetadataDocument.getMetadataDocument());
 			
 			getSender().tell(new Ack(), getSelf());
-		} else if(msg instanceof GetDatasetMetadata) {
+		} else if(msg instanceof GetMetadata) {
 			log.debug("metadata document requested");
 			
-			String datasetId = ((GetDatasetMetadata) msg).getDatasetId();
+			String datasetId = ((GetMetadata) msg).getDatasetId();
 			
 			if(metadataDocuments.containsKey(datasetId)) {
 				getSender().tell(metadataDocuments.get(datasetId), getSelf());

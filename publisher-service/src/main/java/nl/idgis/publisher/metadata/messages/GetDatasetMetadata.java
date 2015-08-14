@@ -1,16 +1,16 @@
 package nl.idgis.publisher.metadata.messages;
 
-public class DatasetInfo extends MetadataItemInfo {		
+import java.io.Serializable;
 
-	private static final long serialVersionUID = -7123957524471751538L;
+public class GetDatasetMetadata implements Serializable {
+
+	private static final long serialVersionUID = -9013649122916128842L;
 
 	private final String dataSourceId;
 	
 	private final String externalDatasetId;
-	
-	public DatasetInfo(String datasetId, String dataSourceId, String externalDatasetId) {
-		super(datasetId);
-		
+
+	public GetDatasetMetadata(String dataSourceId, String externalDatasetId) {
 		this.dataSourceId = dataSourceId;
 		this.externalDatasetId = externalDatasetId;
 	}
@@ -25,6 +25,6 @@ public class DatasetInfo extends MetadataItemInfo {
 
 	@Override
 	public String toString() {
-		return "DatasetInfo [dataSourceId=" + dataSourceId + ", externalDatasetId=" + externalDatasetId + "]";
-	}		
+		return "GetDatasetMetadata [dataSourceId=" + dataSourceId + ", externalDatasetId=" + externalDatasetId + "]";
+	}
 }

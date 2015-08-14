@@ -41,7 +41,7 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.VectorDataset;
 
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.harvester.sources.mock.ProviderMock;
@@ -143,7 +143,7 @@ public class ProviderDataSourceTest {
 	@Test
 	public void testGetDatasetMetadata() throws Exception {
 		f.ask(provider, new PutDataset(vectorDatasetInfo), Ack.class).get();		
-		f.ask(providerDataSource, new GetDatasetMetadata("vectorDataset"), MetadataDocument.class).get();		
+		f.ask(providerDataSource, new GetMetadata("vectorDataset"), MetadataDocument.class).get();		
 	}
 	
 	public static class DatasetReceiver extends UntypedActor {

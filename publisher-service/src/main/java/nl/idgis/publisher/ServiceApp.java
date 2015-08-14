@@ -27,6 +27,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
+import nl.idgis.publisher.metadata.MetadataSource;
 import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.service.manager.ServiceManager;
@@ -194,7 +195,11 @@ public class ServiceApp extends UntypedActor {
 		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")), f);
 		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")), f);		
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
+		metadataConfig.getConfig("generator-constants");
+		
+		ActorRef metadataSource = getContext().actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source");
+		
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, metadataSource), "metadata-generator");
 		getContext().system().scheduler().schedule(
 				Duration.create(10, TimeUnit.SECONDS), 
 				Duration.create(10, TimeUnit.SECONDS),

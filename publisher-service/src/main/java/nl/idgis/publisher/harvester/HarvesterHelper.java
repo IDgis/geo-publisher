@@ -12,7 +12,7 @@ import nl.idgis.publisher.domain.web.Metadata;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.messages.NotConnected;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -62,7 +62,7 @@ public class HarvesterHelper {
 	}
 	
 	private CompletableFuture<Optional<Metadata>> getMetadata(ActorRef dataSource, String datasetId, Optional<String> stylesheet) {
-		return f.ask(dataSource, new GetDatasetMetadata(datasetId), MetadataDocument.class).thenCompose(metadata -> {
+		return f.ask(dataSource, new GetMetadata(datasetId), MetadataDocument.class).thenCompose(metadata -> {
 			try {
 				if(stylesheet.isPresent()) {
 					metadata.setStylesheet(stylesheet.get());

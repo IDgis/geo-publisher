@@ -15,12 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.mysema.query.Tuple;
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -33,46 +29,32 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
-import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
+import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.StreamUtils;
 
 public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef initiator, harvester;
-	
-	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
-	
-	private final Config constants;
-	
-	private FutureUtils f;
-	
-	public MetadataInfoProcessor(ActorRef initiator, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+	private final ActorRef initiator, metadataSource;
+		
+	public MetadataInfoProcessor(ActorRef initiator, ActorRef metadataSource) {
 		this.initiator = initiator;
-		this.harvester = harvester;
-		this.serviceMetadataSource = serviceMetadataSource;
-		this.datasetMetadataTarget = datasetMetadataTarget;
-		this.serviceMetadataTarget = serviceMetadataTarget;
-		this.constants = constants;	
+		this.metadataSource = metadataSource;
 	}
 	
-	public static Props props(ActorRef initiator, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		return Props.create(MetadataInfoProcessor.class, initiator, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
+	public static Props props(ActorRef initiator, ActorRef metadataSource) {
+		return Props.create(MetadataInfoProcessor.class, initiator, metadataSource);
 	}
 	
 	@Override
-	public final void preStart() {
-		f = new FutureUtils(getContext());
-		
+	public final void preStart() {		
 		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
 	}
 	
@@ -129,16 +111,10 @@ public class MetadataInfoProcessor extends UntypedActor {
 					
 					String serviceId = serviceInfo.getId();
 					log.debug("requesting metadata for service: {}", serviceId);
-					
-					ActorRef generator = getContext().actorOf(ServiceMetadataGenerator.props(serviceInfo));
-					
-					serviceMetadataSource.get(serviceId).whenComplete((metadataDocument, throwable) -> {
-						if(throwable == null) {
-							generator.tell(metadataDocument, getSelf());
-						} else {
-							generator.tell(new Failure(throwable), getSelf());
-						}
-					});
+
+					metadataSource.tell(
+						new GetServiceMetadata(serviceId), 
+						getContext().actorOf(ServiceMetadataGenerator.props(serviceInfo)));
 				} else {
 					log.debug("all services processed");
 					
@@ -151,7 +127,6 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private Procedure<Object> traversingDatasets(
 		MetadataInfo metadataInfo,
-		Map<String, ActorRef> dataSources, 
 		Iterator<DatasetInfo> datasetItr) {
 		
 		return new Procedure<Object>() {
@@ -165,16 +140,9 @@ public class MetadataInfoProcessor extends UntypedActor {
 				if(datasetItr.hasNext()) {
 					currentDataset = datasetItr.next();
 					
-					String datasetId = currentDataset.getId();
-					String dataSourceId = currentDataset.getDataSourceId();
-					if(dataSources.containsKey(dataSourceId)) {						
-						dataSources.get(dataSourceId).tell(
-							new GetDatasetMetadata(currentDataset.getExternalDatasetId()), 
-							getContext().actorOf(DatasetMetadataGenerator.props(currentDataset)));
-					} else {
-						log.warning("cannot process dataset {} because dataSource {} is not available", 
-							datasetId, dataSourceId);
-					}
+					metadataSource.tell(
+						new GetDatasetMetadata(currentDataset.getId(), currentDataset.getExternalDatasetId()),
+						getContext().actorOf(DatasetMetadataGenerator.props(currentDataset)));
 				} else {
 					log.debug("all datasets processed");
 					
@@ -232,96 +200,27 @@ public class MetadataInfoProcessor extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> receivingDataSources(Set<String> dataSourceIds, MetadataInfo metadataInfo) {
-		
-		return new Procedure<Object>() {
-			
-			Map<String, ActorRef> dataSources = new HashMap<>();
-			
-			private void traverseDatasets() {
-				log.debug("traversing datasets");
-				
-				getContext().become(
-						traversingDatasets(
-							metadataInfo,
-							dataSources,
-							metadataInfo.getJoinTuples().stream()
-								.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
-								.distinct()
-								.map(StreamUtils.Wrapper::unwrap)
-								.map(tuple -> new DatasetInfo(
-									tuple.get(dataset.identification), 
-									tuple.get(dataSource.identification),
-									tuple.get(sourceDataset.externalIdentification)))
-								.iterator()));
-					
-				getSelf().tell(new NextItem(), getSelf());
-			}
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				log.debug("message received while receiving dataSources: {}", msg);
-				
-				if(msg instanceof DataSourceReceived) {
-					DataSourceReceived dataSourceReceived = (DataSourceReceived)msg;					
-					String dataSourceId = dataSourceReceived.getDataSourceId();
-					
-					log.debug("dataSource received: {}", dataSourceId);
-					dataSources.put(dataSourceId, dataSourceReceived.getActorRef());
-					dataSourceIds.remove(dataSourceId);
-				} else if(msg instanceof DataSourceFailure) {
-					String dataSourceId = ((DataSourceFailure) msg).getDataSourceId(); 
-					
-					log.debug("dataSource failure: {}", dataSourceId);
-					dataSourceIds.remove(dataSourceId);
-				} else if(msg instanceof ReceiveTimeout) {
-					log.error("timeout while receiving dataSources");
-					
-					if(dataSources.isEmpty()) {
-						terminate();
-					} else {
-						traverseDatasets();
-					}
-				}
-				
-				if(dataSourceIds.isEmpty()) {
-					log.debug("all dataSources received");
-					
-					traverseDatasets();
-				}
-			}
-			
-		};
-	}
-
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataInfo) {
 			log.debug("metadata info received");
 			
-			MetadataInfo metadataInfo = (MetadataInfo)msg;			
-			List<Tuple> joinTuples = metadataInfo.getJoinTuples();
+			MetadataInfo metadataInfo = (MetadataInfo)msg;
 			
-			Set<String> dataSourceIds =
-				joinTuples.stream()
-					.map(tuple -> tuple.get(dataSource.identification))
-					.distinct()
-					.map(dataSourceId -> {
-						f.ask(harvester, new GetDataSource(dataSourceId))
-							.thenAccept(harvesterResponse -> {
-								if(harvesterResponse instanceof ActorRef) {
-									getSelf().tell(new DataSourceReceived(dataSourceId, (ActorRef)harvesterResponse), getSelf());
-								} else {
-									getSelf().tell(new DataSourceFailure(dataSourceId), getSelf());
-								}
-							});
-						
-						return dataSourceId;
-					})
-					.collect(Collectors.toSet());
-		
-			
-			getContext().become(receivingDataSources(dataSourceIds, metadataInfo));
+			getContext().become(
+					traversingDatasets(
+						metadataInfo,
+						metadataInfo.getJoinTuples().stream()
+							.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
+							.distinct()
+							.map(StreamUtils.Wrapper::unwrap)
+							.map(tuple -> new DatasetInfo(
+								tuple.get(dataset.identification), 
+								tuple.get(dataSource.identification),
+								tuple.get(sourceDataset.externalIdentification)))
+							.iterator()));
+				
+			getSelf().tell(new NextItem(), getSelf());
 		} else {
 			unhandled(msg);
 		}

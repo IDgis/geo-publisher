@@ -1,6 +1,10 @@
 package nl.idgis.publisher.metadata.messages;
 
-public abstract class MetadataItemInfo {
+import java.io.Serializable;
+
+public abstract class MetadataItemInfo implements Serializable {	
+
+	private static final long serialVersionUID = -388340809631368304L;
 	
 	private final String id; 
 	

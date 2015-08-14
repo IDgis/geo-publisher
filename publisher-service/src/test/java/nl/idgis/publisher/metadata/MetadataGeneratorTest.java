@@ -3,9 +3,6 @@ package nl.idgis.publisher.metadata;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
 
 import nl.idgis.publisher.domain.SourceDatasetType;
@@ -50,19 +47,13 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
+	MetadataStore serviceMetadataSource;
 	
 	@Before
 	public void actor() throws Exception {
-		
-		Config constants = ConfigFactory.empty();
-		harvester = actorOf(HarvesterMock.props(), "harvester");
-		
-		serviceMetadataSource = new MetadataStoreMock(f);
-		datasetMetadataTarget = new MetadataStoreMock(f);
-		serviceMetadataTarget = new MetadataStoreMock(f);
-		
-		metadataGenerator = actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants), "metadataGenerator");
+		harvester = actorOf(HarvesterMock.props(), "harvester");		
+		serviceMetadataSource = new MetadataStoreMock(f);		
+		metadataGenerator = actorOf(MetadataGenerator.props(database, actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source")), "metadata-generator");
 	}
 	
 	

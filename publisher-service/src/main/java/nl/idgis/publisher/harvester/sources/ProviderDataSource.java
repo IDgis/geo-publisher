@@ -18,7 +18,7 @@ import scala.concurrent.duration.FiniteDuration;
 import nl.idgis.publisher.harvester.sources.messages.FetchDataset;
 import nl.idgis.publisher.harvester.sources.messages.FetchRasterDataset;
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
-import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
+import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.EchoRequest;
@@ -55,8 +55,8 @@ public class ProviderDataSource extends UntypedActor {
 			handleEchoResponse((EchoResponse)msg);
 		} else if(msg instanceof ListDatasets) {
 			handleListDatasets((ListDatasets)msg);
-		} else if(msg instanceof GetDatasetMetadata) {
-			handleGetDatasetMetadata((GetDatasetMetadata)msg);
+		} else if(msg instanceof GetMetadata) {
+			handleGetDatasetMetadata((GetMetadata)msg);
 		} else if(msg instanceof FetchDataset) {
 			handleFetchDataset((FetchDataset)msg);
 		} else {
@@ -125,7 +125,7 @@ public class ProviderDataSource extends UntypedActor {
 		provider.tell(new GetDatasetInfo(Collections.<AttachmentType>emptySet(), msg.getId()), initiator);
 	}
 	
-	private void handleGetDatasetMetadata(GetDatasetMetadata msg) {				
+	private void handleGetDatasetMetadata(GetMetadata msg) {				
 		log.debug("retrieving dataset metadata from provider");
 		
 		ActorRef builder = getContext().actorOf(

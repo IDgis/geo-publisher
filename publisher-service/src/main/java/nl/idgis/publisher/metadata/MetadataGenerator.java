@@ -11,8 +11,6 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -42,27 +40,19 @@ public class MetadataGenerator extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-	private final ActorRef database, harvester;
-	
-	private final MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
-	
-	private final Config constants;
+	private final ActorRef database, metadataSource;
 	
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
 	
-	public MetadataGenerator(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
+	public MetadataGenerator(ActorRef database, ActorRef metadataSource) {
 		this.database = database;
-		this.harvester = harvester;
-		this.serviceMetadataSource = serviceMetadataSource;
-		this.datasetMetadataTarget = datasetMetadataTarget;
-		this.serviceMetadataTarget = serviceMetadataTarget;
-		this.constants = constants;	
+		this.metadataSource = metadataSource;		
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, MetadataStore serviceMetadataSource, MetadataStore datasetMetadataTarget, MetadataStore serviceMetadataTarget, Config constants) {
-		return Props.create(MetadataGenerator.class, database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, constants);
+	public static Props props(ActorRef database, ActorRef metadataSource) {
+		return Props.create(MetadataGenerator.class, database, metadataSource);
 	}
 	
 	@Override
@@ -87,11 +77,7 @@ public class MetadataGenerator extends UntypedActor {
 		ActorRef processor = getContext().actorOf(
 			MetadataInfoProcessor.props(
 				getSender(), 
-				harvester,
-				serviceMetadataSource,
-				datasetMetadataTarget,
-				serviceMetadataTarget,
-				constants));
+				metadataSource));
 
 		db.transactional(tx ->
 			tx.query().from(publishedServiceDataset)
