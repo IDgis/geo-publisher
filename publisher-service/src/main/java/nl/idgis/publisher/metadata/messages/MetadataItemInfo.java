@@ -1,6 +1,7 @@
 package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public abstract class MetadataItemInfo implements Serializable {	
 
@@ -9,7 +10,7 @@ public abstract class MetadataItemInfo implements Serializable {
 	private final String id; 
 	
 	MetadataItemInfo(String id) {
-		this.id = id;
+		this.id = Objects.requireNonNull(id, "id must not be null");
 	}
 	
 	public String getId() {

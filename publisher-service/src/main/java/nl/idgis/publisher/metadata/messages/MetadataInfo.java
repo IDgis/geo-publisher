@@ -2,6 +2,7 @@ package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 import com.mysema.query.Tuple;
 
@@ -16,8 +17,8 @@ public class MetadataInfo implements Serializable {
 	private final List<Service> serviceInfo;
 
 	public MetadataInfo(List<Tuple> joinTuples, List<Service> serviceInfo) {
-		this.joinTuples = joinTuples;
-		this.serviceInfo = serviceInfo;
+		this.joinTuples = Objects.requireNonNull(joinTuples, "joinTuples must not be null");
+		this.serviceInfo = Objects.requireNonNull(serviceInfo, "serviceInfo must not be null");
 	}
 
 	public List<Tuple> getJoinTuples() {

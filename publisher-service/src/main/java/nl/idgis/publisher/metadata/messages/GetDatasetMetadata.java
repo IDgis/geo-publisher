@@ -1,6 +1,7 @@
 package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class GetDatasetMetadata implements Serializable {
 
@@ -11,8 +12,8 @@ public class GetDatasetMetadata implements Serializable {
 	private final String externalDatasetId;
 
 	public GetDatasetMetadata(String dataSourceId, String externalDatasetId) {
-		this.dataSourceId = dataSourceId;
-		this.externalDatasetId = externalDatasetId;
+		this.dataSourceId =  Objects.requireNonNull(dataSourceId, "dataSourceId must not be null");
+		this.externalDatasetId =  Objects.requireNonNull(externalDatasetId, "externalDatasetId must not be null");
 	}
 
 	public String getDataSourceId() {

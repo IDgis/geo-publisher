@@ -1,6 +1,7 @@
 package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class GetServiceMetadata implements Serializable {
 
@@ -9,7 +10,7 @@ public class GetServiceMetadata implements Serializable {
 	private final String serviceId;
 	
 	public GetServiceMetadata(String serviceId) {
-		this.serviceId = serviceId;
+		this.serviceId = Objects.requireNonNull(serviceId, "serviceId must not be null");
 	}
 
 	public String getServiceId() {

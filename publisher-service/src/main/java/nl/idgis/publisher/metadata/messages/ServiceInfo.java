@@ -1,5 +1,6 @@
 package nl.idgis.publisher.metadata.messages;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class ServiceInfo extends MetadataItemInfo {	
@@ -11,7 +12,7 @@ public class ServiceInfo extends MetadataItemInfo {
 	public ServiceInfo(String serviceId, Set<String> datasetId) {
 		super(serviceId);
 		
-		this.datasetId = datasetId;
+		this.datasetId = Objects.requireNonNull(datasetId, "datasetId must not be null");
 	}
 	
 	public Set<String> getDatasetId() {
