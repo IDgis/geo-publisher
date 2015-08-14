@@ -2,13 +2,16 @@ package nl.idgis.publisher.metadata;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.metadata.MetadataGenerator.layerGenericLayer;
 import static nl.idgis.publisher.metadata.MetadataGenerator.serviceGenericLayer;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,9 +31,11 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.sources.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.StreamUtils;
 
 public class MetadataInfoProcessor extends UntypedActor {
 	
@@ -99,6 +104,73 @@ public class MetadataInfoProcessor extends UntypedActor {
 		}
 	}
 	
+	static class StartTraversing {}
+	
+	static class DatasetInfo {
+		
+		private final String datasetId;
+		
+		private final String dataSourceId;
+		
+		private final String externalDatasetId;
+		
+		DatasetInfo(String datasetId, String dataSourceId, String externalDatasetId) {
+			this.datasetId = datasetId;
+			this.dataSourceId = dataSourceId;
+			this.externalDatasetId = externalDatasetId;
+		}
+
+		public String getDatasetId() {
+			return datasetId;
+		}
+
+		public String getDataSourceId() {
+			return dataSourceId;
+		}
+
+		public String getExternalDatasetId() {
+			return externalDatasetId;
+		}		
+	}
+	
+	private Procedure<Object> traversingDatasets(
+		Map<String, ActorRef> dataSources, 
+		Iterator<DatasetInfo> datasetItr) {
+		
+		return new Procedure<Object>() {
+
+			DatasetInfo currentDataset;
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof MetadataDocument) {
+					log.debug("dataset received: {}", currentDataset.getDatasetId());
+				}
+				
+				if(datasetItr.hasNext()) {
+					currentDataset = datasetItr.next();
+					
+					String datasetId = currentDataset.getDatasetId();
+					String dataSourceId = currentDataset.getDataSourceId();
+					if(dataSources.containsKey(dataSourceId)) {
+						dataSources.get(dataSourceId).tell(
+							new GetDatasetMetadata(currentDataset.getExternalDatasetId()), 
+							getSelf());
+					} else {
+						log.warning("cannot process dataset {} because dataSource {} is not available", 
+							datasetId, dataSourceId);
+					}
+				} else {
+					log.debug("all datasets processed");
+					
+					initiator.tell(new Ack(), getContext().parent());
+					getContext().stop(getSelf());
+				}
+			}
+			
+		};
+	}
+	
 	static class DataSourceReceived {
 		
 		private final String dataSourceId;
@@ -132,12 +204,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 		}
 	}
 	
-	private Procedure<Object> receivingDataSources(
-			Set<String> dataSourceIds, 
-			Map<String, Set<String>> datasetServiceInfo, 
-			Map<String, Set<String>> serviceDatasetInfo,
-			Map<String, Set<String>> datasetLayerInfo, 
-			Map<String, Map<String, Set<String>>> serviceLayerInfo) {
+	private Procedure<Object> receivingDataSources(Set<String> dataSourceIds, MetadataInfo metadataInfo) {
 		
 		return new Procedure<Object>() {
 			
@@ -162,32 +229,20 @@ public class MetadataInfoProcessor extends UntypedActor {
 				if(dataSourceIds.isEmpty()) {
 					log.debug("all dataSources received");
 					
-					for(Map.Entry<String, Set<String>> dataset : datasetServiceInfo.entrySet()) {
-						String datasetId = dataset.getKey();						
-						
-						for(String serviceId : dataset.getValue()) {
-							if(serviceLayerInfo.containsKey(serviceId)) {							
-								Map<String, Set<String>> layerInfo = serviceLayerInfo.get(serviceId);
-							
-								if(datasetLayerInfo.containsKey(datasetId)) {
-									for(String layerId : datasetLayerInfo.get(datasetId)) {
-										if(layerInfo.containsKey(layerId)) {
-											log.debug("dataset: {}, service: {}, layers: {}", datasetId, serviceId, layerInfo.get(layerId));
-										} else {
-											log.error("no layer info found for layer: {} in service: {}", layerId, serviceId);
-										}
-									}
-								} else {
-									log.error("no layer info found for dataset: {}", datasetId);
-								}								
-							} else {
-								log.error("no service info found for service: {}", serviceId);
-							}
-						}
-					}
+					getContext().become(
+						traversingDatasets(
+							dataSources,
+							metadataInfo.getJoinTuples().stream()
+								.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
+								.distinct()
+								.map(StreamUtils.Wrapper::unwrap)
+								.map(tuple -> new DatasetInfo(
+									tuple.get(dataset.identification), 
+									tuple.get(dataSource.identification),
+									tuple.get(sourceDataset.externalIdentification)))
+								.iterator()));
 					
-					initiator.tell(new Ack(), getContext().parent());
-					getContext().stop(getSelf());
+					getSelf().tell(new StartTraversing(), getSelf());
 				}
 			}
 			
@@ -221,12 +276,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 					.collect(Collectors.toSet());
 		
 			
-			getContext().become(receivingDataSources(
-				dataSourceIds,
-				tuplesToMap(joinTuples, dataset.identification, serviceGenericLayer.identification),
-				tuplesToMap(joinTuples, serviceGenericLayer.identification, dataset.identification),
-				tuplesToMap(joinTuples, dataset.identification, layerGenericLayer.identification),
-				servicesToMap(metadataInfo.getServiceInfo())));
+			getContext().become(receivingDataSources(dataSourceIds, metadataInfo));
 		} else {
 			unhandled(msg);
 		}

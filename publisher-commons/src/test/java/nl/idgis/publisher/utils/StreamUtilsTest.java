@@ -1,7 +1,9 @@
 package nl.idgis.publisher.utils;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -82,5 +84,73 @@ public class StreamUtilsTest {
 		
 		assertTrue(result.containsKey(3));
 		assertEquals("c", result.get(3));
+	}
+	
+	static class Pair<T, U> {
+		
+		final T t;
+		
+		final U u;		
+		
+		Pair(T t, U u) {
+			this.t = t;
+			this.u = u;
+		}
+	}
+	
+	@Test
+	public void testWrap() {
+		List<Pair<Integer, String>> list = Arrays.asList(
+				new Pair<>(2, "two"),
+				new Pair<>(1, "one (first)"),
+				new Pair<>(4, "four"),
+				new Pair<>(1, "one (second)"),
+				new Pair<>(3, "three"));
+		
+		assertEquals(
+			list.size(),
+			StreamUtils.zip(
+				list.stream()
+					.map(p -> p.t)
+					.sorted(),
+					
+				list.stream()	
+					.map(StreamUtils.wrap(p -> p.t))
+					.sorted()
+					.map(StreamUtils.Wrapper::unwrap))
+			
+				.filter(entry -> entry.getFirst().equals(entry.getSecond().t))
+				.count());
+		
+		assertEquals(
+			list.size(),
+			StreamUtils.zip(
+				list.stream()
+					.map(p -> p.u)
+					.sorted(Comparator.<String>naturalOrder().reversed()),
+					
+				list.stream()	
+					.map(StreamUtils.wrap(p -> p.u, Comparator.<String>naturalOrder().reversed()))
+					.sorted()
+					.map(StreamUtils.Wrapper::unwrap))
+			
+				.filter(entry -> entry.getFirst().equals(entry.getSecond().u))
+				.count());
+		
+		assertEquals(
+			list.size() - 1,
+			list.stream()
+				.map(p -> p.t)
+				.distinct()
+				.count());
+		
+		assertEquals(			
+			list.size() - 1,
+		
+			list.stream()
+				.map(StreamUtils.wrap(p -> p.t))
+				.distinct()
+				.map(StreamUtils.Wrapper::unwrap)
+				.count());
 	}
 }
