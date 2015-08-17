@@ -15,7 +15,7 @@ import nl.idgis.publisher.stream.messages.NextItem;
 
 public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, U extends PutMetadata> extends UntypedActor {
 	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final ActorRef metadataTarget;
 	
@@ -31,7 +31,7 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		getContext().setReceiveTimeout(Duration.create(5, TimeUnit.SECONDS));
 	}
 	
-	protected abstract PutMetadata generateMetadata(MetadataDocument metadataDocument);
+	protected abstract PutMetadata generateMetadata(MetadataDocument metadataDocument) throws Exception;
 
 	@Override
 	public void onReceive(Object msg) throws Exception {

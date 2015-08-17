@@ -1,12 +1,15 @@
 package nl.idgis.publisher.metadata;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
 import nl.idgis.publisher.metadata.messages.PutDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.ServiceRef;
 
 public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo, PutDatasetMetadata> {
 
@@ -22,7 +25,21 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 	}
 
 	@Override
-	protected PutDatasetMetadata generateMetadata(MetadataDocument metadataDocument) {
+	protected PutDatasetMetadata generateMetadata(MetadataDocument metadataDocument) throws Exception {
+		metadataDocument.setDatasetIdentifier(itemInfo.getDatasetUuid());
+		metadataDocument.setFileIdentifier(itemInfo.getFileUuid());
+		
+		metadataDocument.removeServiceLinkage();
+		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
+			for(String layerName : serviceRef.getLayerNames()) {
+				for(String protocol : Arrays.asList("OGC:WMS", "OGC:WFS")) {
+					String linkage = serviceRef.getServiceId();
+					// TODO: compute proper linkage
+					metadataDocument.addServiceLinkage(linkage, protocol, layerName);
+				}
+			}
+		};
+		
 		return new PutDatasetMetadata(itemInfo.getId(), metadataDocument);
 	}
 

@@ -35,6 +35,7 @@ import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
+import nl.idgis.publisher.metadata.messages.ServiceRef;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.StreamUtils;
@@ -187,6 +188,25 @@ public class MetadataInfoProcessor extends UntypedActor {
 			
 			MetadataInfo metadataInfo = (MetadataInfo)msg;
 			
+			Map<String, Map<String, Set<String>>> serviceLayerLayerNames =
+				servicesToMap(metadataInfo.getServiceInfo());
+			
+			Map<String, Set<String>> datasetServices =
+				metadataInfo.getJoinTuples().stream()
+					.collect(Collectors.groupingBy(
+						tuple -> tuple.get(dataset.identification),
+						Collectors.mapping(
+							tuple -> tuple.get(serviceGenericLayer.identification),
+							Collectors.toSet())));
+			
+			Map<String, Set<String>> datasetLayers =
+				metadataInfo.getJoinTuples().stream()
+					.collect(Collectors.groupingBy(
+						tuple -> tuple.get(dataset.identification),
+						Collectors.mapping(
+							tuple -> tuple.get(layerGenericLayer.identification),
+							Collectors.toSet())));
+			
 			getContext().become(
 					traversingDatasets(
 						metadataInfo,
@@ -194,10 +214,41 @@ public class MetadataInfoProcessor extends UntypedActor {
 							.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
 							.distinct()
 							.map(StreamUtils.Wrapper::unwrap)
-							.map(tuple -> new DatasetInfo(
-								tuple.get(dataset.identification), 
-								tuple.get(dataSource.identification),
-								tuple.get(sourceDataset.externalIdentification)))
+							.map(tuple -> { 
+								String datasetId = tuple.get(dataset.identification);
+								
+								if(datasetServices.containsKey(datasetId)) {					
+									if(datasetLayers.containsKey(datasetId)) {						
+										Set<String> serviceIds = datasetServices.get(datasetId);
+										Set<String> layerIds = datasetLayers.get(datasetId);
+										
+										Set<ServiceRef> serviceRefs =
+											serviceIds.stream()
+												.flatMap(serviceId -> {
+													if(serviceLayerLayerNames.containsKey(serviceId)) {
+														return serviceLayerLayerNames.get(serviceId).entrySet().stream()
+															.filter(entry -> layerIds.contains(entry.getKey()))
+															.map(entry -> new ServiceRef(serviceId, entry.getValue()));
+													} else {
+														throw new IllegalStateException("no layers for service: " + serviceId);
+													}
+												})
+												.collect(Collectors.toSet());
+										
+										return new DatasetInfo(
+											datasetId, 
+											tuple.get(dataSource.identification),
+											tuple.get(sourceDataset.externalIdentification),
+											tuple.get(dataset.uuid),
+											tuple.get(dataset.fileUuid),
+											serviceRefs);
+									} else {
+										throw new IllegalStateException("no layers for dataset: " + datasetId);
+									}
+								} else {
+									throw new IllegalStateException("no services for dataset: " + datasetId);
+								}
+							})
 							.iterator()));
 				
 			getSelf().tell(new NextItem(), getSelf());

@@ -104,6 +104,8 @@ public class MetadataGenerator extends UntypedActor {
 					serviceGenericLayer.identification,
 					layerGenericLayer.identification,
 					dataset.identification,
+					dataset.uuid,
+					dataset.fileUuid,
 					sourceDataset.externalIdentification,
 					dataSource.identification).thenAccept(joinTuples ->
 						tx.query().from(publishedService)			
