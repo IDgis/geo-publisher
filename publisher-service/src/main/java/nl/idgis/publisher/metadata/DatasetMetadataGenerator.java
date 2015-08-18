@@ -1,8 +1,9 @@
 package nl.idgis.publisher.metadata;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -25,7 +26,7 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 	}
 
 	@Override
-	protected PutDatasetMetadata generateMetadata(MetadataDocument metadataDocument) throws Exception {
+	protected List<PutDatasetMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception {
 		metadataDocument.setDatasetIdentifier(itemInfo.getDatasetUuid());
 		metadataDocument.setFileIdentifier(itemInfo.getFileUuid());
 		
@@ -40,7 +41,7 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 			}
 		};
 		
-		return new PutDatasetMetadata(itemInfo.getId(), metadataDocument);
+		return Collections.singletonList(new PutDatasetMetadata(itemInfo.getId(), metadataDocument));
 	}
 
 }

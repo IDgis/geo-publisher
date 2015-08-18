@@ -31,6 +31,7 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
+import nl.idgis.publisher.metadata.messages.DatasetRef;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
@@ -139,6 +140,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private Procedure<Object> traversingDatasets(
 		MetadataInfo metadataInfo,
+		Map<String, Set<String>> datasetLayers,
+		Map<String, Map<String, Set<String>>> serviceLayerLayerNames,
 		Iterator<DatasetInfo> datasetItr) {
 		
 		return new Procedure<Object>() {
@@ -169,7 +172,34 @@ public class MetadataInfoProcessor extends UntypedActor {
 								.collect(Collectors.groupingBy(
 									tuple -> tuple.get(serviceGenericLayer.identification),
 									Collectors.mapping(
-										tuple -> tuple.get(dataset.identification),
+										tuple -> {
+											String serviceId = tuple.get(serviceGenericLayer.identification);
+											String datasetId = tuple.get(dataset.identification);
+											
+											if(datasetLayers.containsKey(datasetId)) {
+												if(serviceLayerLayerNames.containsKey(serviceId)) {
+													Map<String, Set<String>> layerNames = serviceLayerLayerNames.get(serviceId);
+													
+													return new DatasetRef(
+														datasetId,
+														tuple.get(dataset.uuid),
+														tuple.get(dataset.fileUuid),
+														datasetLayers.get(datasetId).stream()
+															.flatMap(layerId -> {
+																if(layerNames.containsKey(layerId)) {
+																	return layerNames.get(layerId).stream();
+																} else {
+																	throw new IllegalStateException("no layerNames for layer: " + layerId);
+																}
+															})
+															.collect(Collectors.toSet())); 
+												} else {
+													throw new IllegalStateException("no layers for service: " + serviceId);
+												}
+											} else {
+												throw new IllegalStateException("no layers for dataset: " + datasetId);
+											}
+										},
 										Collectors.toSet()))).entrySet().stream()
 											.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
 											.iterator()));
@@ -210,6 +240,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 			getContext().become(
 					traversingDatasets(
 						metadataInfo,
+						datasetLayers,						
+						serviceLayerLayerNames,
 						metadataInfo.getJoinTuples().stream()
 							.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
 							.distinct()

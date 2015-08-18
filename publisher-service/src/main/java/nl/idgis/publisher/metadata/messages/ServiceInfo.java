@@ -4,23 +4,23 @@ import java.util.Objects;
 import java.util.Set;
 
 public class ServiceInfo extends MetadataItemInfo {	
-
-	private static final long serialVersionUID = 38502973862867534L;
 	
-	private final Set<String> datasetId;
+	private static final long serialVersionUID = 9220657367346908792L;
 	
-	public ServiceInfo(String serviceId, Set<String> datasetId) {
+	private final Set<DatasetRef> datasetRefs;
+	
+	public ServiceInfo(String serviceId, Set<DatasetRef> datasetRefs) {
 		super(serviceId);
 		
-		this.datasetId = Objects.requireNonNull(datasetId, "datasetId must not be null");
+		this.datasetRefs = Objects.requireNonNull(datasetRefs, "datasetRefs must not be null");
 	}
 	
-	public Set<String> getDatasetId() {
-		return datasetId;
+	public Set<DatasetRef> getDatasetRefs() {
+		return datasetRefs;
 	}
 
 	@Override
 	public String toString() {
-		return "ServiceInfo [datasetId=" + datasetId + "]";
+		return "ServiceInfo [datasetRefs=" + datasetRefs + "]";
 	}
 }

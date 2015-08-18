@@ -271,7 +271,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 
 		f.ask(metadataGenerator, new GenerateMetadata(), Ack.class).get();
 		
-		serviceMetadataTarget.get(serviceIdentification).get();
+		serviceMetadataTarget.get(serviceIdentification + "-wms").get();
+		serviceMetadataTarget.get(serviceIdentification + "-wfs").get();
 		datasetMetadataTarget.get(datasetIdentification).get();
 	}
 }

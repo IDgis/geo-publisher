@@ -34,12 +34,6 @@ public class MetadataGenerator extends UntypedActor {
 
 	public static final QGenericLayer serviceGenericLayer = new QGenericLayer("serviceGenericLayer");
 	
-	private static final String ENDPOINT_CODE_LIST_VALUE = "WebServices";
-
-	private static final String ENDPOINT_CODE_LIST = "http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList";
-
-	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
-
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();

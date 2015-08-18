@@ -1,5 +1,6 @@
 package nl.idgis.publisher.metadata;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import akka.actor.ActorRef;
@@ -31,7 +32,7 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		getContext().setReceiveTimeout(Duration.create(5, TimeUnit.SECONDS));
 	}
 	
-	protected abstract PutMetadata generateMetadata(MetadataDocument metadataDocument) throws Exception;
+	protected abstract List<? extends PutMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception;
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -40,7 +41,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		if(msg instanceof MetadataDocument) {
 			log.debug("metadata document received for item: {}", itemInfo.getId());
 			
-			metadataTarget.tell(generateMetadata((MetadataDocument)msg), getSelf());
+			generateMetadata((MetadataDocument)msg).forEach(putMetadata ->
+				metadataTarget.tell(putMetadata, getSelf()));
 		} else {
 			log.debug("terminating");
 			
