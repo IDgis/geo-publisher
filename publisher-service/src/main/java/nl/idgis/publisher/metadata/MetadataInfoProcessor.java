@@ -1,20 +1,8 @@
 package nl.idgis.publisher.metadata;
 
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.metadata.MetadataGenerator.layerGenericLayer;
-import static nl.idgis.publisher.metadata.MetadataGenerator.serviceGenericLayer;
-
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -25,21 +13,13 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.domain.web.tree.GroupLayer;
-import nl.idgis.publisher.domain.web.tree.Layer;
-import nl.idgis.publisher.domain.web.tree.LayerRef;
-import nl.idgis.publisher.domain.web.tree.Service;
-
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
-import nl.idgis.publisher.metadata.messages.DatasetRef;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
-import nl.idgis.publisher.metadata.messages.ServiceRef;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class MetadataInfoProcessor extends UntypedActor {
@@ -67,43 +47,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 	@Override
 	public final void preStart() {		
 		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
-	}
-	
-	private static Map<String, Set<String>> servicesToMap(Service service) {
-		Map<String, Set<String>> layerInfo = new HashMap<>();
-		traverseLayers(layerInfo, service.getLayers());
-		
-		return layerInfo;
-	}
-	
-	private Map<String, Map<String, Set<String>>> servicesToMap(List<Service> services) {
-		return services.stream()
-			.collect(Collectors.toMap(
-				service -> service.getId(),
-				MetadataInfoProcessor::servicesToMap));
-	}
-	
-	private static void traverseLayers(Map<String, Set<String>> layerInfo, List<LayerRef<? extends Layer>> layerRefs) {
-		for(LayerRef<? extends Layer> layerRef : layerRefs) {
-			if(layerRef.isGroupRef()) {
-				GroupLayer groupLayer = layerRef.asGroupRef().getLayer();
-				traverseLayers(layerInfo, groupLayer.getLayers());
-			} else {
-				Layer layer = layerRef.getLayer();
-
-				Set<String> layerNames;
-				String layerId = layer.getId();
-				if(layerInfo.containsKey(layerId)) {
-					layerNames = layerInfo.get(layerId);
-				} else {
-					layerNames = new HashSet<>();
-					layerInfo.put(layerId, layerNames);
-				}
-				
-				layerNames.add(layer.getName());
-			}
-		}
-	}
+	}	
 	
 	private Procedure<Object> traversingServices(
 		MetadataInfo metadataInfo,
@@ -140,8 +84,6 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private Procedure<Object> traversingDatasets(
 		MetadataInfo metadataInfo,
-		Map<String, Set<String>> datasetLayers,
-		Map<String, Map<String, Set<String>>> serviceLayerLayerNames,
 		Iterator<DatasetInfo> datasetItr) {
 		
 		return new Procedure<Object>() {
@@ -168,41 +110,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 					getContext().become(
 						traversingServices(
 							metadataInfo, 
-							metadataInfo.getJoinTuples().stream()
-								.collect(Collectors.groupingBy(
-									tuple -> tuple.get(serviceGenericLayer.identification),
-									Collectors.mapping(
-										tuple -> {
-											String serviceId = tuple.get(serviceGenericLayer.identification);
-											String datasetId = tuple.get(dataset.identification);
-											
-											if(datasetLayers.containsKey(datasetId)) {
-												if(serviceLayerLayerNames.containsKey(serviceId)) {
-													Map<String, Set<String>> layerNames = serviceLayerLayerNames.get(serviceId);
-													
-													return new DatasetRef(
-														datasetId,
-														tuple.get(dataset.uuid),
-														tuple.get(dataset.fileUuid),
-														datasetLayers.get(datasetId).stream()
-															.flatMap(layerId -> {
-																if(layerNames.containsKey(layerId)) {
-																	return layerNames.get(layerId).stream();
-																} else {
-																	throw new IllegalStateException("no layerNames for layer: " + layerId);
-																}
-															})
-															.collect(Collectors.toSet())); 
-												} else {
-													throw new IllegalStateException("no layers for service: " + serviceId);
-												}
-											} else {
-												throw new IllegalStateException("no layers for dataset: " + datasetId);
-											}
-										},
-										Collectors.toSet()))).entrySet().stream()
-											.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
-											.iterator()));
+							metadataInfo.getServices()));
 					
 					getSelf().tell(new NextItem(), getSelf());
 				}
@@ -218,70 +126,10 @@ public class MetadataInfoProcessor extends UntypedActor {
 			
 			MetadataInfo metadataInfo = (MetadataInfo)msg;
 			
-			Map<String, Map<String, Set<String>>> serviceLayerLayerNames =
-				servicesToMap(metadataInfo.getServiceInfo());
-			
-			Map<String, Set<String>> datasetServices =
-				metadataInfo.getJoinTuples().stream()
-					.collect(Collectors.groupingBy(
-						tuple -> tuple.get(dataset.identification),
-						Collectors.mapping(
-							tuple -> tuple.get(serviceGenericLayer.identification),
-							Collectors.toSet())));
-			
-			Map<String, Set<String>> datasetLayers =
-				metadataInfo.getJoinTuples().stream()
-					.collect(Collectors.groupingBy(
-						tuple -> tuple.get(dataset.identification),
-						Collectors.mapping(
-							tuple -> tuple.get(layerGenericLayer.identification),
-							Collectors.toSet())));
-			
 			getContext().become(
 					traversingDatasets(
 						metadataInfo,
-						datasetLayers,						
-						serviceLayerLayerNames,
-						metadataInfo.getJoinTuples().stream()
-							.map(StreamUtils.wrap(tuple -> tuple.get(dataset.identification)))
-							.distinct()
-							.map(StreamUtils.Wrapper::unwrap)
-							.map(tuple -> { 
-								String datasetId = tuple.get(dataset.identification);
-								
-								if(datasetServices.containsKey(datasetId)) {					
-									if(datasetLayers.containsKey(datasetId)) {						
-										Set<String> serviceIds = datasetServices.get(datasetId);
-										Set<String> layerIds = datasetLayers.get(datasetId);
-										
-										Set<ServiceRef> serviceRefs =
-											serviceIds.stream()
-												.flatMap(serviceId -> {
-													if(serviceLayerLayerNames.containsKey(serviceId)) {
-														return serviceLayerLayerNames.get(serviceId).entrySet().stream()
-															.filter(entry -> layerIds.contains(entry.getKey()))
-															.map(entry -> new ServiceRef(serviceId, entry.getValue()));
-													} else {
-														throw new IllegalStateException("no layers for service: " + serviceId);
-													}
-												})
-												.collect(Collectors.toSet());
-										
-										return new DatasetInfo(
-											datasetId, 
-											tuple.get(dataSource.identification),
-											tuple.get(sourceDataset.externalIdentification),
-											tuple.get(dataset.uuid),
-											tuple.get(dataset.fileUuid),
-											serviceRefs);
-									} else {
-										throw new IllegalStateException("no layers for dataset: " + datasetId);
-									}
-								} else {
-									throw new IllegalStateException("no services for dataset: " + datasetId);
-								}
-							})
-							.iterator()));
+						metadataInfo.getDatasets()));
 				
 			getSelf().tell(new NextItem(), getSelf());
 		} else {
