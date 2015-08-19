@@ -60,6 +60,8 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 
 	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
+		log.debug("wfs metadata");
+		
 		String linkage = itemInfo.getId();
 		// TODO: compute proper linkage
 		
@@ -82,6 +84,8 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 
 	private MetadataDocument generateWMSMetadata(MetadataDocument metadataDocument) throws NotFound {
+		log.debug("wms metadata");
+		
 		String linkage = itemInfo.getId();
 		// TODO: compute proper linkage
 		String browseGraphicBaseUrl = linkage 
