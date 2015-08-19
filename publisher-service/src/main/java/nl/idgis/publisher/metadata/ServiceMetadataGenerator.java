@@ -56,10 +56,10 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		
 		return Arrays.asList(
 			new PutServiceMetadata(itemInfo.getId() + "-wms", generateWMSMetadata(metadataDocument.clone())),
-			new PutServiceMetadata(itemInfo.getId() + "-wfs", generatWFSMetadata(metadataDocument.clone())));
+			new PutServiceMetadata(itemInfo.getId() + "-wfs", generateWFSMetadata(metadataDocument.clone())));
 	}
 
-	private MetadataDocument generatWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
+	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		String linkage = itemInfo.getId();
 		// TODO: compute proper linkage
 		
