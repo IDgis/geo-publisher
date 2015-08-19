@@ -3,6 +3,8 @@ package nl.idgis.publisher.metadata;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.sql.dml.SQLInsertClause;
+
 import akka.actor.ActorRef;
 
 import nl.idgis.publisher.domain.SourceDatasetType;
@@ -22,9 +24,11 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
@@ -42,12 +46,13 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	MetadataStore serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
+	MetadataStoreMock serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
 	
 	@Before
 	public void actor() throws Exception {
@@ -238,20 +243,27 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		assertEquals(layerName, datasetLayer.getName());
 		
 		// Publish service
-		final String environmentIdentification = "environmentIdentification";
+		Set<String> environmentIdentifications =
+			IntStream.range(0, 5)
+				.mapToObj(i -> "environmentIdentification" + i)
+				.collect(Collectors.toSet());
 		
-		insert(environment)
-			.columns(
-				environment.identification)
-			.values(
-				environmentIdentification)
-			.execute();
+		SQLInsertClause environmentInsert = insert(environment)
+			.columns(environment.identification);
+		
+		environmentIdentifications.stream()
+			.forEach(environmentIdentification ->
+				environmentInsert
+					.values(environmentIdentification)
+					.addBatch());
+		
+		environmentInsert.execute();
 		
 		f.ask(
 			serviceManager, 
 			new PublishService(
 				serviceIdentification,
-				Collections.singleton(environmentIdentification)), 
+				environmentIdentifications), 
 			Ack.class).get();
 		
 		ActorRef dataSource = actorOf(DataSourceMock.props(), "dataSource");
@@ -274,5 +286,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		serviceMetadataTarget.get(serviceIdentification + "-wms").get();
 		serviceMetadataTarget.get(serviceIdentification + "-wfs").get();
 		datasetMetadataTarget.get(datasetIdentification).get();
+		
+		assertTrue(serviceMetadataTarget.getOverwritten().isEmpty());
 	}
 }

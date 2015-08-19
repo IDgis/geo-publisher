@@ -1,21 +1,27 @@
 package nl.idgis.publisher.metadata;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class MetadataStoreMock implements MetadataStore {
 	
+	private final Set<String> overwritten;
+	
 	private final Map<String, MetadataDocument> content;
 	
 	private final FutureUtils f;
 	
 	public MetadataStoreMock(FutureUtils f) {
-		content = new HashMap<>();
 		this.f = f;
+		
+		content = new HashMap<>();
+		overwritten = new HashSet<>();
 	}
 
 	@Override
@@ -27,7 +33,9 @@ public class MetadataStoreMock implements MetadataStore {
 
 	@Override
 	public CompletableFuture<Void> put(String name, MetadataDocument metadataDocument) {
-		content.put(name,  metadataDocument);
+		if(content.put(name,  metadataDocument) != null) {
+			overwritten.add(name);
+		}
 		
 		return f.successful(null);
 	}
@@ -39,6 +47,10 @@ public class MetadataStoreMock implements MetadataStore {
 		} else {
 			return f.failed(new NoSuchElementException());
 		}
+	}
+	
+	Set<String> getOverwritten() {
+		return overwritten;
 	}
 
 }
