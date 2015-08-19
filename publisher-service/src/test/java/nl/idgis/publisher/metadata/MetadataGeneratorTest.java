@@ -24,8 +24,6 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -246,7 +244,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		
 		// Publish service
 		Set<String> environmentIdentifications =
-			IntStream.range(0, 5)
+			IntStream.range(0, 3)
 				.mapToObj(i -> "environmentIdentification" + i)
 				.collect(Collectors.toSet());
 		

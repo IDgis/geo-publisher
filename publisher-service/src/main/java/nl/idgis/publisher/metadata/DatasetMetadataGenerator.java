@@ -34,7 +34,7 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
 			for(String layerName : serviceRef.getLayerNames()) {
 				for(String protocol : Arrays.asList("OGC:WMS", "OGC:WFS")) {
-					String linkage = serviceRef.getServiceId();
+					String linkage = "http://" + serviceRef.getEnvironmentId() + "/" + serviceRef.getServiceId();
 					// TODO: compute proper linkage
 					
 					log.debug("service linkage: {}, protocol: {}, layerName: {}", linkage, protocol, layerName);

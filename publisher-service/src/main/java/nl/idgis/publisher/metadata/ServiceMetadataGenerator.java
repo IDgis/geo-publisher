@@ -33,6 +33,11 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 
 	@Override
 	protected List<PutServiceMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception {
+		// TODO handle different environments
+		for(String environmentId : itemInfo.getEnvironmentIds()) {
+			log.debug("environmentId: {}", environmentId);
+		}
+		
 		metadataDocument.removeOperatesOn();
 		
 		String href = "http://host/metadata/dataset/";

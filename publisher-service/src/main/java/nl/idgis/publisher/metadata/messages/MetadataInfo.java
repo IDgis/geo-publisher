@@ -5,8 +5,10 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -32,9 +34,19 @@ import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.TypedList;
 
-public class MetadataInfo implements Serializable {	
+public class MetadataInfo implements Serializable {
 
 	private static final long serialVersionUID = -4466982583083563284L;
+	
+	private static class ServiceAttr {
+		
+		final String environmentId, serviceId;
+		
+		ServiceAttr(String environmentId, String serviceId) {
+			this.environmentId = environmentId;
+			this.serviceId = serviceId;
+		}
+	}
 	
 	public static final QGenericLayer layerGenericLayer = new QGenericLayer("layerGenericLayer");
 
@@ -42,7 +54,9 @@ public class MetadataInfo implements Serializable {
 
 	private final List<Tuple> tuples;
 	
-	private final Map<String, Set<String>> datasetServices, datasetLayers;
+	private final Map<String, Set<String>> datasetLayers, serviceEnvironments;
+	
+	private final Map<String, Set<ServiceAttr>> datasetServices;
 
 	private final Map<String, Map<String, Set<String>>> serviceLayerLayerName;
 
@@ -65,7 +79,9 @@ public class MetadataInfo implements Serializable {
 				.collect(Collectors.groupingBy(
 					tuple -> tuple.get(dataset.identification),
 					Collectors.mapping(
-						tuple -> tuple.get(serviceGenericLayer.identification),
+						tuple -> new ServiceAttr(
+							tuple.get(environment.identification),
+							tuple.get(serviceGenericLayer.identification)),
 						Collectors.toSet())));
 		
 		datasetLayers = 
@@ -74,6 +90,14 @@ public class MetadataInfo implements Serializable {
 					tuple -> tuple.get(dataset.identification),
 					Collectors.mapping(
 						tuple -> tuple.get(layerGenericLayer.identification),
+						Collectors.toSet())));
+		
+		serviceEnvironments = 
+			tuples.stream()
+				.collect(Collectors.groupingBy(
+					tuple -> tuple.get(serviceGenericLayer.identification),
+					Collectors.mapping(
+						tuple -> tuple.get(environment.identification),
 						Collectors.toSet())));
 	}	
 	
@@ -104,6 +128,8 @@ public class MetadataInfo implements Serializable {
 	public static CompletableFuture<TypedList<Tuple>> fetch(AsyncSQLQuery query) {
 		return query.from(publishedService)
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
+			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
 			.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
 			.join(serviceGenericLayer).on(serviceGenericLayer.id.eq(service.genericLayerId))
 			.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
@@ -119,10 +145,11 @@ public class MetadataInfo implements Serializable {
 				dataset.uuid,
 				dataset.fileUuid,
 				sourceDataset.externalIdentification,
-				dataSource.identification);
+				dataSource.identification,
+				environment.identification);
 	}
 	
-	private Set<String> getServiceIds(String datasetId) {
+	private Set<ServiceAttr> getServiceAttrs(String datasetId) {
 		if(datasetServices.containsKey(datasetId)) {			
 			return datasetServices.get(datasetId);
 		} else {
@@ -146,6 +173,14 @@ public class MetadataInfo implements Serializable {
 		}
 	}
 	
+	private Set<String> getEnvironmentIds(String serviceId) {
+		if(serviceEnvironments.containsKey(serviceId)) {
+			return serviceEnvironments.get(serviceId);
+		} else {
+			throw new IllegalStateException("no environments for service: " + serviceId);
+		}
+	}
+	
 	public Iterator<DatasetInfo> getDatasets() {
 		return 
 			tuples.stream()
@@ -155,15 +190,19 @@ public class MetadataInfo implements Serializable {
 				.map(tuple -> { 
 					String datasetId = tuple.get(dataset.identification);								
 								
-					Set<String> serviceIds = getServiceIds(datasetId);
+					Set<ServiceAttr> serviceAttrs = getServiceAttrs(datasetId);
 					Set<String> layerIds = getLayerIds(datasetId);
 					
 					Set<ServiceRef> serviceRefs =
-						serviceIds.stream()
-							.flatMap(serviceId ->
-								getLayerNames(serviceId).entrySet().stream()
+						serviceAttrs.stream()
+							.flatMap(serviceAttr ->
+								getLayerNames(serviceAttr.serviceId).entrySet().stream()
 									.filter(entry -> layerIds.contains(entry.getKey()))
-									.map(entry -> new ServiceRef(serviceId, entry.getValue())))
+									.map(entry -> 
+										new ServiceRef(
+											serviceAttr.environmentId, 
+											serviceAttr.serviceId, 
+											entry.getValue())))
 							.collect(Collectors.toSet());
 					
 					return new DatasetInfo(
@@ -179,8 +218,11 @@ public class MetadataInfo implements Serializable {
 	
 	public Iterator<ServiceInfo> getServices() {
 		return tuples.stream()
+			.map(StreamUtils.wrap(tuple -> tuple.get(serviceGenericLayer.identification)))
+			.distinct()
+			.map(StreamUtils.Wrapper::unwrap)
 			.collect(Collectors.groupingBy(
-				tuple -> tuple.get(serviceGenericLayer.identification),
+				tuple -> tuple.get(serviceGenericLayer.identification), 
 				Collectors.mapping(
 					tuple -> {
 						String serviceId = tuple.get(serviceGenericLayer.identification);
@@ -203,7 +245,14 @@ public class MetadataInfo implements Serializable {
 								.collect(Collectors.toSet())); 	
 					},
 					Collectors.toSet()))).entrySet().stream()
-						.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
+						.map(entry -> {
+							String serviceId = entry.getKey();
+							
+							return new ServiceInfo(
+								serviceId,
+								getEnvironmentIds(serviceId),
+								entry.getValue()); 
+						})
 						.iterator();
 	}
 
