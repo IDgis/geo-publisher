@@ -23,6 +23,10 @@
   <logger name="nl.idgis.publisher.service.manager.ServiceManager" level="debug"/>
   -->  
   
+  <!-- 
+  <logger name="nl.idgis.publisher.metadata" level="debug"/>
+   -->
+  
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
