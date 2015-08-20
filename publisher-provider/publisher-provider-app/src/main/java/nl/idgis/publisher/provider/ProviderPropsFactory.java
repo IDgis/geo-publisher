@@ -7,7 +7,7 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.provider.database.Database;
-import nl.idgis.publisher.provider.metadata.Metadata;
+import nl.idgis.publisher.provider.metadata.MetadataStore;
 
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
@@ -21,7 +21,7 @@ public class ProviderPropsFactory {
 	}
 	
 	private Props metadata(Config providerConfig) {
-		return Metadata.props(new File(providerConfig.getString("metadata.folder")));		
+		return MetadataStore.props(new File(providerConfig.getString("metadata.folder")));		
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {

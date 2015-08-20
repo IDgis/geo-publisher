@@ -14,7 +14,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class Metadata extends UntypedActor {
+public class MetadataStore extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -22,7 +22,7 @@ public class Metadata extends UntypedActor {
 	
 	private ActorRef listProvider;
 	
-	public Metadata(File metadataDirectory) {
+	public MetadataStore(File metadataDirectory) {
 		if (!metadataDirectory.isDirectory()) {
 			throw new IllegalArgumentException("metadataDirectory is not a directory");
 		}
@@ -31,7 +31,7 @@ public class Metadata extends UntypedActor {
 	}
 	
 	public static Props props(File metadataDirectory) {
-		return Props.create(Metadata.class, metadataDirectory);
+		return Props.create(MetadataStore.class, metadataDirectory);
 	}
 	
 	@Override
