@@ -1,8 +1,11 @@
 package nl.idgis.publisher.metadata;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import com.mysema.query.sql.dml.SQLInsertClause;
 
 import akka.actor.ActorRef;
@@ -24,6 +27,9 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -52,7 +58,9 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	MetadataStoreMock serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget;
+	Path serviceMetadataDirectory;
+	
+	MetadataStoreMock datasetMetadataTarget, serviceMetadataTarget;
 	
 	ActorRef metadataTarget;
 	
@@ -60,16 +68,19 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	public void actor() throws Exception {
 		harvester = actorOf(HarvesterMock.props(), "harvester");		
 		
-		serviceMetadataSource = new MetadataStoreMock(f);
 		datasetMetadataTarget = new MetadataStoreMock(f);
 		serviceMetadataTarget = new MetadataStoreMock(f);
 		
 		metadataTarget = actorOf(MetadataTarget.props(datasetMetadataTarget, serviceMetadataTarget), "metadata-target");
 		
+		FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+		serviceMetadataDirectory = fs.getPath("/service-metadata");
+		Files.createDirectory(serviceMetadataDirectory);
+		
 		metadataGenerator = actorOf(
 			MetadataGenerator.props(
 				database, 
-				actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source")), 
+				actorOf(MetadataSource.props(harvester, serviceMetadataDirectory), "metadata-source")), 
 			"metadata-generator");
 	}
 	
@@ -280,9 +291,9 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				MetadataDocumentTest.getDocument("dataset_metadata.xml")),
 			Ack.class).get();
 		
-		serviceMetadataSource.put(
-			serviceIdentification, 
-			MetadataDocumentTest.getDocument("service_metadata.xml")).get();
+		IOUtils.copy(
+			getClass().getResourceAsStream("service_metadata.xml"),
+			Files.newOutputStream(serviceMetadataDirectory.resolve(serviceIdentification + ".xml")));
 
 		f.ask(
 			metadataGenerator, 

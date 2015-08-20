@@ -1,5 +1,10 @@
 package nl.idgis.publisher.metadata;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -17,19 +22,26 @@ public class MetadataSource extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
+	private final MetadataDocumentFactory documentFactory;
+	
 	private final ActorRef harvester;
 	
-	private final MetadataStore serviceMetadataStore;
+	private final Path serviceMetadataDirectory;
 	
 	private FutureUtils f;
 	
-	public MetadataSource(ActorRef harvester, MetadataStore serviceMetadataStore) {
+	public MetadataSource(ActorRef harvester, Path serviceMetadataDirectory) throws Exception {
 		this.harvester = harvester;
-		this.serviceMetadataStore = serviceMetadataStore;
+		this.serviceMetadataDirectory = serviceMetadataDirectory;
+		
+		documentFactory = new MetadataDocumentFactory();
 	}
 	
-	public static Props props(ActorRef harvester, MetadataStore serviceMetadataStore) {
-		return Props.create(MetadataSource.class, harvester, serviceMetadataStore);
+	public static Props props(ActorRef harvester, Path serviceMetadataDirectory) {
+		return Props.create(
+			MetadataSource.class, 
+			Objects.requireNonNull(harvester, "harvester must not be null"), 
+			Objects.requireNonNull(serviceMetadataDirectory, "serviceMetadataDirectory must not be null"));
 	}
 	
 	@Override
@@ -51,14 +63,16 @@ public class MetadataSource extends UntypedActor {
 	private void handleGetServiceMetadata(GetServiceMetadata msg) {
 		log.debug("service metadata requested: {}", msg);
 		
-		ActorRef sender = getSender();
-		serviceMetadataStore.get(msg.getServiceId()).whenComplete((metadataDocument, throwable) -> {
-			if(throwable == null) {
-				sender.tell(metadataDocument, getSelf());
-			} else {
-				sender.tell(new Failure(throwable), getSelf());
-			}
-		});
+		try {
+			Path serviceMetadataFile = serviceMetadataDirectory.resolve(msg.getServiceId() + ".xml");
+			byte[] documentContent = Files.readAllBytes(serviceMetadataFile);
+			
+			getSender().tell(
+				documentFactory.parseDocument(documentContent),
+				getSelf());
+		} catch(Exception e) {
+			getSender().tell(new Failure(e), getSelf());
+		}
 	}
 
 	private void handleGetDatasetMetadata(GetDatasetMetadata msg) {
