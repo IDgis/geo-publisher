@@ -5,8 +5,10 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -101,9 +103,10 @@ public class MetadataInfo implements Serializable {
 		return layerInfo;
 	}
 	
-	public static CompletableFuture<TypedList<Tuple>> fetch(AsyncSQLQuery query) {
+	public static CompletableFuture<TypedList<Tuple>> fetch(AsyncSQLQuery query, String environmentId) {
 		return query.from(publishedService)
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
+			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
 			.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
 			.join(serviceGenericLayer).on(serviceGenericLayer.id.eq(service.genericLayerId))
 			.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
@@ -111,6 +114,8 @@ public class MetadataInfo implements Serializable {
 			.join(layerGenericLayer).on(layerGenericLayer.id.eq(leafLayer.genericLayerId))
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+			.where(environment.identification.eq(environmentId))
 			.list(
 				publishedService.content,
 				serviceGenericLayer.identification,

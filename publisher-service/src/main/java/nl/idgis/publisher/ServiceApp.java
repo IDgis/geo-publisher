@@ -198,15 +198,17 @@ public class ServiceApp extends UntypedActor {
 		
 		metadataConfig.getConfig("generator-constants");
 		
-		ActorRef metadataSource = getContext().actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source");
+		// TODO: reimplement metadata generator bootstrapping
+		/*ActorRef metadataSource = getContext().actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source");
 		ActorRef metadataTarget = getContext().actorOf(MetadataTarget.props(datasetMetadataTarget, serviceMetadataTarget), "metadata-target");
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, metadataSource, metadataTarget), "metadata-generator");
+		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, metadataSource), "metadata-generator");
+		
 		getContext().system().scheduler().schedule(
 				Duration.create(10, TimeUnit.SECONDS), 
 				Duration.create(10, TimeUnit.SECONDS),
 				metadataGenerator, new GenerateMetadata(), 
-				getContext().dispatcher(), getSelf());
+				getContext().dispatcher(), getSelf());*/
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();

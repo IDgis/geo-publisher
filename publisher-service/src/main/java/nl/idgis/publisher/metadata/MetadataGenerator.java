@@ -20,24 +20,22 @@ public class MetadataGenerator extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 		
-	private final ActorRef database, metadataSource, metadataTarget;
+	private final ActorRef database, metadataSource;
 	
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
 	
-	public MetadataGenerator(ActorRef database, ActorRef metadataSource, ActorRef metadataTarget) {
+	public MetadataGenerator(ActorRef database, ActorRef metadataSource) {
 		this.database = database;
-		this.metadataSource = metadataSource;
-		this.metadataTarget = metadataTarget;
+		this.metadataSource = metadataSource;		
 	}
 	
-	public static Props props(ActorRef database, ActorRef metadataSource, ActorRef metadataTarget) {
+	public static Props props(ActorRef database, ActorRef metadataSource) {
 		return Props.create(
 			MetadataGenerator.class, 
 			Objects.requireNonNull(database, "database must not be null"), 
-			Objects.requireNonNull(metadataSource, "metadataSource must not be null"), 
-			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"));
+			Objects.requireNonNull(metadataSource, "metadataSource must not be null"));
 	}
 	
 	@Override
@@ -49,13 +47,13 @@ public class MetadataGenerator extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GenerateMetadata) {
-			handleGenerateMetadata();
+			handleGenerateMetadata((GenerateMetadata)msg);
 		} else {
 			unhandled(msg);
 		}
 	}
 	
-	private void handleGenerateMetadata() throws Exception {		
+	private void handleGenerateMetadata(GenerateMetadata msg) throws Exception {		
 		
 		log.info("generating metadata");
 		
@@ -63,11 +61,11 @@ public class MetadataGenerator extends UntypedActor {
 			MetadataInfoProcessor.props(
 				getSender(), 
 				metadataSource,
-				metadataTarget),
+				msg.getTarget()),
 			
 			nameGenerator.getName(MetadataInfoProcessor.class));
 
-		MetadataInfo.fetch(db.query()).thenAccept(tuples ->
+		MetadataInfo.fetch(db.query(), msg.getEnvironmentId()).thenAccept(tuples ->
 			processor.tell(
 				new MetadataInfo(tuples.list()), 
 				getSelf()));
