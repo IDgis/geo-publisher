@@ -1,7 +1,6 @@
 package nl.idgis.publisher.metadata;
 
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -14,7 +13,6 @@ import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
-import nl.idgis.publisher.xml.exceptions.NotFound;
 
 public class MetadataGenerator extends UntypedActor {
 	
@@ -51,13 +49,13 @@ public class MetadataGenerator extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GenerateMetadata) {
-			generateMetadata();
+			handleGenerateMetadata();
 		} else {
 			unhandled(msg);
 		}
 	}
 	
-	private void generateMetadata() throws InterruptedException, ExecutionException, NotFound {		
+	private void handleGenerateMetadata() throws Exception {		
 		
 		log.info("generating metadata");
 		
