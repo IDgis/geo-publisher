@@ -27,7 +27,16 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	
 	protected final T itemInfo;
 	
-	protected final String serviceLinkagePrefix;
+	private final String serviceLinkagePrefix;
+	
+	protected static enum ServiceType {
+		
+		WMS, WFS;
+		
+		String getProtocol() {
+			return "OGC:" + name();
+		}
+	}
 	
 	private FutureUtils f;
 	
@@ -116,6 +125,10 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		
 		getContext().parent().tell(new NextItem(), getSelf());
 		getContext().stop(getSelf());
+	}
+	
+	protected String getServiceLinkage(String serviceId, ServiceType serviceType) {
+		return serviceLinkagePrefix + serviceId + "/" + serviceType.name().toLowerCase();
 	}
 
 }

@@ -1,6 +1,5 @@
 package nl.idgis.publisher.metadata;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -34,9 +33,9 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 		metadataDocument.removeServiceLinkage();
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
 			for(String layerName : serviceRef.getLayerNames()) {
-				for(String serviceType : Arrays.asList("wms", "wfs")) {
-					String linkage = serviceLinkagePrefix + serviceRef.getServiceId() + "/" + serviceType;
-					String protocol = "OGC:" + serviceType.toUpperCase();
+				for(ServiceType serviceType : ServiceType.values()) {
+					String linkage = getServiceLinkage(serviceRef.getServiceId(), serviceType);
+					String protocol = serviceType.getProtocol();
 					
 					log.debug("service linkage: {}, protocol: {}, layerName: {}", linkage, protocol, layerName);
 					metadataDocument.addServiceLinkage(linkage, protocol, layerName);

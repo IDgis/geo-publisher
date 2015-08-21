@@ -63,7 +63,8 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		log.debug("wfs metadata");
 		
-		String linkage = serviceLinkagePrefix + itemInfo.getId() + "/wfs";
+		ServiceType serviceType = ServiceType.WFS;
+		String linkage = getServiceLinkage(itemInfo.getId(), serviceType);
 		
 		metadataDocument.addServiceType("OGC:WFS");
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
@@ -75,7 +76,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 				
 				log.debug("dataset scopedName: {}, uuid: {}, layerName: {}", scopedName, uuid, layerName);
 				
-				metadataDocument.addServiceLinkage(linkage, "OGC:WFS", layerName);
+				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), layerName);
 				metadataDocument.addSVCoupledResource("GetFeature", uuid, scopedName); 
 			}
 		}
@@ -86,7 +87,8 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	private MetadataDocument generateWMSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		log.debug("wms metadata");		
 		
-		String linkage = serviceLinkagePrefix + itemInfo.getId() + "/wms";
+		ServiceType serviceType = ServiceType.WMS;
+		String linkage = getServiceLinkage(itemInfo.getId(), serviceType);
 		
 		String browseGraphicBaseUrl = linkage 
 			+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
@@ -103,7 +105,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 				log.debug("dataset scopedName: {}, uuid: {}, layerName: {}", scopedName, uuid, layerName);
 				
 				metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
-				metadataDocument.addServiceLinkage(linkage, "OGC:WMS", layerName);
+				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), layerName);
 				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
 			}
 		}
