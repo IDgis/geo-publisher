@@ -20,8 +20,8 @@ import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class MetadataSourceTest {
@@ -56,7 +56,7 @@ public class MetadataSourceTest {
 	@Test
 	public void testGetServiceMetadata() throws Exception {
 		
-		f.ask(metadataSource, new GetServiceMetadata("serviceId"), Failure.class).get();
+		f.ask(metadataSource, new GetServiceMetadata("serviceId"), MetadataNotFound.class).get();
 		
 		IOUtils.copy(
 			getClass().getResourceAsStream("service_metadata.xml"),

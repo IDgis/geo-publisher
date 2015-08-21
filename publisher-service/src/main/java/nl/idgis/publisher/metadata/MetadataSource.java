@@ -14,6 +14,7 @@ import nl.idgis.publisher.harvester.messages.GetDataSource;
 import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -64,11 +65,15 @@ public class MetadataSource extends UntypedActor {
 		
 		try {
 			Path serviceMetadataFile = serviceMetadataDirectory.resolve(msg.getServiceId() + ".xml");
-			byte[] documentContent = Files.readAllBytes(serviceMetadataFile);
-			
-			getSender().tell(
-				documentFactory.parseDocument(documentContent),
-				getSelf());
+			if(Files.isRegularFile(serviceMetadataFile)) {			
+				byte[] documentContent = Files.readAllBytes(serviceMetadataFile);
+				
+				getSender().tell(
+					documentFactory.parseDocument(documentContent),
+					getSelf());
+			} else {
+				getSender().tell(new MetadataNotFound(), getSelf());
+			}
 		} catch(Exception e) {
 			getSender().tell(new Failure(e), getSelf());
 		}

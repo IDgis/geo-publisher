@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import akka.actor.Props;
@@ -45,8 +46,24 @@ public class MetadataTarget extends UntypedActor {
 		});
 	}
 	
+	private static Path requireExistingDirectory(Path path, String message) {
+		if(Files.isDirectory(path)) {
+			return path;
+		} else {
+			throw new IllegalArgumentException(message);
+		}
+	}
+	
 	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory, Supplier<Path> tempDirectorySupplier) {
-		return Props.create(MetadataTarget.class, serviceMetadataDirectory, datasetMetadataDirectory, tempDirectorySupplier);
+		return Props.create(
+			MetadataTarget.class, 
+			requireExistingDirectory(
+				Objects.requireNonNull(serviceMetadataDirectory, "serviceMetadataDirectory must not be null"), 
+				"serviceMetadataDirectory must be an existing directory"), 
+			requireExistingDirectory(
+					Objects.requireNonNull(datasetMetadataDirectory, "datasetMetadataDirectory must not be null"),
+					"datasetMetadataDirectory must be an existing directory"),
+			Objects.requireNonNull(tempDirectorySupplier, "tempDirectorySupplier must not be null"));
 	}
 
 	@Override
@@ -56,6 +73,32 @@ public class MetadataTarget extends UntypedActor {
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private void move(Path source, Path target) throws IOException {
+		log.debug("moving files, source: {}, target: {}", source, target);
+		
+		Files.move(source, target);
+	}
+	
+	private void delete(Path dir) throws IOException {
+		log.debug("deleting directory: {}", dir);
+		
+		Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.delete(file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+				Files.delete(dir);
+				return FileVisitResult.CONTINUE;
+			}
+			
+		});
 	}
 	
 	private Procedure<Object> puttingMetadata(Path beginTempDirectory) throws Exception {
@@ -94,34 +137,21 @@ public class MetadataTarget extends UntypedActor {
 			}
 
 			private void handleCommitMetadata() {
+				log.debug("moving metadata to target directories");
+				
 				try {
 					Path commitTempDirectory = tempDirectorySupplier.get();
 					
 					Files.createDirectories(commitTempDirectory);
 					
-					Files.move(MetadataTarget.this.datasetMetadataDirectory, commitTempDirectory.resolve("dataset"));
-					Files.move(MetadataTarget.this.serviceMetadataDirectory, commitTempDirectory.resolve("service"));
+					move(MetadataTarget.this.datasetMetadataDirectory, commitTempDirectory.resolve("dataset"));
+					move(MetadataTarget.this.serviceMetadataDirectory, commitTempDirectory.resolve("service"));
 					
-					Files.move(datasetMetadataDirectory, MetadataTarget.this.datasetMetadataDirectory);
-					Files.move(serviceMetadataDirectory, MetadataTarget.this.serviceMetadataDirectory);
+					move(datasetMetadataDirectory, MetadataTarget.this.datasetMetadataDirectory);
+					move(serviceMetadataDirectory, MetadataTarget.this.serviceMetadataDirectory);
 					
-					Files.delete(beginTempDirectory);
-					
-					Files.walkFileTree(commitTempDirectory, new SimpleFileVisitor<Path>() {
-
-						@Override
-						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-							Files.delete(file);
-							return FileVisitResult.CONTINUE;
-						}
-
-						@Override
-						public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-							Files.delete(dir);
-							return FileVisitResult.CONTINUE;
-						}
-						
-					});
+					delete(beginTempDirectory);
+					delete(commitTempDirectory);
 					
 					getSender().tell(new Ack(), getSelf());
 				} catch(Exception e) {
@@ -145,8 +175,12 @@ public class MetadataTarget extends UntypedActor {
 
 	private void doPut(Path metadataDirectory, String name, MetadataDocument metadataDocument) {
 		try {
+			Path file = metadataDirectory.resolve(name + ".xml");
+			
+			log.debug("writing to file: {}", file);
+			
 			Files.write(				
-				metadataDirectory.resolve(name + ".xml"),
+				file,
 				metadataDocument.getContent());
 			getSender().tell(new Ack(), getSelf());
 		} catch(Exception e) {

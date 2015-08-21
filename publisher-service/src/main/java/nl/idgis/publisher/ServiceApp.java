@@ -212,7 +212,7 @@ public class ServiceApp extends UntypedActor {
 			
 			getContext().system().scheduler().schedule(
 					Duration.create(10, TimeUnit.SECONDS), 
-					Duration.create(10, TimeUnit.SECONDS),
+					Duration.create(1, TimeUnit.HOURS),
 					metadataGenerator, 
 						new GenerateMetadata(
 							environmentName, 

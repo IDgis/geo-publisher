@@ -14,6 +14,7 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.metadata.messages.MetadataItemInfo;
+import nl.idgis.publisher.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.metadata.messages.PutMetadata;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
@@ -75,6 +76,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		
 		if(msg instanceof MetadataDocument) {
 			handleMetadataDocument((MetadataDocument)msg);
+		} else if(msg instanceof MetadataNotFound) {
+			handleMetadataNotFound();
 		} else if(msg instanceof GeneratorResult) {
 			handleGeneratorResult((GeneratorResult)msg);
 		} else if(msg instanceof ReceiveTimeout) {
@@ -82,6 +85,12 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleMetadataNotFound() {
+		log.error("metadata not found");
+		
+		stop();
 	}
 
 	private void handleReceiveTimeout() {
