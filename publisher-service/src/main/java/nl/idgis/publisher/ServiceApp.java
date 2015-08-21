@@ -25,10 +25,8 @@ import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.FileMetadataStore;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataSource;
-import nl.idgis.publisher.metadata.MetadataStore;
 import nl.idgis.publisher.metadata.MetadataTarget;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.service.manager.ServiceManager;
@@ -192,14 +190,15 @@ public class ServiceApp extends UntypedActor {
 		
 		Config metadataConfig = config.getConfig("metadata");
 		
-		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")), f);
+		// TODO: reimplement metadata generator bootstrapping
+		/*MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")), f);
 		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")), f);
 		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")), f);		
 		
 		metadataConfig.getConfig("generator-constants");
 		
-		// TODO: reimplement metadata generator bootstrapping
-		/*ActorRef metadataSource = getContext().actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source");
+		
+		ActorRef metadataSource = getContext().actorOf(MetadataSource.props(harvester, serviceMetadataSource), "metadata-source");
 		ActorRef metadataTarget = getContext().actorOf(MetadataTarget.props(datasetMetadataTarget, serviceMetadataTarget), "metadata-target");
 		
 		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, metadataSource), "metadata-generator");
