@@ -14,15 +14,16 @@ import nl.idgis.publisher.metadata.messages.ServiceRef;
 
 public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo, PutDatasetMetadata> {
 
-	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo) {
-		super(metadataTarget, datasetInfo);
+	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix) {
+		super(metadataTarget, datasetInfo, serviceLinkagePrefix);
 	}
 	
-	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo) {
+	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix) {
 		return Props.create(
 			DatasetMetadataGenerator.class, 
 			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"), 
-			Objects.requireNonNull(datasetInfo, "datasetInfo must not be null"));
+			Objects.requireNonNull(datasetInfo, "datasetInfo must not be null"),
+			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"));
 	}
 
 	@Override
@@ -33,9 +34,9 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 		metadataDocument.removeServiceLinkage();
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
 			for(String layerName : serviceRef.getLayerNames()) {
-				for(String protocol : Arrays.asList("OGC:WMS", "OGC:WFS")) {
-					String linkage = serviceRef.getServiceId();
-					// TODO: compute proper linkage
+				for(String serviceType : Arrays.asList("wms", "wfs")) {
+					String linkage = serviceLinkagePrefix + serviceRef.getServiceId() + "/" + serviceType;
+					String protocol = "OGC:" + serviceType.toUpperCase();
 					
 					log.debug("service linkage: {}, protocol: {}, layerName: {}", linkage, protocol, layerName);
 					metadataDocument.addServiceLinkage(linkage, protocol, layerName);

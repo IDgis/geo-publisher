@@ -27,6 +27,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	
 	protected final T itemInfo;
 	
+	protected final String serviceLinkagePrefix;
+	
 	private FutureUtils f;
 	
 	private static class GeneratorResult {
@@ -42,9 +44,10 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		}
 	}
 	
-	AbstractMetadataItemGenerator(ActorRef metadataTarget, T itemInfo) {
+	AbstractMetadataItemGenerator(ActorRef metadataTarget, T itemInfo, String serviceLinkagePrefix) {
 		this.metadataTarget = metadataTarget;
 		this.itemInfo = itemInfo;
+		this.serviceLinkagePrefix = serviceLinkagePrefix;
 	}
 	
 	@Override

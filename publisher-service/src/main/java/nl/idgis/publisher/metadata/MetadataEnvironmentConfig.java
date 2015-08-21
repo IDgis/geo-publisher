@@ -24,6 +24,10 @@ public class MetadataEnvironmentConfig {
 		return fileSystem.getPath(config.getString("datasetMetadataTarget"));
 	}
 	
+	public String getServiceLinkagePrefix() {
+		return config.getString("serviceLinkagePrefix");
+	}
+	
 	public String getName() {
 		return config.getString("name");
 	}

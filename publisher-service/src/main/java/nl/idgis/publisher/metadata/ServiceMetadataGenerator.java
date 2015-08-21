@@ -20,15 +20,16 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
 
-	public ServiceMetadataGenerator(ActorRef metadataTarget, ServiceInfo serviceInfo) {
-		super(metadataTarget, serviceInfo);
+	public ServiceMetadataGenerator(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix) {
+		super(metadataTarget, serviceInfo, serviceLinkagePrefix);
 	}
 	
-	public static Props props(ActorRef metadataTarget, ServiceInfo serviceInfo) {
+	public static Props props(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix) {
 		return Props.create(
 			ServiceMetadataGenerator.class, 
 			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"), 
-			Objects.requireNonNull(serviceInfo, "serviceInfo must not be null"));
+			Objects.requireNonNull(serviceInfo, "serviceInfo must not be null"),
+			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"));
 	}
 
 	@Override
@@ -62,8 +63,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		log.debug("wfs metadata");
 		
-		String linkage = itemInfo.getId();
-		// TODO: compute proper linkage
+		String linkage = serviceLinkagePrefix + itemInfo.getId() + "/wfs";
 		
 		metadataDocument.addServiceType("OGC:WFS");
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
@@ -84,10 +84,10 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 
 	private MetadataDocument generateWMSMetadata(MetadataDocument metadataDocument) throws NotFound {
-		log.debug("wms metadata");
+		log.debug("wms metadata");		
 		
-		String linkage = itemInfo.getId();
-		// TODO: compute proper linkage
+		String linkage = serviceLinkagePrefix + itemInfo.getId() + "/wms";
+		
 		String browseGraphicBaseUrl = linkage 
 			+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 			+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
