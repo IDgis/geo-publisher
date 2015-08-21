@@ -31,4 +31,8 @@ public class MetadataEnvironmentConfig {
 	public String getName() {
 		return config.getString("name");
 	}
+
+	public String getDatasetMetadataPrefix() {
+		return config.getString("datasetMetadataPrefix");
+	}
 }

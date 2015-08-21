@@ -4,20 +4,21 @@ import java.io.Serializable;
 
 import akka.actor.ActorRef;
 
-public class GenerateMetadata implements Serializable {
-	
-	private static final long serialVersionUID = -928423371634898960L;
+public class GenerateMetadata implements Serializable {	
+
+	private static final long serialVersionUID = -2990168366163441674L;
 
 	private final String environmentId;
 	
 	private final ActorRef target;
 	
-	private final String serviceLinkagePrefix;
+	private final String serviceLinkagePrefix, datasetMetadataPrefix;	
 	
-	public GenerateMetadata(String environmentId, ActorRef target, String serviceLinkagePrefix) {
+	public GenerateMetadata(String environmentId, ActorRef target, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		this.environmentId = environmentId;
 		this.target = target;
 		this.serviceLinkagePrefix = serviceLinkagePrefix;
+		this.datasetMetadataPrefix = datasetMetadataPrefix;
 	}
 
 	public String getEnvironmentId() {
@@ -31,10 +32,15 @@ public class GenerateMetadata implements Serializable {
 	public String getServiceLinkagePrefix() {
 		return serviceLinkagePrefix;
 	}
+	
+	public String getDatasetMetadataPrefix() {		
+		return datasetMetadataPrefix;
+	}
 
 	@Override
 	public String toString() {
 		return "GenerateMetadata [environmentId=" + environmentId + ", target=" + target + ", serviceLinkagePrefix="
-				+ serviceLinkagePrefix + "]";
-	}		
+				+ serviceLinkagePrefix + ", datasetMetadataPrefix=" + datasetMetadataPrefix + "]";
+	}
+			
 }

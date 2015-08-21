@@ -27,7 +27,7 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	
 	protected final T itemInfo;
 	
-	private final String serviceLinkagePrefix;
+	private final String serviceLinkagePrefix, datasetMetadataPrefix;
 	
 	protected static enum ServiceType {
 		
@@ -38,7 +38,7 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		}
 	}
 	
-	private FutureUtils f;
+	private FutureUtils f;	
 	
 	private static class GeneratorResult {
 		
@@ -53,10 +53,11 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		}
 	}
 	
-	AbstractMetadataItemGenerator(ActorRef metadataTarget, T itemInfo, String serviceLinkagePrefix) {
+	AbstractMetadataItemGenerator(ActorRef metadataTarget, T itemInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		this.metadataTarget = metadataTarget;
 		this.itemInfo = itemInfo;
 		this.serviceLinkagePrefix = serviceLinkagePrefix;
+		this.datasetMetadataPrefix = datasetMetadataPrefix;
 	}
 	
 	@Override
@@ -129,6 +130,10 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	
 	protected String getServiceLinkage(String serviceId, ServiceType serviceType) {
 		return serviceLinkagePrefix + serviceId + "/" + serviceType.name().toLowerCase();
+	}
+	
+	protected String getDatasetMetadataHref(String fileUuid) {
+		return datasetMetadataPrefix + fileUuid + ".xml";
 	}
 
 }

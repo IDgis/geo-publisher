@@ -20,29 +20,27 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
 
-	public ServiceMetadataGenerator(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix) {
-		super(metadataTarget, serviceInfo, serviceLinkagePrefix);
+	public ServiceMetadataGenerator(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
+		super(metadataTarget, serviceInfo, serviceLinkagePrefix, datasetMetadataPrefix);
 	}
 	
-	public static Props props(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix) {
+	public static Props props(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			ServiceMetadataGenerator.class, 
 			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"), 
 			Objects.requireNonNull(serviceInfo, "serviceInfo must not be null"),
-			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"));
+			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"),
+			Objects.requireNonNull(datasetMetadataPrefix, "datasetMetadataPrefix must not be null"));
 	}
 
 	@Override
 	protected List<PutServiceMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception {
-		metadataDocument.removeOperatesOn();
-		
-		String href = "http://host/metadata/dataset/";
-		// TODO fetch href from config
+		metadataDocument.removeOperatesOn();		
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
 			String uuid = datasetRef.getUuid();
 			String fileUuid = datasetRef.getFileUuid();
-			String uuidref = href + fileUuid + ".xml";
+			String uuidref = getDatasetMetadataHref(fileUuid);
 			
 			log.debug("service operatesOn uuidref: {}, uuid: {}", uuidref, uuid);
 			

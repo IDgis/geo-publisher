@@ -27,6 +27,7 @@ public class MetadataConfigTest {
 					environmentConfig.getDatasetMetadataTarget();
 					environmentConfig.getServiceMetadataTarget();
 					environmentConfig.getServiceLinkagePrefix();
+					environmentConfig.getDatasetMetadataPrefix();
 					
 					return environmentConfig.getName(); 
 				})

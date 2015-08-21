@@ -301,14 +301,16 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			getClass().getResourceAsStream("service_metadata.xml"),
 			Files.newOutputStream(serviceMetadataSourceDirectory.resolve(serviceIdentification + ".xml")));
 
-		String environmentIdentification = environmentIdentifications.iterator().next(); 
+		String environmentIdentification = environmentIdentifications.iterator().next();
+		String prefix = "http://" + environmentIdentification + ".example.com/";
 		
 		f.ask(
 			metadataGenerator, 
 			new GenerateMetadata(
 				environmentIdentification, 
 				metadataTarget,
-				"http://" + environmentIdentification + ".example.com/geoserver/"), 
+				prefix + "geoserver/",
+				prefix + "metadata/dataset/"), 
 			Ack.class).get();
 		
 		assertTrue(Files.exists(serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml")));

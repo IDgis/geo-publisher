@@ -13,16 +13,17 @@ import nl.idgis.publisher.metadata.messages.ServiceRef;
 
 public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo, PutDatasetMetadata> {
 
-	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix) {
-		super(metadataTarget, datasetInfo, serviceLinkagePrefix);
+	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
+		super(metadataTarget, datasetInfo, serviceLinkagePrefix, datasetMetadataPrefix);
 	}
 	
-	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix) {
+	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			DatasetMetadataGenerator.class, 
 			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"), 
 			Objects.requireNonNull(datasetInfo, "datasetInfo must not be null"),
-			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"));
+			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"),
+			Objects.requireNonNull(datasetMetadataPrefix, "datasetMetadataPrefix must not be null"));
 	}
 
 	@Override

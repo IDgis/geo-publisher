@@ -62,7 +62,8 @@ public class MetadataGenerator extends UntypedActor {
 				getSender(), 
 				metadataSource,
 				msg.getTarget(),
-				msg.getServiceLinkagePrefix()),
+				msg.getServiceLinkagePrefix(),
+				msg.getDatasetMetadataPrefix()),
 			
 			nameGenerator.getName(MetadataInfoProcessor.class));
 

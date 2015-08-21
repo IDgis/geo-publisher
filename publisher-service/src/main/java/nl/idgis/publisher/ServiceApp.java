@@ -217,7 +217,8 @@ public class ServiceApp extends UntypedActor {
 						new GenerateMetadata(
 							environmentName, 
 							metadataTarget,
-							environmentConfig.getServiceLinkagePrefix()), 
+							environmentConfig.getServiceLinkagePrefix(),
+							environmentConfig.getDatasetMetadataPrefix()), 
 					getContext().dispatcher(), getSelf());
 		});
 		

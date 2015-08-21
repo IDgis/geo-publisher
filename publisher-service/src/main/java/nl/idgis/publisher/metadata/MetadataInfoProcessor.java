@@ -30,22 +30,24 @@ public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final ActorRef initiator, metadataSource, metadataTarget;
 	
-	private final String serviceLinkagePrefix;
+	private final String serviceLinkagePrefix, datasetMetadataPrefix;
 		
-	public MetadataInfoProcessor(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget, String serviceLinkagePrefix) {
+	public MetadataInfoProcessor(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		this.initiator = initiator;
 		this.metadataSource = metadataSource;
 		this.metadataTarget = metadataTarget;
 		this.serviceLinkagePrefix = serviceLinkagePrefix;
+		this.datasetMetadataPrefix = datasetMetadataPrefix;
 	}
 	
-	public static Props props(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget, String serviceLinkagePrefix) {
+	public static Props props(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			MetadataInfoProcessor.class, 
 			Objects.requireNonNull(initiator, "initiator must not be null"), 
 			Objects.requireNonNull(metadataSource, "metadataSource must not be null"),
 			Objects.requireNonNull(metadataTarget, "metadataTarget must not be null"),
-			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"));
+			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"),
+			Objects.requireNonNull(datasetMetadataPrefix, "datasetMetadataPrefix must not be null"));
 	}
 	
 	@Override
@@ -77,7 +79,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 							ServiceMetadataGenerator.props(
 								metadataTarget, 
 								serviceInfo, 
-								serviceLinkagePrefix),
+								serviceLinkagePrefix,
+								datasetMetadataPrefix),
 							nameGenerator.getName(ServiceMetadataGenerator.class)));
 				} else {
 					log.debug("all services processed");
@@ -110,7 +113,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 							DatasetMetadataGenerator.props(
 								metadataTarget, 
 								currentDataset,
-								serviceLinkagePrefix),
+								serviceLinkagePrefix,
+								datasetMetadataPrefix),
 							nameGenerator.getName(DatasetMetadataGenerator.class)));
 				} else {
 					log.debug("all datasets processed");
