@@ -13,12 +13,13 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.metadata.messages.BeginPutMetadata;
+import nl.idgis.publisher.metadata.messages.CommitMetadata;
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -145,7 +146,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 						metadataInfo,
 						metadataInfo.getDatasets()));
 				
-			getSelf().tell(new NextItem(), getSelf());
+			metadataTarget.tell(new BeginPutMetadata(), getSelf());
 		} else {
 			unhandled(msg);
 		}
@@ -154,7 +155,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 	private void terminate() {
 		log.debug("terminating");
 		
-		initiator.tell(new Ack(), getContext().parent());
+		metadataTarget.tell(new CommitMetadata(), initiator);
 		getContext().stop(getSelf());
 	}	
 

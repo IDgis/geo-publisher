@@ -30,6 +30,7 @@ import nl.idgis.publisher.service.manager.messages.PublishService;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -66,21 +67,29 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	public void actor() throws Exception {
 		harvester = actorOf(HarvesterMock.props(), "harvester");
 		
-		FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+		FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
 		
-		serviceMetadataSourceDirectory = fs.getPath("/service-metadata-source");
+		serviceMetadataSourceDirectory = fileSystem.getPath("/service-metadata-source");
 		Files.createDirectory(serviceMetadataSourceDirectory);
 		
-		serviceMetadataTargetDirectory = fs.getPath("/service-metadata-target");
+		serviceMetadataTargetDirectory = fileSystem.getPath("/service-metadata-target");
 		Files.createDirectory(serviceMetadataTargetDirectory);
 		
-		datasetMetadataTargetDirectory = fs.getPath("/dataset-metadata-target");
+		datasetMetadataTargetDirectory = fileSystem.getPath("/dataset-metadata-target");
 		Files.createDirectory(datasetMetadataTargetDirectory);
+		
+		Set<Path> tempDirectories = new HashSet<>();
 		
 		metadataTarget = actorOf(
 			MetadataTarget.props(
 				serviceMetadataTargetDirectory, 
-				datasetMetadataTargetDirectory), 
+				datasetMetadataTargetDirectory,
+				() -> {
+					Path retval = fileSystem.getPath("/temp").resolve("" + tempDirectories.size());
+					tempDirectories.add(retval);
+					
+					return retval;
+				}), 
 			"metadata-target");
 		
 		metadataGenerator = actorOf(
