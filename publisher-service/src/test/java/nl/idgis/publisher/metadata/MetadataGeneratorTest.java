@@ -58,29 +58,35 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	Path serviceMetadataDirectory;
-	
-	MetadataStoreMock datasetMetadataTarget, serviceMetadataTarget;
+	Path serviceMetadataSourceDirectory, serviceMetadataTargetDirectory, datasetMetadataTargetDirectory;
 	
 	ActorRef metadataTarget;
 	
 	@Before
 	public void actor() throws Exception {
-		harvester = actorOf(HarvesterMock.props(), "harvester");		
-		
-		datasetMetadataTarget = new MetadataStoreMock(f);
-		serviceMetadataTarget = new MetadataStoreMock(f);
-		
-		metadataTarget = actorOf(MetadataTarget.props(datasetMetadataTarget, serviceMetadataTarget), "metadata-target");
+		harvester = actorOf(HarvesterMock.props(), "harvester");
 		
 		FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-		serviceMetadataDirectory = fs.getPath("/service-metadata");
-		Files.createDirectory(serviceMetadataDirectory);
+		
+		serviceMetadataSourceDirectory = fs.getPath("/service-metadata-source");
+		Files.createDirectory(serviceMetadataSourceDirectory);
+		
+		serviceMetadataTargetDirectory = fs.getPath("/service-metadata-target");
+		Files.createDirectory(serviceMetadataTargetDirectory);
+		
+		datasetMetadataTargetDirectory = fs.getPath("/dataset-metadata-target");
+		Files.createDirectory(datasetMetadataTargetDirectory);
+		
+		metadataTarget = actorOf(
+			MetadataTarget.props(
+				serviceMetadataTargetDirectory, 
+				datasetMetadataTargetDirectory), 
+			"metadata-target");
 		
 		metadataGenerator = actorOf(
 			MetadataGenerator.props(
 				database, 
-				actorOf(MetadataSource.props(harvester, serviceMetadataDirectory), "metadata-source")), 
+				actorOf(MetadataSource.props(harvester, serviceMetadataSourceDirectory), "metadata-source")), 
 			"metadata-generator");
 	}
 	
@@ -293,7 +299,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		
 		IOUtils.copy(
 			getClass().getResourceAsStream("service_metadata.xml"),
-			Files.newOutputStream(serviceMetadataDirectory.resolve(serviceIdentification + ".xml")));
+			Files.newOutputStream(serviceMetadataSourceDirectory.resolve(serviceIdentification + ".xml")));
 
 		f.ask(
 			metadataGenerator, 
@@ -302,10 +308,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				metadataTarget), 
 			Ack.class).get();
 		
-		serviceMetadataTarget.get(serviceIdentification + "-wms").get();
-		serviceMetadataTarget.get(serviceIdentification + "-wfs").get();
-		datasetMetadataTarget.get(datasetIdentification).get();
-		
-		assertTrue(serviceMetadataTarget.getOverwritten().isEmpty());
+		assertTrue(Files.exists(serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml")));
+		assertTrue(Files.exists(serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml")));
+		assertTrue(Files.exists(datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml")));
 	}
 }

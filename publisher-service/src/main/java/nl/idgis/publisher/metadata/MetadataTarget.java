@@ -1,6 +1,8 @@
 package nl.idgis.publisher.metadata;
 
-import akka.actor.ActorRef;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
@@ -15,15 +17,15 @@ public class MetadataTarget extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final MetadataStore datasetMetadataStore, serviceMetadataStore;
+	private final Path serviceMetadataDirectory, datasetMetadataDirectory;
 	
-	public MetadataTarget(MetadataStore datasetMetadataStore, MetadataStore serviceMetadataStore) {
-		this.datasetMetadataStore = datasetMetadataStore;
-		this.serviceMetadataStore = serviceMetadataStore;
+	public MetadataTarget(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
+		this.serviceMetadataDirectory = serviceMetadataDirectory;
+		this.datasetMetadataDirectory = datasetMetadataDirectory;
 	}
 	
-	public static Props props(MetadataStore datasetMetadataStore, MetadataStore serviceMetadataStore) {
-		return Props.create(MetadataTarget.class, datasetMetadataStore, serviceMetadataStore);
+	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
+		return Props.create(MetadataTarget.class, serviceMetadataDirectory, datasetMetadataDirectory);
 	}
 
 	@Override
@@ -37,27 +39,27 @@ public class MetadataTarget extends UntypedActor {
 		}
 	}
 	
-	private void doPut(MetadataStore metadataStore, String name, MetadataDocument metadataDocument) {
-		ActorRef sender = getSender();
-		metadataStore.put(name, metadataDocument).whenComplete((v, throwable) -> {
-			if(throwable == null) {
-				sender.tell(new Ack(), getSelf());
-			} else {
-				sender.tell(new Failure(throwable), getSelf());
-			}
-		});
+	private void doPut(Path metadataDirectory, String name, MetadataDocument metadataDocument) {
+		try {
+			Files.write(				
+				metadataDirectory.resolve(name + ".xml"),
+				metadataDocument.getContent());
+			getSender().tell(new Ack(), getSelf());
+		} catch(Exception e) {
+			getSender().tell(new Failure(e), getSelf());
+		}
 	}
 
 	private void handlePutDatasetMetadata(PutDatasetMetadata msg) {
 		String datasetId = msg.getDatasetId();
 		log.debug("storing dataset metadata: {}", datasetId);		
-		doPut(datasetMetadataStore, datasetId, msg.getMetadataDocument());
+		doPut(datasetMetadataDirectory, datasetId, msg.getMetadataDocument());
 	}
 
 	private void handlePutServiceMetadata(PutServiceMetadata msg) {
 		String serviceId = msg.getServiceId();
 		log.debug("storing service metadata: {}", serviceId);		
-		doPut(serviceMetadataStore, serviceId, msg.getMetadataDocument());
+		doPut(serviceMetadataDirectory, serviceId, msg.getMetadataDocument());
 	}
 
 }
