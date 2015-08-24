@@ -6,11 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.xml.namespace.QName;
 
 import nl.idgis.publisher.xml.exceptions.MultipleNodes;
 import nl.idgis.publisher.xml.exceptions.NotFound;
@@ -18,7 +15,6 @@ import nl.idgis.publisher.xml.exceptions.NotParseable;
 import nl.idgis.publisher.xml.exceptions.NotTextOnly;
 
 import org.junit.Test;
-import org.w3c.dom.Node;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -152,57 +148,6 @@ public class XMLDocumentTest {
 		document.addNode(namespaces, "/a:a", new String[]{"a:e"}, "a:g", attributes);
 		
 		assertEquals("42", document.getString(namespaces, "/a:a/a:f/following-sibling::a:g/@a:h"));
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testToQName() {
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		namespaces.put("b", "bURI");
-		
-		QName result = XMLDocument.toQName(namespaces, "noNamespaceURI");		
-		assertEquals(new QName("noNamespaceURI"), result);
-		
-		result = XMLDocument.toQName(namespaces, "a:withNamespaceURI");		
-		assertEquals(new QName("aURI", "withNamespaceURI"), result);
-		
-		XMLDocument.toQName(namespaces, "c:invalidPrefix");
-	}
-	
-	@Test
-	public void testToQNames() {
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		namespaces.put("b", "bURI");
-		
-		QName[] result = XMLDocument.toQNames(namespaces, "a:b", "b:a");
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(new QName("aURI", "b"), result[0]);
-		assertEquals(new QName("bURI", "a"), result[1]);
-	}
-	
-	@Test
-	public void createElement() throws Exception {
-		XMLDocumentFactory factory = new XMLDocumentFactory();
-		
-		byte[] content = "<a xmlns='aURI'><b/><c/><d/></a>".getBytes("utf-8");
-		
-		XMLDocument document = factory.parseDocument(content);
-		
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		
-		Node node = document.createElement(document.document, namespaces, "a:a/a:b/a:c", "text", Collections.<String, String>emptyMap());
-		assertEquals("a", node.getLocalName());
-		
-		node = node.getFirstChild();
-		assertEquals("b", node.getLocalName());
-		
-		node = node.getFirstChild();
-		assertEquals("c", node.getLocalName());
-		
-		assertEquals("text", node.getFirstChild().getTextContent());
 	}
 	
 	@Test
