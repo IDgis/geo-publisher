@@ -20,6 +20,7 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
@@ -32,8 +33,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -322,8 +325,31 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				prefix + "metadata/dataset/"), 
 			Ack.class).get();
 		
-		assertTrue(Files.exists(serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml")));
-		assertTrue(Files.exists(serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml")));
-		assertTrue(Files.exists(datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml")));
+		Path wmsServiceMetadataPath = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml");
+		Path wfsServiceMetadataPath = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml");
+		Path datasetMetadataPath = datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml");
+		
+		assertTrue(Files.exists(wmsServiceMetadataPath));
+		assertTrue(Files.exists(wfsServiceMetadataPath));
+		assertTrue(Files.exists(datasetMetadataPath));
+		
+		MetadataDocumentFactory mdf = new MetadataDocumentFactory();
+		MetadataDocument datasetMetadata = mdf.parseDocument(Files.readAllBytes(datasetMetadataPath));
+		
+		Map<String, ServiceLinkage> serviceLinkage =
+			datasetMetadata.getServiceLinkage().stream()
+				.collect(Collectors.toMap(
+					ServiceLinkage::getProtocol,
+					Function.identity()));
+		
+		assertTrue(serviceLinkage.containsKey("OGC:WMS"));		
+		ServiceLinkage wmsServiceLinkage = serviceLinkage.get("OGC:WMS");
+		assertEquals(layerName, wmsServiceLinkage.getName());
+		assertEquals(prefix + "geoserver/" + serviceName + "/wms", wmsServiceLinkage.getURL());
+		
+		assertTrue(serviceLinkage.containsKey("OGC:WFS"));
+		ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
+		assertEquals(layerName, wfsServiceLinkage.getName());
+		assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
 	}
 }
