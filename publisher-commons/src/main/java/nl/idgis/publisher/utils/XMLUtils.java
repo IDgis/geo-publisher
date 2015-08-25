@@ -293,9 +293,10 @@ public class XMLUtils {
 	public static XPathHelper xpath(Document document, Optional<Map<String, String>> optionalNamespaces) {
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		
-		BiMap<String, String> namespaces = HashBiMap.create(optionalNamespaces.get());
-		
+		BiMap<String, String> namespaces;
 		if(optionalNamespaces.isPresent()) {
+			namespaces = HashBiMap.create(optionalNamespaces.get());
+			
 			xpath.setNamespaceContext(new NamespaceContext() {
 
 				@Override
@@ -314,6 +315,8 @@ public class XMLUtils {
 				}
 				
 			});
+		} else {
+			namespaces = HashBiMap.create();
 		}
 		
 		return new XPathHelper(xpath, document, "/" ,namespaces);
