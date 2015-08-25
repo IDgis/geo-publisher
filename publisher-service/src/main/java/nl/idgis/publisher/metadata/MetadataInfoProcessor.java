@@ -20,6 +20,7 @@ import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -147,6 +148,9 @@ public class MetadataInfoProcessor extends UntypedActor {
 						metadataInfo.getDatasets()));
 				
 			metadataTarget.tell(new BeginPutMetadata(), getSelf());
+		} else if(msg instanceof Failure) {
+			log.error("failure: {}", msg);
+			terminate();
 		} else {
 			unhandled(msg);
 		}

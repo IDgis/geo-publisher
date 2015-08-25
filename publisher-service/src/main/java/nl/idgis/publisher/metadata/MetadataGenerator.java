@@ -11,6 +11,7 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -67,9 +68,12 @@ public class MetadataGenerator extends UntypedActor {
 			
 			nameGenerator.getName(MetadataInfoProcessor.class));
 
-		MetadataInfo.fetch(db.query(), msg.getEnvironmentId()).thenAccept(tuples ->
-			processor.tell(
-				new MetadataInfo(tuples.list()), 
-				getSelf()));
+		MetadataInfo.fetch(db.query(), msg.getEnvironmentId())
+			.whenComplete((metadataInfo, throwable) ->				 
+				processor.tell(
+					throwable == null 
+						? metadataInfo 
+						: new Failure(throwable),
+					getSelf()));
 	}
 }

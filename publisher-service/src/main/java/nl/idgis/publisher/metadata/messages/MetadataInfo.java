@@ -32,7 +32,6 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.StreamUtils;
-import nl.idgis.publisher.utils.TypedList;
 
 public class MetadataInfo implements Serializable {	
 
@@ -80,8 +79,8 @@ public class MetadataInfo implements Serializable {
 						tuple -> tuple.get(layerGenericLayer.identification),
 						Collectors.toSet())));
 		
-		serviceNames = 
-			tuples.stream()
+		serviceNames =
+			tuples.stream()				
 				.collect(Collectors.toMap(
 					tuple -> tuple.get(serviceGenericLayer.identification),
 					tuple -> tuple.get(serviceGenericLayer.name)));
@@ -111,7 +110,7 @@ public class MetadataInfo implements Serializable {
 		return layerInfo;
 	}
 	
-	public static CompletableFuture<TypedList<Tuple>> fetch(AsyncSQLQuery query, String environmentId) {
+	public static CompletableFuture<MetadataInfo> fetch(AsyncSQLQuery query, String environmentId) {
 		return query.from(publishedService)
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
@@ -133,7 +132,8 @@ public class MetadataInfo implements Serializable {
 				dataset.uuid,
 				dataset.fileUuid,
 				sourceDataset.externalIdentification,
-				dataSource.identification);
+				dataSource.identification)
+			.thenApply(tuples -> new MetadataInfo(tuples.list()));
 	}
 	
 	private Set<String> getServiceIds(String datasetId) {
