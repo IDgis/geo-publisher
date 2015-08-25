@@ -80,7 +80,10 @@ public class MetadataInfo implements Serializable {
 						Collectors.toSet())));
 		
 		serviceNames =
-			tuples.stream()				
+			tuples.stream()
+				.map(StreamUtils.wrap(tuple -> tuple.get(serviceGenericLayer.identification)))
+				.distinct()
+				.map(StreamUtils.Wrapper::unwrap)
 				.collect(Collectors.toMap(
 					tuple -> tuple.get(serviceGenericLayer.identification),
 					tuple -> tuple.get(serviceGenericLayer.name)));
