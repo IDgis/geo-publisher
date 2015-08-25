@@ -219,7 +219,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			.join(dataset).on(leafLayer.datasetId.eq(dataset.id))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layerId))
-			.singleResult(layerColumns.toArray (new Expression<?>[layerColumns.size ()])).thenCompose(optionalLayer -> {
+			.singleResult(layerColumns.toArray (new Expression<?>[layerColumns.size ()])).<Optional<Layer>>thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
 					Tuple layer = optionalLayer.get();					
 					log.debug("generic layer id: " + layer.get(genericLayer.id));
@@ -241,7 +241,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 							}
 							
-							return mimeformatsQuery.thenCompose(mimeFormats ->									
+							return mimeformatsQuery.<Optional<Layer>>thenCompose(mimeFormats ->									
 								tx.query()
 								.from(genericLayer)
 								.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
@@ -250,7 +250,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.where(genericLayer.identification.eq(layerId))
 								.orderBy(layerStyle.styleOrder.asc())
 								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
-								.thenApply(styles ->
+								.<Optional<Layer>>thenApply(styles ->
 									Optional.of(new Layer(
 										layer.get(genericLayer.identification),
 										layer.get(genericLayer.name),

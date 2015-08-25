@@ -4,16 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -21,17 +16,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-
-import nl.idgis.publisher.xml.exceptions.MultipleNodes;
-import nl.idgis.publisher.xml.exceptions.NotFound;
-import nl.idgis.publisher.xml.exceptions.NotTextOnly;
-import nl.idgis.publisher.xml.exceptions.QueryFailure;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.ProcessingInstruction;
@@ -39,41 +25,23 @@ import org.w3c.dom.ProcessingInstruction;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
+import nl.idgis.publisher.utils.XMLUtils;
+import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
+import nl.idgis.publisher.xml.exceptions.MultipleNodes;
+import nl.idgis.publisher.xml.exceptions.NotFound;
+import nl.idgis.publisher.xml.exceptions.NotTextOnly;
+import nl.idgis.publisher.xml.exceptions.QueryFailure;
+
 public class XMLDocument {
 	
 	protected final Document document;
-	
-	private XPathFactory xf;
-	
+			
 	public XMLDocument(Document document) {
 		this.document = document;
-		
-		xf = XPathFactory.newInstance();
 	}
 	
-	private XPath getXPath(final BiMap<String, String> namespaces) {
-		XPath xpath = xf.newXPath();
-		xpath.setNamespaceContext(new NamespaceContext() {
-
-			@Override
-			public String getNamespaceURI(String prefix) {				
-				return namespaces.get(prefix);
-			}
-
-			@Override
-			public String getPrefix(String namespaceURI) {
-				return namespaces.inverse().get(namespaceURI);
-			}
-			
-			@Override
-			@SuppressWarnings("rawtypes")
-			public Iterator getPrefixes(String namespaceURI) {
-				return Arrays.asList(getPrefix(namespaceURI)).iterator();
-			}
-			
-		});
-		
-		return xpath;
+	public XPathHelper xpath(Optional<Map<String, String>> optionalNamespaces) {
+		return XMLUtils.xpath(document, optionalNamespaces);
 	}
 	
 	public String getString(String path) throws NotFound {
@@ -81,54 +49,31 @@ public class XMLDocument {
 	}
 	
 	public String getString(BiMap<String, String> namespaces, String path) throws NotFound {
-		try {
-			String s = getXPath(namespaces).evaluate(path, document);
-			if(s.isEmpty()) {
-				throw new NotFound(namespaces, path);
-			} else {
-				return s;
-			}
-		} catch(Exception e) {
-			throw new NotFound(namespaces, path, e);
-		}
-	}	
-
-	private boolean isTextOnly(Node n) {
-		NodeList children = n.getChildNodes();
-		for(int i = 0; i < children.getLength(); i++) {
-			if(children.item(i).getNodeType() != Node.TEXT_NODE) {
-				return false;
-			}
-		}
-		
-		return true;
+		return xpath(Optional.of(namespaces))
+			.string(path)
+			.orElseThrow(() -> new NotFound(namespaces, path));
 	}	
 	
 	public void updateString(BiMap<String, String> namespaces, String expression, String newValue) throws QueryFailure {
-		NodeList nodeList;
-		try {
-			nodeList = (NodeList)getXPath(namespaces).evaluate(expression, document, XPathConstants.NODESET);
-		} catch(Exception e) {
-			throw new NotFound(namespaces, expression, e);
-		}
+		Iterator<XPathHelper> i = 
+			xpath(Optional.of(namespaces))
+				.nodes(expression).iterator();
 		
-		switch(nodeList.getLength()) {
-			case 0:
-				throw new NotFound(namespaces, expression);				
-			case 1:
-				Node n = nodeList.item(0);
-				
-				if(isTextOnly(n)) {
-					n.setTextContent(newValue);
-				} else {
-					throw new NotTextOnly(namespaces, expression);
-				}
-				
-				break;
-			default:
+		if(i.hasNext()) {
+			XPathHelper item = i.next();
+			
+			if(i.hasNext()) {
 				throw new MultipleNodes(namespaces, expression);
+			}
+			
+			if(item.isTextOnly()) {
+				item.setTextContent(newValue);
+			} else {
+				throw new NotTextOnly(namespaces, expression);
+			}
+		} else {
+			throw new NotFound(namespaces, expression);
 		}
-		
 	}
 
 	public byte[] getContent() throws IOException {
@@ -154,19 +99,9 @@ public class XMLDocument {
 	 * @throws NotFound 
 	 */
 	public int removeNodes(BiMap<String, String> namespaces, String path) throws NotFound {
-		try {
-			NodeList nodeList = (NodeList)getXPath(namespaces).evaluate(path, document, XPathConstants.NODESET);
-			
-			int nrOfNodes = nodeList.getLength();
-			for (int i = 0; i < nrOfNodes; i++) {
-				Node node = nodeList.item(i);
-				node.getParentNode().removeChild(node);
-			} 
-			
-			return nrOfNodes;
-		} catch(Exception e) {
-			throw new NotFound(namespaces, path, e);
-		}
+		List<XPathHelper> nodes = xpath(Optional.of(namespaces)).nodes(path);		
+		nodes.forEach(XPathHelper::remove);
+		return nodes.size();
 	}
 	
 	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name) throws NotFound {
@@ -197,125 +132,13 @@ public class XMLDocument {
 		return addNode(namespaces, parentPath, null, name, null, attributes);
 	}
 	
-	protected static QName toQName(BiMap<String, String> namespaces, String name) {
-		if(name.contains(":")) {
-			String[] nameParts = name.split(":");
-			
-			if(namespaces.containsKey(nameParts[0])) {
-				return new QName(namespaces.get(nameParts[0]), nameParts[1]);
-			} else {
-				throw new IllegalArgumentException("Unmapped prefix: " + nameParts[0]);
-			}
-		} else {
-			return new QName(name);
-		}
-	}
-	
-	protected static QName[] toQNames(BiMap<String, String> namespaces, String... names) {
-		List<QName> retval = new ArrayList<>();
-		
-		for(String name : names) {
-			retval.add(toQName(namespaces, name));
-		}
-		
-		return retval.toArray(new QName[retval.size()]);
-	}
-	
-	protected Element createElement(Node context, BiMap<String, String> namespaces, String name, String content, Map<String, String> attributes) {
-		if(name.contains("/")) {
-			int separatorIndex = name.indexOf("/");
-			
-			Element newElement = createElement(context, namespaces, name.substring(0, separatorIndex), null, null);
-			newElement.appendChild(createElement(context, namespaces, name.substring(separatorIndex + 1), content, attributes));
-			
-			return newElement;
-		} else {
-			QName qName = toQName(namespaces, name);
-			
-			Element newElement = document.createElementNS(qName.getNamespaceURI(), getQualifiedName(context, qName));
-			
-			if(content != null) {
-				newElement.appendChild(document.createTextNode(content));
-			}		
-			
-			if(attributes != null) {
-				for(Map.Entry<String, String> attribute : attributes.entrySet()) {
-					QName attributeName = toQName(namespaces, attribute.getKey());
-					
-					newElement.setAttributeNS(attributeName.getNamespaceURI(), getQualifiedName(context, attributeName), attribute.getValue());
-				}
-			}
-			
-			return newElement;
-		}
-	}
-
-	private static String getQualifiedName(Node context, QName qName) {
-		String prefix = context.lookupPrefix(qName.getNamespaceURI());
-		
-		if(prefix == null) {
-			return qName.getLocalPart();
-		} else {
-			return prefix + ":" + qName.getLocalPart();
-		}
-	}
-	
 	public String addNode(BiMap<String, String> namespaces, String parentPath, String[] followingSiblings, String name, String content, Map<String, String> attributes) throws NotFound {
-		XPath xpath = getXPath(namespaces);
+		XPathHelper parent = xpath(Optional.of(namespaces))
+			.node(parentPath)
+			.orElseThrow(() -> new NotFound(namespaces, parentPath));
 		
-		try {
-			Node parentNode = (Node)xpath.evaluate(parentPath, document, XPathConstants.NODE);
-			
-			Element newElement = createElement(parentNode, namespaces, name, content, attributes);
-			QName newElementName = new QName(newElement.getNamespaceURI(), newElement.getLocalName());
-			
-			int sameElementCount = 1;
-			
-			Set<QName> followingSiblingsSet = new HashSet<QName>();
-			if(followingSiblings != null) {
-				for(String followingSibling : followingSiblings) {
-					followingSiblingsSet.add(toQName(namespaces, followingSibling));
-				}
-			}
-			
-			NodeList children = parentNode.getChildNodes();
-			
-			for(int i = 0; i < children.getLength(); i++) {
-				Node childNode = children.item(i);
-				if(childNode.getNodeType() == Node.ELEMENT_NODE) {
-					QName childName = new QName(childNode.getNamespaceURI(), childNode.getLocalName());
-					
-					if(followingSiblingsSet.contains(childName)) {
-						parentNode.insertBefore(newElement, childNode);
-						
-						return getResultXPath(parentPath, name, sameElementCount);
-					}
-					
-					if(newElementName.equals(childName)) {
-						sameElementCount++;
-					}
-				}
-			}			
-			
-			parentNode.appendChild(newElement);
-			
-			return getResultXPath(parentPath, name, sameElementCount);			 
-		} catch(Exception e) {
-			throw new NotFound(namespaces, parentPath, e);
-		}
-	}
-
-	private String getResultXPath(String parentPath, String name, int sameElementCount) {
-		if(name.contains("/")) {
-			int separatorIndex = name.indexOf("/");
-			
-			return parentPath + "/" + name.substring(0, separatorIndex) 
-					+ "[" + sameElementCount + "]/"
-					+ name.substring(separatorIndex + 1);
-		} else {
-			return parentPath + "/" + name + "[" + sameElementCount + "]";
-		}
-	}
+		return parent.createElement(name, content, attributes, followingSiblings);
+	}	
 
 	public String toString() {
 		try {

@@ -39,6 +39,7 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Service;
@@ -251,7 +252,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			.from(genericLayer)
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id))
 			.where(genericLayer.identification.eq(layergroupId))
-			.singleResult(groupColumns.toArray (new Expression<?>[groupColumns.size ()])).thenCompose(optionalGroup -> {
+			.singleResult(groupColumns.toArray (new Expression<?>[groupColumns.size ()])).<Optional<LayerGroup>>thenCompose(optionalGroup -> {
 				if(optionalGroup.isPresent()) {
 					Tuple group = optionalGroup.get();					
 					log.debug("generic layer id: " + group.get(genericLayer.id));
@@ -269,7 +270,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 						}
 						
-						return mimeformatsQuery.thenApply(mimeFormats ->	
+						return mimeformatsQuery.<Optional<LayerGroup>>thenApply(mimeFormats ->	
 							Optional.of(new LayerGroup(
 								group.get(genericLayer.identification),
 								group.get(genericLayer.name),

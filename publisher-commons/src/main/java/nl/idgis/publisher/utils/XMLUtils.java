@@ -3,16 +3,19 @@ package nl.idgis.publisher.utils;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -25,6 +28,7 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -39,9 +43,15 @@ public class XMLUtils {
 		
 		private final Node item;
 		
-		private XPathHelper(XPath xpath, Node item) {
+		private final String expression;
+		
+		private final BiMap<String, String> namespaces;
+		
+		private XPathHelper(XPath xpath, Node item, String expression, BiMap<String, String> namespaces) {
 			this.xpath = xpath;
 			this.item = item;
+			this.expression = expression;
+			this.namespaces = namespaces;
 		}	
 		
 		public List<Integer> integers(String expression) {
@@ -73,6 +83,13 @@ public class XMLUtils {
 		}
 		
 		public List<XPathHelper> nodes(String expression) {
+			String newExpression;		
+			if(expression.startsWith("/")) {
+				newExpression = expression;
+			} else {
+				newExpression = this.expression + "/" + expression;
+			}
+			
 			try {
 				NodeList nl = (NodeList)xpath.evaluate(expression, item, XPathConstants.NODESET);
 				
@@ -80,7 +97,7 @@ public class XMLUtils {
 	
 					@Override
 					public XPathHelper get(int index) {					
-						return new XPathHelper(xpath, nl.item(index));
+						return new XPathHelper(xpath, nl.item(index), newExpression, namespaces);
 					}
 	
 					@Override
@@ -147,6 +164,125 @@ public class XMLUtils {
 		public void setTextContent(String textContent) {
 			item.setTextContent(textContent);
 		}
+
+		public boolean isTextOnly() {
+			NodeList children = item.getChildNodes();
+			for(int i = 0; i < children.getLength(); i++) {
+				if(children.item(i).getNodeType() != Node.TEXT_NODE) {
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		public void remove() {
+			item.getParentNode().removeChild(item);
+		}
+		
+		private QName toQName(String name) {
+			if(name.contains(":")) {
+				String[] nameParts = name.split(":");
+				
+				if(namespaces.containsKey(nameParts[0])) {
+					return new QName(namespaces.get(nameParts[0]), nameParts[1]);
+				} else {
+					throw new IllegalArgumentException("Unmapped prefix: " + nameParts[0]);
+				}
+			} else {
+				return new QName(name);
+			}
+		}
+		
+		private String getQualifiedName(QName qName) {
+			String prefix = item.lookupPrefix(qName.getNamespaceURI());
+			
+			if(prefix == null) {
+				return qName.getLocalPart();
+			} else {
+				return prefix + ":" + qName.getLocalPart();
+			}
+		}
+		
+		private Element createElement(String name, String content, Map<String, String> attributes) {
+			if(name.contains("/")) {
+				int separatorIndex = name.indexOf("/");
+				
+				Element newElement = createElement(name.substring(0, separatorIndex), null, null);
+				newElement.appendChild(createElement(name.substring(separatorIndex + 1), content, attributes));
+				
+				return newElement;
+			} else {
+				QName qName = toQName(name);
+				
+				Document document = item.getOwnerDocument();
+				
+				Element newElement = document.createElementNS(qName.getNamespaceURI(), getQualifiedName(qName));
+				
+				if(content != null) {
+					newElement.appendChild(document.createTextNode(content));
+				}		
+				
+				if(attributes != null) {
+					for(Map.Entry<String, String> attribute : attributes.entrySet()) {
+						QName attributeName = toQName(attribute.getKey());
+						
+						newElement.setAttributeNS(attributeName.getNamespaceURI(), getQualifiedName(attributeName), attribute.getValue());
+					}
+				}
+				
+				return newElement;
+			}
+		}
+
+		public String createElement(String name, String content, Map<String, String> attributes, String[] followingSiblings) {
+			Element newElement = createElement(name, content, attributes);
+			QName newElementName = new QName(newElement.getNamespaceURI(), newElement.getLocalName());
+			
+			int sameElementCount = 1;
+			
+			Set<QName> followingSiblingsSet = new HashSet<QName>();
+			if(followingSiblings != null) {
+				for(String followingSibling : followingSiblings) {
+					followingSiblingsSet.add(toQName(followingSibling));
+				}
+			}
+			
+			NodeList children = item.getChildNodes();
+			
+			for(int i = 0; i < children.getLength(); i++) {
+				Node childNode = children.item(i);
+				if(childNode.getNodeType() == Node.ELEMENT_NODE) {
+					QName childName = new QName(childNode.getNamespaceURI(), childNode.getLocalName());
+					
+					if(followingSiblingsSet.contains(childName)) {
+						item.insertBefore(newElement, childNode);
+						
+						return getResultXPath(name, sameElementCount);
+					}
+					
+					if(newElementName.equals(childName)) {
+						sameElementCount++;
+					}
+				}
+			}			
+			
+			item.appendChild(newElement);
+			
+			return getResultXPath(name, sameElementCount);
+		}
+		
+		private String getResultXPath(String name, int sameElementCount) {
+			if(name.contains("/")) {
+				int separatorIndex = name.indexOf("/");
+				
+				return expression + "/" + name.substring(0, separatorIndex) 
+						+ "[" + sameElementCount + "]/"
+						+ name.substring(separatorIndex + 1);
+			} else {
+				return expression + "/" + name + "[" + sameElementCount + "]";
+			}
+		}
 	
 	}
 	
@@ -157,10 +293,11 @@ public class XMLUtils {
 	public static XPathHelper xpath(Document document, Optional<Map<String, String>> optionalNamespaces) {
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		
+		BiMap<String, String> namespaces;
 		if(optionalNamespaces.isPresent()) {
+			namespaces = HashBiMap.create(optionalNamespaces.get());
+			
 			xpath.setNamespaceContext(new NamespaceContext() {
-				
-				BiMap<String, String> namespaces = HashBiMap.create(optionalNamespaces.get());
 
 				@Override
 				public String getNamespaceURI(String prefix) {					
@@ -178,9 +315,11 @@ public class XMLUtils {
 				}
 				
 			});
+		} else {
+			namespaces = HashBiMap.create();
 		}
 		
-		return new XPathHelper(xpath, document);
+		return new XPathHelper(xpath, document, "/" ,namespaces);
 	}
 	
 	public static boolean equalsIgnoreWhitespace(Document a, Document b) throws XMLStreamException {

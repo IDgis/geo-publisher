@@ -1,7 +1,10 @@
 package nl.idgis.publisher.utils;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -168,5 +171,16 @@ public class XMLUtilsTest {
 		assertTrue(endDocument.isEndDocument());
 		
 		assertFalse(itr.hasNext());
+	}
+	
+	@Test
+	public void testXpath() {
+		Document document = createTestDocument();
+		
+		assertTrue(XMLUtils.xpath(document).strings("/root/second").isEmpty());;
+		
+		Map<String, String> namespaces = new HashMap<>();
+		namespaces.put("t", "test");
+		assertFalse(XMLUtils.xpath(document, Optional.of(namespaces)).strings("/t:root/t:second").isEmpty());;
 	}
 }

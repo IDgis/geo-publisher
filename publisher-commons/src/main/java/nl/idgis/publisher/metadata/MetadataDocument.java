@@ -8,8 +8,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
+import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.QueryFailure;
@@ -515,18 +518,43 @@ public class MetadataDocument {
 		xmlDocument.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		xmlDocument.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
 		xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
-	}	
-	
-	public String getServiceLinkageURL() throws NotFound{
-		return xmlDocument.getString(namespaces, getServiceLinkagePath() + "/gmd:CI_OnlineResource/gmd:linkage/gmd:URL");
 	}
 	
-	public String getServiceLinkageProtocol() throws NotFound{
-		return xmlDocument.getString(namespaces, getServiceLinkagePath() + "/gmd:CI_OnlineResource/gmd:protocol/gco:CharacterString");
+	private XPathHelper xpath() {
+		return xmlDocument.xpath(Optional.of(namespaces));
 	}
 	
-	public String getServiceLinkageName() throws NotFound{
-		return xmlDocument.getString(namespaces, getServiceLinkagePath() + "/gmd:CI_OnlineResource/gmd:name/gco:CharacterString");
+	public interface ServiceLinkage {
+		
+		String getURL();
+		
+		String getProtocol();
+		
+		String getName();
+	}
+	
+	public List<ServiceLinkage> getServiceLinkage() {
+		return xpath()
+			.nodes(getServiceLinkagePath() + "/gmd:CI_OnlineResource").stream()
+				.map(node -> (ServiceLinkage)new ServiceLinkage() {
+
+					@Override
+					public String getURL() {
+						return node.string("gmd:linkage/gmd:URL").get();
+					}
+
+					@Override
+					public String getProtocol() {
+						return node.string("gmd:protocol/gco:CharacterString").get();
+					}
+
+					@Override
+					public String getName() {
+						return node.string("gmd:name/gco:CharacterString").get();
+					}
+					
+				})
+				.collect(Collectors.toList());
 	}
 	
 	/**

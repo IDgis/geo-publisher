@@ -15,6 +15,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
@@ -27,7 +28,7 @@ public class MetadataDocumentTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private MetadataDocument getDocument(String name) throws Exception {
+	public static MetadataDocument getDocument(String name) throws Exception {
 		InputStream stream = MetadataDocumentTest.class.getResourceAsStream(name);
 		assertNotNull("test metadata document not found", stream);
 		
@@ -85,33 +86,26 @@ public class MetadataDocumentTest {
 
 		// remove all gmd:online child nodes
 		int i = document.removeServiceLinkage();
-		assertEquals("There should be one removed linkage", 1, i);
-		String result ;
-		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		try {
-			result = document.getServiceLinkageURL();		
-			assertFalse("Still WMS link found", result.contains("overijssel.geo-hosting.nl"));
-		} catch(Exception e) {}
+		assertEquals("There should be one removed linkage", 1, i);		
+		assertTrue("Still WMS link found", document.getServiceLinkage().isEmpty());
 		
 		// add new gmd:online childnode
 		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.getServiceLinkageURL();		
-		assertNotNull("No service linkage found", result);
-		assertTrue("No name found", result.contains("linkage"));
-		result = document.getServiceLinkageProtocol();		
-		assertTrue("No protocol found", result.contains("protocol"));
-		result = document.getServiceLinkageName();		
-		assertTrue("No name found", result.contains("name"));
+		List<ServiceLinkage> result = document.getServiceLinkage();		
+		assertFalse("No service linkage found", result.isEmpty());
+		
+		ServiceLinkage serviceLinkage = result.get(0);		
+		assertEquals("linkage", serviceLinkage.getURL());				
+		assertEquals("protocol", serviceLinkage.getProtocol());				
+		assertEquals("name", serviceLinkage.getName());
 		
 		// remove all gmd:online child nodes		
 		i = document.removeServiceLinkage();
 		assertEquals("There should be one removed linkage", 1, i);
 		
 		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		try {
-			result = document.getServiceLinkageName();		
-			assertFalse("Unexpected name found", result.contains("name"));
-		} catch(Exception e) {}
+		result = document.getServiceLinkage();		
+		assertTrue("No service linkage found", result.isEmpty());
 	}
 	
 	/**
@@ -428,44 +422,6 @@ public class MetadataDocumentTest {
 			fail("Unexpected url found");
 		} catch(Exception e) {}
 	}
-	
-	/**
-	 * Service metadata: transfer options: (same as Dataset metadata: Service Linkage)
-	 */	
-	public void testServiceTransferOptions() throws Exception{
-		MetadataDocument document = getDocument("service_metadata.xml");
-
-		// get gmd:MD_DigitalTransferOptions content
-		String result = document.getServiceLinkageName();		
-		assertTrue("No WMS link found", result.contains("OGC:WMS"));
-
-		// remove all gmd:online child nodes
-		int i = document.removeServiceLinkage();
-		assertEquals("There should be two removed linkages", 2, i);
-		
-		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.getServiceLinkageURL();		
-		assertFalse("Still WMS link found", result.contains("overijssel.geo-hosting.nl"));
-		
-		// add new gmd:online childnode
-		document.addServiceLinkage("linkage", "protocol", "name");
-		result = document.getServiceLinkageURL();		
-		assertNotNull("No service linkage found", result);
-		assertTrue("No name found", result.contains("linkage"));
-		result = document.getServiceLinkageProtocol();		
-		assertTrue("No protocol found", result.contains("protocol"));
-		result = document.getServiceLinkageName();		
-		assertTrue("No name found", result.contains("name"));
-		
-		// remove all gmd:online child nodes		
-		i = document.removeServiceLinkage();
-		assertEquals("There should be one removed linkage", 1, i);
-		
-		// check gmd:MD_DigitalTransferOptions has no gmd:online child node anymore
-		result = document.getServiceLinkageName();		
-		assertFalse("Unexpected name found", result.contains("name"));
-	}
-	
 	
 	/**
 	 * Service metadata: Coupled Resource

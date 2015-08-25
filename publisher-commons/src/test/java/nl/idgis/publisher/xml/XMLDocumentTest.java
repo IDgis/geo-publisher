@@ -6,16 +6,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.namespace.QName;
-
+import nl.idgis.publisher.xml.exceptions.MultipleNodes;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
+import nl.idgis.publisher.xml.exceptions.NotTextOnly;
 
 import org.junit.Test;
-import org.w3c.dom.Node;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -42,6 +41,45 @@ public class XMLDocumentTest {
 		XMLDocumentFactory factory = new XMLDocumentFactory();
 		
 		factory.parseDocument("This is not XML!".getBytes("utf-8"));
+	}
+	
+	@Test(expected=NotFound.class)
+	public void testUpdateStringNotFound() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		byte[] content = "<a xmlns='aURI'/>".getBytes("utf-8");
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		XMLDocument document = factory.parseDocument(content);
+		document.updateString(namespaces, "/a:a/a:b", "new value");
+	}
+	
+	@Test(expected=NotTextOnly.class)
+	public void testUpdateStringNotTextOnly() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		byte[] content = "<a xmlns='aURI'><b><c/></b></a>".getBytes("utf-8");
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		XMLDocument document = factory.parseDocument(content);
+		document.updateString(namespaces, "/a:a/a:b", "new value");
+	}
+	
+	@Test(expected=MultipleNodes.class)
+	public void testUpdateStringMultipleNodes() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		byte[] content = "<a xmlns='aURI'><b>first</b><b>second</b></a>".getBytes("utf-8");
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		XMLDocument document = factory.parseDocument(content);
+		document.updateString(namespaces, "/a:a/a:b", "new value");
 	}
 	
 	@Test
@@ -112,57 +150,6 @@ public class XMLDocumentTest {
 		assertEquals("42", document.getString(namespaces, "/a:a/a:f/following-sibling::a:g/@a:h"));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testToQName() {
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		namespaces.put("b", "bURI");
-		
-		QName result = XMLDocument.toQName(namespaces, "noNamespaceURI");		
-		assertEquals(new QName("noNamespaceURI"), result);
-		
-		result = XMLDocument.toQName(namespaces, "a:withNamespaceURI");		
-		assertEquals(new QName("aURI", "withNamespaceURI"), result);
-		
-		XMLDocument.toQName(namespaces, "c:invalidPrefix");
-	}
-	
-	@Test
-	public void testToQNames() {
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		namespaces.put("b", "bURI");
-		
-		QName[] result = XMLDocument.toQNames(namespaces, "a:b", "b:a");
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(new QName("aURI", "b"), result[0]);
-		assertEquals(new QName("bURI", "a"), result[1]);
-	}
-	
-	@Test
-	public void createElement() throws Exception {
-		XMLDocumentFactory factory = new XMLDocumentFactory();
-		
-		byte[] content = "<a xmlns='aURI'><b/><c/><d/></a>".getBytes("utf-8");
-		
-		XMLDocument document = factory.parseDocument(content);
-		
-		BiMap<String, String> namespaces = HashBiMap.create();
-		namespaces.put("a", "aURI");
-		
-		Node node = document.createElement(document.document, namespaces, "a:a/a:b/a:c", "text", Collections.<String, String>emptyMap());
-		assertEquals("a", node.getLocalName());
-		
-		node = node.getFirstChild();
-		assertEquals("b", node.getLocalName());
-		
-		node = node.getFirstChild();
-		assertEquals("c", node.getLocalName());
-		
-		assertEquals("text", node.getFirstChild().getTextContent());
-	}
-	
 	@Test
 	public void testClone() throws Exception {
 		XMLDocumentFactory factory = new XMLDocumentFactory();
@@ -217,5 +204,20 @@ public class XMLDocumentTest {
 		content = new String(document.getContent(), "utf-8");
 		assertFalse(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
 		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"new-stylesheet.xsl\"?>"));
+	}
+	
+	@Test(expected=NotFound.class)
+	public void testRemoveNodes() throws Exception {
+		XMLDocumentFactory factory = new XMLDocumentFactory();
+		
+		byte[] content = "<a xmlns='aURI'><c>c!</c><b>b!</b></a>".getBytes("utf-8");
+		
+		BiMap<String, String> namespaces = HashBiMap.create();
+		namespaces.put("a", "aURI");
+		
+		XMLDocument document = factory.parseDocument(content);
+		document.removeNodes(namespaces, "/a:a/a:b");
+		
+		document.getString(namespaces, "/a:a/a:b");
 	}
 }

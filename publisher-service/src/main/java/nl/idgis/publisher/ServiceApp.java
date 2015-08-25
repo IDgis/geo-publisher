@@ -4,7 +4,6 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QVersion.version;
 import static nl.idgis.publisher.utils.EnumUtils.enumsToStrings;
 
-import java.io.File;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
@@ -25,9 +24,10 @@ import nl.idgis.publisher.job.JobSystem;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.FileMetadataStore;
+import nl.idgis.publisher.metadata.MetadataConfig;
 import nl.idgis.publisher.metadata.MetadataGenerator;
-import nl.idgis.publisher.metadata.MetadataStore;
+import nl.idgis.publisher.metadata.MetadataSource;
+import nl.idgis.publisher.metadata.MetadataTarget;
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
@@ -188,18 +188,39 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobSystem, serviceManager), "admin");
 		
-		Config metadataConfig = config.getConfig("metadata");
+		MetadataConfig metadataConfig = new MetadataConfig(config.getConfig("metadata"));
 		
-		MetadataStore serviceMetadataSource = new FileMetadataStore(new File(metadataConfig.getString("serviceSource")));
-		MetadataStore datasetMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("datasetTarget")));
-		MetadataStore serviceMetadataTarget = new FileMetadataStore(new File(metadataConfig.getString("serviceTarget")));		
+		ActorRef metadataGenerator = 
+			getContext().actorOf(
+				MetadataGenerator.props(
+					database,
+					getContext().actorOf(
+						MetadataSource.props(
+							harvester, 
+							metadataConfig.getServiceMetadataSource()),
+						"metadata-source")),
+				"metadata-generator");
 		
-		ActorRef metadataGenerator = getContext().actorOf(MetadataGenerator.props(database, harvester, serviceMetadataSource, datasetMetadataTarget, serviceMetadataTarget, metadataConfig.getConfig("generator-constants")), "metadata-generator");
-		getContext().system().scheduler().schedule(
-				Duration.create(10, TimeUnit.SECONDS), 
-				Duration.create(10, TimeUnit.SECONDS),
-				metadataGenerator, new GenerateMetadata(), 
-				getContext().dispatcher(), getSelf());
+		metadataConfig.getEnvironments().forEach(environmentConfig -> {
+			String environmentName = environmentConfig.getName();
+			
+			ActorRef metadataTarget = getContext().actorOf(
+				MetadataTarget.props(
+					environmentConfig.getServiceMetadataTarget(), 
+					environmentConfig.getDatasetMetadataTarget()),
+				"metadata-target-" + environmentName);
+			
+			getContext().system().scheduler().schedule(
+					Duration.create(10, TimeUnit.SECONDS), 
+					Duration.create(1, TimeUnit.HOURS),
+					metadataGenerator, 
+						new GenerateMetadata(
+							environmentName, 
+							metadataTarget,
+							environmentConfig.getServiceLinkagePrefix(),
+							environmentConfig.getDatasetMetadataPrefix()), 
+					getContext().dispatcher(), getSelf());
+		});
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();

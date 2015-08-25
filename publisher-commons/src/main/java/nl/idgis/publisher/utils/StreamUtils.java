@@ -1,11 +1,13 @@
 package nl.idgis.publisher.utils;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -45,6 +47,11 @@ public class StreamUtils {
 		 */
 		public U getSecond() {
 			return second;
+		}
+
+		@Override
+		public String toString() {
+			return "ZippedEntry [first=" + first + ", second=" + second + "]";
 		}
 	}
 	
@@ -167,5 +174,69 @@ public class StreamUtils {
         		: Spliterators.spliterator(itr, size, characteristics),
         	
         	parallel);
+	}
+	
+	public static class Wrapper<T, U> implements Comparable<Wrapper<T, U>> {
+		
+		private final T value;
+		
+		private final Function<? super T, ? extends U> mapper;
+		
+		private final Comparator<? super U> comparator;
+		
+		Wrapper(T value, Function<? super T, ? extends U> mapper, Comparator<? super U> comparator) {
+			this.value = value;
+			this.mapper = mapper;
+			this.comparator = comparator;
+		}
+		
+		/**
+		 * Unwrap wrapped value.
+		 * 
+		 * @return the original unwrapped value
+		 */
+		public T unwrap() {
+			return value;
+		}
+
+		@Override
+		public int compareTo(Wrapper<T, U> o) {
+			return comparator.compare(mapper.apply(value), mapper.apply(o.value));
+		}
+
+		@Override
+		public int hashCode() {
+			return mapper.apply(value).hashCode();
+		}
+		
+		@Override
+		@SuppressWarnings("unchecked")
+		public boolean equals(Object obj) {
+			return mapper.apply(value).equals(mapper.apply(((Wrapper<T, U>)obj).value));
+		}
+	}
+	
+	/**
+	 * Generates a function to wrap comparable values in a {@link Wrapper}.
+	 * 
+	 * @param mapper the function to generate the value to be wrapped  
+	 * @return the wrapper function
+	 */
+	public static <T, U extends Comparable<? super U>> Function<T, Wrapper<T, U>> wrap(Function<? super T, ? extends U> mapper) {
+		return wrap(mapper, Comparator.naturalOrder());
+	}
+	
+	/**
+	 * Generates a function to wrap values in a {@link Wrapper}.
+	 * 
+	 * @param mapper the function to generate the value to be wrapped
+	 * @param comparator the comparator used to compare values
+	 * @return the wrapper function
+	 */
+	public static <T, U> Function<T, Wrapper<T, U>> wrap(Function<? super T, ? extends U> mapper, Comparator<? super U> comparator) {
+		return value -> 
+			new Wrapper<T, U>(value, 
+					Objects.requireNonNull(mapper, "mapper must not be null"), 
+					Objects.requireNonNull(comparator, "comparator must not be null"));
 	}
 }
