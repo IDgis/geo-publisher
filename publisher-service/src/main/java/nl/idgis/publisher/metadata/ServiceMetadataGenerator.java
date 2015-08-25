@@ -62,7 +62,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		log.debug("wfs metadata");
 		
 		ServiceType serviceType = ServiceType.WFS;
-		String linkage = getServiceLinkage(itemInfo.getId(), serviceType);
+		String linkage = getServiceLinkage(itemInfo.getName(), serviceType);
 		
 		metadataDocument.addServiceType("OGC:WFS");
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
@@ -86,7 +86,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		log.debug("wms metadata");		
 		
 		ServiceType serviceType = ServiceType.WMS;
-		String linkage = getServiceLinkage(itemInfo.getId(), serviceType);
+		String linkage = getServiceLinkage(itemInfo.getName(), serviceType);
 		
 		String browseGraphicBaseUrl = linkage 
 			+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"

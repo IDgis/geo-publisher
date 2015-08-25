@@ -44,6 +44,8 @@ public class MetadataInfo implements Serializable {
 
 	private final List<Tuple> tuples;
 	
+	private final Map<String, String> serviceNames;
+	
 	private final Map<String, Set<String>> datasetServices, datasetLayers;
 
 	private final Map<String, Map<String, Set<String>>> serviceLayerLayerName;
@@ -77,6 +79,12 @@ public class MetadataInfo implements Serializable {
 					Collectors.mapping(
 						tuple -> tuple.get(layerGenericLayer.identification),
 						Collectors.toSet())));
+		
+		serviceNames = 
+			tuples.stream()
+				.collect(Collectors.toMap(
+					tuple -> tuple.get(serviceGenericLayer.identification),
+					tuple -> tuple.get(serviceGenericLayer.name)));
 	}	
 	
 	private static Map<String, Set<String>> traverseLayers(Map<String, Set<String>> layerInfo, List<LayerRef<? extends Layer>> layerRefs) {
@@ -119,6 +127,7 @@ public class MetadataInfo implements Serializable {
 			.list(
 				publishedService.content,
 				serviceGenericLayer.identification,
+				serviceGenericLayer.name,
 				layerGenericLayer.identification,
 				dataset.identification,
 				dataset.uuid,
@@ -168,7 +177,10 @@ public class MetadataInfo implements Serializable {
 							.flatMap(serviceId ->
 								getLayerNames(serviceId).entrySet().stream()
 									.filter(entry -> layerIds.contains(entry.getKey()))
-									.map(entry -> new ServiceRef(serviceId, entry.getValue())))
+									.map(entry -> new ServiceRef(
+										serviceId,
+										serviceNames.get(serviceId),
+										entry.getValue())))
 							.collect(Collectors.toSet());
 					
 					return new DatasetInfo(
@@ -208,7 +220,14 @@ public class MetadataInfo implements Serializable {
 								.collect(Collectors.toSet())); 	
 					},
 					Collectors.toSet()))).entrySet().stream()
-						.map(entry -> new ServiceInfo(entry.getKey(), entry.getValue()))
+						.map(entry -> {
+							String serviceId = entry.getKey();
+							
+							return new ServiceInfo(
+								serviceId, 
+								serviceNames.get(serviceId), 
+								entry.getValue()); 
+						})
 						.iterator();
 	}
 

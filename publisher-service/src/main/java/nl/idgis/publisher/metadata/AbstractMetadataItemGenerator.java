@@ -137,8 +137,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		getContext().stop(getSelf());
 	}
 	
-	protected String getServiceLinkage(String serviceId, ServiceType serviceType) {
-		return serviceLinkagePrefix + serviceId + "/" + serviceType.name().toLowerCase();
+	protected String getServiceLinkage(String serviceName, ServiceType serviceType) {
+		return serviceLinkagePrefix + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 	
 	protected String getDatasetMetadataHref(String fileUuid) {

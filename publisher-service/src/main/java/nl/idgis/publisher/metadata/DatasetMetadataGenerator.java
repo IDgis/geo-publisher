@@ -35,7 +35,7 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
 			for(String layerName : serviceRef.getLayerNames()) {
 				for(ServiceType serviceType : ServiceType.values()) {
-					String linkage = getServiceLinkage(serviceRef.getServiceId(), serviceType);
+					String linkage = getServiceLinkage(serviceRef.getServiceName(), serviceType);
 					String protocol = serviceType.getProtocol();
 					
 					log.debug("service linkage: {}, protocol: {}, layerName: {}", linkage, protocol, layerName);

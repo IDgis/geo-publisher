@@ -6,13 +6,20 @@ import java.util.Set;
 public class ServiceInfo extends MetadataItemInfo {	
 	
 	private static final long serialVersionUID = 9220657367346908792L;
+
+	private final String name;
 	
 	private final Set<DatasetRef> datasetRefs;
 	
-	public ServiceInfo(String serviceId, Set<DatasetRef> datasetRefs) {
+	public ServiceInfo(String serviceId, String name, Set<DatasetRef> datasetRefs) {
 		super(serviceId);
 		
+		this.name = name;
 		this.datasetRefs = Objects.requireNonNull(datasetRefs, "datasetRefs must not be null");
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 	public Set<DatasetRef> getDatasetRefs() {
@@ -21,6 +28,7 @@ public class ServiceInfo extends MetadataItemInfo {
 
 	@Override
 	public String toString() {
-		return "ServiceInfo [datasetRefs=" + datasetRefs + "]";
+		return "ServiceInfo [name=" + name + ", datasetRefs=" + datasetRefs + "]";
 	}
+	
 }
