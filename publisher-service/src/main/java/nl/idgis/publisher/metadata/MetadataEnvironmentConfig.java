@@ -6,22 +6,26 @@ import java.nio.file.Path;
 import com.typesafe.config.Config;
 
 public class MetadataEnvironmentConfig {
+	
+	private final String name;
 
 	private final Config config;
 	
-	private final FileSystem fileSystem;
+	private final Path serviceMetadataTarget, datasetMetadataTarget;	
 	
-	MetadataEnvironmentConfig(Config config, FileSystem fileSystem) {
+	MetadataEnvironmentConfig(String name, Config config, Path serviceMetadataTarget, Path datasetMetadataTarget) {
+		this.name = name;
 		this.config = config;
-		this.fileSystem = fileSystem;
+		this.serviceMetadataTarget = serviceMetadataTarget;
+		this.datasetMetadataTarget = datasetMetadataTarget;
 	}
 	
 	public Path getServiceMetadataTarget() {
-		return fileSystem.getPath(config.getString("serviceMetadataTarget"));
+		return serviceMetadataTarget;
 	}
 	
 	public Path getDatasetMetadataTarget() {
-		return fileSystem.getPath(config.getString("datasetMetadataTarget"));
+		return datasetMetadataTarget;
 	}
 	
 	public String getServiceLinkagePrefix() {
@@ -29,7 +33,7 @@ public class MetadataEnvironmentConfig {
 	}
 	
 	public String getName() {
-		return config.getString("name");
+		return name;
 	}
 
 	public String getDatasetMetadataPrefix() {

@@ -46,23 +46,33 @@ public class MetadataTarget extends UntypedActor {
 		});
 	}
 	
-	private static Path requireExistingDirectory(Path path, String message) {
-		if(Files.isDirectory(path)) {
-			return path;
+	private static Path requireDirectory(Path path, String notDirectoryMessage, String cannotCreateMessage) {
+		if(Files.exists(path)) {
+			if(!Files.isDirectory(path)) {
+				throw new IllegalArgumentException(notDirectoryMessage);
+			}
 		} else {
-			throw new IllegalArgumentException(message);
+			try {
+				Files.createDirectories(path);
+			} catch(IOException e) {
+				throw new IllegalArgumentException(cannotCreateMessage, e);
+			}
 		}
+		
+		return path;
 	}
 	
 	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory, Supplier<Path> tempDirectorySupplier) {
 		return Props.create(
 			MetadataTarget.class, 
-			requireExistingDirectory(
+			requireDirectory(
 				Objects.requireNonNull(serviceMetadataDirectory, "serviceMetadataDirectory must not be null"), 
-				"serviceMetadataDirectory must be an existing directory"), 
-			requireExistingDirectory(
-					Objects.requireNonNull(datasetMetadataDirectory, "datasetMetadataDirectory must not be null"),
-					"datasetMetadataDirectory must be an existing directory"),
+				"serviceMetadataDirectory must be a directory",
+				"can not create serviceMetadataDirectory"), 
+			requireDirectory(
+				Objects.requireNonNull(datasetMetadataDirectory, "datasetMetadataDirectory must not be null"),
+				"datasetMetadataDirectory must be a directory",
+				"can not create datasetMetadataDirectory"),
 			Objects.requireNonNull(tempDirectorySupplier, "tempDirectorySupplier must not be null"));
 	}
 
