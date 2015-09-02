@@ -165,7 +165,10 @@ public class MetadataTarget extends UntypedActor {
 					
 					getSender().tell(new Ack(), getSelf());
 				} catch(Exception e) {
-					getSender().tell(new Failure(e), getSelf());
+					Failure f = new Failure(e);
+					
+					log.error("couldn't commit metadata: {}", f);
+					getSender().tell(f, getSelf());
 				}
 			}
 			
