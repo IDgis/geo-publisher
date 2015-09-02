@@ -116,6 +116,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	private void handleMetadataDocument(MetadataDocument msg) throws Exception {
 		log.debug("metadata document received for item: {}", itemInfo.getId());
 		
+		msg.removeStylesheet();
+		
 		generateMetadata(msg).stream()
 			.map(putMetadata -> f.ask(metadataTarget, putMetadata)
 				.exceptionally(t -> new Failure(t)))
