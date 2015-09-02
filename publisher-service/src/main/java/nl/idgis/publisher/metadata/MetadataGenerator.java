@@ -55,8 +55,9 @@ public class MetadataGenerator extends UntypedActor {
 	}
 	
 	private void handleGenerateMetadata(GenerateMetadata msg) throws Exception {		
+		String environmentId = msg.getEnvironmentId();
 		
-		log.info("generating metadata");
+		log.info("generating metadata for environment: {}", environmentId);
 		
 		ActorRef processor = getContext().actorOf(
 			MetadataInfoProcessor.props(
@@ -68,7 +69,7 @@ public class MetadataGenerator extends UntypedActor {
 			
 			nameGenerator.getName(MetadataInfoProcessor.class));
 
-		MetadataInfo.fetch(db.query(), msg.getEnvironmentId())
+		MetadataInfo.fetch(db.query(), environmentId)
 			.whenComplete((metadataInfo, throwable) ->				 
 				processor.tell(
 					throwable == null 

@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -27,23 +26,10 @@ public class MetadataTarget extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Path serviceMetadataDirectory, datasetMetadataDirectory;
-	
-	private final Supplier<Path> tempDirectorySupplier;
-	
-	public MetadataTarget(Path serviceMetadataDirectory, Path datasetMetadataDirectory, Supplier<Path> tempDirectorySupplier) {
+		
+	public MetadataTarget(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
 		this.serviceMetadataDirectory = serviceMetadataDirectory;
 		this.datasetMetadataDirectory = datasetMetadataDirectory;
-		this.tempDirectorySupplier = tempDirectorySupplier;
-	}
-	
-	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
-		return props(serviceMetadataDirectory, datasetMetadataDirectory, () -> {
-			try {
-				return Files.createTempDirectory("metadata");
-			} catch(Exception e) {
-				throw new RuntimeException(e);
-			}
-		});
 	}
 	
 	private static Path requireDirectory(Path path, String notDirectoryMessage, String cannotCreateMessage) {
@@ -62,7 +48,7 @@ public class MetadataTarget extends UntypedActor {
 		return path;
 	}
 	
-	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory, Supplier<Path> tempDirectorySupplier) {
+	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
 		return Props.create(
 			MetadataTarget.class, 
 			requireDirectory(
@@ -72,8 +58,7 @@ public class MetadataTarget extends UntypedActor {
 			requireDirectory(
 				Objects.requireNonNull(datasetMetadataDirectory, "datasetMetadataDirectory must not be null"),
 				"datasetMetadataDirectory must be a directory",
-				"can not create datasetMetadataDirectory"),
-			Objects.requireNonNull(tempDirectorySupplier, "tempDirectorySupplier must not be null"));
+				"can not create datasetMetadataDirectory"));
 	}
 
 	@Override
@@ -111,10 +96,24 @@ public class MetadataTarget extends UntypedActor {
 		});
 	}
 	
-	private Procedure<Object> puttingMetadata(Path beginTempDirectory) throws Exception {
+	private Path createTempDirectory(Path baseDirectory) {
+		String name = baseDirectory.getFileName().toString();
+		Path parent = baseDirectory.getParent();
 		
-		Path serviceMetadataDirectory = beginTempDirectory.resolve("service");
-		Path datasetMetadataDirectory = beginTempDirectory.resolve("dataset");
+		Path retval;
+		int count = 0;
+		do {
+			retval = parent.resolve("_" + name + count);
+			count++;
+		} while(Files.exists(retval));
+		
+		return retval;
+	}
+	
+	private Procedure<Object> puttingMetadata() throws Exception {
+		
+		Path serviceMetadataDirectory = createTempDirectory(MetadataTarget.this.serviceMetadataDirectory);
+		Path datasetMetadataDirectory = createTempDirectory(MetadataTarget.this.datasetMetadataDirectory);
 		
 		Files.createDirectories(serviceMetadataDirectory);
 		Files.createDirectories(datasetMetadataDirectory);
@@ -150,22 +149,24 @@ public class MetadataTarget extends UntypedActor {
 				log.debug("moving metadata to target directories");
 				
 				try {
-					Path commitTempDirectory = tempDirectorySupplier.get();
+					Path currentDatasetMetadataDirectory = createTempDirectory(MetadataTarget.this.datasetMetadataDirectory);
+					Path currentServiceMetadataDirectory = createTempDirectory(MetadataTarget.this.serviceMetadataDirectory);
 					
-					Files.createDirectories(commitTempDirectory);
-					
-					move(MetadataTarget.this.datasetMetadataDirectory, commitTempDirectory.resolve("dataset"));
-					move(MetadataTarget.this.serviceMetadataDirectory, commitTempDirectory.resolve("service"));
+					move(MetadataTarget.this.datasetMetadataDirectory, currentDatasetMetadataDirectory);
+					move(MetadataTarget.this.serviceMetadataDirectory, currentServiceMetadataDirectory);
 					
 					move(datasetMetadataDirectory, MetadataTarget.this.datasetMetadataDirectory);
 					move(serviceMetadataDirectory, MetadataTarget.this.serviceMetadataDirectory);
 					
-					delete(beginTempDirectory);
-					delete(commitTempDirectory);
+					delete(currentDatasetMetadataDirectory);
+					delete(currentServiceMetadataDirectory);
 					
 					getSender().tell(new Ack(), getSelf());
 				} catch(Exception e) {
-					getSender().tell(new Failure(e), getSelf());
+					Failure f = new Failure(e);
+					
+					log.error("couldn't commit metadata: {}", f);
+					getSender().tell(f, getSelf());
 				}
 			}
 			
@@ -174,9 +175,7 @@ public class MetadataTarget extends UntypedActor {
 
 	private void handleBeginPutMetadata() throws Exception {
 		try {
-			Path tempDirectory = tempDirectorySupplier.get();
-			
-			getContext().become(puttingMetadata(tempDirectory));
+			getContext().become(puttingMetadata());
 			getSender().tell(new Ack(), getSelf());
 		} catch(Exception e) {
 			getSender().tell(new Failure(e), getSelf());

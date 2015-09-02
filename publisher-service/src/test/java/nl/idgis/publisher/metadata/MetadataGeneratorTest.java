@@ -31,7 +31,6 @@ import nl.idgis.publisher.service.manager.messages.PublishService;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,19 +79,11 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		
 		datasetMetadataTargetDirectory = fileSystem.getPath("/dataset-metadata-target");
 		Files.createDirectory(datasetMetadataTargetDirectory);
-		
-		Set<Path> tempDirectories = new HashSet<>();
-		
+				
 		metadataTarget = actorOf(
 			MetadataTarget.props(
 				serviceMetadataTargetDirectory, 
-				datasetMetadataTargetDirectory,
-				() -> {
-					Path retval = fileSystem.getPath("/temp").resolve("" + tempDirectories.size());
-					tempDirectories.add(retval);
-					
-					return retval;
-				}), 
+				datasetMetadataTargetDirectory), 
 			"metadata-target");
 		
 		metadataGenerator = actorOf(

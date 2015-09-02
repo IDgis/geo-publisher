@@ -11,9 +11,9 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -21,6 +21,9 @@ import org.junit.Test;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -52,7 +55,11 @@ public class MetadataTargetTest {
 
 	@Before
 	public void start() throws Exception {
-		actorSystem =ActorSystem.create();
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		actorSystem = ActorSystem.create("test", akkaConfig);
 		f = new FutureUtils(actorSystem);
 		
 		fileSystem = Jimfs.newFileSystem(Configuration.unix());
@@ -60,21 +67,15 @@ public class MetadataTargetTest {
 		datasetMetadataDirectory = fileSystem.getPath("/dataset-metadata");
 	}
 	
-	private ActorRef createMetadataTarget(Set<Path> tempDirectories) {
-		return createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory, tempDirectories);
+	private ActorRef createMetadataTarget() {
+		return createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
 	}
 
-	private ActorRef createMetadataTarget(Path serviceMetadataDirectory, Path datasetMetadataDirectory, Set<Path> tempDirectories) {
+	private ActorRef createMetadataTarget(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
 		return actorSystem.actorOf(
 			MetadataTarget.props(
 				serviceMetadataDirectory, 
-				datasetMetadataDirectory,
-				() -> {
-					Path retval = fileSystem.getPath("/temp").resolve("" + tempDirectories.size());
-					tempDirectories.add(retval);
-					
-					return retval;
-				}), 
+				datasetMetadataDirectory), 
 			"metadata-target");
 	}
 	
@@ -83,15 +84,29 @@ public class MetadataTargetTest {
 		actorSystem.shutdown();
 	}
 	
+	private Stream<Path> findTempFiles(Path directory) throws IOException {
+		return Files.find(directory, 1, (path, attr) -> {
+			Path fileName = path.getFileName();
+			if(fileName == null) {
+				return false;
+			}
+			
+			return fileName.toString().startsWith("_");
+		});
+	}
+	
 	@Test
 	public void testPutServiceMetadata() throws Exception {
 		Path targetFile = serviceMetadataDirectory.resolve("serviceId.xml");
 		assertFalse(Files.exists(targetFile));
 			
-		Set<Path> tempDirectories = new HashSet<>();
-		ActorRef metadataTarget = createMetadataTarget(tempDirectories);
+		ActorRef metadataTarget = createMetadataTarget();
+		
+		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, new BeginPutMetadata(), Ack.class).get();
+		
+		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
 			new PutServiceMetadata(
@@ -100,16 +115,12 @@ public class MetadataTargetTest {
 			Ack.class).get();
 		
 		assertFalse(Files.exists(targetFile));
-		
-		tempDirectories.forEach(tempDirectory ->
-			assertTrue(Files.exists(tempDirectory)));
 				
 		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
+		
+		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 				
 		assertTrue(Files.exists(targetFile));
-		
-		tempDirectories.forEach(tempDirectory ->
-			assertFalse(Files.exists(tempDirectory)));
 	}
 	
 	@Test
@@ -117,10 +128,13 @@ public class MetadataTargetTest {
 		Path targetFile = datasetMetadataDirectory.resolve("datasetId.xml");
 		assertFalse(Files.exists(targetFile));
 		
-		Set<Path> tempDirectories = new HashSet<>();
-		ActorRef metadataTarget = createMetadataTarget(tempDirectories);
+		ActorRef metadataTarget = createMetadataTarget();
+		
+		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, new BeginPutMetadata(), Ack.class).get();
+		
+		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
 			new PutDatasetMetadata(
@@ -128,15 +142,11 @@ public class MetadataTargetTest {
 				MetadataDocumentTest.getDocument("dataset_metadata.xml")),
 			Ack.class).get();
 		
-		tempDirectories.forEach(tempDirectory ->
-			assertTrue(Files.exists(tempDirectory)));
-		
 		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
 		
-		assertTrue(Files.exists(targetFile));
+		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
-		tempDirectories.forEach(tempDirectory ->
-			assertFalse(Files.exists(tempDirectory)));
+		assertTrue(Files.exists(targetFile));		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -147,7 +157,7 @@ public class MetadataTargetTest {
 		writer.write("Hello, world!");
 		writer.close();
 		
-		createMetadataTarget(new HashSet<>());
+		createMetadataTarget();
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -179,6 +189,6 @@ public class MetadataTargetTest {
 		
 		doThrow(new AccessDeniedException(null)).when(provider).createDirectory(same(serviceMetadataDirectory), anyVararg());
 		
-		createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory, new HashSet<>());
+		createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
 	}
 }
