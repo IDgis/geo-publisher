@@ -3,6 +3,14 @@ package nl.idgis.publisher.metadata.messages;
 import java.util.Objects;
 import java.util.Set;
 
+import nl.idgis.publisher.metadata.DatasetMetadataGenerator;
+
+/**
+ * Contains all dataset information required by {@link DatasetMetadataGenerator}. 
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class DatasetInfo extends MetadataItemInfo {		
 
 	private static final long serialVersionUID = -6573597622103892506L;
@@ -44,6 +52,9 @@ public class DatasetInfo extends MetadataItemInfo {
 		return fileUuid;
 	}
 	
+	/**	 
+	 * @return references to services providing this dataset.
+	 */
 	public Set<ServiceRef> getServiceRefs() {
 		return serviceRefs;
 	}

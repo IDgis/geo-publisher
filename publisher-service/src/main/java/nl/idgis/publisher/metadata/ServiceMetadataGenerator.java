@@ -13,6 +13,12 @@ import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
+/**
+ * This actor generates service metadata documents.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<ServiceInfo> {
 	
 	private static final String ENDPOINT_CODE_LIST_VALUE = "WebServices";
@@ -25,6 +31,15 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		super(metadataTarget, serviceInfo, serviceLinkagePrefix, datasetMetadataPrefix);
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link ServiceMetadataGenerator} actor.
+	 * 
+	 * @param metadataTarget a reference to the metadata target actor.
+	 * @param serviceInfo the object containing information about the service. 
+	 * @param serviceLinkagePrefix the service linkage url prefix.
+	 * @param datasetMetadataPrefix the dataset url prefix.
+	 * @return
+	 */
 	public static Props props(ActorRef metadataTarget, ServiceInfo serviceInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			ServiceMetadataGenerator.class, 
@@ -33,7 +48,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 			Objects.requireNonNull(serviceLinkagePrefix, "serviceLinkagePrefix must not be null"),
 			Objects.requireNonNull(datasetMetadataPrefix, "datasetMetadataPrefix must not be null"));
 	}
-
+	
 	@Override
 	protected List<UpdateServiceMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
 		metadataDocument.removeOperatesOn();		
@@ -61,6 +76,13 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 			new UpdateServiceMetadata(serviceId + "-wfs", generateWFSMetadata(metadataDocument.clone())));
 	}
 
+	/**
+	 * Creates a WFS service metadata document.
+	 * 
+	 * @param metadataDocument the source document.
+	 * @return the resulting WFS service metadata document.
+	 * @throws NotFound
+	 */
 	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		log.debug("wfs metadata");
 		
@@ -85,6 +107,13 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		return metadataDocument;
 	}
 
+	/**
+	 * Creates a WMS service metadata document.
+	 * 
+	 * @param metadataDocument the source document.
+	 * @return the resulting WMS service metadata document.
+	 * @throws NotFound
+	 */
 	private MetadataDocument generateWMSMetadata(MetadataDocument metadataDocument) throws NotFound {
 		log.debug("wms metadata");		
 		

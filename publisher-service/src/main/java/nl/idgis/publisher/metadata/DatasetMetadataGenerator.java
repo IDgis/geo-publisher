@@ -12,12 +12,27 @@ import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceRef;
 
+/**
+ * This actor generates dataset metadata documents.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo> {
 
 	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		super(metadataTarget, datasetInfo, serviceLinkagePrefix, datasetMetadataPrefix);
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link DatasetMetadataGenerator} actor.
+	 * 
+	 * @param metadataTarget a reference to the metadata target actor.
+	 * @param datasetInfo the object containing information about the dataset. 
+	 * @param serviceLinkagePrefix the service linkage url prefix.
+	 * @param datasetMetadataPrefix the dataset url prefix.
+	 * @return
+	 */
 	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			DatasetMetadataGenerator.class, 

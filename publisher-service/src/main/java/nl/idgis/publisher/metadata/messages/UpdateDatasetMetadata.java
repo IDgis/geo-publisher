@@ -3,7 +3,14 @@ package nl.idgis.publisher.metadata.messages;
 import java.util.Objects;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataTarget;
 
+/**
+ * Request {@link MetadataTarget} to update a specific dataset metadata document.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class UpdateDatasetMetadata extends UpdateMetadata {
 	
 	private static final long serialVersionUID = 6614273320105612469L;

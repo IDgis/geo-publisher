@@ -24,6 +24,13 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
+/**
+ * This actor is responsible for processing a single 
+ * {@link MetadataInfo} message for a specific environment.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataInfoProcessor extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -42,6 +49,16 @@ public class MetadataInfoProcessor extends UntypedActor {
 		this.datasetMetadataPrefix = datasetMetadataPrefix;
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link MetadataInfoProcessor} actor.
+	 * 
+	 * @param initiator a reference to the actor to be notified when processing is finished.
+	 * @param metadataSource a reference to the metadata source actor.
+	 * @param metadataTarget a reference to the metadata target actor.
+	 * @param serviceLinkagePrefix the service linkage url prefix.
+	 * @param datasetMetadataPrefix the dataset url prefix.
+	 * @return the props.
+	 */
 	public static Props props(ActorRef initiator, ActorRef metadataSource, ActorRef metadataTarget, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			MetadataInfoProcessor.class, 
@@ -57,6 +74,14 @@ public class MetadataInfoProcessor extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.create(10, TimeUnit.SECONDS));
 	}	
 	
+	/**
+	 * Provides behavior for traversal of all {@link ServiceInfo} objects provided by 
+	 * the received {@link MetadataInfo} object.
+	 * 
+	 * @param metadataInfo the received metadata info message.
+	 * @param serviceItr the iterator providing the service info. 
+	 * @return the new actor behavior.
+	 */
 	private Procedure<Object> traversingServices(
 		MetadataInfo metadataInfo,
 		Iterator<ServiceInfo> serviceItr) {
@@ -65,6 +90,13 @@ public class MetadataInfoProcessor extends UntypedActor {
 			
 			ServiceInfo serviceInfo;
 
+			/**
+			 * Traversing services behavior. Fetches next {@link ServiceInfo} item 
+			 * when receiving a message (of any type) and dispatches the {@link ServiceInfo}
+			 * to a newly created {@link ServiceMetadataGenerator} actor.
+			 * 
+			 *@param msg the received message.
+			 */
 			@Override
 			public void apply(Object msg) throws Exception {
 				log.debug("message received while traversing services: {}", msg);
@@ -90,13 +122,21 @@ public class MetadataInfoProcessor extends UntypedActor {
 				} else {
 					log.debug("all services processed");
 					
-					terminate();
+					stop();
 				}
 			}
 			
 		};
 	}			
 	
+	/**
+	 * Provides behavior for traversal of all {@link DatasetInfo} objects provided by 
+	 * the received {@link MetadataInfo} object.
+	 * 
+	 * @param metadataInfo the received metadata info message.
+	 * @param datasetItr the iterator providing the dataset info. 
+	 * @return the new actor behavior.
+	 */
 	private Procedure<Object> traversingDatasets(
 		MetadataInfo metadataInfo,
 		Iterator<DatasetInfo> datasetItr) {
@@ -105,6 +145,13 @@ public class MetadataInfoProcessor extends UntypedActor {
 
 			DatasetInfo currentDataset;
 
+			/**
+			 * Traversing datasets behavior. Fetches next {@link DatasetInfo} item 
+			 * when receiving a message (of any type) and dispatches the {@link DatasetInfo}
+			 * to a newly created {@link DatasetMetadataGenerator} actor.
+			 * 
+			 *@param msg the received message.
+			 */
 			@Override
 			public void apply(Object msg) throws Exception {
 				log.debug("message received while traversing datasets: {}", msg);
@@ -141,6 +188,10 @@ public class MetadataInfoProcessor extends UntypedActor {
 		};
 	}
 	
+	/**
+	 * Default actor behavior. Handles {@link MetadataInfo} and {@link Failure}.
+	 * @param msg the received message.
+	 */
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof MetadataInfo) {
@@ -153,20 +204,25 @@ public class MetadataInfoProcessor extends UntypedActor {
 						metadataInfo,
 						metadataInfo.getDatasets()));
 				
+			// start metadata update session -> expected answer: Ack
 			metadataTarget.tell(new BeginMetadataUpdate(), getSelf());
 		} else if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
-			terminate();
+			stop();
 		} else {
 			unhandled(msg);
 		}
 	}
 
-	private void terminate() {
+	
+	/**
+	 * Stops actor and requests metadata target to commit metadata.
+	 */
+	private void stop() {
 		log.debug("terminating");
 		
 		metadataTarget.tell(new CommitMetadata(), initiator);
 		getContext().stop(getSelf());
-	}	
+	}
 
 }

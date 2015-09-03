@@ -30,9 +30,16 @@ import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 
+import nl.idgis.publisher.metadata.MetadataInfoProcessor;
 import nl.idgis.publisher.service.json.JsonService;
 import nl.idgis.publisher.utils.StreamUtils;
 
+/**
+ * Contains all dataset and service information required by {@link MetadataInfoProcessor}. 
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataInfo implements Serializable {	
 
 	private static final long serialVersionUID = -4466982583083563284L;

@@ -3,6 +3,14 @@ package nl.idgis.publisher.metadata.messages;
 import java.io.Serializable;
 import java.util.Objects;
 
+import nl.idgis.publisher.metadata.MetadataSource;
+
+/**
+ * Request a dataset metadata document from a {@link MetadataSource}.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class GetDatasetMetadata implements Serializable {
 
 	private static final long serialVersionUID = -9013649122916128842L;

@@ -15,6 +15,13 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
+/**
+ * This actor is responsible for initializing the metadata generation. 
+ * It is activated by sending a {@link GenerateMetadata} message.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataGenerator extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -32,6 +39,13 @@ public class MetadataGenerator extends UntypedActor {
 		this.metadataSource = metadataSource;		
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link MetadataGenerator} actor.
+	 * 
+	 * @param database a reference to the database actor.
+	 * @param metadataSource a reference to the metadata source actor. 
+	 * @return the props.
+	 */
 	public static Props props(ActorRef database, ActorRef metadataSource) {
 		return Props.create(
 			MetadataGenerator.class, 

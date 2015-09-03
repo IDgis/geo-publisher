@@ -3,6 +3,13 @@ package nl.idgis.publisher.metadata.messages;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * A reference from a dataset to a service. An instance of this class 
+ * always belong to a single instance of {@link DatasetInfo}.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class ServiceRef {
 	
 	private final String serviceId;

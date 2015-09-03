@@ -3,6 +3,13 @@ package nl.idgis.publisher.metadata.messages;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * A reference from a service to a dataset. An instance of this class 
+ * always belong to a single instance of {@link ServiceInfo}.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class DatasetRef {
 	
 	private final String datasetId;
@@ -32,6 +39,9 @@ public class DatasetRef {
 		return fileUuid;
 	}
 	
+	/**	 
+	 * @return the name of the layers of the service based on this dataset.
+	 */
 	public Set<String> getLayerNames() {
 		return layerNames;
 	}

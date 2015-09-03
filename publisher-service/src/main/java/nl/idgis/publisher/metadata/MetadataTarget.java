@@ -23,6 +23,12 @@ import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 
+/**
+ * This actor is responsible for saving {@link MetadataDocument} objects to disk.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataTarget extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -34,6 +40,15 @@ public class MetadataTarget extends UntypedActor {
 		this.datasetMetadataDirectory = datasetMetadataDirectory;
 	}
 	
+	/**
+	 * Ensures that a given {@link Path} points to an already existing directory or that a directory
+	 * can be created at specified location.  
+	 * 
+	 * @param path the path to test.
+	 * @param notDirectoryMessage the exception message used when path exists but is not a directory.
+	 * @param cannotCreateMessage the exception message used when directory creation fails.
+	 * @return
+	 */
 	private static Path requireDirectory(Path path, String notDirectoryMessage, String cannotCreateMessage) {
 		if(Files.exists(path)) {
 			if(!Files.isDirectory(path)) {
@@ -50,6 +65,13 @@ public class MetadataTarget extends UntypedActor {
 		return path;
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link MetadataTarget} actor.
+	 * 
+	 * @param serviceMetadataDirectory a path pointing to the directory containing service metadata.
+	 * @param datasetMetadataDirectory a path pointing to the directory containing dataset metadata.
+	 * @return the props.
+	 */
 	public static Props props(Path serviceMetadataDirectory, Path datasetMetadataDirectory) {
 		return Props.create(
 			MetadataTarget.class, 
@@ -63,6 +85,10 @@ public class MetadataTarget extends UntypedActor {
 				"can not create datasetMetadataDirectory"));
 	}
 
+	/**
+	 * Default behavior. Handles only {@link BeginMetadataUpdate}.
+	 * @param msg the received message.
+	 */
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof BeginMetadataUpdate) {
@@ -72,16 +98,30 @@ public class MetadataTarget extends UntypedActor {
 		}
 	}
 	
+	/**
+	 * Moves a directory. Expects to be able to move non-empty directories.
+	 * This usually implies that source and target directories have to be
+	 * part of the same volume / filesystem.
+	 * 
+	 * @param source the directory to move from.
+	 * @param target the directory to move to.
+	 * @throws IOException
+	 */
 	private void move(Path source, Path target) throws IOException {
 		log.debug("moving files, source: {}, target: {}", source, target);
 		
 		Files.move(source, target);
 	}
 	
-	private void delete(Path dir) throws IOException {
-		log.debug("deleting directory: {}", dir);
+	/**
+	 * Deletes a directory along with all its content. 
+	 * @param directory the directory to delete.
+	 * @throws IOException
+	 */
+	private void delete(Path directory) throws IOException {
+		log.debug("deleting directory: {}", directory);
 		
-		Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
+		Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
 
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -98,6 +138,15 @@ public class MetadataTarget extends UntypedActor {
 		});
 	}
 	
+	/**
+	 * Creates a temp directory alongside a given base directory. It creates 
+	 * a new directory in the parent directory of the base directory with a name
+	 * starting with an underscore ('_') and containing the file name of the 
+	 * base directory.
+	 * 
+	 * @param baseDirectory the base directory to create a temp directory for.
+	 * @return the temp directory.
+	 */
 	private Path createTempDirectory(Path baseDirectory) {
 		String name = baseDirectory.getFileName().toString();
 		Path parent = baseDirectory.getParent();
@@ -112,9 +161,23 @@ public class MetadataTarget extends UntypedActor {
 		return retval;
 	}
 	
+	/**
+	 * Provides updating metadata behavior.
+	 * 
+	 * @param serviceMetadataTempDirectory a path pointing to the temp directory containing service metadata.
+	 * @param datasetMetadataTempDirectory a path pointing to the temp directory containing dataset metadata.
+	 * @return the behavior.
+	 * @throws Exception
+	 */
 	private Procedure<Object> updatingMetadata(Path serviceMetadataTempDirectory, Path datasetMetadataTempDirectory) throws Exception {		
 		return new Procedure<Object>() {
 
+			/**
+			 * Update and keep behavior. Handles {@link UpdateServiceMetadata},
+			 * {@link UpdateDatasetMetadata}, {@link KeepServiceMetadata},
+			 * {@link KeepDatasetMetadata} and {@link CommitMetadata}.
+			 * @param msg the received message.
+			 */
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof UpdateServiceMetadata) {
@@ -132,26 +195,47 @@ public class MetadataTarget extends UntypedActor {
 				}
 			}
 			
+			/**
+			 * Update dataset metadata.
+			 * 
+			 * @param msg the received message.
+			 */
 			private void handleUpdateDatasetMetadata(UpdateDatasetMetadata msg) {
 				String datasetId = msg.getDatasetId();
 				doUpdate(datasetMetadataTempDirectory, datasetId, msg.getMetadataDocument());
 			}
 
+			/**
+			 * Update service metadata.
+			 * 
+			 * @param msg the received message.
+			 */
 			private void handleUpdateServiceMetadata(UpdateServiceMetadata msg) {
 				String serviceId = msg.getServiceId();
 				doUpdate(serviceMetadataTempDirectory, serviceId, msg.getMetadataDocument());
 			}
 			
+			/**
+			 * Keep dataset metadata.
+			 * @param msg the received message.
+			 */
 			private void handleKeepDatasetMetadata(KeepDatasetMetadata msg) {
 				String datasetId = msg.getDatasetId();
 				doKeep(datasetMetadataDirectory, datasetMetadataTempDirectory, datasetId);
 			}
 			
+			/**
+			 * Keep service metadata.
+			 * @param msg the received message.
+			 */
 			private void handleKeepServiceMetadata(KeepServiceMetadata msg) {
 				String serviceId = msg.getServiceId();
 				doKeep(serviceMetadataDirectory, serviceMetadataTempDirectory, serviceId);
 			}
 
+			/**
+			 * Commit metadata by moving temp directories to target directory.
+			 */
 			private void handleCommitMetadata() {
 				log.debug("moving temp directories to target directories");
 				
@@ -180,6 +264,11 @@ public class MetadataTarget extends UntypedActor {
 		};
 	}	
 
+	/**
+	 * Starts a metadata update session by creating empty target directories.
+	 * 
+	 * @throws Exception
+	 */
 	private void handleBeginMetadataUpdate() throws Exception {
 		try {
 			log.debug("start updating metadata");
@@ -200,9 +289,16 @@ public class MetadataTarget extends UntypedActor {
 		}
 	}
 
+	/**
+	 * Update document by serializing given {@link MetadataDocument} to the temp directory.
+	 * 
+	 * @param target the temp directory containing the updated documents. 
+	 * @param id the document id.
+	 * @param metadataDocument the metadata document to serialize.
+	 */
 	private void doUpdate(Path target, String id, MetadataDocument metadataDocument) {
 		try {
-			Path file = target.resolve(getFile(id));			
+			Path file = target.resolve(getFileName(id));			
 			log.debug("writing metadata document to file: {}", file);
 			
 			Files.write(				
@@ -216,9 +312,16 @@ public class MetadataTarget extends UntypedActor {
 		}
 	}	
 	
+	/**
+	 * Keep existing document by copying the current document to the temp directory.
+	 * 
+	 * @param source the directory containing the current documents. 
+	 * @param target the temp directory containing the updated documents.
+	 * @param id the id of the document.
+	 */
 	private void doKeep(Path source, Path target, String id) {
 		try {
-			String fileName = getFile(id);
+			String fileName = getFileName(id);
 			log.debug("keeping metadata document file: {}", fileName);
 		
 			Files.copy(source.resolve(fileName), target.resolve(fileName));
@@ -230,7 +333,14 @@ public class MetadataTarget extends UntypedActor {
 		}
 	}
 
-	private String getFile(String id) throws IOException {
+	/**
+	 * Get file name for given document id.
+	 * 
+	 * @param id the id of the document.
+	 * @return the file name.
+	 * @throws IOException
+	 */
+	private String getFileName(String id) throws IOException {
 		return id + ".xml";
 	}
 }

@@ -19,6 +19,12 @@ import nl.idgis.publisher.metadata.messages.MetadataNotFound;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
+/**
+ * This actor provides access to service and dataset metadata documents.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataSource extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -38,6 +44,13 @@ public class MetadataSource extends UntypedActor {
 		documentFactory = new MetadataDocumentFactory();
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link MetadataSource} actor.
+	 * 
+	 * @param harvester a reference to the harvester.
+	 * @param serviceMetadataDirectory a path pointing to a directory containing service metadata.
+	 * @return the props
+	 */
 	public static Props props(ActorRef harvester, Path serviceMetadataDirectory) {
 		return Props.create(
 			MetadataSource.class, 
@@ -50,6 +63,11 @@ public class MetadataSource extends UntypedActor {
 		f = new FutureUtils(getContext());
 	}
 
+	/**
+	 * Default behavior. Handles {@link GetDatasetMetadata} and {@link GetServiceMetadata}.
+	 * 
+	 *@param msg the received message.
+	 */
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof GetDatasetMetadata) {
@@ -61,6 +79,10 @@ public class MetadataSource extends UntypedActor {
 		}
 	}
 
+	/**
+	 * Retrieves service metadata document.
+	 * @param msg the received message.
+	 */
 	private void handleGetServiceMetadata(GetServiceMetadata msg) {
 		log.debug("service metadata requested: {}", msg);
 		
@@ -80,6 +102,10 @@ public class MetadataSource extends UntypedActor {
 		}
 	}
 
+	/**
+	 * Retrieves dataset metadata document.
+	 * @param msg the received message.
+	 */
 	private void handleGetDatasetMetadata(GetDatasetMetadata msg) {
 		log.debug("dataset metadata requested: {}", msg);
 		
@@ -87,14 +113,18 @@ public class MetadataSource extends UntypedActor {
 		f.ask(harvester, new GetDataSource(msg.getDataSourceId())).whenComplete((harvesterResponse, throwable) -> {
 			if(throwable == null) {
 				if(harvesterResponse instanceof ActorRef) {
+					log.debug("actor reference received from harvester");					
 					ActorRef dataSource = (ActorRef)harvesterResponse;
 					dataSource.tell(new GetMetadata(msg.getExternalDatasetId()), sender);
 				} else if(harvesterResponse instanceof NotConnected) {
+					log.debug("data source is not connected");					
 					sender.tell(new MetadataNotFound(), getSelf());
 				} else {
+					log.warning("unknown harvester response type: {}", harvesterResponse);					
 					sender.tell(harvesterResponse, getSelf());
 				}
 			} else {
+				log.error("error while retrieving dataset metadata");				
 				sender.tell(new Failure(throwable), getSelf());
 			}
 		});
