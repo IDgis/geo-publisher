@@ -11,6 +11,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.harvester.messages.GetDataSource;
+import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
 import nl.idgis.publisher.metadata.messages.GetServiceMetadata;
@@ -88,6 +89,8 @@ public class MetadataSource extends UntypedActor {
 				if(harvesterResponse instanceof ActorRef) {
 					ActorRef dataSource = (ActorRef)harvesterResponse;
 					dataSource.tell(new GetMetadata(msg.getExternalDatasetId()), sender);
+				} else if(harvesterResponse instanceof NotConnected) {
+					sender.tell(new MetadataNotFound(), getSelf());
 				} else {
 					sender.tell(harvesterResponse, getSelf());
 				}

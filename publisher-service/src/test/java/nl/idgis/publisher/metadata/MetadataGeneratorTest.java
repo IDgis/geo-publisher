@@ -59,6 +59,33 @@ import static org.junit.Assert.assertTrue;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
+final String dataSourceIdentification = "dataSourceIdentification";
+	
+	final String sourceDatasetIdentification = "sourceDatasetIdentification";
+	
+	final String sourceDatasetExternalIdentification = "sourceDatasetExternalIdentification";
+	
+	final String categoryIdentification = "categoryIdentification";
+	
+	final String datasetUuid = UUID.randomUUID().toString();
+	
+	final String datasetFileUuid = UUID.randomUUID().toString();
+	
+	final String datasetIdentification = "datasetIdentification";
+	
+	final String layerIdentification = "layerIdentification";
+	
+	final String layerName = "testLayer";
+	
+	final String serviceIdentification = "serviceIdentification";
+	
+	final String serviceName = "testService";
+	
+	final Set<String> environmentIdentifications =
+		IntStream.range(0, 5)
+			.mapToObj(i -> "environmentIdentification" + i)
+			.collect(Collectors.toSet());
+	
 	ActorRef metadataGenerator, harvester;
 	
 	Path serviceMetadataSourceDirectory, serviceMetadataTargetDirectory, datasetMetadataTargetDirectory;
@@ -91,13 +118,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				database, 
 				actorOf(MetadataSource.props(harvester, serviceMetadataSourceDirectory), "metadata-source")), 
 			"metadata-generator");
-	}
-	
-	
-	@Test
-	public void testGenerate() throws Exception {
-		final String dataSourceIdentification = "dataSourceIdentification";
 		
+		// Prepare database
 		final int dataSourceId =
 			insert(dataSource)
 				.columns(
@@ -107,9 +129,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					dataSourceIdentification,
 					"testDataSource")
 				.executeWithKey(dataSource.id);
-		
-		final String sourceDatasetIdentification = "sourceDatasetIdentification";
-		final String sourceDatasetExternalIdentification = "sourceDatasetExternalIdentification";
 		
 		final int sourceDatasetId =
 			insert(sourceDataset)
@@ -122,8 +141,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					sourceDatasetExternalIdentification,
 					dataSourceId)
 				.executeWithKey(sourceDataset.id);
-		
-		final String categoryIdentification = "categoryIdentification";
 		
 		int categoryId = insert(category)
 				.columns(
@@ -147,10 +164,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					false,
 					categoryId)
 				.executeWithKey(sourceDatasetVersion.id);
-		
-		final String datasetUuid = UUID.randomUUID().toString();
-		final String datasetFileUuid = UUID.randomUUID().toString();
-		final String datasetIdentification = "datasetIdentification";
 		
 		final int datasetId =
 			insert(dataset)
@@ -197,9 +210,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			.values(jobId, JobState.SUCCEEDED.toString()).addBatch()
 			.execute();
 		
-		final String layerIdentification = "layerIdentification";		
-		final String layerName = "testLayer";
-		
 		final int layerGenericLayerId = 
 			insert(genericLayer)
 				.columns(					
@@ -218,9 +228,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				layerGenericLayerId,
 				datasetId)
 			.execute();
-		
-		final String serviceIdentification = "serviceIdentification";
-		final String serviceName = "testService";
 		
 		final int serviceGenericLayerId =
 			insert(genericLayer)
@@ -266,11 +273,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		assertEquals(layerName, datasetLayer.getName());
 		
 		// Publish service
-		Set<String> environmentIdentifications =
-			IntStream.range(0, 5)
-				.mapToObj(i -> "environmentIdentification" + i)
-				.collect(Collectors.toSet());
-		
 		SQLInsertClause environmentInsert = insert(environment)
 			.columns(environment.identification);
 		
@@ -288,7 +290,10 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				serviceIdentification,
 				environmentIdentifications), 
 			Ack.class).get();
-		
+	}
+	
+	@Test
+	public void testGenerateMetadata() throws Exception {
 		ActorRef dataSource = actorOf(DataSourceMock.props(), "dataSource");
 		
 		f.ask(harvester, new AddDataSource(dataSourceIdentification, dataSource), Ack.class).get();
@@ -342,5 +347,42 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
 		assertEquals(layerName, wfsServiceLinkage.getName());
 		assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
+	}
+	
+	@Test
+	public void testKeepMetadata() throws Exception {
+		String environmentIdentification = environmentIdentifications.iterator().next();
+		String prefix = "http://" + environmentIdentification + ".example.com/";
+		
+		Path wfsMetadata = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml");
+		
+		IOUtils.copy(
+			getClass().getResourceAsStream("service_metadata.xml"),
+			Files.newOutputStream(wfsMetadata));
+		
+		Path wmsMetadata = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml");
+		
+		IOUtils.copy(
+			getClass().getResourceAsStream("service_metadata.xml"),
+			Files.newOutputStream(wmsMetadata));
+		
+		Path datasetMetadata = datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml");
+		
+		IOUtils.copy(
+			getClass().getResourceAsStream("dataset_metadata.xml"),
+			Files.newOutputStream(datasetMetadata));
+		
+		f.ask(
+			metadataGenerator, 
+			new GenerateMetadata(
+				environmentIdentification, 
+				metadataTarget,
+				prefix + "geoserver/",
+				prefix + "metadata/dataset/"), 
+			Ack.class).get();
+		
+		assertTrue(Files.exists(wfsMetadata));
+		assertTrue(Files.exists(wmsMetadata));
+		assertTrue(Files.exists(datasetMetadata));
 	}
 }

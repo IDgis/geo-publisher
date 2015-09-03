@@ -4,13 +4,13 @@ import java.util.Objects;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 
-public class PutServiceMetadata extends PutMetadata {
-	
-	private static final long serialVersionUID = -5211768984975240783L;
+public class UpdateServiceMetadata extends UpdateMetadata {	
+
+	private static final long serialVersionUID = 4105320126397164912L;
 	
 	private final String serviceId;
 
-	public PutServiceMetadata(String serviceId, MetadataDocument metadataDocument) {
+	public UpdateServiceMetadata(String serviceId, MetadataDocument metadataDocument) {
 		super(metadataDocument);
 		
 		this.serviceId = Objects.requireNonNull(serviceId, "serviceId must not be null");
@@ -22,6 +22,6 @@ public class PutServiceMetadata extends PutMetadata {
 
 	@Override
 	public String toString() {
-		return "PutServiceMetadata [serviceId=" + serviceId + ", metadataDocument=" + metadataDocument + "]";
+		return "UpdateServiceMetadata [serviceId=" + serviceId + ", metadataDocument=" + metadataDocument + "]";
 	}
 }

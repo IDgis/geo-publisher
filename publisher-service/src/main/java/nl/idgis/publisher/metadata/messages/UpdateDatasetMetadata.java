@@ -4,13 +4,13 @@ import java.util.Objects;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 
-public class PutDatasetMetadata extends PutMetadata {		
-
-	private static final long serialVersionUID = -8125975249047975901L;
+public class UpdateDatasetMetadata extends UpdateMetadata {
+	
+	private static final long serialVersionUID = 6614273320105612469L;
 	
 	private final String datasetId;
 
-	public PutDatasetMetadata(String datasetId, MetadataDocument metadataDocument) {
+	public UpdateDatasetMetadata(String datasetId, MetadataDocument metadataDocument) {
 		super(metadataDocument);
 		
 		this.datasetId = Objects.requireNonNull(datasetId, "datasetId must not be null");
@@ -22,6 +22,6 @@ public class PutDatasetMetadata extends PutMetadata {
 
 	@Override
 	public String toString() {
-		return "PutDatasetMetadata [datasetId=" + datasetId + ", metadataDocument=" + metadataDocument + "]";
+		return "UpdateDatasetMetadata [datasetId=" + datasetId + ", metadataDocument=" + metadataDocument + "]";
 	}
 }

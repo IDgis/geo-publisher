@@ -13,7 +13,7 @@ import akka.japi.Procedure;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.metadata.messages.BeginPutMetadata;
+import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
@@ -74,16 +74,19 @@ public class MetadataInfoProcessor extends UntypedActor {
 					
 					String serviceId = serviceInfo.getId();
 					log.debug("requesting metadata for service: {}", serviceId);
+					
+					ActorRef generator = getContext().actorOf(
+						ServiceMetadataGenerator.props(
+							metadataTarget, 
+							serviceInfo, 
+							serviceLinkagePrefix,
+							datasetMetadataPrefix),
+						nameGenerator.getName(ServiceMetadataGenerator.class));
+					getContext().watch(generator);
 
 					metadataSource.tell(
-						new GetServiceMetadata(serviceId), 
-						getContext().actorOf(
-							ServiceMetadataGenerator.props(
-								metadataTarget, 
-								serviceInfo, 
-								serviceLinkagePrefix,
-								datasetMetadataPrefix),
-							nameGenerator.getName(ServiceMetadataGenerator.class)));
+						new GetServiceMetadata(serviceId),						
+						generator);
 				} else {
 					log.debug("all services processed");
 					
@@ -109,15 +112,18 @@ public class MetadataInfoProcessor extends UntypedActor {
 				if(datasetItr.hasNext()) {
 					currentDataset = datasetItr.next();
 					
+					ActorRef generator = getContext().actorOf(
+						DatasetMetadataGenerator.props(
+							metadataTarget, 
+							currentDataset,
+							serviceLinkagePrefix,
+							datasetMetadataPrefix),
+						nameGenerator.getName(DatasetMetadataGenerator.class));
+					getContext().watch(generator);
+					
 					metadataSource.tell(
 						new GetDatasetMetadata(currentDataset.getDataSourceId(), currentDataset.getExternalDatasetId()),
-						getContext().actorOf(
-							DatasetMetadataGenerator.props(
-								metadataTarget, 
-								currentDataset,
-								serviceLinkagePrefix,
-								datasetMetadataPrefix),
-							nameGenerator.getName(DatasetMetadataGenerator.class)));
+						generator);
 				} else {
 					log.debug("all datasets processed");
 					
@@ -147,7 +153,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 						metadataInfo,
 						metadataInfo.getDatasets()));
 				
-			metadataTarget.tell(new BeginPutMetadata(), getSelf());
+			metadataTarget.tell(new BeginMetadataUpdate(), getSelf());
 		} else if(msg instanceof Failure) {
 			log.error("failure: {}", msg);
 			terminate();

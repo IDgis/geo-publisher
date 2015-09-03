@@ -28,10 +28,12 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
-import nl.idgis.publisher.metadata.messages.BeginPutMetadata;
+import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
-import nl.idgis.publisher.metadata.messages.PutDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.PutServiceMetadata;
+import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.KeepServiceMetadata;
+import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -96,7 +98,7 @@ public class MetadataTargetTest {
 	}
 	
 	@Test
-	public void testPutServiceMetadata() throws Exception {
+	public void testUpdateServiceMetadata() throws Exception {
 		Path targetFile = serviceMetadataDirectory.resolve("serviceId.xml");
 		assertFalse(Files.exists(targetFile));
 			
@@ -104,14 +106,14 @@ public class MetadataTargetTest {
 		
 		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
-		f.ask(metadataTarget, new BeginPutMetadata(), Ack.class).get();
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
 		
 		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
-			new PutServiceMetadata(
+			new UpdateServiceMetadata(
 				"serviceId", 
-				MetadataDocumentTest.getDocument("service_metadata.xml")),
+				serviceMetadata()),
 			Ack.class).get();
 		
 		assertFalse(Files.exists(targetFile));
@@ -122,9 +124,13 @@ public class MetadataTargetTest {
 				
 		assertTrue(Files.exists(targetFile));
 	}
+
+	private MetadataDocument serviceMetadata() throws Exception {
+		return MetadataDocumentTest.getDocument("service_metadata.xml");
+	}
 	
 	@Test
-	public void testPutDatasetMetadata() throws Exception {
+	public void testUpdateDatasetMetadata() throws Exception {
 		Path targetFile = datasetMetadataDirectory.resolve("datasetId.xml");
 		assertFalse(Files.exists(targetFile));
 		
@@ -132,14 +138,14 @@ public class MetadataTargetTest {
 		
 		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
-		f.ask(metadataTarget, new BeginPutMetadata(), Ack.class).get();
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
 		
 		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
-			new PutDatasetMetadata(
+			new UpdateDatasetMetadata(
 				"datasetId", 
-				MetadataDocumentTest.getDocument("dataset_metadata.xml")),
+				datasetMetadata()),
 			Ack.class).get();
 		
 		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
@@ -147,6 +153,10 @@ public class MetadataTargetTest {
 		assertFalse(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		assertTrue(Files.exists(targetFile));		
+	}
+
+	private MetadataDocument datasetMetadata() throws Exception {
+		return MetadataDocumentTest.getDocument("dataset_metadata.xml");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -190,5 +200,49 @@ public class MetadataTargetTest {
 		doThrow(new AccessDeniedException(null)).when(provider).createDirectory(same(serviceMetadataDirectory), anyVararg());
 		
 		createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
+	}
+	
+	@Test
+	public void testKeepDatasetMetadata() throws Exception {
+		String datasetId = "datasetId";
+		
+		Path datasetFile = datasetMetadataDirectory.resolve(datasetId + ".xml");
+		
+		Files.createDirectories(datasetMetadataDirectory);
+		
+		Files.write(
+			datasetFile, 
+			datasetMetadata().getContent());
+		
+		assertTrue(Files.exists(datasetFile));
+		
+		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
+		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new KeepDatasetMetadata(datasetId)).get();
+		f.ask(metadataTarget, new CommitMetadata()).get();
+		
+		assertTrue(Files.exists(datasetFile));
+	}
+	
+	@Test
+	public void testKeepServiceMetadata() throws Exception {
+		String serviceId = "serivceId";
+		
+		Path serviceFile = serviceMetadataDirectory.resolve(serviceId + ".xml");
+		
+		Files.createDirectories(serviceMetadataDirectory);
+		
+		Files.write(
+			serviceFile, 
+			serviceMetadata().getContent());
+		
+		assertTrue(Files.exists(serviceFile));
+		
+		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
+		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new KeepServiceMetadata(serviceId)).get();
+		f.ask(metadataTarget, new CommitMetadata()).get();
+		
+		assertTrue(Files.exists(serviceFile));
 	}
 }

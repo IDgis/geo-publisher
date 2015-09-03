@@ -1,6 +1,5 @@
 package nl.idgis.publisher.metadata;
 
-import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
 import com.typesafe.config.Config;

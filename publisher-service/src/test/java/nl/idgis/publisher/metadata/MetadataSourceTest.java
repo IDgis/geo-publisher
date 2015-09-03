@@ -15,7 +15,6 @@ import com.google.common.jimfs.Jimfs;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
-import nl.idgis.publisher.harvester.messages.NotConnected;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
 import nl.idgis.publisher.metadata.messages.GetDatasetMetadata;
@@ -68,7 +67,7 @@ public class MetadataSourceTest {
 	@Test
 	public void testGetDatasetMetadata() throws Exception {
 		
-		f.ask(metadataSource, new GetDatasetMetadata("dataSourceId", "datasetId"), NotConnected.class).get();
+		f.ask(metadataSource, new GetDatasetMetadata("dataSourceId", "datasetId"), MetadataNotFound.class).get();
 		
 		ActorRef dataSource = actorSystem.actorOf(DataSourceMock.props(), "dataSource");
 		f.ask(harvester, new AddDataSource("dataSourceId", dataSource), Ack.class).get();

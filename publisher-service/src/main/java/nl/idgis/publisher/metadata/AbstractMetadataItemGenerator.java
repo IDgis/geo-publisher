@@ -13,14 +13,14 @@ import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataItemInfo;
 import nl.idgis.publisher.metadata.messages.MetadataNotFound;
-import nl.idgis.publisher.metadata.messages.PutMetadata;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.FutureUtils;
 
-public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, U extends PutMetadata> extends UntypedActor {
+public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo> extends UntypedActor {
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -41,11 +41,11 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	
 	private FutureUtils f;	
 	
-	private static class GeneratorResult {
+	private static class TargetResult {
 		
 		private final Set<Failure> failures;
 		
-		GeneratorResult(Set<Failure> failures) {
+		TargetResult(Set<Failure> failures) {
 			this.failures = failures;
 		}
 		
@@ -68,7 +68,9 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		f = new FutureUtils(getContext());
 	}
 	
-	protected abstract List<? extends PutMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception;
+	protected abstract List<? extends KeepMetadata> keepMetadata();
+	
+	protected abstract List<? extends UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception;
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -78,8 +80,8 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 			handleMetadataDocument((MetadataDocument)msg);
 		} else if(msg instanceof MetadataNotFound) {
 			handleMetadataNotFound();
-		} else if(msg instanceof GeneratorResult) {
-			handleGeneratorResult((GeneratorResult)msg);
+		} else if(msg instanceof TargetResult) {
+			handleTargetResult((TargetResult)msg);
 		} else if(msg instanceof ReceiveTimeout) {
 			handleReceiveTimeout();
 		} else {
@@ -90,7 +92,7 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 	private void handleMetadataNotFound() {
 		log.error("metadata not found");
 		
-		stop();
+		askMetadataTarget(keepMetadata());
 	}
 
 	private void handleReceiveTimeout() {
@@ -99,10 +101,10 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		stop();
 	}
 
-	private void handleGeneratorResult(Object msg) {
+	private void handleTargetResult(Object msg) {
 		log.debug("generator finished");
 		
-		Set<Failure> failures = ((GeneratorResult) msg).getFailures(); 
+		Set<Failure> failures = ((TargetResult) msg).getFailures(); 
 		if(failures.isEmpty()) {
 			log.debug("no failures");
 		} else {
@@ -112,18 +114,14 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 		
 		stop();
 	}
-
-	private void handleMetadataDocument(MetadataDocument msg) throws Exception {
-		log.debug("metadata document received for item: {}", itemInfo.getId());
-		
-		msg.removeStylesheet();
-		
-		generateMetadata(msg).stream()
-			.map(putMetadata -> f.ask(metadataTarget, putMetadata)
+	
+	private void askMetadataTarget(List<? extends Object> requests) {
+		requests.stream()
+			.map(request -> f.ask(metadataTarget, request)
 				.exceptionally(t -> new Failure(t)))
 			.collect(f.collect()).thenAccept(results -> {
 				getSelf().tell(
-					new GeneratorResult(
+					new TargetResult(
 						results
 							.filter(result -> result instanceof Failure)
 							.map(result -> (Failure)result)
@@ -132,10 +130,15 @@ public abstract class AbstractMetadataItemGenerator<T extends MetadataItemInfo, 
 			});
 	}
 
+	private void handleMetadataDocument(MetadataDocument msg) throws Exception {
+		log.debug("metadata document received for item: {}", itemInfo.getId());
+		
+		msg.removeStylesheet();
+		askMetadataTarget(updateMetadata(msg));
+	}
+
 	private void stop() {
 		log.debug("terminating");
-		
-		getContext().parent().tell(new NextItem(), getSelf());
 		getContext().stop(getSelf());
 	}
 	

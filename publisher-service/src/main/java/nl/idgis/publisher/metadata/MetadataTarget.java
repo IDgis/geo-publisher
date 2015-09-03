@@ -14,10 +14,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 
-import nl.idgis.publisher.metadata.messages.BeginPutMetadata;
+import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
-import nl.idgis.publisher.metadata.messages.PutDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.PutServiceMetadata;
+import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.KeepServiceMetadata;
+import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 
@@ -63,8 +65,8 @@ public class MetadataTarget extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof BeginPutMetadata) {
-			handleBeginPutMetadata();
+		if(msg instanceof BeginMetadataUpdate) {
+			handleBeginMetadataUpdate();
 		} else {
 			unhandled(msg);
 		}
@@ -110,22 +112,19 @@ public class MetadataTarget extends UntypedActor {
 		return retval;
 	}
 	
-	private Procedure<Object> puttingMetadata() throws Exception {
-		
-		Path serviceMetadataDirectory = createTempDirectory(MetadataTarget.this.serviceMetadataDirectory);
-		Path datasetMetadataDirectory = createTempDirectory(MetadataTarget.this.datasetMetadataDirectory);
-		
-		Files.createDirectories(serviceMetadataDirectory);
-		Files.createDirectories(datasetMetadataDirectory);
-		
+	private Procedure<Object> updatingMetadata(Path serviceMetadataTempDirectory, Path datasetMetadataTempDirectory) throws Exception {		
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof PutServiceMetadata) {
-					handlePutServiceMetadata((PutServiceMetadata)msg);
-				} else if(msg instanceof PutDatasetMetadata) {
-					handlePutDatasetMetadata((PutDatasetMetadata)msg);
+				if(msg instanceof UpdateServiceMetadata) {
+					handleUpdateServiceMetadata((UpdateServiceMetadata)msg);
+				} else if(msg instanceof UpdateDatasetMetadata) {
+					handleUpdateDatasetMetadata((UpdateDatasetMetadata)msg);
+				} else if(msg instanceof KeepServiceMetadata) {
+					handleKeepServiceMetadata((KeepServiceMetadata)msg);
+				} else if(msg instanceof KeepDatasetMetadata) {
+					handleKeepDatasetMetadata((KeepDatasetMetadata)msg);				 
 				} else if(msg instanceof CommitMetadata) {
 					handleCommitMetadata();
 				} else {
@@ -133,33 +132,41 @@ public class MetadataTarget extends UntypedActor {
 				}
 			}
 			
-			private void handlePutDatasetMetadata(PutDatasetMetadata msg) {
+			private void handleUpdateDatasetMetadata(UpdateDatasetMetadata msg) {
 				String datasetId = msg.getDatasetId();
-				log.debug("storing dataset metadata: {}", datasetId);		
-				doPut(datasetMetadataDirectory, datasetId, msg.getMetadataDocument());
+				doUpdate(datasetMetadataTempDirectory, datasetId, msg.getMetadataDocument());
 			}
 
-			private void handlePutServiceMetadata(PutServiceMetadata msg) {
+			private void handleUpdateServiceMetadata(UpdateServiceMetadata msg) {
 				String serviceId = msg.getServiceId();
-				log.debug("storing service metadata: {}", serviceId);		
-				doPut(serviceMetadataDirectory, serviceId, msg.getMetadataDocument());
+				doUpdate(serviceMetadataTempDirectory, serviceId, msg.getMetadataDocument());
+			}
+			
+			private void handleKeepDatasetMetadata(KeepDatasetMetadata msg) {
+				String datasetId = msg.getDatasetId();
+				doKeep(datasetMetadataDirectory, datasetMetadataTempDirectory, datasetId);
+			}
+			
+			private void handleKeepServiceMetadata(KeepServiceMetadata msg) {
+				String serviceId = msg.getServiceId();
+				doKeep(serviceMetadataDirectory, serviceMetadataTempDirectory, serviceId);
 			}
 
 			private void handleCommitMetadata() {
-				log.debug("moving metadata to target directories");
+				log.debug("moving temp directories to target directories");
 				
 				try {
-					Path currentDatasetMetadataDirectory = createTempDirectory(MetadataTarget.this.datasetMetadataDirectory);
-					Path currentServiceMetadataDirectory = createTempDirectory(MetadataTarget.this.serviceMetadataDirectory);
+					Path movedDatasetMetadataDirectory = createTempDirectory(datasetMetadataDirectory);
+					Path movedServiceMetadataDirectory = createTempDirectory(serviceMetadataDirectory);
 					
-					move(MetadataTarget.this.datasetMetadataDirectory, currentDatasetMetadataDirectory);
-					move(MetadataTarget.this.serviceMetadataDirectory, currentServiceMetadataDirectory);
+					move(datasetMetadataDirectory, movedDatasetMetadataDirectory);
+					move(serviceMetadataDirectory, movedServiceMetadataDirectory);
 					
-					move(datasetMetadataDirectory, MetadataTarget.this.datasetMetadataDirectory);
-					move(serviceMetadataDirectory, MetadataTarget.this.serviceMetadataDirectory);
+					move(datasetMetadataTempDirectory, datasetMetadataDirectory);
+					move(serviceMetadataTempDirectory, serviceMetadataDirectory);
 					
-					delete(currentDatasetMetadataDirectory);
-					delete(currentServiceMetadataDirectory);
+					delete(movedDatasetMetadataDirectory);
+					delete(movedServiceMetadataDirectory);
 					
 					getSender().tell(new Ack(), getSelf());
 				} catch(Exception e) {
@@ -171,30 +178,59 @@ public class MetadataTarget extends UntypedActor {
 			}
 			
 		};
-	}
+	}	
 
-	private void handleBeginPutMetadata() throws Exception {
+	private void handleBeginMetadataUpdate() throws Exception {
 		try {
-			getContext().become(puttingMetadata());
+			log.debug("start updating metadata");
+			
+			Path serviceMetadataTempDirectory = createTempDirectory(serviceMetadataDirectory);
+			Path datasetMetadataTempDirectory = createTempDirectory(datasetMetadataDirectory);
+			
+			log.debug("serviceMetadataTempDirectory: {}", serviceMetadataTempDirectory);
+			log.debug("datasetMetadataTempDirectory: {}", datasetMetadataTempDirectory);
+			
+			Files.createDirectories(serviceMetadataTempDirectory);
+			Files.createDirectories(datasetMetadataTempDirectory);
+			
+			getContext().become(updatingMetadata(serviceMetadataTempDirectory, datasetMetadataTempDirectory));
 			getSender().tell(new Ack(), getSelf());
 		} catch(Exception e) {
 			getSender().tell(new Failure(e), getSelf());
 		}
 	}
 
-	private void doPut(Path metadataDirectory, String name, MetadataDocument metadataDocument) {
+	private void doUpdate(Path target, String id, MetadataDocument metadataDocument) {
 		try {
-			Path file = metadataDirectory.resolve(name + ".xml");
-			
-			log.debug("writing to file: {}", file);
+			Path file = target.resolve(getFile(id));			
+			log.debug("writing metadata document to file: {}", file);
 			
 			Files.write(				
 				file,
 				metadataDocument.getContent());
 			getSender().tell(new Ack(), getSelf());
 		} catch(Exception e) {
-			getSender().tell(new Failure(e), getSelf());
+			Failure failure = new Failure(e);			
+			log.error("couldn't perform update: {}", failure);			
+			getSender().tell(failure, getSelf());
 		}
 	}	
+	
+	private void doKeep(Path source, Path target, String id) {
+		try {
+			String fileName = getFile(id);
+			log.debug("keeping metadata document file: {}", fileName);
+		
+			Files.copy(source.resolve(fileName), target.resolve(fileName));
+			getSender().tell(new Ack(), getSelf());
+		} catch(Exception e) {
+			Failure failure = new Failure(e);			
+			log.error("couldn't perform keep: {}", failure);
+			getSender().tell(failure, getSelf());
+		}
+	}
 
+	private String getFile(String id) throws IOException {
+		return id + ".xml";
+	}
 }
