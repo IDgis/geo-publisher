@@ -337,8 +337,14 @@ public class MetadataTarget extends UntypedActor {
 		try {
 			String fileName = getFileName(id);
 			log.debug("keeping metadata document file: {}", fileName);
-		
-			Files.copy(source.resolve(fileName), target.resolve(fileName));
+			
+			Path sourceFile = source.resolve(fileName); 
+			if(Files.exists(sourceFile)) {
+				Files.copy(sourceFile, target.resolve(fileName));
+			} else {
+				log.warning("metadata document does not exist: " + sourceFile);
+			}
+			
 			getSender().tell(new Ack(), getSelf());
 		} catch(Exception e) {
 			Failure failure = new Failure(e);			

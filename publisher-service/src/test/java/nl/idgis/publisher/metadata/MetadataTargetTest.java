@@ -246,4 +246,12 @@ public class MetadataTargetTest {
 		
 		assertTrue(Files.exists(serviceFile));
 	}
+	
+	@Test
+	public void testKeepNonExisting() throws Exception {
+		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
+		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new KeepMetadata(MetadataType.SERVICE, "doesNotExistId")).get();
+		f.ask(metadataTarget, new CommitMetadata()).get();
+	}
 }
