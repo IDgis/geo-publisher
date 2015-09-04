@@ -8,8 +8,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
-import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceRef;
 
 /**
@@ -43,7 +44,7 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 	}
 
 	@Override
-	protected List<UpdateDatasetMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
+	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
 		metadataDocument.setDatasetIdentifier(itemInfo.getDatasetUuid());
 		metadataDocument.setFileIdentifier(itemInfo.getFileUuid());
 		
@@ -60,12 +61,12 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 			}
 		};
 		
-		return Collections.singletonList(new UpdateDatasetMetadata(itemInfo.getId(), metadataDocument));
+		return Collections.singletonList(new UpdateMetadata(MetadataType.DATASET, itemInfo.getId(), metadataDocument));
 	}
 
 	@Override
-	protected List<KeepDatasetMetadata> keepMetadata() {
-		return Collections.singletonList(new KeepDatasetMetadata(itemInfo.getId()));
+	protected List<KeepMetadata> keepMetadata() {
+		return Collections.singletonList(new KeepMetadata(MetadataType.DATASET, itemInfo.getId()));
 	}
 
 }

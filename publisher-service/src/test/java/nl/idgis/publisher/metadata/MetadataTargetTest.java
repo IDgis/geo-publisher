@@ -30,10 +30,9 @@ import akka.actor.ActorSystem;
 
 import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
-import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.KeepServiceMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -111,7 +110,8 @@ public class MetadataTargetTest {
 		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
-			new UpdateServiceMetadata(
+			new UpdateMetadata(
+				MetadataType.SERVICE,
 				"serviceId", 
 				serviceMetadata()),
 			Ack.class).get();
@@ -143,7 +143,8 @@ public class MetadataTargetTest {
 		assertTrue(findTempFiles(serviceMetadataDirectory.getParent()).findAny().isPresent());
 		
 		f.ask(metadataTarget, 
-			new UpdateDatasetMetadata(
+			new UpdateMetadata(
+				MetadataType.DATASET,
 				"datasetId", 
 				datasetMetadata()),
 			Ack.class).get();
@@ -218,7 +219,7 @@ public class MetadataTargetTest {
 		
 		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
 		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
-		f.ask(metadataTarget, new KeepDatasetMetadata(datasetId)).get();
+		f.ask(metadataTarget, new KeepMetadata(MetadataType.DATASET, datasetId)).get();
 		f.ask(metadataTarget, new CommitMetadata()).get();
 		
 		assertTrue(Files.exists(datasetFile));
@@ -240,7 +241,7 @@ public class MetadataTargetTest {
 		
 		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
 		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
-		f.ask(metadataTarget, new KeepServiceMetadata(serviceId)).get();
+		f.ask(metadataTarget, new KeepMetadata(MetadataType.SERVICE, serviceId)).get();
 		f.ask(metadataTarget, new CommitMetadata()).get();
 		
 		assertTrue(Files.exists(serviceFile));

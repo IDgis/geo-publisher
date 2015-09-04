@@ -2,13 +2,29 @@ package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
 
-public abstract class KeepMetadata implements Serializable {
+public class KeepMetadata implements Serializable {
+
+	private static final long serialVersionUID = 4772707371455361882L;
+
+	private final MetadataType type;
 	
-	private static final long serialVersionUID = -3344447292012613901L;
+	private final String id;
+	
+	public KeepMetadata(MetadataType type, String id) {
+		this.type = type;
+		this.id = id;
+	}
+	
+	public MetadataType getType() {
+		return type;
+	}
+	
+	public String getId() {
+		return id;
+	}
 
 	@Override
 	public String toString() {
-		return "KeepMetadata []";
+		return "KeepMetadata [type=" + type + ", id=" + id + "]";
 	}
-
 }

@@ -16,10 +16,9 @@ import akka.japi.Procedure;
 
 import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
-import nl.idgis.publisher.metadata.messages.KeepDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.KeepServiceMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateDatasetMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 
@@ -180,14 +179,10 @@ public class MetadataTarget extends UntypedActor {
 			 */
 			@Override
 			public void apply(Object msg) throws Exception {
-				if(msg instanceof UpdateServiceMetadata) {
-					handleUpdateServiceMetadata((UpdateServiceMetadata)msg);
-				} else if(msg instanceof UpdateDatasetMetadata) {
-					handleUpdateDatasetMetadata((UpdateDatasetMetadata)msg);
-				} else if(msg instanceof KeepServiceMetadata) {
-					handleKeepServiceMetadata((KeepServiceMetadata)msg);
-				} else if(msg instanceof KeepDatasetMetadata) {
-					handleKeepDatasetMetadata((KeepDatasetMetadata)msg);				 
+				if(msg instanceof UpdateMetadata) {
+					handleUpdateMetadata((UpdateMetadata)msg);				
+				} else if(msg instanceof KeepMetadata) {
+					handleKeepMetadata((KeepMetadata)msg); 				 
 				} else if(msg instanceof CommitMetadata) {
 					handleCommitMetadata();
 				} else {
@@ -196,41 +191,60 @@ public class MetadataTarget extends UntypedActor {
 			}
 			
 			/**
-			 * Update dataset metadata.
-			 * 
+			 * Keep metadata.
 			 * @param msg the received message.
 			 */
-			private void handleUpdateDatasetMetadata(UpdateDatasetMetadata msg) {
-				String datasetId = msg.getDatasetId();
-				doUpdate(datasetMetadataTempDirectory, datasetId, msg.getMetadataDocument());
+			private void handleKeepMetadata(KeepMetadata msg) {				
+				MetadataType type = msg.getType();
+				doKeep(getSourcePath(type), getTargetPath(type), msg.getId());
+				
 			}
 
 			/**
-			 * Update service metadata.
+			 * Update metadata.
+			 * @param msg the received message.
+			 */
+			private void handleUpdateMetadata(UpdateMetadata msg) {
+				doUpdate(getTargetPath(msg.getType()), msg.getId(), msg.getMetadataDocument());
+			}
+			
+			/**
+			 * Get path based on metadata type.
 			 * 
-			 * @param msg the received message.
+			 * @param metadataType the type.
+			 * @param servicePath the service path.
+			 * @param metadataPath the metadata path.
+			 * @return the path.
 			 */
-			private void handleUpdateServiceMetadata(UpdateServiceMetadata msg) {
-				String serviceId = msg.getServiceId();
-				doUpdate(serviceMetadataTempDirectory, serviceId, msg.getMetadataDocument());
+			private Path getPath(MetadataType metadataType, Path servicePath, Path metadataPath) {
+				switch(metadataType) {
+					case DATASET:
+						return metadataPath;						
+					case SERVICE:
+						return servicePath;
+					default:
+						throw new IllegalArgumentException("unsupported metadata type: " + metadataType.name());
+				}
 			}
 			
 			/**
-			 * Keep dataset metadata.
-			 * @param msg the received message.
+			 * Get the source path for a specific metadata type.
+			 * 
+			 * @param metadataType the metadata type.
+			 * @return the source path.
 			 */
-			private void handleKeepDatasetMetadata(KeepDatasetMetadata msg) {
-				String datasetId = msg.getDatasetId();
-				doKeep(datasetMetadataDirectory, datasetMetadataTempDirectory, datasetId);
+			private Path getSourcePath(MetadataType metadataType) {				
+				return getPath(metadataType, serviceMetadataDirectory, datasetMetadataDirectory);
 			}
-			
+
 			/**
-			 * Keep service metadata.
-			 * @param msg the received message.
+			 * Get the target path for a specific metadata type.
+			 * 
+			 * @param metadataType the metadata type.
+			 * @return the target path.
 			 */
-			private void handleKeepServiceMetadata(KeepServiceMetadata msg) {
-				String serviceId = msg.getServiceId();
-				doKeep(serviceMetadataDirectory, serviceMetadataTempDirectory, serviceId);
+			private Path getTargetPath(MetadataType metadataType) {				
+				return getPath(metadataType, serviceMetadataTempDirectory, datasetMetadataTempDirectory);
 			}
 
 			/**

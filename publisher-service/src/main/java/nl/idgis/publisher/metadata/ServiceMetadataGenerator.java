@@ -8,8 +8,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import nl.idgis.publisher.metadata.messages.DatasetRef;
-import nl.idgis.publisher.metadata.messages.KeepServiceMetadata;
-import nl.idgis.publisher.metadata.messages.UpdateServiceMetadata;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
@@ -50,7 +51,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 	
 	@Override
-	protected List<UpdateServiceMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
+	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
 		metadataDocument.removeOperatesOn();		
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
@@ -72,8 +73,8 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		String serviceId = itemInfo.getId();
 		
 		return Arrays.asList(
-			new UpdateServiceMetadata(serviceId + "-wms", generateWMSMetadata(metadataDocument.clone())),
-			new UpdateServiceMetadata(serviceId + "-wfs", generateWFSMetadata(metadataDocument.clone())));
+			new UpdateMetadata(MetadataType.SERVICE, serviceId + "-wms", generateWMSMetadata(metadataDocument.clone())),
+			new UpdateMetadata(MetadataType.SERVICE, serviceId + "-wfs", generateWFSMetadata(metadataDocument.clone())));
 	}
 
 	/**
@@ -144,12 +145,12 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 
 	@Override
-	protected List<KeepServiceMetadata> keepMetadata() {
+	protected List<KeepMetadata> keepMetadata() {
 		String serviceId = itemInfo.getId();
 		
 		return Arrays.asList(
-			new KeepServiceMetadata(serviceId + "-wms"),
-			new KeepServiceMetadata(serviceId + "-wfs"));
+			new KeepMetadata(MetadataType.SERVICE, serviceId + "-wms"),
+			new KeepMetadata(MetadataType.SERVICE, serviceId + "-wfs"));
 	}
 
 }
