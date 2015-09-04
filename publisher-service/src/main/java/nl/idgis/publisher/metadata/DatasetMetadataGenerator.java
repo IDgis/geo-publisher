@@ -45,8 +45,10 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 
 	@Override
 	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
-		metadataDocument.setDatasetIdentifier(itemInfo.getDatasetUuid());
-		metadataDocument.setFileIdentifier(itemInfo.getFileUuid());
+		String fileIdentification = itemInfo.getMetadataFileId();
+		
+		metadataDocument.setDatasetIdentifier(itemInfo.getMetadataId());
+		metadataDocument.setFileIdentifier(fileIdentification);
 		
 		metadataDocument.removeServiceLinkage();
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
@@ -61,12 +63,12 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 			}
 		};
 		
-		return Collections.singletonList(new UpdateMetadata(MetadataType.DATASET, itemInfo.getId(), metadataDocument));
+		return Collections.singletonList(new UpdateMetadata(MetadataType.DATASET, fileIdentification, metadataDocument));
 	}
 
 	@Override
 	protected List<KeepMetadata> keepMetadata() {
-		return Collections.singletonList(new KeepMetadata(MetadataType.DATASET, itemInfo.getId()));
+		return Collections.singletonList(new KeepMetadata(MetadataType.DATASET, itemInfo.getMetadataFileId()));
 	}
 
 }

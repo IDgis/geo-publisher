@@ -12,7 +12,6 @@ import nl.idgis.publisher.metadata.messages.KeepMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataType;
 import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceInfo;
-import nl.idgis.publisher.xml.exceptions.NotFound;
 
 /**
  * This actor generates service metadata documents.
@@ -55,9 +54,9 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		metadataDocument.removeOperatesOn();		
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
-			String uuid = datasetRef.getUuid();
-			String fileUuid = datasetRef.getFileUuid();
-			String uuidref = getDatasetMetadataHref(fileUuid);
+			String uuid = datasetRef.getMetadataIdentification();
+			String fileIdentification = datasetRef.getMetadataFileIdentification();
+			String uuidref = getDatasetMetadataHref(fileIdentification);
 			
 			log.debug("service operatesOn uuidref: {}, uuid: {}", uuidref, uuid);
 			
@@ -70,11 +69,9 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		metadataDocument.removeServiceLinkage();
 		metadataDocument.removeSVCoupledResource();
 		
-		String serviceId = itemInfo.getId();
-		
 		return Arrays.asList(
-			new UpdateMetadata(MetadataType.SERVICE, serviceId + "-wms", generateWMSMetadata(metadataDocument.clone())),
-			new UpdateMetadata(MetadataType.SERVICE, serviceId + "-wfs", generateWFSMetadata(metadataDocument.clone())));
+			generateWMSMetadata(metadataDocument.clone()),
+			generateWFSMetadata(metadataDocument.clone()));
 	}
 
 	/**
@@ -82,9 +79,9 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	 * 
 	 * @param metadataDocument the source document.
 	 * @return the resulting WFS service metadata document.
-	 * @throws NotFound
+	 * @throws Exception 
 	 */
-	private MetadataDocument generateWFSMetadata(MetadataDocument metadataDocument) throws NotFound {
+	private UpdateMetadata generateWFSMetadata(MetadataDocument metadataDocument) throws Exception {
 		log.debug("wfs metadata");
 		
 		ServiceType serviceType = ServiceType.WFS;
@@ -94,7 +91,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
-			String uuid = datasetRef.getUuid();
+			String uuid = datasetRef.getMetadataIdentification();
 			for(String layerName : datasetRef.getLayerNames()) {
 				String scopedName = layerName;
 				
@@ -105,7 +102,10 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 			}
 		}
 		
-		return metadataDocument;
+		String fileIdentification = itemInfo.getWFSMetadataId();		
+		metadataDocument.setFileIdentifier(fileIdentification);
+		
+		return new UpdateMetadata(MetadataType.SERVICE, fileIdentification, metadataDocument);
 	}
 
 	/**
@@ -113,9 +113,9 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	 * 
 	 * @param metadataDocument the source document.
 	 * @return the resulting WMS service metadata document.
-	 * @throws NotFound
+	 * @throws Exception 
 	 */
-	private MetadataDocument generateWMSMetadata(MetadataDocument metadataDocument) throws NotFound {
+	private UpdateMetadata generateWMSMetadata(MetadataDocument metadataDocument) throws Exception {
 		log.debug("wms metadata");		
 		
 		ServiceType serviceType = ServiceType.WMS;
@@ -129,28 +129,29 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
-			String uuid = datasetRef.getUuid();
+			String fileIdentification = datasetRef.getMetadataFileIdentification();
 			for(String layerName : datasetRef.getLayerNames()) {
 				String scopedName = layerName;
 				
-				log.debug("dataset scopedName: {}, uuid: {}, layerName: {}", scopedName, uuid, layerName);
+				log.debug("dataset scopedName: {}, fileIdentification: {}, layerName: {}", scopedName, fileIdentification, layerName);
 				
 				metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
 				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), layerName);
-				metadataDocument.addSVCoupledResource("GetMap", uuid, scopedName); 
+				metadataDocument.addSVCoupledResource("GetMap", fileIdentification, scopedName); 
 			}
 		}
 		
-		return metadataDocument;
+		String fileIdentification = itemInfo.getWMSMetadataId();		
+		metadataDocument.setFileIdentifier(fileIdentification);
+		
+		return new UpdateMetadata(MetadataType.SERVICE, fileIdentification, metadataDocument);
 	}
 
 	@Override
 	protected List<KeepMetadata> keepMetadata() {
-		String serviceId = itemInfo.getId();
-		
 		return Arrays.asList(
-			new KeepMetadata(MetadataType.SERVICE, serviceId + "-wms"),
-			new KeepMetadata(MetadataType.SERVICE, serviceId + "-wfs"));
+			new KeepMetadata(MetadataType.SERVICE, itemInfo.getWMSMetadataId()),
+			new KeepMetadata(MetadataType.SERVICE, itemInfo.getWFSMetadataId()));
 	}
 
 }

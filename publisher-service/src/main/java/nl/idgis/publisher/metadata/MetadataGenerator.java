@@ -2,8 +2,11 @@ package nl.idgis.publisher.metadata;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 import akka.actor.Kill;
@@ -17,6 +20,8 @@ import akka.util.Timeout;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.AsyncHelper;
+
 import nl.idgis.publisher.metadata.messages.GenerateMetadata;
 import nl.idgis.publisher.metadata.messages.GenerateMetadataEnvironment;
 import nl.idgis.publisher.metadata.messages.MetadataInfo;
@@ -24,6 +29,9 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
+
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QService.service;
 
 /**
  * This actor is responsible for initializing the metadata generation. 
@@ -78,11 +86,28 @@ public class MetadataGenerator extends UntypedActor {
 		}
 	}
 	
+	private static class MetadataUpdateResult {
+		
+		final long inserted;
+		
+		MetadataUpdateResult(long inserted) {
+			this.inserted = inserted;			
+		}
+
+		@Override
+		public String toString() {
+			return "MetadataUpdateResult [inserted=" + inserted + "]";
+		}
+	}
+	
 	private static class GeneratorResult {
+		
+		final MetadataUpdateResult metadataUpdateResult;
 				
 		final Collection<Failure> failures;
 		
-		GeneratorResult(Collection<Failure> failures) {			
+		GeneratorResult(MetadataUpdateResult metadataUpdateResult, Collection<Failure> failures) {			
+			this.metadataUpdateResult = metadataUpdateResult;
 			this.failures = failures;
 		}
 		
@@ -104,7 +129,7 @@ public class MetadataGenerator extends UntypedActor {
 
 		@Override
 		public String toString() {
-			return "GeneratorResult [failures=" + failures + "]";
+			return "GeneratorResult [metadataUpdateResult=" + metadataUpdateResult + ", failures=" + failures + "]";
 		}
 	}
 	
@@ -137,11 +162,57 @@ public class MetadataGenerator extends UntypedActor {
 				
 		getContext().become(receive());
 	}
+	
+	private CompletableFuture<Stream<Long>> updateServiceMetadata(AsyncHelper tx) {
+		return tx.query().from(service)
+			.where(service.wmsMetadataFileIdentification.isNull()
+				.or(service.wfsMetadataFileIdentification.isNull()))
+			.list(service.id).thenCompose(serviceIds ->
+				serviceIds.list().stream()
+					.map(serviceId -> 
+						tx.update(service)
+							.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
+							.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+							.where(service.id.eq(serviceId))
+							.execute())
+					.collect(f.collect()));
+	}
+	
+	private CompletableFuture<Stream<Long>> updateDatasetMetadata(AsyncHelper tx) {
+		return tx.query().from(dataset)
+			.where(dataset.metadataFileIdentification.isNull()
+				.or(dataset.metadataIdentification.isNull()))
+			.list(dataset.id).thenCompose(datasetIds ->
+				datasetIds.list().stream()
+					.map(datasetId ->						
+						tx.update(dataset)
+							.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
+							.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+							.where(dataset.id.eq(datasetId))
+							.execute())
+					.collect(f.collect()));
+	}
+	
+	private CompletableFuture<MetadataUpdateResult> updateMetadata() {
+		return 
+			db.transactional(tx ->
+				f.concat(
+					updateDatasetMetadata(tx),
+					updateServiceMetadata(tx))).thenApply(result ->
+						result
+							.mapToLong(Long::longValue)
+							.sum()).thenApply(updateResult ->
+								new MetadataUpdateResult(
+									updateResult));
+	}
 
 	private void handleGenerateMetadata(GenerateMetadata msg) {
 		log.info("generating metadata: {}", msg);
 		
 		ActorRef sender = getSender();
+		
+		updateMetadata().thenCompose(metadataUpdateResult ->
+		
 		msg.getEnvironments().stream()
 			.map(environment -> 
 				f.ask(
@@ -150,6 +221,7 @@ public class MetadataGenerator extends UntypedActor {
 					Timeout.apply(Duration.create(30, TimeUnit.MINUTES))))
 			.collect(f.collect()).thenApply(responses ->
 				new GeneratorResult(
+					metadataUpdateResult,
 					responses
 						.filter(response -> response instanceof Failure)
 						.map(response -> (Failure)response)
@@ -158,10 +230,10 @@ public class MetadataGenerator extends UntypedActor {
 					if(throwable == null) {
 						getSelf().tell(result, sender);
 					} else {
-						log.error("ask failed: {}", throwable);
+						log.error("future failed: {}", throwable);
 						getSelf().tell(Kill.getInstance(), getSelf());
 					}
-				});
+				}));
 		
 		getContext().become(generatingMetadata());
 	}

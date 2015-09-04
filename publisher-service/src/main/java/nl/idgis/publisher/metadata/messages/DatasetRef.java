@@ -1,5 +1,6 @@
 package nl.idgis.publisher.metadata.messages;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
 
@@ -10,20 +11,22 @@ import java.util.Set;
  * @author Reijer Copier <reijer.copier@idgis.nl>
  *
  */
-public class DatasetRef {
-	
+public class DatasetRef implements Serializable {	
+
+	private static final long serialVersionUID = 8639792864243948510L;
+
 	private final String datasetId;
 
-	private final String uuid;
+	private final String metadataIdentification;
 	
-	private final String fileUuid;
+	private final String metadataFileIdentification;
 	
 	private final Set<String> layerNames;
 	
-	public DatasetRef(String datasetId, String uuid, String fileUuid, Set<String> layerNames) {
+	public DatasetRef(String datasetId, String metadataIdentification, String metadataFileIdentification, Set<String> layerNames) {
 		this.datasetId = Objects.requireNonNull(datasetId, "datasetId must not be null");
-		this.uuid = Objects.requireNonNull(uuid, "uuid must not be null");
-		this.fileUuid = Objects.requireNonNull(fileUuid, "fileUuid must not be null");
+		this.metadataIdentification = Objects.requireNonNull(metadataIdentification, "metadataIdentification must not be null");
+		this.metadataFileIdentification = Objects.requireNonNull(metadataFileIdentification, "metadataFileIdentification must not be null");
 		this.layerNames = Objects.requireNonNull(layerNames, "layerNames must not be null");
 	}
 	
@@ -31,12 +34,12 @@ public class DatasetRef {
 		return datasetId;
 	}
 
-	public String getUuid() {
-		return uuid;
+	public String getMetadataIdentification() {
+		return metadataIdentification;
 	}
 
-	public String getFileUuid() {
-		return fileUuid;
+	public String getMetadataFileIdentification() {
+		return metadataFileIdentification;
 	}
 	
 	/**	 
@@ -44,5 +47,11 @@ public class DatasetRef {
 	 */
 	public Set<String> getLayerNames() {
 		return layerNames;
+	}
+
+	@Override
+	public String toString() {
+		return "DatasetRef [datasetId=" + datasetId + ", metadataIdentification=" + metadataIdentification
+				+ ", metadataFileIdentification=" + metadataFileIdentification + ", layerNames=" + layerNames + "]";
 	}
 }

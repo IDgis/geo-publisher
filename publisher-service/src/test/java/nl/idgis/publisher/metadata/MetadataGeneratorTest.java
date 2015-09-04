@@ -23,14 +23,21 @@ import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
+import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
+import nl.idgis.publisher.metadata.messages.CommitMetadata;
 import nl.idgis.publisher.metadata.messages.GenerateMetadataFactory;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.recorder.AnyAckRecorder;
+import nl.idgis.publisher.recorder.Recording;
+import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +45,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
@@ -56,6 +64,7 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
@@ -93,7 +102,7 @@ final String dataSourceIdentification = "dataSourceIdentification";
 	ActorRef metadataTarget;
 	
 	@Before
-	public void actor() throws Exception {
+	public void setUp() throws Exception {
 		harvester = actorOf(HarvesterMock.props(), "harvester");
 		
 		FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
@@ -169,15 +178,11 @@ final String dataSourceIdentification = "dataSourceIdentification";
 			insert(dataset)
 				.columns(
 					dataset.identification,
-					dataset.name,
-					dataset.uuid,
-					dataset.fileUuid,
+					dataset.name,					
 					dataset.sourceDatasetId)
 				.values(
 					datasetIdentification,
-					"testDataset",
-					datasetUuid,
-					datasetFileUuid,
+					"testDataset",					
 					sourceDatasetId)
 				.executeWithKey(dataset.id);
 		
@@ -292,8 +297,32 @@ final String dataSourceIdentification = "dataSourceIdentification";
 			Ack.class).get();
 	}
 	
+	private Stream<Path> assertDocumentsExist(Stream<String> fileIdentifiers, Path target) {
+		return fileIdentifiers
+			.map(fileIdentification -> {
+				String fileName = fileIdentification + ".xml";
+				Path path = target.resolve(fileName);
+				assertTrue("expected: file " + fileName, Files.exists(path));
+				
+				return path;
+			});
+	}
+	
 	@Test
 	public void testGenerateMetadata() throws Exception {
+		// assert that metadata info is not present yet
+		assertFalse(
+			query().from(dataset)
+				.where(dataset.metadataIdentification.isNotNull()
+					.or(dataset.metadataFileIdentification.isNotNull()))
+				.exists());
+		
+		assertFalse(
+			query().from(service)
+				.where(service.wmsMetadataFileIdentification.isNotNull()
+					.or(service.wfsMetadataFileIdentification.isNotNull()))
+				.exists());
+		
 		ActorRef dataSource = actorOf(DataSourceMock.props(), "dataSource");
 		
 		f.ask(harvester, new AddDataSource(dataSourceIdentification, dataSource), Ack.class).get();
@@ -323,32 +352,109 @@ final String dataSourceIdentification = "dataSourceIdentification";
 				.create(),
 			Ack.class).get();
 		
-		Path wmsServiceMetadataPath = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml");
-		Path wfsServiceMetadataPath = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml");
-		Path datasetMetadataPath = datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml");
+		assertEquals(
+			1, 
+			assertDocumentsExist(
+				query().from(service)
+					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))					
+					.where(genericLayer.identification.eq(serviceIdentification))
+					.list(service.wmsMetadataFileIdentification).stream(), 
+				serviceMetadataTargetDirectory)
+					.count());
 		
-		assertTrue(Files.exists(wmsServiceMetadataPath));
-		assertTrue(Files.exists(wfsServiceMetadataPath));
-		assertTrue(Files.exists(datasetMetadataPath));
+		assertEquals(
+			1, 
+			assertDocumentsExist(
+				query().from(service)
+					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))					
+					.where(genericLayer.identification.eq(serviceIdentification))
+					.list(service.wfsMetadataFileIdentification).stream(), 
+				serviceMetadataTargetDirectory)
+					.count());
 		
-		MetadataDocumentFactory mdf = new MetadataDocumentFactory();
-		MetadataDocument datasetMetadata = mdf.parseDocument(Files.readAllBytes(datasetMetadataPath));
+		assertEquals(
+			1,
+			assertDocumentsExist(
+				query().from(dataset)					
+					.where(dataset.identification.eq(datasetIdentification))
+					.list(dataset.metadataFileIdentification).stream(), 
+				datasetMetadataTargetDirectory)
+					.map(metadataFile -> {
+						try {
+							MetadataDocumentFactory mdf = new MetadataDocumentFactory();
+							MetadataDocument datasetMetadata = mdf.parseDocument(Files.readAllBytes(metadataFile));
+							
+							Map<String, ServiceLinkage> serviceLinkage =
+								datasetMetadata.getServiceLinkage().stream()
+									.collect(Collectors.toMap(
+										ServiceLinkage::getProtocol,
+										Function.identity()));
+							
+							assertTrue(serviceLinkage.containsKey("OGC:WMS"));		
+							ServiceLinkage wmsServiceLinkage = serviceLinkage.get("OGC:WMS");
+							assertEquals(layerName, wmsServiceLinkage.getName());
+							assertEquals(prefix + "geoserver/" + serviceName + "/wms", wmsServiceLinkage.getURL());
+							
+							assertTrue(serviceLinkage.containsKey("OGC:WFS"));
+							ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
+							assertEquals(layerName, wfsServiceLinkage.getName());
+							assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());						
+						} catch(Exception e) {
+							throw new RuntimeException(e);
+						}
+						
+						return metadataFile;
+					})
+					.count());
 		
-		Map<String, ServiceLinkage> serviceLinkage =
-			datasetMetadata.getServiceLinkage().stream()
-				.collect(Collectors.toMap(
-					ServiceLinkage::getProtocol,
-					Function.identity()));
+		// assert if metadata info is generated
+		assertTrue(
+			query().from(dataset)
+				.where(dataset.metadataIdentification.isNotNull()
+					.or(dataset.metadataFileIdentification.isNotNull()))
+				.exists());
+			
+		assertTrue(
+			query().from(service)
+				.where(service.wmsMetadataFileIdentification.isNotNull()
+					.or(service.wfsMetadataFileIdentification.isNotNull()))
+				.exists());
 		
-		assertTrue(serviceLinkage.containsKey("OGC:WMS"));		
-		ServiceLinkage wmsServiceLinkage = serviceLinkage.get("OGC:WMS");
-		assertEquals(layerName, wmsServiceLinkage.getName());
-		assertEquals(prefix + "geoserver/" + serviceName + "/wms", wmsServiceLinkage.getURL());
+		// other parts of the application are unaware of the metadata table,
+		// test if we can successfully remove dataset and services.
+		f.ask(
+			serviceManager, 
+			new PublishService(
+				serviceIdentification, 
+				Collections.emptySet()), 
+			Ack.class).get();
 		
-		assertTrue(serviceLinkage.containsKey("OGC:WFS"));
-		ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
-		assertEquals(layerName, wfsServiceLinkage.getName());
-		assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
+		delete(service).execute();
+		delete(importJob).execute();
+		delete(leafLayer).execute();
+		delete(layerStructure).execute();
+		delete(genericLayer).execute();
+		delete(dataset).execute();
+	}
+	
+	private void assertKeepMetadata(KeepMetadata msg) {
+		String id = msg.getId();
+		
+		switch(msg.getType()) {
+			case DATASET:
+				assertTrue("expected dataset metadata: " + id, query().from(dataset)					
+					.where(dataset.metadataFileIdentification.eq(id))
+					.exists());
+				break;
+			case SERVICE:
+				assertTrue("expected service metadata: " + id, query().from(service)					
+					.where(service.wmsMetadataFileIdentification.eq(id)
+						.or(service.wfsMetadataFileIdentification.eq(id)))
+					.exists());
+				break;
+			default:
+				fail("unknown metadata type");
+		}
 	}
 	
 	@Test
@@ -356,37 +462,25 @@ final String dataSourceIdentification = "dataSourceIdentification";
 		String environmentIdentification = environmentIdentifications.iterator().next();
 		String prefix = "http://" + environmentIdentification + ".example.com/";
 		
-		Path wfsMetadata = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wfs.xml");
-		
-		IOUtils.copy(
-			getClass().getResourceAsStream("service_metadata.xml"),
-			Files.newOutputStream(wfsMetadata));
-		
-		Path wmsMetadata = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml");
-		
-		IOUtils.copy(
-			getClass().getResourceAsStream("service_metadata.xml"),
-			Files.newOutputStream(wmsMetadata));
-		
-		Path datasetMetadata = datasetMetadataTargetDirectory.resolve(datasetIdentification + ".xml");
-		
-		IOUtils.copy(
-			getClass().getResourceAsStream("dataset_metadata.xml"),
-			Files.newOutputStream(datasetMetadata));
+		ActorRef metadataTargetMock = actorOf(AnyAckRecorder.props(new Ack()), "metadata-target-mock");
 		
 		f.ask(
 			metadataGenerator,
 			GenerateMetadataFactory.start()
 				.environment(
 					environmentIdentification, 
-					metadataTarget,
+					metadataTargetMock,
 					prefix + "geoserver/",
 					prefix + "metadata/dataset/")
 				.create(), 
 			Ack.class).get();
 		
-		assertTrue(Files.exists(wfsMetadata));
-		assertTrue(Files.exists(wmsMetadata));
-		assertTrue(Files.exists(datasetMetadata));
+		f.ask(metadataTargetMock, new GetRecording(), Recording.class).get()
+			.assertNext(BeginMetadataUpdate.class)
+			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
+			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
+			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
+			.assertNext(CommitMetadata.class)
+			.assertNotHasNext();
 	}
 }

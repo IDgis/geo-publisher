@@ -267,6 +267,8 @@ public class MetadataTarget extends UntypedActor {
 					delete(movedServiceMetadataDirectory);
 					
 					getSender().tell(new Ack(), getSelf());
+					
+					getContext().become(receive());
 				} catch(Exception e) {
 					Failure f = new Failure(e);
 					

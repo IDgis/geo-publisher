@@ -42,11 +42,11 @@ import nl.idgis.publisher.utils.StreamUtils;
  */
 public class MetadataInfo implements Serializable {	
 
-	private static final long serialVersionUID = -4466982583083563284L;
-	
-	public static final QGenericLayer layerGenericLayer = new QGenericLayer("layerGenericLayer");
+	private static final long serialVersionUID = 140228953110487193L;
 
-	public static final QGenericLayer serviceGenericLayer = new QGenericLayer("serviceGenericLayer");
+	private static final QGenericLayer layerGenericLayer = new QGenericLayer("layerGenericLayer");
+
+	private static final QGenericLayer serviceGenericLayer = new QGenericLayer("serviceGenericLayer");
 
 	private final List<Tuple> tuples;
 	
@@ -131,16 +131,18 @@ public class MetadataInfo implements Serializable {
 			.join(layerGenericLayer).on(layerGenericLayer.id.eq(leafLayer.genericLayerId))
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))			
 			.where(environment.identification.eq(environmentId))
 			.list(
+				dataset.metadataIdentification,
+				dataset.metadataFileIdentification,
+				service.wfsMetadataFileIdentification,
+				service.wmsMetadataFileIdentification,
 				publishedService.content,
 				serviceGenericLayer.identification,
 				serviceGenericLayer.name,
 				layerGenericLayer.identification,
-				dataset.identification,
-				dataset.uuid,
-				dataset.fileUuid,
+				dataset.identification,				
 				sourceDataset.externalIdentification,
 				dataSource.identification)
 			.thenApply(tuples -> new MetadataInfo(tuples.list()));
@@ -196,16 +198,16 @@ public class MetadataInfo implements Serializable {
 					return new DatasetInfo(
 						datasetId, 
 						tuple.get(dataSource.identification),
-						tuple.get(sourceDataset.externalIdentification),
-						tuple.get(dataset.uuid),
-						tuple.get(dataset.fileUuid),
+						tuple.get(sourceDataset.externalIdentification),						
+						tuple.get(dataset.metadataIdentification),
+						tuple.get(dataset.metadataFileIdentification),
 						serviceRefs);
 				})
 				.iterator();
 	}
 	
 	public Iterator<ServiceInfo> getServices() {
-		return tuples.stream()
+		Map<String, Set<DatasetRef>> datasetRefs = tuples.stream()
 			.collect(Collectors.groupingBy(
 				tuple -> tuple.get(serviceGenericLayer.identification),
 				Collectors.mapping(
@@ -217,8 +219,8 @@ public class MetadataInfo implements Serializable {
 						
 						return new DatasetRef(
 							datasetId,
-							tuple.get(dataset.uuid),
-							tuple.get(dataset.fileUuid),
+							tuple.get(dataset.metadataIdentification),
+							tuple.get(dataset.metadataFileIdentification),
 							getLayerIds(datasetId).stream()
 								.flatMap(layerId -> {
 									if(layerNames.containsKey(layerId)) {
@@ -229,16 +231,23 @@ public class MetadataInfo implements Serializable {
 								})
 								.collect(Collectors.toSet())); 	
 					},
-					Collectors.toSet()))).entrySet().stream()
-						.map(entry -> {
-							String serviceId = entry.getKey();
-							
-							return new ServiceInfo(
-								serviceId, 
-								serviceNames.get(serviceId), 
-								entry.getValue()); 
-						})
-						.iterator();
+					Collectors.toSet())));
+		
+		return tuples.stream()
+			.map(StreamUtils.wrap(tuple -> tuple.get(serviceGenericLayer.identification)))
+			.distinct()
+			.map(StreamUtils.Wrapper::unwrap)
+			.map(tuple -> {
+				String serviceId = tuple.get(serviceGenericLayer.identification);
+				
+				return new ServiceInfo(
+					serviceId, 
+					tuple.get(serviceGenericLayer.name),
+					tuple.get(service.wmsMetadataFileIdentification),
+					tuple.get(service.wfsMetadataFileIdentification),
+					datasetRefs.get(serviceId));
+			})
+			.iterator();
 	}
 
 	@Override

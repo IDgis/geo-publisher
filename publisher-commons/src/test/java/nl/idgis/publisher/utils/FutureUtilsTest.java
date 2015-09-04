@@ -3,10 +3,12 @@ package nl.idgis.publisher.utils;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -246,6 +248,27 @@ public class FutureUtilsTest {
 					testFuture.complete(true);
 				} catch(Throwable t) {
 					testFuture.completeExceptionally(t);
+				}
+				
+				return null;
+			});
+	}
+	
+	@Test
+	public void testConcat() {
+		f.concat(
+			f.successful(Stream.of("a", "b")),
+			f.successful(Stream.of("c"))).handle((stream, throwable) -> {
+				try {
+					Set<String> result = stream.collect(Collectors.toSet());
+					
+					assertTrue(result.contains("a"));
+					assertTrue(result.contains("b"));
+					assertTrue(result.contains("c"));
+					
+					testFuture.complete(true);
+				} catch(Exception e) {
+					testFuture.completeExceptionally(e);
 				}
 				
 				return null;

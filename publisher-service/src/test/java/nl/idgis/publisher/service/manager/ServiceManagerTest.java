@@ -174,9 +174,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		vectorDatasetId = insert(dataset)
 			.set(dataset.identification, "dataset0")
-			.set(dataset.name, "dataset-name0")
-			.set(dataset.fileUuid, UUID.randomUUID().toString())
-			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.name, "dataset-name0")			
 			.set(dataset.sourceDatasetId, vectorSourceDatasetId)
 			.executeWithKey(dataset.id);
 		
@@ -245,9 +243,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		rasterDatasetId = insert(dataset)
 			.set(dataset.identification, "dataset1")
-			.set(dataset.name, "dataset-name1")
-			.set(dataset.fileUuid, UUID.randomUUID().toString())
-			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.name, "dataset-name1")			
 			.set(dataset.sourceDatasetId, rasterSourceDatasetId)
 			.executeWithKey(dataset.id);
 		

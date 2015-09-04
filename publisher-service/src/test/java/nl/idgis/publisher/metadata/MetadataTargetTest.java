@@ -218,9 +218,9 @@ public class MetadataTargetTest {
 		assertTrue(Files.exists(datasetFile));
 		
 		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
-		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
 		f.ask(metadataTarget, new KeepMetadata(MetadataType.DATASET, datasetId)).get();
-		f.ask(metadataTarget, new CommitMetadata()).get();
+		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
 		
 		assertTrue(Files.exists(datasetFile));
 	}
@@ -240,9 +240,9 @@ public class MetadataTargetTest {
 		assertTrue(Files.exists(serviceFile));
 		
 		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);		
-		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
 		f.ask(metadataTarget, new KeepMetadata(MetadataType.SERVICE, serviceId)).get();
-		f.ask(metadataTarget, new CommitMetadata()).get();
+		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
 		
 		assertTrue(Files.exists(serviceFile));
 	}
@@ -250,8 +250,18 @@ public class MetadataTargetTest {
 	@Test
 	public void testKeepNonExisting() throws Exception {
 		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
-		f.ask(metadataTarget, new BeginMetadataUpdate()).get();
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
 		f.ask(metadataTarget, new KeepMetadata(MetadataType.SERVICE, "doesNotExistId")).get();
-		f.ask(metadataTarget, new CommitMetadata()).get();
+		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
+	}
+	
+	@Test
+	public void testSecondSession() throws Exception {
+		ActorRef metadataTarget = createMetadataTarget(serviceMetadataDirectory, datasetMetadataDirectory);
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
+		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
+		
+		f.ask(metadataTarget, new BeginMetadataUpdate(), Ack.class).get();
+		f.ask(metadataTarget, new CommitMetadata(), Ack.class).get();
 	}
 }
