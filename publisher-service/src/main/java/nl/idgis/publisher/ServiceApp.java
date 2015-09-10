@@ -29,7 +29,7 @@ import nl.idgis.publisher.metadata.MetadataConfig;
 import nl.idgis.publisher.metadata.MetadataGenerator;
 import nl.idgis.publisher.metadata.MetadataSource;
 import nl.idgis.publisher.metadata.MetadataTarget;
-import nl.idgis.publisher.metadata.messages.GenerateMetadata;
+import nl.idgis.publisher.metadata.messages.GenerateMetadataFactory;
 import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
@@ -204,26 +204,27 @@ public class ServiceApp extends UntypedActor {
 						"metadata-source")),
 				"metadata-generator");
 		
-		metadataConfig.getEnvironments().forEach(environmentConfig -> {
-			String environmentName = environmentConfig.getName();
-			
-			ActorRef metadataTarget = getContext().actorOf(
-				MetadataTarget.props(
-					environmentConfig.getServiceMetadataTarget(), 
-					environmentConfig.getDatasetMetadataTarget()),
-				"metadata-target-" + environmentName);
-			
-			getContext().system().scheduler().schedule(
-					Duration.create(10, TimeUnit.SECONDS), 
-					Duration.create(1, TimeUnit.HOURS),
-					metadataGenerator, 
-						new GenerateMetadata(
-							environmentName, 
-							metadataTarget,
-							environmentConfig.getServiceLinkagePrefix(),
-							environmentConfig.getDatasetMetadataPrefix()), 
-					getContext().dispatcher(), getSelf());
-		});
+		getContext().system().scheduler().schedule(
+			Duration.create(10, TimeUnit.SECONDS), 
+			Duration.create(1, TimeUnit.HOURS),
+			metadataGenerator,
+			GenerateMetadataFactory.start()
+				.forEach(metadataConfig.getEnvironments().stream(), (factory, environmentConfig) -> {
+					String environmentName = environmentConfig.getName();
+					
+					factory.environment(
+						environmentName,
+						getContext().actorOf(
+							MetadataTarget.props(
+								environmentConfig.getServiceMetadataTarget(), 
+								environmentConfig.getDatasetMetadataTarget()),
+							"metadata-target-" + environmentName),
+						environmentConfig.getServiceLinkagePrefix(),
+						environmentConfig.getDatasetMetadataPrefix());
+				})
+				.create(),
+			getContext().dispatcher(), 
+			getSelf());
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();

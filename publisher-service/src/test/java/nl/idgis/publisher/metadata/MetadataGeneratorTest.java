@@ -23,7 +23,7 @@ import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
-import nl.idgis.publisher.metadata.messages.GenerateMetadata;
+import nl.idgis.publisher.metadata.messages.GenerateMetadataFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
@@ -313,12 +313,14 @@ final String dataSourceIdentification = "dataSourceIdentification";
 		String prefix = "http://" + environmentIdentification + ".example.com/";
 		
 		f.ask(
-			metadataGenerator, 
-			new GenerateMetadata(
-				environmentIdentification, 
-				metadataTarget,
-				prefix + "geoserver/",
-				prefix + "metadata/dataset/"), 
+			metadataGenerator,
+			GenerateMetadataFactory.start()
+				.environment(
+					environmentIdentification, 
+					metadataTarget, 
+					prefix + "geoserver/", 
+					prefix + "metadata/dataset/")				
+				.create(),
 			Ack.class).get();
 		
 		Path wmsServiceMetadataPath = serviceMetadataTargetDirectory.resolve(serviceIdentification + "-wms.xml");
@@ -373,12 +375,14 @@ final String dataSourceIdentification = "dataSourceIdentification";
 			Files.newOutputStream(datasetMetadata));
 		
 		f.ask(
-			metadataGenerator, 
-			new GenerateMetadata(
-				environmentIdentification, 
-				metadataTarget,
-				prefix + "geoserver/",
-				prefix + "metadata/dataset/"), 
+			metadataGenerator,
+			GenerateMetadataFactory.start()
+				.environment(
+					environmentIdentification, 
+					metadataTarget,
+					prefix + "geoserver/",
+					prefix + "metadata/dataset/")
+				.create(), 
 			Ack.class).get();
 		
 		assertTrue(Files.exists(wfsMetadata));

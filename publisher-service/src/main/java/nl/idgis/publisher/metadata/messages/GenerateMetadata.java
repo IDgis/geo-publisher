@@ -1,55 +1,32 @@
 package nl.idgis.publisher.metadata.messages;
 
 import java.io.Serializable;
-
-import akka.actor.ActorRef;
+import java.util.Set;
 
 import nl.idgis.publisher.metadata.MetadataGenerator;
 
 /**
- * Request {@link MetadataGenerator} to begin updating metadata 
- * for a specific environment.
+ * Request {@link MetadataGenerator} to begin updating metadata.
  * 
  * @author Reijer Copier <reijer.copier@idgis.nl>
  *
  */
-public class GenerateMetadata implements Serializable {	
+public class GenerateMetadata implements Serializable {
 
-	private static final long serialVersionUID = -2990168366163441674L;
-
-	private final String environmentId;
+	private static final long serialVersionUID = 6475005346002672426L;
 	
-	private final ActorRef target;
+	private final Set<GenerateMetadataEnvironment> environments;
 	
-	private final String serviceLinkagePrefix, datasetMetadataPrefix;	
-	
-	public GenerateMetadata(String environmentId, ActorRef target, String serviceLinkagePrefix, String datasetMetadataPrefix) {
-		this.environmentId = environmentId;
-		this.target = target;
-		this.serviceLinkagePrefix = serviceLinkagePrefix;
-		this.datasetMetadataPrefix = datasetMetadataPrefix;
+	GenerateMetadata(Set<GenerateMetadataEnvironment> environments) {
+		this.environments = environments;
 	}
 
-	public String getEnvironmentId() {
-		return environmentId;
-	}
-
-	public ActorRef getTarget() {
-		return target;
-	}
-	
-	public String getServiceLinkagePrefix() {
-		return serviceLinkagePrefix;
-	}
-	
-	public String getDatasetMetadataPrefix() {		
-		return datasetMetadataPrefix;
+	public Set<GenerateMetadataEnvironment> getEnvironments() {
+		return environments;
 	}
 
 	@Override
 	public String toString() {
-		return "GenerateMetadata [environmentId=" + environmentId + ", target=" + target + ", serviceLinkagePrefix="
-				+ serviceLinkagePrefix + ", datasetMetadataPrefix=" + datasetMetadataPrefix + "]";
+		return "GenerateMetadata [environments=" + environments + "]";
 	}
-			
 }
