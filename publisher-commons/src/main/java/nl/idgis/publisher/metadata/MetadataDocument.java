@@ -781,22 +781,31 @@ public class MetadataDocument {
 		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
-	public String getOperatesOn() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath());
+	public interface OperatesOn {
+		
+		String getUuidref();
+		
+		String getHref();
 	}
 	
-	public String getOperatesOnUuid() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath() + "/@uuidref");
+	public List<OperatesOn> getOperatesOn() throws NotFound{
+		return xpath()
+			.nodes(getOperatesOnPath()).stream()
+				.map(node -> (OperatesOn)new OperatesOn() {
+
+					@Override
+					public String getUuidref() {
+						return node.string("@uuidref").get();
+					}
+
+					@Override
+					public String getHref() {
+						return node.string("@xlink:href").get();
+					}
+					
+				})
+				.collect(Collectors.toList());
 	}
-	
-	public String getOperatesOnHref() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath() + "/@xlink:href");
-	}
-	
-	
-	
-	 
-	  
 	
 	/*
 	 * Service method aliases

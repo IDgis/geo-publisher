@@ -15,6 +15,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import nl.idgis.publisher.metadata.MetadataDocument.OperatesOn;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
 import nl.idgis.publisher.xml.exceptions.NotFound;
@@ -471,10 +472,12 @@ public class MetadataDocumentTest {
 		// add new childnode
 		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3", href);
 		
-		String result = document.getOperatesOnUuid();
+		OperatesOn operatesOn = document.getOperatesOn().get(0);
+		
+		String result = operatesOn.getUuidref();
 		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
 		
-		result = document.getOperatesOnHref();
+		result = operatesOn.getHref();
 		assertEquals("No href found", href, result);
 		
 		// remove all child nodes		
@@ -482,10 +485,7 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed dataset link", 1, i);
 		
 		// check no node anymore
-		try {
-			document.getOperatesOnHref();
-			fail("Unexpected uuid ref found");
-		} catch(Exception e) {}
+		assertTrue(document.getOperatesOn().isEmpty());
 	}
 	
 	@Test

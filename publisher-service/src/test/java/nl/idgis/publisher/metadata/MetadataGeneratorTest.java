@@ -68,7 +68,7 @@ import static org.junit.Assert.fail;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
-final String dataSourceIdentification = "dataSourceIdentification";
+	final String dataSourceIdentification = "dataSourceIdentification";
 	
 	final String sourceDatasetIdentification = "sourceDatasetIdentification";
 	
@@ -76,9 +76,9 @@ final String dataSourceIdentification = "dataSourceIdentification";
 	
 	final String categoryIdentification = "categoryIdentification";
 	
-	final String datasetUuid = UUID.randomUUID().toString();
+	final String datasetMetadataIdentification = UUID.randomUUID().toString();
 	
-	final String datasetFileUuid = UUID.randomUUID().toString();
+	final String datasetMetadataFileIdentification = UUID.randomUUID().toString();
 	
 	final String datasetIdentification = "datasetIdentification";
 	
@@ -341,16 +341,21 @@ final String dataSourceIdentification = "dataSourceIdentification";
 		String environmentIdentification = environmentIdentifications.iterator().next();
 		String prefix = "http://" + environmentIdentification + ".example.com/";
 		
+		String serviceLinkagePrefix = prefix + "geoserver/";
+		String datasetMetadataPrefix = prefix + "metadata/dataset/";
+		
 		f.ask(
 			metadataGenerator,
 			GenerateMetadataFactory.start()
 				.environment(
 					environmentIdentification, 
 					metadataTarget, 
-					prefix + "geoserver/", 
-					prefix + "metadata/dataset/")				
+					serviceLinkagePrefix, 
+					datasetMetadataPrefix)				
 				.create(),
 			Ack.class).get();
+		
+		MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 		
 		assertEquals(
 			1, 
@@ -370,6 +375,7 @@ final String dataSourceIdentification = "dataSourceIdentification";
 					.where(genericLayer.identification.eq(serviceIdentification))
 					.list(service.wfsMetadataFileIdentification).stream(), 
 				serviceMetadataTargetDirectory)
+					.map(metadataFile ->assertServiceMetadataDocument(datasetMetadataPrefix, mdf, metadataFile))
 					.count());
 		
 		assertEquals(
@@ -381,7 +387,6 @@ final String dataSourceIdentification = "dataSourceIdentification";
 				datasetMetadataTargetDirectory)
 					.map(metadataFile -> {
 						try {
-							MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 							MetadataDocument datasetMetadata = mdf.parseDocument(Files.readAllBytes(metadataFile));
 							
 							Map<String, ServiceLinkage> serviceLinkage =
@@ -435,6 +440,33 @@ final String dataSourceIdentification = "dataSourceIdentification";
 		delete(layerStructure).execute();
 		delete(genericLayer).execute();
 		delete(dataset).execute();
+	}
+
+	private Path assertServiceMetadataDocument(String datasetMetadataPrefix, MetadataDocumentFactory mdf, Path metadataFile) {
+		try {
+			MetadataDocument serviceMetadata = mdf.parseDocument(Files.readAllBytes(metadataFile));
+			
+			assertEquals(
+				1,
+				serviceMetadata.getOperatesOn().stream()
+					.filter(operatesOn -> {
+						String uuidref = operatesOn.getUuidref();
+						String href = operatesOn.getHref();
+						
+						return query().from(dataset)
+							.where(dataset.metadataIdentification.eq(uuidref)
+								.and(dataset.metadataFileIdentification
+									.prepend(datasetMetadataPrefix)
+									.append(".xml")
+									.eq(href)))
+							.exists();
+					})
+					.count());
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+		return metadataFile;
 	}
 	
 	private void assertKeepMetadata(KeepMetadata msg) {
