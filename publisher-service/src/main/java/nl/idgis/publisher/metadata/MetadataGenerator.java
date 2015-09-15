@@ -253,7 +253,7 @@ public class MetadataGenerator extends UntypedActor {
 			
 			nameGenerator.getName(MetadataInfoProcessor.class));
 
-		MetadataInfo.fetch(db.query(), environmentId)
+		db.transactional(tx -> MetadataInfo.fetch(tx, environmentId))
 			.whenComplete((metadataInfo, throwable) ->				 
 				processor.tell(
 					throwable == null 

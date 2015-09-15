@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
 
-import nl.idgis.publisher.database.AsyncSQLQuery;
+import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.QGenericLayer;
 
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
@@ -120,8 +120,8 @@ public class MetadataInfo implements Serializable {
 		return layerInfo;
 	}
 	
-	public static CompletableFuture<MetadataInfo> fetch(AsyncSQLQuery query, String environmentId) {
-		return query.from(publishedService)
+	public static CompletableFuture<MetadataInfo> fetch(AsyncHelper tx, String environmentId) {
+		return tx.query().from(publishedService)
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
 			.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
@@ -131,7 +131,7 @@ public class MetadataInfo implements Serializable {
 			.join(layerGenericLayer).on(layerGenericLayer.id.eq(leafLayer.genericLayerId))
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))			
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
 			.where(environment.identification.eq(environmentId))
 			.list(
 				dataset.metadataIdentification,
