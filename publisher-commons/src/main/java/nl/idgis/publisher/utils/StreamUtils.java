@@ -1,7 +1,9 @@
 package nl.idgis.publisher.utils;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -518,5 +520,122 @@ public class StreamUtils {
 
 	private static <R> Stream<R> toStream(Iterator<R> itr, int characteristics, boolean parallel) {
 		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(itr, characteristics), parallel);
+	}
+	
+	public static class Partition<K, D extends Collection<E>, E> {
+		
+		private final K key;
+		
+		private final D container;
+		
+		private Partition(K key, D container) {
+			this.key = key;
+			this.container = container;
+		}
+		
+		public K key() {
+			return key;
+		}
+		
+		public E first() {
+			// container is never empty
+			return container.stream().findFirst().get();
+		}
+		
+		public Stream<E> stream() {
+			return container.stream();
+		}
+	}
+	
+	/**
+	 * <p> Partitions a stream with given classifier. This method expects the
+	 * stream to be ordered on the same key as the one provided by the classifier. </p>
+	 * 
+	 * <p> Shorthand for: {@link #partition(Stream, Function, Collector) partition(stream, function, Collectors.toList())} </p>
+	 * 
+	 * @param stream the stream to partition.
+	 * @param classifier the classifier to partition.
+	 * @return the partitioned stream.
+	 */
+	public static <T, K extends Comparable<? super K>> Stream<Partition<K, List<T>, T>> partition(Stream<T> stream, Function<? super T, K> classifier) {
+		return partition(stream, classifier, Collectors.toList());
+	}
+	
+	/**
+	 * <p> Partitions a stream with given classifier. The provided collector
+	 * is used to collect the content of a single partition. This method expects the
+	 * stream to be ordered on the same key as the one provided by the classifier. </p>
+	 * 
+	 * <p> The resulting stream has the same content as the one obtained using the following operation:
+	 * <pre>
+	 * <code>
+	 * stream.collect(
+	 *   Collectors.groupingBy(classifier, LinkedHashMap::new, collector)).entrySet().stream()	   
+	 *	   .map(entry -> new Partition<>(entry.getKey(), entry.getValue())); 
+	 * </code>
+	 * </pre> </p>
+	 * 
+	 * <p> However, this method consumes only a single partition at a time. </p>
+	 * 
+	 * @param stream the stream to partition.
+	 * @param classifier the classifier to partition.
+	 * @param collector the collector to collect partition content with. 
+	 * @return the partitioned stream.
+	 */
+	public static <T, K extends Comparable<? super K>, A, D extends Collection<T>> Stream<Partition<K, D, T>> partition(Stream<T> stream, Function<? super T, K> classifier, Collector<T, A, D> collector) {		
+		Objects.requireNonNull(stream, "stream must not be null");
+		Objects.requireNonNull(classifier, "classifier must not be null");
+		Objects.requireNonNull(collector, "collector must not be null");
+		
+		return toStream(new Iterator<Partition<K, D, T>>() {
+		
+			T currentItem; // already fetched (but unprocessed) item
+			K currentKey, lastKey; // key of current item and of previous item
+			Iterator<T> itr = stream.iterator(); // upstream iterator
+			
+			// cached collector functions
+			Supplier<A> supplier = collector.supplier();
+			BiConsumer<A, T> accumulator = collector.accumulator();
+			Function<A, D> finisher = collector.finisher();
+
+			@Override
+			public boolean hasNext() {
+				return currentItem != null // pending item 
+					|| itr.hasNext();
+			}
+
+			@Override
+			public Partition<K, D, T> next() {
+				// prepare empty container for partition
+				A container = supplier.get();
+				
+				// consume pending item (if any)
+				if(currentItem != null) {
+					accumulator.accept(container, currentItem);
+					currentItem = null;
+					lastKey = currentKey;
+				}
+				
+				// consume upstream iterator until we encounter another key
+				while(itr.hasNext()) {
+					currentItem = itr.next();
+					currentKey = classifier.apply(currentItem);
+					
+					if(lastKey == null || lastKey.equals(currentKey)) {
+						// consume item
+						accumulator.accept(container, currentItem);
+						currentItem = null;
+						lastKey = currentKey;
+					} else {
+						// key change detected -> stop collecting items
+						break;
+					}
+				}
+				
+				// return current partition
+				return new Partition<>(lastKey, finisher.apply(container));
+			}
+			
+		}, 0, false);
 	}
 }

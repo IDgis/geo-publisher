@@ -18,6 +18,8 @@ import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.QTuple;
 
+import nl.idgis.publisher.utils.StreamUtils;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -257,5 +259,58 @@ public class DatabaseUtilsTest {
 			.collect(Collectors.toSet());
 			
 		assertEquals(left, result);
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testLeftJoinAndPartition() {
+		Expression<Integer> idExpr = mock(Expression.class);
+		Expression<String> firstExpr = mock(Expression.class);
+		Expression<String> secondExpr = mock(Expression.class);
+		
+		QTuple firstTuple = new QTuple(idExpr, firstExpr);
+		QTuple secondTuple = new QTuple(idExpr, secondExpr);			
+		
+		Iterator<String> actual =
+			StreamUtils
+				.partition(
+					DatabaseUtils
+						.leftJoin(
+							Stream.of(
+								firstTuple.newInstance(0, "zero"),
+								firstTuple.newInstance(1, "one"),
+								firstTuple.newInstance(2, "two")),
+							Stream.of(
+								secondTuple.newInstance(1, "a"),
+								secondTuple.newInstance(1, "b"),
+								secondTuple.newInstance(2, "c"),
+								secondTuple.newInstance(2, "d"),
+								secondTuple.newInstance(2, "e"),
+								secondTuple.newInstance(3, "f")),
+							idExpr),
+					tuple -> tuple.get(idExpr))
+				.map(partition ->
+					partition.key() +
+					" (" +
+					partition.first()
+						.get(firstExpr) + 
+					") " +
+					partition.stream()
+						.map(tuple -> tuple.get(secondExpr))
+						.filter(value -> value != null)
+						.collect(Collectors.joining(",")))
+				.iterator();
+		
+		Iterator<String> expected =
+			Stream.of(
+				"0 (zero) ",
+				"1 (one) a,b",
+				"2 (two) c,d,e")
+			.iterator();
+		
+		while(expected.hasNext()) {
+			assertTrue(actual.hasNext());
+			assertEquals(expected.next(), actual.next());
+		}
 	}
 }

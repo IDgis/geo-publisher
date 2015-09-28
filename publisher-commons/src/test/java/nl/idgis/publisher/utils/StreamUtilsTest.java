@@ -99,6 +99,14 @@ public class StreamUtilsTest {
 			this.t = t;
 			this.u = u;
 		}
+		
+		public T getT() {
+			return t;
+		}
+		
+		public U getU() {
+			return u;
+		}
 
 		@Override
 		public int hashCode() {
@@ -313,5 +321,34 @@ public class StreamUtilsTest {
 		assertEquals(new Pair<>(Collections.emptyList(), Arrays.asList("Hello, world!")), itr.next());
 		assertFalse(itr.hasNext());
 		itr.next();
+	}
+	
+	@Test
+	public void testPartition() {
+		Iterator<String> actual = 
+			StreamUtils.partition(Stream.<Pair<Integer, String>>of(
+					new Pair<>(0, "a"),
+					new Pair<>(0, "b"),
+					new Pair<>(1, "c"),
+					new Pair<>(2, "d"),
+					new Pair<>(2, "e"),
+					new Pair<>(2, "f"),
+					new Pair<>(3, null),
+					new Pair<>(4, "g"),
+					new Pair<>(4, "h")), Pair::getT, Collectors.toList())
+				.map(partition -> 
+					partition.key() + ": "
+						+ partition.stream()
+							.map(Pair::getU)
+							.filter(u -> u != null)
+							.collect(Collectors.joining(",")))
+				.iterator();
+		
+		Iterator<String> expected = Stream.of("0: a,b", "1: c", "2: d,e,f", "3: ", "4: g,h").iterator();
+		
+		while(expected.hasNext()) {
+			assertTrue(actual.hasNext());
+			assertEquals(expected.next(), actual.next());
+		}
 	}
 }
