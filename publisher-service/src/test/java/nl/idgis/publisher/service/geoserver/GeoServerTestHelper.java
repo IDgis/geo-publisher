@@ -3,6 +3,7 @@ package nl.idgis.publisher.service.geoserver;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -18,15 +19,24 @@ import java.util.List;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.eclipse.jetty.plus.jndi.Resource;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.webapp.Configuration.ClassList;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.h2.api.AggregateFunction;
 import org.h2.server.pg.PgServer;
+import org.postgresql.jdbc2.AbstractJdbc2Connection;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -201,12 +211,64 @@ public class GeoServerTestHelper {
 		System.setProperty("GEOSERVER_DATA_DIR", geoserverDataDir);
 		
 		jettyServer = new Server(JETTY_PORT);
+		
+		ClassList classlist = ClassList.setServerDefault(jettyServer);
+        classlist.addAfter(
+        	"org.eclipse.jetty.webapp.FragmentConfiguration", 
+        	"org.eclipse.jetty.plus.webapp.EnvConfiguration", 
+        	"org.eclipse.jetty.plus.webapp.PlusConfiguration");
+		
 		WebAppContext context = new WebAppContext();
 		File webXml = new File("target/geoserver/WEB-INF/web.xml");
+		
+		FileInputStream fis = new FileInputStream(webXml);
+		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();		
+		Document d = db.parse(fis);
+		fis.close();
+		
+		Element resourceRef = d.createElement("resource-ref");
+		
+		Element resourceRefName = d.createElement("res-ref-name");
+		resourceRefName.appendChild(d.createTextNode("jdbc/db"));
+		resourceRef.appendChild(resourceRefName);
+		
+		Element resourceRefType = d.createElement("res-type");
+		resourceRefType.appendChild(d.createTextNode("javax.sql.DataSource"));
+		resourceRef.appendChild(resourceRefType);
+		
+		Element resourceRefAuth = d.createElement("res-auth");
+		resourceRefAuth.appendChild(d.createTextNode("Container"));
+		resourceRef.appendChild(resourceRefAuth);
+		
+		d.getDocumentElement().appendChild(resourceRef);
+		
+		Transformer t = TransformerFactory.newInstance().newTransformer();
+		t.transform(new DOMSource(d), new StreamResult(webXml));
+		
 		context.setDescriptor(webXml.getAbsolutePath());
 		context.setResourceBase("target/geoserver");
 		context.setContextPath("/");
 		context.setParentLoaderPriority(false);
+		
+		BasicDataSource ds = new BasicDataSource() {
+			
+			@Override
+			public Connection getConnection() throws SQLException {
+				Connection c = super.getConnection();
+				
+				AbstractJdbc2Connection unwrapped = c.unwrap(AbstractJdbc2Connection.class);
+				unwrapped.getTypeInfo().addCoreType("geometry", 705, 0, "java.lang.String", 0);
+				
+				return c;
+			}
+		};
+		ds.setDriverClassName("org.postgresql.Driver");		
+		ds.setUrl("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test");
+		ds.setUsername("postgres");
+		ds.setPassword("postgres");
+		
+		new Resource(context, "jdbc/db", ds);
+		
 		jettyServer.setHandler(context);
 		jettyServer.start();
 	}

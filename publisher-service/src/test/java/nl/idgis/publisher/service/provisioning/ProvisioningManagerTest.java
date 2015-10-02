@@ -338,7 +338,6 @@ public class ProvisioningManagerTest  {
 	public void testEnsureServiceJobInfoStaging() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
 		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
@@ -412,7 +411,6 @@ public class ProvisioningManagerTest  {
 	public void testEnsureServiceJobInfoPublished() throws Exception {
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
 		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
@@ -486,12 +484,10 @@ public class ProvisioningManagerTest  {
 	public void testServiceInfoUpdate() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 		
 		// we wait after every message to ensure a fixed order in the recording
@@ -533,7 +529,6 @@ public class ProvisioningManagerTest  {
 	public void testVacuumServiceJobInfoStaging() throws Exception {
 		ServiceInfo stagingServiceInfo = new ServiceInfo(
 			new ConnectionInfo("stagingServiceUrl", "serviceUser", "servicePassword"),
-			new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 			tempDir.toString());
 
 		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();		
@@ -566,7 +561,6 @@ public class ProvisioningManagerTest  {
 	public void testVacuumServiceJobInfoPublished() throws Exception {
 		ServiceInfo publicationServiceInfo = new ServiceInfo(
 				new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
-				new ConnectionInfo("databaseUrl", "databaseUser", "databasePassword"),
 				tempDir.toString());
 			
 		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();

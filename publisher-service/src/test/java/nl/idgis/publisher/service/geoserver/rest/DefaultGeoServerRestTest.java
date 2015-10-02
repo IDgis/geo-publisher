@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
 
 import org.h2.server.pg.PgServer;
+import org.h2.server.pg.PgServerThread;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -582,5 +585,61 @@ public class DefaultGeoServerRestTest {
 		
 		service.deleteWorkspace(workspace).get();		
 		assertTrue(service.getWorkspaces().get().isEmpty());
+	}
+	
+	@Test
+	public void testManyWorkspaces() throws Exception {
+		Field pgServerField = GeoServerTestHelper.class.getDeclaredField("pgServer");
+		pgServerField.setAccessible(true);
+		
+		PgServer pgServer = (PgServer)pgServerField.get(h);
+		
+		Field runningField = PgServer.class.getDeclaredField("running");
+		runningField.setAccessible(true);
+		
+		@SuppressWarnings("unchecked")
+		Set<PgServerThread> running = (Set<PgServerThread>)runningField.get(pgServer);
+		
+		GeoServerRest rest = h.rest(f, log);
+		
+		assertTrue(rest.getWorkspaces().get().isEmpty());
+		
+		int workspaceCount = 10;
+		
+		for(int i = 0; i < workspaceCount; i++) {
+			Workspace workspace = new Workspace("workspace" + i);
+			rest.postWorkspace(workspace).get();
+			
+			Map<String, String> connectionParameters = new HashMap<>();									
+			connectionParameters.put("dbtype", "postgis");
+			connectionParameters.put("jndiReferenceName", "java:comp/env/jdbc/db");
+			connectionParameters.put("schema", "public");
+			DataStore dataStore = new DataStore("dataStore" + i, connectionParameters);
+			rest.postDataStore(workspace, dataStore).get();
+			
+			FeatureType featureType = new FeatureType(
+				"test", "test_table", "title", "abstract", 
+					Arrays.asList("keyword0", "keyword1"),
+					Arrays.asList(
+							new Attribute("id"), 
+							new Attribute("test"),
+							new Attribute("the_geom")));
+			service.postFeatureType(workspace, dataStore, featureType).get();
+		}
+		
+		List<Workspace> workspaces = rest.getWorkspaces().get();
+		assertEquals(workspaceCount, workspaces.size());
+		
+		for(Workspace workspace : workspaces) {
+			List<DataStore> dataStores = rest.getDataStores(workspace).get();
+			assertEquals(1, dataStores.size());
+			
+			List<FeatureType> featureTypes = rest.getFeatureTypes(workspace, dataStores.get(0)).get();
+			assertEquals(1, featureTypes.size());
+		}
+		
+		rest.close();
+		
+		assertEquals(1, running.size());
 	}
 }

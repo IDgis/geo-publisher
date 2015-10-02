@@ -29,28 +29,27 @@ public class ProvisioningSystem extends UntypedActor {
 	
 	private final ActorRef database, serviceManager;
 	
-	private final Config geoserverConfig, databaseConfig, zooKeeperConfig;
+	private final Config geoserverConfig, zooKeeperConfig;
 	
 	private final String rasterFolderConfig;
 	
 	private ActorRef provisioningManager;
 	
 	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+		String rasterFolderConfig, Config zooKeeperConfig) {
 		
 		this.database = database;
 		this.serviceManager = serviceManager;
 		this.geoserverConfig = geoserverConfig;
-		this.databaseConfig = databaseConfig;
 		this.rasterFolderConfig = rasterFolderConfig;
 		this.zooKeeperConfig = zooKeeperConfig;
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		Config databaseConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+		String rasterFolderConfig, Config zooKeeperConfig) {
 		
 		return Props.create(ProvisioningSystem.class, database, serviceManager, geoserverConfig, 
-			databaseConfig, rasterFolderConfig, zooKeeperConfig);
+			rasterFolderConfig, zooKeeperConfig);
 	}
 	
 	@Override
@@ -65,12 +64,6 @@ public class ProvisioningSystem extends UntypedActor {
 							geoserverConfig.getString("url"),
 							geoserverConfig.getString("user"),
 							geoserverConfig.getString("password")),
-							
-						new ConnectionInfo(		
-							databaseConfig.getString("url"),
-							databaseConfig.getString("user"),
-							databaseConfig.getString("password")),
-						
 						rasterFolderConfig
 					),
 				provisioningManager,
