@@ -20,7 +20,8 @@ import nl.idgis.publisher.domain.job.JobState;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.harvester.Harvester;
-import nl.idgis.publisher.job.JobSystem;
+import nl.idgis.publisher.job.JobScheduler;
+import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -181,12 +182,14 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		
-		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, 
+		ActorRef jobManager = getContext().actorOf(JobManager.props(database), "job-manager");
+		
+		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, jobManager,
 			geoserverConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
 		
-		ActorRef jobSystem = getContext().actorOf(JobSystem.props(database, harvester, loader, provisioningSystem, serviceManager), "jobs");
+		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
 		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobSystem, serviceManager), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager), "admin");
 		
 		MetadataConfig metadataConfig = new MetadataConfig(config.getConfig("metadata"));
 		

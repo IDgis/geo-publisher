@@ -35,30 +35,30 @@ import akka.actor.Props;
 
 public class JobCreator extends AbstractAdmin {
 	
-	private final ActorRef serviceManager, jobSystem, harvester;
+	private final ActorRef serviceManager, jobManager, harvester;
 
-	public JobCreator(ActorRef database, ActorRef serviceManager, ActorRef jobSystem, final ActorRef harvester) {
+	public JobCreator(ActorRef database, ActorRef serviceManager, ActorRef jobManager, final ActorRef harvester) {
 		super(database);
 		
 		this.serviceManager = serviceManager;
-		this.jobSystem = jobSystem;
+		this.jobManager = jobManager;
 		this.harvester = harvester;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobSystem, final ActorRef harvester) {
-		return Props.create(JobCreator.class, database, serviceManager, jobSystem, harvester);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobManager, final ActorRef harvester) {
+		return Props.create(JobCreator.class, database, serviceManager, jobManager, harvester);
 	}
 	
 	private void createVacuumServiceJob() {
 		log.debug("creating vacuum service job");
 		
-		jobSystem.tell(new CreateVacuumServiceJob(), getSelf());
+		jobManager.tell(new CreateVacuumServiceJob(), getSelf());
 	}
 	
 	private void createEnsureServiceJob(String serviceId) {
 		log.debug("creating service job: {}", serviceId);
 		
-		jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
+		jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 	}
 	
 	private void createEnsureServiceJobs(TypedIterable<?> serviceIds) {
@@ -84,7 +84,7 @@ public class JobCreator extends AbstractAdmin {
 	private CompletableFuture<Boolean> createImportJob(String datasetId) {
 		log.debug("requesting to refresh dataset: {}", datasetId);
 		
-		return f.ask(jobSystem, new CreateImportJob(datasetId), Ack.class) .thenApply(msg -> true);
+		return f.ask(jobManager, new CreateImportJob(datasetId), Ack.class) .thenApply(msg -> true);
 	}
 
 	@Override
@@ -122,12 +122,12 @@ public class JobCreator extends AbstractAdmin {
 		String serviceId = performPublish.getServiceId();
 		Set<String> environmentIds = performPublish.getEnvironmentIds();
 		
-		jobSystem.tell(new CreateVacuumServiceJob(true), getSelf());
+		jobManager.tell(new CreateVacuumServiceJob(true), getSelf());
 		if(environmentIds.isEmpty()) {
 			log.debug("not published -> not creating ensure job");
 		} else {
 			log.debug("published -> creating ensure job");
-			jobSystem.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
+			jobManager.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
 		}
 	}
 	
@@ -154,7 +154,7 @@ public class JobCreator extends AbstractAdmin {
 								continue;
 							}
 
-							futures.add (f.ask (jobSystem, new CreateHarvestJob (dataSourceInfo.getId ()), Ack.class));
+							futures.add (f.ask (jobManager, new CreateHarvestJob (dataSourceInfo.getId ()), Ack.class));
 						}
 
 						return CompletableFuture.allOf (futures.toArray (new CompletableFuture[futures.size ()])).thenApply ((a) -> true);

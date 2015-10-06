@@ -98,19 +98,18 @@ public class Admin extends AbstractAdmin {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef harvester, loader, provisioning, jobSystem;
+	private final ActorRef harvester, loader, provisioning;
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning) {
 		super(database);
 		
 		this.harvester = harvester;
 		this.loader = loader;
 		this.provisioning = provisioning;
-		this.jobSystem = jobSystem;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning, ActorRef jobSystem) {
-		return Props.create(Admin.class, database, harvester, loader, provisioning, jobSystem);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning) {
+		return Props.create(Admin.class, database, harvester, loader, provisioning);
 	}
 	
 	@Override

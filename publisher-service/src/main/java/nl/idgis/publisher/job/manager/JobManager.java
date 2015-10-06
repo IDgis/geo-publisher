@@ -78,7 +78,6 @@ import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.dispatch.Mapper;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
@@ -162,7 +161,7 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Ack> handleCreateVacuumServiceJob(CreateVacuumServiceJob msg) {
 		log.debug("creating vacuum service job");
 		
-		return db.transactional(tx ->
+		return db.transactional(msg, tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))				
 				.where(serviceJob.type.eq("VACUUM"))
@@ -271,7 +270,7 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating ensure service job: {}", serviceId);
 		
-		return db.transactional(tx ->
+		return db.transactional(msg, tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
 				.join(service).on(service.id.eq(serviceJob.serviceId))
@@ -399,7 +398,7 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating import job: {}", datasetId);
 		
-		return db.transactional(tx ->
+		return db.transactional(msg, tx ->
 				tx.query().from(job)
 					.join(importJob).on(importJob.jobId.eq(job.id))
 					.join(dataset).on(dataset.id.eq(importJob.datasetId))
@@ -430,7 +429,7 @@ public class JobManager extends UntypedActor {
 		
 		log.debug("creating remove job: {}", datasetIdentification);
 		
-		return db.transactional(tx ->
+		return db.transactional(msg, tx ->
 			tx.query().from(removeJob)
 				.join(dataset).on(dataset.id.eq(removeJob.datasetId))
 				.where(dataset.identification.eq(datasetIdentification))
@@ -461,7 +460,7 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Ack> handleCreateHarvestJob(final CreateHarvestJob msg) {
 		log.debug("creating harvest job: {}", msg.getDataSourceId());
 		
-		return db.transactional(tx ->				
+		return db.transactional(msg, tx ->				
 				tx.query().from(job)
 					.join(harvestJob).on(harvestJob.jobId.eq(job.id))
 					.join(dataSource).on(dataSource.id.eq(harvestJob.dataSourceId))

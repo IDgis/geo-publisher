@@ -22,7 +22,7 @@ import akka.testkit.TestActorRef;
 
 import scala.concurrent.duration.FiniteDuration;
 
-public class JobSystemTest {
+public class JobSchedulerTest {
 	
 	ActorSystem actorSystem;
 	
@@ -42,10 +42,10 @@ public class JobSystemTest {
 
 	@Test
 	public void testCronExpression() throws Exception {
-		CronExpression cronExpression = new CronExpression(JobSystem.ON_THE_HOUR);
+		CronExpression cronExpression = new CronExpression(JobScheduler.ON_THE_HOUR);
 		
-		TestActorRef<JobSystem> ref = TestActorRef.create(actorSystem, JobSystem.props(null, null, null, null, null));
-		JobSystem jobSystem = ref.underlyingActor();
+		TestActorRef<JobScheduler> ref = TestActorRef.create(actorSystem, JobScheduler.props(null, null, null, null, null, null));
+		JobScheduler jobSystem = ref.underlyingActor();
 		
 		Calendar calendar = Calendar.getInstance();
 		calendar.set(Calendar.HOUR, 23);
