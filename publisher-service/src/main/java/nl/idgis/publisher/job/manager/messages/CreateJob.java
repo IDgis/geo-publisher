@@ -1,7 +1,21 @@
 package nl.idgis.publisher.job.manager.messages;
 
-public abstract class CreateJob extends JobManagerRequest {
-	
-	private static final long serialVersionUID = -1352277991241031875L;
+import java.util.Optional;
 
+import nl.idgis.publisher.database.AsyncTransactionRef;
+import nl.idgis.publisher.database.AsyncTransactional;
+
+public abstract class CreateJob extends JobManagerRequest implements AsyncTransactional {	
+
+	private static final long serialVersionUID = 8831792530299847484L;
+	
+	private final AsyncTransactionRef transactionRef;
+
+	protected CreateJob(Optional<AsyncTransactionRef> transactionRef) {
+		this.transactionRef = transactionRef.orElse(null);
+	}
+	
+	public Optional<AsyncTransactionRef> getTransactionRef() {
+		return Optional.ofNullable(transactionRef);
+	}
 }

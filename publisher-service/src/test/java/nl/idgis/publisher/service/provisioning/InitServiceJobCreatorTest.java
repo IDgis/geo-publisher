@@ -76,6 +76,7 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		assertTrue(jobInfo instanceof EnsureServiceJobInfo);
 		assertFalse(jobInfo.isPublished());
 		assertEquals("service-id", ((EnsureServiceJobInfo)jobInfo).getServiceId());
+		assertFalse(itr.hasNext());
 	}
 	
 	@Test
@@ -99,5 +100,6 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		assertTrue(jobInfo instanceof EnsureServiceJobInfo);
 		assertTrue(jobInfo.isPublished());
 		assertEquals("service-id", ((EnsureServiceJobInfo)jobInfo).getServiceId());
+		assertFalse(itr.hasNext());
 	}
 }

@@ -1,12 +1,18 @@
 package nl.idgis.publisher.job.manager.messages;
 
-public abstract class CreateServiceJob extends CreateJob {
+import java.util.Optional;
 
-	private static final long serialVersionUID = 5160734160584418705L;
+import nl.idgis.publisher.database.AsyncTransactionRef;
+
+public abstract class CreateServiceJob extends CreateJob {	
+
+	private static final long serialVersionUID = 1622361748773103667L;
 	
 	protected final boolean published;
 	
-	protected CreateServiceJob(boolean published) {
+	protected CreateServiceJob(Optional<AsyncTransactionRef> transactionRef, boolean published) {
+		super(transactionRef);
+		
 		this.published = published;
 	}
 	
