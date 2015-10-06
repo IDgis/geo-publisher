@@ -14,12 +14,10 @@ import nl.idgis.publisher.job.creator.Creator;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
 import nl.idgis.publisher.job.creator.messages.CreateJobs;
-import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
 import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
-import nl.idgis.publisher.job.manager.messages.JobManagerRequest;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.Either;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -33,7 +31,7 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-public class JobSystem extends UntypedActor {	
+public class JobScheduler extends UntypedActor {	
 	
 	protected static final String ON_THE_HOUR = "* 0 * * * ?";
 	
@@ -41,7 +39,9 @@ public class JobSystem extends UntypedActor {
 	
 	private final ActorRef database, harvester, loader, provisioningManager, serviceManager;
 	
-	private ActorRef jobManager, jobCreator;
+	private final ActorRef jobManager; 
+	
+	private ActorRef jobCreator;
 	
 	private FutureUtils f;
 	
@@ -67,23 +67,21 @@ public class JobSystem extends UntypedActor {
 		}
 	}
 	
-	public JobSystem(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
+	public JobScheduler(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
 		this.database = database;
+		this.jobManager = jobManager;
 		this.harvester = harvester;
 		this.loader = loader;
 		this.provisioningManager = provisioningManager;
 		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
-		return Props.create(JobSystem.class, database, harvester, loader, provisioningManager, serviceManager);
+	public static Props props(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
+		return Props.create(JobScheduler.class, database, jobManager, harvester, loader, provisioningManager, serviceManager);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
-		jobManager = getContext().actorOf(
-				JobManager.props(database), "manager");
-		
 		jobCreator = getContext().actorOf(Creator.props(jobManager, database, serviceManager), "creator");
 		
 		getContext().actorOf(
@@ -107,9 +105,7 @@ public class JobSystem extends UntypedActor {
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
-		if(msg instanceof JobManagerRequest) {
-			jobManager.forward(msg, getContext());
-		} else if(msg instanceof CreateJobs) {
+		if(msg instanceof CreateJobs) {
 			ActorRef self = getSelf();
 			f.ask(jobCreator, msg).whenComplete((resp, t) -> {
 				if(t != null) {
