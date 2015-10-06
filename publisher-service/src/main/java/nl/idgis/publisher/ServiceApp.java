@@ -184,7 +184,7 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef jobManager = getContext().actorOf(JobManager.props(database), "job-manager");
 		
-		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, 
+		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, jobManager,
 			geoserverConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
 		
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");

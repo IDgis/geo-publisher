@@ -31,7 +31,7 @@ public class ProvisioningSystem extends UntypedActor {
 		
 	});
 	
-	private final ActorRef database, serviceManager;
+	private final ActorRef database, serviceManager, jobManager;
 	
 	private final Config geoserverConfig, zooKeeperConfig;
 	
@@ -39,21 +39,22 @@ public class ProvisioningSystem extends UntypedActor {
 	
 	private ActorRef provisioningManager;
 	
-	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		String rasterFolderConfig, Config zooKeeperConfig) {
+	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, ActorRef jobManager, 
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig) {
 		
 		this.database = database;
 		this.serviceManager = serviceManager;
+		this.jobManager = jobManager;
 		this.geoserverConfig = geoserverConfig;
 		this.rasterFolderConfig = rasterFolderConfig;
 		this.zooKeeperConfig = zooKeeperConfig;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, Config geoserverConfig, 
-		String rasterFolderConfig, Config zooKeeperConfig) {
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobManager,
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig) {
 		
-		return Props.create(ProvisioningSystem.class, database, serviceManager, geoserverConfig, 
-			rasterFolderConfig, zooKeeperConfig);
+		return Props.create(ProvisioningSystem.class, database, serviceManager, jobManager, 
+			geoserverConfig, rasterFolderConfig, zooKeeperConfig);
 	}
 	
 	@Override
@@ -61,6 +62,10 @@ public class ProvisioningSystem extends UntypedActor {
 		provisioningManager = getContext().actorOf(
 			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), 
 			"provisioning-manager");
+		
+		ActorRef initServiceJobCreator = getContext ().actorOf(
+			InitServiceJobCreator.props(database, jobManager), 
+			"init-service-job-creator");
 		
 		getContext ().actorOf (ZooKeeperServiceInfoProvider.props (
 				new ServiceInfo(
@@ -74,7 +79,8 @@ public class ProvisioningSystem extends UntypedActor {
 					new BroadcastGroup(
 						Stream
 							.of(
-								provisioningManager)
+								provisioningManager,
+								initServiceJobCreator)
 							.map(actorRef -> actorRef.path().toString())
 							.collect(Collectors.toSet()))
 					.props(),
