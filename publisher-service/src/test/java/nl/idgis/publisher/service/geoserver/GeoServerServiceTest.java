@@ -309,12 +309,6 @@ public class GeoServerServiceTest {
 					"http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/",
 					"admin",
 					"geoserver"),
-			
-			new ConnectionInfo(
-					"jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test",
-					"postgres",
-					"postgres"),
-					
 			rasterFolder)), 
 					
 			updateServiceInfoRecorder);

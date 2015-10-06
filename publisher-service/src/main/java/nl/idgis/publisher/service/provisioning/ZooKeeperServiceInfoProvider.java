@@ -241,8 +241,7 @@ public class ZooKeeperServiceInfoProvider extends UntypedActor {
 					url, 
 					stagingServiceInfo.getService ().getUser (), 
 					stagingServiceInfo.getService ().getPassword ()
-				), 
-				stagingServiceInfo.getDatabase (),
+				),
 				stagingServiceInfo.getRasterFolder ()
 			);
 	}

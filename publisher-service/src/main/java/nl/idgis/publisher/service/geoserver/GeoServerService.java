@@ -94,26 +94,12 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	public static Props props(
-		String serviceUrl, String serviceUser, String servicePassword, 
-		String databaseUrl, String databaseUser, String databasePassword,
-		String rasterFolder,
-		
-		String schema) {
-		
-		Pattern urlPattern = Pattern.compile("jdbc:postgresql://(.*):(.*)/(.*)");
-		Matcher matcher = urlPattern.matcher(databaseUrl);
-		
-		if(!matcher.matches()) {
-			throw new IllegalArgumentException("incorrect database url");
-		}
+		String serviceUrl, String serviceUser, String servicePassword,
+		String rasterFolder, String schema) {
 		
 		Map<String, String> connectionParameters = new HashMap<>();
 		connectionParameters.put("dbtype", "postgis");
-		connectionParameters.put("host", matcher.group(1));
-		connectionParameters.put("port", matcher.group(2));
-		connectionParameters.put("database", matcher.group(3));
-		connectionParameters.put("user", databaseUser);
-		connectionParameters.put("passwd", databasePassword);
+		connectionParameters.put("jndiReferenceName", "java:comp/env/jdbc/db");
 		connectionParameters.put("schema", schema);
 		
 		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);

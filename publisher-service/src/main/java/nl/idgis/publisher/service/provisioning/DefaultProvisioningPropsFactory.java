@@ -13,19 +13,12 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 	@Override
 	public Props serviceProps(ServiceInfo serviceInfo, String schema) {
 		ConnectionInfo serviceConnectionInfo = serviceInfo.getService();
-		ConnectionInfo databaseConnectionInfo = serviceInfo.getDatabase();
 		
 		return GeoServerService.props(
 			serviceConnectionInfo.getUrl(), 
 			serviceConnectionInfo.getUser(), 
-			serviceConnectionInfo.getPassword(), 
-			
-			databaseConnectionInfo.getUrl(), 
-			databaseConnectionInfo.getUser(), 
-			databaseConnectionInfo.getPassword(),
-			
+			serviceConnectionInfo.getPassword(),	
 			serviceInfo.getRasterFolder(),
-			
 			schema);
 	}
 
