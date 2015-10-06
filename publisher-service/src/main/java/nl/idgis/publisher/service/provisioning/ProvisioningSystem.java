@@ -1,5 +1,8 @@
 package nl.idgis.publisher.service.provisioning;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -9,6 +12,7 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.actor.SupervisorStrategy.Directive;
 import akka.japi.Function;
+import akka.routing.BroadcastGroup;
 
 import scala.concurrent.duration.Duration;
 
@@ -66,7 +70,15 @@ public class ProvisioningSystem extends UntypedActor {
 							geoserverConfig.getString("password")),
 						rasterFolderConfig
 					),
-				provisioningManager,
+				getContext().actorOf(
+					new BroadcastGroup(
+						Stream
+							.of(
+								provisioningManager)
+							.map(actorRef -> actorRef.path().toString())
+							.collect(Collectors.toSet()))
+					.props(),
+					"zookeeper-service-info-listeners"),
 				zooKeeperConfig.getString ("hosts"),
 				zooKeeperConfig.getString ("stagingEnvironmentId"),
 				zooKeeperConfig.hasPath ("serviceIdPrefix") ? zooKeeperConfig.getString ("serviceIdPrefix") : null,
