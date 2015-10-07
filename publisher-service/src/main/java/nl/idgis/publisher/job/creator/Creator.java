@@ -124,12 +124,13 @@ public class Creator extends UntypedActor {
 	
 	private CompletableFuture<Object> handleCreateImportJobs(CreateImportJobs msg) {
 		return db.query().from(datasetStatus)
-			.where(datasetStatus.imported.isFalse()
+			.where(datasetStatus.sourceDatasetAvailable.isTrue().and(
+				datasetStatus.imported.isFalse()
 				.or(datasetStatus.sourceDatasetRevisionChanged.isTrue())
 				.or(datasetStatus.sourceDatasetColumnsChanged.isTrue())
 				.or(datasetStatus.columnsChanged.isTrue())
 				.or(datasetStatus.sourceDatasetChanged.isTrue())
-				.or(datasetStatus.filterConditionChanged.isTrue()))
+				.or(datasetStatus.filterConditionChanged.isTrue())))
 			.list(datasetStatus.identification).thenCompose(datasetIds ->
 				forEach(datasetIds.list().stream(), datasetId -> f.ask(jobManager, new CreateImportJob(datasetId))));
 	}
