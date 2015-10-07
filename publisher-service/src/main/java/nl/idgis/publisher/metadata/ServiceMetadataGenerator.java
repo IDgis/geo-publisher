@@ -55,6 +55,14 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		metadataDocument.setServiceAlternateTitle(itemInfo.getAlternateTitle());
 		metadataDocument.setServiceAbstract(itemInfo.getAbstract());
 		
+		metadataDocument.removeServiceKeywords();
+		metadataDocument.addServiceKeywords(
+			itemInfo.getKeywords(), 
+			"GEMET - Concepts, version 2.4", 
+			"2010-01-13", 
+			"http://www.isotc211.org/2005/resources/codeList.xml#CI_DateTypeCode", 
+			"publication");
+		
 		metadataDocument.removeOperatesOn();		
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {

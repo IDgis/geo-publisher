@@ -7,14 +7,16 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
 import nl.idgis.publisher.metadata.MetadataDocument.OperatesOn;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
@@ -171,28 +173,33 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current values 
-		String result = document.getDatasetKeywords();
-		assertTrue("wrong keyword", result.indexOf("gemeenten") >= 0);
-		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") >= 0);
-		assertTrue("wrong date", result.indexOf("2013-09-11") >= 0);
-
-		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") >= 0);
-		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") >= 0);
-		assertFalse("unexpected date", result.indexOf("2015-01-01") >= 0);
+		List<MetadataDocument.Keywords> result = document.getDatasetKeywords();
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		
+		Keywords keywords = result.get(0);
+		assertNotNull(keywords);
+		assertTrue("wrong keyword", keywords.getKeywords().contains("gemeenten"));
+		assertEquals("wrong thesaurus", "Interprovinciale thesaurus", keywords.getThesaurusTitle());
+		assertEquals("wrong date", "2013-09-11", keywords.getThesaurusDate());
 
 		document.removeDatasetKeywords();
-		
-		List<String> keywords = new ArrayList<String>();
-		keywords.add("aaa-bbb");
-		keywords.add("ccc-ddd");
-		document.addDatasetKeywords(keywords, "thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
+		 
+		document.addDatasetKeywords(
+			Stream.of("aaa-bbb", "ccc-ddd").collect(Collectors.toSet()), 
+			"thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
 		
 		// check the new values 
-		result = document.getDatasetKeywords();		
-		assertTrue("wrong keyword", result.indexOf("ccc-ddd") >= 0);
-		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") >= 0);
-		assertTrue("wrong date", result.indexOf("2015-01-01") >= 0);
+		result = document.getDatasetKeywords();
+		assertNotNull(result);
+		assertEquals(1, result.size());
 		
+		keywords = result.get(0);
+		assertNotNull(keywords);
+		
+		assertTrue("wrong keyword", keywords.getKeywords().contains("ccc-ddd"));		
+		assertEquals("wrong thesaurus", "thesaurusTitle", keywords.getThesaurusTitle());
+		assertEquals("wrong date", "2015-01-01", keywords.getThesaurusDate());
 	}
 	
 	@Test

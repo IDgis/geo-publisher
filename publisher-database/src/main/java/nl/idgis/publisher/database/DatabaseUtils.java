@@ -211,4 +211,8 @@ public class DatabaseUtils {
 		
 		return c;
 	}
+	
+	public static <T> Expression<T> namedExpression(String name) {
+		return new NamedExpression<T>(name);
+	}
 }

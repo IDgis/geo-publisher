@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QService.service;
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.QTuple;
 
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.DatabaseUtils;
@@ -84,26 +87,59 @@ public class MetadataInfo implements Serializable {
 		return layerInfo;
 	}
 	
-	public static CompletableFuture<MetadataInfo> fetch(AsyncHelper tx, String environmentId) {
-		CompletableFuture<TypedList<Tuple>> serviceInfoQuery = tx.query().from(publishedService)
+	/**
+	 * Fetch (service X keyword)
+	 * 
+	 * @param tx
+	 * @param environmentId
+	 * @return
+	 */
+	protected static CompletableFuture<Stream<Tuple>> fetchServiceKeywords(AsyncHelper tx, String environmentId) {
+		return tx.query().from(publishedService)
 			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
-			.join(service).on(service.id.eq(publishedService.serviceId))
-			.join(serviceGenericLayer).on(serviceGenericLayer.id.eq(service.genericLayerId))
 			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+			.leftJoin(publishedServiceKeyword).on(publishedServiceKeyword.serviceId.eq(publishedService.serviceId))
 			.where(environment.identification.eq(environmentId))
 			.orderBy(publishedService.serviceId.asc())
 			.list(
-				publishedService.title,
-				publishedService.alternateTitle,
-				publishedService.abstractCol,
 				publishedService.serviceId,
-				publishedService.content,
-				service.wfsMetadataFileIdentification,
-				service.wmsMetadataFileIdentification,
-				serviceGenericLayer.identification,
-				serviceGenericLayer.name);
+				publishedServiceKeyword.keyword).thenApply(tuples ->
+					toServiceKeywords(tuples.asCollection().stream()));
+	}
+	
+	protected final static Expression<Set<String>> serviceKeywords = DatabaseUtils.namedExpression("serviceKeywords");
+	
+	/**
+	 * Collapse (service X keyword)
+	 * 
+	 * @param stream
+	 * @return
+	 */
+	protected static Stream<Tuple> toServiceKeywords(Stream<Tuple> stream) {
+		QTuple keywordTuple = new QTuple(publishedService.serviceId, serviceKeywords);
 		
-		CompletableFuture<TypedList<Tuple>> serviceDatasetInfoQuery = tx.query().from(publishedService)
+		return StreamUtils
+			.partition(
+				stream,
+				tuple -> tuple.get(publishedService.serviceId))
+			.map(servicePartition ->
+				keywordTuple.newInstance(
+					servicePartition.first().get(publishedService.serviceId),
+					servicePartition.stream()
+						.map(tuple -> tuple.get(publishedServiceKeyword.keyword))
+						.filter(keyword -> keyword != null)
+						.collect(Collectors.toSet())));
+	}
+	
+	/**
+	 * Fetch (service X dataset X layer)
+	 * 
+	 * @param tx
+	 * @param environmentId
+	 * @return
+	 */
+	protected static CompletableFuture<Stream<Tuple>> fetchServiceDatasetRefs(AsyncHelper tx, String environmentId) {
+		return tx.query().from(publishedService)
 			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 			.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
@@ -122,47 +158,94 @@ public class MetadataInfo implements Serializable {
 				dataset.metadataFileIdentification,
 				layerGenericLayer.identification,								
 				sourceDataset.externalIdentification,
-				dataSource.identification);
+				dataSource.identification).thenApply(tuples -> 
+					toServiceDatasetRef(tuples.asCollection().stream()));
+	}
+	
+	protected final static Expression<Set<DatasetRef>> serviceDatasetRef = DatabaseUtils.namedExpression("serviceDatasetRef");
+	
+	/**
+	 * Collapse (service X dataset X layer) into {@link DataRef} instances.
+	 * 
+	 * @param stream
+	 * @return
+	 */
+	protected static Stream<Tuple> toServiceDatasetRef(Stream<Tuple> stream) {
+		QTuple datasetRefTuple = new QTuple(publishedService.serviceId, serviceDatasetRef);
 		
-		CompletableFuture<Stream<ServiceInfo>> serviceInfoResult = serviceInfoQuery.thenCompose(serviceInfo ->
-			serviceDatasetInfoQuery.thenApply(serviceDatasetInfo -> 
-				DatabaseUtils.leftJoin(
-					serviceInfo.asCollection(),
-					serviceDatasetInfo.asCollection(), 
-					publishedService.serviceId))).thenApply((Stream<Tuple> serviceInfo) ->
+		return 
+			StreamUtils
+				.partition(
+					stream, 
+					tuple -> tuple.get(publishedService.serviceId))
+				.map(servicePartition ->			
+					datasetRefTuple.newInstance(
+						servicePartition.first().get(publishedService.serviceId),
 						StreamUtils
 							.partition(
-								serviceInfo, 
-								tuple -> tuple.get(publishedService.serviceId))
-							.map(servicePartition -> {
-								Tuple serviceInfoFirst = servicePartition.first();
+								servicePartition.stream(),
+								tuple -> tuple.get(dataset.id))
+							.map(datasetPartition -> {
+								Tuple datasetTuple = datasetPartition.first();
 								
-								return new ServiceInfo(
-									serviceInfoFirst.get(serviceGenericLayer.identification),
-									serviceInfoFirst.get(serviceGenericLayer.name),
-									serviceInfoFirst.get(publishedService.title),
-									serviceInfoFirst.get(publishedService.alternateTitle),
-									serviceInfoFirst.get(publishedService.abstractCol),
-									serviceInfoFirst.get(service.wmsMetadataFileIdentification),
-									serviceInfoFirst.get(service.wfsMetadataFileIdentification),
-									StreamUtils
-										.partition(									
-											servicePartition.stream(),
-											tuple -> tuple.get(dataset.id))
-										.map(datasetRefPartition -> {
-											Tuple datasetRefFirst = datasetRefPartition.first();
-											
-											return new DatasetRef(										
-												datasetRefFirst.get(dataset.identification),
-												datasetRefFirst.get(dataset.metadataIdentification),
-												datasetRefFirst.get(dataset.metadataFileIdentification),
-												datasetRefPartition.stream()
-													.map(tuple -> tuple.get(layerGenericLayer.identification))
-													.collect(Collectors.toSet()));
-										})
+								return new DatasetRef(
+									datasetTuple.get(dataset.identification),
+									datasetTuple.get(dataset.metadataIdentification),
+									datasetTuple.get(dataset.metadataFileIdentification),
+									datasetPartition.stream()
+										.map(tuple -> tuple.get(layerGenericLayer.identification))
 										.collect(Collectors.toSet()));
-							}));
-		
+							})
+							.collect(Collectors.toSet())));
+	}
+	
+	protected static CompletableFuture<Stream<Tuple>> fetchServiceGeneralInfo(AsyncHelper tx, String environmentId) {
+		return tx.query().from(publishedService)
+			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
+			.join(service).on(service.id.eq(publishedService.serviceId))
+			.join(serviceGenericLayer).on(serviceGenericLayer.id.eq(service.genericLayerId))
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+			.where(environment.identification.eq(environmentId))
+			.orderBy(publishedService.serviceId.asc())
+			.list(
+				publishedService.title,
+				publishedService.alternateTitle,
+				publishedService.abstractCol,
+				publishedService.serviceId,
+				publishedService.content,
+				service.wfsMetadataFileIdentification,
+				service.wmsMetadataFileIdentification,
+				serviceGenericLayer.identification,
+				serviceGenericLayer.name).thenApply(tuples -> 
+					tuples.asCollection().stream());
+	}
+	
+	protected static CompletableFuture<Stream<ServiceInfo>> fetchServiceInfo(AsyncHelper tx, String environmentId) {
+		return
+			fetchServiceGeneralInfo(tx, environmentId).thenCompose(serviceGeneralInfo ->
+			fetchServiceKeywords(tx, environmentId).thenCompose(serviceKeywordInfo ->
+			fetchServiceDatasetRefs(tx, environmentId).thenApply(serviceDatasetRefInfo ->
+				DatabaseUtils.join(
+					DatabaseUtils.join(
+						serviceGeneralInfo,
+						serviceDatasetRefInfo, 
+						publishedService.serviceId),
+					serviceKeywordInfo,
+					publishedService.serviceId)
+						.map(tuple ->
+							new ServiceInfo(
+								tuple.get(serviceGenericLayer.identification),
+								tuple.get(serviceGenericLayer.name),
+								tuple.get(publishedService.title),
+								tuple.get(publishedService.alternateTitle),
+								tuple.get(publishedService.abstractCol),
+								tuple.get(service.wmsMetadataFileIdentification),
+								tuple.get(service.wfsMetadataFileIdentification),
+								tuple.get(serviceDatasetRef),
+								tuple.get(serviceKeywords))))));
+	}
+	
+	public static CompletableFuture<MetadataInfo> fetch(AsyncHelper tx, String environmentId) {
 		CompletableFuture<TypedList<Tuple>> datasetInfoQuery = tx.query().from(publishedService)
 			.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))
 			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
@@ -231,7 +314,7 @@ public class MetadataInfo implements Serializable {
 							.collect(Collectors.toSet()));
 				}));
 			
-		return serviceInfoResult.thenCompose(serviceInfo ->
+		return fetchServiceInfo(tx, environmentId).thenCompose(serviceInfo ->
 			datasetInfoResult.thenApply(datasetInfo ->
 				new MetadataInfo(serviceInfo, datasetInfo)));
 	}

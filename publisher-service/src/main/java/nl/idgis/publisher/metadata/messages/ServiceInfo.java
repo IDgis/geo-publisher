@@ -23,8 +23,10 @@ public class ServiceInfo extends MetadataItemInfo {
 	
 	private final String wfsMetadataId;
 	
+	private final Set<String> keywords;
+	
 	public ServiceInfo(String serviceId, String name, String title, String alternateTitle, String abstr,
-		String wmsMetadataId, String wfsMetadataId, Set<DatasetRef> datasetRefs) {
+		String wmsMetadataId, String wfsMetadataId, Set<DatasetRef> datasetRefs, Set<String> keywords) {
 		
 		super(serviceId);
 		
@@ -35,6 +37,7 @@ public class ServiceInfo extends MetadataItemInfo {
 		this.wmsMetadataId = Objects.requireNonNull(wmsMetadataId, "wmsMetadataId must not be null");
 		this.wfsMetadataId = Objects.requireNonNull(wfsMetadataId, "wfsMetadataId must not be null");
 		this.datasetRefs = Objects.requireNonNull(datasetRefs, "datasetRefs must not be null");
+		this.keywords = Objects.requireNonNull(keywords, "keywords must not be null");
 	}
 	
 	public String getName() {
@@ -64,12 +67,16 @@ public class ServiceInfo extends MetadataItemInfo {
 	public Set<DatasetRef> getDatasetRefs() {
 		return datasetRefs;
 	}
+	
+	public Set<String> getKeywords() {
+		return keywords;
+	}
 
 	@Override
 	public String toString() {
 		return "ServiceInfo [name=" + name + ", title=" + title + ", alternateTitle=" + alternateTitle + ", abstr="
 				+ abstr + ", datasetRefs=" + datasetRefs + ", wmsMetadataId=" + wmsMetadataId + ", wfsMetadataId="
-				+ wfsMetadataId + "]";
-	}
+				+ wfsMetadataId + ", keywords=" + keywords + "]";
+	}	
 	
 }

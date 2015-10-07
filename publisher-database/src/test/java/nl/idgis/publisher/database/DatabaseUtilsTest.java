@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,6 +24,7 @@ import nl.idgis.publisher.utils.StreamUtils;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -312,5 +314,22 @@ public class DatabaseUtilsTest {
 			assertTrue(actual.hasNext());
 			assertEquals(expected.next(), actual.next());
 		}
+	}
+	
+	@Test
+	public void testNamedSetExpression() {
+		Expression<Set<String>> expr = DatabaseUtils.namedExpression("test");		
+		QTuple q = new QTuple(expr);
+		
+		Tuple t = q.newInstance(Collections.singleton("Hello, world!"));		
+		assertNotNull(t);
+		
+		Set<String> result = t.get(expr);
+		assertNotNull(result);
+		
+		Iterator<String> itr = result.iterator();
+		assertTrue(itr.hasNext());
+		assertEquals("Hello, world!", itr.next());
+		assertFalse(itr.hasNext());
 	}
 }

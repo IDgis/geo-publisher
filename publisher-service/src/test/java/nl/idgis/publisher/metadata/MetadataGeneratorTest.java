@@ -20,6 +20,7 @@ import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
+import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
 import nl.idgis.publisher.metadata.messages.AddMetadataDocument;
@@ -48,6 +49,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
@@ -61,6 +63,7 @@ import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -95,6 +98,11 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	final String serviceAlternateTitle = "testServiceAlternateTitle";
 	
 	final String serviceAbstract = "testServiceAbstract";
+	
+	final Set<String> serviceKeywords =
+		IntStream.range(0, 10)
+			.mapToObj(i -> "keyword" + i)
+			.collect(Collectors.toSet());
 	
 	final Set<String> environmentIdentifications =
 		IntStream.range(0, 5)
@@ -254,14 +262,24 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					serviceAbstract)
 				.executeWithKey(genericLayer.id);
 		
-		insert(service)
+		final int serviceId = insert(service)
 			.columns(
 				service.genericLayerId,
 				service.alternateTitle)
 			.values(
 				serviceGenericLayerId,
 				serviceAlternateTitle)
-			.execute();
+			.executeWithKey(service.id);
+		
+		serviceKeywords.forEach(keyword ->
+			insert(serviceKeyword)
+				.columns(
+					serviceKeyword.keyword,
+					serviceKeyword.serviceId)
+				.values(
+					keyword,
+					serviceId)
+				.execute());
 		
 		insert(layerStructure)
 			.columns(
@@ -439,33 +457,28 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					.or(service.wfsMetadataFileIdentification.isNotNull()))
 				.exists());
 		
-		// other parts of the application are unaware of the metadata table,
-		// test if we can successfully remove dataset and services.
 		f.ask(
 			serviceManager, 
 			new PublishService(
 				serviceIdentification, 
 				Collections.emptySet()), 
 			Ack.class).get();
-		
-		delete(service).execute();
-		delete(importJob).execute();
-		delete(leafLayer).execute();
-		delete(layerStructure).execute();
-		delete(genericLayer).execute();
-		delete(dataset).execute();
 	}
 
 	private Path assertServiceMetadataDocument(String datasetMetadataPrefix, MetadataDocumentFactory mdf, Path metadataFile) {
 		try {
 			
 			byte[] metadataBytes = Files.readAllBytes(metadataFile);
-			System.out.println(new String(metadataBytes, "utf-8"));
 			MetadataDocument serviceMetadata = mdf.parseDocument(metadataBytes);
 			
 			assertEquals(serviceTitle, serviceMetadata.getServiceTitle());
 			assertEquals(serviceAlternateTitle, serviceMetadata.getServiceAlternateTitle());
 			assertEquals(serviceAbstract, serviceMetadata.getServiceAbstract());
+			
+			List<Keywords> keywords = serviceMetadata.getServiceKeywords();
+			assertNotNull(keywords);
+			assertEquals(1, keywords.size());			
+			assertTrue(keywords.get(0).getKeywords().containsAll(serviceKeywords));
 			
 			assertEquals(
 				1,
