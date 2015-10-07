@@ -161,6 +161,8 @@ public class JobManager extends UntypedActor {
 	private CompletableFuture<Ack> handleCreateVacuumServiceJob(CreateVacuumServiceJob msg) {
 		log.debug("creating vacuum service job");
 		
+		final boolean published = msg.isPublished();
+		
 		return db.transactional(msg, tx ->
 			tx.query().from(job)
 				.join(serviceJob).on(serviceJob.jobId.eq(job.id))				
@@ -169,6 +171,7 @@ public class JobManager extends UntypedActor {
 						.where(jobState.jobId.eq(job.id))
 						.where(isFinished(jobState))
 						.notExists())
+				.where(serviceJob.published.eq(published))
 				.notExists()
 			
 			.thenCompose(notExists -> {
@@ -267,6 +270,7 @@ public class JobManager extends UntypedActor {
 	
 	private CompletableFuture<Ack> handleCreateEnsureServiceJob(CreateEnsureServiceJob msg) {
 		final String serviceId = msg.getServiceId();
+		final boolean published = msg.isPublished();
 		
 		log.debug("creating ensure service job: {}", serviceId);
 		
@@ -281,6 +285,7 @@ public class JobManager extends UntypedActor {
 						.where(jobState.jobId.eq(job.id))
 						.where(isFinished(jobState))
 						.notExists())
+				.where(serviceJob.published.eq(published))
 				.notExists()
 			
 			.thenCompose(notExists -> {

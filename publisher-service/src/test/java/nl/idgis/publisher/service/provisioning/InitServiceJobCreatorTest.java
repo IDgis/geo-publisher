@@ -126,5 +126,8 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 			.assertNext(Ack.class)
 			.assertNext(Ack.class)
 			.assertNotHasNext();
+		
+		TypedList<?> serviceJobs = f.ask(jobManager, new GetServiceJobs(), TypedList.class).get();
+		assertEquals(4, serviceJobs.list().size());
 	}
 }
