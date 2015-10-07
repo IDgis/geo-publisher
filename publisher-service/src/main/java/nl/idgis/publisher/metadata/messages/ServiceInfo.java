@@ -12,10 +12,10 @@ import nl.idgis.publisher.metadata.ServiceMetadataGenerator;
  *
  */
 public class ServiceInfo extends MetadataItemInfo {
+	
+	private static final long serialVersionUID = 7108955413887570141L;
 
-	private static final long serialVersionUID = -1916959442721541860L;
-
-	private final String name;
+	private final String name, title, alternateTitle, abstr;
 	
 	private final Set<DatasetRef> datasetRefs;
 	
@@ -23,12 +23,15 @@ public class ServiceInfo extends MetadataItemInfo {
 	
 	private final String wfsMetadataId;
 	
-	public ServiceInfo(String serviceId, String name, String wmsMetadataId, 
-		String wfsMetadataId, Set<DatasetRef> datasetRefs) {
+	public ServiceInfo(String serviceId, String name, String title, String alternateTitle, String abstr,
+		String wmsMetadataId, String wfsMetadataId, Set<DatasetRef> datasetRefs) {
 		
 		super(serviceId);
 		
-		this.name = name;
+		this.name = Objects.requireNonNull(name, "name must not be null");
+		this.title = title;
+		this.alternateTitle = alternateTitle;
+		this.abstr = abstr;
 		this.wmsMetadataId = Objects.requireNonNull(wmsMetadataId, "wmsMetadataId must not be null");
 		this.wfsMetadataId = Objects.requireNonNull(wfsMetadataId, "wfsMetadataId must not be null");
 		this.datasetRefs = Objects.requireNonNull(datasetRefs, "datasetRefs must not be null");
@@ -36,6 +39,18 @@ public class ServiceInfo extends MetadataItemInfo {
 	
 	public String getName() {
 		return name;
+	}
+	
+	public String getTitle() {
+		return title;
+	}
+	
+	public String getAlternateTitle() {
+		return alternateTitle;
+	}
+	
+	public String getAbstract() {
+		return abstr;
 	}
 
 	public String getWMSMetadataId() {
@@ -52,7 +67,9 @@ public class ServiceInfo extends MetadataItemInfo {
 
 	@Override
 	public String toString() {
-		return "ServiceInfo [name=" + name + ", datasetRefs=" + datasetRefs + ", wmsMetadataId=" + wmsMetadataId
-				+ ", wfsMetadataId=" + wfsMetadataId + "]";
-	}	
+		return "ServiceInfo [name=" + name + ", title=" + title + ", alternateTitle=" + alternateTitle + ", abstr="
+				+ abstr + ", datasetRefs=" + datasetRefs + ", wmsMetadataId=" + wmsMetadataId + ", wfsMetadataId="
+				+ wfsMetadataId + "]";
+	}
+	
 }

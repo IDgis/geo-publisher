@@ -225,7 +225,7 @@ public class VectorProviderTest {
 	}
 	
 	private String getTable() throws Exception {
-		return ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		return ProviderUtils.getTableName(metadataDocument.getDatasetAlternateTitle());
 	}
 
 	@Test
@@ -273,7 +273,7 @@ public class VectorProviderTest {
 			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
 		
-		metadataDocument.setAlternateTitle("Test_schema.Test_table");
+		metadataDocument.setDatasetAlternateTitle("Test_schema.Test_table");
 		final String secondTableName = getTable();
 		
 		assertEquals("test_schema.test_table", secondTableName);

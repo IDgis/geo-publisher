@@ -138,7 +138,7 @@ public class MetadataDocumentTest {
 		String result = document.getDatasetTitle();		
 		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
 		
-		result = document.getAlternateTitle();		
+		result = document.getDatasetAlternateTitle();		
 		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
 		
 		result = document.getDatasetAbstract();		
@@ -147,7 +147,7 @@ public class MetadataDocumentTest {
 
 		// set new values
 		document.setDatasetTitle("Overijssel Gemeentegrenzen");
-		document.setAlternateTitle("Alternate ");
+		document.setDatasetAlternateTitle("Alternate ");
 		document.setDatasetAbstract("De gemeentegrenzen, bestuurlijk vastgesteld ");
 
 		
@@ -155,7 +155,7 @@ public class MetadataDocumentTest {
 		result = document.getDatasetTitle();		
 		assertEquals("wrong title", "Overijssel Gemeentegrenzen", result);
 		
-		result = document.getAlternateTitle();		
+		result = document.getDatasetAlternateTitle();		
 		assertEquals("wrong alternate title", "Alternate ", result);
 		
 		result = document.getDatasetAbstract();		

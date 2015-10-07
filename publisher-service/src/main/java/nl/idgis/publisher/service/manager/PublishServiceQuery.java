@@ -121,97 +121,110 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 				return tx.query().from(service)
 						.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 						.where(genericLayer.identification.eq(serviceIdentification))
-						.singleResult(service.id).thenCompose(serviceId ->
-							tx.insert(publishedService)
-							.set(publishedService.serviceId, serviceId.orElseThrow(() -> new IllegalArgumentException("service doesn't exists: " + serviceIdentification)))
-							.set(publishedService.content, JsonService.toJson(stagingService))
-							.execute().thenCompose(publishedService ->
-								tx.insert(publishedServiceEnvironment)
-									.columns(
-										publishedServiceEnvironment.serviceId,
-										publishedServiceEnvironment.environmentId)
-									.select(new SQLSubQuery().from(environment)
-										.where(environment.identification.in(environmentIds))
-										.list(
-											serviceId.get(),
-											environment.id))
-									.execute()).thenCompose(environments -> {
-										long missingEnvironments = environmentIds.size() - environments;
-										if(missingEnvironments > 0) {
-											throw new IllegalArgumentException("" + missingEnvironments + " environments don't exist");
-										}
-										
-										log.debug("service published for {} environments", environments);
-										
-									return
-										QServiceStructure.withServiceStructure(tx.query(), parent, child)
-											.from(serviceStructure)
-											.join(layerStyle).on(layerStyle.layerId.eq(serviceStructure.leafLayerId))
-											.join(style).on(style.id.eq(layerStyle.styleId))
-											.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
-											.groupBy(
-												style.identification,
-												style.name,
-												style.definition)
+						.singleResult(
+							service.id,
+							genericLayer.title,
+							service.alternateTitle,
+							genericLayer.abstractCol).thenCompose(optionalTuple -> {
+								Tuple tuple = optionalTuple.orElseThrow(() -> 
+									new IllegalArgumentException("service doesn't exists: " + serviceIdentification));								
+								int serviceId = tuple.get(service.id);
+								
+								return tx.insert(publishedService)
+								.set(publishedService.serviceId, serviceId)
+								.set(publishedService.title, tuple.get(genericLayer.title))
+								.set(publishedService.alternateTitle, tuple.get(service.alternateTitle))
+								.set(publishedService.abstractCol, tuple.get(genericLayer.abstractCol))
+								.set(publishedService.content, JsonService.toJson(stagingService))
+								.execute().thenCompose(publishedService ->
+									tx.insert(publishedServiceEnvironment)
+										.columns(
+											publishedServiceEnvironment.serviceId,
+											publishedServiceEnvironment.environmentId)
+										.select(new SQLSubQuery().from(environment)
+											.where(environment.identification.in(environmentIds))
 											.list(
-												style.identification,
-												style.name,
-												style.definition).thenCompose(styles -> {
-												
-												if(styles.list().isEmpty()) {
-													return f.successful(0l);
-												} else {
-													AsyncSQLInsertClause publishedServiceStyleInsert = tx.insert(publishedServiceStyle);
+												serviceId,
+												environment.id))
+										.execute()).thenCompose(environments -> {
+											long missingEnvironments = environmentIds.size() - environments;
+											if(missingEnvironments > 0) {
+												throw new IllegalArgumentException("" + missingEnvironments + " environments don't exist");
+											}
+											
+											log.debug("service published for {} environments", environments);
+											
+										return
+											QServiceStructure.withServiceStructure(tx.query(), parent, child)
+												.from(serviceStructure)
+												.join(layerStyle).on(layerStyle.layerId.eq(serviceStructure.leafLayerId))
+												.join(style).on(style.id.eq(layerStyle.styleId))
+												.where(serviceStructure.serviceIdentification.eq(serviceIdentification))
+												.groupBy(
+													style.identification,
+													style.name,
+													style.definition)
+												.list(
+													style.identification,
+													style.name,
+													style.definition).thenCompose(styles -> {
 													
-													for(Tuple currentStyle : styles) {														
-														String styleIdentification = currentStyle.get(style.identification);
-														String styleName = currentStyle.get(style.name);
-														String styleDefinition = currentStyle.get(style.definition);
+													if(styles.list().isEmpty()) {
+														return f.successful(0l);
+													} else {
+														AsyncSQLInsertClause publishedServiceStyleInsert = tx.insert(publishedServiceStyle);
 														
-														log.debug("storing style: {}", styleName);
+														for(Tuple currentStyle : styles) {														
+															String styleIdentification = currentStyle.get(style.identification);
+															String styleName = currentStyle.get(style.name);
+															String styleDefinition = currentStyle.get(style.definition);
+															
+															log.debug("storing style: {}", styleName);
+															
+															publishedServiceStyleInsert
+																.set(publishedServiceStyle.serviceId, serviceId)
+																.set(publishedServiceStyle.identification, styleIdentification)
+																.set(publishedServiceStyle.name, styleName)
+																.set(publishedServiceStyle.definition, styleDefinition)
+																.addBatch();
+														}
 														
-														publishedServiceStyleInsert
-															.set(publishedServiceStyle.serviceId, serviceId.get())
-															.set(publishedServiceStyle.identification, styleIdentification)
-															.set(publishedServiceStyle.name, styleName)
-															.set(publishedServiceStyle.definition, styleDefinition)
-															.addBatch();
+														return publishedServiceStyleInsert.execute();
 													}
+												}).thenCompose(styles -> {
+													log.debug("published service uses {} styles", styles);
 													
-													return publishedServiceStyleInsert.execute();
-												}
-											}).thenCompose(styles -> {
-												log.debug("published service uses {} styles", styles);
-												
-												return
-													QServiceStructure.withServiceStructure(tx.query(), parent, child)
-														.from(serviceStructure)
-														.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
-															.and(serviceStructure.datasetId.isNotNull()))															
-														.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
-															if(datasetIds.list().isEmpty()) {
-																return f.successful(0l);
-															} else {																
-																AsyncSQLInsertClause publishedServiceDatasetInsert = tx.insert(publishedServiceDataset);
-																
-																for(int datasetId : datasetIds) {
-																	log.debug("storing reference to datasetId: " + datasetId);
+													return
+														QServiceStructure.withServiceStructure(tx.query(), parent, child)
+															.from(serviceStructure)
+															.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
+																.and(serviceStructure.datasetId.isNotNull()))															
+															.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
+																if(datasetIds.list().isEmpty()) {
+																	return f.successful(0l);
+																} else {																
+																	AsyncSQLInsertClause publishedServiceDatasetInsert = tx.insert(publishedServiceDataset);
 																	
-																	publishedServiceDatasetInsert
-																		.set(publishedServiceDataset.serviceId, serviceId.get()) 
-																		.set(publishedServiceDataset.datasetId, datasetId)
-																		.addBatch();
+																	for(int datasetId : datasetIds) {
+																		log.debug("storing reference to datasetId: " + datasetId);
+																		
+																		publishedServiceDatasetInsert
+																			.set(publishedServiceDataset.serviceId, serviceId) 
+																			.set(publishedServiceDataset.datasetId, datasetId)
+																			.addBatch();
+																	}
+																	
+																	return publishedServiceDatasetInsert.execute();
 																}
-																
-																return publishedServiceDatasetInsert.execute();
-															}
-														}).thenApply(datasets -> {
-															log.debug("published service uses {} datasets", datasets);
-										
-															return new Ack();
-														});
-												});
-									}));
+															}).thenApply(datasets -> {
+																log.debug("published service uses {} datasets", datasets);
+											
+																return new Ack();
+															});
+													});
+										});
+						});
+					
 			});
 		});
 	}

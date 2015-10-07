@@ -102,7 +102,8 @@ public class MetadataInfoProcessor extends UntypedActor {
 				log.debug("message received while traversing services: {}", msg);
 				
 				if(serviceItr.hasNext()) {
-					serviceInfo = serviceItr.next();
+					serviceInfo = serviceItr.next();					
+					log.debug("processing: {}", serviceInfo);
 					
 					String serviceId = serviceInfo.getId();
 					log.debug("requesting metadata for service: {}", serviceId);
@@ -143,7 +144,7 @@ public class MetadataInfoProcessor extends UntypedActor {
 		
 		return new Procedure<Object>() {
 
-			DatasetInfo currentDataset;
+			DatasetInfo datasetInfo;
 
 			/**
 			 * Traversing datasets behavior. Fetches next {@link DatasetInfo} item 
@@ -157,19 +158,20 @@ public class MetadataInfoProcessor extends UntypedActor {
 				log.debug("message received while traversing datasets: {}", msg);
 				
 				if(datasetItr.hasNext()) {
-					currentDataset = datasetItr.next();
+					datasetInfo = datasetItr.next();
+					log.debug("processing: {}", datasetInfo);
 					
 					ActorRef generator = getContext().actorOf(
 						DatasetMetadataGenerator.props(
 							metadataTarget, 
-							currentDataset,
+							datasetInfo,
 							serviceLinkagePrefix,
 							datasetMetadataPrefix),
 						nameGenerator.getName(DatasetMetadataGenerator.class));
 					getContext().watch(generator);
 					
 					metadataSource.tell(
-						new GetDatasetMetadata(currentDataset.getDataSourceId(), currentDataset.getExternalDatasetId()),
+						new GetDatasetMetadata(datasetInfo.getDataSourceId(), datasetInfo.getExternalDatasetId()),
 						generator);
 				} else {
 					log.debug("all datasets processed");

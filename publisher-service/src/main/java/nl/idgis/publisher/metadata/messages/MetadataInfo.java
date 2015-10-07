@@ -93,6 +93,9 @@ public class MetadataInfo implements Serializable {
 			.where(environment.identification.eq(environmentId))
 			.orderBy(publishedService.serviceId.asc())
 			.list(
+				publishedService.title,
+				publishedService.alternateTitle,
+				publishedService.abstractCol,
 				publishedService.serviceId,
 				publishedService.content,
 				service.wfsMetadataFileIdentification,
@@ -137,6 +140,9 @@ public class MetadataInfo implements Serializable {
 								return new ServiceInfo(
 									serviceInfoFirst.get(serviceGenericLayer.identification),
 									serviceInfoFirst.get(serviceGenericLayer.name),
+									serviceInfoFirst.get(publishedService.title),
+									serviceInfoFirst.get(publishedService.alternateTitle),
+									serviceInfoFirst.get(publishedService.abstractCol),
 									serviceInfoFirst.get(service.wmsMetadataFileIdentification),
 									serviceInfoFirst.get(service.wfsMetadataFileIdentification),
 									StreamUtils

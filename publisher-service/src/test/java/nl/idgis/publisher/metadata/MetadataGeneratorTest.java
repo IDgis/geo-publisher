@@ -90,6 +90,12 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	final String serviceName = "testService";
 	
+	final String serviceTitle = "testServiceTitle";
+	
+	final String serviceAlternateTitle = "testServiceAlternateTitle";
+	
+	final String serviceAbstract = "testServiceAbstract";
+	
 	final Set<String> environmentIdentifications =
 		IntStream.range(0, 5)
 			.mapToObj(i -> "environmentIdentification" + i)
@@ -238,15 +244,23 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			insert(genericLayer)
 				.columns(
 					genericLayer.identification,
-					genericLayer.name)
+					genericLayer.name,
+					genericLayer.title,
+					genericLayer.abstractCol)
 				.values(
 					serviceIdentification, 
-					serviceName)
+					serviceName,
+					serviceTitle,
+					serviceAbstract)
 				.executeWithKey(genericLayer.id);
 		
 		insert(service)
-			.columns(service.genericLayerId)
-			.values(serviceGenericLayerId)
+			.columns(
+				service.genericLayerId,
+				service.alternateTitle)
+			.values(
+				serviceGenericLayerId,
+				serviceAlternateTitle)
 			.execute();
 		
 		insert(layerStructure)
@@ -444,7 +458,14 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 
 	private Path assertServiceMetadataDocument(String datasetMetadataPrefix, MetadataDocumentFactory mdf, Path metadataFile) {
 		try {
-			MetadataDocument serviceMetadata = mdf.parseDocument(Files.readAllBytes(metadataFile));
+			
+			byte[] metadataBytes = Files.readAllBytes(metadataFile);
+			System.out.println(new String(metadataBytes, "utf-8"));
+			MetadataDocument serviceMetadata = mdf.parseDocument(metadataBytes);
+			
+			assertEquals(serviceTitle, serviceMetadata.getServiceTitle());
+			assertEquals(serviceAlternateTitle, serviceMetadata.getServiceAlternateTitle());
+			assertEquals(serviceAbstract, serviceMetadata.getServiceAbstract());
 			
 			assertEquals(
 				1,

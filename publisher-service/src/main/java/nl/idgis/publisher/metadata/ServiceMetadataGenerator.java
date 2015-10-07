@@ -50,7 +50,11 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 	}
 	
 	@Override
-	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
+	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {		
+		metadataDocument.setServiceTitle(itemInfo.getTitle());
+		metadataDocument.setServiceAlternateTitle(itemInfo.getAlternateTitle());
+		metadataDocument.setServiceAbstract(itemInfo.getAbstract());
+		
 		metadataDocument.removeOperatesOn();		
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {

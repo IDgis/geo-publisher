@@ -177,6 +177,10 @@ public class MetadataDocument {
 		xmlDocument.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
 	}
 	
+	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {		
+		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
+	}
+	
 	public String getDatasetTitle() throws NotFound {
 		return xmlDocument.getString(namespaces, getTitlePath(Topic.DATASET));
 	}
@@ -205,6 +209,10 @@ public class MetadataDocument {
 	
 	public String getDatasetAbstract() throws NotFound {
 		return xmlDocument.getString(namespaces, getAbstractPath(Topic.DATASET));
+	}
+	
+	public String getServiceAlternateTitle() throws NotFound {
+		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.SERVICE));
 	}
 	
 	public void setDatasetAbstract (String Abstract) throws QueryFailure {
@@ -451,20 +459,20 @@ public class MetadataDocument {
 	/*
 	 * alternate title
 	 */
-	protected String getAlternateTitlePath() {
-		return getDatasetIdentificationPath() +
+	protected String getAlternateTitlePath(Topic topic) {
+		return getIdentificationPath(topic) +
 				"/gmd:citation" +
 				"/gmd:CI_Citation" +
 				"/gmd:alternateTitle" +
 				"/gco:CharacterString";
 	}
 	
-	public String getAlternateTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getAlternateTitlePath());
+	public String getDatasetAlternateTitle() throws NotFound {
+		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.DATASET));
 	}
 
-	public void setAlternateTitle(String newTitle) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getAlternateTitlePath(), newTitle);
+	public void setDatasetAlternateTitle(String newTitle) throws QueryFailure {
+		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
 	}
 	
 	/*

@@ -75,6 +75,9 @@
                <gmd:title>
                   <gco:CharacterString>INSPIRE View service Beschermde gebieden</gco:CharacterString>
                </gmd:title>
+               <gmd:alternateTitle>
+            		<gco:CharacterString>INSPIRE View service Beschermde gebieden (alternateTitle)</gco:CharacterString>
+          		</gmd:alternateTitle>
                <gmd:date>
                   <gmd:CI_Date>
                      <gmd:date>
