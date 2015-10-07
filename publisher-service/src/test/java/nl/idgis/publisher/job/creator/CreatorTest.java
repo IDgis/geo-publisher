@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import akka.actor.ActorRef;
 
+import nl.idgis.publisher.domain.SourceDatasetType;
+
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
@@ -15,6 +17,8 @@ import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.TypedList;
+
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 public class CreatorTest extends AbstractServiceTest {
 	
@@ -41,5 +45,18 @@ public class CreatorTest extends AbstractServiceTest {
 		assertFalse(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
 		f.ask(creator, new CreateImportJobs(), Ack.class).get();		
 		assertTrue(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
+	}
+	
+	@Test
+	public void testImportJobUnavailableSourceDataset() throws Exception {
+		insertDataset();
+		
+		update(sourceDatasetVersion)
+			.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())
+			.execute();
+		
+		assertFalse(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
+		f.ask(creator, new CreateImportJobs(), Ack.class).get();		
+		assertFalse(f.ask(jobManager, new GetImportJobs(), TypedList.class).get().iterator().hasNext());
 	}
 }
