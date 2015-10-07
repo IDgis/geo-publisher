@@ -14,6 +14,11 @@ import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.recorder.AnyRecorder;
+import nl.idgis.publisher.recorder.Recording;
+import nl.idgis.publisher.recorder.messages.GetRecording;
+import nl.idgis.publisher.recorder.messages.Wait;
+import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.service.provisioning.messages.AddPublicationService;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
@@ -77,6 +82,9 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		assertFalse(jobInfo.isPublished());
 		assertEquals("service-id", ((EnsureServiceJobInfo)jobInfo).getServiceId());
 		assertFalse(itr.hasNext());
+		
+		// check if we can repeat the request
+		f.ask(initServiceJobCreator, new AddStagingService(null), Ack.class).get();
 	}
 	
 	@Test
@@ -101,5 +109,22 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		assertTrue(jobInfo.isPublished());
 		assertEquals("service-id", ((EnsureServiceJobInfo)jobInfo).getServiceId());
 		assertFalse(itr.hasNext());
+		
+		// check if we can repeat the request
+		f.ask(initServiceJobCreator, new AddPublicationService("environment-id", null), Ack.class).get();
+	}
+	
+	@Test
+	public void testParallelEvents() throws Exception {
+		ActorRef recorder = actorOf(AnyRecorder.props(), "recorder");
+		
+		initServiceJobCreator.tell(new AddPublicationService("environment-id", null), recorder);
+		initServiceJobCreator.tell(new AddStagingService(null), recorder);
+		
+		f.ask(recorder, new Wait(2), Waited.class).get();		
+		f.ask(recorder, new GetRecording(), Recording.class).get()
+			.assertNext(Ack.class)
+			.assertNext(Ack.class)
+			.assertNotHasNext();
 	}
 }

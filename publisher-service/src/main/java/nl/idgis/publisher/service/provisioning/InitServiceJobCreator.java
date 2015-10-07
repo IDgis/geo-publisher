@@ -12,9 +12,10 @@ import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.actor.UntypedActorWithStash;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Procedure;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncTransactionRef;
@@ -35,7 +36,7 @@ import nl.idgis.publisher.utils.TypedList;
  * @author Reijer Copier <reijer.copier@idgis.nl>
  *
  */
-public class InitServiceJobCreator extends UntypedActor {
+public class InitServiceJobCreator extends UntypedActorWithStash {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -84,12 +85,40 @@ public class InitServiceJobCreator extends UntypedActor {
 								ensureAcks)));
 	}
 	
-	private void ack(CompletableFuture<Stream<Ack>> acksFuture, ActorRef sender) {
+	private void ack(CompletableFuture<Stream<Ack>> acksFuture) {
 		acksFuture.thenAccept(acks -> {
-			log.info("service jobs created: {}", acks.count());
+			log.debug("requests to create service job sent: {}", acks.count());
 			
-			sender.tell(new Ack(), getSelf());
+			getSelf().tell(new Ack(), getSelf());
 		});
+	}
+	
+	/**
+	 * Behavior while creating jobs.
+	 * 
+	 * @param sender the actor who sent the initiating message. 
+	 * @return the behavior.
+	 */
+	private Procedure<Object> creatingJobs(ActorRef sender) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					log.debug("jobs created, ack and return to default behavior");
+					
+					sender.tell(msg, getSelf());
+					
+					unstash();
+					getContext().become(receive());
+				} else {
+					log.info("already creating jobs, stashing message: {}", msg);
+					
+					stash();
+				}
+			}
+			
+		};
 	}
 
 	@Override
@@ -108,9 +137,9 @@ public class InitServiceJobCreator extends UntypedActor {
 						.where(environment.identification.eq(environmentId))
 						.list(genericLayer.identification).thenCompose(createEnsureServiceJobs(
 							tx.getTransactionRef(),
-							true))),
-				getSender());
-					
+							true))));
+			
+			getContext().become(creatingJobs(getSender()));
 		} else if(msg instanceof AddStagingService) {
 			log.info("staging service added: {}", msg);
 						
@@ -120,8 +149,9 @@ public class InitServiceJobCreator extends UntypedActor {
 						.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 						.list(genericLayer.identification).thenCompose(createEnsureServiceJobs(
 							tx.getTransactionRef(),
-							false))),
-				getSender());
+							false))));
+			
+			getContext().become(creatingJobs(getSender()));
 		} else {		
 			unhandled(msg);
 		}
