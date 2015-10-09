@@ -1,8 +1,8 @@
 package nl.idgis.publisher.metadata;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Objects;
+
+import org.apache.commons.io.IOUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -33,13 +33,10 @@ public class MetadataSource extends UntypedActor {
 	
 	private final ActorRef harvester;
 	
-	private final Path serviceMetadataDirectory;
-	
 	private FutureUtils f;
 	
-	public MetadataSource(ActorRef harvester, Path serviceMetadataDirectory) throws Exception {
+	public MetadataSource(ActorRef harvester) throws Exception {
 		this.harvester = harvester;
-		this.serviceMetadataDirectory = serviceMetadataDirectory;
 		
 		documentFactory = new MetadataDocumentFactory();
 	}
@@ -48,14 +45,12 @@ public class MetadataSource extends UntypedActor {
 	 * Creates a {@link Props} for the {@link MetadataSource} actor.
 	 * 
 	 * @param harvester a reference to the harvester.
-	 * @param serviceMetadataDirectory a path pointing to a directory containing service metadata.
 	 * @return the props
 	 */
-	public static Props props(ActorRef harvester, Path serviceMetadataDirectory) {
+	public static Props props(ActorRef harvester) {
 		return Props.create(
 			MetadataSource.class, 
-			Objects.requireNonNull(harvester, "harvester must not be null"), 
-			Objects.requireNonNull(serviceMetadataDirectory, "serviceMetadataDirectory must not be null"));
+			Objects.requireNonNull(harvester, "harvester must not be null")); 
 	}
 	
 	@Override
@@ -87,16 +82,12 @@ public class MetadataSource extends UntypedActor {
 		log.debug("service metadata requested: {}", msg);
 		
 		try {
-			Path serviceMetadataFile = serviceMetadataDirectory.resolve(msg.getServiceId() + ".xml");
-			if(Files.isRegularFile(serviceMetadataFile)) {			
-				byte[] documentContent = Files.readAllBytes(serviceMetadataFile);
-				
-				getSender().tell(
-					documentFactory.parseDocument(documentContent),
-					getSelf());
-			} else {
-				getSender().tell(new MetadataNotFound(), getSelf());
-			}
+			byte[] documentContent = IOUtils.toByteArray(
+				getClass().getResourceAsStream("service_metadata.xml"));
+			
+			getSender().tell(
+				documentFactory.parseDocument(documentContent),
+				getSelf());
 		} catch(Exception e) {
 			getSender().tell(new Failure(e), getSelf());
 		}

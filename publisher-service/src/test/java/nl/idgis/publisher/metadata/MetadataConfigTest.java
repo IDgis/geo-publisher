@@ -25,8 +25,6 @@ public class MetadataConfigTest {
 		FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
 		MetadataConfig metadataConfig = new MetadataConfig(config.getConfig("publisher.service.metadata"), fileSystem);
 		
-		assertEquals(fileSystem.getPath("/source/metadata/service"), metadataConfig.getServiceMetadataSource());
-		
 		Map<String, MetadataEnvironmentConfig> environments =
 			metadataConfig.getEnvironments().stream()
 				.collect(Collectors.toMap(

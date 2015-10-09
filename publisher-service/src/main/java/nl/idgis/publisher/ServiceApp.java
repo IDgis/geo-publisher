@@ -199,8 +199,7 @@ public class ServiceApp extends UntypedActor {
 					database,
 					getContext().actorOf(
 						MetadataSource.props(
-							harvester, 
-							metadataConfig.getServiceMetadataSource()),
+							harvester),
 						"metadata-source")),
 				"metadata-generator");
 		

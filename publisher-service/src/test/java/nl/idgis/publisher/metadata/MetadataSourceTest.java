@@ -1,16 +1,8 @@
 package nl.idgis.publisher.metadata;
 
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -28,9 +20,7 @@ public class MetadataSourceTest {
 	ActorSystem actorSystem;
 	
 	ActorRef harvester, metadataSource;
-	
-	Path serviceMetadataDirectory;
-	
+		
 	FutureUtils f;
 
 	@Before
@@ -39,12 +29,7 @@ public class MetadataSourceTest {
 		f = new FutureUtils(actorSystem);
 		
 		harvester = actorSystem.actorOf(HarvesterMock.props(), "harvester");
-		
-		FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
-		serviceMetadataDirectory = fs.getPath("/service-metadata");
-		Files.createDirectory(serviceMetadataDirectory);
-		
-		metadataSource = actorSystem.actorOf(MetadataSource.props(harvester, serviceMetadataDirectory), "metadata-source");
+		metadataSource = actorSystem.actorOf(MetadataSource.props(harvester), "metadata-source");
 	}
 	
 	@After
@@ -54,13 +39,6 @@ public class MetadataSourceTest {
 	
 	@Test
 	public void testGetServiceMetadata() throws Exception {
-		
-		f.ask(metadataSource, new GetServiceMetadata("serviceId"), MetadataNotFound.class).get();
-		
-		IOUtils.copy(
-			getClass().getResourceAsStream("service_metadata.xml"),
-			Files.newOutputStream(serviceMetadataDirectory.resolve("serviceId.xml")));
-		
 		f.ask(metadataSource, new GetServiceMetadata("serviceId"), MetadataDocument.class).get();
 	}
 	

@@ -44,13 +44,6 @@ public class MetadataConfig {
 		this.fileSystem = fileSystem;
 	}
 	
-	/**
-	 * @return the path to the service metadata source documents. 
-	 */
-	public Path getServiceMetadataSource() {
-		return fileSystem.getPath(config.getString("serviceSource"));
-	}
-	
 	/** 
 	 * @return configuration for the different environments.
 	 */

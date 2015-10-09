@@ -1,6 +1,5 @@
 package nl.idgis.publisher.metadata;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,6 +27,8 @@ import nl.idgis.publisher.metadata.messages.BeginMetadataUpdate;
 import nl.idgis.publisher.metadata.messages.CommitMetadata;
 import nl.idgis.publisher.metadata.messages.GenerateMetadataFactory;
 import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.recorder.AnyAckRecorder;
 import nl.idgis.publisher.recorder.Recording;
@@ -112,7 +113,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	ActorRef metadataGenerator, harvester;
 	
-	Path serviceMetadataSourceDirectory, serviceMetadataTargetDirectory, datasetMetadataTargetDirectory;
+	Path serviceMetadataTargetDirectory, datasetMetadataTargetDirectory;
 	
 	ActorRef metadataTarget;
 	
@@ -121,9 +122,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		harvester = actorOf(HarvesterMock.props(), "harvester");
 		
 		FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
-		
-		serviceMetadataSourceDirectory = fileSystem.getPath("/service-metadata-source");
-		Files.createDirectory(serviceMetadataSourceDirectory);
 		
 		serviceMetadataTargetDirectory = fileSystem.getPath("/service-metadata-target");
 		Files.createDirectory(serviceMetadataTargetDirectory);
@@ -140,7 +138,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		metadataGenerator = actorOf(
 			MetadataGenerator.props(
 				database, 
-				actorOf(MetadataSource.props(harvester, serviceMetadataSourceDirectory), "metadata-source")), 
+				actorOf(MetadataSource.props(harvester), "metadata-source")), 
 			"metadata-generator");
 		
 		// Prepare database
@@ -383,10 +381,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				sourceDatasetExternalIdentification, 
 				MetadataDocumentTest.getDocument("dataset_metadata.xml")),
 			Ack.class).get();
-		
-		IOUtils.copy(
-			getClass().getResourceAsStream("service_metadata.xml"),
-			Files.newOutputStream(serviceMetadataSourceDirectory.resolve(serviceIdentification + ".xml")));
 
 		String environmentIdentification = environmentIdentifications.iterator().next();
 		String prefix = "http://" + environmentIdentification + ".example.com/";
@@ -522,24 +516,23 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		return metadataFile;
 	}
 	
+	private void assertUpdateMetadata(UpdateMetadata msg) {
+		String id = msg.getId();
+		
+		assertEquals(MetadataType.SERVICE, msg.getType());
+		assertTrue("expected service metadata: " + id, query().from(service)					
+			.where(service.wmsMetadataFileIdentification.eq(id)
+				.or(service.wfsMetadataFileIdentification.eq(id)))
+			.exists());
+	}
+	
 	private void assertKeepMetadata(KeepMetadata msg) {
 		String id = msg.getId();
 		
-		switch(msg.getType()) {
-			case DATASET:
-				assertTrue("expected dataset metadata: " + id, query().from(dataset)					
-					.where(dataset.metadataFileIdentification.eq(id))
-					.exists());
-				break;
-			case SERVICE:
-				assertTrue("expected service metadata: " + id, query().from(service)					
-					.where(service.wmsMetadataFileIdentification.eq(id)
-						.or(service.wfsMetadataFileIdentification.eq(id)))
-					.exists());
-				break;
-			default:
-				fail("unknown metadata type");
-		}
+		assertEquals(MetadataType.DATASET, msg.getType());
+		assertTrue("expected dataset metadata: " + id, query().from(dataset)					
+			.where(dataset.metadataFileIdentification.eq(id))
+			.exists());		
 	}
 	
 	@Test
@@ -563,8 +556,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		f.ask(metadataTargetMock, new GetRecording(), Recording.class).get()
 			.assertNext(BeginMetadataUpdate.class)
 			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
-			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
-			.assertNext(KeepMetadata.class, this::assertKeepMetadata)
+			.assertNext(UpdateMetadata.class, this::assertUpdateMetadata)
+			.assertNext(UpdateMetadata.class, this::assertUpdateMetadata)			
 			.assertNext(CommitMetadata.class)
 			.assertNotHasNext();
 	}
