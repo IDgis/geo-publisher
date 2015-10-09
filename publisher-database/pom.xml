@@ -17,7 +17,8 @@
 		<database.sql.data>${database.directory}/publisher-data.sql</database.sql.data>
 		<database.url>jdbc:h2:${database.directory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL</database.url>
 		<database.user>sa</database.user>
-		<database.password />		
+		<database.password />
+		<database.ignorePattern>&lt;PostgreSQL&gt;.*&lt;/PostgreSQL&gt;</database.ignorePattern>		
 	</properties>
 	
 	<dependencies>
@@ -95,13 +96,19 @@
 											<include name="*.sql" />
 										</fileset>
 									</sort>
+									<filterchain>
+										<tokenfilter>
+											<filetokenizer/>
+										    <replaceregex pattern="${database.ignorePattern}" flags="gs"/>
+										</tokenfilter>
+									</filterchain>
 								</concat>
 								<concat destfile="${database.sql.data}" fixlastline="true">
 									<sort>
 										<fileset dir="${basedir}/src/main/resources/nl/idgis/publisher/database/data">
 											<include name="*.sql" />
 										</fileset>
-									</sort>
+									</sort>									
 								</concat>
 								<sql driver="${database.driver}" url="${database.url}" userid="${database.user}" password="${database.password}" src="${database.sql}" />
 								<echo>finished</echo>
