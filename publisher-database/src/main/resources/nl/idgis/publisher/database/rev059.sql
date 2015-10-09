@@ -36,4 +36,29 @@ where exists (
 	where ps.service_id = sw.service_id
 );
 
+delete from publisher.publisher.published_service_dataset;
+alter table publisher.publisher.published_service_dataset add column layer_name text not null;
+
+-- <PostgreSQL>
+with recursive layers as (
+    select
+        service_id,
+        json_array_elements(content::json -> 'layers') -> 'layer' layer, 
+        0 depth
+    from publisher.published_service
+    union all
+    select
+        service_id, 
+        json_array_elements(layer -> 'layers') -> 'layer' layer,
+        depth + 1 depth
+    from layers
+)
+insert into publisher.published_service_dataset(service_id, dataset_id, layer_name)
+select service_id, dataset_id, layer ->> 'name' layer_name
+from layers l
+join publisher.generic_layer gl on gl.identification = layer ->> 'id'
+join publisher.leaf_layer ll on ll.generic_layer_id = gl.id
+group by 1, 2, 3;
+-- </PostgreSQL>
+
 insert into publisher.version(id) values(59);

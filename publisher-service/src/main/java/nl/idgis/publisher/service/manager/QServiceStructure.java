@@ -48,6 +48,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 	
 	public NumberPath<Integer> datasetId = createNumber("dataset_id", Integer.class);
 	
+	public StringPath layerName = createString("layer_name");
+	
 	QServiceStructure(String variable) {
         super(QServiceStructure.class, forVariable(variable));
         
@@ -63,6 +65,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
         add(cycle);
         add(leafLayerId);
         add(datasetId);
+        add(layerName);
     }
 	
 	@SuppressWarnings("unchecked")
@@ -85,7 +88,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 				serviceStructure.path,
 				serviceStructure.cycle,
 				serviceStructure.leafLayerId,
-				serviceStructure.datasetId).as(
+				serviceStructure.datasetId,
+				serviceStructure.layerName).as(
 				new SQLSubQuery().unionAll(
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
@@ -106,7 +110,8 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 							pathElement,
 							Expressions.template(Boolean.class, "false"),
 							leafLayer.id,
-							leafLayer.datasetId),
+							leafLayer.datasetId,
+							child.name),
 					new SQLSubQuery().from(layerStructure)
 						.join(child).on(child.id.eq(layerStructure.childLayerId))
 						.join(parent).on(parent.id.eq(layerStructure.parentLayerId))
@@ -133,6 +138,7 @@ public class QServiceStructure extends EntityPathBase<QServiceStructure> {
 								child.id, 
 								parent.id),
 							leafLayer.id,
-							leafLayer.datasetId)));
+							leafLayer.datasetId,
+							child.name)));
 	}
 }

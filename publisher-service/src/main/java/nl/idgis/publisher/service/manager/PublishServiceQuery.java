@@ -153,21 +153,26 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 
 	private CompletableFuture<Long> insertPublishedServiceDataset(String serviceIdentification, int serviceId) {
 		return QServiceStructure.withServiceStructure(tx.query(), parent, child)
-			.from(serviceStructure)
+			.from(serviceStructure)			
 			.where(serviceStructure.serviceIdentification.eq(serviceIdentification)
-				.and(serviceStructure.datasetId.isNotNull()))															
-			.list(serviceStructure.datasetId).thenCompose(datasetIds -> {
-				if(datasetIds.list().isEmpty()) {
+				.and(serviceStructure.datasetId.isNotNull()))
+			.distinct()
+			.list(serviceStructure.datasetId, serviceStructure.layerName).thenCompose(tuples -> {
+				if(tuples.list().isEmpty()) {
 					return f.successful(0l);
 				} else {																
 					AsyncSQLInsertClause publishedServiceDatasetInsert = tx.insert(publishedServiceDataset);
 					
-					for(int datasetId : datasetIds) {
-						log.debug("storing reference to datasetId: " + datasetId);
+					for(Tuple tuple : tuples) {
+						int datasetId = tuple.get(serviceStructure.datasetId);
+						String layerName = tuple.get(serviceStructure.layerName);
+						
+						log.debug("storing reference to datasetId: {}, layerName: {}", datasetId, layerName);
 						
 						publishedServiceDatasetInsert
 							.set(publishedServiceDataset.serviceId, serviceId) 
 							.set(publishedServiceDataset.datasetId, datasetId)
+							.set(publishedServiceDataset.layerName, layerName)
 							.addBatch();
 					}
 					
