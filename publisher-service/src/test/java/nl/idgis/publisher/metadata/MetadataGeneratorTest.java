@@ -52,6 +52,7 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
 import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -262,11 +263,28 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					serviceAbstract)
 				.executeWithKey(genericLayer.id);
 		
+		final int constantsId = insert(constants)
+			.set(constants.contact, "serviceContact0")
+			.set(constants.organization, "serviceOrganization0")
+			.set(constants.position, "servicePosition0")
+			.set(constants.addressType, "serviceAdressType0")
+			.set(constants.address, "serviceAdress0")
+			.set(constants.city, "serviceCity0")
+			.set(constants.state, "serviceState0")
+			.set(constants.zipcode, "serviceZipcode0")
+			.set(constants.country, "serviceCountry0")
+			.set(constants.telephone, "serviceTelephone0")
+			.set(constants.fax, "serviceFax0")
+			.set(constants.email, "serviceEmail0")
+			.executeWithKey(constants.id);
+		
 		final int serviceId = insert(service)
 			.columns(
+				service.constantsId,
 				service.genericLayerId,
 				service.alternateTitle)
 			.values(
+				constantsId,
 				serviceGenericLayerId,
 				serviceAlternateTitle)
 			.executeWithKey(service.id);
@@ -469,6 +487,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		try {
 			
 			byte[] metadataBytes = Files.readAllBytes(metadataFile);
+			System.out.println(new String(metadataBytes, "utf-8"));
 			MetadataDocument serviceMetadata = mdf.parseDocument(metadataBytes);
 			
 			assertEquals(serviceTitle, serviceMetadata.getServiceTitle());

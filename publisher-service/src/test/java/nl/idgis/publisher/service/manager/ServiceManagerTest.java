@@ -463,7 +463,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(constants.state, "serviceState0")
 			.set(constants.zipcode, "serviceZipcode0")
 			.set(constants.country, "serviceCountry0")
-			.set(constants.telephone, "serviceTlephone0")
+			.set(constants.telephone, "serviceTelephone0")
 			.set(constants.fax, "serviceFax0")
 			.set(constants.email, "serviceEmail0")
 			.executeWithKey(constants.id);

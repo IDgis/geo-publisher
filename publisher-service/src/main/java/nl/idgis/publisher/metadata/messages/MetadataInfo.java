@@ -34,6 +34,7 @@ import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.metadata.MetadataInfoProcessor;
 import nl.idgis.publisher.service.json.JsonService;
@@ -232,8 +233,10 @@ public class MetadataInfo implements Serializable {
 						publishedService.serviceId),
 					serviceKeywordInfo,
 					publishedService.serviceId)
-						.map(tuple ->
-							new ServiceInfo(
+						.map(tuple -> {
+							Service serviceContent = JsonService.fromJson(tuple.get(publishedService.content));
+							
+							return new ServiceInfo(
 								tuple.get(serviceGenericLayer.identification),
 								tuple.get(serviceGenericLayer.name),
 								tuple.get(publishedService.title),
@@ -242,7 +245,21 @@ public class MetadataInfo implements Serializable {
 								tuple.get(service.wmsMetadataFileIdentification),
 								tuple.get(service.wfsMetadataFileIdentification),
 								tuple.get(serviceDatasetRef),
-								tuple.get(serviceKeywords))))));
+								tuple.get(serviceKeywords),
+								new ContactInfo(
+									serviceContent.getContact(),
+									serviceContent.getOrganization(),
+									serviceContent.getPosition(),
+									serviceContent.getAddressType(),
+									serviceContent.getAddress(),
+									serviceContent.getCity(),
+									serviceContent.getState(),
+									serviceContent.getZipcode(),
+									serviceContent.getCountry(),
+									serviceContent.getTelephone(),
+									serviceContent.getFax(),
+									serviceContent.getEmail()));
+						}))));
 	}
 	
 	public static CompletableFuture<MetadataInfo> fetch(AsyncHelper tx, String environmentId) {

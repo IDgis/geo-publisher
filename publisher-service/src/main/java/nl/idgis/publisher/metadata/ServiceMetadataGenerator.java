@@ -7,6 +7,7 @@ import java.util.Objects;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
+import nl.idgis.publisher.metadata.messages.ContactInfo;
 import nl.idgis.publisher.metadata.messages.DatasetRef;
 import nl.idgis.publisher.metadata.messages.KeepMetadata;
 import nl.idgis.publisher.metadata.messages.MetadataType;
@@ -62,6 +63,14 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 			"2010-01-13", 
 			"http://www.isotc211.org/2005/resources/codeList.xml#CI_DateTypeCode", 
 			"publication");
+		
+		ContactInfo contactInfo = itemInfo.getContactInfo();
+		
+		String role = "pointOfContact";		
+		metadataDocument.setServiceResponsiblePartyName(role, contactInfo.getOrganization());
+		metadataDocument.setServiceResponsiblePartyEmail(role, contactInfo.getEmail());		
+		metadataDocument.setMetaDataPointOfContactName(role, contactInfo.getOrganization());
+		metadataDocument.setMetaDataPointOfContactEmail(role, contactInfo.getEmail());
 		
 		metadataDocument.removeOperatesOn();		
 		
