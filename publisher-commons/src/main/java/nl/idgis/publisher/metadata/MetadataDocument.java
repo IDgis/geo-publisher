@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
@@ -177,6 +178,10 @@ public class MetadataDocument {
 		xmlDocument.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
 	}
 	
+	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {		
+		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
+	}
+	
 	public String getDatasetTitle() throws NotFound {
 		return xmlDocument.getString(namespaces, getTitlePath(Topic.DATASET));
 	}
@@ -207,6 +212,10 @@ public class MetadataDocument {
 		return xmlDocument.getString(namespaces, getAbstractPath(Topic.DATASET));
 	}
 	
+	public String getServiceAlternateTitle() throws NotFound {
+		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.SERVICE));
+	}
+	
 	public void setDatasetAbstract (String Abstract) throws QueryFailure {
 		xmlDocument.updateString(namespaces, getAbstractPath(Topic.DATASET), Abstract);		
 	}
@@ -226,7 +235,7 @@ public class MetadataDocument {
 		return xmlDocument.removeNodes(namespaces, getKeywordPath(topic));
 	}
 	
-	protected void addKeywords(Topic topic, List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
+	protected void addKeywords(Topic topic, Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
 		String keywordsPath = xmlDocument.addNode(namespaces, getIdentificationPath(topic), "gmd:descriptiveKeywords/gmd:MD_Keywords");
 		
 		for (String keyword : keywords) {
@@ -250,24 +259,83 @@ public class MetadataDocument {
 		return removeKeywords(Topic.DATASET);
 	}
 	
-	public void addDatasetKeywords(List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
+	public void addDatasetKeywords(Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
 		addKeywords(Topic.DATASET, keywords, thesaurusTitle, thesaurusDate, thesaurusCodeList, thesaurusCodeListValue);
 	}
 	
-	public String getDatasetKeywords() throws NotFound{
-		return xmlDocument.getString(namespaces, getKeywordPath(Topic.DATASET));
+	public List<Keywords> getDatasetKeywords() throws NotFound{
+		return getKeywords(Topic.DATASET);
 	}
 	
 	public int removeServiceKeywords() throws NotFound {
 		return removeKeywords(Topic.SERVICE);
 	}
 	
-	public void addServiceKeywords(List<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
+	public void addServiceKeywords(Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
 		addKeywords(Topic.SERVICE, keywords, thesaurusTitle, thesaurusDate, thesaurusCodeList, thesaurusCodeListValue);
 	}
 	
-	public String getServiceKeywords() throws NotFound{
-		return xmlDocument.getString(namespaces, getKeywordPath(Topic.SERVICE));
+	public interface Keywords {
+		
+		List<String> getKeywords();
+		
+		String getThesaurusTitle();
+		
+		String getThesaurusDate();
+		
+		String getThesaurusCodeList();
+		
+		String getThesaurusCodeListValue();
+	}
+	
+	protected List<Keywords> getKeywords(Topic topic) {
+		return xmlDocument
+			.xpath(Optional.of(namespaces))
+			.nodes(getKeywordPath(topic) + "/gmd:MD_Keywords").stream()
+				.map(node -> (Keywords)new Keywords() {
+
+					@Override
+					public List<String> getKeywords() {
+						return node.strings("gmd:keyword/gco:CharacterString");
+					}
+					
+					private XPathHelper getThesaurusNode() {
+						return node.node("gmd:thesaurusName/gmd:CI_Citation").get();
+					}
+					
+					@Override
+					public String getThesaurusTitle() {						
+						return getThesaurusNode().string("gmd:title/gco:CharacterString").get();
+					}
+					
+					private XPathHelper getThesaurusDateNode() {
+						return getThesaurusNode().node("gmd:date/gmd:CI_Date").get();
+					}
+
+					@Override
+					public String getThesaurusDate() {
+						return getThesaurusDateNode().string("gmd:date/gco:Date").get();
+					}
+					
+					private XPathHelper getThesaurusCodeNode() {
+						return getThesaurusDateNode().node("gmd:dateType/gmd:CI_DateTypeCode").get();
+					}
+
+					@Override
+					public String getThesaurusCodeList() {
+						return getThesaurusCodeNode().string("@codeList").get();
+					}
+
+					@Override
+					public String getThesaurusCodeListValue() {
+						return getThesaurusCodeNode().string("@codeListValue").get();
+					}
+				})
+				.collect(Collectors.toList());
+	}
+	
+	public List<Keywords> getServiceKeywords() throws NotFound{
+		return getKeywords(Topic.SERVICE);
 	}
 	
 	/*
@@ -451,20 +519,20 @@ public class MetadataDocument {
 	/*
 	 * alternate title
 	 */
-	protected String getAlternateTitlePath() {
-		return getDatasetIdentificationPath() +
+	protected String getAlternateTitlePath(Topic topic) {
+		return getIdentificationPath(topic) +
 				"/gmd:citation" +
 				"/gmd:CI_Citation" +
 				"/gmd:alternateTitle" +
 				"/gco:CharacterString";
 	}
 	
-	public String getAlternateTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getAlternateTitlePath());
+	public String getDatasetAlternateTitle() throws NotFound {
+		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.DATASET));
 	}
 
-	public void setAlternateTitle(String newTitle) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getAlternateTitlePath(), newTitle);
+	public void setDatasetAlternateTitle(String newTitle) throws QueryFailure {
+		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
 	}
 	
 	/*
@@ -781,22 +849,31 @@ public class MetadataDocument {
 		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
-	public String getOperatesOn() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath());
+	public interface OperatesOn {
+		
+		String getUuidref();
+		
+		String getHref();
 	}
 	
-	public String getOperatesOnUuid() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath() + "/@uuidref");
+	public List<OperatesOn> getOperatesOn() throws NotFound{
+		return xpath()
+			.nodes(getOperatesOnPath()).stream()
+				.map(node -> (OperatesOn)new OperatesOn() {
+
+					@Override
+					public String getUuidref() {
+						return node.string("@uuidref").get();
+					}
+
+					@Override
+					public String getHref() {
+						return node.string("@xlink:href").get();
+					}
+					
+				})
+				.collect(Collectors.toList());
 	}
-	
-	public String getOperatesOnHref() throws NotFound{
-		return xmlDocument.getString(namespaces, getOperatesOnPath() + "/@xlink:href");
-	}
-	
-	
-	
-	 
-	  
 	
 	/*
 	 * Service method aliases

@@ -57,14 +57,26 @@ public class JdbcUtils {
 	public static void run(Statement stmt, InputStream is) throws Exception {
 		StringBuilder sb = new StringBuilder();
 		
+		boolean ignore = false;
 		for(String line : IOUtils.readLines(is)) {
-			if(line.contains("--")) {
-				sb.append(line.substring(0, line.indexOf("--")));
-			} else {
-				sb.append(line);
+			if(line.contains("<PostgreSQL>")){
+				ignore = true;
 			}
 			
-			sb.append('\n');
+			if(ignore && line.contains("</PostgreSQL>")) {
+				ignore = false;
+			}
+			
+			if(!ignore) {			
+				if(line.contains("--")) {
+					sb.append(line.substring(0, line.indexOf("--")));
+				} else {
+					sb.append(line);
+				}
+				
+				
+				sb.append('\n');
+			}
 		}
 			
 		for(String sql : sb.toString().split(";")) {

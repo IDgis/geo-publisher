@@ -7,14 +7,17 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
+import nl.idgis.publisher.metadata.MetadataDocument.OperatesOn;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
 import nl.idgis.publisher.xml.exceptions.NotFound;
@@ -137,7 +140,7 @@ public class MetadataDocumentTest {
 		String result = document.getDatasetTitle();		
 		assertEquals("wrong title", "Gemeentegrenzen Overijssel (vlakken)", result);
 		
-		result = document.getAlternateTitle();		
+		result = document.getDatasetAlternateTitle();		
 		assertEquals("wrong alternate title", "B1.gemgrens_polygon (b1/b14)", result);
 		
 		result = document.getDatasetAbstract();		
@@ -146,7 +149,7 @@ public class MetadataDocumentTest {
 
 		// set new values
 		document.setDatasetTitle("Overijssel Gemeentegrenzen");
-		document.setAlternateTitle("Alternate ");
+		document.setDatasetAlternateTitle("Alternate ");
 		document.setDatasetAbstract("De gemeentegrenzen, bestuurlijk vastgesteld ");
 
 		
@@ -154,7 +157,7 @@ public class MetadataDocumentTest {
 		result = document.getDatasetTitle();		
 		assertEquals("wrong title", "Overijssel Gemeentegrenzen", result);
 		
-		result = document.getAlternateTitle();		
+		result = document.getDatasetAlternateTitle();		
 		assertEquals("wrong alternate title", "Alternate ", result);
 		
 		result = document.getDatasetAbstract();		
@@ -170,28 +173,33 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 
 		// check the current values 
-		String result = document.getDatasetKeywords();
-		assertTrue("wrong keyword", result.indexOf("gemeenten") >= 0);
-		assertTrue("wrong thesaurus", result.indexOf("Interprovinciale thesaurus") >= 0);
-		assertTrue("wrong date", result.indexOf("2013-09-11") >= 0);
-
-		assertFalse("unexpected keyword", result.indexOf("ccc-ddd") >= 0);
-		assertFalse("unexpected thesaurus", result.indexOf("thesaurusTitle") >= 0);
-		assertFalse("unexpected date", result.indexOf("2015-01-01") >= 0);
+		List<MetadataDocument.Keywords> result = document.getDatasetKeywords();
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		
+		Keywords keywords = result.get(0);
+		assertNotNull(keywords);
+		assertTrue("wrong keyword", keywords.getKeywords().contains("gemeenten"));
+		assertEquals("wrong thesaurus", "Interprovinciale thesaurus", keywords.getThesaurusTitle());
+		assertEquals("wrong date", "2013-09-11", keywords.getThesaurusDate());
 
 		document.removeDatasetKeywords();
-		
-		List<String> keywords = new ArrayList<String>();
-		keywords.add("aaa-bbb");
-		keywords.add("ccc-ddd");
-		document.addDatasetKeywords(keywords, "thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
+		 
+		document.addDatasetKeywords(
+			Stream.of("aaa-bbb", "ccc-ddd").collect(Collectors.toSet()), 
+			"thesaurusTitle", "2015-01-01", "./resources/codeList.xml#etcetera", "publicatie") ;
 		
 		// check the new values 
-		result = document.getDatasetKeywords();		
-		assertTrue("wrong keyword", result.indexOf("ccc-ddd") >= 0);
-		assertTrue("wrong thesaurus", result.indexOf("thesaurusTitle") >= 0);
-		assertTrue("wrong date", result.indexOf("2015-01-01") >= 0);
+		result = document.getDatasetKeywords();
+		assertNotNull(result);
+		assertEquals(1, result.size());
 		
+		keywords = result.get(0);
+		assertNotNull(keywords);
+		
+		assertTrue("wrong keyword", keywords.getKeywords().contains("ccc-ddd"));		
+		assertEquals("wrong thesaurus", "thesaurusTitle", keywords.getThesaurusTitle());
+		assertEquals("wrong date", "2015-01-01", keywords.getThesaurusDate());
 	}
 	
 	@Test
@@ -471,10 +479,12 @@ public class MetadataDocumentTest {
 		// add new childnode
 		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3", href);
 		
-		String result = document.getOperatesOnUuid();
+		OperatesOn operatesOn = document.getOperatesOn().get(0);
+		
+		String result = operatesOn.getUuidref();
 		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
 		
-		result = document.getOperatesOnHref();
+		result = operatesOn.getHref();
 		assertEquals("No href found", href, result);
 		
 		// remove all child nodes		
@@ -482,10 +492,7 @@ public class MetadataDocumentTest {
 		assertEquals("There should be one removed dataset link", 1, i);
 		
 		// check no node anymore
-		try {
-			document.getOperatesOnHref();
-			fail("Unexpected uuid ref found");
-		} catch(Exception e) {}
+		assertTrue(document.getOperatesOn().isEmpty());
 	}
 	
 	@Test

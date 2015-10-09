@@ -610,4 +610,12 @@ public class FutureUtils {
 			},
 			(ArrayList<CompletableFuture<T>> list) -> sequence(list).thenApply(Collection::stream));
 	}
+	
+	@SafeVarargs
+	public final <T> CompletableFuture<Stream<T>> concat(CompletableFuture<Stream<T>>... futures) {
+		return Stream.of(futures)
+			.collect(collect())
+			.thenApply(result ->
+				result.flatMap(Function.identity()));
+	}
 }

@@ -11,6 +11,11 @@ public class AnyAckRecorder extends AnyRecorder {
 		this.ack = ack;
 	}
 	
+	public static Props props() {
+		// prevent AnyRecorder.props() from being called using AnyAckRecorder.props()
+		throw new IllegalArgumentException("ack object missing");
+	}
+	
 	public static Props props(Object ack) {
 		return Props.create(AnyAckRecorder.class, ack);
 	}

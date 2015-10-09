@@ -140,7 +140,7 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 	}
 	
 	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
-		String tableName = ProviderUtils.getTableName(metadataDocument.getAlternateTitle());
+		String tableName = ProviderUtils.getTableName(metadataDocument.getDatasetAlternateTitle());
 		
 		database.tell(new StartTransaction(), getSelf());
 		getContext().become(startingTransaction(tableName));

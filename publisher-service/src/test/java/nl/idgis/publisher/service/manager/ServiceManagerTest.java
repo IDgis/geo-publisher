@@ -56,7 +56,6 @@ import javax.xml.transform.stream.StreamResult;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
@@ -174,9 +173,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		vectorDatasetId = insert(dataset)
 			.set(dataset.identification, "dataset0")
-			.set(dataset.name, "dataset-name0")
-			.set(dataset.fileUuid, UUID.randomUUID().toString())
-			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.name, "dataset-name0")			
 			.set(dataset.sourceDatasetId, vectorSourceDatasetId)
 			.executeWithKey(dataset.id);
 		
@@ -245,9 +242,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		rasterDatasetId = insert(dataset)
 			.set(dataset.identification, "dataset1")
-			.set(dataset.name, "dataset-name1")
-			.set(dataset.fileUuid, UUID.randomUUID().toString())
-			.set(dataset.uuid, UUID.randomUUID().toString())
+			.set(dataset.name, "dataset-name1")			
 			.set(dataset.sourceDatasetId, rasterSourceDatasetId)
 			.executeWithKey(dataset.id);
 		
@@ -467,7 +462,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(constants.state, "serviceState0")
 			.set(constants.zipcode, "serviceZipcode0")
 			.set(constants.country, "serviceCountry0")
-			.set(constants.telephone, "serviceTlephone0")
+			.set(constants.telephone, "serviceTelephone0")
 			.set(constants.fax, "serviceFax0")
 			.set(constants.email, "serviceEmail0")
 			.executeWithKey(constants.id);
@@ -1573,6 +1568,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(layerStructure)
+			.set(layerStructure.parentLayerId, groupLayerId)
+			.set(layerStructure.childLayerId, vectorLayerId)
+			.set(layerStructure.layerOrder, 1)
+			.execute();
+		
+		insert(layerStructure)
 			.set(layerStructure.parentLayerId, rootLayerId)
 			.set(layerStructure.childLayerId, groupLayerId)
 			.set(layerStructure.layerOrder, 0)
@@ -1590,6 +1591,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
 		assertEquals("service", stagingService.getId());
+		
+		System.out.println(JsonService.toJson(stagingService));
 		
 		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
 		
@@ -1641,24 +1644,30 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(publishedServiceEnvironmentItr.hasNext());
 		
-		Map<String, Set<String>> publishedServiceDatasets = 
+		// 'vector-layer-name' should appear once in published_service_dataset, 
+		// despite being included twice in the service
+		assertEquals(
+			Arrays.asList(
+				"service:dataset0:vector-layer-name", 
+				"service:dataset1:raster-layer-name"),
 			query()
 				.from(publishedServiceDataset)
 				.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))			
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+				.orderBy(
+					genericLayer.identification.asc(),
+					dataset.identification.asc(),
+					publishedServiceDataset.layerName.asc())
 				.list(
 					genericLayer.identification,
-					dataset.identification).stream()
-						.collect(Collectors.groupingBy(
-							t -> t.get(genericLayer.identification),
-							Collectors.mapping(
-								t -> t.get(dataset.identification),
-								Collectors.toSet())));
-		
-		assertEquals(1, publishedServiceDatasets.size());
-		assertTrue(publishedServiceDatasets.containsKey("service"));
-		assertEquals(Sets.newHashSet("dataset0", "dataset1"), publishedServiceDatasets.get("service"));
+					dataset.identification,
+					publishedServiceDataset.layerName).stream()
+						.map(t ->
+							t.get(genericLayer.identification) + ":"
+							+ t.get(dataset.identification) + ":"
+							+ t.get(publishedServiceDataset.layerName))
+						.collect(Collectors.toList()));
 		
 		Service publishedService = f.ask(serviceManager, new GetPublishedService("service"), Service.class).get();
 		assertEquals("service", publishedService.getId());

@@ -2,18 +2,30 @@ package nl.idgis.publisher.database;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.types.Expression;
+import com.mysema.query.types.QTuple;
 
+import nl.idgis.publisher.utils.StreamUtils;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -73,5 +85,251 @@ public class DatabaseUtilsTest {
 			
 		ListIterator<Tuple> itr = tuples.listIterator();
 		DatabaseUtils.consumeList(itr, 42, idExpr, t -> t.get(valueExpr));
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testJoin() {
+		Expression<Integer> idExpr = mock(Expression.class);
+		Expression<String> firstExpr = mock(Expression.class);
+		Expression<String> secondExpr = mock(Expression.class);
+		Expression<String> thirdExpr = mock(Expression.class);
+		
+		QTuple firstTuple = new QTuple(idExpr, firstExpr);
+		QTuple secondTuple = new QTuple(idExpr, secondExpr);
+		QTuple thirdTuple = new QTuple(idExpr, thirdExpr);
+		
+		Iterator<Tuple> actual = DatabaseUtils		
+			.join(
+				DatabaseUtils.join(
+					Stream.of(
+						firstTuple.newInstance(0, "zero"),
+						firstTuple.newInstance(1, "one"),
+						firstTuple.newInstance(2, "two")),
+					Stream.of(
+						secondTuple.newInstance(1, "a"),
+						secondTuple.newInstance(1, "b"),
+						secondTuple.newInstance(2, "c"),
+						secondTuple.newInstance(2, "d"),
+						secondTuple.newInstance(2, "e"),
+						secondTuple.newInstance(3, "e")),
+					idExpr),
+					Stream.of(
+						thirdTuple.newInstance(1, "Z"),
+						thirdTuple.newInstance(2, "Y")),
+					idExpr)
+			.iterator();
+		
+		QTuple expectedTuple = new QTuple(idExpr, firstExpr, idExpr, secondExpr, idExpr, thirdExpr);
+		
+		Iterator<Tuple> expected = Stream
+			.of(
+				expectedTuple.newInstance(1, "one", 1, "a", 1, "Z"),
+				expectedTuple.newInstance(1, "one", 1, "b", 1, "Z"),
+				expectedTuple.newInstance(2, "two", 2, "c", 2, "Y"),
+				expectedTuple.newInstance(2, "two", 2, "d", 2, "Y"),
+				expectedTuple.newInstance(2, "two", 2, "e", 2, "Y"))
+			.iterator();
+		
+		while(expected.hasNext()) {
+			assertTrue(actual.hasNext());
+			assertEquals(expected.next(), actual.next());
+		}
+		
+		assertFalse(actual.hasNext());
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testLeftJoin() {
+		Expression<Integer> idExpr = mock(Expression.class);
+		Expression<String> firstExpr = mock(Expression.class);
+		Expression<String> secondExpr = mock(Expression.class);
+		
+		QTuple firstTuple = new QTuple(idExpr, firstExpr);
+		QTuple secondTuple = new QTuple(idExpr, secondExpr);
+		
+		Iterator<Tuple> actual = DatabaseUtils
+			.leftJoin(
+				Stream.of(
+					firstTuple.newInstance(0, "zero"),
+					firstTuple.newInstance(1, "one"),
+					firstTuple.newInstance(2, "two")),
+				Stream.of(
+					secondTuple.newInstance(1, "a"),
+					secondTuple.newInstance(1, "b"),
+					secondTuple.newInstance(2, "c"),
+					secondTuple.newInstance(2, "d"),
+					secondTuple.newInstance(2, "e"),
+					secondTuple.newInstance(3, "f")),
+				idExpr)
+			.iterator();
+		
+		QTuple expectedTuple = new QTuple(idExpr, firstExpr, idExpr, secondExpr);
+		
+		Iterator<Tuple> expected = Stream
+			.of(
+				expectedTuple.newInstance(0, "zero", null, null),
+				expectedTuple.newInstance(1, "one", 1, "a"),
+				expectedTuple.newInstance(1, "one", 1, "b"),
+				expectedTuple.newInstance(2, "two", 2, "c"),
+				expectedTuple.newInstance(2, "two", 2, "d"),
+				expectedTuple.newInstance(2, "two", 2, "e"))
+			.iterator();
+		
+		while(expected.hasNext()) {
+			assertTrue(actual.hasNext());
+			assertEquals(expected.next(), actual.next());
+		}
+		
+		assertFalse(actual.hasNext());
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testJoinCollection() {
+		Expression<Integer> idExpr = mock(Expression.class);
+		Expression<String> firstExpr = mock(Expression.class);
+		Expression<String> secondExpr = mock(Expression.class);
+		
+		QTuple firstTuple = new QTuple(idExpr, firstExpr);
+		QTuple secondTuple = new QTuple(idExpr, secondExpr);
+		
+		Iterator<Tuple> itr = DatabaseUtils
+			.join(
+				Collections.singletonList(firstTuple.newInstance(0, "a")), 
+				Collections.singletonList(secondTuple.newInstance(0, "A")), 
+				idExpr)
+			.iterator();
+		
+		assertTrue(itr.hasNext());
+		Tuple t = itr.next();
+		assertArrayEquals(new Object[]{0, "a", 0, "A"}, t.toArray());
+		assertFalse(itr.hasNext());
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testJoinCollectionEmpty() {
+		Collection<Tuple> left = mock(Collection.class);
+		when(left.isEmpty()).thenReturn(true);
+		
+		Collection<Tuple> right = mock(Collection.class);
+		when(right.isEmpty()).thenReturn(true);
+		
+		Iterator<Tuple> itr = DatabaseUtils
+			.join(
+				left, 
+				right, 
+				null)
+			.iterator();
+		
+		assertFalse(itr.hasNext());
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testJoinCollectionLeftEmpty() {
+		Collection<Tuple> left = mock(Collection.class);
+		when(left.isEmpty()).thenReturn(true);
+		
+		Collection<Tuple> right = Collections.singleton(mock(Tuple.class));
+		
+		Collection<Tuple> result = DatabaseUtils
+			.join(
+				left, 
+				right, 
+				null)
+			.collect(Collectors.toSet());
+		
+		assertEquals(right, result);
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testJoinCollectionRightEmpty() {
+		Collection<Tuple> left = Collections.singleton(mock(Tuple.class));
+		
+		Collection<Tuple> right = mock(Collection.class);
+		when(right.isEmpty()).thenReturn(true);
+		
+		Collection<Tuple> result = DatabaseUtils
+			.join(
+				left, 
+				right, 
+				null)
+			.collect(Collectors.toSet());
+			
+		assertEquals(left, result);
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testLeftJoinAndPartition() {
+		Expression<Integer> idExpr = mock(Expression.class);
+		Expression<String> firstExpr = mock(Expression.class);
+		Expression<String> secondExpr = mock(Expression.class);
+		
+		QTuple firstTuple = new QTuple(idExpr, firstExpr);
+		QTuple secondTuple = new QTuple(idExpr, secondExpr);			
+		
+		Iterator<String> actual =
+			StreamUtils
+				.partition(
+					DatabaseUtils
+						.leftJoin(
+							Stream.of(
+								firstTuple.newInstance(0, "zero"),
+								firstTuple.newInstance(1, "one"),
+								firstTuple.newInstance(2, "two")),
+							Stream.of(
+								secondTuple.newInstance(1, "a"),
+								secondTuple.newInstance(1, "b"),
+								secondTuple.newInstance(2, "c"),
+								secondTuple.newInstance(2, "d"),
+								secondTuple.newInstance(2, "e"),
+								secondTuple.newInstance(3, "f")),
+							idExpr),
+					tuple -> tuple.get(idExpr))
+				.map(partition ->
+					partition.key() +
+					" (" +
+					partition.first()
+						.get(firstExpr) + 
+					") " +
+					partition.stream()
+						.map(tuple -> tuple.get(secondExpr))
+						.filter(value -> value != null)
+						.collect(Collectors.joining(",")))
+				.iterator();
+		
+		Iterator<String> expected =
+			Stream.of(
+				"0 (zero) ",
+				"1 (one) a,b",
+				"2 (two) c,d,e")
+			.iterator();
+		
+		while(expected.hasNext()) {
+			assertTrue(actual.hasNext());
+			assertEquals(expected.next(), actual.next());
+		}
+	}
+	
+	@Test
+	public void testNamedSetExpression() {
+		Expression<Set<String>> expr = DatabaseUtils.namedExpression("test");		
+		QTuple q = new QTuple(expr);
+		
+		Tuple t = q.newInstance(Collections.singleton("Hello, world!"));		
+		assertNotNull(t);
+		
+		Set<String> result = t.get(expr);
+		assertNotNull(result);
+		
+		Iterator<String> itr = result.iterator();
+		assertTrue(itr.hasNext());
+		assertEquals("Hello, world!", itr.next());
+		assertFalse(itr.hasNext());
 	}
 }

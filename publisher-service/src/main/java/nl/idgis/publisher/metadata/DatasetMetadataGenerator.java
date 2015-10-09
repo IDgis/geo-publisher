@@ -8,15 +8,32 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import nl.idgis.publisher.metadata.messages.DatasetInfo;
-import nl.idgis.publisher.metadata.messages.PutDatasetMetadata;
+import nl.idgis.publisher.metadata.messages.KeepMetadata;
+import nl.idgis.publisher.metadata.messages.MetadataType;
+import nl.idgis.publisher.metadata.messages.UpdateMetadata;
 import nl.idgis.publisher.metadata.messages.ServiceRef;
 
-public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo, PutDatasetMetadata> {
+/**
+ * This actor generates dataset metadata documents.
+ * 
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
+public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<DatasetInfo> {
 
 	public DatasetMetadataGenerator(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		super(metadataTarget, datasetInfo, serviceLinkagePrefix, datasetMetadataPrefix);
 	}
 	
+	/**
+	 * Creates a {@link Props} for the {@link DatasetMetadataGenerator} actor.
+	 * 
+	 * @param metadataTarget a reference to the metadata target actor.
+	 * @param datasetInfo the object containing information about the dataset. 
+	 * @param serviceLinkagePrefix the service linkage url prefix.
+	 * @param datasetMetadataPrefix the dataset url prefix.
+	 * @return
+	 */
 	public static Props props(ActorRef metadataTarget, DatasetInfo datasetInfo, String serviceLinkagePrefix, String datasetMetadataPrefix) {
 		return Props.create(
 			DatasetMetadataGenerator.class, 
@@ -27,9 +44,11 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 	}
 
 	@Override
-	protected List<PutDatasetMetadata> generateMetadata(MetadataDocument metadataDocument) throws Exception {
-		metadataDocument.setDatasetIdentifier(itemInfo.getDatasetUuid());
-		metadataDocument.setFileIdentifier(itemInfo.getFileUuid());
+	protected List<UpdateMetadata> updateMetadata(MetadataDocument metadataDocument) throws Exception {
+		String fileIdentification = itemInfo.getMetadataFileId();
+		
+		metadataDocument.setDatasetIdentifier(itemInfo.getMetadataId());
+		metadataDocument.setFileIdentifier(fileIdentification);
 		
 		metadataDocument.removeServiceLinkage();
 		for(ServiceRef serviceRef : itemInfo.getServiceRefs()) {
@@ -44,7 +63,12 @@ public class DatasetMetadataGenerator extends AbstractMetadataItemGenerator<Data
 			}
 		};
 		
-		return Collections.singletonList(new PutDatasetMetadata(itemInfo.getId(), metadataDocument));
+		return Collections.singletonList(new UpdateMetadata(MetadataType.DATASET, fileIdentification, metadataDocument));
+	}
+
+	@Override
+	protected List<KeepMetadata> keepMetadata() {
+		return Collections.singletonList(new KeepMetadata(MetadataType.DATASET, itemInfo.getMetadataFileId()));
 	}
 
 }

@@ -25,7 +25,7 @@ public class RasterDatasetFetcher extends AbstractDatasetFetcher<GetRasterDatase
 
 	@Override
 	protected void handleMetadataDocument(MetadataDocument metadataDocument) throws Exception {
-		String fileName = ProviderUtils.getRasterFile(metadataDocument.getAlternateTitle());		
+		String fileName = ProviderUtils.getRasterFile(metadataDocument.getDatasetAlternateTitle());		
 		folder.tell(new FetchFile(Paths.get(fileName)), sender);
 	}
 

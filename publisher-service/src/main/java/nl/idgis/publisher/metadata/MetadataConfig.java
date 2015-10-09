@@ -12,25 +12,41 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
 
+/**
+ * Helper class to conveniently read configuration from a {@link Config} object.
+ *   
+ * @author Reijer Copier <reijer.copier@idgis.nl>
+ *
+ */
 public class MetadataConfig {
 
 	private final Config config;
 	
 	private final FileSystem fileSystem;
 	
+	/**
+	 * Creates MetadataConfig obtaining {@link Path} instances from the default file system.
+	 * 
+	 * @param config the config object.
+	 */
 	public MetadataConfig(Config config) {
 		this(config, FileSystems.getDefault());
 	}
 	
+	/**
+	 * Creates a MetadataConfig.
+	 * 
+	 * @param config the config object.
+	 * @param fileSystem the file system to obtain {@link Path} instances from.
+	 */
 	public MetadataConfig(Config config, FileSystem fileSystem) {
 		this.config = config;
 		this.fileSystem = fileSystem;
 	}
 	
-	public Path getServiceMetadataSource() {
-		return fileSystem.getPath(config.getString("serviceSource"));
-	}
-	
+	/** 
+	 * @return configuration for the different environments.
+	 */
 	public Set<MetadataEnvironmentConfig> getEnvironments() {
 		Path datasetTarget = fileSystem.getPath(config.getString("datasetTarget"));
 		Path serviceTarget = fileSystem.getPath(config.getString("serviceTarget"));

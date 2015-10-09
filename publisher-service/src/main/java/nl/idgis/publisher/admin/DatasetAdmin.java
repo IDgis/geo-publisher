@@ -560,8 +560,6 @@ public class DatasetAdmin extends AbstractAdmin {
 						try {
 							return tx.insert(dataset)
 								.set(dataset.identification, datasetIdent)
-								.set(dataset.uuid, UUID.randomUUID().toString())
-								.set(dataset.fileUuid, UUID.randomUUID().toString())
 								.set(dataset.name, putDataset.getDatasetName())
 								.set(dataset.sourceDatasetId, sourceDatasetId.get())
 								.set(dataset.filterConditions, 
@@ -604,9 +602,7 @@ public class DatasetAdmin extends AbstractAdmin {
 			.singleResult(sourceDataset.id).thenCompose(sourceDatasetId -> {
 				if(sourceDatasetId.isPresent()) {
 					try {
-						return tx.update(dataset)							
-							.set(dataset.uuid, UUID.randomUUID().toString())
-							.set(dataset.fileUuid, UUID.randomUUID().toString())
+						return tx.update(dataset)
 							.set(dataset.name, putDataset.getDatasetName())
 							.set(dataset.sourceDatasetId, sourceDatasetId.get())
 							.set(dataset.filterConditions, 
