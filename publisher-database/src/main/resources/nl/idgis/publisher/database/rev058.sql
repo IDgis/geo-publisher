@@ -9,11 +9,15 @@ alter table publisher.service add column wfs_metadata_file_identification varcha
 drop view publisher.dataset_status;
 drop view publisher.dataset_column_diff;
 
-alter table publisher.dataset alter column file_uuid rename to metadata_file_identification;
-alter table publisher.dataset alter column uuid rename to metadata_identification;
+alter table publisher.dataset add column metadata_file_identification varchar(36);
+alter table publisher.dataset add column metadata_identification varchar(36);
 
-alter table publisher.dataset alter column metadata_file_identification drop not null;
-alter table publisher.dataset alter column metadata_identification drop not null;
+update publisher.dataset
+set metadata_file_identification = file_uuid, 
+metadata_identification = uuid;
+
+alter table publisher.dataset drop column file_uuid;
+alter table publisher.dataset drop column uuid;
 
 -- recreate views with the same definition
 create view publisher.dataset_column_diff as
