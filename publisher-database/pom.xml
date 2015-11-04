@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>nl.idgis.publisher</groupId>
 		<artifactId>publisher</artifactId>
-		<version>1.1.6-SNAPSHOT</version>
+		<version>1.1.7-SNAPSHOT</version>
 	</parent>
 
 	<properties>
@@ -98,8 +98,8 @@
 									</sort>
 									<filterchain>
 										<tokenfilter>
-											<filetokenizer/>
-										    <replaceregex pattern="${database.ignorePattern}" flags="gs"/>
+											<filetokenizer />
+										    <replaceregex pattern="${database.ignorePattern}" flags="gs" />
 										</tokenfilter>
 									</filterchain>
 								</concat>
