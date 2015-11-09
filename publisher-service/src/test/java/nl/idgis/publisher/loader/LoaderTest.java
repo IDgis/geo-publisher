@@ -9,6 +9,7 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -67,8 +68,11 @@ import nl.idgis.publisher.job.JobExecutorFacade;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
-import nl.idgis.publisher.loader.messages.GetColumns;
+import nl.idgis.publisher.loader.messages.GetRequestedColumns;
+import nl.idgis.publisher.loader.messages.SetRecordsResponse;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.protocol.Record;
+import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractServiceTest {
@@ -173,13 +177,32 @@ public class LoaderTest extends AbstractServiceTest {
 	ActorRef loader, dataSourceMock, databaseMock, rasterFolderMock;
 	
 	@Before
-	public void actors() {
+	public void actors() throws Exception {
 		databaseMock = actorOf(DatabaseMock.props(database), "databaseMock");
 		dataSourceMock = actorOf(DataSourceMock.props(), "dataSourceMock");
 		rasterFolderMock = actorOf(RasterFolderMock.props(), "rasterFolderMock");
 		ActorRef harvesterMock = actorOf(HarvesterMock.props(dataSourceMock), "harvesterMock");		
 		
 		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, rasterFolderMock, harvesterMock), "loader")), "loaderFacade");
+		
+		List<Records> content = new ArrayList<>();
+		for(int i = 0; i < 2; i++) {
+			
+			List<Record> currentRecords = new ArrayList<>();
+			for(int j = 0; j < 5; j++) {
+				int value = i * 5 + j;
+				
+				currentRecords.add(
+					new Record(
+						Arrays.<Object>asList(
+								"value: " + j, 
+								value)));
+			}
+			
+			content.add(new Records(currentRecords));
+		}
+		
+		f.ask(dataSourceMock, new SetRecordsResponse(content), Ack.class).get();
 	}
 
 	@Test
@@ -194,7 +217,7 @@ public class LoaderTest extends AbstractServiceTest {
 			assertFinishedJobState(JobState.SUCCEEDED, job);
 		}
 		
-		List<?> columns = f.ask(dataSourceMock, new GetColumns(), List.class).get();
+		List<?> columns = f.ask(dataSourceMock, new GetRequestedColumns(), List.class).get();
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
@@ -314,7 +337,7 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(missingColumns.contains(testColumns.get(1)));
 		
 		// loader shouldn't request those missing columns
-		List<?> columns = f.ask(dataSourceMock, new GetColumns(), List.class).get();
+		List<?> columns = f.ask(dataSourceMock, new GetRequestedColumns(), List.class).get();
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
