@@ -626,13 +626,20 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	
 	private static class Prepared {
 		
-		PreparedStatement stmt;
+		final PreparedStatement stmt;
 		
-		private Prepared(PreparedStatement stmt) {
+		final int columnCount;
+		
+		private Prepared(PreparedStatement stmt, int columnCount) {
 			this.stmt = stmt;
+			this.columnCount = columnCount;
 		}
 		
 		public void batch(List<Object> args, Function<Object, Object> converter) throws Exception {
+			if(args.size() != columnCount) {
+				throw new RuntimeException("column count doesn't match, expected: " + columnCount + " received: " + args.size()); 
+			}
+			
 			setObjects(args, converter);
 			
 			stmt.addBatch();
@@ -652,8 +659,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 	}
 	
-	private Prepared prepare(String sql) throws SQLException {
-		return new Prepared(connection.prepareStatement(sql));
+	private Prepared prepare(String sql, int columnCount) throws SQLException {
+		return new Prepared(connection.prepareStatement(sql), columnCount);
 	}
 	
 	private void execute(String sql) throws SQLException {
@@ -709,7 +716,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String sql = sb.toString();
 		log.debug(sql);
 		
-		Prepared prepared = prepare(sql);
+		Prepared prepared = prepare(sql, columns.size());
 		
 		for(List<Object> values : records) {
 			prepared.batch(values, new Function<Object, Object>() {
