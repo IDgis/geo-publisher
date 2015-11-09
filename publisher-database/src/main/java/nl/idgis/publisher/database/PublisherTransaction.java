@@ -736,6 +736,9 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		String schemaName = query.getSchemaName();
 		String viewName = query.getViewName();
 		
+		// drop view fails if schema doesn't exists
+		execute("create schema if not exists \"" + schemaName + "\"");
+		
 		execute("drop view if exists \"" + schemaName + "\".\"" + viewName + "\"");
 		
 		return new Ack();
