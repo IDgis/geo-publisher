@@ -112,7 +112,7 @@ public class VectorLoaderSessionTest {
 		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
 				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
 
-		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, null /* filterEvaluator */, transaction, jobContext));
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, importJob.getColumns(), null /* filterEvaluator */, transaction, jobContext));
 		
 		f = new FutureUtils(actorSystem);
 	}

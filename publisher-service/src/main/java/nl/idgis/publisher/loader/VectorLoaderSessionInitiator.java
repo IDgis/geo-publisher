@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
@@ -51,9 +52,9 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	
 	private FilterEvaluator filterEvaluator = null;
 	
-	private List<Column> requiredColumns = null;
+	private List<Column> importColumns = null;
 	
-	private List<String >requestColumnNames = null;
+	private List<String> requestColumnNames = null;
 	
 	private Set<Column> missingColumns = null, missingFilterColumns = null;
 	
@@ -157,7 +158,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		
 		missingFilterColumns = new HashSet<>();
 		
-		requiredColumns = new ArrayList<>();
+		List<Column> requiredColumns = new ArrayList<>();
 		requiredColumns.addAll(importJob.getColumns());
 		
 		String filterCondition = importJob.getFilterCondition();
@@ -199,6 +200,10 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 				requestColumnNames.add(column.getName());
 			}
 		}
+		
+		importColumns = importJob.getColumns().stream()
+			.filter(column -> !missingColumns.contains(column))
+			.collect(Collectors.toList());
 	}
 	
 	private Procedure<Object> waitingForJobFailedStored() { 
@@ -278,6 +283,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 			VectorLoaderSession.props(								
 				getContext().parent(), // loader
 				importJob,
+				importColumns,
 				filterEvaluator,
 				transaction, 
 				jobContext)));
@@ -294,7 +300,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 					CreateTable ct = new CreateTable(
 							"staging_data",
 							importJob.getDatasetId(),  
-							importJob.getColumns());
+							importColumns);
 					
 					transaction.tell(ct, getSelf());
 					become("creating table", waitingForTableCreated());

@@ -32,25 +32,28 @@ import nl.idgis.publisher.stream.messages.Stop;
 
 public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobInfo, StartVectorImport> {
 	
+	private final List<Column> importColumns;
+	
 	private final ActorRef transaction;
 	
-	private final FilterEvaluator filterEvaluator;
+	private final FilterEvaluator filterEvaluator;	
 	
 	private long insertCount = 0, filteredCount = 0;
 	
-	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
 		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
+		this.importColumns = importColumns;
 		this.filterEvaluator = filterEvaluator;
 		this.transaction = transaction;
 	}
 	
-	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, filterEvaluator, transaction, jobContext);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, importColumns, filterEvaluator, transaction, jobContext);
 	}
 	
-	public static Props props(ActorRef loader, VectorImportJobInfo importJob, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, filterEvaluator, transaction, jobContext);
+	public static Props props(ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, importColumns, filterEvaluator, transaction, jobContext);
 	}	
 	
 	@Override
@@ -93,7 +96,6 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	}	
 	
 	private void handleRecords(Records msg) {
-		List<Column> columns = importJob.getColumns();
 		List<Record> records = msg.getRecords();
 		
 		log.debug("records received: {}", records.size());
@@ -110,13 +112,13 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 				List<Object> recordValues = record.getValues();
 				
 				List<Object> values;
-				if(recordValues.size() > columns.size()) {
+				if(recordValues.size() > importColumns.size()) {
 					log.debug("creating smaller value list");
 					
-					values = new ArrayList<>(columns.size());
+					values = new ArrayList<>(importColumns.size());
 					
 					Iterator<Object> valueItr = recordValues.iterator();
-					for(int i = 0; i< columns.size(); i++) {
+					for(int i = 0; i< importColumns.size(); i++) {
 						values.add(valueItr.next());
 					}
 				} else {
@@ -137,7 +139,7 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 		f.ask(transaction, new InsertRecords(
 			"staging_data",
 			importJob.getDatasetId(), 
-			columns, 
+			importColumns, 
 			processedRecords))
 				.exceptionally(t -> new Failure(t))
 				.thenAccept(resp -> {
