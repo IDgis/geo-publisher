@@ -27,7 +27,6 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Procedure;
 
 import nl.idgis.publisher.AbstractServiceTest;
 
@@ -65,19 +64,15 @@ import nl.idgis.publisher.domain.web.Filter.ColumnReferenceExpression;
 import nl.idgis.publisher.domain.web.Filter.ValueExpression;
 import nl.idgis.publisher.domain.web.Filter.OperatorType;
 
-import nl.idgis.publisher.harvester.messages.GetDataSource;
-import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
-import nl.idgis.publisher.harvester.sources.messages.StartVectorImport;
 import nl.idgis.publisher.job.JobExecutorFacade;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
+import nl.idgis.publisher.loader.messages.GetRequestedColumns;
+import nl.idgis.publisher.loader.messages.SetRecordsResponse;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.stream.messages.End;
-import nl.idgis.publisher.stream.messages.Item;
-import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractServiceTest {
@@ -131,6 +126,10 @@ public class LoaderTest extends AbstractServiceTest {
 		public DatabaseMock(ActorRef database)  {
 			this.database = database;
 		}
+		
+		static Props props(ActorRef database) {
+			return Props.create(DatabaseMock.class, database);
+		}
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
@@ -162,149 +161,15 @@ public class LoaderTest extends AbstractServiceTest {
 		
 	}
 	
-	static class GetColumns {
-		
-	}
-	
-	static class DataSourceMock extends UntypedActor {
-		
-		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-		
-		ActorRef sender = null;
-		List<String> columns = null;
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			log.debug("received: " + msg);
-			
-			if(msg instanceof FetchVectorDataset) {
-				FetchVectorDataset gd = (FetchVectorDataset)msg;
-				
-				columns = gd.getColumns();
-				sendColumns();
-				
-				ActorRef receiver = getContext().actorOf(gd.getReceiverProps(), "receiver");
-				receiver.tell(new StartVectorImport(getSender(), 10), getSelf());
-				getContext().become(waitingForStart(), true);
-			} else {
-				onReceiveElse(msg);
-			}
-		}
-		
-		private void onReceiveElse(Object msg) {
-			if(msg instanceof GetColumns) {
-				sender = getSender();
-				sendColumns();
-			} else {
-				unhandled(msg);
-			}
-		}
-		
-		private void sendColumns() {
-			if(sender != null && columns != null) {
-				sender.tell(columns, getSelf());
-				
-				sender = null;
-				columns = null;
-			}
-		}
-		
-		private Procedure<Object> sendingRecords(Iterable<Records> records) {
-			final Iterator<Records> itr = records.iterator();			
-			
-			return new Procedure<Object>() {
-				
-				long seq = 0;
-				
-				{
-					sendResponse();
-				}
-				
-				void sendResponse() {
-					if(itr.hasNext()) {
-						getSender().tell(new Item<>(seq++, itr.next()), getSelf());
-					} else {
-						getSender().tell(new End(), getSelf());
-						getContext().unbecome();
-					}
-				}
-				
-				@Override
-				public void apply(Object msg) throws Exception {
-					log.debug("received: " + msg);
-					
-					if(msg instanceof NextItem) {
-						sendResponse();
-					} else {
-						onReceiveElse(msg);
-					}
-				}
-			};
-		}
-
-		private Procedure<Object> waitingForStart() {
-			return new Procedure<Object>() {
-
-				@Override
-				public void apply(Object msg) throws Exception {
-					log.debug("received: " + msg);
-					
-					if(msg instanceof Ack) {
-						List<Records> records = new ArrayList<>();
-						for(int i = 0; i < 2; i++) {
-							
-							List<Record> currentRecords = new ArrayList<>();
-							for(int j = 0; j < 5; j++) {
-								int value = i * 5 + j;
-								
-								currentRecords.add(
-									new Record(
-										Arrays.<Object>asList(
-												"value: " + j, 
-												value)));
-							}
-							
-							records.add(new Records(currentRecords));
-						}
-						
-						getContext().become(sendingRecords(records));
-					} else {
-						onReceiveElse(msg);
-					}
-				}
-				
-			};
-		}
-		
-	}
-	
-	static class HarvesterMock extends UntypedActor {
-		
-		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-		
-		final ActorRef dataSource;
-		
-		HarvesterMock(ActorRef dataSource) {
-			this.dataSource = dataSource;
-		}
-
-		@Override
-		public void onReceive(Object msg) throws Exception {
-			log.debug("received: " + msg);
-			
-			if(msg instanceof GetDataSource) {
-				getSender().tell(dataSource, getSelf());
-			} else {
-				unhandled(msg);
-			}
-		}		
-	}
-	
 	static class RasterFolderMock extends UntypedActor {
 
 		@Override
 		public void onReceive(Object msg) throws Exception {
 			unhandled(msg);
+		}
+
+		static Props props() {
+			return Props.create(RasterFolderMock.class);
 		}
 		
 	}
@@ -312,13 +177,32 @@ public class LoaderTest extends AbstractServiceTest {
 	ActorRef loader, dataSourceMock, databaseMock, rasterFolderMock;
 	
 	@Before
-	public void actors() {
-		databaseMock = actorOf(Props.create(DatabaseMock.class, database), "databaseMock");
-		dataSourceMock = actorOf(Props.create(DataSourceMock.class), "dataSourceMock");
-		rasterFolderMock = actorOf(Props.create(RasterFolderMock.class), "rasterFolderMock");
-		ActorRef harvesterMock = actorOf(Props.create(HarvesterMock.class, dataSourceMock), "harvesterMock");		
+	public void actors() throws Exception {
+		databaseMock = actorOf(DatabaseMock.props(database), "databaseMock");
+		dataSourceMock = actorOf(DataSourceMock.props(), "dataSourceMock");
+		rasterFolderMock = actorOf(RasterFolderMock.props(), "rasterFolderMock");
+		ActorRef harvesterMock = actorOf(HarvesterMock.props(dataSourceMock), "harvesterMock");		
 		
 		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, rasterFolderMock, harvesterMock), "loader")), "loaderFacade");
+		
+		List<Records> content = new ArrayList<>();
+		for(int i = 0; i < 2; i++) {
+			
+			List<Record> currentRecords = new ArrayList<>();
+			for(int j = 0; j < 5; j++) {
+				int value = i * 5 + j;
+				
+				currentRecords.add(
+					new Record(
+						Arrays.<Object>asList(
+								"value: " + j, 
+								value)));
+			}
+			
+			content.add(new Records(currentRecords));
+		}
+		
+		f.ask(dataSourceMock, new SetRecordsResponse(content), Ack.class).get();
 	}
 
 	@Test
@@ -333,7 +217,7 @@ public class LoaderTest extends AbstractServiceTest {
 			assertFinishedJobState(JobState.SUCCEEDED, job);
 		}
 		
-		List<?> columns = f.ask(dataSourceMock, new GetColumns(), List.class).get();
+		List<?> columns = f.ask(dataSourceMock, new GetRequestedColumns(), List.class).get();
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
@@ -453,7 +337,7 @@ public class LoaderTest extends AbstractServiceTest {
 		assertTrue(missingColumns.contains(testColumns.get(1)));
 		
 		// loader shouldn't request those missing columns
-		List<?> columns = f.ask(dataSourceMock, new GetColumns(), List.class).get();
+		List<?> columns = f.ask(dataSourceMock, new GetRequestedColumns(), List.class).get();
 		Iterator<?> columnItr = columns.iterator();
 		assertTrue(columnItr.hasNext());
 		assertEquals("col0", columnItr.next());
