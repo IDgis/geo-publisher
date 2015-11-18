@@ -72,7 +72,7 @@ public class VectorLoaderSessionInitializerTest {
 	
 	FutureUtils f;
 	
-	ActorRef database, jobContext, dataSource, loader;
+	ActorRef database, jobContext, dataSource, loader, datasetManager;
 	
 	static class LoaderTransactionMock extends TransactionMock {
 		
@@ -184,16 +184,17 @@ public class VectorLoaderSessionInitializerTest {
 		
 		private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
-		private final ActorRef jobContext, database, dataSource;
+		private final ActorRef jobContext, database, dataSource, datasetManager;
 		
-		LoaderMock(ActorRef jobContext, ActorRef database, ActorRef dataSource) {
+		LoaderMock(ActorRef jobContext, ActorRef database, ActorRef dataSource, ActorRef datasetManager) {
 			this.jobContext = jobContext;
 			this.database = database;
 			this.dataSource = dataSource;
+			this.datasetManager = datasetManager;
 		}
 		
-		static Props props(ActorRef jobContext, ActorRef database, ActorRef dataSource) {
-			return Props.create(LoaderMock.class, jobContext, database, dataSource);
+		static Props props(ActorRef jobContext, ActorRef database, ActorRef dataSource, ActorRef datasetManager) {
+			return Props.create(LoaderMock.class, jobContext, database, dataSource, datasetManager);
 		}
 
 		@Override
@@ -202,7 +203,7 @@ public class VectorLoaderSessionInitializerTest {
 				log.debug("vector import job info");
 				
 				VectorImportJobInfo importJob = (VectorImportJobInfo)msg;
-				ActorRef initiator = getContext().actorOf(VectorLoaderSessionInitiator.props(importJob, jobContext, database, Duration.apply(1, TimeUnit.SECONDS)), "initiator");
+				ActorRef initiator = getContext().actorOf(VectorLoaderSessionInitiator.props(importJob, jobContext, database, datasetManager, Duration.apply(1, TimeUnit.SECONDS)), "initiator");
 				initiator.tell(dataSource, getSelf());
 			} else if(msg instanceof SessionStarted){
 				log.debug("session started");
@@ -237,7 +238,9 @@ public class VectorLoaderSessionInitializerTest {
 		
 		dataSource = actorSystem.actorOf(DataSourceMock.props(), "data-source");
 		
-		loader = actorSystem.actorOf(LoaderMock.props(jobContext, database, dataSource));
+		datasetManager = actorSystem.actorOf(AnyAckRecorder.props(new Ack()), "dataset-manager");
+		
+		loader = actorSystem.actorOf(LoaderMock.props(jobContext, database, dataSource, datasetManager));
 		
 		f = new FutureUtils(actorSystem);
 	}

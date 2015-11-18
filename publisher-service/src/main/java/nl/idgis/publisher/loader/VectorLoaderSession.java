@@ -12,10 +12,9 @@ import akka.actor.Props;
 
 import scala.concurrent.duration.Duration;
 
-import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.AsyncTransactionHelper;
 import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.InsertRecords;
-import nl.idgis.publisher.database.messages.Rollback;
 
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
@@ -34,26 +33,26 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	private final List<Column> importColumns;
 	
-	private final ActorRef transaction;
+	private final AsyncTransactionHelper tx;
 	
 	private final FilterEvaluator filterEvaluator;	
 	
 	private long insertCount = 0, filteredCount = 0;
 	
-	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) throws IOException {		
+	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) throws IOException {		
 		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.importColumns = importColumns;
 		this.filterEvaluator = filterEvaluator;
-		this.transaction = transaction;
+		this.tx = tx;
 	}
 	
-	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, importColumns, filterEvaluator, transaction, jobContext);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) {
+		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, importColumns, filterEvaluator, tx, jobContext);
 	}
 	
-	public static Props props(ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, ActorRef transaction, ActorRef jobContext) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, importColumns, filterEvaluator, transaction, jobContext);
+	public static Props props(ActorRef loader, VectorImportJobInfo importJob, List<Column> importColumns, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) {
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, importColumns, filterEvaluator, tx, jobContext);
 	}	
 	
 	@Override
@@ -71,11 +70,11 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 			.filter(column -> column.getDataType().equals(Type.GEOMETRY))
 			.collect(Collectors.toList());
 		
-		return f.ask(transaction, new CreateIndices("staging_data", importJob.getDatasetId(), geometryColumns)).thenCompose(createIndicesMsg -> {
+		return tx.ask(new CreateIndices("staging_data", importJob.getDatasetId(), geometryColumns)).thenCompose(createIndicesMsg -> {
 			log.debug("indices created");
 			
-			if(createIndicesMsg instanceof Ack) {			
-				return f.ask(transaction, new Commit()).thenApply(commitMsg -> {				
+			if(createIndicesMsg instanceof Ack) {
+				return tx.commit().thenApply(commitMsg -> {
 					log.debug("transaction committed");
 					
 					return commitMsg;
@@ -88,7 +87,7 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	@Override
 	protected CompletableFuture<Object> importFailed() {
-		return f.ask(transaction, new Rollback()).thenApply(msg -> {
+		return tx.rollback().thenApply(msg -> {
 			log.debug("transaction rolled back");
 			
 			return msg;
@@ -136,7 +135,7 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 		updateProgress();
 		
 		ActorRef sender = getSender(), self = getSelf();
-		f.ask(transaction, new InsertRecords(
+		tx.ask(new InsertRecords(
 			"staging_data",
 			importJob.getDatasetId(), 
 			importColumns, 

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,9 +25,12 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.event.LoggingAdapter;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.utils.Logging;
+import nl.idgis.publisher.database.AsyncTransactionHelper;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.InsertRecords;
@@ -90,7 +94,7 @@ public class VectorLoaderSessionTest {
 	}
 
 	@Before
-	public void actorSystem() {
+	public void actorSystem() throws Exception {
 		Config akkaConfig = ConfigFactory.empty()
 			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
 			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
@@ -110,11 +114,23 @@ public class VectorLoaderSessionTest {
 		}
 		
 		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
-				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());
-
-		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, importJob.getColumns(), null /* filterEvaluator */, transaction, jobContext));
+				"datasetId", "datasetName", null /* filterCondition */, columns, columns, Collections.emptyList());		
+		
+		Constructor<AsyncTransactionHelper> constructor = AsyncTransactionHelper.class.getDeclaredConstructor(
+				ActorRef.class, 
+				FutureUtils.class, 
+				LoggingAdapter.class);
+		
+		constructor.setAccessible(true);
 		
 		f = new FutureUtils(actorSystem);
+		
+		AsyncTransactionHelper tx = constructor.newInstance(
+			transaction,
+			f,
+			Logging.getLogger());
+
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, importJob.getColumns(), null /* filterEvaluator */, tx, jobContext));
 	}
 	
 	@Test

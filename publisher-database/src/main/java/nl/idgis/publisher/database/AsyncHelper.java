@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.mysema.query.sql.RelationalPath;
 
 public interface AsyncHelper {
@@ -13,4 +15,6 @@ public interface AsyncHelper {
 	AsyncSQLDeleteClause delete(RelationalPath<?> entity);
 	
 	AsyncTransactionRef getTransactionRef();
+	
+	CompletableFuture<Object> ask(Object message);
 }

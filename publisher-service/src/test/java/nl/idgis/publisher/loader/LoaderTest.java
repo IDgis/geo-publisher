@@ -183,7 +183,7 @@ public class LoaderTest extends AbstractServiceTest {
 		rasterFolderMock = actorOf(RasterFolderMock.props(), "rasterFolderMock");
 		ActorRef harvesterMock = actorOf(HarvesterMock.props(dataSourceMock), "harvesterMock");		
 		
-		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, rasterFolderMock, harvesterMock), "loader")), "loaderFacade");
+		loader = actorOf(JobExecutorFacade.props(jobManager, actorOf(Loader.props(databaseMock, rasterFolderMock, harvesterMock, datasetManager), "loader")), "loaderFacade");
 		
 		List<Records> content = new ArrayList<>();
 		for(int i = 0; i < 2; i++) {

@@ -80,7 +80,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 	public void setUp() {
 		dataSource = actorOf(DataSourceMock.props(), "dataSource");
 		harvester = actorOf(HarvesterMock.props(dataSource), "harvester");		
-		loader = actorOf(Loader.props(database, null, harvester), "loader");
+		loader = actorOf(Loader.props(database, null, harvester, datasetManager), "loader");
 	}
 	
 	@Test

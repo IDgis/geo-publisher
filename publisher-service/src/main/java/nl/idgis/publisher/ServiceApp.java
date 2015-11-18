@@ -178,7 +178,7 @@ public class ServiceApp extends UntypedActor {
 		String rasterFolderConfig = config.getString("raster.folder");
 		ActorRef rasterFolder = getContext().actorOf(Folder.props(rasterFolderConfig), "rasterFolder");
 		
-		final ActorRef loader = getContext().actorOf(Loader.props(database, rasterFolder, harvester), "loader");
+		final ActorRef loader = getContext().actorOf(Loader.props(database, rasterFolder, harvester, datasetManager), "loader");
 		
 		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
 		

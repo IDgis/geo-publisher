@@ -44,7 +44,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 	}
 	
 	@Override
-	public final void preStart() throws Exception {
+	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(receiveTimeout);
 	}
 

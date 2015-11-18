@@ -22,11 +22,15 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.messages.CreateTable;
+import nl.idgis.publisher.database.messages.CreateView;
+import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.projections.QColumn;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
+import nl.idgis.publisher.dataset.messages.PrepareTable;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
@@ -43,6 +47,7 @@ import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.RasterDataset;
 
+import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JsonUtils;
@@ -111,9 +116,51 @@ public class DatasetManager extends UntypedActor {
 			returnToSender (handleCleanup ((Cleanup) msg));
 		} else if (msg instanceof DeleteSourceDatasets) {
 			returnToSender (handleDeleteSourceDatasets((DeleteSourceDatasets)msg));
+		} else if (msg instanceof PrepareTable){
+			returnToSender (handlePrepareTable((PrepareTable)msg));
 		} else {
 			unhandled(msg);
 		}
+	}
+	
+	private CompletableFuture<Object> handlePrepareTable(PrepareTable msg) {
+		log.debug("preparing table: {}", msg);
+		
+		String datasetId = msg.getDatasetId();
+		
+		return db.transactional(msg.getTransactionRef(), tx -> {
+			return tx.ask(
+				new DropView(
+					"data", 
+					datasetId)).thenCompose(dropViewResult -> {
+				
+				log.debug("drop view result: {}", dropViewResult);
+						
+				if(dropViewResult instanceof Ack) {
+					return tx.ask(						 
+						new CreateTable(
+							"staging_data", 
+							datasetId, 
+							msg.getColumns())).thenCompose(createTableResult -> {
+						
+						log.debug("create table result: {}", createTableResult);
+								
+						if(createTableResult instanceof Ack) {
+							return tx.ask(								 
+								new CreateView(
+									"data", 
+									datasetId, 
+									"staging_data", 
+									datasetId));
+						} else {
+							return f.successful(createTableResult);
+						}
+					});
+				} else {
+					return f.successful(dropViewResult);
+				}
+			});
+		});
 	}
 
 	private CompletableFuture<Long> handleDeleteSourceDatasets(DeleteSourceDatasets msg) {
