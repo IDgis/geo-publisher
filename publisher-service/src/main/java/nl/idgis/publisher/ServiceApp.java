@@ -180,7 +180,7 @@ public class ServiceApp extends UntypedActor {
 		
 		final ActorRef loader = getContext().actorOf(Loader.props(database, rasterFolder, harvester, datasetManager), "loader");
 		
-		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database), "service-manager");
+		ActorRef serviceManager = getContext().actorOf(ServiceManager.props(database, datasetManager), "service-manager");
 		
 		ActorRef jobManager = getContext().actorOf(JobManager.props(database), "job-manager");
 		

@@ -1,5 +1,7 @@
 package nl.idgis.publisher.loader;
 
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
+import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -13,6 +15,7 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -147,12 +150,11 @@ public class MissingColumnTest extends AbstractServiceTest {
 		f.ask(recorder, new Wait(2), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(Ack.class)
-			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
-		
+			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));		
 		
 		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
-		assertDatasetRel(datasetId, "data", 1, "col0", "col1"); // TODO: remove
-		
+		assertRelNotExists("data", datasetId);
+				
 		// create layer and service
 		int layerId = insert(genericLayer)
 			.set(genericLayer.identification, "testLayer")
@@ -193,6 +195,9 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.execute();
 		
 		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetView(datasetId, "col0", "col1");
 		
 		// drop second column ('col1')
 		testDataset = new VectorDataset(
@@ -257,6 +262,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 		// expected: no change yet
 		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
 		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetView(datasetId, "col0", "col1");
 		
 		// accept structure change
 		f.ask(database, new AddNotificationResult(
@@ -282,7 +288,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
 		
 		assertDatasetRel(datasetId, "staging_data", 1, "col0");
-		assertDatasetRel(datasetId, "data", 1, "col0"); // TODO: include 'col1'
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetCopy(datasetId, "col0", "col1");
 		
 		// start (yet) another import, should succeed
 		f.ask(recorder, new Clear(), Cleared.class).get();
@@ -303,9 +310,53 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
 		
 		assertDatasetRel(datasetId, "staging_data", 1, "col0");
-		assertDatasetRel(datasetId, "data", 1, "col0"); // TODO: include 'col1'
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetCopy(datasetId, "col0", "col1");
 		
-		// TODO: add republish scenario
+		// republish service		
+		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		
+		assertDatasetRel(datasetId, "staging_data", 1, "col0");
+		assertDatasetRel(datasetId, "data", 1, "col0");
+		assertDatasetView(datasetId, "col0");
+	}
+
+	private void assertDatasetView(String datasetId, String... columnNames) {
+		assertEquals(
+			Arrays.asList(columnNames),
+			query().from(datasetView)
+				.join(dataset).on(dataset.id.eq(datasetView.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.list(datasetView.name));
+		assertFalse(
+			query().from(datasetCopy)
+				.join(dataset).on(dataset.id.eq(datasetCopy.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.exists());
+	}
+	
+	private void assertDatasetCopy(String datasetId, String... columnNames) {
+		assertEquals(
+			Arrays.asList(columnNames),
+			query().from(datasetCopy)
+				.join(dataset).on(dataset.id.eq(datasetCopy.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.list(datasetCopy.name));
+		assertFalse(
+			query().from(datasetView)
+				.join(dataset).on(dataset.id.eq(datasetView.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.exists());
+	}
+
+	private void assertRelNotExists(String schemaName, String tableName) {
+		try(Statement stmt = statement();) {
+			try(ResultSet rs = stmt.executeQuery("select * from \"" + schemaName + "\".\"" + tableName + "\"");) {
+				while(rs.next()) { }
+			}
+			
+			fail("relation " + schemaName + "." + tableName + " should not exists");
+		} catch(SQLException e) { }
 	}
 
 	private void assertDatasetRel(final String datasetId, String schema, int count, String... columnNames) throws SQLException {

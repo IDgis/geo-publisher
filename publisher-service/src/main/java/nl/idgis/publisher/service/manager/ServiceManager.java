@@ -1,11 +1,14 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
 import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QDataset.dataset;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -14,9 +17,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -25,7 +30,11 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.AsyncHelper;
+
 import nl.idgis.publisher.domain.web.tree.Service;
+
+import nl.idgis.publisher.dataset.messages.PrepareView;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
@@ -55,7 +64,7 @@ public class ServiceManager extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef database;
+	private final ActorRef database, datasetManager;
 	
 	private FutureUtils f;
 	
@@ -75,12 +84,13 @@ public class ServiceManager extends UntypedActor {
 		}
 	}
 	
-	public ServiceManager(ActorRef database) {
+	public ServiceManager(ActorRef database, ActorRef datasetManager) {
 		this.database = database;
+		this.datasetManager = datasetManager;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(ServiceManager.class, database);
+	public static Props props(ActorRef database, ActorRef datasetManager) {
+		return Props.create(ServiceManager.class, database, datasetManager);
 	}
 	
 	@Override
@@ -137,8 +147,42 @@ public class ServiceManager extends UntypedActor {
 	private CompletableFuture<Object> handleGetPublishedService(GetPublishedService msg) {
 		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, f, tx, msg.getServiceId()).result());
 	}
+	
+	private Supplier<CompletableFuture<Object>> createView(AsyncHelper tx, String datasetId) {
+		log.debug("preparing view for dataset: {}", datasetId);
+		
+		return () -> f.ask(datasetManager, new PrepareView(Optional.of(tx.getTransactionRef()), datasetId));
+	}
+	
+	private CompletableFuture<Object> ensureViews(AsyncHelper tx, String serviceId) {
+		log.debug("ensuring views for service: {}", serviceId);
+		
+		CompletableFuture<List<Object>> ensureViewResults = tx.query().from(publishedServiceDataset)
+			.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+			.where(genericLayer.identification.eq(serviceId))
+			.where(new SQLSubQuery().from(datasetView)
+				.where(datasetView.datasetId.eq(publishedServiceDataset.datasetId))
+				.notExists())
+			.list(dataset.identification).thenCompose(datasetIds ->
+				f.supplierSequence(
+					datasetIds.asCollection().stream()
+						.map(datasetId -> createView(tx, datasetId))
+						.collect(Collectors.toList())));
+		
+		// determine if we managed to create all necessary views
+		return ensureViewResults.thenApply(results ->
+			results.stream()
+				.filter(result -> result instanceof Failure)
+				.map(result -> (Failure)result)
+				.collect(Collectors.toSet())).thenApply(failures ->
+					failures.isEmpty()
+						? new Ack()
+						: new Failure(failures));
+	}
 
-	private CompletableFuture<Ack> handlePublishService(PublishService msg) {
+	private CompletableFuture<Object> handlePublishService(PublishService msg) {
 		return 
 			db.transactional(msg, tx ->
 				f.ask(
@@ -148,7 +192,8 @@ public class ServiceManager extends UntypedActor {
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
 							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentIds())
-								.result()));
+								.result()).thenCompose(publishResult ->
+									ensureViews(tx, msg.getServiceId())));
 	}
 
 	private CompletableFuture<Object> handleGetDatasetLayerRef(GetDatasetLayerRef msg) {

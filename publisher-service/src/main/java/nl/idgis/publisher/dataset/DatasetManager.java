@@ -1,8 +1,13 @@
 package nl.idgis.publisher.dataset;
 
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
+import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -13,6 +18,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,8 +28,10 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.messages.CopyTable;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
+import nl.idgis.publisher.database.messages.DropTable;
 import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.projections.QColumn;
 
@@ -31,6 +39,7 @@ import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.PrepareTable;
+import nl.idgis.publisher.dataset.messages.PrepareView;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
@@ -38,6 +47,7 @@ import nl.idgis.publisher.dataset.messages.Updated;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
 import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.DatasetLog;
@@ -62,6 +72,7 @@ import akka.util.Timeout;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.expr.DateTimeExpression;
+import com.mysema.query.types.query.ListSubQuery;
 
 public class DatasetManager extends UntypedActor {
 
@@ -118,49 +129,126 @@ public class DatasetManager extends UntypedActor {
 			returnToSender (handleDeleteSourceDatasets((DeleteSourceDatasets)msg));
 		} else if (msg instanceof PrepareTable){
 			returnToSender (handlePrepareTable((PrepareTable)msg));
+		} else if (msg instanceof PrepareView) {
+			returnToSender (handlePrepareView((PrepareView)msg));
 		} else {
 			unhandled(msg);
 		}
 	}
 	
+	private CompletableFuture<Object> handlePrepareView(PrepareView msg) {
+		String datasetId = msg.getDatasetId();
+		
+		return db.transactional(msg, tx ->
+			tx.delete(datasetCopy)
+				.where(new SQLSubQuery().from(dataset)
+					.where(dataset.id.eq(datasetCopy.datasetId))
+					.where(dataset.identification.eq(datasetId))
+					.exists())
+				.execute().thenCompose(copyColumnCount ->
+					tx.ask(new DropTable("data", datasetId)).thenCompose(dropTableResult ->
+						dropTableResult instanceof Ack
+							? tx.ask(new CreateView("data", datasetId, "staging_data", datasetId)).thenCompose(createViewResult ->
+								createViewResult instanceof Ack
+									? tx.insert(datasetView)
+										.columns(
+											datasetView.datasetId,
+											datasetView.index,
+											datasetView.name,
+											datasetView.dataType)
+										.select(subselectDatasetColumns(datasetId))
+										.execute().thenApply(viewColumnCount -> (Object)new Ack())
+									: f.successful(createViewResult))
+							: f.successful(dropTableResult))));
+	}
+
+	private ListSubQuery<Tuple> subselectDatasetColumns(String datasetId) {
+		return new SQLSubQuery().from(datasetColumn)
+			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+			.where(dataset.identification.eq(datasetId))
+			// eliminate all columns not present in last imported source dataset version: 
+			.where(new SQLSubQuery().from(sourceDatasetVersionColumn)				
+				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.in(
+					new SQLSubQuery().from().from(importJob) // last succeeded import job
+						.join(jobState).on(jobState.jobId.eq(importJob.jobId))
+						.where(jobState.state.eq(JobState.SUCCEEDED.name()))
+						.orderBy(jobState.createTime.desc())
+						.limit(1)
+						.list(importJob.sourceDatasetVersionId)))
+					.where(sourceDatasetVersionColumn.name.eq(datasetColumn.name))
+				.exists())
+			.list(
+				datasetColumn.datasetId,
+				datasetColumn.index,
+				datasetColumn.name,
+				datasetColumn.dataType);
+	}
+	
+	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String datasetId, List<Column> columns) {
+		log.debug("making dataset copy");
+		
+		return tx.ask(new DropView("data", datasetId)).thenCompose(dropViewResult ->
+			dropViewResult instanceof Ack
+				? tx.delete(datasetView)
+					.where(new SQLSubQuery().from(dataset)
+						.where(dataset.identification.eq(datasetId))
+						.where(dataset.id.eq(datasetView.datasetId))
+						.exists())
+					.execute()
+						.thenCompose(cnt ->
+							tx.ask(new CopyTable("data", datasetId, "staging_data", datasetId))).thenCompose(copyTableResult ->
+								tx.insert(datasetCopy)
+									.columns(
+										datasetCopy.datasetId,
+										datasetCopy.index,
+										datasetCopy.name,
+										datasetCopy.dataType)
+									.select(subselectDatasetColumns(datasetId))
+									.execute().thenCompose(cnt -> 
+										tx.ask(new CreateTable("staging_data", datasetId, columns))))
+				: f.successful(dropViewResult));
+	}
+	
+	private CompletableFuture<Object> keepDatasetView(AsyncHelper tx, String datasetId, List<Column> columns) {
+		log.debug("keeping dataset view");
+		
+		return tx.ask(new DropView("data", datasetId)).thenCompose(dropViewResult ->
+			dropViewResult instanceof Ack
+				? tx.ask(new CreateTable("staging_data", datasetId, columns)).thenCompose(createTableResult ->
+					createTableResult instanceof Ack
+						? tx.ask(new CreateView("data", datasetId, "staging_data", datasetId))
+						: f.successful(createTableResult))
+				: f.successful(dropViewResult));
+	}
+
 	private CompletableFuture<Object> handlePrepareTable(PrepareTable msg) {
 		log.debug("preparing table: {}", msg);
 		
 		String datasetId = msg.getDatasetId();
+		List<Column> columns = msg.getColumns();
 		
-		return db.transactional(msg.getTransactionRef(), tx -> {
-			return tx.ask(
-				new DropView(
-					"data", 
-					datasetId)).thenCompose(dropViewResult -> {
-				
-				log.debug("drop view result: {}", dropViewResult);
-						
-				if(dropViewResult instanceof Ack) {
-					return tx.ask(						 
-						new CreateTable(
-							"staging_data", 
-							datasetId, 
-							msg.getColumns())).thenCompose(createTableResult -> {
-						
-						log.debug("create table result: {}", createTableResult);
-								
-						if(createTableResult instanceof Ack) {
-							return tx.ask(								 
-								new CreateView(
-									"data", 
-									datasetId, 
-									"staging_data", 
-									datasetId));
-						} else {
-							return f.successful(createTableResult);
-						}
-					});
-				} else {
-					return f.successful(dropViewResult);
-				}
-			});
-		});
+		return db.transactional(msg, tx ->
+			fetchViewInfo(tx, datasetId).thenCompose(viewColumns ->
+				viewColumns.isEmpty() // view present?
+					? tx.ask(new CreateTable("staging_data", datasetId, columns)) 
+					: viewColumns.equals(columns) // same columns?
+						? keepDatasetView(tx, datasetId, columns)
+						: makeDatasetCopy(tx, datasetId, columns)));
+	}
+
+	private CompletableFuture<List<Column>> fetchViewInfo(AsyncHelper tx, String datasetId) {
+		return tx.query().from(datasetView)
+			.join(dataset).on(dataset.id.eq(datasetView.datasetId))
+			.where(dataset.identification.eq(datasetId))
+			.orderBy(datasetView.index.asc())
+			.list(
+				datasetView.name, 
+				datasetView.dataType).thenApply(viewInfo ->
+					viewInfo.list().stream()
+						.map(t -> new Column(
+							t.get(datasetView.name), 
+							t.get(datasetView.dataType)))
+						.collect(Collectors.toList()));
 	}
 
 	private CompletableFuture<Long> handleDeleteSourceDatasets(DeleteSourceDatasets msg) {

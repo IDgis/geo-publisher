@@ -33,6 +33,7 @@ import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
@@ -309,6 +310,15 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 					log.debug("table prepared");					
 										
 					startLoaderSession(tx);
+				} else if(msg instanceof Failure) {
+					log.error("table preparation failed: {}", msg);
+					
+					tx.rollback().thenRun(() -> {
+						jobContext.tell(new Ack(), getSelf()); // TODO: feels redundant...
+						jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());
+						
+						getContext().stop(getSelf());
+					});
 				} else {
 					unhandled(msg);
 				}
