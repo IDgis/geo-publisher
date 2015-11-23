@@ -237,6 +237,8 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private CompletableFuture<List<Column>> fetchViewInfo(AsyncHelper tx, String datasetId) {
+		log.debug("fetching dataset view info");
+		
 		return tx.query().from(datasetView)
 			.join(dataset).on(dataset.id.eq(datasetView.datasetId))
 			.where(dataset.identification.eq(datasetId))

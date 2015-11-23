@@ -32,6 +32,7 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.GetJobLog;
 import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.InsertRecords;
@@ -73,6 +74,7 @@ import nl.idgis.publisher.loader.messages.SetRecordsResponse;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
+import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedIterable;
 
 public class LoaderTest extends AbstractServiceTest {
@@ -95,6 +97,16 @@ public class LoaderTest extends AbstractServiceTest {
 		
 		final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 		
+		final ActorRef transaction;
+		
+		public TransactionMock(ActorRef transaction) {
+			this.transaction = transaction;
+		}
+		
+		public static Props props(ActorRef transaction) {
+			return Props.create(TransactionMock.class, transaction);
+		}
+		
 		int insertCount = 0;
 
 		@Override
@@ -107,8 +119,13 @@ public class LoaderTest extends AbstractServiceTest {
 				getContext().parent().tell(new SetInsertCount(insertCount), getSelf());
 				getContext().stop(getSelf());
 			}
-		
-			getSender().tell(new Ack(), getSelf());
+			
+			if(msg instanceof CreateIndices) {
+				// ignore message (not supported by H2)
+				getSender().tell(new Ack(), getSelf());
+			} else {			
+				transaction.forward(msg, getContext());
+			}
 		}
 		
 	}
@@ -123,8 +140,15 @@ public class LoaderTest extends AbstractServiceTest {
 	
 		Integer insertCount;
 		
+		FutureUtils f;
+		
 		public DatabaseMock(ActorRef database)  {
 			this.database = database;
+		}
+		
+		@Override
+		public void preStart() throws Exception {
+			f = new FutureUtils(getContext());
 		}
 		
 		static Props props(ActorRef database) {
@@ -142,8 +166,13 @@ public class LoaderTest extends AbstractServiceTest {
 				sender = getSender();
 				sendInsertCount();
 			} else if(msg instanceof StartTransaction) {
-				ActorRef transaction = getContext().actorOf(Props.create(TransactionMock.class));				
-				getSender().tell(new TransactionCreated(transaction), getSelf());
+				ActorRef sender = getSender();
+				f.ask(database, msg, TransactionCreated.class).thenAccept(transactionCreated -> {
+					ActorRef transaction = transactionCreated.getActor();
+					ActorRef transactionMock = getContext().actorOf(TransactionMock.props(transaction));
+					
+					sender.tell(new TransactionCreated(transactionMock), getSelf());
+				});
 			} else {
 				database.forward(msg, getContext());
 			}
