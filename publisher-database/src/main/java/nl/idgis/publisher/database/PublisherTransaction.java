@@ -37,6 +37,7 @@ import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DataSourceStatus;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
+import nl.idgis.publisher.database.messages.DropTable;
 import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.messages.GetCategoryListInfo;
 import nl.idgis.publisher.database.messages.GetDataSourceInfo;
@@ -185,6 +186,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeCopyTable((CopyTable)query);
 		} else if (query instanceof DropView) {
 			return executeDropView((DropView)query);
+		} else if (query instanceof DropTable) {
+			return executeDropTable((DropTable)query);
 		} else if (query instanceof CreateIndices) {
 			return executeCreateIndices((CreateIndices)query);
 		} else {
@@ -750,6 +753,18 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		execute("create schema if not exists \"" + schemaName + "\"");
 		
 		execute("drop view if exists \"" + schemaName + "\".\"" + viewName + "\"");
+		
+		return new Ack();
+	}
+	
+	private Object executeDropTable(DropTable query) throws Exception {
+		String schemaName = query.getSchemaName();
+		String tableName = query.getTableName();
+		
+		// drop table fails if schema doesn't exists
+		execute("create schema if not exists \"" + schemaName + "\"");
+		
+		execute("drop table if exists \"" + schemaName + "\".\"" + tableName + "\"");
 		
 		return new Ack();
 	}
