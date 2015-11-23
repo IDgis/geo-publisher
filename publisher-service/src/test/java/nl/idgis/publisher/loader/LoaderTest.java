@@ -456,6 +456,6 @@ public class LoaderTest extends AbstractServiceTest {
 			Thread.sleep(100);
 		}
 		
-		assertEquals(encountered, expected);
+		assertEquals(expected, encountered);
 	}
 }
