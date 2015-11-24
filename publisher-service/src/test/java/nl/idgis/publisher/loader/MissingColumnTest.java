@@ -122,7 +122,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 				"My Test Dataset", 
 				sourceDatasetId,
 				columns, 
-				"{ \"expression\": null }");		
+				"{ \"expression\": null }");
 		
 		// set data source mockup content
 		f.ask(
@@ -136,7 +136,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			Ack.class).get();
 		
 		ActorRef recorder = actorOf(AnyAckRecorder.props(new Ack()), "recorder");
-				
+						
 		f.ask(jobManager, new CreateImportJob(datasetId)).get();		
 		ImportJobInfo job = getNextImportJob();		
 		loader.tell(
@@ -312,6 +312,59 @@ public class MissingColumnTest extends AbstractServiceTest {
 		assertDatasetRel(datasetId, "staging_data", 1, "col0");
 		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
 		assertDatasetCopy(datasetId, "col0", "col1");
+		
+		f.ask(
+			dataSource, 
+			new SetRecordsResponse(
+				Collections.singletonList(
+					new Records(
+						Collections.singletonList(
+							new Record(
+								Arrays.asList("Hello, world!", 42)))))), 
+			Ack.class).get();
+		
+		// create additional datasets
+		for(int i = 0; i < 10; i++) {
+			final String anotherSourceDatasetId = "anotherSourceDataset" + i;
+			
+			VectorDataset anotherDataset = new VectorDataset(
+				anotherSourceDatasetId, 
+				"My Test Table", 
+				"alternate title", 
+				"testCategory", 
+				new Timestamp(new Date().getTime()), //revision date
+				Collections.<Log>emptySet(), 
+				false, // confidential
+				new Table(columns));
+			
+			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", anotherDataset), Registered.class).get();
+			
+			String additionalDatasetId = "additionalDataset" + i;
+			
+			createDataset(
+				additionalDatasetId, 
+				"My Test Dataset", 
+				anotherSourceDatasetId,
+				columns, 
+				"{ \"expression\": null }");
+			
+			f.ask(recorder, new Clear(), Cleared.class).get();
+			
+			f.ask(jobManager, new CreateImportJob(additionalDatasetId)).get();
+			job = getNextImportJob();
+			loader.tell(
+				job,
+				f.ask(
+					recorder, 
+					new Create(JobContext.props(jobManager, recorder, job)), 
+					Created.class).get()
+						.getActorRef());
+			
+			f.ask(recorder, new Wait(2), Waited.class).get();
+			f.ask(recorder, new GetRecording(), Recording.class).get()
+				.assertNext(Ack.class)
+				.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
+		}
 		
 		// republish service		
 		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
