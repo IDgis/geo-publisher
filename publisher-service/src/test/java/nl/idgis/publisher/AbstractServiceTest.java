@@ -37,20 +37,11 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 	protected ActorRef datasetManager;
 	
 	protected ActorRef serviceManager;
-	
 	@Before
-	public void jobManager() {
+	public void managers() {
 		jobManager = actorOf(JobManager.props(database), "jobManager");
-	}
-	
-	@Before
-	public void datasetManager() {
 		datasetManager = actorOf(DatasetManager.props(database), "datasetManager");
-	}
-	
-	@Before
-	public void serviceManager() {
-		serviceManager = actorOf(ServiceManager.props(database), "serviceManager");
+		serviceManager = actorOf(ServiceManager.props(database, datasetManager), "serviceManager");
 	}
 	
 	protected void executeJobs(JobManagerRequest request) throws Exception {

@@ -33,6 +33,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.StringWriter;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -191,6 +192,25 @@ public class ServiceManagerTest extends AbstractServiceTest {
 					sourceDatasetVersionColumn.name,
 					sourceDatasetVersionColumn.dataType))
 			.execute();
+		
+		try(Statement stmt = statement();) {
+			stmt.execute("create schema staging_data");
+		}
+		
+		query().from(dataset)
+		.list(dataset.identification).forEach(datasetId -> {			
+			try(Statement stmt = statement();) {
+				stmt.execute("create table staging_data." + datasetId + "(" +
+					query().from(datasetColumn)
+						.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
+						.where(dataset.identification.eq(datasetId))
+						.orderBy(datasetColumn.index.asc())
+						.list(datasetColumn.name.concat(" ").concat(datasetColumn.dataType)).stream()
+							.collect(Collectors.joining(",")) + ")");
+			} catch(Exception e) { 
+				throw new RuntimeException(e);
+			}
+		});
 		
 		int vectorJobId = insert(job)
 			.set(job.type, "IMPORT")

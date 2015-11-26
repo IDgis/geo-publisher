@@ -43,7 +43,7 @@ public class Loader extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef database, rasterFolder, harvester;
+	private final ActorRef database, rasterFolder, harvester, datasetManager;
 	
 	private BiMap<ImportJobInfo, ActorRef> sessions;
 	
@@ -53,14 +53,15 @@ public class Loader extends UntypedActor {
 	
 	private Map<String, Integer> busyDataSources;
 
-	public Loader(ActorRef database, ActorRef rasterFolder, ActorRef harvester) {		
+	public Loader(ActorRef database, ActorRef rasterFolder, ActorRef harvester, ActorRef datasetManager) {		
 		this.database = database;
 		this.rasterFolder = rasterFolder;
 		this.harvester = harvester;
+		this.datasetManager = datasetManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef rasterFolder, ActorRef harvester) {
-		return Props.create(Loader.class, database, rasterFolder, harvester);
+	public static Props props(ActorRef database, ActorRef rasterFolder, ActorRef harvester, ActorRef datasetManager) {
+		return Props.create(Loader.class, database, rasterFolder, harvester, datasetManager);
 	}
 	
 	@Override
@@ -220,7 +221,7 @@ public class Loader extends UntypedActor {
 		ActorRef jobContext = getSender();
 		if(importJob instanceof VectorImportJobInfo) {
 			initiator = getContext().actorOf(
-				VectorLoaderSessionInitiator.props((VectorImportJobInfo)importJob, jobContext, database),
+				VectorLoaderSessionInitiator.props((VectorImportJobInfo)importJob, jobContext, database, datasetManager),
 				nameGenerator.getName(VectorLoaderSessionInitiator.class));
 		} else if(importJob instanceof RasterImportJobInfo) {
 			initiator = getContext().actorOf(

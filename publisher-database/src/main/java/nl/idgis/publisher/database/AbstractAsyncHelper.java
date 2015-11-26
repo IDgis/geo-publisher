@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.mysema.query.sql.RelationalPath;
 
 import akka.actor.ActorRef;
@@ -39,5 +41,10 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	@Override
 	public final AsyncSQLDeleteClause delete(RelationalPath<?> entity) {
 		return new AsyncSQLDeleteClause(actorRef, f, entity);
+	}
+	
+	@Override
+	public final CompletableFuture<Object> ask(Object message) {
+		return f.ask(actorRef, message);
 	}
 }

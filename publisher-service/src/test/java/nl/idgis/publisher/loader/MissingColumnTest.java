@@ -1,15 +1,26 @@
 package nl.idgis.publisher.loader;
 
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
+import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +31,8 @@ import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
 
@@ -34,6 +47,7 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.domain.web.tree.Service;
 
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
@@ -57,6 +71,8 @@ import nl.idgis.publisher.recorder.messages.Created;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.manager.messages.GetService;
+import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.utils.TypedList;
 
 public class MissingColumnTest extends AbstractServiceTest {
@@ -67,7 +83,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 	public void setUp() {
 		dataSource = actorOf(DataSourceMock.props(), "dataSource");
 		harvester = actorOf(HarvesterMock.props(dataSource), "harvester");		
-		loader = actorOf(Loader.props(database, null, harvester), "loader");
+		loader = actorOf(Loader.props(database, null, harvester, datasetManager), "loader");
 	}
 	
 	@Test
@@ -106,7 +122,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 				"My Test Dataset", 
 				sourceDatasetId,
 				columns, 
-				"{ \"expression\": null }");		
+				"{ \"expression\": null }");
 		
 		// set data source mockup content
 		f.ask(
@@ -120,7 +136,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			Ack.class).get();
 		
 		ActorRef recorder = actorOf(AnyAckRecorder.props(new Ack()), "recorder");
-				
+						
 		f.ask(jobManager, new CreateImportJob(datasetId)).get();		
 		ImportJobInfo job = getNextImportJob();		
 		loader.tell(
@@ -134,32 +150,56 @@ public class MissingColumnTest extends AbstractServiceTest {
 		f.ask(recorder, new Wait(2), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(Ack.class)
-			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
-			
-
-		ResultSet rs = statement().executeQuery("select count(*) from staging_data.\"" + datasetId + "\"");
-		assertTrue(rs.next());
-		assertEquals(1, rs.getInt(1));
-		assertFalse(rs.next());
+			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));		
 		
-		rs = statement().executeQuery("select * from staging_data.\"" + datasetId + "\"");
-		ResultSetMetaData md = rs.getMetaData();
-		assertEquals(2, md.getColumnCount());
-		assertEquals("col0", md.getColumnName(1));
-		assertEquals("col1", md.getColumnName(2));
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
+		assertRelNotExists("data", datasetId);
+				
+		// create layer and service
+		int layerId = insert(genericLayer)
+			.set(genericLayer.identification, "testLayer")
+			.set(genericLayer.name, "testLayerName")
+			.executeWithKey(genericLayer.id);
 		
-		rs = statement().executeQuery("select count(*) from data.\"" + datasetId + "\"");
-		assertTrue(rs.next());
-		assertEquals(1, rs.getInt(1));
-		assertFalse(rs.next());
+		int serviceLayerId = insert(genericLayer)
+			.set(genericLayer.identification, "testService")
+			.set(genericLayer.name, "testServiceName")
+			.executeWithKey(genericLayer.id);
 		
-		rs = statement().executeQuery("select * from data.\"" + datasetId + "\"");
-		md = rs.getMetaData();
-		assertEquals(2, md.getColumnCount());
-		assertEquals("col0", md.getColumnName(1));
-		assertEquals("col1", md.getColumnName(2));
+		insert(service)
+			.set(service.genericLayerId, serviceLayerId)
+			.execute();
 		
-		// drop second column
+		insert(leafLayer)
+			.columns(
+				leafLayer.genericLayerId,
+				leafLayer.datasetId)
+			.select(
+				new SQLSubQuery().from(dataset)
+				.where(dataset.identification.eq(datasetId))
+				.list(layerId, dataset.id))
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, serviceLayerId)
+			.set(layerStructure.childLayerId, layerId)
+			.set(layerStructure.layerOrder, 0)
+			.execute();
+		
+		f.ask(serviceManager, new GetService("testService"), Service.class).get();
+		
+		// publish service
+		insert(environment)
+			.set(environment.identification, "testEnvironment")
+			.set(environment.confidential, false)
+			.execute();
+		
+		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetView(datasetId, "col0", "col1");
+		
+		// drop second column ('col1')
 		testDataset = new VectorDataset(
 			testDataset.getId(), 
 			testDataset.getName(),
@@ -183,9 +223,6 @@ public class MissingColumnTest extends AbstractServiceTest {
 		
 		assertTrue(query().from(sourceDatasetColumnDiff).exists());
 		
-		//Tuple t = query().from(sourceDatasetColumnDiff).singleResult(sourceDatasetColumnDiff.all());
-		//assertNotNull(t);
-		
 		// set data source mockup content
 		f.ask(
 			dataSource, 
@@ -196,9 +233,6 @@ public class MissingColumnTest extends AbstractServiceTest {
 							new Record(
 								Arrays.asList("Hello, world!")))))), 
 			Ack.class).get();
-		
-		//assertEquals("col1", query().from(datasetColumnDiff).singleResult(datasetColumnDiff.name));
-		//assertTrue(query().from(datasetStatus).singleResult(datasetStatus.sourceDatasetColumnsChanged));
 		
 		// start another import, should result in a 
 		// source columns changed notification
@@ -225,6 +259,12 @@ public class MissingColumnTest extends AbstractServiceTest {
 		assertEquals(ImportNotificationType.SOURCE_COLUMNS_CHANGED, notificationsItr.next().getType());
 		assertFalse(notificationsItr.hasNext());
 		
+		// expected: no change yet
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetView(datasetId, "col0", "col1");
+		
+		// accept structure change
 		f.ask(database, new AddNotificationResult(
 			job, 
 			ImportNotificationType.SOURCE_COLUMNS_CHANGED, 
@@ -247,6 +287,10 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(Ack.class)
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
 		
+		assertDatasetRel(datasetId, "staging_data", 1, "col0");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetCopy(datasetId, "col0", "col1");
+		
 		// start (yet) another import, should succeed
 		f.ask(recorder, new Clear(), Cleared.class).get();
 		
@@ -264,6 +308,130 @@ public class MissingColumnTest extends AbstractServiceTest {
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(Ack.class)
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
+		
+		assertDatasetRel(datasetId, "staging_data", 1, "col0");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetCopy(datasetId, "col0", "col1");
+		
+		f.ask(
+			dataSource, 
+			new SetRecordsResponse(
+				Collections.singletonList(
+					new Records(
+						Collections.singletonList(
+							new Record(
+								Arrays.asList("Hello, world!", 42)))))), 
+			Ack.class).get();
+		
+		// create additional datasets
+		for(int i = 0; i < 10; i++) {
+			final String anotherSourceDatasetId = "anotherSourceDataset" + i;
+			
+			VectorDataset anotherDataset = new VectorDataset(
+				anotherSourceDatasetId, 
+				"My Test Table", 
+				"alternate title", 
+				"testCategory", 
+				new Timestamp(new Date().getTime()), //revision date
+				Collections.<Log>emptySet(), 
+				false, // confidential
+				new Table(columns));
+			
+			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", anotherDataset), Registered.class).get();
+			
+			String additionalDatasetId = "additionalDataset" + i;
+			
+			createDataset(
+				additionalDatasetId, 
+				"My Test Dataset", 
+				anotherSourceDatasetId,
+				columns, 
+				"{ \"expression\": null }");
+			
+			f.ask(recorder, new Clear(), Cleared.class).get();
+			
+			f.ask(jobManager, new CreateImportJob(additionalDatasetId)).get();
+			job = getNextImportJob();
+			loader.tell(
+				job,
+				f.ask(
+					recorder, 
+					new Create(JobContext.props(jobManager, recorder, job)), 
+					Created.class).get()
+						.getActorRef());
+			
+			f.ask(recorder, new Wait(2), Waited.class).get();
+			f.ask(recorder, new GetRecording(), Recording.class).get()
+				.assertNext(Ack.class)
+				.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
+		}
+		
+		// republish service		
+		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		
+		assertDatasetRel(datasetId, "staging_data", 1, "col0");
+		assertDatasetRel(datasetId, "data", 1, "col0");
+		assertDatasetView(datasetId, "col0");
+	}
+
+	private void assertDatasetView(String datasetId, String... columnNames) {
+		assertEquals(
+			Arrays.asList(columnNames),
+			query().from(datasetView)
+				.join(dataset).on(dataset.id.eq(datasetView.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.list(datasetView.name));
+		assertFalse(
+			query().from(datasetCopy)
+				.join(dataset).on(dataset.id.eq(datasetCopy.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.exists());
+	}
+	
+	private void assertDatasetCopy(String datasetId, String... columnNames) {
+		assertEquals(
+			Arrays.asList(columnNames),
+			query().from(datasetCopy)
+				.join(dataset).on(dataset.id.eq(datasetCopy.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.list(datasetCopy.name));
+		assertFalse(
+			query().from(datasetView)
+				.join(dataset).on(dataset.id.eq(datasetView.datasetId))
+				.where(dataset.identification.eq(datasetId))
+				.exists());
+	}
+
+	private void assertRelNotExists(String schemaName, String tableName) {
+		try(Statement stmt = statement();) {
+			try(ResultSet rs = stmt.executeQuery("select * from \"" + schemaName + "\".\"" + tableName + "\"");) {
+				while(rs.next()) { }
+			}
+			
+			fail("relation " + schemaName + "." + tableName + " should not exists");
+		} catch(SQLException e) { }
+	}
+
+	private void assertDatasetRel(final String datasetId, String schema, int count, String... columnNames) throws SQLException {
+		Statement stmt = statement();
+		
+		ResultSet rs = stmt.executeQuery("select count(*) from " + schema + ".\"" + datasetId + "\"");
+		assertTrue(rs.next());
+		assertEquals(count, rs.getInt(1));
+		assertFalse(rs.next());
+		rs.close();
+		
+		rs = statement().executeQuery("select * from " + schema + ".\"" + datasetId + "\"");
+		ResultSetMetaData md = rs.getMetaData();
+		assertEquals(columnNames.length, md.getColumnCount());
+		
+		for(int i = 0; i < columnNames.length; i++) {		
+			assertEquals(columnNames[i], md.getColumnName(i + 1));
+		}
+		
+		rs.close();
+		
+		stmt.close();
 	}	
 
 	private ImportJobInfo getNextImportJob() throws InterruptedException, ExecutionException {

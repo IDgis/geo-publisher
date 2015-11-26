@@ -3,16 +3,14 @@ package nl.idgis.publisher.loader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.database.messages.CreateTable;
-import nl.idgis.publisher.database.messages.CreateView;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.AsyncTransactionHelper;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
-import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
-import nl.idgis.publisher.database.messages.StartTransaction;
-import nl.idgis.publisher.database.messages.TransactionCreated;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
@@ -28,12 +26,15 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 
+import nl.idgis.publisher.dataset.messages.PrepareTable;
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -46,7 +47,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 
 public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator<VectorImportJobInfo> {
 	
-	private final ActorRef database;
+	private final ActorRef database, datasetManager;
 	
 	private DatasetStatusInfo datasetStatus = null;
 	
@@ -59,21 +60,32 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	private Set<Column> missingColumns = null, missingFilterColumns = null;
 	
 	private boolean continueImport = true;
+		
+	protected FutureUtils f;
 	
-	private ActorRef transaction;	
+	protected AsyncDatabaseHelper db;
 	
-	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, Duration receiveTimeout) {
+	public VectorLoaderSessionInitiator(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, ActorRef datasetManager, Duration receiveTimeout) {
 		super(importJob, jobContext, receiveTimeout);
 				
+		this.datasetManager = datasetManager;
 		this.database = database;
 	}
 	
-	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database) {
-		return props(importJob, jobContext, database, DEFAULT_RECEIVE_TIMEOUT);
+	@Override
+	public void preStart() throws Exception {
+		super.preStart();
+		
+		f = new FutureUtils(getContext());
+		db = new AsyncDatabaseHelper(database, f, log);
 	}
 	
-	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, Duration receiveTimeout) {
-		return Props.create(VectorLoaderSessionInitiator.class, importJob, jobContext, database, receiveTimeout);
+	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, ActorRef datasetManager) {
+		return props(importJob, jobContext, database, datasetManager, DEFAULT_RECEIVE_TIMEOUT);
+	}
+	
+	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, ActorRef datasetManager, Duration receiveTimeout) {
+		return Props.create(VectorLoaderSessionInitiator.class, importJob, jobContext, database, datasetManager, receiveTimeout);
 	}
 	
 	private Procedure<Object> waitingForDatasetStatusInfo() {
@@ -274,7 +286,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		};
 	}
 	
-	private void startLoaderSession() throws Exception {
+	private void startLoaderSession(AsyncTransactionHelper tx) throws Exception {
 		log.debug("requesting columns: " + requestColumnNames);
 		
 		startLoaderSession(new FetchVectorDataset(
@@ -285,91 +297,28 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 				importJob,
 				importColumns,
 				filterEvaluator,
-				transaction, 
+				tx, 
 				jobContext)));
 	}
 	
-	private Procedure<Object> waitingForViewDropped() {
+	private Procedure<Object> waitingForTablePrepared(AsyncTransactionHelper tx) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					log.debug("view dropped");
+					log.debug("table prepared");					
+										
+					startLoaderSession(tx);
+				} else if(msg instanceof Failure) {
+					log.error("table preparation failed: {}", msg);
 					
-					CreateTable ct = new CreateTable(
-							"staging_data",
-							importJob.getDatasetId(),  
-							importColumns);
-					
-					transaction.tell(ct, getSelf());
-					become("creating table", waitingForTableCreated());
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
-	}
-	
-	private Procedure<Object> waitingForTableCreated() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					log.debug("table created");
-					
-					String datasetId = importJob.getDatasetId();
-					CreateView cv = new CreateView(
-						"data",
-						datasetId,
-						"staging_data",
-						datasetId);
-					
-					transaction.tell(cv, getSelf());
-					become("creating view", waitingForViewCreated());
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
-	}
-	
-	private Procedure<Object> waitingForViewCreated() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof Ack) {
-					log.debug("view created");
-					
-					startLoaderSession();
-				} else {
-					unhandled(msg);
-				}
-			}
-			
-		};
-	}
-	
-	private Procedure<Object> waitingForTransactionCreated() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof TransactionCreated) {
-					log.debug("database transaction created");
-					
-					transaction = ((TransactionCreated) msg).getActor();
-					
-					DropView dv = new DropView(
-						"data",
-						importJob.getDatasetId());
-					
-					transaction.tell(dv, getSelf());					
-					become("dropping view", waitingForViewDropped());
+					tx.rollback().thenRun(() -> {
+						jobContext.tell(new Ack(), getSelf()); // TODO: feels redundant...
+						jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());
+						
+						getContext().stop(getSelf());
+					});
 				} else {
 					unhandled(msg);
 				}
@@ -435,8 +384,17 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	}
 	
 	private void startTransaction() {
-		database.tell(new StartTransaction(), getSelf());
-		become("starting transaction", waitingForTransactionCreated());
+		db.transaction().thenAccept(tx -> {
+			datasetManager.tell(
+				new PrepareTable(
+					Optional.of(tx.getTransactionRef()),
+					importJob.getDatasetId(), 
+					importColumns), 
+				getSelf());
+			
+			become("preparing table", waitingForTablePrepared(tx));
+		});
+		
 	}
 	
 	protected void dataSourceReceived() {
