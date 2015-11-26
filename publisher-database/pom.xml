@@ -18,7 +18,7 @@
 		<database.url>jdbc:h2:${database.directory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL</database.url>
 		<database.user>sa</database.user>
 		<database.password />
-		<database.ignorePattern>&lt;PostgreSQL&gt;.*&lt;/PostgreSQL&gt;</database.ignorePattern>		
+		<database.ignorePattern>&lt;PostgreSQL&gt;.*?&lt;/PostgreSQL&gt;</database.ignorePattern>		
 	</properties>
 	
 	<dependencies>
