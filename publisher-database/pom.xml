@@ -23,6 +23,17 @@
 	
 	<dependencies>
 		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-jdbc</artifactId>
+			<version>7.0.65</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>nl.idgis.publisher</groupId>
 			<artifactId>publisher-commons</artifactId>
 		</dependency>
