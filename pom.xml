@@ -560,6 +560,12 @@
 					<version>2.17</version>
 					<configuration>
 						<reuseForks>false</reuseForks>
+						<excludes>
+							<!-- unit tests with external dependencies
+							should be excluded by prepending 'Ext' to the 
+							test class name -->
+							<exclude>**/Ext**</exclude>
+						</excludes>
 					</configuration>
 		        </plugin>      
 				<plugin>
