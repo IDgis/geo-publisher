@@ -1,5 +1,10 @@
 package nl.idgis.publisher.loader;
 
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +49,7 @@ import scala.concurrent.duration.Duration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.mysema.query.sql.SQLSubQuery;
 
 public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator<VectorImportJobInfo> {
 	
@@ -111,7 +117,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		if(datasetStatus.isSourceDatasetColumnsChanged()) {
 			log.debug("source columns changed");
 			
-			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+			if(currentJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification already present");
 			} else {
 				log.debug("notification not present -> add it");
@@ -124,7 +130,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		} else {
 			log.debug("source columns not changed");
 			
-			if(importJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+			if(currentJob.hasNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
 				log.debug("notification present -> remove it");
 				jobContext.tell(new RemoveJobNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED), getSelf());				
 				become("removing notification", waitingForNotificationStored());
@@ -138,7 +144,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	}
 
 	private void handleNotifications() throws Exception {
-		for(Notification notification : importJob.getNotifications()) {
+		for(Notification notification : currentJob.getNotifications()) {
 			NotificationType<?> type = notification.getType();
 			NotificationResult result = notification.getResult();
 			
@@ -160,9 +166,9 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	private void prepareJob() throws Exception {		
 		missingColumns = new HashSet<Column>();
 		
-		Set<Column> sourceDatasetColumns = new HashSet<Column>(importJob.getSourceDatasetColumns());
+		Set<Column> sourceDatasetColumns = new HashSet<Column>(currentJob.getSourceDatasetColumns());
 		
-		for(Column column : importJob.getColumns()) {
+		for(Column column : currentJob.getColumns()) {
 			if(!sourceDatasetColumns.contains(column)) {
 				missingColumns.add(column);
 			}
@@ -171,9 +177,9 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		missingFilterColumns = new HashSet<>();
 		
 		List<Column> requiredColumns = new ArrayList<>();
-		requiredColumns.addAll(importJob.getColumns());
+		requiredColumns.addAll(currentJob.getColumns());
 		
-		String filterCondition = importJob.getFilterCondition();
+		String filterCondition = currentJob.getFilterCondition();
 		if(filterCondition == null)  {
 			log.debug("no filter -> not filtering");
 		} else {
@@ -213,7 +219,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 			}
 		}
 		
-		importColumns = importJob.getColumns().stream()
+		importColumns = currentJob.getColumns().stream()
 			.filter(column -> !missingColumns.contains(column))
 			.collect(Collectors.toList());
 	}
@@ -290,11 +296,11 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		log.debug("requesting columns: " + requestColumnNames);
 		
 		startLoaderSession(new FetchVectorDataset(
-			importJob.getExternalSourceDatasetId(), 
+			currentJob.getExternalSourceDatasetId(), 
 			requestColumnNames, 
 			VectorLoaderSession.props(								
 				getContext().parent(), // loader
-				importJob,
+				currentJob,
 				importColumns,
 				filterEvaluator,
 				tx, 
@@ -308,8 +314,8 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
 					log.debug("table prepared");					
-										
-					startLoaderSession(tx);
+					
+					deleteMissingColumns(tx);
 				} else if(msg instanceof Failure) {
 					log.error("table preparation failed: {}", msg);
 					
@@ -345,8 +351,8 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 									ImportLogType.MISSING_COLUMNS, 
 									
 									new MissingColumnsLog(
-											importJob.getDatasetId(), 
-											importJob.getDatasetName(), 
+											currentJob.getDatasetId(), 
+											currentJob.getDatasetName(), 
 											missingColumns)), 
 							getSelf());
 						
@@ -360,8 +366,8 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 									ImportLogType.MISSING_FILTER_COLUMNS, 
 									
 									new MissingColumnsLog(
-											importJob.getDatasetId(), 
-											importJob.getDatasetName(), 
+											currentJob.getDatasetId(), 
+											currentJob.getDatasetName(), 
 											missingFilterColumns)), 
 							getSelf());
 						
@@ -385,20 +391,76 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	
 	private void startTransaction() {
 		db.transaction().thenAccept(tx -> {
-			datasetManager.tell(
-				new PrepareTable(
-					Optional.of(tx.getTransactionRef()),
-					importJob.getDatasetId(), 
-					importColumns), 
-				getSelf());
-			
-			become("preparing table", waitingForTablePrepared(tx));
+			prepareTable(tx);
 		});
 		
 	}
+
+	private void deleteMissingColumns(AsyncTransactionHelper tx) throws Exception {
+		if(missingColumns.isEmpty()) {
+			log.debug("no missing columns");
+			
+			startLoaderSession(tx);
+		} else {
+			log.debug("missing columns");
+			
+			List<String> missingColumnNames = missingColumns.stream()
+				.map(Column::getName)
+				.collect(Collectors.toList());
+			
+			tx.delete(importJobColumn)
+				.where(new SQLSubQuery().from(importJob)
+					.where(importJob.id.eq(importJobColumn.importJobId))
+					.where(importJob.jobId.eq(currentJob.getId()))
+					.exists())
+				.where(importJobColumn.name.in(missingColumnNames))
+				.execute().thenCompose(importJobColumns ->				
+					tx.delete(datasetColumn)
+						.where(new SQLSubQuery().from(dataset)
+							.where(dataset.id.eq(datasetColumn.datasetId))
+							.where(dataset.identification.eq(currentJob.getDatasetId()))
+							.exists())
+						.where(datasetColumn.name.in(missingColumnNames))
+						.execute().thenAccept(datasetColumns -> {
+							log.debug("columns deleted: {}, {}", datasetColumns, importJobColumns);
+							
+							getSelf().tell(new Ack(), getSelf());
+						}));
+			
+			become("deleting columns", waitingForColumnsDeleted(tx));
+		}
+	}
+	
+	private Procedure<Object> waitingForColumnsDeleted(AsyncTransactionHelper tx) {
+		return new Procedure<Object>() {
+
+			@Override
+			public void apply(Object msg) throws Exception {
+				if(msg instanceof Ack) {
+					startLoaderSession(tx);
+				} else {
+					unhandled(msg);
+				}
+			}
+			
+		};
+	}	
+
+	private void prepareTable(AsyncTransactionHelper tx) {
+		log.debug("preparing table");
+		
+		datasetManager.tell(
+			new PrepareTable(
+				Optional.of(tx.getTransactionRef()),
+				currentJob.getDatasetId(), 
+				importColumns), 
+			getSelf());
+		
+		become("preparing table", waitingForTablePrepared(tx));
+	}
 	
 	protected void dataSourceReceived() {
-		database.tell(new GetDatasetStatus(importJob.getDatasetId()), getSelf());
+		database.tell(new GetDatasetStatus(currentJob.getDatasetId()), getSelf());
 		become("retrieving dataset status info", waitingForDatasetStatusInfo());
 	}
 }

@@ -45,10 +45,10 @@ public class RasterLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 
 	private void startLoaderSession() throws Exception {
 		startLoaderSession(new FetchRasterDataset(
-			importJob.getExternalSourceDatasetId(), 
+			currentJob.getExternalSourceDatasetId(), 
 			RasterLoaderSession.props(
 				getContext().parent(), // loader
-				importJob,
+				currentJob,
 				jobContext,
 				receiver)));
 	}
@@ -70,7 +70,7 @@ public class RasterLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	}
 	
 	private void startReceiver() {
-		String fileName = importJob.getDatasetId() + ".tif";		
+		String fileName = currentJob.getDatasetId() + ".tif";		
 		rasterFolder.tell(new GetFileReceiver(Paths.get(fileName)), getSelf());
 		become("waiting for receiver", waitingForReceiver());
 	}

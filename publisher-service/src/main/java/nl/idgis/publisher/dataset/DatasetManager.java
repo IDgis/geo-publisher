@@ -6,8 +6,6 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -165,27 +163,9 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private ListSubQuery<Tuple> subselectDatasetColumns(String datasetId) {
-		QImportJob importJob2 = new QImportJob("import_job2");
-		QJobState jobState2 = new QJobState("job_state2");
-		
 		return new SQLSubQuery().from(datasetColumn)
 			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 			.where(dataset.identification.eq(datasetId))
-			// eliminate all columns not present in last imported source dataset version:			
-			.where(new SQLSubQuery().from(sourceDatasetVersion)
-				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
-				.join(importJob).on(importJob.sourceDatasetVersionId.eq(sourceDatasetVersion.id))				
-				.join(jobState).on(jobState.jobId.eq(importJob.jobId))
-				.where(dataset.id.eq(importJob.datasetId))
-				.where(jobState.state.eq(JobState.SUCCEEDED.name()))
-				.where(sourceDatasetVersionColumn.name.eq(datasetColumn.name))
-				.where(new SQLSubQuery().from(importJob2) // last imported source dataset version
-					.join(jobState2).on(jobState2.jobId.eq(importJob2.jobId))
-					.where(jobState2.state.eq(JobState.SUCCEEDED.name()))
-					.where(importJob2.datasetId.eq(importJob.datasetId))
-					.where(jobState2.createTime.after(jobState.createTime))
-					.notExists())
-				.exists())
 			.list(
 				datasetColumn.datasetId,
 				datasetColumn.index,
