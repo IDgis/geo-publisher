@@ -60,6 +60,12 @@ for f in /vagrant/publisher-database/src/main/resources/nl/idgis/publisher/datab
 	fi
 done
 
+if [[ ! -e /provision-providers ]]; then
+	echo "insert into publisher.data_source(identification, name) values('overijssel-gisbasip', 'Overijssel gisbasip');" >> /populate.sql
+	echo "insert into publisher.data_source(identification, name) values('overijssel-raster', 'Overijssel raster');" >> /populate.sql
+	touch /provision-providers
+fi
+
 echo "commit;" >> /populate.sql
 
 # Populate the database:
