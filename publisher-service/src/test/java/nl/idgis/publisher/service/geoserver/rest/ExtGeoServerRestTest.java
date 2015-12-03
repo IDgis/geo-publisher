@@ -5,6 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -14,13 +19,16 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -101,6 +109,14 @@ public class ExtGeoServerRestTest {
 			}
 		});
 		
+		rest.getStyleNames().get().forEach(styleName -> {
+			try {				
+				rest.deleteStyle(styleName);
+			} catch(Exception e) {
+				throw new RuntimeException(e);
+			}
+		});
+		
 		rest.close();
 		
 		try(Connection connection = getConnection("postgres");) {
@@ -133,7 +149,7 @@ public class ExtGeoServerRestTest {
 	}
 	
 	@Test
-	public void doTest() throws Exception {
+	public void testFeatureTypes() throws Exception {
 		final int featureCount = 10;
 		
 		try(Connection connection = getConnection("test");) {
@@ -260,5 +276,46 @@ public class ExtGeoServerRestTest {
 		System.out.println();
 		
 		return XMLUtils.xpath(document, Optional.of(ns));
+	}
+	
+	private boolean equals(Document a, Document b) {
+		return false;
+	}
+	
+	@Test
+	public void testStyles() throws Exception {
+		try(DirectoryStream<Path> stream = 
+			Files.newDirectoryStream(Paths.get("C:\\Users\\copierrj.IDGIS-TEAM\\tmp\\gpo-styles"))) {
+			
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			
+			Set<QName> ignoreElements = new HashSet<>();
+			//ignoreElements.add(new QName("http://www.opengis.net/sld", "StyledLayerDescriptor"));
+			ignoreElements.add(new QName("http://www.opengis.net/sld", "Opacity"));
+			ignoreElements.add(new QName("http://www.opengis.net/sld", "Name"));
+			
+			TransformerFactory tf = TransformerFactory.newInstance();
+			Transformer t = tf.newTransformer();
+			
+			for(Path entry : stream) {
+				String name = entry.getName(entry.getNameCount() - 1).toString().split("\\.")[0];
+				
+				System.out.println(name);
+				
+				try(InputStream is = Files.newInputStream(entry)) {
+					Document testStyle = db.parse(is);
+					rest.postStyle(new Style(name, testStyle)).get();
+					
+					Document storedStyle = rest.getStyle(name).get().get().getSld();
+					t.transform(new DOMSource(storedStyle), new StreamResult(System.out));
+					System.out.println();
+					
+					assertTrue(equals(testStyle, storedStyle));
+				}
+			}
+		}
+		
 	}
 }

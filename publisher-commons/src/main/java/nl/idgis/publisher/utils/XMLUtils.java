@@ -322,19 +322,57 @@ public class XMLUtils {
 		return new XPathHelper(xpath, document, "/" ,namespaces);
 	}
 	
+	public static boolean equalsIgnoreWhitespace(Document a, Document b, Set<QName> ignoreElements) throws XMLStreamException {
+		XMLInputFactory xif = XMLInputFactory.newInstance();
+		XMLEventFactory xef = XMLEventFactory.newInstance();
+		
+		Predicate<XMLEvent> elementFilter = new Predicate<XMLEvent>() {
+			
+			QName ignore = null;
+
+			@Override
+			public boolean test(XMLEvent t) {
+				if(ignore == null) {
+					if(t.isStartElement()) {
+						QName name = t.asStartElement().getName();
+						if(ignoreElements.contains(name)) {
+							ignore = name;
+							return false;
+						}
+					}
+					
+					return true;
+				} else {
+					if(t.isEndElement() && t.asEndElement().getName().equals(ignore)) {
+						ignore = null;
+					}
+					
+					return false;
+				}				
+			}
+			
+		};
+		
+		return compare(removeWhitespace(xef, toEventList(xif, xef, a).stream().filter(elementFilter)), removeWhitespace(xef, toEventList(xif, xef, b).stream().filter(elementFilter)));
+	}
+	
+	private static Stream<XMLEvent> removeWhitespace(XMLEventFactory xef, Stream<XMLEvent> stream) {
+		return stream
+			.map(event ->			
+				event.isCharacters() 
+					? xef.createCharacters(event.asCharacters().getData().trim())
+					: event)
+			.filter(event -> event.getEventType() != XMLEvent.COMMENT)
+			.filter(event -> 
+				!event.isCharacters() 
+					|| !event.asCharacters().getData().isEmpty());
+	}
+	
 	public static boolean equalsIgnoreWhitespace(Document a, Document b) throws XMLStreamException {
 		XMLInputFactory xif = XMLInputFactory.newInstance();
 		XMLEventFactory xef = XMLEventFactory.newInstance();
 		
-		return equals(xif, xef, a, b,
-			Optional.of(event ->			
-				event.isCharacters() 
-					? xef.createCharacters(event.asCharacters().getData().trim())
-					: event),
-				
-			Optional.of(event -> 
-				!event.isCharacters() 
-					|| !event.asCharacters().getData().isEmpty()));
+		return compare(removeWhitespace(xef, toEventList(xif, xef, a).stream()), removeWhitespace(xef, toEventList(xif, xef, b).stream()));
 	}
 	
 	public static boolean equals(Document a, Document b) throws XMLStreamException {
@@ -344,22 +382,91 @@ public class XMLUtils {
 		return equals(xif, xef, a, b, Optional.empty(), Optional.empty());
 	}
 	
-	private static <T> List<T> mapFilter(List<T> input, Optional<Function<? super T, ? extends T>> mapper, Optional<Predicate<? super T>> filter) {
-		return input.stream()
+	private static Stream<XMLEvent> mapFilter(Stream<XMLEvent> input, Optional<Function<XMLEvent, XMLEvent>> mapper, Optional<Predicate<XMLEvent>> filter) {
+		return input
 			.map(mapper.orElse(Function.identity()))
-			.filter(filter.orElse(item -> true))			
-			.collect(Collectors.toList());
+			.filter(filter.orElse(item -> true));
 	}
 	
 	private static boolean equals(XMLInputFactory xif, XMLEventFactory xef, Document a, Document b, 
-			Optional<Function<? super XMLEvent, ? extends XMLEvent>> mapper, 
-			Optional<Predicate<? super XMLEvent>> filter) throws XMLStreamException {
+			Optional<Function<XMLEvent, XMLEvent>> mapper, 
+			Optional<Predicate<XMLEvent>> filter) throws XMLStreamException {
 		
 		List<XMLEvent> listA = toEventList(xif, xef, a);
 		List<XMLEvent> listB = toEventList(xif, xef, b);
 		
-		return mapFilter(listA, mapper, filter)
-			.equals(mapFilter(listB, mapper, filter));
+		return compare(mapFilter(listA.stream(), mapper, filter), mapFilter(listB.stream(), mapper, filter));
+	}
+	
+	private static String toString(XMLEvent event) {
+		if(event.isAttribute()) {
+			return "attribute";
+		}
+		
+		if(event.isCharacters()) {
+			return 
+				"characters '" 
+					+ event
+						.asCharacters()
+						.getData()
+						.replace("\n",  "\\n")
+						.replace("\r",  "\\r")
+					+ "'";
+		}
+		
+		if(event.isEndDocument()) {
+			return "endDocument";
+		}
+		
+		if(event.isEndElement()) {
+			return "endElement '" + event.asEndElement().getName() + "'";
+		}
+		
+		if(event.isEntityReference()) {
+			return "entityReference";
+		}
+		
+		if(event.isNamespace()) {
+			return "namespace";
+		}
+		
+		if(event.isProcessingInstruction()) {
+			return "processingInstruction";
+		}
+		
+		if(event.isStartDocument()) {
+			return "startDocument";
+		}
+		
+		if(event.isStartElement()) {
+			return "startElement '" + event.asStartElement().getName() + "'";
+		}
+		
+		if(event.getEventType() == XMLEvent.COMMENT) {			
+			return "comment";
+		}
+		
+		return event.toString();
+	}
+	
+	private static boolean compare(Stream<XMLEvent> a, Stream<XMLEvent> b) {
+		Iterator<XMLEvent> aItr = a.iterator();
+		Iterator<XMLEvent> bItr = b.iterator();
+		
+		while(aItr.hasNext() == bItr.hasNext() && aItr.hasNext()) {
+			XMLEvent aVal = aItr.next();
+			XMLEvent bVal = bItr.next();
+			
+			if(aVal.getEventType() != bVal.getEventType()) {
+				System.out.print("!");
+			}
+			
+			System.out.println(toString(aVal) + " " + toString(bVal));
+		}
+		
+		//return !bItr.hasNext();
+		
+		return false;
 	}
 	
 	public static List<XMLEvent> toEventList(Document document) throws XMLStreamException {
