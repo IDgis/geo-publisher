@@ -343,18 +343,17 @@ public class DefaultGeoServerRestTest {
 	@Test
 	public void testStyles() throws Exception {
 		assertFalse(
-			service.getStyles().get().stream()
-				.map(style -> style.getName())			
+			service.getStyleNames().get().stream()
 				.collect(Collectors.toSet())
 				.contains("green"));
 		
 		Style green = new Style("green", TestStyle.getGreenSld());
 		service.postStyle(green).get();
 		
-		Map<String, Document> styles = service.getStyles().get().stream()
-			.collect(Collectors.toMap(
-				style -> style.getName(), 
-				style -> style.getSld()));
+		Map<String, Document> styles = new HashMap<>();
+		for(String styleName : service.getStyleNames().get()) {
+			styles.put(styleName, service.getStyle(styleName).get().get().getSld());
+		}
 		
 		Document sld = styles.get("green");
 		assertNotNull(sld);

@@ -14,8 +14,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Objects;
@@ -137,12 +135,12 @@ public class GeoServerService extends UntypedActor {
 							.collect(Collectors.toList())));
 			
 			CompletableFuture<List<String>> deletedStyles =
-				rest.getStyles().thenCompose(styles ->
+				rest.getStyleNames().thenCompose(styles ->
 					f.sequence(
 						styles.stream()
-							.filter(style -> !styleNames.contains(style.getName()))
+							.filter(style -> !styleNames.contains(style))
 							.map(style -> rest.deleteStyle(style)
-								.<String>thenApply(v -> style.getName()))
+								.<String>thenApply(v -> style))
 							.collect(Collectors.toList())));
 			
 			deletedWorkspaces.thenCompose(workspaces ->
