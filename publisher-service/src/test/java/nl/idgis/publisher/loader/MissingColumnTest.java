@@ -1,5 +1,6 @@
 package nl.idgis.publisher.loader;
 
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -14,6 +15,7 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -47,7 +49,12 @@ import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.domain.web.tree.DatasetLayer;
+import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
+import nl.idgis.publisher.domain.web.tree.Layer;
+import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
+import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
@@ -71,6 +78,7 @@ import nl.idgis.publisher.recorder.messages.Created;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
+import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 import nl.idgis.publisher.utils.TypedList;
@@ -186,7 +194,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
-		f.ask(serviceManager, new GetService("testService"), Service.class).get();
+		Service service = f.ask(serviceManager, new GetService("testService"), Service.class).get();
+		assertService(service, "col0", "col1");
 		
 		// publish service
 		insert(environment)
@@ -195,6 +204,9 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.execute();
 		
 		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		
+		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
+		assertService(service, "col0", "col1");
 		
 		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
 		assertDatasetView(datasetId, "col0", "col1");
@@ -287,6 +299,18 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(Ack.class)
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
 		
+		assertEquals(
+			Arrays.asList("col0"),
+			query().from(datasetColumn)
+				.where(new SQLSubQuery().from(dataset)
+					.where(dataset.id.eq(datasetColumn.datasetId))
+					.where(dataset.identification.eq(datasetId))
+					.exists())
+				.list(datasetColumn.name));
+		
+		service = f.ask(serviceManager, new GetService("testService"), Service.class).get();
+		assertService(service, "col0");
+		
 		assertDatasetRel(datasetId, "staging_data", 1, "col0");
 		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
 		assertDatasetCopy(datasetId, "col0", "col1");
@@ -369,9 +393,33 @@ public class MissingColumnTest extends AbstractServiceTest {
 		// republish service		
 		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
 		
+		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
+		assertService(service, "col0");
+		
 		assertDatasetRel(datasetId, "staging_data", 1, "col0");
 		assertDatasetRel(datasetId, "data", 1, "col0");
 		assertDatasetView(datasetId, "col0");
+	}
+
+	private void assertService(Service service, String... assertColumns) {
+		List<LayerRef<? extends Layer>> layers = service.getLayers();
+		assertNotNull(layers);
+		assertEquals(1, layers.size());
+		
+		LayerRef<? extends Layer> layerRef = layers.get(0);
+		assertNotNull(layerRef);
+		assertFalse(layerRef.isGroupRef());
+		
+		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
+		assertNotNull(datasetLayerRef);
+		
+		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
+		assertNotNull(datasetLayer);
+		assertTrue(datasetLayer.isVectorLayer());
+		
+		VectorDatasetLayer vectorDatasetLayer = datasetLayer.asVectorLayer();
+		assertNotNull(vectorDatasetLayer);
+		assertEquals(Arrays.asList(assertColumns), vectorDatasetLayer.getColumnNames());
 	}
 
 	private void assertDatasetView(String datasetId, String... columnNames) {

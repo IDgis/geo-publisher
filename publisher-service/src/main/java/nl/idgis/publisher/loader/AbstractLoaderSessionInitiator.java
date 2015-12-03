@@ -27,7 +27,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	protected final T importJob;
+	protected final T currentJob;
 	
 	protected final ActorRef jobContext;
 	
@@ -38,7 +38,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 	private ActorRef dataSource;
 	
 	protected AbstractLoaderSessionInitiator(T importJob, ActorRef jobContext, Duration receiveTimeout) {
-		this.importJob = importJob;
+		this.currentJob = importJob;
 		this.jobContext = jobContext;
 		this.receiveTimeout = receiveTimeout;
 	}
@@ -88,11 +88,11 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 	@Override
 	public final void onReceive(Object msg) throws Exception {
 		if(msg instanceof NotConnected) {					
-			log.warning("not connected: " + importJob.getDataSourceId());
+			log.warning("not connected: " + currentJob.getDataSourceId());
 			
 			acknowledgeJobAndStop();
 		} else if(msg instanceof Busy) {
-			log.debug("busy: " + importJob.getDataSourceId());
+			log.debug("busy: " + currentJob.getDataSourceId());
 			
 			acknowledgeJobAndStop();
 		} else if(msg instanceof ActorRef) {
@@ -112,7 +112,7 @@ public abstract class AbstractLoaderSessionInitiator<T extends ImportJobInfo> ex
 				if(msg instanceof Ack) {
 					log.debug("session started");
 					
-					getContext().parent().tell(new SessionStarted(importJob, getSender()), getSelf());
+					getContext().parent().tell(new SessionStarted(currentJob, getSender()), getSelf());
 					become("registering session start", waitingForSessionStartedAck());
 				} else {
 					unhandled(msg);

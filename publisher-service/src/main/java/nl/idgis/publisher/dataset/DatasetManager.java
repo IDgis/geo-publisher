@@ -1,13 +1,13 @@
 package nl.idgis.publisher.dataset;
 
+import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
-import nl.idgis.publisher.database.QImportJob;
-import nl.idgis.publisher.database.QJobState;
 import nl.idgis.publisher.database.messages.CopyTable;
 import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
@@ -165,32 +163,22 @@ public class DatasetManager extends UntypedActor {
 	}
 
 	private ListSubQuery<Tuple> subselectDatasetColumns(String datasetId) {
-		QImportJob importJob2 = new QImportJob("import_job2");
-		QJobState jobState2 = new QJobState("job_state2");
-		
-		return new SQLSubQuery().from(datasetColumn)
-			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
-			.where(dataset.identification.eq(datasetId))
-			// eliminate all columns not present in last imported source dataset version:			
-			.where(new SQLSubQuery().from(sourceDatasetVersion)
-				.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(sourceDatasetVersion.id))
-				.join(importJob).on(importJob.sourceDatasetVersionId.eq(sourceDatasetVersion.id))				
-				.join(jobState).on(jobState.jobId.eq(importJob.jobId))
-				.where(dataset.id.eq(importJob.datasetId))
-				.where(jobState.state.eq(JobState.SUCCEEDED.name()))
-				.where(sourceDatasetVersionColumn.name.eq(datasetColumn.name))
-				.where(new SQLSubQuery().from(importJob2) // last imported source dataset version
-					.join(jobState2).on(jobState2.jobId.eq(importJob2.jobId))
-					.where(jobState2.state.eq(JobState.SUCCEEDED.name()))
-					.where(importJob2.datasetId.eq(importJob.datasetId))
-					.where(jobState2.createTime.after(jobState.createTime))
-					.notExists())
-				.exists())
+		return new SQLSubQuery().from(importJobColumn)
+			.join(importJob).on(importJob.id.eq(importJobColumn.importJobId))
+			.where(importJob.id.in(
+				new SQLSubQuery().from(importJob)
+					.join(jobState).on(jobState.jobId.eq(importJob.jobId))
+					.join(dataset).on(dataset.id.eq(importJob.datasetId))
+					.where(jobState.state.eq(JobState.SUCCEEDED.name()))
+					.where(dataset.identification.eq(datasetId))
+					.orderBy(jobState.createTime.desc())
+					.limit(1)
+					.list(importJob.id)))
 			.list(
-				datasetColumn.datasetId,
-				datasetColumn.index,
-				datasetColumn.name,
-				datasetColumn.dataType);
+				importJob.datasetId,
+				importJobColumn.index,
+				importJobColumn.name,
+				importJobColumn.dataType);
 	}
 	
 	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String datasetId, List<Column> columns) {
