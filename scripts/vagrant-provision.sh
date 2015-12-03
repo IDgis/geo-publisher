@@ -132,7 +132,7 @@ if [[ ! -e /opt/exhibitor ]]; then
 		end script	
 EOT
 
-	initctl reload-configuration
-	service exhibitor start
+	# initctl reload-configuration
+	# service exhibitor start
 
 fi
