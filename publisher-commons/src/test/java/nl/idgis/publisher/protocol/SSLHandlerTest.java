@@ -33,27 +33,27 @@ public class SSLHandlerTest {
 	Config clientConfig, serverConfig;
 	
 	@Before
-	public void config() {
+	public void config() throws Throwable {
 		URL trustedKeyStore = SSLHandlerTest.class.getResource("trusted.jks");
 		assertNotNull(trustedKeyStore);
 		
 		Config trustedConfig = ConfigFactory.empty()
 			.withValue("trusted.password", ConfigValueFactory.fromAnyRef("trusted"))
-			.withValue("trusted.file", ConfigValueFactory.fromAnyRef(trustedKeyStore.getFile()));
+			.withValue("trusted.file", ConfigValueFactory.fromAnyRef(trustedKeyStore.toURI ().getPath ()));
 		
 		URL clientKeyStore = SSLHandlerTest.class.getResource("client.jks");
 		assertNotNull(clientKeyStore);
 		
 		clientConfig = trustedConfig
 			.withValue("private.password", ConfigValueFactory.fromAnyRef("client"))
-			.withValue("private.file", ConfigValueFactory.fromAnyRef(clientKeyStore.getFile()));
+			.withValue("private.file", ConfigValueFactory.fromAnyRef(clientKeyStore.toURI ().getPath ()));
 		
 		URL serverKeyStore = SSLHandlerTest.class.getResource("server.jks");
 		assertNotNull(serverKeyStore);
 		
 		serverConfig = trustedConfig
 			.withValue("private.password", ConfigValueFactory.fromAnyRef("server"))
-			.withValue("private.file", ConfigValueFactory.fromAnyRef(serverKeyStore.getFile()));
+			.withValue("private.file", ConfigValueFactory.fromAnyRef(serverKeyStore.toURI ().getPath ()));
 	}
 	
 	ActorSystem actorSystem;

@@ -3,7 +3,7 @@
 
 Vagrant.configure(2) do |config|
 	# Use Ubuntu 14.10 as a base:
-	config.vm.box = "ubuntu/utopic64"
+	config.vm.box = "ubuntu/vivid64"
 
 	# Provision using a shell script:
 	config.vm.provision :shell, path: "scripts/vagrant-provision.sh"
