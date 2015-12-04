@@ -18,19 +18,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -43,6 +42,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -54,6 +56,8 @@ import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 
 public class ExtGeoServerRestTest {
 	
+	private static final String SLD_NS = "http://www.opengis.net/sld";
+
 	private final String host = "192.168.129.100";
 	
 	private final String username = "admin";
@@ -333,8 +337,60 @@ public class ExtGeoServerRestTest {
 		return XMLUtils.xpath(document, Optional.of(ns));		
 	}
 	
-	private boolean equals(Document a, Document b) {
-		return false;
+	private void normalize(Node n) {
+		NodeList children = n.getChildNodes();
+		List<Node> remove = new ArrayList<>();
+		for(int i = 0; i < children.getLength(); i++) {
+			Node child = children.item(i);
+			switch(child.getNodeType()) {
+				case Node.COMMENT_NODE:
+					remove.add(child);
+					break;
+				case Node.TEXT_NODE:
+					String content = child.getTextContent();
+					String trimmedContent = content.trim();
+					if(trimmedContent.isEmpty()) {
+						remove.add(child);
+					} else {
+						if(!content.equals(trimmedContent)) {
+							child.setTextContent(content);
+						}
+					}
+			}
+		}
+		
+		remove.forEach(n::removeChild);
+		
+		if(n.getNodeType() == Node.ELEMENT_NODE) {
+			Element e = (Element)n;
+			
+			if(e.getNamespaceURI().equals(SLD_NS)) {
+				String localName = e.getLocalName();
+				if(localName.equals("Opacity")
+					&& e.getTextContent().equals("1")) {
+					e.getParentNode().removeChild(e);
+					return;
+				} else if(localName.equals("FeatureTypeStyle")) {
+				
+					Node firstChild = e.getFirstChild();
+					if(firstChild.getNodeType() == Node.ELEMENT_NODE) {
+						Element firstElement = (Element)firstChild;
+						if(!firstElement.getLocalName().equals("Name") 
+							|| !firstElement.getNamespaceURI().equals(SLD_NS)) {
+							
+							Document document = e.getOwnerDocument();
+							Element nameElement = document.createElementNS(SLD_NS, "Name");
+							nameElement.appendChild(document.createTextNode("name"));
+							e.insertBefore(nameElement, firstChild);
+						}
+					}
+				}
+			}
+		}
+		
+		for(int i = 0; i < children.getLength(); i++) {
+			normalize(children.item(i));
+		}
 	}
 	
 	@Test
@@ -345,11 +401,6 @@ public class ExtGeoServerRestTest {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			dbf.setNamespaceAware(true);
 			DocumentBuilder db = dbf.newDocumentBuilder();
-			
-			Set<QName> ignoreElements = new HashSet<>();
-			//ignoreElements.add(new QName("http://www.opengis.net/sld", "StyledLayerDescriptor"));
-			ignoreElements.add(new QName("http://www.opengis.net/sld", "Opacity"));
-			ignoreElements.add(new QName("http://www.opengis.net/sld", "Name"));
 			
 			TransformerFactory tf = TransformerFactory.newInstance();
 			Transformer t = tf.newTransformer();
@@ -367,7 +418,9 @@ public class ExtGeoServerRestTest {
 					t.transform(new DOMSource(storedStyle), new StreamResult(System.out));
 					System.out.println();
 					
-					assertTrue(equals(testStyle, storedStyle));
+					normalize(testStyle);
+					
+					assertTrue(XMLUtils.equals(testStyle, storedStyle));
 				}
 			}
 		}

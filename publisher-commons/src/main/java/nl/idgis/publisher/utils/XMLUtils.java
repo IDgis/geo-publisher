@@ -20,6 +20,8 @@ import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.events.Attribute;
+import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.xpath.XPath;
@@ -439,7 +441,13 @@ public class XMLUtils {
 		}
 		
 		if(event.isStartElement()) {
-			return "startElement '" + event.asStartElement().getName() + "'";
+			StartElement startElement = event.asStartElement();
+			StringBuilder sb = new StringBuilder("startElement '" + startElement.getName() + "'");
+			for(Iterator<?> attItr = startElement.getAttributes(); attItr.hasNext();) {
+				Attribute attr = (Attribute)attItr.next();
+				sb.append(" '@").append(attr.getName()).append("=").append(attr.getValue()).append("'");
+			}
+			return sb.toString();
 		}
 		
 		if(event.getEventType() == XMLEvent.COMMENT) {			
@@ -457,16 +465,37 @@ public class XMLUtils {
 			XMLEvent aVal = aItr.next();
 			XMLEvent bVal = bItr.next();
 			
-			if(aVal.getEventType() != bVal.getEventType()) {
-				System.out.print("!");
-			}
-			
 			System.out.println(toString(aVal) + " " + toString(bVal));
+			
+			if(aVal.getEventType() == bVal.getEventType()) {
+				switch(aVal.getEventType()) {
+					case XMLEvent.START_DOCUMENT:
+					case XMLEvent.END_DOCUMENT:
+						continue;
+					case XMLEvent.START_ELEMENT:
+						if(aVal.asStartElement().getName().equals(bVal.asStartElement().getName())) {
+							continue;
+						}
+						break;
+					case XMLEvent.CHARACTERS:
+						//if(aVal.asCharacters().getData().equals(bVal.asCharacters().getData())) {
+							continue;
+						//}
+						//break;
+					case XMLEvent.END_ELEMENT:
+						if(aVal.asEndElement().getName().equals(bVal.asEndElement().getName())) {
+							continue;
+						}
+						break;
+				}
+				
+				return false;
+			} else {
+				return false;
+			}
 		}
 		
-		//return !bItr.hasNext();
-		
-		return false;
+		return !bItr.hasNext();
 	}
 	
 	public static List<XMLEvent> toEventList(Document document) throws XMLStreamException {
