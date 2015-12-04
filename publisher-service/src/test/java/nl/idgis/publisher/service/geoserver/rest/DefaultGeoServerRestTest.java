@@ -12,6 +12,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import org.h2.server.pg.PgServer;
 import org.h2.server.pg.PgServerThread;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -54,27 +56,41 @@ public class DefaultGeoServerRestTest {
 	
 	static FutureUtils f;
 	
+	@Before
+	public void initDb() throws Exception {
+		try(Connection connection = getConnection()) {		
+			try(Statement stmt = connection.createStatement()) {
+				stmt.execute("create schema \"public\"");
+				stmt.execute("create table \"public\".\"test_table\"(\"id\" serial, \"test\" integer, \"dummy\" integer)");
+				stmt.execute("select AddGeometryColumn ('public', 'test_table', 'the_geom', 4326, 'GEOMETRY', 2)");
+				stmt.execute("create schema \"b0\"");
+				stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
+			}		
+		}
+	}
+	
+	@After
+	public void cleanDb() throws Exception {
+		try(Connection connection = getConnection()) {		
+			try(Statement stmt = connection.createStatement()) {
+				stmt.execute("drop schema \"public\"");
+				stmt.execute("drop schema \"b0\"");
+			}
+		}
+	}
+	
 	@BeforeClass
 	public static void startServers() throws Exception {
 		h = new GeoServerTestHelper();
 		h.start();
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
-		
-		Statement stmt = connection.createStatement();
-		stmt.execute("create schema \"public\"");
-		stmt.execute("create table \"public\".\"test_table\"(\"id\" serial, \"test\" integer, \"dummy\" integer)");
-		stmt.execute("select AddGeometryColumn ('public', 'test_table', 'the_geom', 4326, 'GEOMETRY', 2)");
-		stmt.execute("create schema \"b0\"");
-		stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
-		
-		stmt.close();
-				
-		connection.close();
-		
 		ActorSystem actorSystem = ActorSystem.create();
 		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+	}
+
+	private static Connection getConnection() throws SQLException {
+		return DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
 	}
 	
 	@After
@@ -85,6 +101,55 @@ public class DefaultGeoServerRestTest {
 	@AfterClass
 	public static void stopServers() throws Exception {
 		h.stop();
+	}
+	
+	@Test
+	public void testFeatureTypeDropAttribute() throws Exception {
+		Workspace workspace = new Workspace("testWorkspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		service.postFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("test"),
+					new Attribute("the_geom")))).get();
+		
+		try(Connection connection = getConnection()) {		
+			try(Statement stmt = connection.createStatement()) {
+				stmt.execute("alter table \"public\".\"test_table\" drop column \"test\"");
+			}
+		}
+		
+		// FeatureType attribute information is being cached		
+		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		assertNotNull(featureTypes);
+		assertEquals(1, featureTypes.size());
+		
+		FeatureType featureType = featureTypes.get(0);
+		assertNotNull(featureType);
+		
+		assertEquals(
+			Arrays.asList("id", "test", "the_geom"),
+			featureType.getAttributes().stream()
+				.map(Attribute::getName)
+				.collect(Collectors.toList()));
+		
+		// empty cache
+		service.reload().get();
+		
+		// FeatureType attribute information is lost
+		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		assertNotNull(featureTypes);
+		assertEquals(1, featureTypes.size());
+		
+		featureType = featureTypes.get(0);
+		assertNotNull(featureType);
+		assertTrue(featureType.getAttributes().isEmpty());
 	}
 
 	@Test

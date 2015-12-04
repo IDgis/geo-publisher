@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver.rest;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,9 +22,13 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.FactoryConfigurationError;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLEventWriter;
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -104,11 +109,38 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					int responseCode = response.getStatusCode();
 					if(responseCode == HttpURLConnection.HTTP_OK) {
-						InputStream stream = response.getResponseBodyAsStream();
-						Document document = parse(stream, namespaceAware);
-						stream.close();
+						byte[] content = response.getResponseBodyAsBytes();
 						
-						future.complete(Optional.of(document));
+						try {
+							Document document = parse(new ByteArrayInputStream(content), namespaceAware);							
+							future.complete(Optional.of(document));
+						} catch(Exception e) {
+							log.error("xml repair was required in order to parse broken api response: {}", path);
+							
+							XMLInputFactory xif = XMLInputFactory.newInstance();
+							XMLEventReader reader = xif.createXMLEventReader(new ByteArrayInputStream(content));
+							
+							ArrayList<XMLEvent> events = new ArrayList<>();
+							try {
+								while(reader.hasNext()) {
+									events.add(reader.nextEvent());
+								}
+							} catch(Exception se) {}
+							
+							ByteArrayOutputStream fixedDocument = new ByteArrayOutputStream();
+							
+							XMLOutputFactory xof = XMLOutputFactory.newInstance();
+							XMLEventWriter writer = xof.createXMLEventWriter(fixedDocument);
+							
+							for(XMLEvent event : events) {
+								writer.add(event);
+							}
+							
+							writer.close();
+							
+							Document document = parse(new ByteArrayInputStream(fixedDocument.toByteArray()), namespaceAware);
+							future.complete(Optional.of(document));
+						}
 					} else if(responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
 						future.complete(Optional.empty());
 					} else {
@@ -1534,5 +1566,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		os.close();
 		
 		return os.toByteArray();
+	}
+
+	@Override
+	public CompletableFuture<Void> reload() {
+		return post(restLocation + "reload", new byte[]{}, "text/xml", HttpURLConnection.HTTP_OK);
 	}
 }
