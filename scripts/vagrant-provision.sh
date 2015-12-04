@@ -105,6 +105,27 @@ EOT
 	chown tomcat7:tomcat7 /var/lib/geoserver/security
 	chown tomcat7:tomcat7 /var/lib/geoserver/security/users.properties
 	
+	# Unzip the PostgreSQL driver:
+	unzip -p /var/lib/tomcat7/webapps/geoserver.war "WEB-INF/lib/postgresql*" > \
+		/usr/share/tomcat7/lib/$(\
+			 unzip -l /var/lib/tomcat7/webapps/geoserver.war \
+			 | grep "WEB-INF/lib/postgresql" \
+			 | awk '{print $NF}'\
+			 | sed -r "s/WEB-INF\/lib\/(.*)/\1/g")
+			 	
+	# Create jdni resource
+	echo \
+	"<Context>"\
+		"<Resource "\
+			"name=\"jdbc/db\" "\
+			"auth=\"Container\" "\
+			"type=\"javax.sql.DataSource\" "\
+			"driverClassName=\"org.postgresql.Driver\" "\
+			"url=\"jdbc:postgresql://localhost:5432/publisher\" "\
+			"username=\"postgres\" "\
+			"password=\"postgres\" />"\
+	"</Context>" > /var/lib/tomcat7/conf/Catalina/localhost/geoserver.xml
+		
 	# Restart tomcat:
 	service tomcat7 start
 fi
