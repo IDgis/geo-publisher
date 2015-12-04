@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +55,10 @@ import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 public class ExtGeoServerRestTest {
 	
 	private final String host = "192.168.129.100";
+	
+	private final String username = "admin";
+	
+	private final String password= "geoserver";
 	
 	private ActorSystem actorSystem;
 	
@@ -77,10 +84,10 @@ public class ExtGeoServerRestTest {
 		f = new FutureUtils(actorSystem);
 		log = Logging.getLogger();
 		
-		rest = new DefaultGeoServerRest(f, log, "http://" + host + ":8080/geoserver/", "admin", "geoserver");
+		rest = new DefaultGeoServerRest(f, log, "http://" + host + ":8080/geoserver/", username, password);
 		
-		try(Connection connection = getConnection("postgres");) {
-			try(Statement stmt = connection.createStatement();) {
+		try(Connection connection = getConnection("postgres")) {
+			try(Statement stmt = connection.createStatement()) {
 				stmt.execute("create database test");
 			}
 		}
@@ -119,15 +126,15 @@ public class ExtGeoServerRestTest {
 		
 		rest.close();
 		
-		try(Connection connection = getConnection("postgres");) {
-			try(Statement stmt = connection.createStatement();) {
+		try(Connection connection = getConnection("postgres")) {
+			try(Statement stmt = connection.createStatement()) {
 				System.out.println("locks:");
 				try(ResultSet rs = stmt.executeQuery(
 						"select l.pid, sa.query, sa.application_name, l.mode, l.granted " +
 						"from pg_catalog.pg_locks l " +
 						"join pg_catalog.pg_stat_activity sa on sa.pid = l.pid " +
 						"where l.pid <>  pg_backend_pid() "
-					);) {
+					)) {
 					
 					ResultSetMetaData md = rs.getMetaData();
 					while(rs.next()) {
@@ -139,7 +146,7 @@ public class ExtGeoServerRestTest {
 					}
 				}
 				
-				try(ResultSet rs = stmt.executeQuery("select count(pg_terminate_backend(pid)) from pg_stat_activity where datname = 'test'");) {
+				try(ResultSet rs = stmt.executeQuery("select count(pg_terminate_backend(pid)) from pg_stat_activity where datname = 'test'")) {
 					assertTrue(rs.next());
 					System.out.println("connections terminated: " + rs.getInt(1));
 				}
@@ -152,12 +159,12 @@ public class ExtGeoServerRestTest {
 	public void testFeatureTypes() throws Exception {
 		final int featureCount = 10;
 		
-		try(Connection connection = getConnection("test");) {
-			try(Statement stmt = connection.createStatement();) {
+		try(Connection connection = getConnection("test")) {
+			try(Statement stmt = connection.createStatement()) {
 				stmt.execute("create extension postgis");
 				stmt.execute("create table test(id serial, name text, the_geom geometry(POINT, 28992))");
 				
-				try(PreparedStatement pstmt = connection.prepareStatement("insert into test(name, the_geom) select ?, st_setsrid(st_point(?, ?), 28992)");) {
+				try(PreparedStatement pstmt = connection.prepareStatement("insert into test(name, the_geom) select ?, st_setsrid(st_point(?, ?), 28992)")) {
 					for(int i = 0; i < featureCount; i++) {
 						pstmt.setString(1, "name" + i);
 						pstmt.setInt(2, i);
@@ -168,14 +175,14 @@ public class ExtGeoServerRestTest {
 					pstmt.executeBatch();
 				}
 				
-				try(ResultSet rs = stmt.executeQuery("select count(*) from test");) {
+				try(ResultSet rs = stmt.executeQuery("select count(*) from test")) {
 					assertTrue(rs.next());
 					assertEquals(featureCount, rs.getInt(1));
 				}
 				
 				stmt.execute("analyze test");
 				
-				try(ResultSet rs = stmt.executeQuery("select ST_Estimated_Extent('test', 'the_geom')");) {
+				try(ResultSet rs = stmt.executeQuery("select ST_Estimated_Extent('test', 'the_geom')")) {
 					assertTrue(rs.next());
 				}
 			}
@@ -214,6 +221,7 @@ public class ExtGeoServerRestTest {
 		rest.postFeatureType(workspace, dataStore, featureType).get();
 		
 		Map<String, String> ns = new HashMap<>();
+		ns.put("ows", "http://www.opengis.net/ows");
 		ns.put("wfs", "http://www.opengis.net/wfs");
 		ns.put("gml", "http://www.opengis.net/gml");
 		ns.put("test", "http://test");
@@ -223,25 +231,63 @@ public class ExtGeoServerRestTest {
 			getDocument(ns, "http://" + host + ":8080/geoserver/wfs?request=GetCapabilities&service=WFS&version=1.1.0")		
 				.strings("wfs:WFS_Capabilities/wfs:FeatureTypeList/wfs:FeatureType/wfs:Name"));
 		
+		String getFeatureRequest = "http://" + host + ":8080/geoserver/wfs?request=GetFeature&service=WFS&version=1.1.0&typeName=test";
+		
 		int noOfRequests = 20;
 		for(int i = 0; i < noOfRequests; i++) {
 			assertEquals(
 				featureCount,
-				getDocument(ns, "http://" + host + ":8080/geoserver/wfs?request=GetFeature&service=WFS&version=1.1.0&typeName=test")
+				getDocument(ns, getFeatureRequest)
 					.nodes("wfs:FeatureCollection/gml:featureMembers/test:test").size());
 		}
 		
-		try(Connection connection = getConnection("test");)  {
-			try(Statement stmt = connection.createStatement();) {
+		try(Connection connection = getConnection("test"))  {
+			try(Statement stmt = connection.createStatement()) {
 				stmt.execute("alter table test drop column name");
 			}
 		}
+		
+		try(Connection connection = getConnection("test"))  {
+			try(Statement stmt = connection.createStatement()) {
+				try(ResultSet rs = stmt.executeQuery("select * from test")) {
+					ResultSetMetaData md = rs.getMetaData();
+					assertEquals(2, md.getColumnCount());
+					assertEquals("id", md.getColumnName(1));
+					assertEquals("the_geom", md.getColumnName(2));
+					
+					while(rs.next());
+				}
+			}
+		}
+		
+		assertTrue(
+			getDocument(ns, getFeatureRequest)
+				.string("ows:ExceptionReport/ows:Exception/ows:ExceptionText")
+				.isPresent());
 		
 		Iterator<FeatureType> itr = rest.getFeatureTypes(workspace, dataStore).get().iterator();
 		assertTrue(itr.hasNext());
 		
 		featureType = itr.next();
 		assertNotNull(featureType);
+		
+		assertEquals(
+			Arrays.asList("id", "name", "the_geom"),
+			featureType.getAttributes().stream()
+				.map(Attribute::getName)
+				.collect(Collectors.toList()));
+		
+		assertFalse(itr.hasNext());
+		
+		rest.reload().get();
+		
+		itr = rest.getFeatureTypes(workspace, dataStore).get().iterator();
+		assertTrue(itr.hasNext());
+		
+		featureType = itr.next();
+		assertNotNull(featureType);
+		
+		assertTrue(featureType.getAttributes().isEmpty());
 		
 		assertFalse(itr.hasNext());
 		
@@ -262,20 +308,29 @@ public class ExtGeoServerRestTest {
 			getDocument(ns, "http://" + host + ":8080/geoserver/wfs?request=GetFeature&service=WFS&version=1.1.0&typeName=test")
 				.nodes("wfs:FeatureCollection/gml:featureMembers/test:test").size());
 	}
+	
+	private InputStream getFile(String url) throws Exception {
+		URLConnection connection = new URL(url).openConnection();
+		connection.addRequestProperty(
+			"Authorization",
+			"Basic " + new String(Base64.encodeBase64((username + ":" + password).getBytes())));
+		
+		return connection.getInputStream();
+	}
 
 	private XPathHelper getDocument(Map<String, String> ns, String url) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		
-		Document document = db.parse(url);		
+		Document document = db.parse(getFile(url));
 		
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();		
 		t.transform(new DOMSource(document), new StreamResult(System.out));
 		System.out.println();
 		
-		return XMLUtils.xpath(document, Optional.of(ns));
+		return XMLUtils.xpath(document, Optional.of(ns));		
 	}
 	
 	private boolean equals(Document a, Document b) {
