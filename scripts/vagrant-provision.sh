@@ -123,7 +123,12 @@ EOT
 			"driverClassName=\"org.postgresql.Driver\" "\
 			"url=\"jdbc:postgresql://localhost:5432/publisher\" "\
 			"username=\"postgres\" "\
-			"password=\"postgres\" />"\
+			"password=\"postgres\" "\
+			"defaultAutoCommit=\"false\" "\
+			"rollbackOnReturn=\"true\" "\
+			"testOnBorrow=\"true\" "\
+			"validationInterval=\"0\" "\
+		"/>"\
 	"</Context>" > /var/lib/tomcat7/conf/Catalina/localhost/geoserver.xml
 		
 	# Restart tomcat:
