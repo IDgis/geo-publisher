@@ -108,7 +108,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 		ServiceType serviceType = ServiceType.WFS;
 		String linkage = getServiceLinkage(itemInfo.getName(), serviceType);
 		
-		metadataDocument.addServiceType("OGC:WFS");
+		metadataDocument.addServiceType("download");
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
@@ -146,7 +146,7 @@ public class ServiceMetadataGenerator extends AbstractMetadataItemGenerator<Serv
 			+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 			+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
 		
-		metadataDocument.addServiceType("OGC:WMS");
+		metadataDocument.addServiceType("view");
 		metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 		
 		for(DatasetRef datasetRef : itemInfo.getDatasetRefs()) {
