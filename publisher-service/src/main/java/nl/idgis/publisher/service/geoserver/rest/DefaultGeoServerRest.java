@@ -1025,10 +1025,6 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			optionalDocument.map(document -> new Workspace(workspaceId)));
 	}
 	
-	private String getStylePath(Style style) {
-		return getStylePath(style.getName());
-	}
-	
 	private String getStylePath(String styleId) {
 		return getStylesPath() + "/" + styleId;
 	}
@@ -1078,12 +1074,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	}
 	
 	@Override
-	public CompletableFuture<List<Style>> getStyles() {
-		return get(getStylesPath()).thenCompose(optionalDocument ->
-			f.sequence(
-				xpath(optionalDocument.get()).map("styles/style/name", name ->
-					getStyle(name.string().get())
-						.thenApply(this::optionalPresent))));
+	public CompletableFuture<List<String>> getStyleNames() {
+		return get(getStylesPath()).thenApply(optionalDocument ->
+				xpath(optionalDocument.get()).strings("styles/style/name"));
 	}
 	
 	private byte[] serializeStyle(Document sld) throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException {
@@ -1246,13 +1239,17 @@ public class DefaultGeoServerRest implements GeoServerRest {
 
 	@Override
 	public CompletableFuture<Void> deleteStyle(Style style) {
-		String styleName = style.getName();
+		return deleteStyle(style.getName());
+	}
+		
+	@Override
+	public CompletableFuture<Void> deleteStyle(String styleName) {		
 		if(DEFAULT_STYLE_NAMES.contains(styleName)) {
 			// GeoServer doesn't seem to like removal of a default style
 			log.debug("ignoring delete request for default style: {}", styleName);
 			return f.successful(null);
 		} else {
-			return delete(getStylePath(style) + "?purge=true");
+			return delete(getStylePath(styleName) + "?purge=true");
 		}
 	}
 	

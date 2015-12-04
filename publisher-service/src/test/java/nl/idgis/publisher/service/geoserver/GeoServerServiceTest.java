@@ -626,8 +626,7 @@ public class GeoServerServiceTest {
 				.collect(Collectors.toSet())
 					.contains("workspace"));		
 		assertTrue(
-			rest.getStyles().get().stream()
-				.map(style -> style.getName())
+			rest.getStyleNames().get().stream()				
 				.collect(Collectors.toSet())
 					.contains("style"));
 				
@@ -646,8 +645,7 @@ public class GeoServerServiceTest {
 				.collect(Collectors.toSet())
 					.contains("workspace"));
 		assertTrue(
-			rest.getStyles().get().stream()
-				.map(style -> style.getName())
+			rest.getStyleNames().get().stream()				
 				.collect(Collectors.toSet())
 					.contains("style"));
 		
@@ -663,8 +661,7 @@ public class GeoServerServiceTest {
 		
 		assertTrue(rest.getWorkspaces().get().isEmpty());
 		assertTrue(
-			rest.getStyles().get().stream()
-				.map(style -> style.getName())
+			rest.getStyleNames().get().stream()				
 				.collect(Collectors.toSet())
 					.contains("style"));
 		
@@ -680,8 +677,7 @@ public class GeoServerServiceTest {
 		
 		assertTrue(rest.getWorkspaces().get().isEmpty());
 		assertFalse(
-			rest.getStyles().get().stream()
-				.map(style -> style.getName())
+			rest.getStyleNames().get().stream()				
 				.collect(Collectors.toSet())
 					.contains("style"));
 	}

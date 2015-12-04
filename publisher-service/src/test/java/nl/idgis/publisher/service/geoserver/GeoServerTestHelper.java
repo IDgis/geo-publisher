@@ -359,7 +359,7 @@ public class GeoServerTestHelper {
 			service.deleteWorkspace(workspace).get();
 		}
 		
-		service.getStyles().get()
+		service.getStyleNames().get()
 			.forEach(service::deleteStyle);
 		
 		service.close();
