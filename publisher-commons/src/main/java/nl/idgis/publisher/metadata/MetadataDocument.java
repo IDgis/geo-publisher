@@ -236,7 +236,26 @@ public class MetadataDocument {
 	}
 	
 	protected void addKeywords(Topic topic, Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
-		String keywordsPath = xmlDocument.addNode(namespaces, getIdentificationPath(topic), "gmd:descriptiveKeywords/gmd:MD_Keywords");
+		String keywordsPath = xmlDocument.addNode(
+				namespaces, 
+				getIdentificationPath(topic), 
+				new String[] { 
+					"gmd:resourceSpecificUsage",
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"srv:serviceType",
+					"srv:serviceTypeVersion",
+					"srv:accessProperties",
+					"srv:restrictions",
+					"srv:keywords",
+					"srv:extent",
+					"srv:coupledResource",
+					"srv:couplingType",
+					"srv:containsOperations",
+					"srv:operatesOn"
+				}, 
+				"gmd:descriptiveKeywords/gmd:MD_Keywords"
+			);
 		
 		for (String keyword : keywords) {
 			xmlDocument.addNode(namespaces, keywordsPath, "gmd:keyword/gco:CharacterString", keyword);

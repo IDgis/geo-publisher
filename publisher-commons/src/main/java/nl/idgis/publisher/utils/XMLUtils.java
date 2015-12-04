@@ -52,7 +52,11 @@ public class XMLUtils {
 			this.item = item;
 			this.expression = expression;
 			this.namespaces = namespaces;
-		}	
+		}
+		
+		public Optional<String> getLocalName () {
+			return Optional.ofNullable (item.getLocalName ());
+		}
 		
 		public List<Integer> integers(String expression) {
 			return stringsMap(expression, Integer::parseInt);
