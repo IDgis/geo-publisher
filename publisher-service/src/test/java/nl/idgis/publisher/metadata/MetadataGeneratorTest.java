@@ -562,6 +562,11 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			assertSchemaLocation (schemaLocation,
 					"http://www.isotc211.org/2005/gmd", "http://schemas.opengis.net/csw/2.0.2/profiles/apiso/1.0.0/apiso.xsd",
 					"http://www.isotc211.org/2005/gmd", "http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd");
+			
+			// Assert that the serviceType has the correct value:
+			final String serviceType = serviceMetadata.xmlDocument.getString (namespaces, "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:serviceType/gco:LocalName");
+			assertTrue ("Invalid serviceType: " + serviceType, "view".equals (serviceType) || "download".equals (serviceType));
+			
 		} catch (AssertionError e) {
 			throw e;
 		} catch(Exception e) {
