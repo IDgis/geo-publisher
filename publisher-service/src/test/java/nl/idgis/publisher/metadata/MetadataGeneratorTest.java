@@ -1,14 +1,53 @@
 package nl.idgis.publisher.metadata;
 
+import static nl.idgis.publisher.database.QCategory.category;
+import static nl.idgis.publisher.database.QConstants.constants;
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.mysema.query.sql.dml.SQLInsertClause;
 
 import akka.actor.ActorRef;
-
+import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
@@ -17,8 +56,6 @@ import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
 import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
-
-import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.messages.AddDataSource;
@@ -35,41 +72,6 @@ import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
-
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Statement;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
-import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
-import static nl.idgis.publisher.database.QCategory.category;
-import static nl.idgis.publisher.database.QConstants.constants;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QEnvironment.environment;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
@@ -116,6 +118,8 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	Path serviceMetadataTargetDirectory, datasetMetadataTargetDirectory;
 	
 	ActorRef metadataTarget;
+
+	private HashBiMap<String, String> namespaces;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -348,6 +352,13 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				serviceIdentification,
 				environmentIdentifications), 
 			Ack.class).get();
+		
+		namespaces = HashBiMap.create();
+		namespaces.put("gmd", "http://www.isotc211.org/2005/gmd");
+		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
+		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
+		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
+		namespaces.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
 	}
 	
 	private Stream<Path> assertDocumentsExist(Stream<String> fileIdentifiers, Path target) {
@@ -452,8 +463,13 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 							assertTrue(serviceLinkage.containsKey("OGC:WFS"));
 							ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
 							assertEquals(layerName, wfsServiceLinkage.getName());
-							assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());						
-						} catch(Exception e) {
+							assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
+
+							// Assert that the correct schemaLocation is set:
+							final String schemaLocation = datasetMetadata.xmlDocument.getString (namespaces, "/gmd:MD_Metadata/@xsi:schemaLocation");
+							assertSchemaLocation (schemaLocation,
+									"http://www.isotc211.org/2005/gmd", "http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd");
+						} catch(Throwable e) {
 							throw new RuntimeException(e);
 						}
 						
@@ -480,6 +496,31 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 				serviceIdentification, 
 				Collections.emptySet()), 
 			Ack.class).get();
+	}
+	
+	private static void assertSchemaLocation (final String schemaLocation, final String ... values) {
+		// Parse the schemaLocation string:
+		final List<String> parts = Arrays
+				.stream (schemaLocation.split ("\\s+"))
+				.filter (s -> !s.isEmpty ())
+				.collect (Collectors.toList ());
+		
+		if (parts.size () % 2 != 0) {
+			fail (String.format ("Invalid schemaLocation \"%s\": should have an even number of elements.", schemaLocation));
+		}
+		
+		final Set<Pair<String, String>> schemaLocationSet = new HashSet<> ();
+		for (int i = 0; i < parts.size (); i += 2) {
+			schemaLocationSet.add (Pair.of (parts.get (i), parts.get (i + 1)));
+		}
+		
+		for (int i = 0; i < values.length; i += 2) {
+			final Pair<String, String> entry = Pair.of (values[i], values[i + 1]);
+			
+			if (!schemaLocationSet.contains (entry)) {
+				fail (String.format ("Missing schemaLocation entry: %s %s (%s)", entry.getLeft (), entry.getRight (), schemaLocationSet.toString ()));
+			}
+		}
 	}
 
 	private Path assertServiceMetadataDocument(String datasetMetadataPrefix, MetadataDocumentFactory mdf, Path metadataFile) {
@@ -514,6 +555,15 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 							.exists();
 					})
 					.count());
+
+			
+			// Assert that the schemalocations are set:
+			final String schemaLocation = serviceMetadata.xmlDocument.getString (namespaces, "/gmd:MD_Metadata/@xsi:schemaLocation");
+			assertSchemaLocation (schemaLocation,
+					"http://www.isotc211.org/2005/gmd", "http://schemas.opengis.net/csw/2.0.2/profiles/apiso/1.0.0/apiso.xsd",
+					"http://www.isotc211.org/2005/gmd", "http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd");
+		} catch (AssertionError e) {
+			throw e;
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
