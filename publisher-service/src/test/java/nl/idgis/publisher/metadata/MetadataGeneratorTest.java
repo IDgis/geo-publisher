@@ -240,7 +240,6 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		}
 
 		final int[] layerGenericLayerIds = new int[layerNames.length];
-		final int[] serviceGenericLayerIds = new int[layerNames.length];
 		for (int i = 0; i < layerNames.length; ++ i) {
 			final String layerIdentification = layerIdentifications[i];
 			final String layerName = layerNames[i];
