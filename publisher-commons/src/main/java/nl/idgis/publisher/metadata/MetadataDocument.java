@@ -805,12 +805,8 @@ public class MetadataDocument {
 		return getServiceIdentificationPath() + "/srv:coupledResource";
 	}
 	
-	protected String getSVCoupledResourcePath(){
-		return getCoupledResourcePath() + "/srv:SV_CoupledResource";
-	}
-	
 	public int removeSVCoupledResource() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getSVCoupledResourcePath());
+		return xmlDocument.removeNodes(namespaces, getCoupledResourcePath());
 	}
 
 	/**
@@ -821,7 +817,16 @@ public class MetadataDocument {
 	 * @throws NotFound
 	 */
 	public void addSVCoupledResource(String operationName, String identifier, String scopedName) throws NotFound {
-		String parentPath = xmlDocument.addNode(namespaces, getCoupledResourcePath(), "srv:SV_CoupledResource");
+		String parentPath = xmlDocument.addNode (
+				namespaces, 
+				getServiceIdentificationPath (),
+				new String[] { 
+					"srv:couplingType",
+					"srv:containsOperations",
+					"srv:operatesOn"
+				}, 
+				"srv:coupledResource/srv:SV_CoupledResource"
+			);
 		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
 		xmlDocument.addNode(namespaces, parentPath, "srv:identifier/gco:CharacterString", identifier);
 		xmlDocument.addNode(namespaces, parentPath, "gco:ScopedName", scopedName);
@@ -829,15 +834,15 @@ public class MetadataDocument {
 	
 	
 	public String getServiceCoupledResourceOperationName() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getSVCoupledResourcePath() + "/srv:operationName/gco:CharacterString");
+		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:operationName/gco:CharacterString");
 	}
 	
 	public String getServiceCoupledResourceIdentifier() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getSVCoupledResourcePath() + "/srv:identifier/gco:CharacterString");
+		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:identifier/gco:CharacterString");
 	}
 	
 	public String getServiceCoupledResourceScopedName() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getSVCoupledResourcePath() + "/gco:ScopedName");
+		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/gco:ScopedName");
 	}
 	
 	
