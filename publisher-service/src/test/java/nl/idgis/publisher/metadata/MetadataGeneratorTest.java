@@ -637,6 +637,18 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					fail (String.format ("Element %s is at the wrong position in serviceIdenficication, expected one of %s", localName, serviceIdentificationMembers.subList (position, serviceIdentificationMembers.size ())));
 				}
 			}
+			
+			// Assert that the proper coupled resources are generated for each layer:
+			final Set<String> coupledResources = serviceMetadata.xmlDocument.xpath (Optional.of (namespaces))
+				.nodes ("/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:coupledResource")
+				.stream ()
+				.map (coupledResource -> coupledResource.node ("srv:SV_CoupledResource").get ())
+				.map (node -> node.string ("gco:ScopedName").get ())
+				.collect (Collectors.toSet ());
+			
+			for (final String s: layerNames) {
+				assertTrue (coupledResources.contains (s));
+			}
 		} catch (AssertionError e) {
 			throw e;
 		} catch(Exception e) {
