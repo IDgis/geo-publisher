@@ -722,12 +722,9 @@ public class MetadataDocument {
 		return getServiceIdentificationPath() + "/gmd:graphicOverview";
 	}
 	
-	protected String getBrowseGraphicPath() {
-		return getGraphicOverviewPath() + "/gmd:MD_BrowseGraphic";
-	}
 	
 	public int removeBrowseGraphic() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getBrowseGraphicPath());		
+		return xmlDocument.removeNodes(namespaces, getGraphicOverviewPath());		
 	}
 	
 	/**
@@ -736,11 +733,33 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addBrowseGraphic(String fileName) throws NotFound {		
-		xmlDocument.addNode(namespaces, getGraphicOverviewPath(), "gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString", fileName);		
+		xmlDocument.addNode(
+				namespaces, 
+				getServiceIdentificationPath (), 
+				new String[] {
+					"gmd:resourceFormat",
+					"gmd:descriptiveKeywords",
+					"gmd:resourceSpecificUsage",
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"srv:serviceType",
+					"srv:serviceTypeVersion",
+					"srv:accessProperties",
+					"srv:restrictions",
+					"srv:keywords",
+					"srv:extent",
+					"srv:coupledResource",
+					"srv:couplingType",
+					"srv:containsOperations",
+					"srv:operatesOn"
+				},
+				"gmd:graphicOverview/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString", 
+				fileName
+			);		
 	}
 	
 	public String getBrowseGraphic() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getBrowseGraphicPath() + "/gmd:fileName/gco:CharacterString");
+		return xmlDocument.getString(namespaces, getGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
 	}
 	
 
