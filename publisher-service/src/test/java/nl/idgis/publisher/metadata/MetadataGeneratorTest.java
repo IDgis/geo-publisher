@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -72,6 +73,7 @@ import nl.idgis.publisher.recorder.Recording;
 import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.service.manager.messages.GetService;
 import nl.idgis.publisher.service.manager.messages.PublishService;
+import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 
 public class MetadataGeneratorTest extends AbstractServiceTest {
 	
@@ -567,6 +569,46 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			final String serviceType = serviceMetadata.xmlDocument.getString (namespaces, "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/srv:serviceType/gco:LocalName");
 			assertTrue ("Invalid serviceType: " + serviceType, "view".equals (serviceType) || "download".equals (serviceType));
 			
+			// Assert the correct ordering of elements in the service identification:
+			final List<String> serviceIdentificationMembers = Arrays.asList (new String[] {
+				"citation",
+				"abstract",
+				"purpose",
+				"credit",
+				"status",
+				"pointOfContact",
+				"resourceMaintenance",
+				"graphicOverview",
+				"resourceFormat",
+				"descriptiveKeywords",
+				"resourceSpecificUsage",
+				"resourceConstraints",
+				"aggregationInfo",
+				"serviceType",
+				"serviceTypeVersion",
+				"accessProperties",
+				"restrictions",
+				"keywords",
+				"extent",
+				"coupledResource",
+				"couplingType",
+				"containsOperations",
+				"operatesOn"
+			});
+			int position = 0;
+			for (final XPathHelper node: serviceMetadata.xmlDocument.xpath (Optional.of (namespaces)).nodes ("/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/*")) {
+				final String localName = node.getLocalName ().get ();
+				
+				for (int i = position; i < serviceIdentificationMembers.size (); ++ i) {
+					if (serviceIdentificationMembers.get (i).equals (localName)) {
+						position = i;
+						break;
+					}
+				}
+				if (!serviceIdentificationMembers.get (position).equals (localName)) {
+					fail (String.format ("Element %s is at the wrong position in serviceIdenficication, expected one of %s", localName, serviceIdentificationMembers.subList (position, serviceIdentificationMembers.size ())));
+				}
+			}
 		} catch (AssertionError e) {
 			throw e;
 		} catch(Exception e) {
