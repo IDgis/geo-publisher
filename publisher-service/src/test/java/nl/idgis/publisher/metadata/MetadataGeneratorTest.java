@@ -91,9 +91,9 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 	
 	final String datasetIdentification = "datasetIdentification";
 	
-	final String layerIdentification = "layerIdentification";
+	final String[] layerIdentifications = new String[] { "layerIdentification1", "layerIdentification2" };
 	
-	final String layerName = "testLayer";
+	final String[] layerNames = new String[] { "testLayer1", "testLayer2" };
 	
 	final String serviceIdentification = "serviceIdentification";
 	
@@ -238,25 +238,34 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			stmt.execute("create schema staging_data");
 			stmt.execute("create table staging_data." + datasetIdentification + "()");
 		}
-		
-		final int layerGenericLayerId = 
-			insert(genericLayer)
-				.columns(					
-					genericLayer.identification,
-					genericLayer.name)
-				.values(
-					layerIdentification,
-					layerName)
-				.executeWithKey(genericLayer.id);
-		
-		insert(leafLayer)
-			.columns(
-				leafLayer.genericLayerId,
-				leafLayer.datasetId)
-			.values(
-				layerGenericLayerId,
-				datasetId)
-			.execute();
+
+		final int[] layerGenericLayerIds = new int[layerNames.length];
+		final int[] serviceGenericLayerIds = new int[layerNames.length];
+		for (int i = 0; i < layerNames.length; ++ i) {
+			final String layerIdentification = layerIdentifications[i];
+			final String layerName = layerNames[i];
+			
+			final int layerGenericLayerId = 
+					insert(genericLayer)
+						.columns(					
+							genericLayer.identification,
+							genericLayer.name)
+						.values(
+							layerIdentification,
+							layerName)
+						.executeWithKey(genericLayer.id);
+				
+				insert(leafLayer)
+					.columns(
+						leafLayer.genericLayerId,
+						leafLayer.datasetId)
+					.values(
+						layerGenericLayerId,
+						datasetId)
+					.execute();
+				
+			layerGenericLayerIds[i] = layerGenericLayerId;
+		}
 		
 		final int serviceGenericLayerId =
 			insert(genericLayer)
@@ -308,16 +317,18 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					serviceId)
 				.execute());
 		
-		insert(layerStructure)
-			.columns(
-				layerStructure.parentLayerId,
-				layerStructure.childLayerId,
-				layerStructure.layerOrder)
-			.values(
-				serviceGenericLayerId,
-				layerGenericLayerId,
-				0)
-			.execute();
+		for (int i = 0; i < layerNames.length; ++ i) {
+			insert(layerStructure)
+				.columns(
+					layerStructure.parentLayerId,
+					layerStructure.childLayerId,
+					layerStructure.layerOrder)
+				.values(
+					serviceGenericLayerId,
+					layerGenericLayerIds[i],
+					i)
+				.execute();
+		}
 		
 		// Verify database content
 		Service service = f.ask(serviceManager, new GetService(serviceIdentification), Service.class).get();
@@ -325,16 +336,18 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 		assertEquals(serviceName, service.getName());
 		
 		List<LayerRef<? extends Layer>> layerRefs = service.getLayers();		
-		assertEquals(1, layerRefs.size());
+		assertEquals(2, layerNames.length);
 		
-		LayerRef<? extends Layer> layerRef = layerRefs.get(0);
-		assertFalse(layerRef.isGroupRef());
-		
-		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
-		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
-		
-		assertEquals(layerIdentification, datasetLayer.getId());
-		assertEquals(layerName, datasetLayer.getName());
+		for (int i = 0; i < layerNames.length; ++ i) {
+			LayerRef<? extends Layer> layerRef = layerRefs.get(i);
+			assertFalse(layerRef.isGroupRef());
+			
+			DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
+			DatasetLayer datasetLayer = datasetLayerRef.getLayer();
+			
+			assertEquals(layerIdentifications[i], datasetLayer.getId());
+			assertEquals(layerNames[i], datasetLayer.getName());
+		}
 		
 		// Publish service
 		SQLInsertClause environmentInsert = insert(environment)
@@ -451,12 +464,27 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 						try {
 							MetadataDocument datasetMetadata = mdf.parseDocument(Files.readAllBytes(metadataFile));
 							
-							Map<String, ServiceLinkage> serviceLinkage =
+							Map<Pair<String, String>, ServiceLinkage> serviceLinkage =
 								datasetMetadata.getServiceLinkage().stream()
 									.collect(Collectors.toMap(
-										ServiceLinkage::getProtocol,
+										l -> Pair.of (l.getProtocol (), l.getName ()),
 										Function.identity()));
 							
+							for (int i = 0; i < layerNames.length; ++ i) {
+								final Pair<String, String> wmsKey = Pair.of ("OGC:WMS", layerNames[i]);
+								final Pair<String, String> wfsKey = Pair.of ("OGC:WFS", layerNames[i]);
+								
+								assertTrue (serviceLinkage.containsKey (wmsKey));
+								assertTrue (serviceLinkage.containsKey (wfsKey));
+								
+								final ServiceLinkage wmsServiceLinkage = serviceLinkage.get(wmsKey);
+								final ServiceLinkage wfsServiceLinkage = serviceLinkage.get(wfsKey);
+								
+								assertEquals(prefix + "geoserver/" + serviceName + "/wms", wmsServiceLinkage.getURL());
+								assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
+							}
+							
+							/*
 							assertTrue(serviceLinkage.containsKey("OGC:WMS"));		
 							ServiceLinkage wmsServiceLinkage = serviceLinkage.get("OGC:WMS");
 							assertEquals(layerName, wmsServiceLinkage.getName());
@@ -466,6 +494,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 							ServiceLinkage wfsServiceLinkage = serviceLinkage.get("OGC:WFS");
 							assertEquals(layerName, wfsServiceLinkage.getName());
 							assertEquals(prefix + "geoserver/" + serviceName + "/wfs", wfsServiceLinkage.getURL());
+							*/
 
 							// Assert that the correct schemaLocation is set:
 							final String schemaLocation = datasetMetadata.xmlDocument.getString (namespaces, "/gmd:MD_Metadata/@xsi:schemaLocation");
