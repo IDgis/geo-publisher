@@ -1,6 +1,5 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,9 +16,10 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 	
 	private final List<String> columnNames;
 	
-	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, Tiling tilingSettings, 
-			String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, String tableName, List<String> columnNames) {
-		super(layerId, title, abstr, keywords, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
+	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, 
+			Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, 
+			String tableName, List<String> columnNames) {
+		super(layerId, title, abstr, keywords, metadataLinks, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;
@@ -40,7 +40,7 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 				title,
 				abstr,
 				keywords,
-				Collections.emptyList(),
+				getMetadataLinks(),
 				columnNames.stream()
 					.map(Attribute::new)
 					.collect(Collectors.toList()));

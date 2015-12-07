@@ -162,6 +162,7 @@ public class EnsureService extends UntypedActor {
 										layer.getTitle(), 
 										layer.getAbstract(), 
 										layer.getKeywords(),
+										Collections.emptyList(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
@@ -179,7 +180,8 @@ public class EnsureService extends UntypedActor {
 										getUniqueLayerName(layer.getName()), 
 										layer.getTitle(), 
 										layer.getAbstract(), 
-										layer.getKeywords(),										
+										layer.getKeywords(),
+										Collections.emptyList(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
