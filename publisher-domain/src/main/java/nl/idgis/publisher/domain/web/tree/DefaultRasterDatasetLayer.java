@@ -9,8 +9,9 @@ public class DefaultRasterDatasetLayer extends AbstractDatasetLayer implements R
 	
 	private final String fileName;
 
-	public DefaultRasterDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, List<String> keywords, String fileName, List<StyleRef> styleRef, boolean confidential, Timestamp importTime) {
-		super(id, name, title, abstr, tiling, confidential, importTime, keywords, styleRef);
+	public DefaultRasterDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, String datasetId,
+		List<String> keywords, String fileName, List<StyleRef> styleRef, boolean confidential, Timestamp importTime) {
+		super(id, name, title, abstr, tiling, confidential, datasetId, importTime, keywords, styleRef);
 		
 		this.fileName = fileName;
 	}

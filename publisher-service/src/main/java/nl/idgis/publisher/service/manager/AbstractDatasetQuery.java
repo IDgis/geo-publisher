@@ -191,6 +191,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				new TypedList<>(AbstractDatasetLayer.class,
 					resp.list().stream()
 						.map(t -> {
+							String datasetId = t.get(dataset.identification);
+							
 							String type = t.get(sourceDatasetVersion.type);
 							
 							String id = t.get(genericLayer.identification);
@@ -213,6 +215,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											title,
 											abstr,
 											tiling,
+											datasetId,
 											getList(keywords, t),
 											fileName,
 											getStyleRefs(styles, t),
@@ -226,14 +229,15 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										id,
 										name,
 										title,
-										abstr,								
+										abstr,
 										tiling,
+										datasetId,
 										getList(keywords, t),
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),
 										confidential,
-										importTime);									
+										importTime);
 								default:
 									throw new IllegalStateException("unknown dataset type: " + type);
 							}

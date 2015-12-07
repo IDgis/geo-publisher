@@ -4,6 +4,8 @@ import java.util.List;
 
 public interface DatasetLayer extends Layer {
 	
+	String getDatasetId();
+	
 	List<String> getKeywords();
 	
 	List<StyleRef> getStyleRefs();

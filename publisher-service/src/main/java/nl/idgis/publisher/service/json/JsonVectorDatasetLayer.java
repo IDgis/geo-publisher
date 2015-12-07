@@ -11,8 +11,8 @@ import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
 public class JsonVectorDatasetLayer extends AbstractJsonDatasetLayer implements VectorDatasetLayer {
 
-	public JsonVectorDatasetLayer(JsonNode jsonNode) {
-		super(jsonNode);
+	public JsonVectorDatasetLayer(JsonNode jsonNode, String datasetId) {
+		super(jsonNode, datasetId);
 	}
 	
 	@Override

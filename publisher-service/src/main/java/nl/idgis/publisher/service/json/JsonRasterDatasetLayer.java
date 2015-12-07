@@ -6,8 +6,8 @@ import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 
 public class JsonRasterDatasetLayer extends AbstractJsonDatasetLayer implements RasterDatasetLayer {
 
-	public JsonRasterDatasetLayer(JsonNode jsonNode) {
-		super(jsonNode);
+	public JsonRasterDatasetLayer(JsonNode jsonNode, String datasetId) {
+		super(jsonNode, datasetId);
 	}
 	
 	@Override

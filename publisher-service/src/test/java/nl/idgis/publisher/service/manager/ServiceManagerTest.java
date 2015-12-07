@@ -534,6 +534,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("styleName0", styleRef.getName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
+		assertEquals("dataset0", datasetLayer.getDatasetId());
 		assertEquals("layer0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());
@@ -1628,7 +1629,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
 		assertNotNull(publishedServiceContent);
 		
-		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent);
+		Map<String, String> datasetIds = 
+			query().from(publishedServiceDataset)
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+				.list(publishedServiceDataset.layerName, dataset.identification)
+				.stream().collect(Collectors.toMap(
+					t -> t.get(publishedServiceDataset.layerName), 
+					t -> t.get(dataset.identification)));
+		
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, datasetIds);
 		assertNotNull(reconstrucedPublishedService);
 		assertEquals("service", reconstrucedPublishedService.getId());
 		
@@ -1689,10 +1698,45 @@ public class ServiceManagerTest extends AbstractServiceTest {
 							+ t.get(publishedServiceDataset.layerName))
 						.collect(Collectors.toList()));
 		
-		Service publishedService = f.ask(serviceManager, new GetPublishedService("service"), Service.class).get();
-		assertEquals("service", publishedService.getId());
+		assertService(
+			f.ask(serviceManager, new GetService("service"), Service.class).get(), 
+			f.ask(serviceManager, new GetPublishedService("service"), Service.class).get());
 	}
 	
+	private void assertService(Service a, Service b) {
+		assertEquals(a.getId(), b.getId());
+		assertLayers(a.getLayers(), b.getLayers());
+	}
+	
+	private void assertLayers(List<LayerRef<? extends Layer>> a, List<LayerRef<? extends Layer>> b) {
+		Iterator<LayerRef<? extends Layer>> aItr = a.iterator();
+		Iterator<LayerRef<? extends Layer>> bItr = b.iterator();
+		
+		while(aItr.hasNext()) {
+			assertTrue(bItr.hasNext());
+			
+			LayerRef<? extends Layer> aRef = aItr.next();
+			LayerRef<? extends Layer> bRef = bItr.next();
+			
+			assertEquals(aRef.isGroupRef(), bRef.isGroupRef());
+			
+			if(aRef.isGroupRef()) {
+				assertLayers(
+					aRef.asGroupRef().getLayer().getLayers(), 
+					bRef.asGroupRef().getLayer().getLayers());
+			} else {
+				DatasetLayer aDatasetLayer = aRef.asDatasetRef().getLayer();
+				DatasetLayer bDatasetLayer = bRef.asDatasetRef().getLayer();
+				
+				assertEquals(aDatasetLayer.getId(), bDatasetLayer.getId());
+				assertEquals(aDatasetLayer.getDatasetId(), bDatasetLayer.getDatasetId());
+				assertEquals(aDatasetLayer.getName(), bDatasetLayer.getName());
+			}
+		}
+		
+		assertFalse(bItr.hasNext());
+	}
+
 	@Test
 	public void testUndoPublishService() throws Exception {
 		int rootId = insert(genericLayer)
@@ -1902,8 +1946,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.executeWithKey(genericLayer.id);
 		
 		StringWriter sw = new StringWriter();
-		Transformer t = TransformerFactory.newInstance().newTransformer();
-		t.transform(new DOMSource(TestStyle.getGreenSld()), new StreamResult(sw));
+		Transformer tns = TransformerFactory.newInstance().newTransformer();
+		tns.transform(new DOMSource(TestStyle.getGreenSld()), new StreamResult(sw));
 		
 		int styleId0 = insert(style)
 			.set(style.identification, "style0")
@@ -1950,7 +1994,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
 		assertNotNull(publishedServiceContent);
 		
-		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent);
+		Map<String, String> datasetIds = 
+			query().from(publishedServiceDataset)
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+				.list(publishedServiceDataset.layerName, dataset.identification)
+				.stream().collect(Collectors.toMap(
+					t -> t.get(publishedServiceDataset.layerName), 
+					t -> t.get(dataset.identification)));
+		
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, datasetIds);
 		assertNotNull(reconstrucedPublishedService);
 		assertEquals("service", reconstrucedPublishedService.getId());
 		
