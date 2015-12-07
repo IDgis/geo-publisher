@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.Arrays;
 
 import org.junit.After;
@@ -46,6 +47,7 @@ import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.recorder.messages.Clear;
 import nl.idgis.publisher.recorder.messages.Cleared;
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.GetPublishedService;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
@@ -314,8 +316,12 @@ public class ProvisioningManagerTest  {
 					}
 					
 					@Override
-					public Props ensureJobProps(Set<ActorRef> targets) {
-						return JobActor.props(jobActorRecorder, targets);
+					public Props ensureJobProps(Set<EnsureTarget> targets) {
+						Set<ActorRef> actorRefs = targets.stream()
+							.map(EnsureTarget::getActorRef)
+							.collect(Collectors.toSet());
+						
+						return JobActor.props(jobActorRecorder, actorRefs);
 					}
 
 					@Override

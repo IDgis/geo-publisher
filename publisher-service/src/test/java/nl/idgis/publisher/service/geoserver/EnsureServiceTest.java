@@ -41,6 +41,7 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -173,7 +174,7 @@ public class EnsureServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof Ensure) {
 				ActorRef infoCollector = getContext().actorOf(
-					InfoCollector.props(singleton(getSelf())), 
+					InfoCollector.props(singleton(new EnsureTarget(getSelf(), ""))), // TODO: add metadata link prefix
 					nameGenerator.getName(EnsureService.class));
 				
 				infoCollector.tell(PreviousEnsureInfo.ensured(new Timestamp(100)), getSelf());
