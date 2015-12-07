@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
+import java.util.Collections;
 import java.util.List;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
@@ -28,7 +29,7 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 	}
 	
 	public Coverage getCoverage() {
-		return new Coverage(layerId, getNativeName(), title, abstr, keywords);
+		return new Coverage(layerId, getNativeName(), title, abstr, keywords, Collections.emptyList());
 	}
 	
 	@Override

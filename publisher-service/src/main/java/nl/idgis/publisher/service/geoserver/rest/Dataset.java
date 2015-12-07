@@ -8,12 +8,15 @@ public abstract class Dataset {
 	
 	protected final List<String> keywords;
 	
-	protected Dataset(String name, String nativeName, String title, String abstr, List<String> keywords) {
+	protected final List<MetadataLink> metadataLinks;
+	
+	protected Dataset(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks) {
 		this.name = name;
 		this.nativeName = nativeName;
 		this.title = title;
 		this.abstr = abstr;		
 		this.keywords = keywords;
+		this.metadataLinks = metadataLinks;
 	}
 
 	public String getName() {
@@ -34,5 +37,9 @@ public abstract class Dataset {
 
 	public List<String> getKeywords() {
 		return keywords;
+	}
+	
+	public List<MetadataLink> getMetadataLinks() {
+		return metadataLinks;
 	}
 }

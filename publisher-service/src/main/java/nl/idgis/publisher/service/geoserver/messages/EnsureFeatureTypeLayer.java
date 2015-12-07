@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.geoserver.messages;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +40,7 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 				title,
 				abstr,
 				keywords,
+				Collections.emptyList(),
 				columnNames.stream()
 					.map(Attribute::new)
 					.collect(Collectors.toList()));

@@ -535,6 +535,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					featureType.stringOrNull("abstract"),
 					featureType.strings("keywords/string"),
 					Collections.unmodifiableList(
+							featureType.map("metadataLinks/metadataLink",
+								metadataLink -> new MetadataLink(
+									metadataLink.string("type").get(), 
+									metadataLink.string("metadataType").get(), 
+									metadataLink.string("content").get()))),
+					Collections.unmodifiableList(
 						featureType.map("/featureType/attributes/attribute/name", 
 							name -> new Attribute(name.string().get()))));
 			}));
@@ -557,7 +563,13 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					coverage.string("nativeName").get(),
 					coverage.string("title").orElse(null),
 					coverage.string("abstract").orElse(null),
-					coverage.strings("keywords/string"));
+					coverage.strings("keywords/string"),
+					Collections.unmodifiableList(
+						coverage.map("metadataLinks/metadataLink",
+							metadataLink -> new MetadataLink(
+								metadataLink.string("type").get(), 
+								metadataLink.string("metadataType").get(), 
+								metadataLink.string("content").get()))));
 			}));
 	}
 	
@@ -647,6 +659,23 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		for(String keyword : keywords) {
 			sw.writeStartElement("strings");
 				sw.writeCharacters(keyword);
+			sw.writeEndElement();
+		}
+		sw.writeEndElement();
+		
+		sw.writeStartElement("metadataLinks");
+		List<MetadataLink> metadataLinks = dataset.getMetadataLinks();
+		for(MetadataLink metadataLink : metadataLinks) {
+			sw.writeStartElement("metadataLink");
+				sw.writeStartElement("type");
+					sw.writeCharacters(metadataLink.getType());
+				sw.writeEndElement();
+				sw.writeStartElement("metadataType");
+					sw.writeCharacters(metadataLink.getMetadataType());
+				sw.writeEndElement();
+				sw.writeStartElement("content");
+					sw.writeCharacters(metadataLink.getContent());
+				sw.writeEndElement();
 			sw.writeEndElement();
 		}
 		sw.writeEndElement();
