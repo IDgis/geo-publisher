@@ -439,6 +439,7 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 					.where(genericLayer.identification.eq(serviceIdentification))
 					.list(service.wmsMetadataFileIdentification).stream(), 
 				serviceMetadataTargetDirectory)
+					.map (metadataFile -> assertServiceMetadataDocument (datasetMetadataPrefix, mdf, metadataFile))
 					.count());
 		
 		assertEquals(
@@ -648,6 +649,21 @@ public class MetadataGeneratorTest extends AbstractServiceTest {
 			
 			for (final String s: layerNames) {
 				assertTrue (coupledResources.contains (s));
+			}
+			
+			// Assert that a browser graphic is generated for each layer:
+			if ("view".equals (serviceType)) {
+				final Set<String> browseGraphics = serviceMetadata.xmlDocument.xpath (Optional.of (namespaces))
+					.nodes ("/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:graphicOverview")
+					.stream ()
+					.map (browseGraphic -> browseGraphic.node ("gmd:MD_BrowseGraphic").get ())
+					.map (node -> node.string ("gmd:fileName/gco:CharacterString").get ())
+					.map (s -> s.substring (s.lastIndexOf ("layers=") + 7))
+					.collect (Collectors.toSet ());
+				
+				for (final String s: layerNames) {
+					assertTrue (browseGraphics.contains (s));
+				}
 			}
 		} catch (AssertionError e) {
 			throw e;
