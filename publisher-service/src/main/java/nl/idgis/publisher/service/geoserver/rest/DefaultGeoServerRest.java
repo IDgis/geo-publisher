@@ -28,7 +28,6 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -120,21 +119,16 @@ public class DefaultGeoServerRest implements GeoServerRest {
 							XMLInputFactory xif = XMLInputFactory.newInstance();
 							XMLEventReader reader = xif.createXMLEventReader(new ByteArrayInputStream(content));
 							
-							ArrayList<XMLEvent> events = new ArrayList<>();
-							try {
-								while(reader.hasNext()) {
-									events.add(reader.nextEvent());
-								}
-							} catch(Exception se) {}
-							
 							ByteArrayOutputStream fixedDocument = new ByteArrayOutputStream();
 							
 							XMLOutputFactory xof = XMLOutputFactory.newInstance();
 							XMLEventWriter writer = xof.createXMLEventWriter(fixedDocument);
 							
-							for(XMLEvent event : events) {
-								writer.add(event);
-							}
+							try {
+								while(reader.hasNext()) {
+									writer.add(reader.nextEvent());
+								}
+							} catch(Exception se) {}
 							
 							writer.close();
 							
@@ -535,13 +529,13 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					featureType.stringOrNull("abstract"),
 					featureType.strings("keywords/string"),
 					Collections.unmodifiableList(
-							featureType.map("metadataLinks/metadataLink",
-								metadataLink -> new MetadataLink(
-									metadataLink.string("type").get(), 
-									metadataLink.string("metadataType").get(), 
-									metadataLink.string("content").get()))),
+						featureType.map("metadataLinks/metadataLink",
+							metadataLink -> new MetadataLink(
+								metadataLink.string("type").get(), 
+								metadataLink.string("metadataType").get(), 
+								metadataLink.string("content").get()))),
 					Collections.unmodifiableList(
-						featureType.map("/featureType/attributes/attribute/name", 
+						featureType.map("attributes/attribute/name", 
 							name -> new Attribute(name.string().get()))));
 			}));
 	}

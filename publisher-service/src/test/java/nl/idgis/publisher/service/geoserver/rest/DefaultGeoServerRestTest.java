@@ -597,7 +597,7 @@ public class DefaultGeoServerRestTest {
 	}
 	
 	@Test
-	public void testRaster() throws Exception {
+	public void testCoverage() throws Exception {
 		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
