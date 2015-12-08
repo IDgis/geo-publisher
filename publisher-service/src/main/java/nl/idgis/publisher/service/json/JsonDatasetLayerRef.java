@@ -13,8 +13,8 @@ import static nl.idgis.publisher.service.json.JsonService.getOptional;
 
 public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> implements DatasetLayerRef {
 	
-	public JsonDatasetLayerRef(JsonNode jsonNode, Map<String, String> datasetIds) {
-		super(jsonNode, AbstractJsonDatasetLayer.fromJson(jsonNode.get("layer"), datasetIds));
+	public JsonDatasetLayerRef(JsonNode jsonNode, Map<String, Optional<String>> metadataFileIdentifications) {
+		super(jsonNode, AbstractJsonDatasetLayer.fromJson(jsonNode.get("layer"), metadataFileIdentifications));
 	}
 
 	@Override

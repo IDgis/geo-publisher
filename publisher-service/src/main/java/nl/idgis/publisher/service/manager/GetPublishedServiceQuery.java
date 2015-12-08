@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.manager;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -37,18 +38,18 @@ public class GetPublishedServiceQuery extends AbstractQuery<Object> {
 			.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
 			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 			.where(genericLayer.identification.eq(serviceId))
-			.list(publishedServiceDataset.layerName, dataset.identification)
-			.thenCompose(datasetIds ->
+			.list(publishedServiceDataset.layerName, dataset.metadataFileIdentification)
+			.thenCompose(metadataFileIdentifications ->
 				tx.query().from(publishedService)
 					.join(service).on(service.id.eq(publishedService.serviceId))
 					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 					.where(genericLayer.identification.eq(serviceId))
 					.singleResult(publishedService.content).thenApply(optionalServiceContent ->				
 						optionalServiceContent
-							.<Object>map(json -> JsonService.fromJson(json, datasetIds.list().stream()
+							.<Object>map(json -> JsonService.fromJson(json, metadataFileIdentifications.list().stream()
 								.collect(Collectors.toMap(
 									t -> t.get(publishedServiceDataset.layerName),
-									t -> t.get(dataset.identification)))))
+									t -> Optional.ofNullable (t.get(dataset.metadataFileIdentification))))))
 							.orElse(new NotFound())));
 	}
 

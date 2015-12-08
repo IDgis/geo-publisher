@@ -190,7 +190,7 @@ public class MetadataInfo implements Serializable {
 						.map(tuple -> {
 							Service serviceContent = JsonService.fromJson(
 								tuple.get(publishedService.content), 
-								Collections.emptyMap() /* datasetIds, empty because we don't use layer info */);
+								Collections.emptyMap() /* metadataFileIdentifications, empty because we don't use layer info */);
 							
 							return new ServiceInfo(
 								serviceContent.getId(),
@@ -266,7 +266,7 @@ public class MetadataInfo implements Serializable {
 						.map(servicePartition -> {
 							Service serviceContent = JsonService.fromJson(
 								servicePartition.first().get(publishedService.content), 
-								Collections.emptyMap() /* datasetIds, empty because we don't use layer info */);
+								Collections.emptyMap() /* metadataFileIdentifications, empty because we don't use layer info */);
 							
 							return new ServiceRef(
 								serviceContent.getId(),

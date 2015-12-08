@@ -2,6 +2,7 @@ package nl.idgis.publisher.domain.web.tree;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
 public class DefaultRasterDatasetLayer extends AbstractDatasetLayer implements RasterDatasetLayer {
 
@@ -9,9 +10,9 @@ public class DefaultRasterDatasetLayer extends AbstractDatasetLayer implements R
 	
 	private final String fileName;
 
-	public DefaultRasterDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, String datasetId,
+	public DefaultRasterDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, Optional<String> metadataFileIdentification,
 		List<String> keywords, String fileName, List<StyleRef> styleRef, boolean confidential, Timestamp importTime) {
-		super(id, name, title, abstr, tiling, confidential, datasetId, importTime, keywords, styleRef);
+		super(id, name, title, abstr, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
 		
 		this.fileName = fileName;
 	}

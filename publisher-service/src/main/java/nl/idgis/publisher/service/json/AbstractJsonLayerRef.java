@@ -1,6 +1,7 @@
 package nl.idgis.publisher.service.json;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -35,11 +36,11 @@ public abstract class AbstractJsonLayerRef<T extends Layer> implements LayerRef<
 		throw new IllegalStateException("LayerRef is not a DatasetLayerRef");
 	}
 	
-	static LayerRef<? extends Layer> fromJson(JsonNode jsonNode, Map<String, String> datasetIds) {
+	static LayerRef<? extends Layer> fromJson(JsonNode jsonNode, Map<String, Optional<String>> metadataFileIdentifications) {
 		if(jsonNode.get("groupRef").asBoolean()) {
-			return new JsonGroupLayerRef(jsonNode, datasetIds);
+			return new JsonGroupLayerRef(jsonNode, metadataFileIdentifications);
 		} else {
-			return new JsonDatasetLayerRef(jsonNode, datasetIds);
+			return new JsonDatasetLayerRef(jsonNode, metadataFileIdentifications);
 		}
 	}
 }

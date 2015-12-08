@@ -534,7 +534,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("styleName0", styleRef.getName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
-		assertEquals("dataset0", datasetLayer.getDatasetId());
+		assertEquals("dataset0", datasetLayer.getMetadataFileIdentification().get());
 		assertEquals("layer0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());
@@ -1629,15 +1629,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
 		assertNotNull(publishedServiceContent);
 		
-		Map<String, String> datasetIds = 
+		Map<String, Optional<String>> metadataFileIdentifications = 
 			query().from(publishedServiceDataset)
 				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
-				.list(publishedServiceDataset.layerName, dataset.identification)
+				.list(publishedServiceDataset.layerName, dataset.metadataFileIdentification)
 				.stream().collect(Collectors.toMap(
 					t -> t.get(publishedServiceDataset.layerName), 
-					t -> t.get(dataset.identification)));
+					t -> Optional.ofNullable (t.get(dataset.metadataFileIdentification))));
 		
-		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, datasetIds);
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, metadataFileIdentifications);
 		assertNotNull(reconstrucedPublishedService);
 		assertEquals("service", reconstrucedPublishedService.getId());
 		
@@ -1729,7 +1729,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				DatasetLayer bDatasetLayer = bRef.asDatasetRef().getLayer();
 				
 				assertEquals(aDatasetLayer.getId(), bDatasetLayer.getId());
-				assertEquals(aDatasetLayer.getDatasetId(), bDatasetLayer.getDatasetId());
+				assertEquals(aDatasetLayer.getMetadataFileIdentification(), bDatasetLayer.getMetadataFileIdentification());
 				assertEquals(aDatasetLayer.getName(), bDatasetLayer.getName());
 			}
 		}
@@ -1994,15 +1994,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
 		assertNotNull(publishedServiceContent);
 		
-		Map<String, String> datasetIds = 
+		Map<String, Optional<String>> metadataFileIdentifications = 
 			query().from(publishedServiceDataset)
 				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
-				.list(publishedServiceDataset.layerName, dataset.identification)
+				.list(publishedServiceDataset.layerName, dataset.metadataFileIdentification)
 				.stream().collect(Collectors.toMap(
 					t -> t.get(publishedServiceDataset.layerName), 
-					t -> t.get(dataset.identification)));
+					t -> Optional.ofNullable (t.get(dataset.metadataFileIdentification))));
 		
-		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, datasetIds);
+		Service reconstrucedPublishedService = JsonService.fromJson(publishedServiceContent, metadataFileIdentifications);
 		assertNotNull(reconstrucedPublishedService);
 		assertEquals("service", reconstrucedPublishedService.getId());
 		

@@ -148,7 +148,7 @@ public class EnsureService extends UntypedActor {
 								.collect(Collectors.toList());
 							
 							List<String> metadataLinks = Optional.ofNullable(metadataLinkPrefix)
-								.map(metadataLinkPrefix -> metadataLinkPrefix + layer.getDatasetId())
+								.map(metadataLinkPrefix -> metadataLinkPrefix + layer.getMetadataFileIdentification ())
 								.map(Collections::singletonList)
 								.orElse(Collections.emptyList());
 							

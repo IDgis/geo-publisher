@@ -1,10 +1,11 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DatasetLayer extends Layer {
 	
-	String getDatasetId();
+	Optional<String> getMetadataFileIdentification ();
 	
 	List<String> getKeywords();
 	

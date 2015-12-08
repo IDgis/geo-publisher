@@ -1,13 +1,15 @@
 package nl.idgis.publisher.service.json;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 
 public class JsonRasterDatasetLayer extends AbstractJsonDatasetLayer implements RasterDatasetLayer {
 
-	public JsonRasterDatasetLayer(JsonNode jsonNode, String datasetId) {
-		super(jsonNode, datasetId);
+	public JsonRasterDatasetLayer(JsonNode jsonNode, Optional<String> metadataFileIdentification) {
+		super(jsonNode, metadataFileIdentification);
 	}
 	
 	@Override

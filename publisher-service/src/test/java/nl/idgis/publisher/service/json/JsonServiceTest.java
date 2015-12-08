@@ -176,11 +176,11 @@ public class JsonServiceTest {
 		String json = JsonService.toJson(serviceMock);
 		assertNotNull(json);
 		
-		Map<String, String> datasetIds = new HashMap<>();
-		datasetIds.put("layer-name-0", "dataset-id-0");
-		datasetIds.put("layer-name-1", "dataset-id-1");
+		Map<String, Optional<String>> metadataFileIdentifications = new HashMap<>();
+		metadataFileIdentifications.put("layer-name-0", Optional.of ("metadata-file-id-0"));
+		metadataFileIdentifications.put("layer-name-1", Optional.of ("metadata-file-id-1"));
 		
-		Service fromJson = JsonService.fromJson(json, datasetIds);
+		Service fromJson = JsonService.fromJson(json, metadataFileIdentifications);
 		assertNotNull(fromJson);
 		
 		List<LayerRef<? extends Layer>> layerRefs = fromJson.getLayers();
@@ -203,7 +203,7 @@ public class JsonServiceTest {
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertNotNull(datasetLayer);
-		assertEquals("dataset-id-0", datasetLayer.getDatasetId());
+		assertEquals("metadata-file-id-0", datasetLayer.getMetadataFileIdentification());
 		assertEquals("layer-id-0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());

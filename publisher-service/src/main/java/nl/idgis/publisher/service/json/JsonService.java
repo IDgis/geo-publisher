@@ -43,11 +43,11 @@ public class JsonService implements Service {
 	
 	private final JsonNode jsonNode;
 	
-	private final Map<String, String> datasetIds;
+	private final Map<String, Optional<String>> metadataFileIdentifications;
 	
-	public JsonService(JsonNode jsonNode, Map<String, String> datasetIds) {
+	public JsonService(JsonNode jsonNode, Map<String, Optional<String>> metadataFileIdentifications) {
 		this.jsonNode = jsonNode;
-		this.datasetIds = datasetIds;
+		this.metadataFileIdentifications = metadataFileIdentifications;
 	}
 
 	@Override
@@ -147,7 +147,7 @@ public class JsonService implements Service {
 	public List<LayerRef<? extends Layer>> getLayers() {
 		return 
 			getStream(jsonNode, "layers")
-				.map(jsonNode -> AbstractJsonLayerRef.fromJson(jsonNode, datasetIds))
+				.map(jsonNode -> AbstractJsonLayerRef.fromJson(jsonNode, metadataFileIdentifications))
 				.collect(toList());
 	}
 	
@@ -399,7 +399,7 @@ public class JsonService implements Service {
 		}
 	}
 
-	public static Service fromJson(String json, Map<String, String> datasetIds) {
+	public static Service fromJson(String json, Map<String, Optional<String>> metadataFileIdentifications) {
 		ObjectMapper objectMapper = new ObjectMapper();
 		
 		try {
@@ -409,7 +409,7 @@ public class JsonService implements Service {
 				throw new IllegalArgumentException("unsupported format revision: " + formatRevision);
 			}
 			
-			return new JsonService(jsonNode, datasetIds);
+			return new JsonService(jsonNode, metadataFileIdentifications);
 		} catch (IOException e) {
 			throw new RuntimeException("Couldn't construct service from json", e);
 		}
