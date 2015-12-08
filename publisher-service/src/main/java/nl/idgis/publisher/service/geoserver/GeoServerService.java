@@ -482,6 +482,12 @@ public class GeoServerService extends UntypedActor {
 					return false;
 				}
 				
+				if (!Objects.equal (rest.getMetadataLinks (), ensure.getMetadataLinks ())) {
+					log.debug ("new metadataLinks: {}, was {}", ensure.getMetadataLinks (), rest.getMetadataLinks ());
+					
+					return false;
+				}
+				
 				return true;
 			}
 			
