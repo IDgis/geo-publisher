@@ -147,8 +147,12 @@ public class EnsureService extends UntypedActor {
 								.map(styleRef -> styleRef.getName())
 								.collect(Collectors.toList());
 							
+							System.out.println ("metadata file identification: " + layer.getMetadataFileIdentification () + ", "  + layer.getClass ());
+							
 							List<String> metadataLinks = Optional.ofNullable(metadataLinkPrefix)
-								.map(metadataLinkPrefix -> metadataLinkPrefix + layer.getMetadataFileIdentification ())
+								.flatMap(metadataLinkPrefix -> layer.getMetadataFileIdentification ().isPresent () 
+										? Optional.of (metadataLinkPrefix + layer.getMetadataFileIdentification ().get () + ".xml") 
+										: Optional.empty ())
 								.map(Collections::singletonList)
 								.orElse(Collections.emptyList());
 							
