@@ -65,7 +65,7 @@ public class EnsureService extends UntypedActor {
 	private Set<String> layerNames;
 	
 	public static Props props(ActorRef target, Service service, List<Style> styles, String metadataLinkPrefix, PreviousEnsureInfo previousEnsureInfo) {
-		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, metadataLinkPrefix, styles, previousEnsureInfo);
+		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, styles, metadataLinkPrefix, previousEnsureInfo);
 	}
 	
 	public void preStart() throws Exception {

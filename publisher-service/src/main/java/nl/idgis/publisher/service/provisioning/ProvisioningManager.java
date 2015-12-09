@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import akka.actor.ActorRef;
 import akka.actor.AllForOneStrategy;
@@ -193,12 +194,18 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		if(msg instanceof UpdateJobState) {
 			log.debug("update job state received: {}", msg);
 			
-			ActorRef target = getSender(); 
-			
-			if(targets.remove(target)) {
+			ActorRef targetActor = getSender(); 
+
+			final Set<EnsureTarget> removeTargets = targets
+				.stream ()
+				.filter (t -> t.getActorRef ().equals (targetActor))
+				.collect (Collectors.toSet ());
+				
+			if(!removeTargets.isEmpty()) {
+				targets.removeAll (removeTargets);
 				state.add(((UpdateJobState)msg).getState());
 			} else {
-				log.error("update job state request received from unknown target: {}", target);
+				log.error("update job state request received from unknown target: {}", targetActor);
 			}
 			
 			if(targets.isEmpty()) {

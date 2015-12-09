@@ -203,7 +203,7 @@ public class JsonServiceTest {
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertNotNull(datasetLayer);
-		assertEquals("metadata-file-id-0", datasetLayer.getMetadataFileIdentification());
+		assertEquals("metadata-file-id-0", datasetLayer.getMetadataFileIdentification().get());
 		assertEquals("layer-id-0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());
