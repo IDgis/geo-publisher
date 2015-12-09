@@ -145,9 +145,11 @@ public class InfoCollector extends UntypedActor {
 			targets.stream()
 				.map(target -> {
 					ActorRef actorRef = target.getActorRef();
-					String metadataInfoLink = target.getEnvironmentId()
-						.map(environmentId -> environmentId) // TODO: compose metadata info link
+					String metadataInfoLink = target.getEnvironmentInfo()
+						.map(environmentId -> environmentId.getMetadataUrl()) // TODO: compose metadata info link
 						.orElse(null);
+					
+					log.debug ("metadata info link: " + metadataInfoLink);
 					
 					return getContext().actorOf(
 						EnsureService.props(actorRef, service, styles, metadataInfoLink, previousEnsureInfo));

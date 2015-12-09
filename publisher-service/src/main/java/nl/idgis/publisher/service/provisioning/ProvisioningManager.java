@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.AllForOneStrategy;
 import akka.actor.Props;
@@ -110,18 +112,21 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	private Set<ActorRef> jobContexts;
 	
-	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {
+	private final Config metadataEnvironmentConfig;
+	
+	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
 		this.database = database;
 		this.serviceManager = serviceManager;
 		this.provisioningPropsFactory = provisioningPropsFactory;
+		this.metadataEnvironmentConfig = metadataEnvironmentConfig;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return props(database, serviceManager, new DefaultProvisioningPropsFactory());
+	public static Props props(ActorRef database, ActorRef serviceManager, final Config metadataEnvironmentConfig) {
+		return props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig);
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {
-		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory);
+	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
+		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory, metadataEnvironmentConfig);
 	}
 	
 	@Override
@@ -367,7 +372,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				entry -> entry.getKey(),
 				entry -> entry.getValue().stream()
 					.map(services::get)
-					.map(actorRef -> new EnsureTarget(actorRef, entry.getKey()))
+					.map(actorRef -> new EnsureTarget(actorRef, Optional.of (createEnvironmentInfo (entry.getKey()))))
 					.collect(toSet())));
 	}
 	
@@ -379,9 +384,16 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				publication.containsKey(environmentId)
 					? publication.get(environmentId).stream()
 						.map(services::get)
-						.map(actorRef -> new EnsureTarget(actorRef, environmentId))
+						.map(actorRef -> new EnsureTarget(actorRef, Optional.of (createEnvironmentInfo (environmentId))))
 					: empty())
 			.collect(toSet());
+	}
+	
+	private EnsureTarget.EnvironmentInfo createEnvironmentInfo (final String environmentId) {
+		return new EnsureTarget.EnvironmentInfo (
+				environmentId,
+				metadataEnvironmentConfig.getConfig (environmentId).getString ("datasetMetadataPrefix") + environmentId + "/"
+			);
 	}
 	
 	private class StartProvisioning {

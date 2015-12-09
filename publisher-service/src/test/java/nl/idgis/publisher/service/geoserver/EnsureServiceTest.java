@@ -174,7 +174,7 @@ public class EnsureServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof Ensure) {
 				ActorRef infoCollector = getContext().actorOf(
-					InfoCollector.props(singleton(new EnsureTarget(getSelf(), ""))), // TODO: add metadata link prefix
+					InfoCollector.props(singleton(new EnsureTarget(getSelf(), Optional.of (new EnsureTarget.EnvironmentInfo ("geoserver-environment", "http://example.com/metadata/dataset/"))))), // TODO: add metadata link prefix
 					nameGenerator.getName(EnsureService.class));
 				
 				infoCollector.tell(PreviousEnsureInfo.ensured(new Timestamp(100)), getSelf());

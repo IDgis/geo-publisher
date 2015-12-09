@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.provisioning;
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -33,14 +34,14 @@ public class ProvisioningSystem extends UntypedActor {
 	
 	private final ActorRef database, serviceManager, jobManager;
 	
-	private final Config geoserverConfig, zooKeeperConfig;
+	private final Config geoserverConfig, zooKeeperConfig, metadataEnvironmentConfig;
 	
 	private final String rasterFolderConfig;
 	
 	private ActorRef provisioningManager;
 	
 	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, ActorRef jobManager, 
-		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, final Config metadataEnvironmentConfig) {
 		
 		this.database = database;
 		this.serviceManager = serviceManager;
@@ -48,19 +49,21 @@ public class ProvisioningSystem extends UntypedActor {
 		this.geoserverConfig = geoserverConfig;
 		this.rasterFolderConfig = rasterFolderConfig;
 		this.zooKeeperConfig = zooKeeperConfig;
+		this.metadataEnvironmentConfig = metadataEnvironmentConfig;
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobManager,
-		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig) {
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, final Config metadataEnvironmentConfig) {
 		
 		return Props.create(ProvisioningSystem.class, database, serviceManager, jobManager, 
-			geoserverConfig, rasterFolderConfig, zooKeeperConfig);
+			geoserverConfig, rasterFolderConfig, zooKeeperConfig,
+			Objects.requireNonNull (metadataEnvironmentConfig, "metadataEnvironmentConfig cannot be null"));
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		provisioningManager = getContext().actorOf(
-			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory()), 
+			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig), 
 			"provisioning-manager");
 		
 		ActorRef initServiceJobCreator = getContext ().actorOf(

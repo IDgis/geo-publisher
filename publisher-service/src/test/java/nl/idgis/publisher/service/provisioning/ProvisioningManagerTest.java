@@ -69,6 +69,20 @@ import nl.idgis.publisher.utils.TypedList;
 
 public class ProvisioningManagerTest  {
 	
+	private final static Config metadataEnvironmentConfig = ConfigFactory.parseString (
+			"geoserver-public { "
+				+ " serviceLinkagePrefix = \"http://public.example.com/geoserver/\", "
+				+ " datasetMetadataPrefix = \"http://public.example.com/metadata/dataset/\", "
+			+ "}, "
+			+ " geoserver-secure { "
+				+ " serviceLinkagePrefix = \"https://secure.example.com/geoserver/\", "
+				+ " datasetMetadataPrefix = \"https://secure.example.com/metadata/dataset/\", "
+			+ " }, "
+			+ " geoserver-guaranteed { "
+				+ " serviceLinkagePrefix = \"http://guaranteed.example.com/geoserver/\", "
+				+ " datasetMetadataPrefix = \"http://guaranteed.example.com/metadata/dataset/\", "
+			+ " }");
+	
 	public abstract static class ServiceActorInfo {
 		
 		private final ServiceInfo serviceInfo;
@@ -230,7 +244,7 @@ public class ProvisioningManagerTest  {
 				getSender().tell(serviceIndex, getSelf());
 			} else if(msg instanceof GetPublishedServiceIndex) {
 				PublishedServiceIndex publishedServiceIndex = new PublishedServiceIndex(
-					"environmentId", 
+					"geoserver-public", 
 					new ServiceIndex(
 						Arrays.asList("service"), 
 						Arrays.asList("style")));
@@ -274,7 +288,7 @@ public class ProvisioningManagerTest  {
 			if(msg instanceof GetEnvironments) {
 				ActorRef sender = getSender();
 				db.transactional((GetEnvironments)msg, tx ->
-					f.successful(new TypedList<>(String.class, Arrays.asList("environmentId")))).thenAccept(resp ->
+					f.successful(new TypedList<>(String.class, Arrays.asList("geoserver-public")))).thenAccept(resp ->
 						sender.tell(resp, getSelf()));
 			} else {
 				unhandled(msg);
@@ -328,7 +342,7 @@ public class ProvisioningManagerTest  {
 					public Props environmentInfoProviderProps(ActorRef database) {
 						return EnvironmentInfoProviderMock.props(database);
 					}
-				}));
+				}, metadataEnvironmentConfig));
 		
 		f = new FutureUtils(actorSystem);
 		
@@ -419,7 +433,7 @@ public class ProvisioningManagerTest  {
 			new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
 			tempDir.toString());
 		
-		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
+		f.ask(provisioningManager, new AddPublicationService("geoserver-public", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 		
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");
@@ -499,12 +513,12 @@ public class ProvisioningManagerTest  {
 		// we wait after every message to ensure a fixed order in the recording
 		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
-		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
+		f.ask(provisioningManager, new AddPublicationService("geoserver-public", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(2), Waited.class).get();
 		
 		// services already registered -> should not have any effect
 		f.ask(provisioningManager, new AddStagingService(stagingServiceInfo), Ack.class).get();
-		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
+		f.ask(provisioningManager, new AddPublicationService("geoserver-public", publicationServiceInfo), Ack.class).get();
 		
 		f.ask(provisioningManager, new RemoveStagingService(stagingServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(3), Waited.class).get();
@@ -571,7 +585,7 @@ public class ProvisioningManagerTest  {
 				new ConnectionInfo("publicationServiceUrl", "serviceUser", "servicePassword"),
 				tempDir.toString());
 			
-		f.ask(provisioningManager, new AddPublicationService("environmentId", publicationServiceInfo), Ack.class).get();
+		f.ask(provisioningManager, new AddPublicationService("geoserver-public", publicationServiceInfo), Ack.class).get();
 		f.ask(serviceActorRecorder, new Wait(1), Waited.class).get();
 			
 		ActorRef jobRecorder = actorSystem.actorOf(AnyRecorder.props(), "job-recorder");

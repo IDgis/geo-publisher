@@ -172,6 +172,7 @@ public class ServiceApp extends UntypedActor {
 		final Config harvesterConfig = config.getConfig("harvester");
 		final Config zooKeeperConfig = config.getConfig ("zooKeeper");
 		final Config geoserverConfig = config.getConfig("geoserver");
+		final Config metadataEnvironmentConfig = config.getConfig ("metadata.environments");
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
@@ -185,7 +186,7 @@ public class ServiceApp extends UntypedActor {
 		ActorRef jobManager = getContext().actorOf(JobManager.props(database), "job-manager");
 		
 		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, jobManager,
-			geoserverConfig, rasterFolderConfig, zooKeeperConfig), "provisioning-system");
+			geoserverConfig, rasterFolderConfig, zooKeeperConfig, metadataEnvironmentConfig), "provisioning-system");
 		
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
 		
