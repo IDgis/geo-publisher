@@ -176,6 +176,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(dataset.identification, "dataset0")
 			.set(dataset.name, "dataset-name0")			
 			.set(dataset.sourceDatasetId, vectorSourceDatasetId)
+			.set(dataset.metadataFileIdentification, "dataset-metadata-0")
 			.executeWithKey(dataset.id);
 		
 		insert(datasetColumn)
@@ -534,7 +535,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertEquals("styleName0", styleRef.getName());
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
-		assertEquals("dataset0", datasetLayer.getMetadataFileIdentification().get());
+		assertEquals("dataset-metadata-0", datasetLayer.getMetadataFileIdentification().get());
 		assertEquals("layer0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());
