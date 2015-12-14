@@ -24,11 +24,12 @@
 			</p>
 			<ul>
 				@for(missingField <- missingFields) {
-					<li>@Domain.message("web.application.page.services.form.field." + missingField + ".label")</li>
+					<li>@Domain.message(missingField)</li>
 				}
 			</ul>
 			<p>
-				Vul de ontbrekende gegevens eerst aan door de service te <a href="@routes.Services.edit(serviceId)">bewerken</a>.
+				Vul de ontbrekende gegevens eerst aan door de service te <a href="@routes.Services.edit(serviceId)">bewerken</a> of
+				door de <a href="@routes.Constants.edit()">organisatiekenmerken</a> aan te vullen.
 			</p>
 		</div>
 	}
