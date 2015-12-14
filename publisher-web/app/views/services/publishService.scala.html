@@ -17,20 +17,14 @@
 	
 	@if(!canPublish) {
 		<div class="alert alert-danger">
-			<h4>De service kan niet worden gepubliceerd</h4>
-			<p>
-				Deze service kan niet worden gepubliceerd
-				omdat niet alle (voor publicatie) verplichte velden zijn ingevuld:
-			</p>
+			<h4>@Domain.message("web.application.page.services.publish.cantPublish")</h4>
+			<p>@Domain.message("web.application.page.services.publish.missingRequiredFields")</p>
 			<ul>
 				@for(missingField <- missingFields) {
 					<li>@Domain.message(missingField)</li>
 				}
 			</ul>
-			<p>
-				Vul de ontbrekende gegevens eerst aan door de service te <a href="@routes.Services.edit(serviceId)">bewerken</a> of
-				door de <a href="@routes.Constants.edit()">organisatiekenmerken</a> aan te vullen.
-			</p>
+			<p>@Html(Domain.message("web.application.page.services.publish.cantPublishHelp", routes.Services.edit(serviceId).url, routes.Constants.edit().url))</p>
 		</div>
 	}
 	
