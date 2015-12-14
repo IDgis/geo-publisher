@@ -2,7 +2,9 @@
 
 @(serviceId: String,
 	service: nl.idgis.publisher.domain.web.Service, 
-	environments: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ServicePublish])
+	environments: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.ServicePublish],
+	canPublish: Boolean,
+	missingFields: List[String])
 
 
 @layout.application( title = Domain.message("web.application.page.services.publish"),
@@ -13,16 +15,34 @@
 <div class="page-content">
 	<h1 class="page-header">@Domain.message("web.application.page.services.form.header.publish", service.name)</h1>
 	
+	@if(!canPublish) {
+		<div class="alert alert-danger">
+			<h4>De service kan niet worden gepubliceerd</h4>
+			<p>
+				Deze service kan niet worden gepubliceerd
+				omdat niet alle (voor publicatie) verplichte velden zijn ingevuld:
+			</p>
+			<ul>
+				@for(missingField <- missingFields) {
+					<li>@Domain.message("web.application.page.services.form.field." + missingField + ".label")</li>
+				}
+			</ul>
+			<p>
+				Vul de ontbrekende gegevens eerst aan door de service te <a href="@routes.Services.edit(serviceId)">bewerken</a>.
+			</p>
+		</div>
+	}
+	
 	<h3>@Domain.message("web.application.page.services.publish.environments")</h3>
 	
-	<form method="post" action="@routes.Services.submitPublishService(serviceId)"> 
+	<form method="post" action="@routes.Services.submitPublishService(serviceId)" data-can-publish="@if(canPublish){true}else{false}"> 
 		<div class="form-group col-lg-8">
 			<div class="row">
 				<div class="list-group">
 					@for(environment <- environments.values) {
 						<label class="list-group-item@if(!environment.confidential && service.confidential){ list-group-item-warning}">
 							<h4 class="list-group-item-heading">
-								<input name="@environment.identification" type="checkbox" class="pull-left" @if(environment.inUse()){checked}@if(!environment.confidential && service.confidential){ disabled}>
+								<input name="@environment.identification" type="checkbox" class="pull-left" @if(environment.inUse()){checked}@if((!environment.confidential && service.confidential) || (!canPublish && !environment.inUse)){ disabled}>
 								<span class="checkbox-environment">@environment.name</span>
 							</h4>
 							@if(!environment.confidential && service.confidential) {

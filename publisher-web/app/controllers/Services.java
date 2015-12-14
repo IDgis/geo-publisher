@@ -245,18 +245,50 @@ public class Services extends Controller {
 		return from (database)
 			.get(Service.class,  serviceId)
 			.query (new ListEnvironments (serviceId))
-			.execute (new Function2 <Service, Page<ServicePublish>, Result> () {
+			.query (new ListServiceKeywords (serviceId))
+			.execute (new Function3 <Service, Page<ServicePublish>, List<String>, Result> () {
 
 				@Override
-				public Result apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
+				public Result apply (final Service service, final Page<ServicePublish> servicePublish, final List<String> keywords) throws Throwable {
+					
+					// Check preconditions for publishing this service, the following fields must have a value (non-null, non-empty):
+					// - title
+					// - alternative title
+					// - abstract
+					// - keywords
+					boolean canPublish = true;
+					final List<String> missingFields = new ArrayList<> ();
+					if (isEmpty (service.title ())) {
+						canPublish = false;
+						missingFields.add ("title");
+					}
+					if (isEmpty (service.alternateTitle ())) {
+						canPublish = false;
+						missingFields.add ("alttitle");
+					}
+					if (isEmpty (service.abstractText ())) {
+						canPublish = false;
+						missingFields.add ("abstract");
+					}
+					if (keywords == null || keywords.isEmpty ()) {
+						canPublish = false;
+						missingFields.add ("keywords");
+					}
+					
+					
+					
 					Logger.debug("Service publish: " + servicePublish);
 					for (ServicePublish sp : servicePublish.values()) {
 						Logger.debug("SP: " + sp.toString());
 					}
 					
-					return ok(publishService.render(serviceId, service, servicePublish));
+					return ok(publishService.render(serviceId, service, servicePublish, canPublish, missingFields));
 				}
 			});
+	}
+	
+	private static boolean isEmpty (final String value) {
+		return value == null || value.trim ().isEmpty ();
 	}
 	
 	public static Promise<Result> create () {
