@@ -48,6 +48,7 @@ import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRestFactory;
 import nl.idgis.publisher.service.geoserver.rest.GroupRef;
 import nl.idgis.publisher.service.geoserver.rest.Layer;
 import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
@@ -73,7 +74,7 @@ public class GeoServerService extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final String url, user, password;
+	private final GeoServerRestFactory restFactory;
 	
 	private final Map<String, String> databaseConnectionParameters;
 	
@@ -83,30 +84,25 @@ public class GeoServerService extends UntypedActor {
 	
 	private GeoServerRest rest;
 
-	public GeoServerService(String url, String user, String password, Map<String, String> databaseConnectionParameters, String rasterFolder) throws Exception {
-		this.url = url;
-		this.user = user;
-		this.password = password;
+	public GeoServerService(GeoServerRestFactory restFactory, Map<String, String> databaseConnectionParameters, String rasterFolder) throws Exception {
+		this.restFactory = restFactory;
 		this.databaseConnectionParameters = Collections.unmodifiableMap(databaseConnectionParameters);
 		this.rasterFolder = rasterFolder;
 	}
 	
-	public static Props props(
-		String serviceUrl, String serviceUser, String servicePassword,
-		String rasterFolder, String schema) {
-		
+	public static Props props(GeoServerRestFactory restFactory, String rasterFolder, String schema) {
 		Map<String, String> connectionParameters = new HashMap<>();
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("jndiReferenceName", "java:comp/env/jdbc/db");
 		connectionParameters.put("schema", schema);
 		
-		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);
+		return Props.create(GeoServerService.class, restFactory, connectionParameters, rasterFolder);
 	}
 	
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext());
-		rest = new DefaultGeoServerRest(f, log, url, user, password);		
+		rest = restFactory.create(f, log);
 	}
 	
 	@Override

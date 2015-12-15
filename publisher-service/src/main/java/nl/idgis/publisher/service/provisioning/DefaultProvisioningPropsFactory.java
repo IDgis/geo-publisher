@@ -8,6 +8,8 @@ import akka.actor.Props;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
 import nl.idgis.publisher.service.geoserver.InfoCollector;
 import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
+import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRestFactory;
+import nl.idgis.publisher.service.geoserver.rest.GeoServerRestFactory;
 
 public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory {
 
@@ -16,11 +18,16 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 		ConnectionInfo serviceConnectionInfo = serviceInfo.getService();
 		
 		return GeoServerService.props(
-			serviceConnectionInfo.getUrl(), 
-			serviceConnectionInfo.getUser(), 
-			serviceConnectionInfo.getPassword(),	
+			restFactory(serviceConnectionInfo),	
 			serviceInfo.getRasterFolder(),
 			schema);
+	}
+
+	protected GeoServerRestFactory restFactory(ConnectionInfo serviceConnectionInfo) {
+		return new DefaultGeoServerRestFactory(
+			serviceConnectionInfo.getUrl(), 
+			serviceConnectionInfo.getUser(), 
+			serviceConnectionInfo.getPassword());
 	}
 
 	@Override
