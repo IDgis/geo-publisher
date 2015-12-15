@@ -728,6 +728,10 @@ public class Domain {
     public static String message (final String msgKey, final String args) {
     	return Messages.get (getLang (), msgKey, args);
     }
+    
+    public static String message (final String msgKey, final Object ... args) {
+    	return Messages.get (getLang (), msgKey, args);
+    }
 	
     public static String message (final Status status) {
     	return message (status, null);

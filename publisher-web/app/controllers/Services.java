@@ -11,6 +11,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
 
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListEnvironments;
@@ -25,12 +26,12 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
+import nl.idgis.publisher.domain.web.Constant;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
-
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -245,18 +246,72 @@ public class Services extends Controller {
 		return from (database)
 			.get(Service.class,  serviceId)
 			.query (new ListEnvironments (serviceId))
-			.execute (new Function2 <Service, Page<ServicePublish>, Result> () {
+			.query (new ListServiceKeywords (serviceId))
+			.list (Constant.class)
+			.execute (new Function4 <Service, Page<ServicePublish>, List<String>, Page<Constant>, Result> () {
 
 				@Override
-				public Result apply (final Service service, final Page<ServicePublish> servicePublish) throws Throwable {
+				public Result apply (final Service service, final Page<ServicePublish> servicePublish, final List<String> keywords, final Page<Constant> constants) throws Throwable {
+					
+					// Check preconditions for publishing this service, the following fields must have a value (non-null, non-empty):
+					// - title
+					// - alternative title
+					// - abstract
+					// - keywords
+					boolean canPublish = true;
+					final List<String> missingFields = new ArrayList<> ();
+					if (isEmpty (service.title ())) {
+						canPublish = false;
+						missingFields.add ("web.application.page.services.form.field.title.label");
+					}
+					if (isEmpty (service.alternateTitle ())) {
+						canPublish = false;
+						missingFields.add ("web.application.page.services.form.field.alttitle.label");
+					}
+					if (isEmpty (service.abstractText ())) {
+						canPublish = false;
+						missingFields.add ("web.application.page.services.form.field.abstract.label");
+					}
+					if (keywords == null || keywords.isEmpty ()) {
+						canPublish = false;
+						missingFields.add ("web.application.page.services.form.field.keywords.label");
+					}
+					if (constants.values().isEmpty ()) {
+						canPublish = false;
+						missingFields.add ("web.application.layout.sidebar.constants");
+					} else {
+						final Constant constant = constants.values ().get (0);
+						
+						if (
+								isEmpty (constant.contact ())
+								|| isEmpty (constant.organization ())
+								|| isEmpty (constant.position())
+								|| isEmpty (constant.addressType())
+								|| isEmpty (constant.address())
+								|| isEmpty (constant.city())
+								|| isEmpty (constant.state())
+								|| isEmpty (constant.zipcode())
+								|| isEmpty (constant.country())
+								|| isEmpty (constant.telephone())
+								|| isEmpty (constant.fax())
+								|| isEmpty (constant.email())) {
+							canPublish = false;
+							missingFields.add ("web.application.layout.sidebar.constants");
+						}
+					}
+					
 					Logger.debug("Service publish: " + servicePublish);
 					for (ServicePublish sp : servicePublish.values()) {
 						Logger.debug("SP: " + sp.toString());
 					}
 					
-					return ok(publishService.render(serviceId, service, servicePublish));
+					return ok(publishService.render(serviceId, service, servicePublish, canPublish, missingFields));
 				}
 			});
+	}
+	
+	private static boolean isEmpty (final String value) {
+		return value == null || value.trim ().isEmpty ();
 	}
 	
 	public static Promise<Result> create () {

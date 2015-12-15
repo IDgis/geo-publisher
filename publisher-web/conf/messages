@@ -470,6 +470,9 @@ web.application.page.services.name=Service
 web.application.page.services.publish=Service publiceren
 web.application.page.services.publish.environments=Omgevingen
 web.application.page.services.publish.environmentNotConfidential=Kan niet publiceren naar deze omgeving omdat de brongegevens vertrouwelijk zijn en de omgeving niet beveiligd is.
+web.application.page.services.publish.cantPublish=De service kan niet worden gepubliceerd
+web.application.page.services.publish.missingRequiredFields=Deze service kan niet worden gepubliceerd omdat niet alle (voor publicatie) verplichte velden zijn ingevuld:
+web.application.page.services.publish.cantPublishHelp=Vul de ontbrekende gegevens eerst aan door de service te <a href="{0}">bewerken</a> of door de <a href="{1}">organisatiekenmerken</a> aan te vullen.
 
 web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
