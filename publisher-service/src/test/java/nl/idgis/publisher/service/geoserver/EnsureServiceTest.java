@@ -41,6 +41,7 @@ import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.geoserver.messages.EnsureFeatureTypeLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureGroupLayer;
 import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
@@ -173,7 +174,7 @@ public class EnsureServiceTest {
 		public void onReceive(Object msg) throws Exception {
 			if(msg instanceof Ensure) {
 				ActorRef infoCollector = getContext().actorOf(
-					InfoCollector.props(singleton(getSelf())), 
+					InfoCollector.props(singleton(new EnsureTarget(getSelf(), Optional.of (new EnsureTarget.EnvironmentInfo ("geoserver-environment", "http://example.com/metadata/dataset/"))))), // TODO: add metadata link prefix
 					nameGenerator.getName(EnsureService.class));
 				
 				infoCollector.tell(PreviousEnsureInfo.ensured(new Timestamp(100)), getSelf());
@@ -243,6 +244,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getTiling()).thenReturn(Optional.of(tilingSettings));
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
 		when(datasetLayer.getImportTime()).thenReturn(Optional.of(new Timestamp(200))); // = more recent than last ensure
+		when(datasetLayer.getMetadataFileIdentification()).thenReturn(Optional.of("http://example.com/metadata/dataset/"));
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");
@@ -313,6 +315,7 @@ public class EnsureServiceTest {
 			when(layer.getTableName()).thenReturn("tableName" + i);
 			when(layer.getTiling()).thenReturn(Optional.empty());
 			when(layer.getImportTime()).thenReturn(Optional.of(new Timestamp(50))); // = earlier than last ensure 
+			when(layer.getMetadataFileIdentification()).thenReturn(Optional.of("http://example.com/metadata/dataset/"));
 			
 			DatasetLayerRef layerRef = mock(DatasetLayerRef.class);
 			when(layerRef.isGroupRef()).thenReturn(false);
@@ -420,6 +423,7 @@ public class EnsureServiceTest {
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		when(datasetLayer.getKeywords()).thenReturn(Arrays.asList("keyword0", "keyword1"));
 		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
+		when(datasetLayer.getMetadataFileIdentification()).thenReturn(Optional.of("http://example.com/metadata/dataset/"));
 		
 		Service service = mock(Service.class);
 		when(service.getId()).thenReturn("service0");

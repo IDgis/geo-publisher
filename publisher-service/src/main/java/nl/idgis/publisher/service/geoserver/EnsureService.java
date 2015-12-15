@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -49,19 +50,22 @@ public class EnsureService extends UntypedActor {
 	
 	private final List<Style> styles;
 	
+	private final String metadataLinkPrefix;
+	
 	private final PreviousEnsureInfo previousEnsureInfo;
 	
-	public EnsureService(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
+	public EnsureService(ActorRef target, Service service, List<Style> styles, String metadataLinkPrefix, PreviousEnsureInfo previousEnsureInfo) {
 		this.target = target;
 		this.service = service;
 		this.styles = styles;
+		this.metadataLinkPrefix = metadataLinkPrefix;
 		this.previousEnsureInfo = previousEnsureInfo;
 	}
 	
 	private Set<String> layerNames;
 	
-	public static Props props(ActorRef target, Service service, List<Style> styles, PreviousEnsureInfo previousEnsureInfo) {
-		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, styles, previousEnsureInfo);
+	public static Props props(ActorRef target, Service service, List<Style> styles, String metadataLinkPrefix, PreviousEnsureInfo previousEnsureInfo) {
+		return Props.create(EnsureService.class, Objects.requireNonNull(target), service, styles, metadataLinkPrefix, previousEnsureInfo);
 	}
 	
 	public void preStart() throws Exception {
@@ -143,6 +147,13 @@ public class EnsureService extends UntypedActor {
 								.map(styleRef -> styleRef.getName())
 								.collect(Collectors.toList());
 							
+							List<String> metadataLinks = Optional.ofNullable(metadataLinkPrefix)
+								.flatMap(metadataLinkPrefix -> layer.getMetadataFileIdentification ().isPresent () 
+										? Optional.of (metadataLinkPrefix + layer.getMetadataFileIdentification ().get () + ".xml") 
+										: Optional.empty ())
+								.map(Collections::singletonList)
+								.orElse(Collections.emptyList());
+							
 							if(styleNames.isEmpty()) {
 								defaultStyleName = null;
 								additionalStyleNames = Collections.emptyList();
@@ -162,6 +173,7 @@ public class EnsureService extends UntypedActor {
 										layer.getTitle(), 
 										layer.getAbstract(), 
 										layer.getKeywords(),
+										metadataLinks,
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
@@ -179,7 +191,8 @@ public class EnsureService extends UntypedActor {
 										getUniqueLayerName(layer.getName()), 
 										layer.getTitle(), 
 										layer.getAbstract(), 
-										layer.getKeywords(),										
+										layer.getKeywords(),
+										metadataLinks,
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()

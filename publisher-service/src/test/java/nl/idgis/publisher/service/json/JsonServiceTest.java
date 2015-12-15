@@ -12,8 +12,10 @@ import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -92,7 +94,7 @@ public class JsonServiceTest {
 				+ "\"rootId\":\"group-id\","
 				+ "\"layers\":[]}";
 		
-		Service service = JsonService.fromJson(json);
+		Service service = JsonService.fromJson(json, Collections.emptyMap());
 		assertEquals("service-id", service.getId());
 		assertEquals("service-name", service.getName());
 		assertEquals("service-title", service.getTitle());
@@ -119,14 +121,15 @@ public class JsonServiceTest {
 		Service service = createEmptyService();
 		
 		String json = JsonService.toJson(service);
-		JsonService.fromJson(json);
+		JsonService.fromJson(json, Collections.emptyMap());
 	}
 	
 	@Test
 	public void testLayers() {
 		VectorDatasetLayer firstDatasetLayerMock = mock(VectorDatasetLayer.class);
+		when(firstDatasetLayerMock.getName()).thenReturn("layer-name-0");
 		when(firstDatasetLayerMock.getTiling()).thenReturn(Optional.empty());
-		when(firstDatasetLayerMock.getId()).thenReturn("dataset-id-0");
+		when(firstDatasetLayerMock.getId()).thenReturn("layer-id-0");
 		when(firstDatasetLayerMock.isVectorLayer()).thenReturn(true);
 		when(firstDatasetLayerMock.asVectorLayer()).thenReturn(firstDatasetLayerMock);
 		when(firstDatasetLayerMock.getTableName()).thenReturn("tableName");
@@ -142,8 +145,9 @@ public class JsonServiceTest {
 		when(tilingMock.getMimeFormats()).thenReturn(asList("image/jpg", "image/png"));
 		
 		VectorDatasetLayer secondDatasetLayerMock = mock(VectorDatasetLayer.class);
+		when(secondDatasetLayerMock.getName()).thenReturn("layer-name-1");
 		when(secondDatasetLayerMock.getTiling()).thenReturn(Optional.of(tilingMock));
-		when(secondDatasetLayerMock.getId()).thenReturn("dataset-id-1");
+		when(secondDatasetLayerMock.getId()).thenReturn("layer-id-1");
 		when(secondDatasetLayerMock.isVectorLayer()).thenReturn(true);
 		when(secondDatasetLayerMock.asVectorLayer()).thenReturn(secondDatasetLayerMock);
 		when(secondDatasetLayerMock.getImportTime()).thenReturn(Optional.of(new Timestamp(2)));
@@ -171,8 +175,12 @@ public class JsonServiceTest {
 		
 		String json = JsonService.toJson(serviceMock);
 		assertNotNull(json);
-						
-		Service fromJson = JsonService.fromJson(json);
+		
+		Map<String, Optional<String>> metadataFileIdentifications = new HashMap<>();
+		metadataFileIdentifications.put("layer-name-0", Optional.of ("metadata-file-id-0"));
+		metadataFileIdentifications.put("layer-name-1", Optional.of ("metadata-file-id-1"));
+		
+		Service fromJson = JsonService.fromJson(json, metadataFileIdentifications);
 		assertNotNull(fromJson);
 		
 		List<LayerRef<? extends Layer>> layerRefs = fromJson.getLayers();
@@ -187,7 +195,7 @@ public class JsonServiceTest {
 		
 		Layer layer = layerRef.getLayer();
 		assertNotNull(layer);
-		assertEquals("dataset-id-0", layer.getId());		
+		assertEquals("layer-id-0", layer.getId());
 		assertFalse(layer.getTiling().isPresent());
 		
 		DatasetLayerRef datasetLayerRef = layerRef.asDatasetRef();
@@ -195,7 +203,8 @@ public class JsonServiceTest {
 		
 		DatasetLayer datasetLayer = datasetLayerRef.getLayer();
 		assertNotNull(datasetLayer);
-		assertEquals("dataset-id-0", datasetLayer.getId());
+		assertEquals("metadata-file-id-0", datasetLayer.getMetadataFileIdentification().get());
+		assertEquals("layer-id-0", datasetLayer.getId());
 		
 		assertTrue(datasetLayer.isVectorLayer());
 		

@@ -1,5 +1,6 @@
 package nl.idgis.publisher.service.json;
 
+import java.util.Map;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,8 +13,8 @@ import static nl.idgis.publisher.service.json.JsonService.getOptional;
 
 public class JsonDatasetLayerRef extends AbstractJsonLayerRef<DatasetLayer> implements DatasetLayerRef {
 	
-	public JsonDatasetLayerRef(JsonNode jsonNode) {
-		super(jsonNode, AbstractJsonDatasetLayer.fromJson(jsonNode.get("layer")));
+	public JsonDatasetLayerRef(JsonNode jsonNode, Map<String, Optional<String>> metadataFileIdentifications) {
+		super(jsonNode, AbstractJsonDatasetLayer.fromJson(jsonNode.get("layer"), metadataFileIdentifications));
 	}
 
 	@Override

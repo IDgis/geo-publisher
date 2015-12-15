@@ -22,6 +22,7 @@ import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.domain.web.tree.Service;
 
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.stream.messages.End;
@@ -43,7 +44,7 @@ public class InfoCollector extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Set<ActorRef> targets;
+	private final Set<EnsureTarget> targets;
 
 	private Service service;
 	
@@ -53,11 +54,11 @@ public class InfoCollector extends UntypedActor {
 	
 	private PreviousEnsureInfo previousEnsureInfo;
 	
-	public InfoCollector(Set<ActorRef> targets) {
+	public InfoCollector(Set<EnsureTarget> targets) {
 		this.targets = targets;
 	}
 	
-	public static Props props(Set<ActorRef> targets) {
+	public static Props props(Set<EnsureTarget> targets) {
 		return Props.create(InfoCollector.class, targets);
 	}
 	
@@ -142,7 +143,17 @@ public class InfoCollector extends UntypedActor {
 				
 		Set<ActorRef> ensureServices = 
 			targets.stream()
-				.map(target -> getContext().actorOf(EnsureService.props(target, service, styles, previousEnsureInfo)))
+				.map(target -> {
+					ActorRef actorRef = target.getActorRef();
+					String metadataInfoLink = target.getEnvironmentInfo()
+						.map(environmentId -> environmentId.getMetadataUrl()) // TODO: compose metadata info link
+						.orElse(null);
+					
+					log.debug ("metadata info link: " + metadataInfoLink);
+					
+					return getContext().actorOf(
+						EnsureService.props(actorRef, service, styles, metadataInfoLink, previousEnsureInfo));
+				})
 				.collect(toSet());
 		
 		ensureServices.stream().forEach(getContext()::watch);

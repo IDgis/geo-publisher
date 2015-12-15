@@ -19,6 +19,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -139,6 +140,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				genericLayer.title, 
 				genericLayer.abstractCol,
 				dataset.identification,
+				dataset.metadataIdentification,
+				dataset.metadataFileIdentification,
 				tiledLayer.genericLayerId,
 				tiledLayer.metaWidth,					
 				tiledLayer.metaHeight,
@@ -191,6 +194,8 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				new TypedList<>(AbstractDatasetLayer.class,
 					resp.list().stream()
 						.map(t -> {
+							String metadataFileIdentification = t.get(dataset.metadataFileIdentification);
+							
 							String type = t.get(sourceDatasetVersion.type);
 							
 							String id = t.get(genericLayer.identification);
@@ -213,6 +218,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											title,
 											abstr,
 											tiling,
+											Optional.ofNullable (metadataFileIdentification),
 											getList(keywords, t),
 											fileName,
 											getStyleRefs(styles, t),
@@ -226,14 +232,15 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										id,
 										name,
 										title,
-										abstr,								
+										abstr,
 										tiling,
+										Optional.ofNullable (metadataFileIdentification),
 										getList(keywords, t),
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),
 										confidential,
-										importTime);									
+										importTime);
 								default:
 									throw new IllegalStateException("unknown dataset type: " + type);
 							}

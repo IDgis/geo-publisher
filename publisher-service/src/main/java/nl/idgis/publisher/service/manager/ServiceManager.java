@@ -152,7 +152,7 @@ public class ServiceManager extends UntypedActor {
 	}
 
 	private CompletableFuture<Object> handleGetPublishedService(GetPublishedService msg) {
-		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, f, tx, msg.getServiceId()).result());
+		return db.transactional(msg, tx -> new GetPublishedServiceQuery(log, tx, msg.getServiceId()).result());
 	}
 	
 	private Supplier<CompletableFuture<Object>> createView(AsyncHelper tx, String datasetId) {

@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.AllForOneStrategy;
@@ -39,6 +42,7 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.geoserver.GeoServerService;
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.messages.PreviousEnsureInfo;
 import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetService;
@@ -108,18 +112,21 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	private Set<ActorRef> jobContexts;
 	
-	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {
+	private final Config metadataEnvironmentConfig;
+	
+	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
 		this.database = database;
 		this.serviceManager = serviceManager;
 		this.provisioningPropsFactory = provisioningPropsFactory;
+		this.metadataEnvironmentConfig = metadataEnvironmentConfig;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return props(database, serviceManager, new DefaultProvisioningPropsFactory());
+	public static Props props(ActorRef database, ActorRef serviceManager, final Config metadataEnvironmentConfig) {
+		return props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig);
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory) {
-		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory);
+	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
+		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory, metadataEnvironmentConfig);
 	}
 	
 	@Override
@@ -188,16 +195,22 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		}
 	}
 	
-	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator, Optional<ActorRef> watching, Set<ActorRef> targets, Set<JobState> state) {
+	private void elseProvisioning(Object msg, ServiceJobInfo serviceJob, ActorRef initiator, Optional<ActorRef> watching, Set<EnsureTarget> targets, Set<JobState> state) {
 		if(msg instanceof UpdateJobState) {
 			log.debug("update job state received: {}", msg);
 			
-			ActorRef target = getSender(); 
-			
-			if(targets.remove(target)) {
+			ActorRef targetActor = getSender(); 
+
+			final Set<EnsureTarget> removeTargets = targets
+				.stream ()
+				.filter (t -> t.getActorRef ().equals (targetActor))
+				.collect (Collectors.toSet ());
+				
+			if(!removeTargets.isEmpty()) {
+				targets.removeAll (removeTargets);
 				state.add(((UpdateJobState)msg).getState());
 			} else {
-				log.error("update job state request received from unknown target: {}", target);
+				log.error("update job state request received from unknown target: {}", targetActor);
 			}
 			
 			if(targets.isEmpty()) {
@@ -224,7 +237,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		}
 	}
 	
-	private Procedure<Object> provisioning(ServiceJobInfo serviceJob, ActorRef initiator, ActorRef watching, Set<ActorRef> targets) {
+	private Procedure<Object> provisioning(ServiceJobInfo serviceJob, ActorRef initiator, ActorRef watching, Set<EnsureTarget> targets) {
 		return new Procedure<Object>() {
 			
 			Set<JobState> state = new HashSet<>();
@@ -245,7 +258,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Procedure<Object> vacuumingPublication(ServiceJobInfo serviceJob, ActorRef initiator, Set<ActorRef> targets) {
+	private Procedure<Object> vacuumingPublication(ServiceJobInfo serviceJob, ActorRef initiator, Set<EnsureTarget> targets) {
 		return new Procedure<Object>() {
 			
 			Set<JobState> state = new HashSet<>();
@@ -261,7 +274,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Procedure<Object> receivingPublishedServiceIndices(ServiceJobInfo serviceJob, ActorRef initiator, Map<String, Set<ActorRef>> environmentTargets) {
+	private Procedure<Object> receivingPublishedServiceIndices(ServiceJobInfo serviceJob, ActorRef initiator, Map<String, Set<EnsureTarget>> environmentTargets) {
 		return new Procedure<Object>() {
 			
 			Map<String, ServiceIndex> indices = new HashMap<String, ServiceIndex>();
@@ -289,7 +302,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				} else if(msg instanceof End) {
 					log.debug("all service indices received");
 					
-					Set<ActorRef> targets = new HashSet<>();
+					Set<EnsureTarget> targets = new HashSet<>();
 					indices.entrySet().stream()
 						.forEach(entry -> {
 							String environmentId = entry.getKey();
@@ -300,7 +313,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 							if(environmentTargets.containsKey(environmentId)) {
 								environmentTargets.get(environmentId).forEach(target -> {
 									targets.add(target);
-									target.tell(serviceIndex, getSelf());
+									target.getActorRef().tell(serviceIndex, getSelf());
 								});
 							} else {
 								log.warning("environmentId unknown: {}", environmentId);
@@ -323,7 +336,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Procedure<Object> vacuumingStaging(ServiceJobInfo serviceJob, ActorRef initiator, Set<ActorRef> targets) {
+	private Procedure<Object> vacuumingStaging(ServiceJobInfo serviceJob, ActorRef initiator, Set<EnsureTarget> targets) {
 		return new Procedure<Object>() {
 			
 			Set<JobState> state = new HashSet<>();
@@ -334,7 +347,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 					handleUpdateServiceInfo((UpdateServiceInfo)msg);
 				} else if(msg instanceof ServiceIndex) {
 					log.debug("service index received");
-					targets.stream().forEach(target -> target.tell(msg, getSelf()));
+					targets.stream().forEach(target -> target.getActorRef().tell(msg, getSelf()));
 				} else {
 					elseProvisioning(msg, serviceJob, initiator, Optional.empty(), targets, state);
 				}
@@ -342,15 +355,16 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		};
 	}
 	
-	private Set<ActorRef> stagingTargets() {
+	private Set<EnsureTarget> stagingTargets() {
 		log.debug("target: staging");
 		
 		return staging.stream()
 			.map(services::get)
+			.map(actorRef -> new EnsureTarget(actorRef))
 			.collect(toSet());
 	}
 	
-	private Map<String, Set<ActorRef>> publicationTargets() {
+	private Map<String, Set<EnsureTarget>> publicationTargets() {
 		log.debug("target: publication");
 		
 		return publication.entrySet().stream()			
@@ -358,19 +372,29 @@ public class ProvisioningManager extends UntypedActorWithStash {
 				entry -> entry.getKey(),
 				entry -> entry.getValue().stream()
 					.map(services::get)
+					.map(actorRef -> new EnsureTarget(actorRef, Optional.of (createEnvironmentInfo (entry.getKey()))))
 					.collect(toSet())));
 	}
 	
-	private Set<ActorRef> publicationTargets(Collection<String> environmentIds) {
+	private Set<EnsureTarget> publicationTargets(Collection<String> environmentIds) {
 		log.debug("target: publication for environments: {}", environmentIds);
 		
 		return environmentIds.stream()
 			.flatMap(environmentId -> 
 				publication.containsKey(environmentId)
 					? publication.get(environmentId).stream()
+						.map(services::get)
+						.map(actorRef -> new EnsureTarget(actorRef, Optional.of (createEnvironmentInfo (environmentId))))
 					: empty())
-			.map(services::get)
 			.collect(toSet());
+	}
+	
+	private EnsureTarget.EnvironmentInfo createEnvironmentInfo (final String environmentId) {
+		final String baseUrl = metadataEnvironmentConfig.getConfig (environmentId).getString ("datasetMetadataPrefix");
+		return new EnsureTarget.EnvironmentInfo (
+				environmentId,
+				baseUrl.endsWith ("/") ? baseUrl : baseUrl + "/"
+			);
 	}
 	
 	private class StartProvisioning {
@@ -427,7 +451,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		
 		log.debug("previous ensure info: {}", previousEnsureInfo);
 		
-		Set<ActorRef> targets =		
+		Set<EnsureTarget> targets =
 			msg.getEnvironmentIds()
 				.map(environmentIds -> publicationTargets(environmentIds.list()))
 				.orElseGet(this::stagingTargets);

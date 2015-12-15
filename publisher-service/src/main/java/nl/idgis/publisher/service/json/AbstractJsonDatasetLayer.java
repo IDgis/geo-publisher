@@ -1,7 +1,12 @@
 package nl.idgis.publisher.service.json;
 
+import static java.util.stream.Collectors.toList;
+import static nl.idgis.publisher.service.json.JsonService.getStream;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -10,13 +15,19 @@ import nl.idgis.publisher.domain.web.tree.RasterDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
 
-import static nl.idgis.publisher.service.json.JsonService.getStream;
-import static java.util.stream.Collectors.toList;
-
 public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer implements DatasetLayer {
 	
-	public AbstractJsonDatasetLayer(JsonNode jsonNode) {
+	private final String metadataFileIdentification;
+	
+	public AbstractJsonDatasetLayer(JsonNode jsonNode, Optional<String> metadataFileIdentification) {
 		super(jsonNode);
+		
+		this.metadataFileIdentification = metadataFileIdentification.orElse (null);
+	}
+	
+	@Override
+	public Optional<String> getMetadataFileIdentification () {
+		return Optional.ofNullable (metadataFileIdentification);
 	}
 	
 	@Override
@@ -55,16 +66,21 @@ public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer impleme
 		throw new IllegalStateException("DatasetLayer is not a RasterDatasetLayer");
 	}
 	
-	static DatasetLayer fromJson(JsonNode jsonNode) {
-		JsonNode type = jsonNode.get("type");		
-		Objects.requireNonNull(type, "layer type attribute missing");		
-		String layerType = type.asText();
+	static DatasetLayer fromJson(JsonNode jsonNode, Map<String, Optional<String>> metadataFileIdentifications) {
+		String layerName = Objects.requireNonNull(jsonNode.get("name"), 
+			"layer name attribute missing").asText();
+		String layerType = Objects.requireNonNull(jsonNode.get("type"), 
+			"layer type attribute missing").asText();
+		
+		if(!metadataFileIdentifications.containsKey(layerName)) {
+			throw new IllegalArgumentException("no metadata file identification for layer: " + layerName);
+		}
 		
 		switch(layerType) {
 			case "vector":
-				return new JsonVectorDatasetLayer(jsonNode);
+				return new JsonVectorDatasetLayer(jsonNode, metadataFileIdentifications.get(layerName));
 			case "raster":
-				return new JsonRasterDatasetLayer(jsonNode);
+				return new JsonRasterDatasetLayer(jsonNode, metadataFileIdentifications.get(layerName));
 			default:
 				throw new IllegalArgumentException("unknown layer type: " + layerType);
 		}

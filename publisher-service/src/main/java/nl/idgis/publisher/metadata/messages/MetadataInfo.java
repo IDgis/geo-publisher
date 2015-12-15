@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
@@ -187,7 +188,9 @@ public class MetadataInfo implements Serializable {
 					serviceKeywordInfo,
 					publishedService.serviceId)
 						.map(tuple -> {
-							Service serviceContent = JsonService.fromJson(tuple.get(publishedService.content));
+							Service serviceContent = JsonService.fromJson(
+								tuple.get(publishedService.content), 
+								Collections.emptyMap() /* metadataFileIdentifications, empty because we don't use layer info */);
 							
 							return new ServiceInfo(
 								serviceContent.getId(),
@@ -260,9 +263,10 @@ public class MetadataInfo implements Serializable {
 						.partition(
 							datasetPartition.stream(),
 							tuple -> tuple.get(publishedService.serviceId))
-						.map(servicePartition -> {							
+						.map(servicePartition -> {
 							Service serviceContent = JsonService.fromJson(
-								servicePartition.first().get(publishedService.content));
+								servicePartition.first().get(publishedService.content), 
+								Collections.emptyMap() /* metadataFileIdentifications, empty because we don't use layer info */);
 							
 							return new ServiceRef(
 								serviceContent.getId(),

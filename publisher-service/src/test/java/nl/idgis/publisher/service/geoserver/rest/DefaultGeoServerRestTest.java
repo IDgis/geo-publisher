@@ -114,6 +114,7 @@ public class DefaultGeoServerRestTest {
 		service.postFeatureType(workspace, dataStore, new FeatureType(
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
@@ -199,6 +200,8 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Arrays.asList(
+					new MetadataLink("text/plain", "ISO19115:2003", "content")),
+				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
 					new Attribute("the_geom")))).get();
@@ -217,6 +220,16 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(keywords);
 		assertTrue(keywords.contains("keyword0"));
 		assertTrue(keywords.contains("keyword1"));
+		
+		List<MetadataLink> metadataLinks = featureType.getMetadataLinks();
+		assertNotNull(metadataLinks);
+		assertEquals(1, metadataLinks.size());
+		
+		MetadataLink metadataLink = metadataLinks.get(0);
+		assertNotNull(metadataLink);		
+		assertEquals("text/plain", metadataLink.getType());
+		assertEquals("ISO19115:2003", metadataLink.getMetadataType());
+		assertEquals("content", metadataLink.getContent());
 		
 		List<Attribute> attributes = featureType.getAttributes();
 		assertNotNull(attributes);
@@ -257,6 +270,7 @@ public class DefaultGeoServerRestTest {
 		service.postFeatureType(workspace, dataStore, new FeatureType(
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
 				Arrays.asList(
 					new Attribute("id"), 
 					new Attribute("test"), 
@@ -442,6 +456,7 @@ public class DefaultGeoServerRestTest {
 		
 		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", 
 			Arrays.asList("test"),
+			Collections.emptyList(),
 			Arrays.asList(
 				new Attribute("id"), 
 				new Attribute("test"), 
@@ -490,6 +505,7 @@ public class DefaultGeoServerRestTest {
 		FeatureType featureType = new FeatureType(
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
 				Arrays.asList(
 						new Attribute("id"), 
 						new Attribute("test"), 
@@ -567,12 +583,13 @@ public class DefaultGeoServerRestTest {
 		service.postDataStore(anotherWorkspace, dataStore).get();
 		
 		FeatureType anotherFeatureType = new FeatureType(
-			"anotherTest", "test_table", "title", "abstract", 
+			"anotherTest", "test_table", "title", "abstract",			
 			Arrays.asList("keyword0", "keyword1"),
-				Arrays.asList(
-					new Attribute("id"), 
-					new Attribute("test"), 
-					new Attribute("the_geom")));
+			Collections.emptyList(),
+			Arrays.asList(
+				new Attribute("id"), 
+				new Attribute("test"), 
+				new Attribute("the_geom")));
 		service.postFeatureType(anotherWorkspace, anotherDataStore, anotherFeatureType).get();
 				
 		assertEquals(Arrays.asList("test"), service.getTiledLayerNames(workspace).get());
@@ -580,7 +597,7 @@ public class DefaultGeoServerRestTest {
 	}
 	
 	@Test
-	public void testRaster() throws Exception {
+	public void testCoverage() throws Exception {
 		URL testRasterUrl = TestRaster.getRasterUrl();
 		assertEquals("file", testRasterUrl.getProtocol());
 		
@@ -595,14 +612,15 @@ public class DefaultGeoServerRestTest {
 	
 		String nativeName = testRasterFile.getName().split("\\.")[0];
 		Coverage coverage = new Coverage("test", nativeName, "title", 
-			"abstract", Arrays.asList("keyword0", "keyword1"));
+			"abstract", Arrays.asList("keyword0", "keyword1"), 
+				Arrays.asList(new MetadataLink("text/plain", "ISO19115:2003", "content")));
 		service.postCoverage(workspace, coverageStore, coverage).get();
 		
 		Layer layer = service.getLayer(workspace, coverage).get();
 		assertEquals("raster", layer.getDefaultStyle().getStyleName());
 		
 		Coverage modifiedCoveraged = new Coverage(coverage.getName(), coverage.getNativeName(), 
-			"modified title", coverage.getAbstract(), coverage.getKeywords());
+			"modified title", coverage.getAbstract(), coverage.getKeywords(), coverage.getMetadataLinks());
 		service.putCoverage(workspace, coverageStore, modifiedCoveraged).get();
 		
 		List<Coverage> coverages = service.getCoverages(workspace, coverageStore).get();
@@ -610,6 +628,16 @@ public class DefaultGeoServerRestTest {
 		
 		Coverage retrievedCoverage = coverages.get(0);
 		assertNotNull(retrievedCoverage);
+		
+		List<MetadataLink> metadataLinks = retrievedCoverage.getMetadataLinks();
+		assertNotNull(metadataLinks);
+		assertEquals(1, metadataLinks.size());
+		
+		MetadataLink metadataLink = metadataLinks.get(0);
+		assertNotNull(metadataLink);		
+		assertEquals("text/plain", metadataLink.getType());
+		assertEquals("ISO19115:2003", metadataLink.getMetadataType());
+		assertEquals("content", metadataLink.getContent());
 		
 		assertEquals("test", retrievedCoverage.getName());
 		assertEquals(nativeName, retrievedCoverage.getNativeName());
@@ -684,6 +712,7 @@ public class DefaultGeoServerRestTest {
 			FeatureType featureType = new FeatureType(
 				"test", "test_table", "title", "abstract", 
 					Arrays.asList("keyword0", "keyword1"),
+					Collections.emptyList(),
 					Arrays.asList(
 							new Attribute("id"), 
 							new Attribute("test"),

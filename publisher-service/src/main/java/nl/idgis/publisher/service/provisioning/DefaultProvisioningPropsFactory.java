@@ -7,6 +7,7 @@ import akka.actor.Props;
 
 import nl.idgis.publisher.service.geoserver.GeoServerService;
 import nl.idgis.publisher.service.geoserver.InfoCollector;
+import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 
 public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory {
 
@@ -23,7 +24,7 @@ public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory
 	}
 
 	@Override
-	public Props ensureJobProps(Set<ActorRef> targets) {
+	public Props ensureJobProps(Set<EnsureTarget> targets) {
 		return InfoCollector.props(targets);
 	}
 
