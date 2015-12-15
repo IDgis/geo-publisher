@@ -29,7 +29,7 @@ public class JobFinished implements Serializable {
 
 	@Override
 	public String toString() {
-		return "JobExecuted [jobInfo=" + jobInfo + ", jobState=" + jobState
+		return "JobFinished [jobInfo=" + jobInfo + ", jobState=" + jobState
 				+ "]";
 	}
 }
