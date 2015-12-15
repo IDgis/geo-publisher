@@ -147,8 +147,12 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	@Override
 	public void postStop() {
-		jobContexts.stream().forEach(jobContext -> 
-			jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf()));
+		if(!jobContexts.isEmpty()) {
+			log.error("stopping -> terminate all running jobs");
+			
+			jobContexts.stream().forEach(jobContext -> 
+				jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf()));
+		}
 	}
 
 	@Override
@@ -492,6 +496,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	}
 	
 	private void finishJob(JobState state, ActorRef initiator) {
+		log.debug("finishing job, state: {}", state);
+		
 		initiator.tell(new UpdateJobState(state), getSelf());
 		jobContexts.remove(initiator);
 	}
