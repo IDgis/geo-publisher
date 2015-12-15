@@ -390,9 +390,10 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	}
 	
 	private EnsureTarget.EnvironmentInfo createEnvironmentInfo (final String environmentId) {
+		final String baseUrl = metadataEnvironmentConfig.getConfig (environmentId).getString ("datasetMetadataPrefix");
 		return new EnsureTarget.EnvironmentInfo (
 				environmentId,
-				metadataEnvironmentConfig.getConfig (environmentId).getString ("datasetMetadataPrefix") + environmentId + "/"
+				baseUrl.endsWith ("/") ? baseUrl : baseUrl + "/"
 			);
 	}
 	
