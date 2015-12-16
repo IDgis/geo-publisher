@@ -11,7 +11,7 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureTarget;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRestFactory;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRestFactory;
 
-public class DefaultProvisioningPropsFactory implements ProvisioningPropsFactory {
+public class GeoServerProvisioningPropsFactory implements ProvisioningPropsFactory {
 
 	@Override
 	public Props serviceProps(ServiceInfo serviceInfo, String schema) {

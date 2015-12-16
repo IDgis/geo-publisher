@@ -92,7 +92,7 @@ public class ProvisioningManagerCrashTest extends AbstractServiceTest {
 		@Override
 		public void preStart() throws Exception {
 			// wire mock in provisioning manager
-			ProvisioningPropsFactory propsFactory = new DefaultProvisioningPropsFactory() {
+			ProvisioningPropsFactory propsFactory = new GeoServerProvisioningPropsFactory() {
 				
 				@Override
 				protected GeoServerRestFactory restFactory(ConnectionInfo serviceConnectionInfo) {

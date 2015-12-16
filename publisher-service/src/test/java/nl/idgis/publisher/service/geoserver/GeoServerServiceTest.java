@@ -80,7 +80,7 @@ import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
 import nl.idgis.publisher.service.manager.messages.GetStyles;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.service.provisioning.ConnectionInfo;
-import nl.idgis.publisher.service.provisioning.DefaultProvisioningPropsFactory;
+import nl.idgis.publisher.service.provisioning.GeoServerProvisioningPropsFactory;
 import nl.idgis.publisher.service.provisioning.ProvisioningManager;
 import nl.idgis.publisher.service.provisioning.ServiceInfo;
 import nl.idgis.publisher.service.provisioning.messages.AddStagingService;
@@ -305,7 +305,7 @@ public class GeoServerServiceTest {
 		
 		ActorRef database = actorSystem.actorOf(DatabaseMock.props(EmptyQueryResultTransactionMock.props()), "database");
 		
-		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory() {
+		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new GeoServerProvisioningPropsFactory() {
 
 			@Override
 			public Props environmentInfoProviderProps(ActorRef database) {				

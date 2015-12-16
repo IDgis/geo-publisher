@@ -122,7 +122,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, final Config metadataEnvironmentConfig) {
-		return props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig);
+		return props(database, serviceManager, new GeoServerProvisioningPropsFactory(), metadataEnvironmentConfig);
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {

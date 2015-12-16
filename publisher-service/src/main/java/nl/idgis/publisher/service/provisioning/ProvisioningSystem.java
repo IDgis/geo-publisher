@@ -63,7 +63,7 @@ public class ProvisioningSystem extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		provisioningManager = getContext().actorOf(
-			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig), 
+			ProvisioningManager.props(database, serviceManager, new GeoServerProvisioningPropsFactory(), metadataEnvironmentConfig), 
 			"provisioning-manager");
 		
 		ActorRef initServiceJobCreator = getContext ().actorOf(
