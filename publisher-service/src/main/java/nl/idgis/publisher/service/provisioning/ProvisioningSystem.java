@@ -60,6 +60,24 @@ public class ProvisioningSystem extends UntypedActor {
 			Objects.requireNonNull (metadataEnvironmentConfig, "metadataEnvironmentConfig cannot be null"));
 	}
 	
+	private ActorRef zookeeperServiceInfoListener(ActorRef... refs) {
+		if(refs.length == 0) {
+			throw new IllegalArgumentException("refs is empty");
+		}
+		
+		if(refs.length == 1) {
+			return refs[0];
+		}
+		
+		return getContext().actorOf(
+			new BroadcastGroup(
+				Stream.of(refs)
+					.map(actorRef -> actorRef.path().toString())
+					.collect(Collectors.toSet()))
+			.props(),
+			"zookeeper-service-info-listeners");
+	}
+	
 	@Override
 	public void preStart() throws Exception {
 		provisioningManager = getContext().actorOf(
@@ -78,16 +96,9 @@ public class ProvisioningSystem extends UntypedActor {
 							geoserverConfig.getString("password")),
 						rasterFolderConfig
 					),
-				getContext().actorOf(
-					new BroadcastGroup(
-						Stream
-							.of(
-								provisioningManager,
-								initServiceJobCreator)
-							.map(actorRef -> actorRef.path().toString())
-							.collect(Collectors.toSet()))
-					.props(),
-					"zookeeper-service-info-listeners"),
+				zookeeperServiceInfoListener(
+					initServiceJobCreator,
+					provisioningManager),
 				zooKeeperConfig.getString ("hosts"),
 				zooKeeperConfig.getString ("stagingEnvironmentId"),
 				zooKeeperConfig.hasPath ("serviceIdPrefix") ? zooKeeperConfig.getString ("serviceIdPrefix") : null,
