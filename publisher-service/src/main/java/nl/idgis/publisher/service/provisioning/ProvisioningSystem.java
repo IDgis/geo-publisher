@@ -84,6 +84,7 @@ public class ProvisioningSystem extends UntypedActor {
 			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig), 
 			"provisioning-manager");
 		
+		// TODO: disabled at the moment
 		ActorRef initServiceJobCreator = getContext ().actorOf(
 			InitServiceJobCreator.props(database, jobManager), 
 			"init-service-job-creator");
@@ -97,7 +98,7 @@ public class ProvisioningSystem extends UntypedActor {
 						rasterFolderConfig
 					),
 				zookeeperServiceInfoListener(
-					initServiceJobCreator,
+					// initServiceJobCreator, TODO: rethink and re-enable job creator
 					provisioningManager),
 				zooKeeperConfig.getString ("hosts"),
 				zooKeeperConfig.getString ("stagingEnvironmentId"),
