@@ -7,4 +7,5 @@ include 'publisher-test',
 	'publisher-provider:publisher-provider-app',
 	'publisher-provider:publisher-provider-protocol',
 	'publisher-database',
-	'publisher-service'
+	'publisher-service',
+	'publisher-metadata'

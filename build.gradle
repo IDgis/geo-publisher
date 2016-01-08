@@ -473,5 +473,53 @@ configure([
 	}
 }
 
+project(':publisher-metadata') {
+	apply plugin: 'java-base'
+	apply plugin: PublisherPlay
+	apply plugin: PlayDistPublish
+	apply plugin: 'maven-publish'
+	apply plugin: 'eclipse'
+	
+	def playVersion = '2.4.3'
+	
+	model {
+		components {
+			play {
+				platform play: playVersion, java: '1.8'
+				injectedRoutesGenerator = true
+			}
+		}
+	}
+	
+	dependencies {
+		play project(':publisher-database')
+		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
+		play "com.typesafe.play:play-cache_2.11:${playVersion}"
+		play "com.typesafe.play:play-java-ws_2.11:${playVersion}"
+		play "com.typesafe.play:play-jdbc-evolutions_2.11:${playVersion}"
+		play "org.postgresql:postgresql:9.4.1207.jre7"
+	}
+	
+	eclipse {
+		classpath {
+			plusConfigurations += [ configurations.play ]
+					
+			file {
+				beforeMerged { classpath ->
+					classpath.entries += [
+						new SourceFolder("app", null), 
+						new SourceFolder("build/playBinary/src/compilePlayBinaryRoutes", null),
+						new SourceFolder("build/playBinary/src/compilePlayBinaryTwirlTemplates", null)
+					]
+				}
+			}
+		}
+		
+		it.project {
+			natures 'org.scala-ide.sdt.core.scalanature', 'org.eclipse.jdt.core.javanature'
+		}
+	}
+}
+
 // measure task execution time
 gradle.addListener(new TimingListener())
