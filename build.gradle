@@ -1,0 +1,155 @@
+subprojects {
+	apply plugin: 'java'
+	
+	repositories {
+		jcenter()
+		mavenCentral()
+		maven {
+			name "typesafe-maven-release"
+			url "https://repo.typesafe.com/typesafe/maven-releases"
+		}
+		ivy {
+			name "typesafe-ivy-release"
+			url "https://repo.typesafe.com/typesafe/ivy-releases"
+			layout "ivy"
+		}
+		maven {
+			name "idgis-public"
+			url "http://nexus.idgis.eu/content/groups/public/"
+			credentials {
+				username nexusUser 
+				password nexusPassword
+			}
+		}
+		maven {
+			name "idgis-restricted"
+			url "http://nexus.idgis.eu/content/groups/restricted/"
+			credentials {
+				username nexusUser 
+				password nexusPassword
+			}
+		}
+	}
+}
+
+def scalaAbiVersion = '2.11'
+def akkaVersion = '2.3.9'
+def jacksonVersion = '2.3.3'
+def guavaVersion = '17.0'
+def h2Version = '1.4.180'
+
+project(':publisher-test') {
+	dependencies {
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+		compile 'junit:junit:4.11'
+		compile 'org.mockito:mockito-core:1.10.19'
+	}
+}
+
+project(':publisher-commons') {
+	dependencies {
+		testCompile project(':publisher-test')
+		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
+		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		testCompile 'ch.qos.logback:logback-classic:1.1.2'
+		testCompile "com.h2database:h2:${h2Version}"
+	
+		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+		compile 'org.apache.commons:commons-lang3:3.3.2'
+		compile "com.google.guava:guava:${guavaVersion}"
+		compile 'com.jolbox:bonecp:0.8.0.RELEASE'
+		compile 'commons-io:commons-io:2.4'
+		compile 'org.aspectj:aspectjrt:1.8.0'
+		compile 'org.codehaus.woodstox:woodstox-core-lgpl:4.1.5'
+	}
+	
+	def keystoreLocation = new File(sourceSets.test.output.resourcesDir, '/nl/idgis/publisher/protocol')
+	
+	def keystoreClient = new File(keystoreLocation, 'client.jks')
+	def certClient = new File(keystoreLocation, 'client.cer')
+	
+	def keystoreServer = new File(keystoreLocation, 'server.jks')
+	def certServer = new File(keystoreLocation, 'server.cer')
+	
+	def keystoreTrusted = new File(keystoreLocation, 'trusted.jks')
+	
+	def keyalg = 'RSA'
+	def dname = 'cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL'
+	
+	task prepareKeystoreLocation << {
+		keystoreLocation.mkdirs()
+		
+		[keystoreClient, keystoreServer, keystoreTrusted].each {
+			if(it.exists()) {
+				it.delete()
+			}
+		}
+	}
+	
+	task generateClientKey(type: Exec, dependsOn: prepareKeystoreLocation) {
+		commandLine 'keytool', 
+			'-genkeypair', 
+			'-keyalg', keyalg, 
+			'-dname', dname, 
+			'-keystore', keystoreClient,
+			'-storepass', 'client', 
+			'-keypass', 'client', 
+			'-alias', 'client'
+	}
+	
+	task exportClientCert(type: Exec, dependsOn: generateClientKey) {
+		commandLine 'keytool', 
+			'-exportcert', 
+			'-keystore', keystoreClient,
+			'-storepass', 'client', 
+			'-keypass', 'client', 
+			'-alias', 'client',
+			'-file', certClient,
+			'-rfc'
+	}
+	
+	task generateServerKey(type: Exec, dependsOn: prepareKeystoreLocation) {
+		commandLine 'keytool', 
+			'-genkeypair', 
+			'-keyalg', keyalg, 
+			'-dname', dname, 
+			'-keystore', keystoreServer,
+			'-storepass', 'server', 
+			'-keypass', 'server', 
+			'-alias', 'server'
+	}
+	
+	task exportServerCert(type: Exec, dependsOn: generateServerKey) {
+		commandLine 'keytool', 
+			'-exportcert', 
+			'-keystore', keystoreServer,
+			'-storepass', 'server', 
+			'-keypass', 'server', 
+			'-alias', 'server',
+			'-file', certServer,
+			'-rfc'
+	}
+	
+	task importClientCert(type: Exec, dependsOn: exportClientCert) {
+		commandLine 'keytool', 
+			'-importcert',
+			'-keystore', keystoreTrusted,
+			'-storepass', 'trusted',
+			'-alias', 'client',
+			'-file', certClient,
+			'-noprompt'
+	}
+	
+	task importServerCert(type: Exec, dependsOn: exportServerCert) {
+		commandLine 'keytool', 
+			'-importcert',
+			'-keystore', keystoreTrusted,
+			'-storepass', 'trusted',
+			'-alias', 'server',
+			'-file', certServer,
+			'-noprompt'
+	}
+	
+	processTestResources.dependsOn(importClientCert, importServerCert)
+}
