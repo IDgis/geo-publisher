@@ -7,15 +7,8 @@
 @import org.joda.time.LocalDateTime
 @import nl.idgis.publisher.domain.web.MessageContext
 
-@version() = @{
-	if(publisher.BuildInfo.version.contains("SNAPSHOT"))
-		publisher.BuildInfo.version + "(commit: " + publisher.BuildInfo.commit + ")"
-	else
-		publisher.BuildInfo.version
-}
-
 @layout.application(
-	title = Domain.message("web.application.title"), 
+	title = Domain.message("web.application.title"),
 	jsMain = routes.Assets.at("js/dashboard/main.js").url,
 	docPath = "dashboard"
 ) {
@@ -34,7 +27,7 @@
 			</div>
 		</div>
 	</div>
-	
+
 	@* INFO PANELS *@
 	<div class="page-content">
 		<div class="row">
@@ -42,30 +35,30 @@
 			<div class="col-lg-4">
 				@helper.dataSources(dataSources)
 			</div>
-					
+
 			@* NOTIFICATIONS *@
 			<div class="col-lg-4" id="dashboard-panel-notifications">
 				@helper.notifications(notifications)
 			</div>
-			
+
 			@* ACTIVE TASKS *@
 			<div class="col-lg-4" id="dashboard-panel-active-tasks">
 				@helper.activeTasks(tasks)
 			</div>
-			
-			@* ERRORS  
+
+			@* ERRORS
 			<div class="col-lg-3" id="dashboard-panel-issues">
 				@helper.issues(errors)
 			</div>
 			*@
 		</div>
 	</div>
-	
+
 	@* VERSION AND IDGIS LOGO *@
 	<footer class="container">
 		<div class="row">
 			<div class="col-lg-10">
-				@Domain.message("web.application.name") @version()
+				@Domain.message("web.application.name")
 			</div>
 			<div class="col-lg-2">
 				<div class="img-container">
