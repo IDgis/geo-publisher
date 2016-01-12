@@ -706,7 +706,7 @@ require ([
 					operatorType: operatorType.toUpperCase (),
 					inputs: array.filter (listOperators (inputListNode), function (item) { 
 						return item !== null && (!item.inputs || item.inputs.length > 0); 
-					}), 
+					})
 				};
 			} else {
 				// This is a binary or unary operator:
