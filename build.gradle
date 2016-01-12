@@ -293,6 +293,7 @@ project(':publisher-web') {
 			exclude group: 'javax.jms', module: 'jms'
 			exclude group: 'com.sun.jdmk', module: 'jmxtools'
 			exclude group: 'com.sun.jmx', module: 'jmxri'
+			exclude group: 'org.jboss.netty', module: 'netty'
 		}
   		play 'org.webjars:ace:01.08.2014'
 	}
