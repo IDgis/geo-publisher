@@ -1,2 +1,5 @@
 rootProject.name = 'publisher'
-include 'publisher-test', 'publisher-commons'
+include 'publisher-test', 
+	'publisher-commons', 
+	'publisher-domain',
+	'publisher-schemas'

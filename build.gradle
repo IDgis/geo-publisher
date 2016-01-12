@@ -1,5 +1,5 @@
 subprojects {
-	apply plugin: 'java'
+	apply plugin: 'java-base'
 	
 	repositories {
 		jcenter()
@@ -32,21 +32,29 @@ subprojects {
 	}
 }
 
+def junitVersion = '4.11'
 def scalaAbiVersion = '2.11'
 def akkaVersion = '2.3.9'
 def jacksonVersion = '2.3.3'
 def guavaVersion = '17.0'
 def h2Version = '1.4.180'
+def jodatimeVersion = '2.3'
+def querydslVersion = '3.4.1'
+def geoserverVersion = '2.6.1-gpo-3'
 
 project(':publisher-test') {
+	apply plugin: 'java'
+
 	dependencies {
 		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
-		compile 'junit:junit:4.11'
+		compile "junit:junit:${junitVersion}"
 		compile 'org.mockito:mockito-core:1.10.19'
 	}
 }
 
 project(':publisher-commons') {
+	apply plugin: 'java'
+
 	dependencies {
 		testCompile project(':publisher-test')
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
@@ -152,4 +160,52 @@ project(':publisher-commons') {
 	}
 	
 	processTestResources.dependsOn(importClientCert, importServerCert)
+}
+
+project(':publisher-domain') {
+	apply plugin: 'java'
+
+	dependencies {
+		testCompile "junit:junit:${junitVersion}"
+	
+		compile project(':publisher-commons');
+		compile "com.google.guava:guava:${guavaVersion}"
+		compile "com.mysema.querydsl:querydsl-core:${querydslVersion}"
+		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "joda-time:joda-time:${jodatimeVersion}"
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+	}
+}
+
+project(':publisher-schemas') {
+	apply plugin: 'java'
+
+	configurations {
+		schemas {
+			transitive = false
+		}
+	}
+	
+	dependencies {
+		testCompile "junit:junit:${junitVersion}"
+		
+		schemas "org.geoserver:gs-main:${geoserverVersion}"
+	}
+	
+	task unpackSchemas << {
+		configurations.schemas.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+			project.copy {
+				from zipTree(artifact.file).matching {
+					include 'schemas/**/*'
+				}
+				eachFile {
+					it.path = it.path.replace('schemas/', 'schemas/geoserver/')
+				}
+				includeEmptyDirs = false
+				into sourceSets.main.output.resourcesDir
+			}
+		}
+	}
+	
+	processResources.dependsOn(unpackSchemas)
 }
