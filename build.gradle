@@ -209,3 +209,91 @@ project(':publisher-schemas') {
 	
 	processResources.dependsOn(unpackSchemas)
 }
+
+project(':publisher-web') {
+	apply plugin: 'play'
+	
+	configurations {
+		compile
+		testCompile
+		play.extendsFrom(compile)
+		playTest.extendsFrom(testCompile)
+	}
+	
+	def playVersion = '2.3.4'
+	
+	model {
+		components {
+			play {
+				platform play: playVersion, java: '1.8'
+				
+				binaries.all { binary ->
+				
+					def fixTask = project.tasks.create(tasks.taskName('fix', 'twirlTemplates'))
+					
+					fixTask << {
+						binary.generatedScala.each { generated ->
+							if(generated.key.name == 'twirlTemplates') {
+								generated.value.source.visit { item ->
+									if(!item.isDirectory()) {
+										def sourceLines = item.file.readLines();
+										
+										sourceLines.remove(6);
+										
+										['import play.api.templates.PlayMagic._',
+										'import models._',
+										'import controllers._',
+										'import java.lang._',
+										'import java.util._',
+										'import scala.collection.JavaConversions._',
+										'import scala.collection.JavaConverters._',
+										'import play.api.i18n._',
+										'import play.core.j.PlayMagicForJava._',
+										'import play.mvc._',
+										'import play.data._',
+										'import play.api.data.Field',
+										'import play.mvc.Http.Context.Implicit._',
+										'import views.html._'].eachWithIndex { line, lineNo ->
+											sourceLines.add(6 + lineNo, line)
+										}
+										
+										item.file.write(sourceLines.join('\n'))
+									}
+								}
+							}
+						}
+					}
+				
+					tasks.whenObjectAdded { task ->
+						if(task.name == tasks.taskName('compile', 'twirlTemplates')) {
+							fixTask.dependsOn(task)
+						}
+						
+						if(task.name == tasks.taskName('compile', 'scala')) {
+							task.dependsOn(fixTask)
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	dependencies {
+		play project(':publisher-domain')
+		play project(':publisher-schemas')
+		play "com.typesafe.play:play-java-jdbc_${scalaAbiVersion}:${playVersion}"
+		play "com.typesafe.play:play-cache_${scalaAbiVersion}:${playVersion}"
+		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
+		play "org.webjars:webjars-play_${scalaAbiVersion}:2.3.0"
+		play 'org.webjars:bootstrap:3.2.0'
+  		play 'org.webjars:dojo:1.10.0'
+  		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+  		play 'org.pegdown:pegdown:1.5.0'
+		play('org.apache.zookeeper:zookeeper:3.4.5') {
+			exclude group: 'javax.jms', module: 'jms'
+			exclude group: 'com.sun.jdmk', module: 'jmxtools'
+			exclude group: 'com.sun.jmx', module: 'jmxri'
+		}
+  		play 'org.webjars:ace:01.08.2014'
+	}
+}

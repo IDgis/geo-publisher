@@ -2,4 +2,5 @@ rootProject.name = 'publisher'
 include 'publisher-test', 
 	'publisher-commons', 
 	'publisher-domain',
-	'publisher-schemas'
+	'publisher-schemas',
+	'publisher-web'
