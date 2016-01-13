@@ -1,0 +1,7 @@
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	compile "com.github.houbie:lesscss-gradle-plugin:1.0.3-less-1.7.0"
+}
