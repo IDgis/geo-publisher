@@ -1,6 +1,4 @@
 subprojects {
-	apply plugin: 'java-base'
-	
 	repositories {
 		jcenter()
 		mavenCentral()
@@ -32,6 +30,10 @@ subprojects {
 	}
 }
 
+configure(subprojects - project(':publisher-web')) {
+	apply plugin: 'java'
+}
+
 def junitVersion = '4.11'
 def scalaAbiVersion = '2.11'
 def akkaVersion = '2.3.9'
@@ -43,8 +45,6 @@ def querydslVersion = '3.4.1'
 def geoserverVersion = '2.6.1-gpo-3'
 
 project(':publisher-test') {
-	apply plugin: 'java'
-
 	dependencies {
 		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
 		compile "junit:junit:${junitVersion}"
@@ -53,8 +53,6 @@ project(':publisher-test') {
 }
 
 project(':publisher-commons') {
-	apply plugin: 'java'
-
 	dependencies {
 		testCompile project(':publisher-test')
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
@@ -74,8 +72,6 @@ project(':publisher-commons') {
 }
 
 project(':publisher-domain') {
-	apply plugin: 'java'
-
 	dependencies {
 		testCompile "junit:junit:${junitVersion}"
 	
@@ -89,8 +85,6 @@ project(':publisher-domain') {
 }
 
 project(':publisher-schemas') {
-	apply plugin: 'java'
-
 	configurations {
 		schemas {
 			transitive = false
@@ -123,13 +117,6 @@ project(':publisher-schemas') {
 
 project(':publisher-web') {
 	apply plugin: PublisherPlay
-	
-	configurations {
-		compile
-		testCompile
-		play.extendsFrom(compile)
-		playTest.extendsFrom(testCompile)
-	}
 	
 	def playVersion = '2.3.4'
 	
