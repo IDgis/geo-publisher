@@ -149,4 +149,102 @@ project(':publisher-web') {
 	}
 }
 
+project(':publisher-provider:publisher-provider-protocol') {
+	dependencies {
+		compile project(':publisher-commons')
+		compile project(':publisher-domain')
+	}
+}
+
+project(':publisher-database') {
+	configurations {
+		sql
+		apt
+		testCompile.extendsFrom(sql)
+	}
+
+	dependencies {
+		sql "com.h2database:h2:${h2Version}"
+	
+		testCompile project(':publisher-test')		
+		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+	
+		compile project(':publisher-commons')
+		compile project(':publisher-provider:publisher-provider-protocol')
+		compile "com.mysema.querydsl:querydsl-sql:${querydslVersion}"
+		
+		apt "com.mysema.querydsl:querydsl-apt:${querydslVersion}"
+	}
+	
+	task generateDatabaseScript(type: ConcatSQLTask) {
+		inputDir = '/src/main/resources/nl/idgis/publisher/database'
+		buildDir = 'database-script'
+		destFileName = 'publisher.sql'
+		databaseType = 'H2'
+	}
+	
+	def databaseDirectory = new File(project.buildDir, '/database')
+	def databaseDriver = 'org.h2.Driver'
+	def databaseUrl = "jdbc:h2:${databaseDirectory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL"
+	def databaseUser = 'sa'
+	def databasePassword = ''
+	
+	task prepareDatabase(dependsOn: generateDatabaseScript) << {
+		if(databaseDirectory.exists()) {
+			databaseDirectory.deleteDir()
+		}
+	
+		ant.sql(
+			classpath: configurations.sql.asPath,
+			driver: databaseDriver,
+			url: databaseUrl,
+			userid: databaseUser,
+			password: databasePassword,
+			src: "${project.buildDir}/database-script/publisher.sql")
+	}
+	
+	task generateMetamodel(type: MetaDataExporterTask, dependsOn: prepareDatabase) {
+		configuration = configurations.sql
+		driverClassName = databaseDriver
+		url = databaseUrl
+		password = databasePassword
+		user = databaseUser
+		targetDir = new File(project.buildDir, 'metamodel')
+		packageName = 'nl.idgis.publisher.database'
+	}
+	
+	compileJava {
+		ext.aptDir = new File(project.buildDir, 'apt')
+	
+		options.compilerArgs << '-processor' << 'com.mysema.query.apt.QuerydslAnnotationProcessor' 
+		options.compilerArgs << '-processorpath' << configurations.apt.asPath 
+		options.compilerArgs << '-s' << ext.aptDir
+	}
+	
+	compileJava.doFirst {
+		ext.aptDir.mkdirs()
+	}
+	
+	compileJava.dependsOn(generateMetamodel)
+	
+	task generateDatabaseProperties << {
+		ant.propertyfile(file: new File(databaseDirectory, 'publisher.properties')) {
+			entry(key: 'database.driver', value: "${databaseDriver}")
+			entry(key: 'database.url', value: "${databaseUrl}")
+			entry(key: 'database.user', value: "${databaseUser}")
+			entry(key: 'database.password', value: "${databasePassword}")
+		}
+	}
+	
+	processTestResources.dependsOn(generateDatabaseProperties)
+	
+	sourceSets {
+		main {
+			java {
+				srcDir new File(project.buildDir, 'metamodel')
+			}
+		}
+	}
+}
+
 gradle.addListener(new TimingListener())
