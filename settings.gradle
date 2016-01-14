@@ -4,5 +4,7 @@ include 'publisher-test',
 	'publisher-domain',
 	'publisher-schemas',
 	'publisher-web',
+	'publisher-provider:publisher-provider-app',
 	'publisher-provider:publisher-provider-protocol',
-	'publisher-database'
+	'publisher-database',
+	'publisher-service'

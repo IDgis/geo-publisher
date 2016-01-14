@@ -32,7 +32,49 @@ subprojects {
 
 configure(subprojects - project(':publisher-web')) {
 	apply plugin: 'java'
+	
+	configurations {
+		testArtifact
+	}
+
+	task testJar(type: Jar) {
+		baseName = "${project.name}-test"
+		from sourceSets.test.output
+	}
+
+	artifacts {
+		testArtifact testJar
+	}
 }
+
+def querydslVersion = '3.4.1'
+
+configure([
+	project('publisher-domain'),
+	project('publisher-database'),
+	project('publisher-service')]) {
+	
+	configurations {
+		apt
+	}
+	
+	dependencies {
+		apt "com.mysema.querydsl:querydsl-apt:${querydslVersion}"
+	}
+	
+	compileJava {
+		ext.aptDir = new File(project.buildDir, 'apt')
+
+		options.compilerArgs << '-processor' << 'com.mysema.query.apt.QuerydslAnnotationProcessor' 
+		options.compilerArgs << '-processorpath' << configurations.apt.asPath 
+		options.compilerArgs << '-s' << ext.aptDir
+	}
+
+	compileJava.doFirst {
+		ext.aptDir.mkdirs()
+	}
+}
+
 
 def junitVersion = '4.11'
 def scalaAbiVersion = '2.11'
@@ -41,7 +83,6 @@ def jacksonVersion = '2.3.3'
 def guavaVersion = '17.0'
 def h2Version = '1.4.180'
 def jodatimeVersion = '2.3'
-def querydslVersion = '3.4.1'
 def geoserverVersion = '2.6.1-gpo-3'
 def commonsIOVersion = '2.4'
 def deegreeVersion = '3.4-pre13'
@@ -211,7 +252,6 @@ project(':publisher-provider:publisher-provider-protocol') {
 project(':publisher-database') {
 	configurations {
 		sql
-		apt
 		testCompile.extendsFrom(sql)
 	}
 
@@ -225,8 +265,6 @@ project(':publisher-database') {
 		compile project(':publisher-provider:publisher-provider-protocol')
 		compile "com.mysema.querydsl:querydsl-sql:${querydslVersion}"
 		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
-		
-		apt "com.mysema.querydsl:querydsl-apt:${querydslVersion}"
 	}
 	
 	task generateDatabaseScript(type: ConcatSQLTask) {
@@ -266,18 +304,6 @@ project(':publisher-database') {
 		packageName = 'nl.idgis.publisher.database'
 	}
 	
-	compileJava {
-		ext.aptDir = new File(project.buildDir, 'apt')
-	
-		options.compilerArgs << '-processor' << 'com.mysema.query.apt.QuerydslAnnotationProcessor' 
-		options.compilerArgs << '-processorpath' << configurations.apt.asPath 
-		options.compilerArgs << '-s' << ext.aptDir
-	}
-	
-	compileJava.doFirst {
-		ext.aptDir.mkdirs()
-	}
-	
 	compileJava.dependsOn(generateMetamodel)
 	
 	task generateDatabaseProperties << {
@@ -298,6 +324,57 @@ project(':publisher-database') {
 			}
 		}
 	}
+}
+
+def jettyVersion = '9.2.2.v20140723'
+def curatorVersion = '2.7.1'
+
+project(':publisher-service') {
+	configurations {
+		webapp
+	}
+
+	dependencies {
+		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
+		
+		testCompile project(':publisher-test')
+		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
+		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
+		testCompile "com.h2database:h2:${h2Version}"
+		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
+		testCompile 'com.google.jimfs:jimfs:1.0'
+		testCompile('org.opengeo:geodb:0.8') {
+			exclude group: 'xerces', module: 'xercesImpl'
+		}
+		testCompile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
+		testCompile "org.eclipse.jetty:jetty-plus:${jettyVersion}"
+		testCompile 'org.apache.commons:commons-dbcp2:2.1.1'
+		
+		compile project(':publisher-commons')
+		compile project(':publisher-database')		
+		compile project(':publisher-domain')
+		compile "commons-io:commons-io:${commonsIOVersion}"
+		compile 'commons-codec:commons-codec:1.9'
+		compile 'org.postgresql:postgresql:9.4-1203-jdbc42'
+		compile "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		compile "ch.qos.logback:logback-classic:${logbackVersion}"
+		compile 'com.ning:async-http-client:1.9.8'
+		compile "org.apache.curator:curator-recipes:${curatorVersion}"
+		compile "org.apache.curator:curator-framework:${curatorVersion}"
+		compile 'org.quartz-scheduler:quartz:2.2.1'
+	}
+	
+	task extractWebapp << {
+		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+			project.copy {
+				from zipTree(artifact.file)
+				into new File(project.buildDir, 'geoserver')
+			}
+		}
+	}
+	
+	processTestResources.dependsOn(extractWebapp)
 }
 
 gradle.addListener(new TimingListener())
