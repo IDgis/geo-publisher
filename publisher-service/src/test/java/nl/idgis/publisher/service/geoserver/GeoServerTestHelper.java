@@ -144,7 +144,7 @@ public class GeoServerTestHelper {
 	public void start() throws Exception {
 		pgServer = new PgServer();
 		
-		File baseDir = new File("target/geoserver-database");
+		File baseDir = new File("build/geoserver-database");
 		
 		if(baseDir.exists()) {
 			FileUtils.delete(baseDir);
@@ -199,7 +199,7 @@ public class GeoServerTestHelper {
 		stmt.close();		
 		connection.close();
 		
-		File dataDir = new File("target/geoserver-data");
+		File dataDir = new File("build/geoserver-data");
 		
 		if(dataDir.exists()) {
 			FileUtils.delete(dataDir);
@@ -219,7 +219,7 @@ public class GeoServerTestHelper {
         	"org.eclipse.jetty.plus.webapp.PlusConfiguration");
 		
 		WebAppContext context = new WebAppContext();
-		File webXml = new File("target/geoserver/WEB-INF/web.xml");
+		File webXml = new File("build/geoserver/WEB-INF/web.xml");
 		
 		FileInputStream fis = new FileInputStream(webXml);
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();		
@@ -246,7 +246,7 @@ public class GeoServerTestHelper {
 		t.transform(new DOMSource(d), new StreamResult(webXml));
 		
 		context.setDescriptor(webXml.getAbsolutePath());
-		context.setResourceBase("target/geoserver");
+		context.setResourceBase("build/geoserver");
 		context.setContextPath("/");
 		context.setParentLoaderPriority(false);
 		
