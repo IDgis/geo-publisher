@@ -43,6 +43,9 @@ def h2Version = '1.4.180'
 def jodatimeVersion = '2.3'
 def querydslVersion = '3.4.1'
 def geoserverVersion = '2.6.1-gpo-3'
+def commonsIOVersion = '2.4'
+def deegreeVersion = '3.4-pre13'
+def logbackVersion= '1.1.2'
 
 project(':publisher-test') {
 	dependencies {
@@ -57,7 +60,7 @@ project(':publisher-commons') {
 		testCompile project(':publisher-test')
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
 		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
-		testCompile 'ch.qos.logback:logback-classic:1.1.2'
+		testCompile "ch.qos.logback:logback-classic:${logbackVersion}"
 		testCompile "com.h2database:h2:${h2Version}"
 	
 		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
@@ -65,7 +68,7 @@ project(':publisher-commons') {
 		compile 'org.apache.commons:commons-lang3:3.3.2'
 		compile "com.google.guava:guava:${guavaVersion}"
 		compile 'com.jolbox:bonecp:0.8.0.RELEASE'
-		compile 'commons-io:commons-io:2.4'
+		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'org.aspectj:aspectjrt:1.8.0'
 		compile 'org.codehaus.woodstox:woodstox-core-lgpl:4.1.5'
 	}
@@ -149,6 +152,55 @@ project(':publisher-web') {
 	}
 }
 
+project(':publisher-provider:publisher-provider-app') {
+	dependencies {
+		testCompile project(':publisher-test')
+		testCompile "junit:junit:${junitVersion}"		
+		
+		compile project(':publisher-commons')
+		compile project(':publisher-provider:publisher-provider-protocol')
+		compile "commons-io:commons-io:${commonsIOVersion}"
+		compile 'com.fasterxml:aalto-xml:0.9.9'
+		compile 'com.oracle:ojdbc7:12.1.0.1.0'
+		compile("org.deegree:deegree-sqldialect-oracle:${deegreeVersion}") {
+			exclude group: 'org.deegree', module: 'deegree-sqldialect-commons'
+			exclude group: 'org.deegree', module: 'deegree-core-db'
+		}
+		compile("org.deegree:deegree-core-geometry:${deegreeVersion}") {
+			// dependencies of deegree-core-commons
+			exclude group: 'org.deegree', module: 'deegree-core-workspace'
+			exclude group: 'org.codehaus.woodstox', module: 'woodstox-core-lgpl'
+			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-impl'
+			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-api'
+			exclude group: 'com.sun.xml.fastinfoset', module: 'FastInfoset'
+			exclude group: 'jaxen', module: 'jaxen'
+			exclude group: 'xerces', module: 'xercesImpl'
+			exclude group: 'commons-dbcp', module: 'commons-dbcp'
+			exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+			exclude group: 'commons-pool', module: 'commons-pool'
+			exclude group: 'jogl', module: 'jogl'
+			exclude group: 'commons-cli', module: 'commons-cli'
+			exclude group: 'org.reflections', module: 'org.reflections'
+			exclude group: 'com.google.code.gson', module: 'gson'
+			exclude group: 'org.deegree', module: 'deegree-ogcschemas'
+			exclude group: 'xalan', module: 'xalan'
+			exclude group: 'xalan', module: 'serializer'
+			
+			// dependencies of deegree-core-cs
+			exclude group: 'org.deegree', module: 'deegree-core-annotations'
+			exclude group: 'jai', module: 'jai-core'
+			exclude group: 'jgridshift', module: 'jgridshift'
+			exclude group: 'junit', module: 'junit'
+			exclude group: 'org.postgis', module: 'postgis-jdbc'
+			exclude group: 'postgresql', module: 'postgresql'
+		}
+		compile "ch.qos.logback:logback-classic:${logbackVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		
+		runtime 'org.aspectj:aspectjweaver:1.8.0'
+	}
+}
+
 project(':publisher-provider:publisher-provider-protocol') {
 	dependencies {
 		compile project(':publisher-commons')
@@ -172,6 +224,7 @@ project(':publisher-database') {
 		compile project(':publisher-commons')
 		compile project(':publisher-provider:publisher-provider-protocol')
 		compile "com.mysema.querydsl:querydsl-sql:${querydslVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
 		
 		apt "com.mysema.querydsl:querydsl-apt:${querydslVersion}"
 	}
