@@ -33,5 +33,9 @@ class TimingListener extends BuildAdapter implements TaskExecutionListener {
 		
 			println ":${task.project.name}:${task.name} ${taskTime / 1000} secs (${percentageFormat.format((taskTime / totalTime) * 100)}%)" 
 		}
+		
+		result.rethrowFailure()
+		
+		println 'BUILD SUCCESSFUL'
 	}
 }
