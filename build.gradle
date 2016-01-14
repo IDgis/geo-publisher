@@ -194,6 +194,10 @@ project(':publisher-web') {
 }
 
 project(':publisher-provider:publisher-provider-app') {
+	apply plugin: 'application'
+	
+	mainClassName = 'nl.idgis.publisher.provider.App'
+
 	dependencies {
 		testCompile project(':publisher-test')
 		testCompile "junit:junit:${junitVersion}"		
@@ -330,6 +334,10 @@ def jettyVersion = '9.2.2.v20140723'
 def curatorVersion = '2.7.1'
 
 project(':publisher-service') {
+	apply plugin: 'application'
+	
+	mainClassName = 'nl.idgis.publisher.ServiceApp'
+
 	configurations {
 		webapp
 	}
