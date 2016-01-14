@@ -3,6 +3,9 @@
 .project
 .settings/
 
-# Maven
-target/
+# Gradle
+.gradle
+build/
+
+# Vagrant
 /.vagrant/
