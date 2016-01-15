@@ -1,4 +1,25 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.ajoberstar:gradle-git:1.3.2'
+    }
+}
+
+import org.ajoberstar.grgit.Grgit
+
+def repo = Grgit.open(project.file('.'))
+def tag = repo.describe()
+def prefix = "${project.name}-"
+if(tag.startsWith(prefix)) {
+	version = tag.substring(prefix.length())
+}
+
 subprojects {
+	version = rootProject.version
+
 	repositories {
 		jcenter()
 		mavenCentral()
@@ -44,6 +65,15 @@ configure(subprojects - project(':publisher-web')) {
 
 	artifacts {
 		testArtifact testJar
+	}
+	
+	jar {
+		manifest {
+			attributes("Implementation-Title": project.name)
+			if(project.version) {
+				attributes("Implementation-Version": project.version)
+			}
+		}
 	}
 }
 
@@ -159,8 +189,26 @@ project(':publisher-schemas') {
 	processResources.dependsOn(unpackSchemas)
 }
 
+class ManifestAttributes extends RuleSource {	
+	@Mutate void addAttributes(ModelMap<Task> tasks, PlayDistributionContainer c) {
+		c.names.each {
+			def jarTask = tasks.get("create${it.capitalize()}DistributionJar")
+			
+			jarTask.configure {
+				manifest {
+					attributes("Implementation-Title": project.name)
+					if(project.version) {
+						attributes("Implementation-Version": project.version)
+					}
+				}
+			}
+		}
+	}
+}
+
 project(':publisher-web') {
 	apply plugin: PublisherPlay
+	apply plugin: ManifestAttributes
 	
 	def playVersion = '2.3.4'
 	
