@@ -80,9 +80,9 @@ configure(subprojects - project(':publisher-web')) {
 def querydslVersion = '3.4.1'
 
 configure([
-	project('publisher-domain'),
-	project('publisher-database'),
-	project('publisher-service')]) {
+	project(':publisher-domain'),
+	project(':publisher-database'),
+	project(':publisher-service')]) {
 	
 	configurations {
 		apt
@@ -431,6 +431,25 @@ project(':publisher-service') {
 	}
 	
 	processTestResources.dependsOn(extractWebapp)
+}
+
+configure([
+	project(':publisher-provider:publisher-provider-app'),
+	project(':publisher-service')]) {
+	
+	apply plugin: 'maven-publish'
+	
+	artifacts { archives distZip }
+	
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				groupId 'nl.idgis.publisher'
+				from components.java
+				artifact distZip
+			}
+		}
+	}
 }
 
 gradle.addListener(new TimingListener())
