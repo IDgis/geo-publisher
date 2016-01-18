@@ -32,7 +32,9 @@ class PlayDistPublish extends RuleSource {
 			publishing.publications {
 				mavenJava(MavenPublication) {
 					groupId 'nl.idgis.publisher'
-					artifact zipTask
+					artifact(zipTask) {
+						classifier 'app'
+					}
 				}
 			}
 		}
