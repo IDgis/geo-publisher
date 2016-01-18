@@ -12,6 +12,9 @@ class GitVersion implements Plugin<Project> {
 		
 		if(tag.startsWith(prefix)) {
 			project.version = tag.substring(prefix.length())
+			if(project.version.contains('-g')) {
+				project.version += '-SNAPSHOT'
+			}
 		}
 		
 		def gitVersion = project.task('gitVersion') {
