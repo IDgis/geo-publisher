@@ -18,6 +18,8 @@ if(tag.startsWith(prefix)) {
 }
 
 subprojects {
+	apply plugin: 'publishing'
+
 	version = rootProject.version
 
 	repositories {
@@ -46,6 +48,30 @@ subprojects {
 			credentials {
 				username nexusUser 
 				password nexusPassword
+			}
+		}
+	}
+	
+	publishing {
+		if(project.version) {
+			if(project.version.contains('-g')) {
+				repositories.maven {
+					name 'idgis-snapshots'
+					url 'http://nexus.idgis.eu/content/repositories/snapshots/'
+					credentials {
+						username nexusUser 
+						password nexusPassword
+					}
+				}
+			} else {		
+				repositories.maven {
+					name 'idgis-releases'
+					url 'http://nexus.idgis.eu/content/repositories/releases/'
+					credentials {
+						username nexusUser 
+						password nexusPassword
+					}
+				}
 			}
 		}
 	}
@@ -217,7 +243,6 @@ class PlayDist extends RuleSource {
 
 project(':publisher-web') {
 	apply plugin: PublisherPlay
-	apply plugin: 'publishing'
 	apply plugin: PlayDist
 	apply plugin: 'maven-publish'
 	
