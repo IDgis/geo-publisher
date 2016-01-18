@@ -302,6 +302,18 @@ project(':publisher-provider:publisher-provider-protocol') {
 }
 
 project(':publisher-database') {
+	// publish jar (includes required *.sql files)
+	apply plugin: 'maven-publish'
+		
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				groupId 'nl.idgis.publisher'				
+				artifact jar
+			}
+		}
+	}
+
 	configurations {
 		sql
 		testCompile.extendsFrom(sql)
