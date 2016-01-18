@@ -189,9 +189,9 @@ project(':publisher-schemas') {
 	processResources.dependsOn(unpackSchemas)
 }
 
-class ManifestAttributes extends RuleSource {	
-	@Mutate void addAttributes(ModelMap<Task> tasks, PlayDistributionContainer c) {
-		c.names.each {
+class PlayDist extends RuleSource {	
+	@Mutate void addAttributes(ModelMap<Task> tasks, PlayDistributionContainer dists, PublishingExtension publishing) {
+		dists.names.each {
 			def jarTask = tasks.get("create${it.capitalize()}DistributionJar")
 			
 			jarTask.configure {
@@ -202,13 +202,24 @@ class ManifestAttributes extends RuleSource {
 					}
 				}
 			}
+			
+			def zipTask = tasks.get("create${it.capitalize()}Dist")
+			
+			publishing.publications {
+				mavenJava(MavenPublication) {
+					groupId 'nl.idgis.publisher'
+					artifact zipTask
+				}
+			}
 		}
 	}
 }
 
 project(':publisher-web') {
 	apply plugin: PublisherPlay
-	apply plugin: ManifestAttributes
+	apply plugin: 'publishing'
+	apply plugin: PlayDist
+	apply plugin: 'maven-publish'
 	
 	def playVersion = '2.3.4'
 	
@@ -439,13 +450,10 @@ configure([
 	
 	apply plugin: 'maven-publish'
 	
-	artifacts { archives distZip }
-	
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'
-				from components.java
+				groupId 'nl.idgis.publisher'				
 				artifact distZip
 			}
 		}
