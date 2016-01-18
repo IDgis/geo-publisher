@@ -27,6 +27,11 @@ class PlayDistPublish extends RuleSource {
 				}
 			}
 			
+			def startScriptTask = tasks.get("create${it.capitalize()}StartScripts")
+			startScriptTask.configure {
+				applicationName = project.name
+			}
+			
 			def zipTask = tasks.get("create${it.capitalize()}Dist")
 			
 			publishing.publications {
