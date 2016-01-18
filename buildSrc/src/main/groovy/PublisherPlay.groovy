@@ -7,6 +7,13 @@ import org.gradle.play.plugins.PlayPlugin
 
 import com.github.houbie.gradle.lesscss.LesscTask
 
+/**
+  * Applies standard Gradle Play plugin and adds the following additional tasks:
+  *
+  * - extract less: extracts all less source files from webjars.
+  * - compile less: compiles all less source files.
+  * - fix twirlTemplates: replaces scala imports with java imports.
+  */
 class PublisherPlay implements Plugin<Project> {
 
 	void apply(Project project) {
@@ -23,6 +30,7 @@ class PublisherPlay implements Plugin<Project> {
 						binary.assets.addAssetDir project.file(lessDestinationDir)
 
 						tasks.create(extractLessTask, Copy) { task ->
+							description = 'Extracts all less source files from webjars'
 							from {
 								project.configurations.play.collect { 
 									project.zipTree(it).matching { include 'META-INF/resources/webjars/**' }
@@ -50,6 +58,7 @@ class PublisherPlay implements Plugin<Project> {
 						}
 
 						project.tasks.create(tasks.taskName('compile', 'less'), LesscTask) { task ->
+							description = 'Compiles all less source files'
 							sourceDir 'app/assets', lessDestinationDir
 							include '**/*.less'
 							exclude '**/_*.less'
@@ -61,7 +70,9 @@ class PublisherPlay implements Plugin<Project> {
 							dependsOn extractLessTask
 						}
 					
-						def fixTask = project.tasks.create(tasks.taskName('fix', 'twirlTemplates'))
+						def fixTask = project.tasks.create(tasks.taskName('fix', 'twirlTemplates')) {
+							description = 'Replaces scala imports with java imports'
+						}
 											
 						fixTask << {
 							binary.generatedScala.each { generated ->
@@ -96,6 +107,7 @@ class PublisherPlay implements Plugin<Project> {
 							}
 						}
 
+						// inserts fixTask between compile twirlTemplates and compile scala
 						tasks.whenObjectAdded { task ->
 							if(task.name == tasks.taskName('compile', 'twirlTemplates')) {
 								fixTask.dependsOn(task)

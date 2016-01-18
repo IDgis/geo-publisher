@@ -4,6 +4,13 @@ import org.gradle.api.tasks.TaskAction
 
 import java.io.File
 
+/**
+ * Concaternates all *.sql files in ${inputDir} and writes
+ * a single file named ${destFileName}.sql to ${buildDir}.
+ *
+ * Statements between '-- <${databaseType}>' and '-- </${databaseType}>'
+ * are only included for configured ${databaseType}.
+ */
 class ConcatSQLTask extends DefaultTask {
 
 	@Input

@@ -4,6 +4,9 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.TaskState
 import org.gradle.api.execution.TaskExecutionListener
 
+/**
+ * Measures the time it takes to execute tasks.
+ */
 class TimingListener extends BuildAdapter implements TaskExecutionListener {
 	def beforeTime = [:]
 	def afterTime = [:]

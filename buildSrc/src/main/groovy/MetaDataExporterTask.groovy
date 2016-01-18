@@ -7,6 +7,9 @@ import com.mysema.query.sql.codegen.MetaDataExporter
 
 import groovy.sql.Sql
 
+/**
+  * Wraps QueryDSL MetaDataExporter as a Gradle tasks.
+  */ 
 class MetaDataExporterTask extends DefaultTask {
 
 	@Input
@@ -32,6 +35,8 @@ class MetaDataExporterTask extends DefaultTask {
 	
 	@TaskAction
 	def export() {
+		// extend classpath with everything in ${configuration},
+		// use case: add jdbc driver to classpath
 		def loader = GroovyObject.class.classLoader
 		configuration.each { file ->
 			loader.addURL(file.toURL())

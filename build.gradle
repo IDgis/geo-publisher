@@ -1,5 +1,22 @@
 apply plugin: GitVersion
 
+ext {
+	junitVersion = '4.11'
+	scalaAbiVersion = '2.11'
+	akkaVersion = '2.3.9'
+	jacksonVersion = '2.3.3'
+	guavaVersion = '17.0'
+	h2Version = '1.4.180'
+	jodatimeVersion = '2.3'
+	geoserverVersion = '2.6.1-gpo-3'
+	commonsIOVersion = '2.4'
+	deegreeVersion = '3.4-pre13'
+	logbackVersion= '1.1.2'
+	jettyVersion = '9.2.2.v20140723'
+	curatorVersion = '2.7.1'
+	querydslVersion = '3.4.1'
+}
+
 subprojects {
 	apply plugin: 'publishing'
 
@@ -36,8 +53,8 @@ subprojects {
 	}
 	
 	publishing {
-		if(project.version) {
-			if(project.version.contains('-g')) {
+		if(project.version != 'unspecified') { // do not publish without version
+			if(project.version.endsWith('-SNAPSHOT')) {
 				repositories.maven {
 					name 'idgis-snapshots'
 					url 'http://nexus.idgis.eu/content/repositories/snapshots/'
@@ -60,9 +77,11 @@ subprojects {
 	}
 }
 
+// base configuration for all non Play subprojects
 configure(subprojects - project(':publisher-web')) {
 	apply plugin: 'java'
 	
+	// export tests as artifact
 	configurations {
 		testArtifact
 	}
@@ -76,6 +95,7 @@ configure(subprojects - project(':publisher-web')) {
 		testArtifact testJar
 	}
 	
+	// add ${project.name} and ${project.version} to manifest
 	jar {
 		manifest {
 			attributes("Implementation-Title": project.name)
@@ -86,8 +106,7 @@ configure(subprojects - project(':publisher-web')) {
 	}
 }
 
-def querydslVersion = '3.4.1'
-
+// enable QueryDSL annotation processor
 configure([
 	project(':publisher-domain'),
 	project(':publisher-database'),
@@ -113,19 +132,6 @@ configure([
 		ext.aptDir.mkdirs()
 	}
 }
-
-
-def junitVersion = '4.11'
-def scalaAbiVersion = '2.11'
-def akkaVersion = '2.3.9'
-def jacksonVersion = '2.3.3'
-def guavaVersion = '17.0'
-def h2Version = '1.4.180'
-def jodatimeVersion = '2.3'
-def geoserverVersion = '2.6.1-gpo-3'
-def commonsIOVersion = '2.4'
-def deegreeVersion = '3.4-pre13'
-def logbackVersion= '1.1.2'
 
 project(':publisher-test') {
 	dependencies {
@@ -167,6 +173,7 @@ project(':publisher-domain') {
 	}
 }
 
+// extract schema files from geoserver artifact
 project(':publisher-schemas') {
 	configurations {
 		schemas {
@@ -351,6 +358,7 @@ project(':publisher-database') {
 	
 	compileJava.dependsOn(generateMetamodel)
 	
+	// generate properties file for nl.idgis.publisher.database.DatabaseTest
 	task generateDatabaseProperties << {
 		ant.propertyfile(file: new File(databaseDirectory, 'publisher.properties')) {
 			entry(key: 'database.driver', value: "${databaseDriver}")
@@ -365,14 +373,12 @@ project(':publisher-database') {
 	sourceSets {
 		main {
 			java {
+				// compile QueryDSL metamodel sources
 				srcDir new File(project.buildDir, 'metamodel')
 			}
 		}
 	}
 }
-
-def jettyVersion = '9.2.2.v20140723'
-def curatorVersion = '2.7.1'
 
 project(':publisher-service') {
 	apply plugin: 'application'
@@ -414,6 +420,7 @@ project(':publisher-service') {
 		compile 'org.quartz-scheduler:quartz:2.2.1'
 	}
 	
+	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
 	task extractWebapp << {
 		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
 			project.copy {
@@ -426,6 +433,7 @@ project(':publisher-service') {
 	processTestResources.dependsOn(extractWebapp)
 }
 
+// configure distZip as publication
 configure([
 	project(':publisher-provider:publisher-provider-app'),
 	project(':publisher-service')]) {
@@ -442,4 +450,5 @@ configure([
 	}
 }
 
+// measure task execution time
 gradle.addListener(new TimingListener())

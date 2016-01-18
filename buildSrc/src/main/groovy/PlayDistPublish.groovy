@@ -9,6 +9,10 @@ import org.gradle.play.distribution.PlayDistributionContainer
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.PublishingExtension
 
+/**
+  * Adds ${project.name} and ${project.version} to jar manifest 
+  * and configures distributions as publications.
+  */
 class PlayDistPublish extends RuleSource {	
 	@Mutate void addAttributes(ModelMap<Task> tasks, PlayDistributionContainer dists, PublishingExtension publishing) {
 		dists.names.each {
