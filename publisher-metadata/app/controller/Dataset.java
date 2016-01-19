@@ -34,6 +34,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
@@ -100,21 +101,25 @@ public class Dataset extends SimpleWebDAV {
 	@Override
 	public List<ResourceDescription> descriptions() {
 		return q.withTransaction(tx -> {
-			return tx.query().from(dataset)
-				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-				.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.list(sourceDatasetVersion.id.max())))
-				.where(sourceDatasetVersion.confidential.isFalse())
-				.list(dataset.metadataFileIdentification).stream()
-					.map(id -> {
-						ResourceProperties properties = new DefaultResourceProperties();
-						
-						return new DefaultResourceDescription(id + ".xml", properties); 
-					})
-					.collect(Collectors.toList());
+			
+			return 
+				Stream.concat(
+					Stream.of(new DefaultResourceDescription("", new DefaultResourceProperties(true))),
+					tx.query().from(dataset)
+					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
+					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
+						.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+						.list(sourceDatasetVersion.id.max())))
+					.where(sourceDatasetVersion.confidential.isFalse())
+					.list(dataset.metadataFileIdentification).stream()
+						.map(id -> {
+							ResourceProperties properties = new DefaultResourceProperties(false);
+
+							return new DefaultResourceDescription(id + ".xml", properties); 
+						}))
+				.collect(Collectors.toList());
 		});
 	}
 
@@ -133,7 +138,7 @@ public class Dataset extends SimpleWebDAV {
 					.where(dataset.metadataFileIdentification.eq(id))
 					.exists()) {
 						
-					return Optional.<ResourceProperties>of(new DefaultResourceProperties());
+					return Optional.<ResourceProperties>of(new DefaultResourceProperties(false));
 				} else {
 					return Optional.<ResourceProperties>empty();
 				}
