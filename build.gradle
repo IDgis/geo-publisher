@@ -318,7 +318,7 @@ project(':publisher-database') {
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'				
+				groupId 'nl.idgis.publisher'
 				artifact jar
 			}
 		}
@@ -331,8 +331,9 @@ project(':publisher-database') {
 
 	dependencies {
 		sql "com.h2database:h2:${h2Version}"
-	
-		testCompile project(':publisher-test')		
+		
+		testCompile project(':publisher-test')
+		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
 	
 		compile project(':publisher-commons')
