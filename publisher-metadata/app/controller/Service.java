@@ -2,8 +2,11 @@ package controller;
 
 import javax.inject.Inject;
 
+import org.apache.commons.io.IOUtils;
+
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.Predicate;
 import com.mysema.query.types.QTuple;
 
 import model.dav.Resource;
@@ -26,6 +29,7 @@ import router.dav.SimpleWebDAV;
 
 import util.QueryDSL;
 
+import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
@@ -44,25 +48,41 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 
 public class Service extends SimpleWebDAV {
 	
+	private static final Predicate notConfidential = 
+		new SQLSubQuery().from(publishedServiceEnvironment)
+			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+			.where(publishedServiceEnvironment.serviceId.eq(service.id))
+			.where(environment.confidential.isFalse())
+			.exists();
+	
 	private final QueryDSL q;
 	
-	private final MetadataDocumentFactory mdf;
+	private final MetadataDocument template;
 	
 	@Inject
 	public Service(QueryDSL q) throws Exception {
-		this(q, new MetadataDocumentFactory(), "/");
+		this(q, getTemplate(), "/");
 	}
 	
-	public Service(QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+	private static MetadataDocument getTemplate() throws Exception {
+		MetadataDocumentFactory mdf = new MetadataDocumentFactory();
+		
+		return mdf.parseDocument(
+			Service.class
+				.getClassLoader()
+				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
+	}
+	
+	public Service(QueryDSL q, MetadataDocument template, String prefix) {
 		super(prefix);
 		
 		this.q = q;
-		this.mdf = mdf;
+		this.template = template;
 	}
 	
 	@Override
 	public Router withPrefix(String prefix) {
-		return new Service(q, mdf, prefix);
+		return new Service(q, template, prefix);
 	}
 	
 	private Optional<String> getId(String name) {
@@ -73,8 +93,36 @@ public class Service extends SimpleWebDAV {
 		}
 	}
 
+	@Override
 	public Optional<Resource> resource(String name) {
-		return getId(name).flatMap(id -> Optional.empty());
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
+			
+			Tuple t = tx.query().from(service)
+				.join(constants).on(constants.id.eq(service.constantsId))
+				.where(notConfidential)
+				.where(service.wmsMetadataFileIdentification.eq(id)
+					.or(service.wfsMetadataFileIdentification.eq(id)))
+				.singleResult(
+					service.wmsMetadataFileIdentification,
+					service.wfsMetadataFileIdentification,
+					service.alternateTitle);
+			
+			if(t == null) {
+				return Optional.<Resource>empty();
+			}
+			
+			MetadataDocument document = template.clone();
+			document.setFileIdentifier(id);
+			
+			if(id.equals(t.get(service.wmsMetadataFileIdentification))) {
+				
+			} else {
+				
+			}
+			
+			return Optional.<Resource>of(new DefaultResource("application/xml", document.getContent()));
+		}));
 	}
 	
 	private static class ServiceInfo {
@@ -97,11 +145,7 @@ public class Service extends SimpleWebDAV {
 				Stream.concat(
 					Stream.of(new DefaultResourceDescription("", new DefaultResourceProperties(true))),
 					tx.query().from(service)
-						.where(new SQLSubQuery().from(publishedServiceEnvironment)
-							.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-							.where(publishedServiceEnvironment.serviceId.eq(service.id))
-							.where(environment.confidential.isFalse())
-							.exists())
+						.where(notConfidential)
 						.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
 						.flatMap(t ->
 							Stream.of(
