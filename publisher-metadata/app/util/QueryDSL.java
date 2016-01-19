@@ -9,8 +9,8 @@ import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 
 import play.db.Database;
 
+import java.sql.SQLException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.inject.Inject;
 
@@ -39,16 +39,26 @@ public class QueryDSL {
 		});
 	}
 	
-	public <T> T withTransaction(Function<Transaction, T> f) {
+	public interface TransactionCallable<A> {
+		public A call(Transaction transaction) throws Exception;
+	}
+	
+	public <T> T withTransaction(TransactionCallable<T> f) {
 		return d.withTransaction(c -> {
-			return f.apply(new Transaction() {
-
-				@Override
-				public SQLQuery query() {
-					return new SQLQuery(c, t);
-				}
-				
-			});
+			try {
+				return f.call(new Transaction() {
+	
+					@Override
+					public SQLQuery query() {
+						return new SQLQuery(c, t);
+					}
+					
+				});
+			} catch(SQLException e) {
+				throw e;
+			} catch(Exception e) {
+				throw new SQLException(e);
+			}
 		});
 	}
 }
