@@ -4,13 +4,14 @@ import java.util.Date;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.metadata.MetadataDocument;
 
-public final class UnavailableDataset extends Dataset {	
+public final class UnavailableDataset extends Dataset {
+	
+	private static final long serialVersionUID = 6265196080628914796L;
 
-	private static final long serialVersionUID = -1996780762773905048L;
-
-	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential);
+	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, MetadataDocument metadata) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
 	}
 
 	@Override

@@ -1,4 +1,5 @@
 apply plugin: GitVersion
+apply plugin: 'eclipse'
 
 ext {
 	junitVersion = '4.11'
@@ -80,6 +81,7 @@ subprojects {
 // base configuration for all non Play subprojects
 configure(subprojects - project(':publisher-web')) {
 	apply plugin: 'java'
+	apply plugin: 'eclipse'
 	
 	// export tests as artifact
 	configurations {
@@ -106,6 +108,8 @@ configure(subprojects - project(':publisher-web')) {
 	}
 }
 
+import org.gradle.plugins.ide.eclipse.model.SourceFolder
+
 // enable QueryDSL annotation processor
 configure([
 	project(':publisher-domain'),
@@ -130,6 +134,12 @@ configure([
 
 	compileJava.doFirst {
 		ext.aptDir.mkdirs()
+	}
+	
+	eclipse.classpath.file {
+		whenMerged { classpath ->
+		        classpath.entries.add(new SourceFolder('build/apt', null))
+    		}
 	}
 }
 
@@ -308,7 +318,7 @@ project(':publisher-database') {
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'				
+				groupId 'nl.idgis.publisher'
 				artifact jar
 			}
 		}
@@ -321,8 +331,9 @@ project(':publisher-database') {
 
 	dependencies {
 		sql "com.h2database:h2:${h2Version}"
-	
-		testCompile project(':publisher-test')		
+		
+		testCompile project(':publisher-test')
+		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
 	
 		compile project(':publisher-commons')

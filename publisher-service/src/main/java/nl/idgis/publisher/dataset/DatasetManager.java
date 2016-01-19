@@ -9,6 +9,7 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
@@ -43,6 +44,8 @@ import nl.idgis.publisher.dataset.messages.PrepareView;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
@@ -79,13 +82,17 @@ public class DatasetManager extends UntypedActor {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private final ActorRef database;
+	
+	private final MetadataDocumentFactory mdf;
 
 	private AsyncDatabaseHelper db;
 
 	private FutureUtils f;
 
-	public DatasetManager(ActorRef database) {
+	public DatasetManager(ActorRef database) throws Exception {
 		this.database = database;
+		
+		mdf = new MetadataDocumentFactory();
 	}
 
 	public static Props props(ActorRef database) {
@@ -288,6 +295,7 @@ public class DatasetManager extends UntypedActor {
 			f.collect(
 				tx.query().from(sourceDatasetVersion)
 					.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+					.leftJoin(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))			
 					.leftJoin(category).on(category.id.eq(sourceDatasetVersion.categoryId))
 					.where(sourceDatasetVersion.id.eq(versionId))
@@ -322,6 +330,18 @@ public class DatasetManager extends UntypedActor {
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
 						boolean confidential = baseInfo.get(sourceDatasetVersion.confidential);
+						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
+						
+						MetadataDocument metadata;
+						if(metadataContent == null) {
+							metadata = null;
+						} else {
+							try {
+								metadata = mdf.parseDocument(metadataContent);
+							} catch(Exception e) {
+								metadata = null;
+							}
+						}
 						
 						// convert from timestamp to date because harvester provides date objects,
 						// otherwise source dataset versions are never equal.
@@ -367,6 +387,7 @@ public class DatasetManager extends UntypedActor {
 									revisionDate, 
 									logs, 
 									confidential,
+									metadata,
 									new Table(columnInfo.list()));
 								break;
 							case "RASTER":
@@ -377,7 +398,8 @@ public class DatasetManager extends UntypedActor {
 									categoryId,
 									revisionDate,
 									logs,
-									confidential);
+									confidential,
+									metadata);
 								break;
 							default:
 								dataset = new UnavailableDataset(	
@@ -387,7 +409,8 @@ public class DatasetManager extends UntypedActor {
 									categoryId,
 									revisionDate,
 									logs,
-									confidential);
+									confidential,
+									metadata);
 								break;
 						}
 						
@@ -580,20 +603,61 @@ public class DatasetManager extends UntypedActor {
 			.where(sourceDataset.externalIdentification.eq(datasetId))
 			.execute();
 	}
+	
+	private CompletableFuture<Void> storeMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
+		if(metadata.isPresent()) {
+			try {
+				byte[] document = metadata.get().getContent(); 
+				
+				return tx.query().from(sourceDataset)
+					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))					
+					.where(sourceDataset.externalIdentification.eq(identification))
+					.where(dataSource.identification.eq(dataSourceIdentification))
+					.singleResult(sourceDataset.id).thenCompose(id -> {
+						return tx.update(sourceDatasetMetadata)
+							.set(sourceDatasetMetadata.document, document)
+							.where(sourceDatasetMetadata.sourceDatasetId.eq(id.get()))
+							.execute().thenCompose(updateResult -> {
+								if(updateResult == 0) {
+									return tx.insert(sourceDatasetMetadata)
+										.set(sourceDatasetMetadata.document, document)
+										.set(sourceDatasetMetadata.sourceDatasetId, id.get())
+										.execute().thenApply(insertResult -> null);
+								} else {
+									return f.successful(null);
+								}
+							});
+					});
+			} catch(Exception e) {
+				log.error("failed to store metadata for source dataset: {}, exception: {}", e);
+				return f.successful(null);
+			}
+		} else {
+			return f.successful(null);
+		}
+	}
 
 	private CompletableFuture<Object> handleRegisterSourceDataset(final RegisterSourceDataset msg) {
 		log.debug("registering source dataset");
 		
 		Dataset dataset = msg.getDataset();
-		String dataSource = msg.getDataSource();
+		String dataSourceIdentification = msg.getDataSource();
 		
-		return db.transactional(tx ->			
-			getCurrentSourceDatasetVersion(tx, dataSource, dataset.getId()).thenCompose(currentVersion -> 
+		return db.transactional(tx -> {
+			String identification = dataset.getId();
+			
+			CompletableFuture<Object> registerResult = getCurrentSourceDatasetVersion(tx, dataSourceIdentification, identification).thenCompose(currentVersion -> 
 				currentVersion.isPresent()
 					? currentVersion.get().equals(dataset)
 						? f.successful(new AlreadyRegistered())
-						: insertSourceDatasetVersion(tx, dataSource, dataset)
-					: insertSourceDataset(tx, dataSource, dataset)));
+						: insertSourceDatasetVersion(tx, dataSourceIdentification, dataset)
+					: insertSourceDataset(tx, dataSourceIdentification, dataset));
+			
+			return registerResult.thenCompose(result -> {
+				return storeMetadata(tx, dataSourceIdentification, identification, dataset.getMetadata())
+					.thenApply(n -> result); 
+			});
+		});
 	}
 	
 	private CompletableFuture<Long> handleCleanup (final Cleanup cleanup) {

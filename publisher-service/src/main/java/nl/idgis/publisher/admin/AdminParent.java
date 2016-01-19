@@ -32,6 +32,6 @@ public class AdminParent extends AbstractAdminParent {
 		createAdminActor(StyleAdmin.props(database), "style");
 		createAdminActor(JobCreator.props(database, serviceManager, jobManager, harvester), "job-creator");
 		createAdminActor(ConstantsAdmin.props(database), "constant");
-		createAdminActor(SourceDatasetAdmin.props(database, harvester), "source-dataset");
+		createAdminActor(SourceDatasetAdmin.props(database), "source-dataset");
 	}
 }

@@ -3,37 +3,36 @@ package nl.idgis.publisher.admin;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import com.mysema.query.types.QTuple;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import nl.idgis.publisher.domain.query.GetMetadata;
 import nl.idgis.publisher.domain.web.Metadata;
 
-import nl.idgis.publisher.harvester.HarvesterHelper;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 
+import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 public class SourceDatasetAdmin extends AbstractAdmin {
 	
-	private final ActorRef harvester;
-	
-	private HarvesterHelper hh;
-	
-	public SourceDatasetAdmin(ActorRef database, ActorRef harvester) {
+	private final MetadataDocumentFactory mdf;
+			
+	public SourceDatasetAdmin(ActorRef database) throws Exception {
 		super(database);
 		
-		this.harvester = harvester;
+		mdf = new MetadataDocumentFactory();
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester) {
-		return Props.create(SourceDatasetAdmin.class, database, harvester);
+	public static Props props(ActorRef database) {
+		return Props.create(SourceDatasetAdmin.class, database);
 	}
 
 	@Override
 	protected void preStartAdmin() {
-		hh = new HarvesterHelper(harvester, f, log);
-		
 		doQueryOptional(GetMetadata.class, this::handleGetMetadata);
 	}
 	
@@ -42,21 +41,18 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 		log.debug("fetching metadata of source dataset: {}", sourceDatasetId);
 		
 		return db.query().from(sourceDataset)
-			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 			.where(sourceDataset.identification.eq(sourceDatasetId))
-			.singleResult(
-				dataSource.identification,
-				sourceDataset.externalIdentification).thenCompose(optionalResult ->
-					optionalResult
-						.map(result -> hh.getMetadata(
-							result.get(dataSource.identification),
-							result.get(sourceDataset.externalIdentification),
-							Optional.ofNullable(query.stylesheet())))
-						.orElseGet(() -> {
-							log.warning("source dataset not found: {}", sourceDatasetId);
-							
-							return f.successful(Optional.empty());
-						}));
+			.singleResult(new QTuple(sourceDatasetMetadata.document)).thenApply(optionalResult -> 
+				optionalResult.flatMap(result -> {
+					try {
+						MetadataDocument md = mdf.parseDocument(result.get(sourceDatasetMetadata.document));
+						md.setStylesheet(query.stylesheet());
+						return Optional.of(new Metadata(query.id(), md.getContent()));
+					} catch(Exception e) {
+						return Optional.empty();
+					}
+				}));
 	}
 	
 	

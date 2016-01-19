@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class VectorDataset extends Dataset {	
 
@@ -11,8 +12,8 @@ public final class VectorDataset extends Dataset {
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, Table table) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, MetadataDocument metadata, Table table) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
 		
 		this.table = table;
 	}
