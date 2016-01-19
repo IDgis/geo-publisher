@@ -1,0 +1,3 @@
+@(resourceProperties: model.dav.ResourceProperties)<D:prop>
+	<D:resourcetype/>
+</D:prop>

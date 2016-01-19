@@ -487,6 +487,14 @@ project(':publisher-metadata') {
 			play {
 				platform play: playVersion, java: '1.8'
 				injectedRoutesGenerator = true
+				
+				sources {
+					twirlTemplates {
+						source {
+							include "**/*.xml"
+						}
+					}
+				}
 			}
 		}
 	}

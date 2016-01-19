@@ -6,19 +6,37 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
 
+import model.dav.Resource;
+import model.dav.ResourceDescription;
+import model.dav.ResourceProperties;
+
+import model.dav.DefaultResource;
+
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+
+import play.api.mvc.Handler;
+import play.api.mvc.RequestHeader;
+import play.api.routing.Router;
 import play.mvc.Controller;
 import play.mvc.Result;
+
+import router.dav.SimpleWebDAV;
+
 import util.QueryDSL;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
-public class Dataset extends Controller {
+public class Dataset extends SimpleWebDAV {
 	
 	private final QueryDSL q;
 	
@@ -26,12 +44,17 @@ public class Dataset extends Controller {
 	
 	@Inject
 	public Dataset(QueryDSL q) throws Exception {
-		this.q = q;
+		this(q, new MetadataDocumentFactory(), "/");
+	}
+	
+	public Dataset(QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(prefix);
 		
-		mdf = new MetadataDocumentFactory();
+		this.q = q;
+		this.mdf = mdf;
 	}
 
-	public Result resource(String name) throws Exception {
+	public Optional<Resource> resource(String name) {
 		if(name.toLowerCase().endsWith(".xml")) {
 			String id = name.substring(0, name.length() - 4);
 			
@@ -51,16 +74,31 @@ public class Dataset extends Controller {
 					.singleResult(new QTuple(sourceDatasetMetadata.document));
 				
 				if(t == null) {
-					return notFound("Not found, id: "+ id);
+					return Optional.<Resource>empty();
 				}
 				
 				MetadataDocument document = mdf.parseDocument(t.get(sourceDatasetMetadata.document));
 				document.removeStylesheet();
 				
-				return ok(document.getContent()).as("application/xml");
+				return Optional.<Resource>of(new DefaultResource("application/xml", document.getContent()));
 			});
 		}
 		
-		return notFound("Not found");
+		return Optional.empty();
+	}
+	
+	@Override
+	public Router withPrefix(String prefix) {
+		return new Dataset(q, mdf, prefix);
+	}
+
+	@Override
+	public List<ResourceDescription> descriptions() {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Optional<ResourceProperties> properties(String name) {
+		return Optional.empty();
 	}
 }

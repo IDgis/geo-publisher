@@ -1,1 +1,1 @@
-GET	/dataset/:name	controller.Dataset.resource(name)
+->	/dataset/	controller.Dataset
