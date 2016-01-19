@@ -10,7 +10,6 @@ import nl.idgis.publisher.database.ExtendedPostgresTemplates;
 import play.db.Database;
 
 import java.sql.SQLException;
-import java.util.function.Consumer;
 
 import javax.inject.Inject;
 
@@ -30,13 +29,6 @@ public class QueryDSL {
 		this.d = d;
 		
 		t = new ExtendedPostgresTemplates();
-	}
-	
-	public void transactional(Consumer<Transaction> c) {
-		withTransaction(db -> {
-			c.accept(db);
-			return null;
-		});
 	}
 	
 	public interface TransactionCallable<A> {
