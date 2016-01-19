@@ -1,0 +1,88 @@
+def keystoreLocation = new File(sourceSets.test.output.resourcesDir, '/nl/idgis/publisher/protocol')
+	
+def keystoreClient = new File(keystoreLocation, 'client.jks')
+def certClient = new File(keystoreLocation, 'client.cer')
+
+def keystoreServer = new File(keystoreLocation, 'server.jks')
+def certServer = new File(keystoreLocation, 'server.cer')
+
+def keystoreTrusted = new File(keystoreLocation, 'trusted.jks')
+
+def keyalg = 'RSA'
+def dname = 'cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL'
+
+task prepareKeystoreLocation << {
+	keystoreLocation.mkdirs()
+
+	[keystoreClient, keystoreServer, keystoreTrusted].each {
+		if(it.exists()) {
+			it.delete()
+		}
+	}
+}
+
+task generateClientKey(type: Exec, dependsOn: prepareKeystoreLocation) {
+	commandLine 'keytool', 
+		'-genkeypair', 
+		'-keyalg', keyalg, 
+		'-dname', dname, 
+		'-keystore', keystoreClient,
+		'-storepass', 'client', 
+		'-keypass', 'client', 
+		'-alias', 'client'
+}
+
+task exportClientCert(type: Exec, dependsOn: generateClientKey) {
+	commandLine 'keytool', 
+		'-exportcert', 
+		'-keystore', keystoreClient,
+		'-storepass', 'client', 
+		'-keypass', 'client', 
+		'-alias', 'client',
+		'-file', certClient,
+		'-rfc'
+}
+
+task generateServerKey(type: Exec, dependsOn: prepareKeystoreLocation) {
+	commandLine 'keytool', 
+		'-genkeypair', 
+		'-keyalg', keyalg, 
+		'-dname', dname, 
+		'-keystore', keystoreServer,
+		'-storepass', 'server', 
+		'-keypass', 'server', 
+		'-alias', 'server'
+}
+
+task exportServerCert(type: Exec, dependsOn: generateServerKey) {
+	commandLine 'keytool', 
+		'-exportcert', 
+		'-keystore', keystoreServer,
+		'-storepass', 'server', 
+		'-keypass', 'server', 
+		'-alias', 'server',
+		'-file', certServer,
+		'-rfc'
+}
+
+task importClientCert(type: Exec, dependsOn: exportClientCert) {
+	commandLine 'keytool', 
+		'-importcert',
+		'-keystore', keystoreTrusted,
+		'-storepass', 'trusted',
+		'-alias', 'client',
+		'-file', certClient,
+		'-noprompt'
+}
+
+task importServerCert(type: Exec, dependsOn: exportServerCert) {
+	commandLine 'keytool', 
+		'-importcert',
+		'-keystore', keystoreTrusted,
+		'-storepass', 'trusted',
+		'-alias', 'server',
+		'-file', certServer,
+		'-noprompt'
+}
+
+processTestResources.dependsOn(importClientCert, importServerCert)

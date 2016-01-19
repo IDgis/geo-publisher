@@ -25,7 +25,7 @@ public class DatabaseTest {
 	@Before
 	public void getConnection() throws Exception {
 		Properties properties = new Properties();
-		properties.load(new FileInputStream("target/database/publisher.properties"));
+		properties.load(new FileInputStream("build/database/publisher.properties"));
 		
 		Class.forName((String)properties.get("database.driver"));
 		

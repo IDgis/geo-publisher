@@ -1,0 +1,10 @@
+rootProject.name = 'publisher'
+include 'publisher-test', 
+	'publisher-commons', 
+	'publisher-domain',
+	'publisher-schemas',
+	'publisher-web',
+	'publisher-provider:publisher-provider-app',
+	'publisher-provider:publisher-provider-protocol',
+	'publisher-database',
+	'publisher-service'

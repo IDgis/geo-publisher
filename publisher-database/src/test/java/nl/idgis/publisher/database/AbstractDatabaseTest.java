@@ -52,7 +52,7 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 public abstract class AbstractDatabaseTest {
 	
-	private static final File BASE_DIR = new File("target/test-database");
+	private static final File BASE_DIR = new File("build/test-database");
 		
 	private ExtendedPostgresTemplates templates;	
 	private Connection connection;	

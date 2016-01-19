@@ -1,0 +1,466 @@
+apply plugin: GitVersion
+
+ext {
+	junitVersion = '4.11'
+	scalaAbiVersion = '2.11'
+	akkaVersion = '2.3.9'
+	jacksonVersion = '2.3.3'
+	guavaVersion = '17.0'
+	h2Version = '1.4.180'
+	jodatimeVersion = '2.3'
+	geoserverVersion = '2.6.1-gpo-3'
+	commonsIOVersion = '2.4'
+	deegreeVersion = '3.4-pre13'
+	logbackVersion= '1.1.2'
+	jettyVersion = '9.2.2.v20140723'
+	curatorVersion = '2.7.1'
+	querydslVersion = '3.4.1'
+}
+
+subprojects {
+	apply plugin: 'publishing'
+
+	version = rootProject.version
+
+	repositories {
+		jcenter()
+		mavenCentral()
+		maven {
+			name "typesafe-maven-release"
+			url "https://repo.typesafe.com/typesafe/maven-releases"
+		}
+		ivy {
+			name "typesafe-ivy-release"
+			url "https://repo.typesafe.com/typesafe/ivy-releases"
+			layout "ivy"
+		}
+		maven {
+			name "idgis-public"
+			url "http://nexus.idgis.eu/content/groups/public/"
+			credentials {
+				username nexusUser 
+				password nexusPassword
+			}
+		}
+		maven {
+			name "idgis-restricted"
+			url "http://nexus.idgis.eu/content/groups/restricted/"
+			credentials {
+				username nexusUser 
+				password nexusPassword
+			}
+		}
+	}
+	
+	publishing {
+		if(project.version != 'unspecified') { // do not publish without version
+			if(project.version.endsWith('-SNAPSHOT')) {
+				repositories.maven {
+					name 'idgis-snapshots'
+					url 'http://nexus.idgis.eu/content/repositories/snapshots/'
+					credentials {
+						username nexusUser 
+						password nexusPassword
+					}
+				}
+			} else {		
+				repositories.maven {
+					name 'idgis-releases'
+					url 'http://nexus.idgis.eu/content/repositories/releases/'
+					credentials {
+						username nexusUser 
+						password nexusPassword
+					}
+				}
+			}
+		}
+	}
+}
+
+// base configuration for all non Play subprojects
+configure(subprojects - project(':publisher-web')) {
+	apply plugin: 'java'
+	
+	// export tests as artifact
+	configurations {
+		testArtifact
+	}
+
+	task testJar(type: Jar) {
+		baseName = "${project.name}-test"
+		from sourceSets.test.output
+	}
+
+	artifacts {
+		testArtifact testJar
+	}
+	
+	// add ${project.name} and ${project.version} to manifest
+	jar {
+		manifest {
+			attributes("Implementation-Title": project.name)
+			if(project.version) {
+				attributes("Implementation-Version": project.version)
+			}
+		}
+	}
+}
+
+// enable QueryDSL annotation processor
+configure([
+	project(':publisher-domain'),
+	project(':publisher-database'),
+	project(':publisher-service')]) {
+	
+	configurations {
+		apt
+	}
+	
+	dependencies {
+		apt "com.mysema.querydsl:querydsl-apt:${querydslVersion}"
+	}
+	
+	compileJava {
+		ext.aptDir = new File(project.buildDir, 'apt')
+
+		options.compilerArgs << '-processor' << 'com.mysema.query.apt.QuerydslAnnotationProcessor' 
+		options.compilerArgs << '-processorpath' << configurations.apt.asPath 
+		options.compilerArgs << '-s' << ext.aptDir
+	}
+
+	compileJava.doFirst {
+		ext.aptDir.mkdirs()
+	}
+}
+
+project(':publisher-test') {
+	dependencies {
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+		compile "junit:junit:${junitVersion}"
+		compile 'org.mockito:mockito-core:1.10.19'
+	}
+}
+
+project(':publisher-commons') {
+	dependencies {
+		testCompile project(':publisher-test')
+		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
+		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		testCompile "ch.qos.logback:logback-classic:${logbackVersion}"
+		testCompile "com.h2database:h2:${h2Version}"
+	
+		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+		compile 'org.apache.commons:commons-lang3:3.3.2'
+		compile "com.google.guava:guava:${guavaVersion}"
+		compile 'com.jolbox:bonecp:0.8.0.RELEASE'
+		compile "commons-io:commons-io:${commonsIOVersion}"
+		compile 'org.aspectj:aspectjrt:1.8.0'
+		compile 'org.codehaus.woodstox:woodstox-core-lgpl:4.1.5'
+	}
+}
+
+project(':publisher-domain') {
+	dependencies {
+		testCompile "junit:junit:${junitVersion}"
+	
+		compile project(':publisher-commons');
+		compile "com.google.guava:guava:${guavaVersion}"
+		compile "com.mysema.querydsl:querydsl-core:${querydslVersion}"
+		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "joda-time:joda-time:${jodatimeVersion}"
+		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
+	}
+}
+
+// extract schema files from geoserver artifact
+project(':publisher-schemas') {
+	configurations {
+		schemas {
+			transitive = false
+		}
+	}
+	
+	dependencies {
+		testCompile "junit:junit:${junitVersion}"
+		
+		schemas "org.geoserver:gs-main:${geoserverVersion}"
+	}
+	
+	task unpackSchemas << {
+		configurations.schemas.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+			project.copy {
+				from zipTree(artifact.file).matching {
+					include 'schemas/**/*'
+				}
+				eachFile {
+					it.path = it.path.replace('schemas/', 'schemas/geoserver/')
+				}
+				includeEmptyDirs = false
+				into sourceSets.main.output.resourcesDir
+			}
+		}
+	}
+	
+	processResources.dependsOn(unpackSchemas)
+}
+
+project(':publisher-web') {
+	apply plugin: PublisherPlay
+	apply plugin: PlayDistPublish
+	apply plugin: 'maven-publish'
+	
+	def playVersion = '2.3.4'
+	
+	model {
+		components {
+			play {
+				platform play: playVersion, java: '1.8'
+			}
+		}
+	}
+	
+	dependencies {
+		play project(':publisher-domain')
+		play project(':publisher-schemas')
+		play "com.typesafe.play:play-java-jdbc_${scalaAbiVersion}:${playVersion}"
+		play "com.typesafe.play:play-cache_${scalaAbiVersion}:${playVersion}"
+		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
+		play "org.webjars:webjars-play_${scalaAbiVersion}:2.3.0"
+		play 'org.webjars:bootstrap:3.2.0'
+  		play 'org.webjars:dojo:1.10.0'
+  		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+  		play 'org.pegdown:pegdown:1.5.0'
+		play('org.apache.zookeeper:zookeeper:3.4.5') {
+			exclude group: 'javax.jms', module: 'jms'
+			exclude group: 'com.sun.jdmk', module: 'jmxtools'
+			exclude group: 'com.sun.jmx', module: 'jmxri'
+			exclude group: 'org.jboss.netty', module: 'netty'
+		}
+  		play 'org.webjars:ace:01.08.2014'
+	}
+}
+
+project(':publisher-provider:publisher-provider-app') {
+	apply plugin: 'application'
+	
+	mainClassName = 'nl.idgis.publisher.provider.App'
+
+	dependencies {
+		testCompile project(':publisher-test')
+		testCompile "junit:junit:${junitVersion}"		
+		
+		compile project(':publisher-commons')
+		compile project(':publisher-provider:publisher-provider-protocol')
+		compile "commons-io:commons-io:${commonsIOVersion}"
+		compile 'com.fasterxml:aalto-xml:0.9.9'
+		compile 'com.oracle:ojdbc7:12.1.0.1.0'
+		compile("org.deegree:deegree-sqldialect-oracle:${deegreeVersion}") {
+			exclude group: 'org.deegree', module: 'deegree-sqldialect-commons'
+			exclude group: 'org.deegree', module: 'deegree-core-db'
+		}
+		compile("org.deegree:deegree-core-geometry:${deegreeVersion}") {
+			// dependencies of deegree-core-commons
+			exclude group: 'org.deegree', module: 'deegree-core-workspace'
+			exclude group: 'org.codehaus.woodstox', module: 'woodstox-core-lgpl'
+			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-impl'
+			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-api'
+			exclude group: 'com.sun.xml.fastinfoset', module: 'FastInfoset'
+			exclude group: 'jaxen', module: 'jaxen'
+			exclude group: 'xerces', module: 'xercesImpl'
+			exclude group: 'commons-dbcp', module: 'commons-dbcp'
+			exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+			exclude group: 'commons-pool', module: 'commons-pool'
+			exclude group: 'jogl', module: 'jogl'
+			exclude group: 'commons-cli', module: 'commons-cli'
+			exclude group: 'org.reflections', module: 'org.reflections'
+			exclude group: 'com.google.code.gson', module: 'gson'
+			exclude group: 'org.deegree', module: 'deegree-ogcschemas'
+			exclude group: 'xalan', module: 'xalan'
+			exclude group: 'xalan', module: 'serializer'
+			
+			// dependencies of deegree-core-cs
+			exclude group: 'org.deegree', module: 'deegree-core-annotations'
+			exclude group: 'jai', module: 'jai-core'
+			exclude group: 'jgridshift', module: 'jgridshift'
+			exclude group: 'junit', module: 'junit'
+			exclude group: 'org.postgis', module: 'postgis-jdbc'
+			exclude group: 'postgresql', module: 'postgresql'
+		}
+		compile "ch.qos.logback:logback-classic:${logbackVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		
+		runtime 'org.aspectj:aspectjweaver:1.8.0'
+	}
+}
+
+project(':publisher-provider:publisher-provider-protocol') {
+	dependencies {
+		compile project(':publisher-commons')
+		compile project(':publisher-domain')
+	}
+}
+
+project(':publisher-database') {
+	// publish jar (includes required *.sql files)
+	apply plugin: 'maven-publish'
+		
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				groupId 'nl.idgis.publisher'				
+				artifact jar
+			}
+		}
+	}
+
+	configurations {
+		sql
+		testCompile.extendsFrom(sql)
+	}
+
+	dependencies {
+		sql "com.h2database:h2:${h2Version}"
+	
+		testCompile project(':publisher-test')		
+		testCompile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+	
+		compile project(':publisher-commons')
+		compile project(':publisher-provider:publisher-provider-protocol')
+		compile "com.mysema.querydsl:querydsl-sql:${querydslVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+	}
+	
+	task generateDatabaseScript(type: ConcatSQLTask) {
+		inputDir = '/src/main/resources/nl/idgis/publisher/database'
+		buildDir = 'database-script'
+		destFileName = 'publisher.sql'
+		databaseType = 'H2'
+	}
+	
+	def databaseDirectory = new File(project.buildDir, '/database')
+	def databaseDriver = 'org.h2.Driver'
+	def databaseUrl = "jdbc:h2:${databaseDirectory}/publisher;DATABASE_TO_UPPER=false;MODE=PostgreSQL"
+	def databaseUser = 'sa'
+	def databasePassword = ''
+	
+	task prepareDatabase(dependsOn: generateDatabaseScript) << {
+		if(databaseDirectory.exists()) {
+			databaseDirectory.deleteDir()
+		}
+	
+		ant.sql(
+			classpath: configurations.sql.asPath,
+			driver: databaseDriver,
+			url: databaseUrl,
+			userid: databaseUser,
+			password: databasePassword,
+			src: "${project.buildDir}/database-script/publisher.sql")
+	}
+	
+	task generateMetamodel(type: MetaDataExporterTask, dependsOn: prepareDatabase) {
+		configuration = configurations.sql
+		driverClassName = databaseDriver
+		url = databaseUrl
+		password = databasePassword
+		user = databaseUser
+		targetDir = new File(project.buildDir, 'metamodel')
+		packageName = 'nl.idgis.publisher.database'
+	}
+	
+	compileJava.dependsOn(generateMetamodel)
+	
+	// generate properties file for nl.idgis.publisher.database.DatabaseTest
+	task generateDatabaseProperties << {
+		ant.propertyfile(file: new File(databaseDirectory, 'publisher.properties')) {
+			entry(key: 'database.driver', value: "${databaseDriver}")
+			entry(key: 'database.url', value: "${databaseUrl}")
+			entry(key: 'database.user', value: "${databaseUser}")
+			entry(key: 'database.password', value: "${databasePassword}")
+		}
+	}
+	
+	processTestResources.dependsOn(generateDatabaseProperties)
+	
+	sourceSets {
+		main {
+			java {
+				// compile QueryDSL metamodel sources
+				srcDir new File(project.buildDir, 'metamodel')
+			}
+		}
+	}
+}
+
+project(':publisher-service') {
+	apply plugin: 'application'
+	
+	mainClassName = 'nl.idgis.publisher.ServiceApp'
+
+	configurations {
+		webapp
+	}
+
+	dependencies {
+		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
+		
+		testCompile project(':publisher-test')
+		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
+		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
+		testCompile "com.h2database:h2:${h2Version}"
+		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
+		testCompile 'com.google.jimfs:jimfs:1.0'
+		testCompile('org.opengeo:geodb:0.8') {
+			exclude group: 'xerces', module: 'xercesImpl'
+		}
+		testCompile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
+		testCompile "org.eclipse.jetty:jetty-plus:${jettyVersion}"
+		testCompile 'org.apache.commons:commons-dbcp2:2.1.1'
+		
+		compile project(':publisher-commons')
+		compile project(':publisher-database')		
+		compile project(':publisher-domain')
+		compile "commons-io:commons-io:${commonsIOVersion}"
+		compile 'commons-codec:commons-codec:1.9'
+		compile 'org.postgresql:postgresql:9.4-1203-jdbc42'
+		compile "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
+		compile "ch.qos.logback:logback-classic:${logbackVersion}"
+		compile 'com.ning:async-http-client:1.9.8'
+		compile "org.apache.curator:curator-recipes:${curatorVersion}"
+		compile "org.apache.curator:curator-framework:${curatorVersion}"
+		compile 'org.quartz-scheduler:quartz:2.2.1'
+	}
+	
+	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
+	task extractWebapp << {
+		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+			project.copy {
+				from zipTree(artifact.file)
+				into new File(project.buildDir, 'geoserver')
+			}
+		}
+	}
+	
+	processTestResources.dependsOn(extractWebapp)
+}
+
+// configure distZip as publication
+configure([
+	project(':publisher-provider:publisher-provider-app'),
+	project(':publisher-service')]) {
+	
+	apply plugin: 'maven-publish'
+	
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				groupId 'nl.idgis.publisher'				
+				artifact distZip
+			}
+		}
+	}
+}
+
+// measure task execution time
+gradle.addListener(new TimingListener())

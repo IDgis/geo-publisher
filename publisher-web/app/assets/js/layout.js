@@ -84,7 +84,7 @@ require ([
     // =========================================================================
     var eventTypes = {
     	'active-tasks': 'activeTasks',
-    	'notifications': 'notifications',
+    	'notifications': 'notifications'
     };
     
     function processEvents (data) {
