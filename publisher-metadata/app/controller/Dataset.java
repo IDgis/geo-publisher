@@ -27,7 +27,7 @@ public class Dataset extends Controller {
 		if(name.toLowerCase().endsWith(".xml")) {
 			String id = name.substring(0, name.length() - 4);
 			
-			return q.transactional(tx -> {
+			return q.withTransaction(tx -> {
 				Tuple t = tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))

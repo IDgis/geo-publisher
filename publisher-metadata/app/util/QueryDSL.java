@@ -21,7 +21,7 @@ public class QueryDSL {
 	
 	private final SQLTemplates t;
 	
-	public interface TX {
+	public interface Transaction {
 		SQLQuery query();
 	}
 	
@@ -32,16 +32,16 @@ public class QueryDSL {
 		t = new ExtendedPostgresTemplates();
 	}
 	
-	public void transactional(Consumer<TX> c) {
-		transactional(db -> {
+	public void transactional(Consumer<Transaction> c) {
+		withTransaction(db -> {
 			c.accept(db);
 			return null;
 		});
 	}
 	
-	public <T> T transactional(Function<TX, T> f) {
+	public <T> T withTransaction(Function<Transaction, T> f) {
 		return d.withTransaction(c -> {
-			return f.apply(new TX() {
+			return f.apply(new Transaction() {
 
 				@Override
 				public SQLQuery query() {
