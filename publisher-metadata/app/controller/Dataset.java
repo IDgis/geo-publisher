@@ -55,12 +55,18 @@ public class Dataset extends SimpleWebDAV {
 		this.q = q;
 		this.mdf = mdf;
 	}
+	
+	private Optional<String> getId(String name) {
+		if(name.toLowerCase().endsWith(".xml")) {
+			return Optional.of(name.substring(0, name.length() - 4));
+		} else {
+			return Optional.empty();
+		}
+	}
 
 	public Optional<Resource> resource(String name) {
-		if(name.toLowerCase().endsWith(".xml")) {
-			String id = name.substring(0, name.length() - 4);
-			
-			return q.withTransaction(tx -> {
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
 				Tuple t = tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
@@ -83,10 +89,7 @@ public class Dataset extends SimpleWebDAV {
 				document.removeStylesheet();
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", document.getContent()));
-			});
-		}
-		
-		return Optional.empty();
+		}));
 	}
 	
 	@Override
@@ -117,10 +120,8 @@ public class Dataset extends SimpleWebDAV {
 
 	@Override
 	public Optional<ResourceProperties> properties(String name) {
-		if(name.toLowerCase().endsWith(".xml")) {
-			String id = name.substring(0, name.length() - 4);
-			
-			return q.withTransaction(tx -> {
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
 				if(tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
@@ -136,9 +137,6 @@ public class Dataset extends SimpleWebDAV {
 				} else {
 					return Optional.<ResourceProperties>empty();
 				}
-			});
-		} else {
-			return Optional.empty();
-		}
+		}));
 	}
 }
