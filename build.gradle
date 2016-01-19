@@ -1,4 +1,5 @@
 apply plugin: GitVersion
+apply plugin: 'eclipse'
 
 ext {
 	junitVersion = '4.11'
@@ -80,6 +81,7 @@ subprojects {
 // base configuration for all non Play subprojects
 configure(subprojects - project(':publisher-web')) {
 	apply plugin: 'java'
+	apply plugin: 'eclipse'
 	
 	// export tests as artifact
 	configurations {
@@ -106,6 +108,8 @@ configure(subprojects - project(':publisher-web')) {
 	}
 }
 
+import org.gradle.plugins.ide.eclipse.model.SourceFolder
+
 // enable QueryDSL annotation processor
 configure([
 	project(':publisher-domain'),
@@ -130,6 +134,12 @@ configure([
 
 	compileJava.doFirst {
 		ext.aptDir.mkdirs()
+	}
+	
+	eclipse.classpath.file {
+		whenMerged { classpath ->
+		        classpath.entries.add(new SourceFolder('build/apt', null))
+    		}
 	}
 }
 
