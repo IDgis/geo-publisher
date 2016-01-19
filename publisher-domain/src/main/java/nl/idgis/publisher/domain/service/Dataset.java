@@ -2,13 +2,15 @@ package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 
-	private static final long serialVersionUID = -8161951034272334261L;
+	private static final long serialVersionUID = 8702342730651338264L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -20,7 +22,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final boolean confidential;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential) {
+	protected final MetadataDocument metadata;
+	
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, MetadataDocument metadata) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -28,6 +32,7 @@ public abstract class Dataset implements Serializable {
 		this.revisionDate = revisionDate;
 		this.logs = logs;
 		this.confidential = confidential;
+		this.metadata = metadata;
 	}
 
 	public String getId() {
@@ -73,6 +78,10 @@ public abstract class Dataset implements Serializable {
 		result = prime * result
 				+ ((revisionDate == null) ? 0 : revisionDate.hashCode());
 		return result;
+	}
+
+	public Optional<MetadataDocument> getMetadata() {
+		return Optional.ofNullable(metadata);
 	}
 
 	@Override

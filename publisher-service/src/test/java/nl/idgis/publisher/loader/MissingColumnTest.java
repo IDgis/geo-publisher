@@ -113,6 +113,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			new Timestamp(new Date().getTime()), //revision date
 			Collections.<Log>emptySet(), 
 			false, // confidential
+			null, // metadata
 			new Table(columns));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Registered.class).get();
@@ -220,6 +221,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			testDataset.getRevisionDate(),
 			testDataset.getLogs(), 
 			testDataset.isConfidential(),
+			testDataset.getMetadata().orElse(null),
 			new Table(Collections.singletonList(columns.get(0)))); 
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Updated.class).get();
@@ -359,6 +361,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 				new Timestamp(new Date().getTime()), //revision date
 				Collections.<Log>emptySet(), 
 				false, // confidential
+				null, // metadata
 				new Table(columns));
 			
 			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", anotherDataset), Registered.class).get();

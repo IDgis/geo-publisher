@@ -2,9 +2,11 @@ package nl.idgis.publisher.dataset;
 
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -22,6 +24,8 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.types.QTuple;
 import com.mysema.query.types.expr.DateTimeExpression;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
@@ -71,7 +75,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.getCategoryId(), 
 			dataset.getRevisionDate(),
 			logs,
-			dataset.isConfidential());
+			dataset.isConfidential(),
+			dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 		
@@ -84,13 +89,20 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.getCategoryId(), 
 			dataset.getRevisionDate(), 
 			logs,
-			dataset.isConfidential());
+			dataset.isConfidential(),
+			dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class).get();
 	}
 
 	@Test
-	public void testRegisterNewVectorDataset() throws Exception { 
+	public void testRegisterNewVectorDataset() throws Exception {
+		assertFalse(
+			query().from(sourceDatasetMetadata)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadata.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.exists());
+		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset()), Registered.class).get();		
 		
 		assertTrue(
@@ -108,6 +120,12 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
 				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 				.singleResult(sourceDatasetVersion.id.count()).intValue());
+		
+		assertTrue(
+			query().from(sourceDatasetMetadata)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadata.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.exists());
 	}
 	
 	@Test
@@ -123,6 +141,11 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
+		
+		// destroy metadata
+		update(sourceDatasetMetadata)
+			.set(sourceDatasetMetadata.document, "Hello, world!".getBytes("utf-8"))
+			.execute();
 		
 		VectorDataset updatedDataset = createVectorDataset();
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class).get();		
@@ -151,6 +174,21 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		assertNotNull(t);
 		
 		assertFalse(itr.hasNext());
+		
+		Tuple tuple =
+			query().from(sourceDatasetMetadata)
+				.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadata.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.singleResult(new QTuple(sourceDatasetMetadata.document));
+		
+		// singleResult(sourceDatasetMetadata.document) results in
+		// a ClassCastException, unclear why.
+		
+		byte[] metadataDocument = tuple.get(sourceDatasetMetadata.document);		
+		assertNotNull(metadataDocument);
+		
+		// updating the dataset should have restored the metadata
+		assertNotEquals("Hello, world!", new String(metadataDocument, "utf-8"));
 	}
 	
 	@Test
@@ -163,7 +201,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				null, //categoryId removed 
 				dataset.getRevisionDate(), 
 				dataset.getLogs(),
-				dataset.isConfidential());
+				dataset.isConfidential(),
+				dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
 		
@@ -186,10 +225,10 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		final Table table = new Table(columns);
 		final Timestamp revision = new Timestamp(new Date().getTime());
 		final VectorDataset[] datasets = {
-			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, table),
-			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, table),
-			new VectorDataset ("table3", "My Test Table 3", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, table),
-			new VectorDataset ("table4", "My Test Table 4", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, table)
+			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, null, table),
+			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, null, table),
+			new VectorDataset ("table3", "My Test Table 3", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, null, table),
+			new VectorDataset ("table4", "My Test Table 4", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, null, table)
 		};
 		
 		for (final VectorDataset ds: datasets) {

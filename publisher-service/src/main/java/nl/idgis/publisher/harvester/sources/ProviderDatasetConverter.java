@@ -1,11 +1,13 @@
 package nl.idgis.publisher.harvester.sources;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -21,6 +23,8 @@ import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.Table;
 
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
@@ -35,12 +39,19 @@ public class ProviderDatasetConverter extends StreamConverter {
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Set<AttachmentType> attachmentTypes;
+	
 	private final ActorRef provider; 
 	
-	public ProviderDatasetConverter(ActorRef provider) {
+	private final MetadataDocumentFactory mdf;
+	
+	public ProviderDatasetConverter(ActorRef provider) throws Exception {
 		this.provider = provider;
 		
-		attachmentTypes = new HashSet<>();
+		Set<AttachmentType> attachmentTypes = new HashSet<>();
+		attachmentTypes.add(AttachmentType.METADATA);
+		this.attachmentTypes = Collections.unmodifiableSet(attachmentTypes);
+		
+		mdf = new MetadataDocumentFactory();
 	}
 	
 	public static Props props(ActorRef provider) {
@@ -69,6 +80,27 @@ public class ProviderDatasetConverter extends StreamConverter {
 			Set<Log> logs = datasetInfo.getLogs();
 			boolean confidential = datasetInfo.isConfidential();
 			
+			MetadataDocument metadata= datasetInfo.getAttachments().stream()
+				.filter(attachment -> 
+					attachment
+						.getAttachmentType()
+						.equals(AttachmentType.METADATA))
+				.flatMap(attachment -> {
+					Object content = attachment.getContent();
+					if(content instanceof byte[]) {					
+						try {
+							return Stream.of(
+								mdf.parseDocument((byte[])attachment.getContent()));
+						} catch(Exception e) {
+							return Stream.empty();
+						}
+					} else {
+						return Stream.empty();
+					}
+				})
+				.findAny()
+				.orElse(null);
+			
 			final Dataset dataset;
 			if(datasetInfo instanceof VectorDatasetInfo) {
 				log.debug("vector dataset info: " + datasetInfo);
@@ -81,15 +113,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, table);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata, table);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

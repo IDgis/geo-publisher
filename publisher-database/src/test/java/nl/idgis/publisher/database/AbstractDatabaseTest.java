@@ -30,6 +30,8 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentTest;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JdbcUtils;
 
@@ -176,11 +178,11 @@ public abstract class AbstractDatabaseTest {
 		return insertDataSource("testDataSource");
 	}
 	
-	protected VectorDataset createVectorDataset() {
+	protected VectorDataset createVectorDataset() throws Exception {
 		return createVectorDataset("testVectorDataset");
 	}
 
-	protected VectorDataset createVectorDataset(String id) {
+	protected VectorDataset createVectorDataset(String id) throws Exception {
 		List<Column> columns = Arrays.asList(
 				new Column("col0", Type.TEXT),
 				new Column("col1", Type.NUMERIC));
@@ -188,7 +190,9 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, table);		
+		MetadataDocument metadata = MetadataDocumentTest.getDocument("dataset_metadata.xml");
+		
+		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, metadata, table);		
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -201,7 +205,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false);		
+		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, null);		
 	}
 	
 	protected ExecutionContext dispatcher() {
