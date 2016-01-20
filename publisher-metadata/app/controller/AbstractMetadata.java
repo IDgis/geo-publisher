@@ -16,6 +16,10 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		this.q = q;
 	}
 	
+	protected String getName(String id) {
+		return id + ".xml";
+	}
+	
 	protected Optional<String> getId(String name) {
 		if(name.toLowerCase().endsWith(".xml")) {
 			return Optional.of(name.substring(0, name.length() - 4));

@@ -104,7 +104,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.map(id -> {
 						ResourceProperties properties = new DefaultResourceProperties(false);
 
-						return new DefaultResourceDescription(id + ".xml", properties); 
+						return new DefaultResourceDescription(getName(id), properties); 
 					});
 		});
 	}

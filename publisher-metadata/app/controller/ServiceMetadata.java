@@ -141,7 +141,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					.map(info -> {
 						ResourceProperties properties = new DefaultResourceProperties(false);
 
-						return new DefaultResourceDescription(info.id + ".xml", properties);
+						return new DefaultResourceDescription(getName(info.id), properties);
 					});
 		});
 	}
