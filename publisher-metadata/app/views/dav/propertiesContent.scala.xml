@@ -1,0 +1,7 @@
+@(resourceProperties: model.dav.ResourceProperties)<D:prop>
+	<D:resourcetype>
+	@if(resourceProperties.collection()) {
+		<D:collection/>
+	}
+	</D:resourcetype>
+</D:prop>

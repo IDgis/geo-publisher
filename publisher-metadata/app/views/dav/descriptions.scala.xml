@@ -1,0 +1,11 @@
+@(path: String, descriptions: java.util.stream.Stream[model.dav.ResourceDescription])<D:multistatus xmlns:D="DAV:">
+	@for(description <- descriptions.iterator()) {
+		<D:response>
+			<D:href>@path@description.name()</D:href>
+			<D:propstat>
+				@propertiesContent(description.properties)
+				<D:status>HTTP/1.1 200 OK</D:status>
+			</D:propstat>
+		</D:response>
+	}	
+</D:multistatus>
