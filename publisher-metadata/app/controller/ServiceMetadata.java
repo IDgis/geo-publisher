@@ -4,6 +4,7 @@ import javax.inject.Inject;
 
 import org.apache.commons.io.IOUtils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
@@ -23,7 +24,7 @@ import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.api.routing.Router;
-
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
@@ -40,8 +41,7 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
+import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
 import java.util.Collections;
@@ -98,16 +98,17 @@ public class ServiceMetadata extends AbstractMetadata {
 			q.withTransaction(tx -> {
 			
 			Tuple ts = tx.query().from(service)
-				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(publishedService).on(publishedService.serviceId.eq(service.id))
 				.join(constants).on(constants.id.eq(service.constantsId))
 				.where(notConfidential)
 				.where(service.wmsMetadataFileIdentification.eq(id)
 					.or(service.wfsMetadataFileIdentification.eq(id)))
 				.singleResult(
 					service.id,
-					genericLayer.title,
-					genericLayer.name,
-					genericLayer.abstractCol,
+					publishedService.content,
+					publishedService.title,
+					publishedService.alternateTitle,
+					publishedService.abstractCol,
 					constants.contact,
 					constants.organization,
 					constants.position,
@@ -121,8 +122,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					constants.fax,
 					constants.email,
 					service.wmsMetadataFileIdentification,
-					service.wfsMetadataFileIdentification,
-					service.alternateTitle);
+					service.wfsMetadataFileIdentification);
 			
 			if(ts == null) {
 				return Optional.<Resource>empty();
@@ -133,14 +133,14 @@ public class ServiceMetadata extends AbstractMetadata {
 			MetadataDocument metadataDocument = template.clone();
 			metadataDocument.setFileIdentifier(id);
 			
-			metadataDocument.setServiceTitle(ts.get(genericLayer.title));
-			metadataDocument.setServiceAlternateTitle(ts.get(service.alternateTitle));
-			metadataDocument.setServiceAbstract(ts.get(genericLayer.abstractCol));
+			metadataDocument.setServiceTitle(ts.get(publishedService.title));
+			metadataDocument.setServiceAlternateTitle(ts.get(publishedService.alternateTitle));
+			metadataDocument.setServiceAbstract(ts.get(publishedService.abstractCol));
 						
-			List<String> keywords = tx.query().from(serviceKeyword)
-				.where(serviceKeyword.serviceId.eq(serviceId))
-				.orderBy(serviceKeyword.keyword.asc())
-				.list(serviceKeyword.keyword);
+			List<String> keywords = tx.query().from(publishedServiceKeyword)
+				.where(publishedServiceKeyword.serviceId.eq(serviceId))
+				.orderBy(publishedServiceKeyword.keyword.asc())
+				.list(publishedServiceKeyword.keyword);
 			
 			metadataDocument.removeServiceKeywords();
 			metadataDocument.addServiceKeywords(
@@ -188,10 +188,13 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
 			
+			JsonNode serviceInfo = Json.parse(ts.get(publishedService.content));
+			String serviceName = serviceInfo.get("name").asText();
+			
 			if(id.equals(ts.get(service.wmsMetadataFileIdentification))) {
 				// WMS:
 				
-				String linkage = getServiceLinkage(ts.get(genericLayer.name), ServiceType.WMS);
+				String linkage = getServiceLinkage(serviceName, ServiceType.WMS);
 				
 				String browseGraphicBaseUrl = linkage 
 					+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
@@ -213,7 +216,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				// WFS:
 				
 				// TODO: prefix url
-				String linkage = getServiceLinkage(ts.get(genericLayer.name), ServiceType.WFS);
+				String linkage = getServiceLinkage(serviceName, ServiceType.WFS);
 				
 				metadataDocument.addServiceType("download");
 				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);

@@ -40,11 +40,6 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		}
 	}
 	
-	protected String getServiceName(String jsonService) {
-		JsonNode jsonNode = Json.parse(jsonService);
-		return jsonNode.get("name").asText();
-	}
-	
 	protected String getServiceLinkage(String serviceName, ServiceType serviceType) {
 		// TODO: add prefix
 		return "" + serviceName + "/" + serviceType.name().toLowerCase();

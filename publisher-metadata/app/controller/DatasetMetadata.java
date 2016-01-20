@@ -2,6 +2,7 @@ package controller;
 
 import javax.inject.Inject;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
@@ -19,6 +20,7 @@ import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.api.routing.Router;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
@@ -101,8 +103,10 @@ public class DatasetMetadata extends AbstractMetadata {
 				
 				metadataDocument.removeServiceLinkage();
 				for(Tuple tpsd : ltpsd) {
+					JsonNode serviceInfo = Json.parse(tpsd.get(publishedService.content));
+					
 					for(ServiceType serviceType : ServiceType.values()) {
-						String serviceName = getServiceName(tpsd.get(publishedService.content));
+						String serviceName = serviceInfo.get("name").asText();
 						
 						String linkage = getServiceLinkage(serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
