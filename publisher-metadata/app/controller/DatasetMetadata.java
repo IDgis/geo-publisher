@@ -88,7 +88,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 
 	@Override
-	public List<ResourceDescription> descriptions() {
+	public Stream<ResourceDescription> descriptions() {
 		return q.withTransaction(tx -> {
 			
 			return 
@@ -107,8 +107,7 @@ public class DatasetMetadata extends AbstractMetadata {
 							ResourceProperties properties = new DefaultResourceProperties(false);
 
 							return new DefaultResourceDescription(id + ".xml", properties); 
-						}))
-				.collect(Collectors.toList());
+						}));
 		});
 	}
 

@@ -29,7 +29,7 @@ abstract class SimpleWebDAV(val prefix: String) extends Router {
   def this() = this("/")
   
   /** Called to fetch a list of resources in the WebDAV folder. */  
-  def descriptions(): java.util.List[ResourceDescription]
+  def descriptions(): java.util.stream.Stream[ResourceDescription]
   
   /** Called to fetch the properties of a resource. */
   def properties(name: String): java.util.Optional[ResourceProperties]

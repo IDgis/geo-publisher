@@ -127,7 +127,7 @@ public class ServiceMetadata extends AbstractMetadata {
 	}
 
 	@Override
-	public List<ResourceDescription> descriptions() {
+	public Stream<ResourceDescription> descriptions() {
 		return q.withTransaction(tx -> {
 			
 			return 
@@ -144,8 +144,7 @@ public class ServiceMetadata extends AbstractMetadata {
 							ResourceProperties properties = new DefaultResourceProperties(false);
 
 							return new DefaultResourceDescription(info.id + ".xml", properties);
-						}))
-				.collect(Collectors.toList());
+						}));
 		});
 	}
 
