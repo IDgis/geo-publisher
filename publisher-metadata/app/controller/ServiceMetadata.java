@@ -9,6 +9,7 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
 import com.mysema.query.types.QTuple;
+import com.typesafe.config.Config;
 
 import model.dav.Resource;
 import model.dav.ResourceDescription;
@@ -20,7 +21,7 @@ import model.dav.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-
+import play.Configuration;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.api.routing.Router;
@@ -29,7 +30,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import router.dav.SimpleWebDAV;
-
+import util.MetadataConfig;
 import util.QueryDSL;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -68,8 +69,8 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(QueryDSL q) throws Exception {
-		this(q, getTemplate(), "/");
+	public ServiceMetadata(MetadataConfig config, QueryDSL q) throws Exception {
+		this(config, q, getTemplate(), "/");
 	}
 	
 	private static MetadataDocument getTemplate() throws Exception {
@@ -81,15 +82,15 @@ public class ServiceMetadata extends AbstractMetadata {
 				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
 	}
 	
-	public ServiceMetadata(QueryDSL q, MetadataDocument template, String prefix) {
-		super(q, prefix);
+	public ServiceMetadata(MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(config, q, prefix);
 		
 		this.template = template;
 	}
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(q, template, prefix);
+		return new ServiceMetadata(config, q, template, prefix);
 	}
 
 	@Override
@@ -175,8 +176,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					
 					String uuid = tpsd.get(dataset.metadataIdentification);
 					String fileIdentification = tpsd.get(dataset.metadataFileIdentification);
-					// TODO: prefix url
-					String uuidref = "dataset/" + getName(fileIdentification);
+					String uuidref = config.getUrlPrefix() + "dataset/" + getName(fileIdentification);
 					
 					metadataDocument.addOperatesOn(uuid, uuidref);
 				}

@@ -8,6 +8,10 @@ import router.dav.SimpleWebDAV;
 
 public class Index extends SimpleWebDAV {
 	
+	private static final String SERVICE_PATH = "service/";
+	
+	private static final String DATASET_PATH = "dataset/";
+	
 	private final ServiceMetadata serviceMetadata;
 	
 	private final DatasetMetadata datasetMetadata;
@@ -21,8 +25,8 @@ public class Index extends SimpleWebDAV {
 		super(
 			prefix, 
 			Arrays.asList(
-				serviceMetadata.withPrefix(prefix + "service/"),
-				datasetMetadata.withPrefix(prefix + "dataset/")));
+				serviceMetadata.withPrefix(prefix + SERVICE_PATH),
+				datasetMetadata.withPrefix(prefix + DATASET_PATH)));
 		
 		this.serviceMetadata = serviceMetadata;
 		this.datasetMetadata = datasetMetadata;

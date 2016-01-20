@@ -1,18 +1,27 @@
 package controller;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import router.dav.SimpleWebDAV;
 
+import util.MetadataConfig;
 import util.QueryDSL;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
+	protected final MetadataConfig config;
+	
 	protected final QueryDSL q;
 	
-	protected AbstractMetadata(QueryDSL q, String prefix) {
+	private Map<String, String> environmentPrefixes;
+	
+	protected AbstractMetadata(MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);
 		
+		this.config = config;
 		this.q = q;
 	}
 	
@@ -38,7 +47,6 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	}
 	
 	protected String getServiceLinkage(String environmentId, String serviceName, ServiceType serviceType) {
-		// TODO: provide correct url
-		return environmentId + "/" + serviceName + "/" + serviceType.name().toLowerCase();
+		return config.getEnvironmentUrlPrefix(environmentId).orElse("/") + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 }
