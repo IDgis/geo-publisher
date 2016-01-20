@@ -50,8 +50,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
-import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
-
 public class ServiceMetadata extends AbstractMetadata {
 	
 	private static final String ENDPOINT_CODE_LIST_VALUE = "WebServices";
@@ -193,8 +191,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			if(id.equals(ts.get(service.wmsMetadataFileIdentification))) {
 				// WMS:
 				
-				// TODO: prefix url
-				String linkage = ts.get(genericLayer.name) + "/wms";
+				String linkage = getServiceLinkage(ts.get(genericLayer.name), ServiceType.WMS);
 				
 				String browseGraphicBaseUrl = linkage 
 					+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
@@ -209,14 +206,14 @@ public class ServiceMetadata extends AbstractMetadata {
 					String scopedName = layerName;
 					
 					metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
-					metadataDocument.addServiceLinkage(linkage, "OGC:WMS", scopedName);
+					metadataDocument.addServiceLinkage(linkage, ServiceType.WMS.getProtocol(), scopedName);
 					metadataDocument.addSVCoupledResource("GetMap", identifier, scopedName);
 				}
 			} else {
 				// WFS:
 				
 				// TODO: prefix url
-				String linkage = ts.get(genericLayer.name) + "/wfs";
+				String linkage = getServiceLinkage(ts.get(genericLayer.name), ServiceType.WFS);
 				
 				metadataDocument.addServiceType("download");
 				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
@@ -226,7 +223,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					String layerName = tpsd.get(publishedServiceDataset.layerName);
 					String scopedName = layerName;
 					
-					metadataDocument.addServiceLinkage(linkage, "OGC:WFS", scopedName);
+					metadataDocument.addServiceLinkage(linkage, ServiceType.WFS.getProtocol(), scopedName);
 					metadataDocument.addSVCoupledResource("GetFeature", identifier, scopedName);
 				}
 			}

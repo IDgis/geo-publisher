@@ -31,12 +31,15 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
+import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
 public class DatasetMetadata extends AbstractMetadata {
@@ -62,7 +65,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				Tuple t = tx.query().from(dataset)
+				Tuple td = tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
@@ -74,16 +77,41 @@ public class DatasetMetadata extends AbstractMetadata {
 						.where(publishedServiceDataset.datasetId.eq(dataset.id))
 						.exists())
 					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(new QTuple(sourceDatasetMetadata.document));
+					.singleResult(
+						dataset.id,
+						dataset.identification, 
+						sourceDatasetMetadata.document);
 				
-				if(t == null) {
+				if(td == null) {
 					return Optional.<Resource>empty();
 				}
 				
-				MetadataDocument document = mdf.parseDocument(t.get(sourceDatasetMetadata.document));
-				document.removeStylesheet();
+				MetadataDocument metadataDocument = mdf.parseDocument(td.get(sourceDatasetMetadata.document));
+				metadataDocument.removeStylesheet();
 				
-				return Optional.<Resource>of(new DefaultResource("application/xml", document.getContent()));
+				metadataDocument.setDatasetIdentifier(td.get(dataset.identification));
+				metadataDocument.setFileIdentifier(id);
+				
+				int datasetId = td.get(dataset.id);
+				List<Tuple> ltpsd = tx.query().from(publishedServiceDataset)
+					.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset.serviceId))
+					.list(
+						publishedService.content,
+						publishedServiceDataset.layerName);
+				
+				metadataDocument.removeServiceLinkage();
+				for(Tuple tpsd : ltpsd) {
+					for(ServiceType serviceType : ServiceType.values()) {
+						String serviceName = getServiceName(tpsd.get(publishedService.content));
+						
+						String linkage = getServiceLinkage(serviceName, serviceType);
+						String protocol = serviceType.getProtocol();
+						
+						metadataDocument.addServiceLinkage(linkage, protocol, tpsd.get(publishedServiceDataset.layerName));
+					}
+				}
+				
+				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
 	}
 
