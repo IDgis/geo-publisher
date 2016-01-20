@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.Format;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -235,7 +236,7 @@ public class MetadataDocument {
 		return xmlDocument.removeNodes(namespaces, getKeywordPath(topic));
 	}
 	
-	protected void addKeywords(Topic topic, Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
+	protected void addKeywords(Topic topic, Collection<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
 		String keywordsPath = xmlDocument.addNode(
 				namespaces, 
 				getIdentificationPath(topic), 
@@ -290,7 +291,7 @@ public class MetadataDocument {
 		return removeKeywords(Topic.SERVICE);
 	}
 	
-	public void addServiceKeywords(Set<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
+	public void addServiceKeywords(Collection<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {
 		addKeywords(Topic.SERVICE, keywords, thesaurusTitle, thesaurusDate, thesaurusCodeList, thesaurusCodeListValue);
 	}
 	
