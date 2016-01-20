@@ -14,7 +14,7 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, urlPrefix;
+	private final String host, path, urlPrefix, zooKeeperHosts, zooKeeperNamespace;
 	
 	private final Map<String, String> environmentPrefixes;
 
@@ -37,6 +37,9 @@ public class MetadataConfig {
 		host = config.getString("publisher.metadata.host");
 		path = "/metadata";
 		urlPrefix = "http://" + host + path + "/";
+		
+		zooKeeperHosts = config.getString("zooKeeper.hosts");
+		zooKeeperNamespace = config.getString("zooKeeper.namespace");
 	}
 	
 	public String getHost() {
@@ -53,5 +56,13 @@ public class MetadataConfig {
 	
 	public String getUrlPrefix() {
 		return urlPrefix;
+	}
+	
+	public Optional<String> getZooKeeperHosts() {
+		return Optional.ofNullable(zooKeeperHosts);
+	}
+	
+	public Optional<String> getZooKeeperNamespace() {
+		return Optional.ofNullable(zooKeeperNamespace);
 	}
 }
