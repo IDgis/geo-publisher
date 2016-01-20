@@ -7,6 +7,11 @@ import views.xml.dav
 
 import model.dav._
 
+import java.util.stream.Stream
+import java.util.stream.Stream.concat
+import java.util.Optional
+import java.util.Collections.singleton
+
 /** Simple read-only WebDAV implementation.
   *  
   * This router provides a minimal WebDAV implementation for creating a
@@ -29,15 +34,18 @@ abstract class SimpleWebDAV(val prefix: String) extends Router {
   def this() = this("/")
   
   /** Called to fetch a list of resources in the WebDAV folder. */  
-  def descriptions(): java.util.stream.Stream[ResourceDescription]
+  def descriptions(): Stream[ResourceDescription]
   
   /** Called to fetch the properties of a resource. */
-  def properties(name: String): java.util.Optional[ResourceProperties]
+  def properties(name: String): Optional[ResourceProperties]
   
   /** Called to fetch a resource. */
-  def resource(name: String): java.util.Optional[Resource]
+  def resource(name: String): Optional[Resource]
   
   private def resourceName(path :String) = path.substring(prefix.length())
+  
+  // java.util.stream.Stream.of with single parameter is ambiguous in Scala
+  private def of[T](t: T): Stream[T] = singleton(t).stream()
   
   override def routes = {
     // fetch resource
@@ -59,7 +67,8 @@ abstract class SimpleWebDAV(val prefix: String) extends Router {
       Results.Status(207) {
         if(rh.path == prefix) {
           // list all resources in folder
-          dav.descriptions.render(rh.path, descriptions())
+          val root = new DefaultResourceDescription("", new DefaultResourceProperties(true))          
+          dav.descriptions.render(rh.path, concat(of(root), descriptions()))
         } else {
           // fetch resource properties
           dav.properties.render(rh.path, properties(resourceName(rh.path)))

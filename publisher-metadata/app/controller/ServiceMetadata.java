@@ -130,21 +130,19 @@ public class ServiceMetadata extends AbstractMetadata {
 	public Stream<ResourceDescription> descriptions() {
 		return q.withTransaction(tx -> {
 			
-			return 
-				Stream.concat(
-					Stream.of(new DefaultResourceDescription("", new DefaultResourceProperties(true))),
-					tx.query().from(service)
-						.where(notConfidential)
-						.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
-						.flatMap(t ->
-							Stream.of(
-								new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
-								new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
-						.map(info -> {
-							ResourceProperties properties = new DefaultResourceProperties(false);
+			return
+				tx.query().from(service)
+					.where(notConfidential)
+					.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
+					.flatMap(t ->
+						Stream.of(
+							new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
+							new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
+					.map(info -> {
+						ResourceProperties properties = new DefaultResourceProperties(false);
 
-							return new DefaultResourceDescription(info.id + ".xml", properties);
-						}));
+						return new DefaultResourceDescription(info.id + ".xml", properties);
+					});
 		});
 	}
 

@@ -91,23 +91,21 @@ public class DatasetMetadata extends AbstractMetadata {
 	public Stream<ResourceDescription> descriptions() {
 		return q.withTransaction(tx -> {
 			
-			return 
-				Stream.concat(
-					Stream.of(new DefaultResourceDescription("", new DefaultResourceProperties(true))),
-					tx.query().from(dataset)
-					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-						.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-						.list(sourceDatasetVersion.id.max())))
-					.where(sourceDatasetVersion.confidential.isFalse())
-					.list(dataset.metadataFileIdentification).stream()
-						.map(id -> {
-							ResourceProperties properties = new DefaultResourceProperties(false);
+			return
+				tx.query().from(dataset)
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
+				.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+				.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
+					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+					.list(sourceDatasetVersion.id.max())))
+				.where(sourceDatasetVersion.confidential.isFalse())
+				.list(dataset.metadataFileIdentification).stream()
+					.map(id -> {
+						ResourceProperties properties = new DefaultResourceProperties(false);
 
-							return new DefaultResourceDescription(id + ".xml", properties); 
-						}));
+						return new DefaultResourceDescription(id + ".xml", properties); 
+					});
 		});
 	}
 
