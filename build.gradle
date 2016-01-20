@@ -530,4 +530,6 @@ project(':publisher-metadata') {
 }
 
 // measure task execution time
-gradle.addListener(new TimingListener())
+if(!gradle.startParameter.continuous) {
+	gradle.addListener(new TimingListener())
+}
