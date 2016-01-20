@@ -1,2 +1,1 @@
-->	/dataset/	controller.DatasetMetadata
-->	/service/	controller.ServiceMetadata
+->	/metadata/	controller.Index

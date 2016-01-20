@@ -78,7 +78,7 @@ public class ServiceMetadata extends AbstractMetadata {
 	}
 	
 	@Override
-	public Router withPrefix(String prefix) {
+	public ServiceMetadata withPrefix(String prefix) {
 		return new ServiceMetadata(q, template, prefix);
 	}
 

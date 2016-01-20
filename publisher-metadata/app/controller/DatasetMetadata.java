@@ -55,7 +55,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 	
 	@Override
-	public Router withPrefix(String prefix) {
+	public DatasetMetadata withPrefix(String prefix) {
 		return new DatasetMetadata(q, mdf, prefix);
 	}
 	
