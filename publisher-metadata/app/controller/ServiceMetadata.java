@@ -191,43 +191,48 @@ public class ServiceMetadata extends AbstractMetadata {
 			JsonNode serviceInfo = Json.parse(ts.get(publishedService.content));
 			String serviceName = serviceInfo.get("name").asText();
 			
+			List<String> environmentIds = tx.query().from(publishedServiceEnvironment)
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.list(environment.identification);
+			
 			if(id.equals(ts.get(service.wmsMetadataFileIdentification))) {
-				// WMS:
-				
-				String linkage = getServiceLinkage(serviceName, ServiceType.WMS);
-				
-				String browseGraphicBaseUrl = linkage 
-					+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
-					+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
-				
-				metadataDocument.addServiceType("view");
-				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
-				
-				for(Tuple tpsd : ltpsd) {
-					String identifier = tpsd.get(dataset.metadataFileIdentification);
-					String layerName = tpsd.get(publishedServiceDataset.layerName);
-					String scopedName = layerName;
+				// WMS:				
+				for(String environmentId : environmentIds) {
+					String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
 					
-					metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
-					metadataDocument.addServiceLinkage(linkage, ServiceType.WMS.getProtocol(), scopedName);
-					metadataDocument.addSVCoupledResource("GetMap", identifier, scopedName);
+					String browseGraphicBaseUrl = linkage 
+						+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
+						+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
+					
+					metadataDocument.addServiceType("view");
+					metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
+					
+					for(Tuple tpsd : ltpsd) {
+						String identifier = tpsd.get(dataset.metadataFileIdentification);
+						String layerName = tpsd.get(publishedServiceDataset.layerName);
+						String scopedName = layerName;
+						
+						metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
+						metadataDocument.addServiceLinkage(linkage, ServiceType.WMS.getProtocol(), scopedName);
+						metadataDocument.addSVCoupledResource("GetMap", identifier, scopedName);
+					}
 				}
 			} else {
 				// WFS:
-				
-				// TODO: prefix url
-				String linkage = getServiceLinkage(serviceName, ServiceType.WFS);
-				
-				metadataDocument.addServiceType("download");
-				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
-				
-				for(Tuple tpsd : ltpsd) {
-					String identifier = tpsd.get(dataset.metadataFileIdentification);
-					String layerName = tpsd.get(publishedServiceDataset.layerName);
-					String scopedName = layerName;
+				for(String environmentId : environmentIds) {
+					String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WFS);
 					
-					metadataDocument.addServiceLinkage(linkage, ServiceType.WFS.getProtocol(), scopedName);
-					metadataDocument.addSVCoupledResource("GetFeature", identifier, scopedName);
+					metadataDocument.addServiceType("download");
+					metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
+					
+					for(Tuple tpsd : ltpsd) {
+						String identifier = tpsd.get(dataset.metadataFileIdentification);
+						String layerName = tpsd.get(publishedServiceDataset.layerName);
+						String scopedName = layerName;
+						
+						metadataDocument.addServiceLinkage(linkage, ServiceType.WFS.getProtocol(), scopedName);
+						metadataDocument.addSVCoupledResource("GetFeature", identifier, scopedName);
+					}
 				}
 			}
 			

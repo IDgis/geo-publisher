@@ -32,8 +32,9 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 
 import java.util.Collections;
 import java.util.List;
@@ -95,10 +96,13 @@ public class DatasetMetadata extends AbstractMetadata {
 				metadataDocument.setFileIdentifier(id);
 				
 				int datasetId = td.get(dataset.id);
-				List<Tuple> ltpsd = tx.query().from(publishedServiceDataset)
-					.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset.serviceId))
+				List<Tuple> ltpsd = tx.query().from(publishedService)
+					.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))					
+					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
+					.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
 					.list(
 						publishedService.content,
+						environment.identification,
 						publishedServiceDataset.layerName);
 				
 				metadataDocument.removeServiceLinkage();
@@ -106,9 +110,9 @@ public class DatasetMetadata extends AbstractMetadata {
 					JsonNode serviceInfo = Json.parse(tpsd.get(publishedService.content));
 					
 					for(ServiceType serviceType : ServiceType.values()) {
-						String serviceName = serviceInfo.get("name").asText();
-						
-						String linkage = getServiceLinkage(serviceName, serviceType);
+						String environmentId = tpsd.get(environment.identification);
+						String serviceName = serviceInfo.get("name").asText();						
+						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
 						metadataDocument.addServiceLinkage(linkage, protocol, tpsd.get(publishedServiceDataset.layerName));

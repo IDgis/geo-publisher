@@ -2,9 +2,6 @@ package controller;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import play.libs.Json;
 import router.dav.SimpleWebDAV;
 
 import util.QueryDSL;
@@ -40,8 +37,8 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		}
 	}
 	
-	protected String getServiceLinkage(String serviceName, ServiceType serviceType) {
-		// TODO: add prefix
-		return "" + serviceName + "/" + serviceType.name().toLowerCase();
+	protected String getServiceLinkage(String environmentId, String serviceName, ServiceType serviceType) {
+		// TODO: provide correct url
+		return environmentId + "/" + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 }
