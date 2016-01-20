@@ -39,32 +39,26 @@ import java.util.stream.Collectors;
 
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
-public class Dataset extends SimpleWebDAV {
-	
-	private final QueryDSL q;
-	
+public class DatasetMetadata extends AbstractMetadata {
+		
 	private final MetadataDocumentFactory mdf;
 	
 	@Inject
-	public Dataset(QueryDSL q) throws Exception {
+	public DatasetMetadata(QueryDSL q) throws Exception {
 		this(q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public Dataset(QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(prefix);
+	public DatasetMetadata(QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(q, prefix);
 		
-		this.q = q;
 		this.mdf = mdf;
 	}
 	
-	private Optional<String> getId(String name) {
-		if(name.toLowerCase().endsWith(".xml")) {
-			return Optional.of(name.substring(0, name.length() - 4));
-		} else {
-			return Optional.empty();
-		}
+	@Override
+	public Router withPrefix(String prefix) {
+		return new DatasetMetadata(q, mdf, prefix);
 	}
-
+	
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
@@ -91,11 +85,6 @@ public class Dataset extends SimpleWebDAV {
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", document.getContent()));
 		}));
-	}
-	
-	@Override
-	public Router withPrefix(String prefix) {
-		return new Dataset(q, mdf, prefix);
 	}
 
 	@Override

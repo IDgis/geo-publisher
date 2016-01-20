@@ -1,2 +1,2 @@
-->	/dataset/	controller.Dataset
-->	/service/	controller.Service
+->	/dataset/	controller.DatasetMetadata
+->	/service/	controller.ServiceMetadata

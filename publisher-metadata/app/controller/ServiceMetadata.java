@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
-public class Service extends SimpleWebDAV {
+public class ServiceMetadata extends AbstractMetadata {
 	
 	private static final Predicate notConfidential = 
 		new SQLSubQuery().from(publishedServiceEnvironment)
@@ -54,13 +54,11 @@ public class Service extends SimpleWebDAV {
 			.where(publishedServiceEnvironment.serviceId.eq(service.id))
 			.where(environment.confidential.isFalse())
 			.exists();
-	
-	private final QueryDSL q;
-	
+		
 	private final MetadataDocument template;
 	
 	@Inject
-	public Service(QueryDSL q) throws Exception {
+	public ServiceMetadata(QueryDSL q) throws Exception {
 		this(q, getTemplate(), "/");
 	}
 	
@@ -68,29 +66,20 @@ public class Service extends SimpleWebDAV {
 		MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 		
 		return mdf.parseDocument(
-			Service.class
+			ServiceMetadata.class
 				.getClassLoader()
 				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
 	}
 	
-	public Service(QueryDSL q, MetadataDocument template, String prefix) {
-		super(prefix);
+	public ServiceMetadata(QueryDSL q, MetadataDocument template, String prefix) {
+		super(q, prefix);
 		
-		this.q = q;
 		this.template = template;
 	}
 	
 	@Override
 	public Router withPrefix(String prefix) {
-		return new Service(q, template, prefix);
-	}
-	
-	private Optional<String> getId(String name) {
-		if(name.toLowerCase().endsWith(".xml")) {
-			return Optional.of(name.substring(0, name.length() - 4));
-		} else {
-			return Optional.empty();
-		}
+		return new ServiceMetadata(q, template, prefix);
 	}
 
 	@Override
