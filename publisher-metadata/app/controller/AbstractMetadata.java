@@ -39,10 +39,27 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected static enum ServiceType {
 		
-		WMS, WFS;
+		WMS("download", "GetFeature"), WFS("view", "GetMap");
+		
+		private final String name;
+		
+		private final String operationName;
+		
+		ServiceType(String name, String operationName) {
+			this.name = name;
+			this.operationName = operationName;
+		}
 		
 		String getProtocol() {
 			return "OGC:" + name();
+		}
+		
+		String getName() {
+			return name;
+		}
+		
+		String getOperationName() {
+			return operationName;
 		}
 	}
 	
