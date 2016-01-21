@@ -96,6 +96,8 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	private final ActorRef database, serviceManager;
 	
+	private final String metadataUrlPrefix;
+	
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
@@ -112,21 +114,19 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	
 	private Set<ActorRef> jobContexts;
 	
-	private final Config metadataEnvironmentConfig;
-	
-	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
+	public ProvisioningManager(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, String metadataUrlPrefix) {
 		this.database = database;
 		this.serviceManager = serviceManager;
 		this.provisioningPropsFactory = provisioningPropsFactory;
-		this.metadataEnvironmentConfig = metadataEnvironmentConfig;
+		this.metadataUrlPrefix = metadataUrlPrefix;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, final Config metadataEnvironmentConfig) {
-		return props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig);
+	public static Props props(ActorRef database, ActorRef serviceManager, String metadataUrlPrefix) {
+		return props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataUrlPrefix);
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, final Config metadataEnvironmentConfig) {
-		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory, metadataEnvironmentConfig);
+	public static Props props(ActorRef database, ActorRef serviceManager, ProvisioningPropsFactory provisioningPropsFactory, String metadataUrlPrefix) {
+		return Props.create(ProvisioningManager.class, database, serviceManager, provisioningPropsFactory, metadataUrlPrefix);
 	}
 	
 	@Override
@@ -390,11 +390,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 	}
 	
 	private EnsureTarget.EnvironmentInfo createEnvironmentInfo (final String environmentId) {
-		final String baseUrl = metadataEnvironmentConfig.getConfig (environmentId).getString ("datasetMetadataPrefix");
-		return new EnsureTarget.EnvironmentInfo (
-				environmentId,
-				baseUrl.endsWith ("/") ? baseUrl : baseUrl + "/"
-			);
+		return new EnsureTarget.EnvironmentInfo (environmentId, metadataUrlPrefix);
 	}
 	
 	private class StartProvisioning {
