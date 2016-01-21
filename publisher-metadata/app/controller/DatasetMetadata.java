@@ -104,7 +104,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 				metadataDocument.removeStylesheet();
 				
-				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.identification));
+				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
 				metadataDocument.setFileIdentifier(id);
 				
 				metadataDocument.removeServiceLinkage();
