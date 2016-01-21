@@ -15,7 +15,7 @@
   <gmd:contact>
       <gmd:CI_ResponsibleParty>
          <gmd:individualName>
-            <gco:CharacterString>Functioneel beheerder CDS INSPIRE</gco:CharacterString>
+            <gco:CharacterString>Functioneel beheerder GIS publicatieomgeving</gco:CharacterString>
          </gmd:individualName>
          <gmd:organisationName>
             <gco:CharacterString>Interprovinciaal Overleg</gco:CharacterString>
