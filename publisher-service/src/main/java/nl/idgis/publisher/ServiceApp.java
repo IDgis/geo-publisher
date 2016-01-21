@@ -25,11 +25,6 @@ import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
-import nl.idgis.publisher.metadata.MetadataConfig;
-import nl.idgis.publisher.metadata.MetadataGenerator;
-import nl.idgis.publisher.metadata.MetadataSource;
-import nl.idgis.publisher.metadata.MetadataTarget;
-import nl.idgis.publisher.metadata.messages.GenerateMetadataFactory;
 import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
@@ -191,40 +186,6 @@ public class ServiceApp extends UntypedActor {
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
 		
 		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager), "admin");
-		
-		MetadataConfig metadataConfig = new MetadataConfig(config.getConfig("metadata"));
-		
-		ActorRef metadataGenerator = 
-			getContext().actorOf(
-				MetadataGenerator.props(
-					database,
-					getContext().actorOf(
-						MetadataSource.props(
-							harvester),
-						"metadata-source")),
-				"metadata-generator");
-		
-		getContext().system().scheduler().schedule(
-			Duration.create(10, TimeUnit.SECONDS), 
-			Duration.create(1, TimeUnit.HOURS),
-			metadataGenerator,
-			GenerateMetadataFactory.start()
-				.forEach(metadataConfig.getEnvironments().stream(), (factory, environmentConfig) -> {
-					String environmentName = environmentConfig.getName();
-					
-					factory.environment(
-						environmentName,
-						getContext().actorOf(
-							MetadataTarget.props(
-								environmentConfig.getServiceMetadataTarget(), 
-								environmentConfig.getDatasetMetadataTarget()),
-							"metadata-target-" + environmentName),
-						environmentConfig.getServiceLinkagePrefix(),
-						environmentConfig.getDatasetMetadataPrefix());
-				})
-				.create(),
-			getContext().dispatcher(), 
-			getSelf());
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
