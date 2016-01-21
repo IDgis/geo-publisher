@@ -201,7 +201,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
 					
 					String browseGraphicBaseUrl = linkage 
-						+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
+						+ "?request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 						+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
 					
 					metadataDocument.addServiceType("view");
