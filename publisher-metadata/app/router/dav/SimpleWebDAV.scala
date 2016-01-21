@@ -50,12 +50,15 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
   def this(prefix: String) = this(prefix, emptyJList())
   
   /** Called to fetch a list of resources in the WebDAV folder. */  
+  @throws[Exception]
   def descriptions(): JStream[ResourceDescription] = emptyJStream()
   
   /** Called to fetch the properties of a resource. */
+  @throws[Exception]
   def properties(name: String): JOptional[ResourceProperties] = emptyJOptional()
   
   /** Called to fetch a resource. */
+  @throws[Exception]
   def resource(name: String): JOptional[Resource] = emptyJOptional()
   
   private def resourceName(path :String) = path.substring(prefix.length())
