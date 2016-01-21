@@ -59,6 +59,11 @@ public class ServiceMetadata extends AbstractMetadata {
 
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
 	
+	private static final String BROWSE_GRAPHIC_BASE_URL =  
+			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
+			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
+			+ "format=image/png&styles=";
+	
 	private static final Predicate notConfidential = 
 		new SQLSubQuery().from(publishedServiceEnvironment)
 			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
@@ -98,7 +103,7 @@ public class ServiceMetadata extends AbstractMetadata {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
 			
-			Tuple ts = tx.query().from(service)
+			Tuple serviceTuple = tx.query().from(service)
 				.join(publishedService).on(publishedService.serviceId.eq(service.id))
 				.join(constants).on(constants.id.eq(service.constantsId))
 				.where(notConfidential)
@@ -125,23 +130,37 @@ public class ServiceMetadata extends AbstractMetadata {
 					service.wmsMetadataFileIdentification,
 					service.wfsMetadataFileIdentification);
 			
-			if(ts == null) {
+			if(serviceTuple == null) {
 				return Optional.<Resource>empty();
 			}
 			
-			int serviceId = ts.get(service.id);
+			int serviceId = serviceTuple.get(service.id);
 			
-			MetadataDocument metadataDocument = template.clone();
-			metadataDocument.setFileIdentifier(id);
-			
-			metadataDocument.setServiceTitle(ts.get(publishedService.title));
-			metadataDocument.setServiceAlternateTitle(ts.get(publishedService.alternateTitle));
-			metadataDocument.setServiceAbstract(ts.get(publishedService.abstractCol));
-						
 			List<String> keywords = tx.query().from(publishedServiceKeyword)
 				.where(publishedServiceKeyword.serviceId.eq(serviceId))
 				.orderBy(publishedServiceKeyword.keyword.asc())
 				.list(publishedServiceKeyword.keyword);
+			
+			List<Tuple> serviceDatasetTuples = tx.query().from(publishedServiceDataset)
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+				.where(publishedServiceDataset.serviceId.eq(serviceId))
+				.orderBy(dataset.id.asc(), publishedServiceDataset.layerName.asc())
+				.list(
+					dataset.id,
+					dataset.metadataIdentification,
+					dataset.metadataFileIdentification,
+					publishedServiceDataset.layerName);
+			
+			List<String> environmentIds = tx.query().from(publishedServiceEnvironment)
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.list(environment.identification);
+			
+			MetadataDocument metadataDocument = template.clone();
+			metadataDocument.setFileIdentifier(id);
+			
+			metadataDocument.setServiceTitle(serviceTuple.get(publishedService.title));
+			metadataDocument.setServiceAlternateTitle(serviceTuple.get(publishedService.alternateTitle));
+			metadataDocument.setServiceAbstract(serviceTuple.get(publishedService.abstractCol));
 			
 			metadataDocument.removeServiceKeywords();
 			metadataDocument.addServiceKeywords(
@@ -152,30 +171,24 @@ public class ServiceMetadata extends AbstractMetadata {
 				"publication");
 			
 			String role = "pointOfContact";		
-			metadataDocument.setServiceResponsiblePartyName(role, ts.get(constants.organization));
-			metadataDocument.setServiceResponsiblePartyEmail(role, ts.get(constants.email));		
-			metadataDocument.setMetaDataPointOfContactName(role, ts.get(constants.organization));
-			metadataDocument.setMetaDataPointOfContactEmail(role, ts.get(constants.email));
+			metadataDocument.setServiceResponsiblePartyName(role, serviceTuple.get(constants.organization));
+			metadataDocument.setServiceResponsiblePartyEmail(role, serviceTuple.get(constants.email));		
+			metadataDocument.setMetaDataPointOfContactName(role, serviceTuple.get(constants.organization));
+			metadataDocument.setMetaDataPointOfContactEmail(role, serviceTuple.get(constants.email));
 			
-			List<Tuple> ltpsd = tx.query().from(publishedServiceDataset)
-				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
-				.where(publishedServiceDataset.serviceId.eq(serviceId))
-				.orderBy(dataset.id.asc(), publishedServiceDataset.layerName.asc())
-				.list(
-					dataset.id,
-					dataset.metadataIdentification,
-					dataset.metadataFileIdentification,
-					publishedServiceDataset.layerName);
-			
-			metadataDocument.removeOperatesOn();
 			Integer lastDatasetId = null;
-			for(Tuple tpsd : ltpsd) {
-				int datasetId = tpsd.get(dataset.id);
+			metadataDocument.removeOperatesOn();			
+			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
+				int datasetId = serviceDatasetTuple.get(dataset.id);
+				
+				// a service can operate on a dataset using multiple
+				// layer names (i.e. we encounter it multiple times in this loop), 
+				// but it should reported only once here.
 				if(lastDatasetId == null || datasetId != lastDatasetId) {
 					lastDatasetId = datasetId;
 					
-					String uuid = tpsd.get(dataset.metadataIdentification);
-					String fileIdentification = tpsd.get(dataset.metadataFileIdentification);
+					String uuid = serviceDatasetTuple.get(dataset.metadataIdentification);
+					String fileIdentification = serviceDatasetTuple.get(dataset.metadataFileIdentification);
 					String uuidref = config.getUrlPrefix() + "dataset/" + getName(fileIdentification);
 					
 					metadataDocument.addOperatesOn(uuid, uuidref);
@@ -188,51 +201,33 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
 			
-			JsonNode serviceInfo = Json.parse(ts.get(publishedService.content));
+			ServiceType serviceType;
+			if(id.equals(serviceTuple.get(service.wmsMetadataFileIdentification))) {				
+				serviceType = ServiceType.WMS;
+			} else {
+				serviceType = ServiceType.WFS;
+			}
+			
+			// we obtain the serviceName from the published service content
+			// because we don't store it anywhere else at the moment.
+			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
 			String serviceName = serviceInfo.get("name").asText();
 			
-			List<String> environmentIds = tx.query().from(publishedServiceEnvironment)
-				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-				.list(environment.identification);
-			
-			if(id.equals(ts.get(service.wmsMetadataFileIdentification))) {
-				// WMS:				
-				for(String environmentId : environmentIds) {
-					String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
+			for(String environmentId : environmentIds) {
+				String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+				
+				metadataDocument.addServiceType(serviceType.getName());
+				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
+				
+				for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
+					String identifier = serviceDatasetTuple.get(dataset.metadataFileIdentification);
+					String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
 					
-					String browseGraphicBaseUrl = linkage 
-						+ "request=GetMap&Service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
-						+ "&Bbox=180000,459000,270000,540000&Width=600&Height=662&Format=image/png&Styles=";
-					
-					metadataDocument.addServiceType("view");
-					metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
-					
-					for(Tuple tpsd : ltpsd) {
-						String identifier = tpsd.get(dataset.metadataFileIdentification);
-						String layerName = tpsd.get(publishedServiceDataset.layerName);
-						String scopedName = layerName;
-						
-						metadataDocument.addBrowseGraphic(browseGraphicBaseUrl + "&layers=" + layerName);
-						metadataDocument.addServiceLinkage(linkage, ServiceType.WMS.getProtocol(), scopedName);
-						metadataDocument.addSVCoupledResource("GetMap", identifier, scopedName);
+					if(serviceType == ServiceType.WMS) {
+						metadataDocument.addBrowseGraphic(linkage + BROWSE_GRAPHIC_BASE_URL + "&layers=" + scopedName);
 					}
-				}
-			} else {
-				// WFS:
-				for(String environmentId : environmentIds) {
-					String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WFS);
-					
-					metadataDocument.addServiceType("download");
-					metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
-					
-					for(Tuple tpsd : ltpsd) {
-						String identifier = tpsd.get(dataset.metadataFileIdentification);
-						String layerName = tpsd.get(publishedServiceDataset.layerName);
-						String scopedName = layerName;
-						
-						metadataDocument.addServiceLinkage(linkage, ServiceType.WFS.getProtocol(), scopedName);
-						metadataDocument.addSVCoupledResource("GetFeature", identifier, scopedName);
-					}
+					metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
+					metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 				}
 			}
 			

@@ -64,10 +64,11 @@ public class DatasetMetadata extends AbstractMetadata {
 		return new DatasetMetadata(config, q, mdf, prefix);
 	}
 	
+	@Override
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				Tuple td = tx.query().from(dataset)
+				Tuple datasetTuple = tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
@@ -84,37 +85,40 @@ public class DatasetMetadata extends AbstractMetadata {
 						dataset.identification, 
 						sourceDatasetMetadata.document);
 				
-				if(td == null) {
+				if(datasetTuple == null) {
 					return Optional.<Resource>empty();
 				}
 				
-				MetadataDocument metadataDocument = mdf.parseDocument(td.get(sourceDatasetMetadata.document));
-				metadataDocument.removeStylesheet();
+				int datasetId = datasetTuple.get(dataset.id);
 				
-				metadataDocument.setDatasetIdentifier(td.get(dataset.identification));
-				metadataDocument.setFileIdentifier(id);
-				
-				int datasetId = td.get(dataset.id);
-				List<Tuple> ltpsd = tx.query().from(publishedService)
+				List<Tuple> serviceTuples = tx.query().from(publishedService)
 					.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))					
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 					.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+					.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,
 						environment.identification,
 						publishedServiceDataset.layerName);
 				
+				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+				metadataDocument.removeStylesheet();
+				
+				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
+				metadataDocument.setFileIdentifier(id);
+				
 				metadataDocument.removeServiceLinkage();
-				for(Tuple tpsd : ltpsd) {
-					JsonNode serviceInfo = Json.parse(tpsd.get(publishedService.content));
+				for(Tuple serviceTuple : serviceTuples) {
+					JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
+					
+					String serviceName = serviceInfo.get("name").asText();
+					String environmentId = serviceTuple.get(environment.identification);
 					
 					for(ServiceType serviceType : ServiceType.values()) {
-						String environmentId = tpsd.get(environment.identification);
-						String serviceName = serviceInfo.get("name").asText();						
 						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, tpsd.get(publishedServiceDataset.layerName));
+						metadataDocument.addServiceLinkage(linkage, protocol, serviceTuple.get(publishedServiceDataset.layerName));
 					}
 				}
 				
