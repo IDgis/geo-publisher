@@ -2,6 +2,7 @@ package router.dav
 
 import play.api.routing._
 import play.api.mvc._
+import play.mvc.Http.{Context => JContext, Request => JRequest, RequestImpl => JRequestImpl}
 
 import views.xml.dav
 
@@ -77,11 +78,17 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
     }
   }
   
+  // create and set JContext in order to make Controller.request() work
+  def ActionWithJContext(rh: RequestHeader)(block: => Result) = Action {
+      JContext.current.set(new JContext(new JRequestImpl(rh)))
+      block
+  }
+  
   def folderRoutes: Router.Routes = {
     // fetch resource
     case rh: RequestHeader if rh.method == "GET"
         && rh.path.length() != prefix.length()
-        && rh.path.startsWith(prefix) => Action {
+        && rh.path.startsWith(prefix) => ActionWithJContext(rh) {
           
         val r = resource(resourceName(rh.path))
         if(r.isPresent()) {
@@ -92,7 +99,7 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
     }
     
     case rh: RequestHeader if rh.method == "PROPFIND" 
-        && rh.path.startsWith(prefix) => Action {
+        && rh.path.startsWith(prefix) => ActionWithJContext(rh) {
       
       Results.Status(207) {
         if(rh.path == prefix) {
