@@ -187,8 +187,10 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.alternateTitle, 
 								genericLayer.abstractCol,
 								service.metadata,
-								genericLayer.identification,					
+								genericLayer.identification,
 								constants.identification,
+								service.wfsMetadataFileIdentification,
+								service.wmsMetadataFileIdentification,
 								isConfidential (),
 								isPublished ()
 							))
@@ -215,7 +217,9 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.alternateTitle, 
 					genericLayer.abstractCol,
 					service.metadata,
-					genericLayer.identification,					
+					genericLayer.identification,
+					service.wfsMetadataFileIdentification,
+					service.wmsMetadataFileIdentification,
 					constants.identification,
 					isConfidential (),
 					isPublished ()

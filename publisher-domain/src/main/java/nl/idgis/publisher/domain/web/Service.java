@@ -15,8 +15,9 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class Service extends Identifiable implements Nameable{
-	private static final long serialVersionUID = -4339122844101328594L;
-
+	
+	private static final long serialVersionUID = -4397411018242037619L;
+	
 	private final String name;
 	private final String title;
 	private final String alternateTitle;
@@ -24,6 +25,8 @@ public class Service extends Identifiable implements Nameable{
 	private final String metadata;
 	private final String genericLayerId;
 	private final String constantsId;
+	private final String wfsMetadataFileId;
+	private final String wmsMetadataFileId;
 	private final boolean confidential;
 	private final boolean isPublished;
 
@@ -39,6 +42,8 @@ public class Service extends Identifiable implements Nameable{
 			final @JsonProperty("") String metadata,
 			final @JsonProperty("") String genericLayerId,
 			final @JsonProperty("") String constantsId,
+			final @JsonProperty("") String wfsMetadataFileId,
+			final @JsonProperty("") String wmsMetadataFileId,
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("") boolean isPublished
 		) {
@@ -50,6 +55,8 @@ public class Service extends Identifiable implements Nameable{
 		this.metadata = metadata;
 		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
+		this.wfsMetadataFileId = wfsMetadataFileId;
+		this.wmsMetadataFileId = wmsMetadataFileId;
 		this.confidential = confidential;
 		this.isPublished = isPublished;
 	}
@@ -85,6 +92,14 @@ public class Service extends Identifiable implements Nameable{
 
 	public String constantsId() {
 		return constantsId;
+	}
+	
+	public String wfsMetadataFileId() {
+		return wfsMetadataFileId;
+	}
+	
+	public String wmsMetadataFileId() {
+		return wmsMetadataFileId;
 	}
 	
 	@JsonGetter

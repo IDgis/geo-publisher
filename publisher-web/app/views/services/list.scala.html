@@ -117,7 +117,7 @@
 					data-warning-delete-link="@routes.Services.delete(service.id)"
 					data-warning-delete-body="@Domain.message("web.application.page.services.list.delete.warning.body")">
 					<div class="row">
-						<div class="col-md-4">
+						<div class="col-md-3">
 							<h4 class="list-group-item-heading">
 								<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
 							</h4>
@@ -139,16 +139,26 @@
 									<span>@Domain.message("web.application.page.services.list.publish")</span>
 								</a> 
 						</div>							
-						<div class="col-md-2">
+						<div class="col-md-3">
 							<div class="btn-group pull-left">
 								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;WMS&nbsp;</span>
-								</a> 
+								</a>
+								@if(service.isPublished) {
+									<a href="@routes.Metadata.service(service.wmsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+								} else {
+									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+								} 
 								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;WFS&nbsp;</span>
-								</a> 
+								</a>
+								@if(service.isPublished) {
+									<a href="@routes.Metadata.service(service.wfsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+								} else {
+									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+								}
 							</div>
 						</div>
 						<div class="col-md-2">
