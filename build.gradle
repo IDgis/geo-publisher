@@ -477,8 +477,13 @@ project(':publisher-metadata') {
 	apply plugin: PublisherPlay
 	apply plugin: PlayDistPublish
 	apply plugin: 'maven-publish'
+	apply plugin: CustomPlayHttpPort
 	
 	def playVersion = '2.4.3'
+	
+	ext {
+		playHttpPort = 9010
+	}
 	
 	model {
 		components {
