@@ -69,20 +69,6 @@ import nl.idgis.publisher.utils.TypedList;
 
 public class ProvisioningManagerTest  {
 	
-	private final static Config metadataEnvironmentConfig = ConfigFactory.parseString (
-			"geoserver-public { "
-				+ " serviceLinkagePrefix = \"http://public.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"http://public.example.com/metadata/dataset/\", "
-			+ "}, "
-			+ " geoserver-secure { "
-				+ " serviceLinkagePrefix = \"https://secure.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"https://secure.example.com/metadata/dataset/\", "
-			+ " }, "
-			+ " geoserver-guaranteed { "
-				+ " serviceLinkagePrefix = \"http://guaranteed.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"http://guaranteed.example.com/metadata/dataset/\", "
-			+ " }");
-	
 	public abstract static class ServiceActorInfo {
 		
 		private final ServiceInfo serviceInfo;
@@ -342,7 +328,7 @@ public class ProvisioningManagerTest  {
 					public Props environmentInfoProviderProps(ActorRef database) {
 						return EnvironmentInfoProviderMock.props(database);
 					}
-				}, metadataEnvironmentConfig));
+				}, "http://example.com/metadata/dataset/"));
 		
 		f = new FutureUtils(actorSystem);
 		

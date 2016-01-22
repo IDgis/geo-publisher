@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
 import com.mysema.query.types.QTuple;
@@ -21,6 +22,7 @@ import model.dav.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+
 import play.Configuration;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
@@ -30,8 +32,11 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import router.dav.SimpleWebDAV;
+
+import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.QueryDSL.Transaction;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QConstants.constants;
@@ -45,6 +50,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -63,19 +69,12 @@ public class ServiceMetadata extends AbstractMetadata {
 			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
 			+ "format=image/png&styles=";
-	
-	private static final Predicate notConfidential = 
-		new SQLSubQuery().from(publishedServiceEnvironment)
-			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-			.where(publishedServiceEnvironment.serviceId.eq(service.id))
-			.where(environment.confidential.isFalse())
-			.exists();
 		
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(MetadataConfig config, QueryDSL q) throws Exception {
-		this(config, q, getTemplate(), "/");
+	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(filter, config, q, getTemplate(), "/");
 	}
 	
 	private static MetadataDocument getTemplate() throws Exception {
@@ -87,15 +86,30 @@ public class ServiceMetadata extends AbstractMetadata {
 				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
 	}
 	
-	public ServiceMetadata(MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(config, q, prefix);
+	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(filter, config, q, prefix);
 		
 		this.template = template;
 	}
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(config, q, template, prefix);
+		return new ServiceMetadata(filter, config, q, template, prefix);
+	}
+	
+	private SQLQuery fromService(Transaction tx) {
+		SQLQuery query = tx.query().from(service)
+			.join(publishedService).on(publishedService.serviceId.eq(service.id));
+		
+		if(!isTrusted()) {
+			query.where(new SQLSubQuery().from(publishedServiceEnvironment)
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.where(publishedServiceEnvironment.serviceId.eq(service.id))
+				.where(environment.confidential.isFalse())
+				.exists());
+		}
+		
+		return query;
 	}
 
 	@Override
@@ -103,10 +117,8 @@ public class ServiceMetadata extends AbstractMetadata {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
 			
-			Tuple serviceTuple = tx.query().from(service)
-				.join(publishedService).on(publishedService.serviceId.eq(service.id))
+			Tuple serviceTuple = fromService(tx)
 				.join(constants).on(constants.id.eq(service.constantsId))
-				.where(notConfidential)
 				.where(service.wmsMetadataFileIdentification.eq(id)
 					.or(service.wfsMetadataFileIdentification.eq(id)))
 				.singleResult(
@@ -234,41 +246,43 @@ public class ServiceMetadata extends AbstractMetadata {
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
 	}
-	
-	private static class ServiceInfo {
-		
-		final String id;
-		
-		final Tuple t;
-		
-		ServiceInfo(String id, Tuple t) {
-			this.id = id;
-			this.t = t;
-		}
-	}
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
-		return q.withTransaction(tx -> {
-			
-			return
-				tx.query().from(service)
-					.where(notConfidential)
-					.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
-					.flatMap(t ->
-						Stream.of(
-							new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
-							new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
-					.map(info -> {
-						ResourceProperties properties = new DefaultResourceProperties(false);
-
-						return new DefaultResourceDescription(getName(info.id), properties);
-					});
-		});
+		return q.withTransaction(tx ->
+			fromService(tx)
+			.list(
+				publishedService.createTime,
+				service.wmsMetadataFileIdentification, 
+				service.wfsMetadataFileIdentification).stream()
+			.flatMap(serviceTuple -> {
+				Timestamp createTime = serviceTuple.get(publishedService.createTime);
+				
+				return Stream.of(
+					serviceTuple.get(service.wmsMetadataFileIdentification),
+					serviceTuple.get(service.wfsMetadataFileIdentification))
+						.map(id ->
+							new DefaultResourceDescription(getName(id), 
+								new DefaultResourceProperties(false, createTime)));
+			}));
 	}
 
 	@Override
 	public Optional<ResourceProperties> properties(String name) {
-		return getId(name).flatMap(id -> Optional.empty());
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
+				Tuple serviceTuple = fromService(tx)
+					.where(service.wmsMetadataFileIdentification.eq(id)
+						.or(service.wfsMetadataFileIdentification.eq(id)))
+					.singleResult(new QTuple(publishedService.createTime));
+				
+				if(serviceTuple == null) {				
+					return Optional.<ResourceProperties>empty();
+				} else {
+					return Optional.<ResourceProperties>of(
+						new DefaultResourceProperties(
+							false, serviceTuple.get(publishedService.createTime)));
+				}
+		}));
 	}
 }

@@ -94,20 +94,6 @@ import nl.idgis.publisher.utils.Logging;
 import nl.idgis.publisher.utils.TypedList;
 
 public class GeoServerServiceTest {
-	
-	private final static Config metadataEnvironmentConfig = ConfigFactory.parseString (
-			"geoserver-public { "
-				+ " serviceLinkagePrefix = \"http://public.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"http://public.example.com/metadata/dataset/\", "
-			+ "}, "
-			+ " geoserver-secure { "
-				+ " serviceLinkagePrefix = \"https://secure.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"https://secure.example.com/metadata/dataset/\", "
-			+ " }, "
-			+ " geoserver-guaranteed { "
-				+ " serviceLinkagePrefix = \"http://guaranteed.example.com/geoserver/\", "
-				+ " datasetMetadataPrefix = \"http://guaranteed.example.com/metadata/dataset/\", "
-			+ " }");
 			
 	static class PutServiceIndex implements Serializable {
 		
@@ -312,7 +298,7 @@ public class GeoServerServiceTest {
 				return EnvironmentInfoProviderMock.props(database);
 			}
 			
-		}, metadataEnvironmentConfig), "provisioning-manager");
+		}, "http://example.com/metadata/dataset/"), "provisioning-manager");
 		
 		ActorRef updateServiceInfoRecorder = actorSystem.actorOf(AnyRecorder.props(), "update-service-info-recorder");
 		

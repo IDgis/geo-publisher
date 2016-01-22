@@ -500,6 +500,8 @@ project(':publisher-metadata') {
 	}
 	
 	dependencies {
+		playTest "junit:junit:${junitVersion}"
+	
 		play project(':publisher-database')
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
 		play "com.typesafe.play:play-cache_2.11:${playVersion}"
@@ -515,11 +517,13 @@ project(':publisher-metadata') {
 	eclipse {
 		classpath {
 			plusConfigurations += [ configurations.play ]
+			plusConfigurations += [ configurations.playTest ]
 					
 			file {
 				beforeMerged { classpath ->
 					classpath.entries += [
 						new SourceFolder("app", null), 
+						new SourceFolder("test", null), 
 						new SourceFolder("build/playBinary/src/compilePlayBinaryRoutes", null),
 						new SourceFolder("build/playBinary/src/compilePlayBinaryTwirlTemplates", null)
 					]

@@ -34,14 +34,14 @@ public class ProvisioningSystem extends UntypedActor {
 	
 	private final ActorRef database, serviceManager, jobManager;
 	
-	private final Config geoserverConfig, zooKeeperConfig, metadataEnvironmentConfig;
+	private final Config geoserverConfig, zooKeeperConfig;
 	
-	private final String rasterFolderConfig;
+	private final String rasterFolderConfig, metadataUrlPrefix;
 	
 	private ActorRef provisioningManager;
 	
 	public ProvisioningSystem(ActorRef database, ActorRef serviceManager, ActorRef jobManager, 
-		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, final Config metadataEnvironmentConfig) {
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, String metadataUrlPrefix) {
 		
 		this.database = database;
 		this.serviceManager = serviceManager;
@@ -49,15 +49,15 @@ public class ProvisioningSystem extends UntypedActor {
 		this.geoserverConfig = geoserverConfig;
 		this.rasterFolderConfig = rasterFolderConfig;
 		this.zooKeeperConfig = zooKeeperConfig;
-		this.metadataEnvironmentConfig = metadataEnvironmentConfig;
+		this.metadataUrlPrefix = metadataUrlPrefix;
 	}
 	
 	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobManager,
-		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, final Config metadataEnvironmentConfig) {
+		Config geoserverConfig, String rasterFolderConfig, Config zooKeeperConfig, String metadataUrlPrefix) {
 		
 		return Props.create(ProvisioningSystem.class, database, serviceManager, jobManager, 
 			geoserverConfig, rasterFolderConfig, zooKeeperConfig,
-			Objects.requireNonNull (metadataEnvironmentConfig, "metadataEnvironmentConfig cannot be null"));
+			Objects.requireNonNull (metadataUrlPrefix, "metadataUrlPrefix cannot be null"));
 	}
 	
 	private ActorRef zookeeperServiceInfoListener(ActorRef... refs) {
@@ -81,7 +81,7 @@ public class ProvisioningSystem extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		provisioningManager = getContext().actorOf(
-			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataEnvironmentConfig), 
+			ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory(), metadataUrlPrefix), 
 			"provisioning-manager");
 		
 		// TODO: disabled at the moment

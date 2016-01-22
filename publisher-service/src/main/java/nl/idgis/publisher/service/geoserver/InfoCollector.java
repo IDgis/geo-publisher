@@ -146,7 +146,7 @@ public class InfoCollector extends UntypedActor {
 				.map(target -> {
 					ActorRef actorRef = target.getActorRef();
 					String metadataInfoLink = target.getEnvironmentInfo()
-						.map(environmentId -> environmentId.getMetadataUrl()) // TODO: compose metadata info link
+						.map(environmentInfo -> environmentInfo.getMetadataUrl())
 						.orElse(null);
 					
 					log.debug ("metadata info link: " + metadataInfoLink);
