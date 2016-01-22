@@ -50,6 +50,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -97,7 +98,8 @@ public class ServiceMetadata extends AbstractMetadata {
 	}
 	
 	private SQLQuery fromService(Transaction tx) {
-		SQLQuery query = tx.query().from(service);
+		SQLQuery query = tx.query().from(service)
+			.join(publishedService).on(publishedService.serviceId.eq(service.id));
 		
 		if(!isTrusted()) {
 			query.where(new SQLSubQuery().from(publishedServiceEnvironment)
@@ -116,7 +118,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			q.withTransaction(tx -> {
 			
 			Tuple serviceTuple = fromService(tx)
-				.join(publishedService).on(publishedService.serviceId.eq(service.id))
 				.join(constants).on(constants.id.eq(service.constantsId))
 				.where(service.wmsMetadataFileIdentification.eq(id)
 					.or(service.wfsMetadataFileIdentification.eq(id)))
@@ -245,32 +246,24 @@ public class ServiceMetadata extends AbstractMetadata {
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
 	}
-	
-	private static class ServiceInfo {
-		
-		final String id;
-		
-		final Tuple t;
-		
-		ServiceInfo(String id, Tuple t) {
-			this.id = id;
-			this.t = t;
-		}
-	}
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
 		return q.withTransaction(tx ->
 			fromService(tx)
-			.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
-			.flatMap(t ->
-				Stream.of(
-					new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
-					new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
-			.map(info -> {
-				ResourceProperties properties = new DefaultResourceProperties(false);
-
-				return new DefaultResourceDescription(getName(info.id), properties);
+			.list(
+				publishedService.createTime,
+				service.wmsMetadataFileIdentification, 
+				service.wfsMetadataFileIdentification).stream()
+			.flatMap(serviceTuple -> {
+				Timestamp createTime = serviceTuple.get(publishedService.createTime);
+				
+				return Stream.of(
+					serviceTuple.get(service.wmsMetadataFileIdentification),
+					serviceTuple.get(service.wfsMetadataFileIdentification))
+						.map(id ->
+							new DefaultResourceDescription(getName(id), 
+								new DefaultResourceProperties(false, createTime)));
 			}));
 	}
 
@@ -281,12 +274,14 @@ public class ServiceMetadata extends AbstractMetadata {
 				Tuple serviceTuple = fromService(tx)
 					.where(service.wmsMetadataFileIdentification.eq(id)
 						.or(service.wfsMetadataFileIdentification.eq(id)))
-					.singleResult();
+					.singleResult(new QTuple(publishedService.createTime));
 				
 				if(serviceTuple == null) {				
 					return Optional.<ResourceProperties>empty();
 				} else {
-					return Optional.<ResourceProperties>of(new DefaultResourceProperties(false));
+					return Optional.<ResourceProperties>of(
+						new DefaultResourceProperties(
+							false, serviceTuple.get(publishedService.createTime)));
 				}
 		}));
 	}
