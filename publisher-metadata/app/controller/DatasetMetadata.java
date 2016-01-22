@@ -70,16 +70,16 @@ public class DatasetMetadata extends AbstractMetadata {
 		SQLQuery query = tx.query().from(dataset)
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
+				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+				.list(sourceDatasetVersion.id.max())))
 			.where(new SQLSubQuery().from(publishedServiceDataset)
 				.where(publishedServiceDataset.datasetId.eq(dataset.id))
 				.exists());
 		
 		if(!isTrusted()) {
-			query.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.list(sourceDatasetVersion.id.max())))
-			.where(sourceDatasetVersion.confidential.isFalse());
+			query.where(sourceDatasetVersion.confidential.isFalse());
 		}
 		
 		return query;
@@ -139,30 +139,34 @@ public class DatasetMetadata extends AbstractMetadata {
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
-		return q.withTransaction(tx -> {
-			
-			return
+		return q.withTransaction(tx -> 
 				fromDataset(tx)
-				.list(dataset.metadataFileIdentification).stream()
-					.map(id -> {
-						ResourceProperties properties = new DefaultResourceProperties(false);
-
-						return new DefaultResourceDescription(getName(id), properties); 
-					});
-		});
+				.list(
+					dataset.metadataFileIdentification, 
+					sourceDatasetVersion.revision).stream()
+					.map(datasetTuple ->
+						new DefaultResourceDescription(
+							getName(datasetTuple.get(dataset.metadataFileIdentification)),
+							new DefaultResourceProperties(
+								false,
+								datasetTuple.get(sourceDatasetVersion.revision)))));
 	}
 
 	@Override
 	public Optional<ResourceProperties> properties(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				if(fromDataset(tx)
+				Tuple datasetTuple = fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
-					.exists()) {
-						
-					return Optional.<ResourceProperties>of(new DefaultResourceProperties(false));
-				} else {
+					.singleResult(new QTuple(sourceDatasetVersion.revision));
+				
+				if(datasetTuple == null) {
 					return Optional.<ResourceProperties>empty();
+				} else {
+					return Optional.<ResourceProperties>of(
+						new DefaultResourceProperties(
+							false, 
+							datasetTuple.get(sourceDatasetVersion.revision)));
 				}
 		}));
 	}
