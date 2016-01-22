@@ -38,7 +38,6 @@ POST	/datasources/refresh							controllers.DataSources.refreshDatasources()
 GET		/datasources									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/datasources/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
-GET		/metadata/:sourceDatasetId						controllers.DataSources.metadata(sourceDatasetId: String)
 POST	/datasources/:datasourceId/refresh				controllers.DataSources.refreshDatasource(datasourceId: String)
 GET		/datasources/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
 GET		/datasources/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
@@ -98,6 +97,9 @@ GET		/events/:tag									controllers.Events.eventsWithTag(tag: String)
 GET		/user/login										controllers.User.login(r: String)
 GET		/user/logout									controllers.User.logout()
 POST	/user/authenticate								controllers.User.authenticate()
+
+# Metadata
+GET		/metadata/source-dataset/:sourceDatasetId		controllers.Metadata.sourceDataset(sourceDatasetId: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET		/javascriptRoutes  								controllers.Application.javascriptRoutes

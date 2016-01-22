@@ -286,7 +286,7 @@
 									</div>									
 									<div class="col-md-2 text-right">
 										<div class="btn-group pull-right">
-											<a class="btn btn-default" href="@routes.DataSources.metadata(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+											<a class="btn btn-default" href="@routes.Metadata.sourceDataset(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 											@if(dataset.sourceDataset.`type` != SourceDatasetType.UNAVAILABLE && !dataset.sourceDataset.deleted && dataset.sourceDataset.category != null) {
 												<a class="btn btn-success" href="@routes.Datasets.createFormForSourceDataset(dataset.sourceDataset.id)" title="@Domain.message("web.application.page.sourcedatasets.list.button.newdataset")"><span class="glyphicon glyphicon-plus"></span></a>
 											} else {

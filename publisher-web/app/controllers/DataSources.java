@@ -54,49 +54,7 @@ import views.html.datasources.list;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
-	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-	
-	public static Promise<Result> metadata (final String sourceDatasetId) {
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return from(database)
-			.query(new GetMetadata(sourceDatasetId))
-			.execute(metadata -> {
-				if(metadata == null) {
-					return notFound();
-				}
-				
-				return ok(removeStylesheet(metadata.content())).as("application/xml");
-			});
-	}
-
-	private static byte[] removeStylesheet(byte[] origContent) throws Exception {
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document d = db.parse(new ByteArrayInputStream(origContent));
-		
-		NodeList children = d.getChildNodes();
-		for(int i = 0; i < children.getLength(); i++) {
-			Node n = children.item(i);
-			if(n.getNodeType() == Node.PROCESSING_INSTRUCTION_NODE) {
-				ProcessingInstruction pi = (ProcessingInstruction)n;
-				if("xml-stylesheet".equals(pi.getTarget())) {
-					d.removeChild(pi);
-				}
-			}
-		}
-		
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
-		
-		ByteArrayOutputStream boas = new ByteArrayOutputStream();
-		t.transform(new DOMSource(d), new StreamResult(boas));
-		boas.close();
-		
-		return boas.toByteArray();
-	}
+	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");	
 
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, page);
