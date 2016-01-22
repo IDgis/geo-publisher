@@ -270,6 +270,19 @@ public class ServiceMetadata extends AbstractMetadata {
 
 	@Override
 	public Optional<ResourceProperties> properties(String name) {
-		return getId(name).flatMap(id -> Optional.empty());
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
+				Tuple serviceTuple = tx.query().from(service)
+					.where(notConfidential)
+					.where(service.wmsMetadataFileIdentification.eq(id)
+						.or(service.wfsMetadataFileIdentification.eq(id)))
+					.singleResult();
+				
+				if(serviceTuple == null) {				
+					return Optional.<ResourceProperties>empty();
+				} else {
+					return Optional.<ResourceProperties>of(new DefaultResourceProperties(false));
+				}
+		}));
 	}
 }
