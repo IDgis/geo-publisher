@@ -146,18 +146,18 @@
 									<span>&nbsp;WMS&nbsp;</span>
 								</a>
 								@if(service.isPublished) {
-									<a href="@routes.Metadata.service(service.wmsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="@routes.Metadata.service(service.wmsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} else {
-									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} 
 								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;WFS&nbsp;</span>
 								</a>
 								@if(service.isPublished) {
-									<a href="@routes.Metadata.service(service.wfsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="@routes.Metadata.service(service.wfsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wfs")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} else {
-									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.sourcedatasets.list.button.metadata")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wfs")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								}
 							</div>
 						</div>
