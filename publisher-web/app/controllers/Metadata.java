@@ -31,6 +31,14 @@ public class Metadata extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	
+	public static Result dataset(final String fileId) {
+		return notFound();
+	}
+	
+	public static Result service(final String fileId) {
+		return notFound();
+	}
+	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
