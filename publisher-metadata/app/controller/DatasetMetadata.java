@@ -4,6 +4,7 @@ import javax.inject.Inject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
 
@@ -28,6 +29,7 @@ import router.dav.SimpleWebDAV;
 import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.QueryDSL.Transaction;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -64,21 +66,30 @@ public class DatasetMetadata extends AbstractMetadata {
 		return new DatasetMetadata(filter, config, q, mdf, prefix);
 	}
 	
+	private SQLQuery fromDataset(Transaction tx) {
+		SQLQuery query = tx.query().from(dataset)
+			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
+			.where(new SQLSubQuery().from(publishedServiceDataset)
+				.where(publishedServiceDataset.datasetId.eq(dataset.id))
+				.exists());
+		
+		if(!isTrusted()) {
+			query.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
+				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+				.list(sourceDatasetVersion.id.max())))
+			.where(sourceDatasetVersion.confidential.isFalse());
+		}
+		
+		return query;
+	}
+	
 	@Override
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				Tuple datasetTuple = tx.query().from(dataset)
-					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-						.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-						.list(sourceDatasetVersion.id.max())))
-					.where(sourceDatasetVersion.confidential.isFalse())
-					.where(new SQLSubQuery().from(publishedServiceDataset)
-						.where(publishedServiceDataset.datasetId.eq(dataset.id))
-						.exists())
+				Tuple datasetTuple = fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
 					.singleResult(
 						dataset.id,
@@ -131,14 +142,7 @@ public class DatasetMetadata extends AbstractMetadata {
 		return q.withTransaction(tx -> {
 			
 			return
-				tx.query().from(dataset)
-				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-				.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.list(sourceDatasetVersion.id.max())))
-				.where(sourceDatasetVersion.confidential.isFalse())
+				fromDataset(tx)
 				.list(dataset.metadataFileIdentification).stream()
 					.map(id -> {
 						ResourceProperties properties = new DefaultResourceProperties(false);
@@ -152,14 +156,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	public Optional<ResourceProperties> properties(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				if(tx.query().from(dataset)
-					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-					.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-						.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-						.list(sourceDatasetVersion.id.max())))
-					.where(sourceDatasetVersion.confidential.isFalse())
+				if(fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
 					.exists()) {
 						
