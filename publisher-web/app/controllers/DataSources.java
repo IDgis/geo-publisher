@@ -2,10 +2,30 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.ProcessingInstruction;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import actions.DefaultAuthenticator;
+import actors.Database;
+import akka.actor.ActorSelection;
 
 import models.Domain;
 import models.Domain.Function;
@@ -29,13 +49,8 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+
 import views.html.datasources.list;
-import actions.DefaultAuthenticator;
-import actors.Database;
-
-import akka.actor.ActorSelection;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
@@ -45,14 +60,42 @@ public class DataSources extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
-			.query(new GetMetadata(sourceDatasetId, "/assets/xslt/metadata.xslt"))
+			.query(new GetMetadata(sourceDatasetId))
 			.execute(metadata -> {
 				if(metadata == null) {
 					return notFound();
 				}
 				
-				return ok(metadata.content()).as("application/xml");				
+				return ok(removeStylesheet(metadata.content())).as("application/xml");
 			});
+	}
+
+	private static byte[] removeStylesheet(byte[] origContent) throws Exception {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document d = db.parse(new ByteArrayInputStream(origContent));
+		
+		NodeList children = d.getChildNodes();
+		for(int i = 0; i < children.getLength(); i++) {
+			Node n = children.item(i);
+			if(n.getNodeType() == Node.PROCESSING_INSTRUCTION_NODE) {
+				ProcessingInstruction pi = (ProcessingInstruction)n;
+				if("xml-stylesheet".equals(pi.getTarget())) {
+					d.removeChild(pi);
+				}
+			}
+		}
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		
+		ByteArrayOutputStream boas = new ByteArrayOutputStream();
+		t.transform(new DOMSource(d), new StreamResult(boas));
+		boas.close();
+		
+		return boas.toByteArray();
 	}
 
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {

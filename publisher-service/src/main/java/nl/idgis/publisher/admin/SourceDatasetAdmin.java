@@ -44,16 +44,8 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 			.where(sourceDataset.identification.eq(sourceDatasetId))
 			.singleResult(new QTuple(sourceDatasetMetadata.document)).thenApply(optionalResult -> 
-				optionalResult.flatMap(result -> {
-					try {
-						MetadataDocument md = mdf.parseDocument(result.get(sourceDatasetMetadata.document));
-						md.setStylesheet(query.stylesheet());
-						return Optional.of(new Metadata(query.id(), md.getContent()));
-					} catch(Exception e) {
-						return Optional.empty();
-					}
-				}));
+				optionalResult.flatMap(result ->
+					Optional.ofNullable(result.get(sourceDatasetMetadata.document))
+						.map(content -> new Metadata(query.id(), content))));
 	}
-	
-	
 }
