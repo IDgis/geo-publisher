@@ -14,14 +14,16 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, urlPrefix, zooKeeperHosts, zooKeeperNamespace;
+	private final String host, path, urlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses;
 	
 	private final Map<String, String> environmentPrefixes;
 
 	@Inject
 	public MetadataConfig(Configuration config) {
 		Map<String, String> environmentPrefixes = new HashMap<>();
-		Configuration environments = config.getConfig("publisher.metadata.environments");
+		Configuration metadata = config.getConfig("publisher.metadata");
+		
+		Configuration environments = metadata.getConfig("environments");
 		environments.entrySet().forEach(entry -> {
 			String environmentId = entry.getKey();
 
@@ -34,12 +36,14 @@ public class MetadataConfig {
 		
 		this.environmentPrefixes = Collections.unmodifiableMap(environmentPrefixes);
 		
-		host = config.getString("publisher.metadata.host");
+		host = metadata.getString("host");
 		path = "/metadata";
 		urlPrefix = "http://" + host + path + "/";
 		
 		zooKeeperHosts = config.getString("zooKeeper.hosts");
 		zooKeeperNamespace = config.getString("zooKeeper.namespace");
+		
+		trustedAddresses = metadata.getString("trusted-addresses", "");
 	}
 	
 	public String getHost() {
@@ -64,5 +68,9 @@ public class MetadataConfig {
 	
 	public Optional<String> getZooKeeperNamespace() {
 		return Optional.ofNullable(zooKeeperNamespace);
+	}
+	
+	public String getTrustedAddresses() {
+		return trustedAddresses;
 	}
 }

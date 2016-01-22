@@ -5,7 +5,6 @@ import java.util.Arrays;
 import javax.inject.Inject;
 
 import router.dav.SimpleWebDAV;
-import util.ZooKeeper;
 
 public class Index extends SimpleWebDAV {
 	
@@ -18,7 +17,7 @@ public class Index extends SimpleWebDAV {
 	private final DatasetMetadata datasetMetadata;
 	
 	@Inject
-	public Index(ZooKeeper zk, ServiceMetadata serviceMetadata, DatasetMetadata datasetMetadata) {
+	public Index(ServiceMetadata serviceMetadata, DatasetMetadata datasetMetadata) {
 		this("/", serviceMetadata, datasetMetadata);
 	}
 	

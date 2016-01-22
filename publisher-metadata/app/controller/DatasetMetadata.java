@@ -25,7 +25,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import router.dav.SimpleWebDAV;
-
+import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 
@@ -49,19 +49,19 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final MetadataDocumentFactory mdf;
 	
 	@Inject
-	public DatasetMetadata(MetadataConfig config, QueryDSL q) throws Exception {
-		this(config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(filter, config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(config, q, prefix);
+	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(filter, config, q, prefix);
 		
 		this.mdf = mdf;
 	}
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(config, q, mdf, prefix);
+		return new DatasetMetadata(filter, config, q, mdf, prefix);
 	}
 	
 	@Override

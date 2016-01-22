@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import router.dav.SimpleWebDAV;
-
+import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
+	
+	protected final InetFilter filter;
 	
 	protected final MetadataConfig config;
 	
@@ -18,9 +20,10 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	private Map<String, String> environmentPrefixes;
 	
-	protected AbstractMetadata(MetadataConfig config, QueryDSL q, String prefix) {
+	protected AbstractMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);
 		
+		this.filter = filter;
 		this.config = config;
 		this.q = q;
 	}

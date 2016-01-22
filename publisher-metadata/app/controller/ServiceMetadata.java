@@ -30,6 +30,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import router.dav.SimpleWebDAV;
+import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 
@@ -74,8 +75,8 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(MetadataConfig config, QueryDSL q) throws Exception {
-		this(config, q, getTemplate(), "/");
+	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(filter, config, q, getTemplate(), "/");
 	}
 	
 	private static MetadataDocument getTemplate() throws Exception {
@@ -87,15 +88,15 @@ public class ServiceMetadata extends AbstractMetadata {
 				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
 	}
 	
-	public ServiceMetadata(MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(config, q, prefix);
+	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(filter, config, q, prefix);
 		
 		this.template = template;
 	}
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(config, q, template, prefix);
+		return new ServiceMetadata(filter, config, q, template, prefix);
 	}
 
 	@Override
