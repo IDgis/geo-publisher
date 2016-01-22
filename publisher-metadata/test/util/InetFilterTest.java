@@ -6,9 +6,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.InetAddress;
 import java.util.Iterator;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import util.InetFilter.FilterElement;
 
 public class InetFilterTest {
 	
@@ -57,5 +60,20 @@ public class InetFilterTest {
 		assertFalse(filter.isAllowed(InetAddress.getByName("192.0.200.1")));
 		assertFalse(filter.isAllowed(InetAddress.getByName("2001:db8:1::2")));
 		assertFalse(filter.isAllowed(InetAddress.getByName("2001:db8:3::1")));
+	}
+	
+	@Test
+	public void testEmptyConfig() {
+		InetFilter filter = new InetFilter("");
+		assertTrue(filter.getFilterElements().isEmpty());
+	}
+	
+	@Test
+	public void testSingleItemConfig() {
+		InetFilter filter = new InetFilter("127.0.0.1");		
+		List<FilterElement> elements = filter.getFilterElements();
+		
+		assertEquals(1, elements.size());
+		assertEquals("FilterElement [127.0.0.1/32]", elements.get(0).toString());
 	}
 }

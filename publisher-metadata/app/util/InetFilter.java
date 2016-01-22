@@ -112,9 +112,11 @@ public class InetFilter {
 	public InetFilter(String config) {
 		try {
 			this.config = Arrays.asList(config.split(",")).stream()
+				.map(String::trim)
+				.filter(configElement -> !configElement.isEmpty())
 				.map(configElement -> {
 					String[] elementSplit = configElement.split("/");
-					if(elementSplit.length == 2) {					
+					if(elementSplit.length == 2) {
 						return new ConfigElement(elementSplit[0], elementSplit[1]);
 					} else {
 						return new ConfigElement(configElement);
