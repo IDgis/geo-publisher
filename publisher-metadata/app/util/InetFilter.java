@@ -10,13 +10,27 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implements a basic IP based access filter.
+ * <p>Implements a basic IP based access filter.</p>
+ * 
+ * <p>Configuration format example:</p> 
+ * 
+ * <p>'192.0.2.1,198.51.100.0/24,2001:db8:1::1,2001:db8:2::/64'</p>
+ * 
+ * <p>IPv4 host: 192.0.2.1<br>
+ * IPv4 network: 198.51.100.0/24 (netmask: 255.255.255.0)</p>
+ * 
+ * <p>IPv6 host: 2001:db8:1::1<br>
+ * IPv6 network: 2001:db8:2::/64</p>
  * 
  * @author Reijer Copier
  *
  */
 public class InetFilter {
 	
+	/**
+	 * Helper class, used in the first stage
+	 * of the configuration parser.
+	 */
 	private static class ConfigElement {
 		
 		String host;
@@ -41,8 +55,16 @@ public class InetFilter {
 		}
 	}
 	
+	/**
+	 * A single FilterElement of a configured {@link InetFilter}.
+	 * 
+	 * @author Reijer Copier
+	 *
+	 */
 	public static class FilterElement {
 		
+		// redundant and only used by toString
+		// isAllowed uses mask instead 
 		private final int maskLength;
 		
 		private final byte[] address, mask;
@@ -86,6 +108,7 @@ public class InetFilter {
 					.append("/")
 					.append(maskLength);
 			} catch(UnknownHostException e) {
+				// should never happen
 				sb.append("unknown");
 			}
 			
@@ -94,6 +117,10 @@ public class InetFilter {
 		}
 	}
 	
+	/**
+	 * Used by the configuration parser to report on errors.
+	 * 
+	 */
 	private static class ConfigException extends RuntimeException {
 
 		private static final long serialVersionUID = 3010816705411803028L;
@@ -109,13 +136,19 @@ public class InetFilter {
 	
 	private final List<FilterElement> config;
 
+	/**
+	 * Construct a new {@link InetFilter}.
+	 * 
+	 * @param config the configuration of the filter.
+	 */
 	public InetFilter(String config) {
 		try {
 			this.config = Arrays.asList(config.split(",")).stream()
-				.map(String::trim)
-				.filter(configElement -> !configElement.isEmpty())
-				.map(configElement -> {
-					String[] elementSplit = configElement.split("/");
+				.map(String::trim) // ignore whitespace
+				.filter(configElement -> !configElement.isEmpty()) // ignore empty elements
+				.map(configElement -> { 
+					// separate address and mask length
+					final String[] elementSplit = configElement.split("/");
 					if(elementSplit.length == 2) {
 						return new ConfigElement(elementSplit[0], elementSplit[1]);
 					} else {
@@ -124,24 +157,39 @@ public class InetFilter {
 				})
 				.map(configElement -> {
 					try {
-						byte[] address = InetAddress.getByName(configElement.getHost()).getAddress();
-						int addressLength = address.length * 8;
+						// parse address
+						final byte[] address = InetAddress.getByName(configElement.getHost()).getAddress();
+						final int addressLength = address.length * 8;
 						
-						int maskLength = configElement.getMaskLength().map(maskLengthString -> {
-							try {
-								int maskLengthInt = Integer.parseInt(maskLengthString);
-								if(maskLengthInt > addressLength) {
-									throw new ConfigException("mask length larger than address length: " + maskLengthInt);
+						final int maskLength = configElement.getMaskLength()
+							.map(maskLengthString -> {
+								// parse mask length
+								try {
+									int maskLengthInt = Integer.parseInt(maskLengthString);
+									if(maskLengthInt > addressLength) {
+										throw new ConfigException("mask length larger than address length: " + maskLengthInt);
+									}
+									
+									return maskLengthInt;
+								} catch(NumberFormatException e) {
+									throw new ConfigException("invalid mask length", e);
 								}
-								
-								return maskLengthInt;
-							} catch(NumberFormatException e) {
-								throw new ConfigException("invalid mask length", e);
-							}
-						}).orElse(addressLength);
+							})
+							.orElse(addressLength); // default mask length (i.e. address is a host address)
 						
-						byte[] mask = new byte[address.length];
-						fillMask(mask, maskLength);
+						// generate mask based on configured mask length
+						final byte[] mask = new byte[address.length];
+						Arrays.fill(mask, (byte)0);
+						
+						int pos = 0, bitsNeeded = maskLength;
+						while(bitsNeeded >= 8) {
+							mask[pos++] = (byte)0xff;
+							bitsNeeded -= 8;
+						}
+						
+						if(bitsNeeded > 0) {
+							mask[pos] = (byte)(0xff << (8 - bitsNeeded));
+						}
 						
 						return new FilterElement(address, mask, maskLength);
 					} catch(UnknownHostException e) {
@@ -151,20 +199,6 @@ public class InetFilter {
 				.collect(Collectors.toList());
 		} catch(ConfigException e) {
 			throw new IllegalArgumentException("Invalid filter configuration", e);
-		}
-	}
-
-	private void fillMask(byte[] mask, int maskLength) {
-		Arrays.fill(mask, (byte)0);
-		
-		int pos = 0;
-		while(maskLength >= 8) {
-			mask[pos++] = (byte)0xff;
-			maskLength -= 8;
-		}
-		
-		if(maskLength > 0) {
-			mask[pos] = (byte)(0xff << (8 - maskLength));
 		}
 	}
 	
