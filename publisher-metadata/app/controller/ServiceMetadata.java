@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
 import com.mysema.query.types.QTuple;
@@ -21,6 +22,7 @@ import model.dav.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+
 import play.Configuration;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
@@ -30,9 +32,11 @@ import play.mvc.Controller;
 import play.mvc.Result;
 
 import router.dav.SimpleWebDAV;
+
 import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.QueryDSL.Transaction;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QConstants.constants;
@@ -64,13 +68,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
 			+ "format=image/png&styles=";
-	
-	private static final Predicate notConfidential = 
-		new SQLSubQuery().from(publishedServiceEnvironment)
-			.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-			.where(publishedServiceEnvironment.serviceId.eq(service.id))
-			.where(environment.confidential.isFalse())
-			.exists();
 		
 	private final MetadataDocument template;
 	
@@ -98,16 +95,29 @@ public class ServiceMetadata extends AbstractMetadata {
 	public ServiceMetadata withPrefix(String prefix) {
 		return new ServiceMetadata(filter, config, q, template, prefix);
 	}
+	
+	private SQLQuery fromService(Transaction tx) {
+		SQLQuery query = tx.query().from(service);
+		
+		if(!isTrusted()) {
+			query.where(new SQLSubQuery().from(publishedServiceEnvironment)
+				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.where(publishedServiceEnvironment.serviceId.eq(service.id))
+				.where(environment.confidential.isFalse())
+				.exists());
+		}
+		
+		return query;
+	}
 
 	@Override
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
 			
-			Tuple serviceTuple = tx.query().from(service)
+			Tuple serviceTuple = fromService(tx)
 				.join(publishedService).on(publishedService.serviceId.eq(service.id))
 				.join(constants).on(constants.id.eq(service.constantsId))
-				.where(notConfidential)
 				.where(service.wmsMetadataFileIdentification.eq(id)
 					.or(service.wfsMetadataFileIdentification.eq(id)))
 				.singleResult(
@@ -250,30 +260,25 @@ public class ServiceMetadata extends AbstractMetadata {
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
-		return q.withTransaction(tx -> {
-			
-			return
-				tx.query().from(service)
-					.where(notConfidential)
-					.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
-					.flatMap(t ->
-						Stream.of(
-							new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
-							new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
-					.map(info -> {
-						ResourceProperties properties = new DefaultResourceProperties(false);
+		return q.withTransaction(tx ->
+			fromService(tx)
+			.list(service.wmsMetadataFileIdentification, service.wfsMetadataFileIdentification).stream()
+			.flatMap(t ->
+				Stream.of(
+					new ServiceInfo(t.get(service.wmsMetadataFileIdentification), t),
+					new ServiceInfo(t.get(service.wfsMetadataFileIdentification), t)))
+			.map(info -> {
+				ResourceProperties properties = new DefaultResourceProperties(false);
 
-						return new DefaultResourceDescription(getName(info.id), properties);
-					});
-		});
+				return new DefaultResourceDescription(getName(info.id), properties);
+			}));
 	}
 
 	@Override
 	public Optional<ResourceProperties> properties(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				Tuple serviceTuple = tx.query().from(service)
-					.where(notConfidential)
+				Tuple serviceTuple = fromService(tx)
 					.where(service.wmsMetadataFileIdentification.eq(id)
 						.or(service.wfsMetadataFileIdentification.eq(id)))
 					.singleResult();

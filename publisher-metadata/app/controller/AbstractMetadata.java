@@ -1,14 +1,18 @@
 package controller;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Optional;
 
+import play.Logger;
 import router.dav.SimpleWebDAV;
+
 import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
+
+import static play.mvc.Controller.request;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
@@ -68,5 +72,16 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected String getServiceLinkage(String environmentId, String serviceName, ServiceType serviceType) {
 		return config.getEnvironmentUrlPrefix(environmentId).orElse("/") + serviceName + "/" + serviceType.name().toLowerCase();
+	}
+	
+	protected boolean isTrusted() {		
+		try {
+			InetAddress inetAddress = InetAddress.getByName(request().remoteAddress());
+			return filter.isAllowed(inetAddress);
+		} catch(UnknownHostException e) {
+			Logger.warn("Couldn't determine if request is from a trusted address", e);
+		}
+		
+		return false;
 	}
 }
