@@ -10,11 +10,11 @@ import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 
-	private static final long serialVersionUID = -1977233205832290039L;
+	private static final long serialVersionUID = -1020659628294826046L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
-	private final String filterConditions;
+	private final String filterConditions, metadataFileId;
 	private final Boolean imported;	
 	private final Boolean sourceDatasetColumnsChanged;
 	private final Timestamp lastImportTime;
@@ -32,7 +32,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final String lastImportJobState,
 			final List<StoredNotification> notifications,
 			final long layerCount,
-			final boolean confidential) {
+			final boolean confidential,
+			final String metadataFileId) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -47,6 +48,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
 		this.layerCount = layerCount;
 		this.confidential = confidential;
+		this.metadataFileId = metadataFileId;
 	}
 	
 	private static JobState toJobState(String jobStateName) {
@@ -105,16 +107,17 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		return confidential;
 	}
 	
+	public String getMetadataFileId () {
+		return metadataFileId;
+	}
+
 	@Override
 	public String toString() {
-		return "DatasetInfo [sourceDatasetId=" + sourceDatasetId
-				+ ", sourceDatasetName=" + sourceDatasetName + ", categoryId="
-				+ categoryId + ", categoryName=" + categoryName
-				+ ", filterConditions=" + filterConditions + ", imported="
-				+ imported + ", sourceDatasetColumnsChanged="
-				+ sourceDatasetColumnsChanged + ", lastImportTime="
-				+ lastImportTime + ", lastImportJobState=" + lastImportJobState
-				+ ", notifications=" + notifications + "]";
+		return "DatasetInfo [sourceDatasetId=" + sourceDatasetId + ", sourceDatasetName=" + sourceDatasetName
+				+ ", categoryId=" + categoryId + ", categoryName=" + categoryName + ", filterConditions="
+				+ filterConditions + ", metadataFileId=" + metadataFileId + ", imported=" + imported
+				+ ", sourceDatasetColumnsChanged=" + sourceDatasetColumnsChanged + ", lastImportTime=" + lastImportTime
+				+ ", lastImportJobState=" + lastImportJobState + ", notifications=" + notifications + ", layerCount="
+				+ layerCount + ", confidential=" + confidential + "]";
 	}
-		
 }

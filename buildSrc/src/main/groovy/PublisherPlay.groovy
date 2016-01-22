@@ -1,6 +1,8 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.plugins.MavenPlugin
 import org.gradle.jvm.tasks.Jar
 
 import org.gradle.play.plugins.PlayPlugin
@@ -17,6 +19,7 @@ import com.github.houbie.gradle.lesscss.LesscTask
 class PublisherPlay implements Plugin<Project> {
 
 	void apply(Project project) {
+		project.pluginManager.apply(JavaBasePlugin)
 		project.pluginManager.apply(PlayPlugin)
 		
 		project.model {

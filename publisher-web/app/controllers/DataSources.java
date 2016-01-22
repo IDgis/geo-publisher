@@ -2,10 +2,30 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.ProcessingInstruction;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import actions.DefaultAuthenticator;
+import actors.Database;
+import akka.actor.ActorSelection;
 
 import models.Domain;
 import models.Domain.Function;
@@ -29,31 +49,12 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
+
 import views.html.datasources.list;
-import actions.DefaultAuthenticator;
-import actors.Database;
-
-import akka.actor.ActorSelection;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class DataSources extends Controller {
-	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
-	
-	public static Promise<Result> metadata (final String sourceDatasetId) {
-		final ActorSelection database = Akka.system().actorSelection (databaseRef);
-		
-		return from(database)
-			.query(new GetMetadata(sourceDatasetId, "/assets/xslt/metadata.xslt"))
-			.execute(metadata -> {
-				if(metadata == null) {
-					return notFound();
-				}
-				
-				return ok(metadata.content()).as("application/xml");				
-			});
-	}
+	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");	
 
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, page);

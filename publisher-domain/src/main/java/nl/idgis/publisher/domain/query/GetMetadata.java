@@ -8,27 +8,16 @@ public class GetMetadata implements DomainQuery<Metadata> {
 
 	private final String id;
 	
-	private final String stylesheet;
-	
 	public GetMetadata(String id) {
-		this(id, null);
-	}
-	
-	public GetMetadata(String id, String stylesheet) {
 		this.id = id;
-		this.stylesheet = stylesheet;
 	}
 
 	public String id() {
 		return id;
 	}
 
-	public String stylesheet() {
-		return stylesheet;
-	}
-
 	@Override
 	public String toString() {
-		return "GetMetadata [id=" + id + ", stylesheet=" + stylesheet + "]";
+		return "GetMetadata [id=" + id + "]";
 	}
 }

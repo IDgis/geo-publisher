@@ -79,7 +79,7 @@ subprojects {
 }
 
 // base configuration for all non Play subprojects
-configure(subprojects - project(':publisher-web')) {
+configure(subprojects - project(':publisher-web') - project(':publisher-metadata')) {
 	apply plugin: 'java'
 	apply plugin: 'eclipse'
 	
@@ -466,7 +466,7 @@ configure([
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'				
+				groupId 'nl.idgis.publisher'
 				artifact distZip
 			}
 		}
@@ -474,13 +474,16 @@ configure([
 }
 
 project(':publisher-metadata') {
-	apply plugin: 'java-base'
 	apply plugin: PublisherPlay
 	apply plugin: PlayDistPublish
 	apply plugin: 'maven-publish'
-	apply plugin: 'eclipse'
+	apply plugin: CustomPlayHttpPort
 	
 	def playVersion = '2.4.3'
+	
+	ext {
+		playHttpPort = 9010
+	}
 	
 	model {
 		components {
@@ -513,12 +516,19 @@ project(':publisher-metadata') {
 			exclude module: "logback-classic"
 		}
 	}
+}
+
+configure([
+	project(':publisher-metadata'),
+	project(':publisher-web')]) {
+
+	apply plugin: 'eclipse'
 	
 	eclipse {
 		classpath {
 			plusConfigurations += [ configurations.play ]
 			plusConfigurations += [ configurations.playTest ]
-					
+			
 			file {
 				beforeMerged { classpath ->
 					classpath.entries += [
