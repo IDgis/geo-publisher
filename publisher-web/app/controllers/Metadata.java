@@ -22,6 +22,7 @@ import nl.idgis.publisher.domain.query.GetMetadata;
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
+import play.libs.ws.WS;
 import play.mvc.Controller;
 import play.mvc.Result;
 
@@ -31,12 +32,26 @@ public class Metadata extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	
-	public static Result dataset(final String fileId) {
-		return notFound();
+	private final static String datasetMetadata = Play.application().configuration().getString("publisher.metadata.dataset");
+	
+	private final static String serviceMetadata = Play.application().configuration().getString("publisher.metadata.service");
+	
+	private static Promise<Result> getDocument(String url) {
+		return WS.url(url).get().map(response -> {
+			if(response.getStatus() == 200) {			
+				return ok(removeStylesheet(response.asByteArray())).as("application/xml");
+			} else {
+				return internalServerError();
+			}
+		});
 	}
 	
-	public static Result service(final String fileId) {
-		return notFound();
+	public static Promise<Result> dataset(final String fileId) {
+		return getDocument(datasetMetadata + fileId + ".xml");
+	}
+	
+	public static Promise<Result> service(final String fileId) {
+		return getDocument(serviceMetadata + fileId + ".xml");
 	}
 	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
