@@ -1,9 +1,11 @@
 package util;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.InetAddress;
+import java.util.Iterator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +20,27 @@ public class InetFilterTest {
 	@Before
 	public void setUp() {
 		filter = new InetFilter(FILTER_CONFIGURATION);
+	}
+	
+	@Test
+	public void testFilterElements() {
+		Iterator<String> itr = filter.getFilterElements().stream()
+			.map(Object::toString)
+			.iterator();
+		
+		assertTrue(itr.hasNext());
+		assertEquals("FilterElement [192.0.2.1/32]", itr.next());
+		
+		assertTrue(itr.hasNext());
+		assertEquals("FilterElement [198.51.100.0/24]", itr.next());
+		
+		assertTrue(itr.hasNext());
+		assertEquals("FilterElement [2001:db8:1:0:0:0:0:1/128]", itr.next());
+		
+		assertTrue(itr.hasNext());
+		assertEquals("FilterElement [2001:db8:2:0:0:0:0:0/64]", itr.next());
+		
+		assertFalse(itr.hasNext());
 	}
 
 	@Test
