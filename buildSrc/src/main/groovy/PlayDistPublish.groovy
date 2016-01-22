@@ -14,7 +14,7 @@ import org.gradle.api.publish.PublishingExtension
   * and configures distributions as publications.
   */
 class PlayDistPublish extends RuleSource {	
-	@Mutate void addAttributes(ModelMap<Task> tasks, PlayDistributionContainer dists, PublishingExtension publishing) {
+	@Mutate void publishing(ModelMap<Task> tasks, PlayDistributionContainer dists, PublishingExtension publishing) {
 		dists.names.each {
 			def jarTask = tasks.get("create${it.capitalize()}DistributionJar")
 			
