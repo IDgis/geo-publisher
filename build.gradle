@@ -233,6 +233,7 @@ project(':publisher-web') {
 	dependencies {
 		play project(':publisher-domain')
 		play project(':publisher-schemas')
+		play 'nl.idgis.geoportaal:md-stylesheets:1.0'
 		play "com.typesafe.play:play-java-jdbc_${scalaAbiVersion}:${playVersion}"
 		play "com.typesafe.play:play-cache_${scalaAbiVersion}:${playVersion}"
 		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
