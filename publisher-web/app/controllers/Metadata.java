@@ -18,15 +18,15 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.ProcessingInstruction;
 
 import akka.actor.ActorSelection;
+
 import nl.idgis.publisher.domain.query.GetMetadata;
+
 import play.Play;
 import play.libs.Akka;
 import play.libs.F.Promise;
 import play.libs.ws.WS;
 import play.mvc.Controller;
 import play.mvc.Result;
-
-import static models.Domain.from;
 
 public class Metadata extends Controller {
 
@@ -36,10 +36,16 @@ public class Metadata extends Controller {
 	
 	private final static String serviceMetadata = Play.application().configuration().getString("publisher.metadata.service");
 	
-	private static Promise<Result> getDocument(String url) {
+	private final static String webjar = "/webjars/md-stylesheets/1.0/";
+	
+	private final static String datasetStylesheet = webjar + "datasets/intern/metadata.xsl";
+	
+	private final static String serviceStylesheet = webjar + "services/intern/metadata.xsl";
+	
+	private static Promise<Result> getDocument(String url, String stylesheet) {
 		return WS.url(url).get().map(response -> {
 			if(response.getStatus() == 200) {			
-				return ok(removeStylesheet(response.asByteArray())).as("application/xml");
+				return ok(setStylesheet(response.asByteArray(), stylesheet)).as("application/xml");
 			} else {
 				return internalServerError();
 			}
@@ -47,11 +53,11 @@ public class Metadata extends Controller {
 	}
 	
 	public static Promise<Result> dataset(final String fileId) {
-		return getDocument(datasetMetadata + fileId + ".xml");
+		return getDocument(datasetMetadata + fileId + ".xml", datasetStylesheet);
 	}
 	
 	public static Promise<Result> service(final String fileId) {
-		return getDocument(serviceMetadata + fileId + ".xml");
+		return getDocument(serviceMetadata + fileId + ".xml", serviceStylesheet);
 	}
 	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
@@ -64,17 +70,18 @@ public class Metadata extends Controller {
 					return notFound();
 				}
 				
-				return ok(removeStylesheet(metadata.content())).as("application/xml");
+				return ok(setStylesheet(metadata.content(), datasetStylesheet)).as("application/xml");
 			});
 	}
 	
-	private static byte[] removeStylesheet(byte[] origContent) throws Exception {
+	private static byte[] setStylesheet(byte[] origContent, String stylesheet) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		Document d = db.parse(new ByteArrayInputStream(origContent));
 		
+		// remove existing stylesheet (if any)
 		NodeList children = d.getChildNodes();
 		for(int i = 0; i < children.getLength(); i++) {
 			Node n = children.item(i);
@@ -85,6 +92,13 @@ public class Metadata extends Controller {
 				}
 			}
 		}
+		
+		// add stylesheet
+		d.insertBefore(
+				d.createProcessingInstruction(
+					"xml-stylesheet", 
+					"type=\"text/xsl\" href=\"" + stylesheet + "\""),
+				d.getFirstChild());
 		
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();
