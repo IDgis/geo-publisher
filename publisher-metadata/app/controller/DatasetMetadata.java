@@ -47,6 +47,8 @@ import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 public class DatasetMetadata extends AbstractMetadata {
+	
+	private final static String stylesheet = webjar + "datasets/intern/metadata.xsl";
 		
 	private final MetadataDocumentFactory mdf;
 	
@@ -110,7 +112,6 @@ public class DatasetMetadata extends AbstractMetadata {
 						publishedServiceDataset.layerName);
 				
 				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
-				metadataDocument.removeStylesheet();
 				
 				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
 				metadataDocument.setFileIdentifier(id);
@@ -129,6 +130,8 @@ public class DatasetMetadata extends AbstractMetadata {
 						metadataDocument.addServiceLinkage(linkage, protocol, serviceTuple.get(publishedServiceDataset.layerName));
 					}
 				}
+				
+				metadataDocument.setStylesheet(stylesheet);
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

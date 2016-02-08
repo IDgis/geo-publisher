@@ -1,1 +1,2 @@
-->	/metadata/	controller.Index
+->		/metadata/			controller.Index
+GET		/webjars/*file		controllers.WebJarAssets.at(file)

@@ -69,6 +69,8 @@ public class ServiceMetadata extends AbstractMetadata {
 			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
 			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
 			+ "format=image/png&styles=";
+	
+	private final static String stylesheet = webjar + "services/intern/metadata.xsl";
 		
 	private final MetadataDocument template;
 	
@@ -242,6 +244,8 @@ public class ServiceMetadata extends AbstractMetadata {
 					metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 				}
 			}
+			
+			metadataDocument.setStylesheet(stylesheet);
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

@@ -2,7 +2,6 @@ package controller;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Map;
 import java.util.Optional;
 
 import play.Logger;
@@ -16,13 +15,13 @@ import static play.mvc.Controller.request;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
+	protected final static String webjar = "/webjars/md-stylesheets/1.0/";
+	
 	protected final InetFilter filter;
 	
 	protected final MetadataConfig config;
 	
 	protected final QueryDSL q;
-	
-	private Map<String, String> environmentPrefixes;
 	
 	protected AbstractMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);

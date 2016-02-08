@@ -40,24 +40,12 @@ public class Metadata extends Controller {
 	
 	private final static String datasetStylesheet = webjar + "datasets/intern/metadata.xsl";
 	
-	private final static String serviceStylesheet = webjar + "services/intern/metadata.xsl";
-	
-	private static Promise<Result> getDocument(String url, String stylesheet) {
-		return WS.url(url).get().map(response -> {
-			if(response.getStatus() == 200) {			
-				return ok(setStylesheet(response.asByteArray(), stylesheet)).as("application/xml");
-			} else {
-				return internalServerError();
-			}
-		});
+	public static Result dataset(final String fileId) {
+		return redirect(datasetMetadata + fileId + ".xml");
 	}
 	
-	public static Promise<Result> dataset(final String fileId) {
-		return getDocument(datasetMetadata + fileId + ".xml", datasetStylesheet);
-	}
-	
-	public static Promise<Result> service(final String fileId) {
-		return getDocument(serviceMetadata + fileId + ".xml", serviceStylesheet);
+	public static Result service(final String fileId) {
+		return redirect(serviceMetadata + fileId + ".xml");
 	}
 	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
