@@ -36,7 +36,6 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
@@ -102,9 +101,8 @@ public class DatasetMetadata extends AbstractMetadata {
 				int datasetId = datasetTuple.get(dataset.id);
 				
 				List<Tuple> serviceTuples = tx.query().from(publishedService)
-					.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))					
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
-					.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+					.join(environment).on(environment.id.eq(publishedService.environmentId))
 					.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,

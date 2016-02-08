@@ -2,6 +2,7 @@ package nl.idgis.publisher.service.provisioning;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +58,7 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 			.set(environment.name, "environment-name")
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("service-id", Collections.singleton("environment-id")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service-id", Optional.of("environment-id")), Ack.class).get();
 	}
 
 	@Test

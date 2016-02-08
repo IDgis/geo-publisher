@@ -4,6 +4,7 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -120,10 +121,10 @@ public class JobCreator extends AbstractAdmin {
 		log.debug("creating published service jobs");
 		
 		String serviceId = performPublish.getServiceId();
-		Set<String> environmentIds = performPublish.getEnvironmentIds();
+		Optional<String> environmentId = performPublish.getEnvironmentId();
 		
 		jobManager.tell(new CreateVacuumServiceJob(true), getSelf());
-		if(environmentIds.isEmpty()) {
+		if(environmentId.isPresent()) {
 			log.debug("not published -> not creating ensure job");
 		} else {
 			log.debug("published -> creating ensure job");

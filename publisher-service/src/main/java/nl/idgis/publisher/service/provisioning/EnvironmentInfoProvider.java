@@ -2,7 +2,7 @@ package nl.idgis.publisher.service.provisioning;
 
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QService.service;
 
 import akka.actor.ActorRef;
@@ -52,8 +52,8 @@ public class EnvironmentInfoProvider extends UntypedActor {
 			db.transactional(getEnvironmentIds, tx ->
 				tx.query().from(service)
 					.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-					.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(service.id))
-					.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+					.join(publishedService).on(publishedService.serviceId.eq(service.id))
+					.join(environment).on(environment.id.eq(publishedService.environmentId))
 					.where(genericLayer.identification.eq(serviceId))
 					.list(environment.identification)).thenAccept(environmentIds -> 
 						sender.tell(environmentIds, getSelf()));

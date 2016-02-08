@@ -42,7 +42,6 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
@@ -101,14 +100,11 @@ public class ServiceMetadata extends AbstractMetadata {
 	
 	private SQLQuery fromService(Transaction tx) {
 		SQLQuery query = tx.query().from(service)
-			.join(publishedService).on(publishedService.serviceId.eq(service.id));
+			.join(publishedService).on(publishedService.serviceId.eq(service.id))
+			.join(environment).on(environment.id.eq(publishedService.environmentId));
 		
 		if(!isTrusted()) {
-			query.where(new SQLSubQuery().from(publishedServiceEnvironment)
-				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-				.where(publishedServiceEnvironment.serviceId.eq(service.id))
-				.where(environment.confidential.isFalse())
-				.exists());
+			query.where(environment.confidential.isFalse());
 		}
 		
 		return query;
@@ -142,7 +138,8 @@ public class ServiceMetadata extends AbstractMetadata {
 					constants.fax,
 					constants.email,
 					service.wmsMetadataFileIdentification,
-					service.wfsMetadataFileIdentification);
+					service.wfsMetadataFileIdentification,
+					environment.identification);
 			
 			if(serviceTuple == null) {
 				return Optional.<Resource>empty();
@@ -164,10 +161,6 @@ public class ServiceMetadata extends AbstractMetadata {
 					dataset.metadataIdentification,
 					dataset.metadataFileIdentification,
 					publishedServiceDataset.layerName);
-			
-			List<String> environmentIds = tx.query().from(publishedServiceEnvironment)
-				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
-				.list(environment.identification);
 			
 			MetadataDocument metadataDocument = template.clone();
 			metadataDocument.setFileIdentifier(id);
@@ -227,22 +220,22 @@ public class ServiceMetadata extends AbstractMetadata {
 			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
 			String serviceName = serviceInfo.get("name").asText();
 			
-			for(String environmentId : environmentIds) {
-				String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+			String environmentId = serviceTuple.get(environment.identification);
+			
+			String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+			
+			metadataDocument.addServiceType(serviceType.getName());
+			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
+			
+			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
+				String identifier = serviceDatasetTuple.get(dataset.metadataFileIdentification);
+				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
 				
-				metadataDocument.addServiceType(serviceType.getName());
-				metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
-				
-				for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
-					String identifier = serviceDatasetTuple.get(dataset.metadataFileIdentification);
-					String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
-					
-					if(serviceType == ServiceType.WMS) {
-						metadataDocument.addBrowseGraphic(linkage + BROWSE_GRAPHIC_BASE_URL + "&layers=" + scopedName);
-					}
-					metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
-					metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
+				if(serviceType == ServiceType.WMS) {
+					metadataDocument.addBrowseGraphic(linkage + BROWSE_GRAPHIC_BASE_URL + "&layers=" + scopedName);
 				}
+				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
+				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
 			metadataDocument.setStylesheet(stylesheet);

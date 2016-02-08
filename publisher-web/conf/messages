@@ -488,8 +488,8 @@ web.application.page.services.list.publish=Publiceren
 web.application.page.services.list.environments.success=Het publiceren is gestart.
 web.application.page.services.list.environments.failure=Fout! Het publiceren is niet gestart.
 
-web.application.page.services.form.publish.environments.help=Vink de omgevingen aan waar de service gepubliceerd moet worden
-web.application.page.services.form.field.environments.help=Laat de omgevingen zien waarin deze service gepubliceerd is
+web.application.page.services.form.publish.environments.help=Vink de omgeving aan waar de service gepubliceerd moet worden
+web.application.page.services.form.field.environments.help=Laat de omgeving zien waarin deze service gepubliceerd is
 
 web.application.page.services.form.title=Service formulier
 web.application.page.services.form.header.new=Nieuwe service toevoegen

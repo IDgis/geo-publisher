@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
@@ -204,7 +205,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.set(environment.confidential, false)
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), Ack.class).get();
 		
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0", "col1");
@@ -394,7 +395,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 		}
 		
 		// republish service		
-		f.ask(serviceManager, new PublishService("testService", Collections.singleton("testEnvironment")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), Ack.class).get();
 		
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0");
