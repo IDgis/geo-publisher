@@ -73,10 +73,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
 			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
 				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.list(sourceDatasetVersion.id.max())))
-			.where(new SQLSubQuery().from(publishedServiceDataset)
-				.where(publishedServiceDataset.datasetId.eq(dataset.id))
-				.exists());
+				.list(sourceDatasetVersion.id.max())));
 		
 		if(!isTrusted()) {
 			query.where(sourceDatasetVersion.confidential.isFalse());
