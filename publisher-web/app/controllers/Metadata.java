@@ -40,14 +40,6 @@ public class Metadata extends Controller {
 	
 	private final static String datasetStylesheet = webjar + "datasets/intern/metadata.xsl";
 	
-	public static Result dataset(final String fileId) {
-		return redirect(datasetMetadata + fileId + ".xml");
-	}
-	
-	public static Result service(final String fileId) {
-		return redirect(serviceMetadata + fileId + ".xml");
-	}
-	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
