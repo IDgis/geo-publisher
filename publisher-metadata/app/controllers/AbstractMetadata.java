@@ -1,4 +1,4 @@
-package controller;
+package controllers;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
