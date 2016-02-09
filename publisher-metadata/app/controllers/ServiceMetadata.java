@@ -196,7 +196,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					
 					String uuid = serviceDatasetTuple.get(dataset.metadataIdentification);
 					String fileIdentification = serviceDatasetTuple.get(dataset.metadataFileIdentification);
-					String uuidref = config.getUrlPrefix() + "dataset/" + getName(fileIdentification);
+					String uuidref = config.getMetadataUrlPrefix() + "dataset/" + getName(fileIdentification);
 					
 					metadataDocument.addOperatesOn(uuid, uuidref);
 				}
