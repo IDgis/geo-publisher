@@ -262,6 +262,8 @@ public class ServiceAdmin extends AbstractAdmin {
 												return tx.insert(service)
 													.set(service.alternateTitle, theService.alternateTitle())
 													.set(service.metadata, theService.metadata())
+													.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+													.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 													.set(service.genericLayerId, glId.get())
 													.set(service.constantsId, cId.get())
 													.execute()
