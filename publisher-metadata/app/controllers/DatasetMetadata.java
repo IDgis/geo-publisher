@@ -91,7 +91,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.where(dataset.metadataFileIdentification.eq(id))
 					.singleResult(
 						dataset.id,
-						dataset.identification, 
+						dataset.metadataIdentification,
 						sourceDatasetMetadata.document);
 				
 				if(datasetTuple == null) {
