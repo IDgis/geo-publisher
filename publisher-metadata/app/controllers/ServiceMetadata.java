@@ -228,7 +228,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 			
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
-				String identifier = serviceDatasetTuple.get(dataset.metadataFileIdentification);
+				String identifier = serviceDatasetTuple.get(dataset.metadataIdentification);
 				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
 				
 				if(serviceType == ServiceType.WMS) {
