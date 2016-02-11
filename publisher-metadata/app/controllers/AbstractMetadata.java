@@ -15,7 +15,7 @@ import static play.mvc.Controller.request;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
-	protected final static String webjar = "/webjars/md-stylesheets/1.0/";
+	protected final WebJarAssets webJarAssets;
 	
 	protected final InetFilter filter;
 	
@@ -23,9 +23,10 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected final QueryDSL q;
 	
-	protected AbstractMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, String prefix) {
+	protected AbstractMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);
 		
+		this.webJarAssets = webJarAssets;
 		this.filter = filter;
 		this.config = config;
 		this.q = q;

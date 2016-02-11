@@ -69,13 +69,19 @@ public class ServiceMetadata extends AbstractMetadata {
 			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
 			+ "format=image/png&styles=";
 	
-	private final static String stylesheet = webjar + "services/intern/metadata.xsl";
+	private final static String stylesheet = "services/intern/metadata.xsl";
 		
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(filter, config, q, getTemplate(), "/");
+	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, filter, config, q, getTemplate(), "/");
+	}
+	
+	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(webJarAssets, filter, config, q, prefix);
+		
+		this.template = template;
 	}
 	
 	private static MetadataDocument getTemplate() throws Exception {
@@ -87,15 +93,9 @@ public class ServiceMetadata extends AbstractMetadata {
 				.getResourceAsStream("nl/idgis/publisher/metadata/service_metadata.xml"));
 	}
 	
-	public ServiceMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(filter, config, q, prefix);
-		
-		this.template = template;
-	}
-	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(filter, config, q, template, prefix);
+		return new ServiceMetadata(webJarAssets, filter, config, q, template, prefix);
 	}
 	
 	private SQLQuery fromService(Transaction tx) {
@@ -238,7 +238,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
-			metadataDocument.setStylesheet(stylesheet);
+			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet)).url());
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

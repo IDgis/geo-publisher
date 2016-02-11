@@ -47,24 +47,24 @@ import java.util.stream.Collectors;
 
 public class DatasetMetadata extends AbstractMetadata {
 	
-	private final static String stylesheet = webjar + "datasets/intern/metadata.xsl";
+	private final static String stylesheet = "datasets/intern/metadata.xsl";
 		
 	private final MetadataDocumentFactory mdf;
 	
 	@Inject
-	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(filter, config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, filter, config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(filter, config, q, prefix);
+	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(webJarAssets, filter, config, q, prefix);
 		
 		this.mdf = mdf;
 	}
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(filter, config, q, mdf, prefix);
+		return new DatasetMetadata(webJarAssets, filter, config, q, mdf, prefix);
 	}
 	
 	private SQLQuery fromDataset(Transaction tx) {
@@ -129,7 +129,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 				
-				metadataDocument.setStylesheet(stylesheet);
+				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet)).url());
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
