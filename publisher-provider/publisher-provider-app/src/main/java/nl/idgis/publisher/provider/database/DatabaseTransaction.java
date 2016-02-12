@@ -94,6 +94,8 @@ public class DatabaseTransaction extends JdbcTransaction {
 					break;
 				case "VARCHAR2":
 				case "NVARCHAR2":
+				case "NCHAR":
+				case "CHAR":
 					type = Type.TEXT;
 					break;
 				case "SDO_GEOMETRY":
