@@ -14,7 +14,7 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses;
+	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses, downloadUrlPrefix;
 	
 	private final Map<String, String> environmentPrefixes;
 
@@ -45,6 +45,8 @@ public class MetadataConfig {
 		trustedAddresses = metadata.getString("trusted-addresses", "");
 		
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
+		
+		downloadUrlPrefix = metadata.getString("download-url-prefix");
 	}
 	
 	public String getHost() {
@@ -73,5 +75,9 @@ public class MetadataConfig {
 	
 	public String getTrustedAddresses() {
 		return trustedAddresses;
+	}
+	
+	public Optional<String> getDownloadUrlPrefix() {
+		return Optional.ofNullable(downloadUrlPrefix);
 	}
 }

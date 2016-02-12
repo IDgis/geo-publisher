@@ -18,7 +18,7 @@ import model.dav.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.libs.Json;
@@ -120,6 +120,14 @@ public class DatasetMetadata extends AbstractMetadata {
 					
 					String serviceName = serviceInfo.get("name").asText();
 					String environmentId = serviceTuple.get(environment.identification);
+					
+					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(downloadUrlPrefix + id, "download", serviceTuple.get(publishedServiceDataset.layerName));
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
 					
 					for(ServiceType serviceType : ServiceType.values()) {
 						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
