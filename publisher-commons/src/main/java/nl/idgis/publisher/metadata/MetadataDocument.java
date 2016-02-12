@@ -719,13 +719,16 @@ public class MetadataDocument {
 	/**
 	 * Service metadata: BrowseGraphic
 	 */	
-	protected String getGraphicOverviewPath() {
+	protected String getServiceGraphicOverviewPath() {
 		return getServiceIdentificationPath() + "/gmd:graphicOverview";
 	}
 	
+	protected String getDatasetGraphicOverviewPath() {
+		return getDatasetIdentificationPath() + "/gmd:graphicOverview";
+	}
 	
 	public int removeBrowseGraphic() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getGraphicOverviewPath());		
+		return xmlDocument.removeNodes(namespaces, getServiceGraphicOverviewPath());		
 	}
 	
 	/**
@@ -733,7 +736,7 @@ public class MetadataDocument {
 	 * @param fileName content of the /gmd:MD_BrowseGraphic/gco:CharacterString node
 	 * @throws NotFound 
 	 */
-	public void addBrowseGraphic(String fileName) throws NotFound {		
+	public void addServiceBrowseGraphic(String fileName) throws NotFound {		
 		xmlDocument.addNode(
 				namespaces, 
 				getServiceIdentificationPath (), 
@@ -759,10 +762,34 @@ public class MetadataDocument {
 			);		
 	}
 	
-	public String getBrowseGraphic() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
+	/**
+	 * Add a new /gmd:MD_BrowseGraphic/gco:CharacterString node under gmd:graphicOverview
+	 * @param fileName content of the /gmd:MD_BrowseGraphic/gco:CharacterString node
+	 * @throws NotFound 
+	 */
+	public void addDatasetBrowseGraphic(String fileName) throws NotFound {		
+		xmlDocument.addNode(
+				namespaces, 
+				getDatasetIdentificationPath (), 
+				new String[] {
+					"gmd:resourceFormat",
+					"gmd:descriptiveKeywords",
+					"gmd:resourceSpecificUsage",
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo"
+				},
+				"gmd:graphicOverview/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString", 
+				fileName
+			);		
 	}
 	
+	public List<String> getServiceBrowseGraphics() throws QueryFailure {
+		return xpath().strings(getServiceGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
+	}
+	
+	public List<String> getDatasetBrowseGraphics() throws QueryFailure {
+		return xpath().strings(getDatasetGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
+	}
 
 	/**
 	 * Service metadata: Service Endpoint

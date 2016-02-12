@@ -376,11 +376,11 @@ public class MetadataDocumentTest {
 				"https://overijssel.geo-hosting.nl/geoserver/wms?request=GetMap&Service=WMS"+
 				"&SRS=EPSG:28992&CRS=EPSG:28992&Bbox=180000,459000,270000,540000&Width=600"+
 				"&Height=662&Layers=b1:grenzen&Format=image/png&Styles=";
-		document.addBrowseGraphic(fileName);
+		document.addServiceBrowseGraphic(fileName);
 		
-		String result = document.getBrowseGraphic();		
-		assertNotNull("No browse graphic found", result);
-		assertEquals("No protocol found", fileName, result);
+		List<String> result = document.getServiceBrowseGraphics();		
+		assertFalse("No browse graphic found", result.isEmpty());
+		assertEquals("No protocol found", fileName, result.get(0));
 		
 		// remove all child nodes		
 		i = document.removeBrowseGraphic();
@@ -388,7 +388,7 @@ public class MetadataDocumentTest {
 		
 		// check no node anymore
 		try {
-			document.getBrowseGraphic();
+			document.getServiceBrowseGraphics();
 			fail("Unexpected layer found");
 		} catch(Exception e) {}
 	}

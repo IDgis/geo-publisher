@@ -64,11 +64,6 @@ public class ServiceMetadata extends AbstractMetadata {
 
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
 	
-	private static final String BROWSE_GRAPHIC_BASE_URL =  
-			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
-			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
-			+ "format=image/png&styles=";
-	
 	private final static String stylesheet = "services/intern/metadata.xsl";
 		
 	private final MetadataDocument template;
@@ -232,7 +227,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
 				
 				if(serviceType == ServiceType.WMS) {
-					metadataDocument.addBrowseGraphic(linkage + BROWSE_GRAPHIC_BASE_URL + "&layers=" + scopedName);
+					metadataDocument.addServiceBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
 				}
 				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
