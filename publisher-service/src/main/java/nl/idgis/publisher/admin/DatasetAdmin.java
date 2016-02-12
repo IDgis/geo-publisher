@@ -563,6 +563,8 @@ public class DatasetAdmin extends AbstractAdmin {
 						try {
 							return tx.insert(dataset)
 								.set(dataset.identification, datasetIdent)
+								.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+								.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 								.set(dataset.name, putDataset.getDatasetName())
 								.set(dataset.sourceDatasetId, sourceDatasetId.get())
 								.set(dataset.filterConditions, 

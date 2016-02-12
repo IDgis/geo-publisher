@@ -1,4 +1,4 @@
-package controller;
+package controllers;
 
 import javax.inject.Inject;
 
@@ -18,7 +18,7 @@ import model.dav.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.libs.Json;
@@ -36,7 +36,6 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
@@ -47,23 +46,25 @@ import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 public class DatasetMetadata extends AbstractMetadata {
+	
+	private final static String stylesheet = "datasets/intern/metadata.xsl";
 		
 	private final MetadataDocumentFactory mdf;
 	
 	@Inject
-	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(filter, config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, filter, config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(filter, config, q, prefix);
+	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(webJarAssets, filter, config, q, prefix);
 		
 		this.mdf = mdf;
 	}
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(filter, config, q, mdf, prefix);
+		return new DatasetMetadata(webJarAssets, filter, config, q, mdf, prefix);
 	}
 	
 	private SQLQuery fromDataset(Transaction tx) {
@@ -73,10 +74,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
 			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
 				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.list(sourceDatasetVersion.id.max())))
-			.where(new SQLSubQuery().from(publishedServiceDataset)
-				.where(publishedServiceDataset.datasetId.eq(dataset.id))
-				.exists());
+				.list(sourceDatasetVersion.id.max())));
 		
 		if(!isTrusted()) {
 			query.where(sourceDatasetVersion.confidential.isFalse());
@@ -93,7 +91,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.where(dataset.metadataFileIdentification.eq(id))
 					.singleResult(
 						dataset.id,
-						dataset.identification, 
+						dataset.metadataIdentification,
 						sourceDatasetMetadata.document);
 				
 				if(datasetTuple == null) {
@@ -103,9 +101,8 @@ public class DatasetMetadata extends AbstractMetadata {
 				int datasetId = datasetTuple.get(dataset.id);
 				
 				List<Tuple> serviceTuples = tx.query().from(publishedService)
-					.join(publishedServiceEnvironment).on(publishedServiceEnvironment.serviceId.eq(publishedService.serviceId))					
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
-					.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+					.join(environment).on(environment.id.eq(publishedService.environmentId))
 					.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,
@@ -113,10 +110,11 @@ public class DatasetMetadata extends AbstractMetadata {
 						publishedServiceDataset.layerName);
 				
 				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
-				metadataDocument.removeStylesheet();
 				
 				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
 				metadataDocument.setFileIdentifier(id);
+				
+				List<String> browseGraphics = metadataDocument.getDatasetBrowseGraphics();
 				
 				metadataDocument.removeServiceLinkage();
 				for(Tuple serviceTuple : serviceTuples) {
@@ -124,14 +122,32 @@ public class DatasetMetadata extends AbstractMetadata {
 					
 					String serviceName = serviceInfo.get("name").asText();
 					String environmentId = serviceTuple.get(environment.identification);
+					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
+					
+					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(downloadUrlPrefix + id, "download", serviceTuple.get(publishedServiceDataset.layerName));
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+					
+					// we only automatically generate browseGraphics 
+					// when none where provided by the source. 
+					if(browseGraphics.isEmpty()) {
+						String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
+						metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
+					}
 					
 					for(ServiceType serviceType : ServiceType.values()) {
 						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, serviceTuple.get(publishedServiceDataset.layerName));
+						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
 					}
 				}
+				
+				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet)).url());
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

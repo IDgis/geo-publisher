@@ -4,7 +4,6 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QService.service;
@@ -13,12 +12,9 @@ import static nl.idgis.publisher.database.QStyle.style;
 import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
-import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLInsertClause;
@@ -42,14 +38,14 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 
 	private final Service stagingService;
 	
-	private final Set<String> unfilteredEnvironmentIds;
+	private final String environmentId;
 
-	public PublishServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, Service stagingService, Set<String> environmentIds) {
+	public PublishServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, Service stagingService, Optional<String> environmentId) {
 		super(log, f, new SQLSubQuery());
 		
 		this.tx = tx;
 		this.stagingService = stagingService;
-		this.unfilteredEnvironmentIds = environmentIds;
+		this.environmentId = environmentId.orElse(null);
 	}
 	
 	private Predicate getServicePredicate(NumberExpression<Integer> idExpr) {
@@ -68,41 +64,37 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 					log.debug("existing published_service_style records deleted: {}", styles);
 					
 					return
-						tx.delete(publishedServiceEnvironment)
-							.where(getServicePredicate(publishedServiceEnvironment.serviceId))
-							.execute().thenCompose(environments -> {
-								log.debug("existing published_service_environment records deleted: {}", environments);
-								
-								return
-									tx.delete(publishedServiceDataset)
-										.where(getServicePredicate(publishedServiceDataset.serviceId))
-										.execute().thenCompose(datasets -> {
-											log.debug("existing published_service_dataset records deleted: {}", datasets);
-								
-											return 
-												tx.delete(publishedService)
-													.where(getServicePredicate(publishedService.serviceId))
-													.execute();
-								});
-							});
+							tx.delete(publishedServiceDataset)
+								.where(getServicePredicate(publishedServiceDataset.serviceId))
+								.execute().thenCompose(datasets -> {
+									log.debug("existing published_service_dataset records deleted: {}", datasets);
+						
+									return 
+										tx.delete(publishedService)
+											.where(getServicePredicate(publishedService.serviceId))
+											.execute();
+						});
 				});
 	}
 	
-	private CompletableFuture<Set<String>> getEnvironmentIds () {
-		if (!stagingService.isConfidential ()) {
-			return CompletableFuture.completedFuture (Collections.unmodifiableSet (unfilteredEnvironmentIds));
+	private CompletableFuture<Optional<Integer>> getEnvironmentId() {
+		if(environmentId == null) {
+			return f.successful(Optional.empty());
 		}
 		
-		return tx
-			.query ()
-			.from (environment)
-			.where (environment.confidential.isTrue ())
-			.list (environment.identification)
-			.thenApply (identifications -> identifications
-				.list ()
-				.stream ()
-				.filter (unfilteredEnvironmentIds::contains)
-				.collect (Collectors.toSet ()));
+		return  
+			tx.query().from(environment)
+			.where(environment.identification.eq(environmentId))
+			.singleResult(environment.confidential, environment.id).thenApply(optionalEnvironmentInfo -> {
+				Tuple environmentInfo = optionalEnvironmentInfo.orElseThrow(() -> 
+					new IllegalArgumentException("environment doesn't exist: " + environmentId));
+				
+				if(stagingService.isConfidential() && !environmentInfo.get(environment.confidential)) {
+					throw new IllegalArgumentException("environment is not confidential: " + environmentId);
+				}
+				
+				return Optional.of(environmentInfo.get(environment.id));
+			});
 	}
 
 	@Override
@@ -112,42 +104,39 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 		log.debug("publishing service: {}" , serviceIdentification);
 				
 		return
-			getEnvironmentIds().thenCompose (environmentIds ->
+			getEnvironmentId().thenCompose (environmentId ->
 			deleteExisting().thenCompose(publishedServices -> {
 				log.debug("existing published_service records deleted: {}", publishedServices);
 				
-				if(environmentIds.isEmpty()) {
-					log.debug("no environmentIds given -> not publishing");
+				if(environmentId.isPresent()) {
+					return getServiceInfo(serviceIdentification).thenCompose(serviceInfo ->
+						insert(
+							serviceIdentification, 
+							serviceInfo.orElseThrow(() -> 
+								new IllegalArgumentException("service doesn't exist: " + serviceIdentification)),
+							environmentId.get()));
+				} else {
+					log.debug("no environmentId given -> not publishing");
 					
 					return f.successful(new Ack());
 				}
-				
-				return getServiceInfo(serviceIdentification).thenCompose(serviceInfo ->
-					insert(serviceIdentification, environmentIds, serviceInfo.orElseThrow(() -> 
-						new IllegalArgumentException("service doesn't exists: " + serviceIdentification))));
 		}));
 	}
 
-	private CompletionStage<Ack> insert(String serviceIdentification, Set<String> environmentIds, Tuple serviceInfo) {
+	private CompletionStage<Ack> insert(String serviceIdentification, Tuple serviceInfo, int environmentId) {
 		int serviceId = serviceInfo.get(service.id);
 		
 		return 
-			insertPublishedService(serviceInfo, serviceId).thenCompose(publishedService ->			
-			insertPublishedServiceEnvironment(environmentIds, serviceId)).thenCompose(publishedServiceEnvironments ->
+			insertPublishedService(serviceInfo, serviceId, environmentId).thenCompose(publishedService ->
 			insertPublishedServiceKeyword(serviceId).thenCompose(publishedServiceKeywords ->
 			insertPublishedServiceStyle(serviceIdentification, serviceId).thenCompose(publishedServiceStyles ->
 			insertPublishedServiceDataset(serviceIdentification, serviceId).thenApply(publishedServiceDatasets -> {
-				long missingEnvironments = environmentIds.size() - publishedServiceEnvironments;
-				if(missingEnvironments > 0) {
-					throw new IllegalArgumentException("" + missingEnvironments + " environments don't exist");
-				}
 				
-				log.debug("published for {} environments", publishedServiceEnvironments);
 				log.debug("published service has {} keywords", publishedServiceKeywords);
 				log.debug("published service uses {} styles", publishedServiceStyles);
 				log.debug("published service uses {} datasets", publishedServiceDatasets);
 			
-				return new Ack();							
+				return new Ack();
 			}))));
 	}
 
@@ -219,24 +208,12 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 					return publishedServiceStyleInsert.execute();
 				}
 			});
-	}
+	}	
 
-	private CompletableFuture<Long> insertPublishedServiceEnvironment(Set<String> environmentIds, int serviceId) {
-		return tx.insert(publishedServiceEnvironment)
-			.columns(
-				publishedServiceEnvironment.serviceId,
-				publishedServiceEnvironment.environmentId)
-			.select(new SQLSubQuery().from(environment)
-				.where(environment.identification.in(environmentIds))
-				.list(
-					serviceId,
-					environment.id))
-			.execute();
-	}
-
-	private CompletableFuture<Long> insertPublishedService(Tuple tuple, int serviceId) {
+	private CompletableFuture<Long> insertPublishedService(Tuple tuple, int serviceId, int environmentId) {
 		return tx.insert(publishedService)
 			.set(publishedService.serviceId, serviceId)
+			.set(publishedService.environmentId, environmentId)
 			.set(publishedService.title, tuple.get(genericLayer.title))
 			.set(publishedService.alternateTitle, tuple.get(service.alternateTitle))
 			.set(publishedService.abstractCol, tuple.get(genericLayer.abstractCol))

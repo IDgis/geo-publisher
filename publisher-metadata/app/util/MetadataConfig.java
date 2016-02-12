@@ -14,7 +14,7 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, urlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses;
+	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses, downloadUrlPrefix;
 	
 	private final Map<String, String> environmentPrefixes;
 
@@ -37,13 +37,16 @@ public class MetadataConfig {
 		this.environmentPrefixes = Collections.unmodifiableMap(environmentPrefixes);
 		
 		host = metadata.getString("host");
-		path = "/metadata";
-		urlPrefix = "http://" + host + path + "/";
+		path = "/";
 		
 		zooKeeperHosts = config.getString("zooKeeper.hosts");
 		zooKeeperNamespace = config.getString("zooKeeper.namespace");
 		
 		trustedAddresses = metadata.getString("trusted-addresses", "");
+		
+		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
+		
+		downloadUrlPrefix = metadata.getString("download-url-prefix");
 	}
 	
 	public String getHost() {
@@ -58,8 +61,8 @@ public class MetadataConfig {
 		return Optional.ofNullable(environmentPrefixes.get(environmentId));
 	}
 	
-	public String getUrlPrefix() {
-		return urlPrefix;
+	public String getMetadataUrlPrefix() {
+		return metadataUrlPrefix;
 	}
 	
 	public Optional<String> getZooKeeperHosts() {
@@ -72,5 +75,9 @@ public class MetadataConfig {
 	
 	public String getTrustedAddresses() {
 		return trustedAddresses;
+	}
+	
+	public Optional<String> getDownloadUrlPrefix() {
+		return Optional.ofNullable(downloadUrlPrefix);
 	}
 }

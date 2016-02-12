@@ -4,7 +4,6 @@ import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStruct
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -36,14 +35,12 @@ import java.io.StringWriter;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -135,7 +132,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 	int vectorDatasetId, rasterDatasetId;
 		
-	Set<String> environmentIds;
+	List<String> environmentIds;
 	
 	@Before
 	public void databaseContent() throws Exception {
@@ -286,7 +283,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.values(rasterJobId, "SUCCEEDED").addBatch()
 			.execute();	
 		
-		environmentIds = new HashSet<>();
+		environmentIds = new ArrayList<>();
 		environmentIds.add("environment0");
 		environmentIds.add("environment1");
 		environmentIds.add("environment2");
@@ -1618,7 +1615,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
 		
-		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), Ack.class).get();
 		
 		Iterator<Tuple> publishedServiceItr = 
 			query().from(publishedService)
@@ -1645,10 +1642,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertFalse(publishedServiceItr.hasNext());
 		
 		Iterator<Tuple> publishedServiceEnvironmentItr =
-			query().from(publishedServiceEnvironment)
-				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+			query().from(publishedService)
+				.join(service).on(service.id.eq(publishedService.serviceId))
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.join(environment).on(environment.id.eq(publishedService.environmentId))
 				.orderBy(environment.identification.asc())
 				.list(
 					genericLayer.identification,
@@ -1659,18 +1656,6 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		Tuple publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
 		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
 		assertEquals("environment0", publishedServiceEnvironmentTuple.get(environment.identification));
-		
-		assertTrue(publishedServiceEnvironmentItr.hasNext());
-		
-		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
-		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
-		assertEquals("environment1", publishedServiceEnvironmentTuple.get(environment.identification));
-		
-		assertTrue(publishedServiceEnvironmentItr.hasNext());
-		
-		publishedServiceEnvironmentTuple = publishedServiceEnvironmentItr.next();
-		assertEquals("service", publishedServiceEnvironmentTuple.get(genericLayer.identification));
-		assertEquals("environment2", publishedServiceEnvironmentTuple.get(environment.identification));
 		
 		assertFalse(publishedServiceEnvironmentItr.hasNext());
 		
@@ -1750,17 +1735,14 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		assertFalse(query().from(publishedService).exists());
-		assertFalse(query().from(publishedServiceEnvironment).exists());
 		
-		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), Ack.class).get();
 		
 		assertEquals(1, query().from(publishedService).count());
-		assertEquals(3, query().from(publishedServiceEnvironment).count());
 		
-		f.ask(serviceManager, new PublishService("service", Collections.emptySet()), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service"), Ack.class).get();
 		
 		assertFalse(query().from(publishedService).exists());
-		assertFalse(query().from(publishedServiceEnvironment).exists());
 	}
 	
 	@Test
@@ -1867,18 +1849,24 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			assertTrue(serviceIndex.getStyleNames().isEmpty());
 		}
 		
-		f.ask(serviceManager, new PublishService("service0", environmentIds), Ack.class).get();
+		String environmentId = environmentIds.get(0);
+		f.ask(serviceManager, new PublishService("service0", Optional.of(environmentId)), Ack.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();
 		assertEquals(3, publishedEnvironments.size());
-		for(String environment : environmentIds) {
-			assertTrue(environment + " missing", publishedEnvironments.containsKey(environment));
+		for(String currentEnvironmentId : environmentIds) {
+			assertTrue(currentEnvironmentId + " missing", publishedEnvironments.containsKey(currentEnvironmentId));
 			
-			ServiceIndex serviceIndex = publishedEnvironments.get(environment);
+			ServiceIndex serviceIndex = publishedEnvironments.get(currentEnvironmentId);
 			assertNotNull(serviceIndex);
 			
-			assertEquals(Arrays.asList("service-name0"), serviceIndex.getServiceNames());
-			assertEquals(Arrays.asList("style-name0"), serviceIndex.getStyleNames());
+			if(currentEnvironmentId.equals(environmentId)) {
+				assertEquals(Arrays.asList("service-name0"), serviceIndex.getServiceNames());
+				assertEquals(Arrays.asList("style-name0"), serviceIndex.getStyleNames());
+			} else {
+				assertTrue(serviceIndex.getServiceNames().isEmpty());
+				assertTrue(serviceIndex.getStyleNames().isEmpty());
+			}
 		}
 		
 		insert(layerStyle)
@@ -1887,7 +1875,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStyle.styleOrder, 1)
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("service0", Collections.singleton("environment0")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service0", Optional.of("environment0")), Ack.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();	
 		assertTrue(publishedEnvironments.containsKey("environment0"));
@@ -1912,7 +1900,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("service1", Collections.singleton("environment0")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service1", Optional.of("environment0")), Ack.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();
 		assertTrue(publishedEnvironments.containsKey("environment0"));		
@@ -1983,15 +1971,16 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
 		
-		f.ask(serviceManager, new PublishService("service", environmentIds), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of("environment0")), Failure.class).get();
 		
-		Iterator<Tuple> publishedServiceItr = 
+		f.ask(serviceManager, new PublishService("service", Optional.of("environment1")), Ack.class).get();
+		
+		Tuple publishedServiceTuple = 
 			query().from(publishedService)
-			.list(publishedService.all()).iterator();
+			.singleResult(publishedService.all());
 		
-		assertTrue(publishedServiceItr.hasNext());
+		assertNotNull(publishedServiceTuple);
 		
-		Tuple publishedServiceTuple = publishedServiceItr.next();
 		String publishedServiceContent = publishedServiceTuple.get(publishedService.content);
 		assertNotNull(publishedServiceContent);
 		
@@ -2007,13 +1996,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		assertNotNull(reconstrucedPublishedService);
 		assertEquals("service", reconstrucedPublishedService.getId());
 		
-		assertFalse(publishedServiceItr.hasNext());
-		
 		Iterator<Tuple> publishedServiceEnvironmentItr =
-			query().from(publishedServiceEnvironment)
-				.join(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+			query().from(publishedService)
+				.join(service).on(service.id.eq(publishedService.serviceId))
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-				.join(environment).on(environment.id.eq(publishedServiceEnvironment.environmentId))
+				.join(environment).on(environment.id.eq(publishedService.environmentId))
 				.orderBy(environment.identification.asc())
 				.list(
 					genericLayer.identification,

@@ -4,7 +4,7 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QStyle.style;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceStyle.publishedServiceStyle;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
@@ -214,7 +214,7 @@ public class ServiceManager extends UntypedActor {
 						Optional.of(tx.getTransactionRef()), 
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
-							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentIds())
+							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentId())
 								.result()).thenCompose(publishResult ->
 									ensureViews(tx, msg.getServiceId())));
 	}
@@ -259,13 +259,13 @@ public class ServiceManager extends UntypedActor {
 		ActorRef sender = getSender();
 		db.transactional(tx ->
 			tx.query().from(environment)
-				.leftJoin(publishedServiceEnvironment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
-				.leftJoin(service).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.leftJoin(publishedService).on(publishedService.environmentId.eq(environment.id))
+				.leftJoin(service).on(service.id.eq(publishedService.serviceId))
 				.leftJoin(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 				.list(environment.identification, genericLayer.name).<List<TypedList<Tuple>>>thenCompose(services ->
 					tx.query().from(environment)
-						.leftJoin(publishedServiceEnvironment).on(publishedServiceEnvironment.environmentId.eq(environment.id))
-						.leftJoin(publishedServiceStyle).on(publishedServiceStyle.serviceId.eq(publishedServiceEnvironment.serviceId))
+						.leftJoin(publishedService).on(publishedService.environmentId.eq(environment.id))
+						.leftJoin(publishedServiceStyle).on(publishedServiceStyle.serviceId.eq(publishedService.serviceId))
 						.list(environment.identification, publishedServiceStyle.name).<List<TypedList<Tuple>>>thenApply(styles ->
 							Arrays.asList(services, styles)))).thenAccept(result -> {
 								Map<String, List<String>> services = 

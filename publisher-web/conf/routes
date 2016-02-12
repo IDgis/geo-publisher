@@ -100,8 +100,6 @@ POST	/user/authenticate								controllers.User.authenticate()
 
 # Metadata
 GET		/metadata/source-datasets/:sourceDatasetId		controllers.Metadata.sourceDataset(sourceDatasetId: String)
-GET		/metadata/datasets/:fileId						controllers.Metadata.dataset(fileId: String)
-GET		/metadata/services/:fileId						controllers.Metadata.service(fileId: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET		/javascriptRoutes  								controllers.Application.javascriptRoutes

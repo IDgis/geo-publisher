@@ -1,12 +1,12 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QPublishedServiceEnvironment.publishedServiceEnvironment;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
@@ -46,7 +46,6 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Ops;
 import com.mysema.query.types.expr.BooleanExpression;
-import com.mysema.query.types.expr.StringExpression;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
@@ -85,7 +84,8 @@ public class ServiceAdmin extends AbstractAdmin {
 			serviceManager, 
 			new PublishService(
 				performPublish.getServiceId(), 
-				performPublish.getEnvironmentIds()), Ack.class)
+				performPublish.getEnvironmentId()),
+			Ack.class)
 					.thenApply(ack -> true)
 					.exceptionally(t -> false);
 	}
@@ -98,12 +98,12 @@ public class ServiceAdmin extends AbstractAdmin {
 		String serviceId = listEnvironments.getServiceId();
 		final Page.Builder<ServicePublish> builder = new Page.Builder<> ();
 		
-		BooleanExpression inUse = new SQLSubQuery().from(publishedServiceEnvironment)
-			.join(service).on(publishedServiceEnvironment.serviceId.eq(service.id))
-			.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-			.where(genericLayer.identification.eq(serviceId)
-					.and(publishedServiceEnvironment.environmentId.eq(environment.id)))
-			.exists().as("inUse");
+		BooleanExpression inUse = new SQLSubQuery().from(publishedService)
+			.join(service).on(service.id.eq(publishedService.serviceId))
+			.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+			.where(genericLayer.identification.eq(serviceId))
+			.where(environment.id.eq(publishedService.environmentId))
+			.exists();
 		
 		return db.query().from(environment)
 			.orderBy(environment.name.asc())
@@ -139,8 +139,8 @@ public class ServiceAdmin extends AbstractAdmin {
 	
 	private BooleanExpression isPublished () {		
 		return new SQLSubQuery ()			
-			.from(publishedServiceEnvironment)			
-			.where(service.id.eq(publishedServiceEnvironment.serviceId))
+			.from(publishedService)			
+			.where(service.id.eq(publishedService.serviceId))
 			.exists().as("isPublished");
 	}
 	
@@ -150,7 +150,7 @@ public class ServiceAdmin extends AbstractAdmin {
 				.from(service)
 				.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 				.leftJoin(constants).on(service.constantsId.eq(constants.id))
-				.leftJoin(publishedServiceEnvironment).on(service.id.eq(publishedServiceEnvironment.serviceId))
+				.leftJoin(publishedService).on(service.id.eq(publishedService.serviceId))
 				.distinct()
 				.orderBy (genericLayer.name.asc ());
 		
@@ -163,7 +163,7 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		// Add a filter for the published flag:
 		if (listServices.getIsPublished () != null) {
-			baseQuery.where (publishedServiceEnvironment.serviceId.isNotNull().eq(listServices.getIsPublished ()));
+			baseQuery.where (publishedService.serviceId.isNotNull().eq(listServices.getIsPublished ()));
 		}
 		
 		final AsyncSQLQuery listQuery = baseQuery.clone ();
@@ -262,6 +262,8 @@ public class ServiceAdmin extends AbstractAdmin {
 												return tx.insert(service)
 													.set(service.alternateTitle, theService.alternateTitle())
 													.set(service.metadata, theService.metadata())
+													.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+													.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 													.set(service.genericLayerId, glId.get())
 													.set(service.constantsId, cId.get())
 													.execute()

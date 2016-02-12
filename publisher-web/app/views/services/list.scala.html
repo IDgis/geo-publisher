@@ -4,6 +4,10 @@
 	routes.Services.list (query, isPublished, targetPage)		
 }
 
+@metadataUrl(fileId: String) = @{
+	play.Play.application().configuration().getString("publisher.metadata.service") + fileId + ".xml" 
+}
+
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),
 	jsMain = routes.Assets.at("js/services/list.js").url, 
@@ -146,7 +150,7 @@
 									<span>&nbsp;WMS&nbsp;</span>
 								</a>
 								@if(service.isPublished) {
-									<a href="@routes.Metadata.service(service.wmsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="@metadataUrl(service.wmsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} else {
 									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} 
@@ -155,7 +159,7 @@
 									<span>&nbsp;WFS&nbsp;</span>
 								</a>
 								@if(service.isPublished) {
-									<a href="@routes.Metadata.service(service.wfsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wfs")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
+									<a href="@metadataUrl(service.wfsMetadataFileId)" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.metadata.wfs")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} else {
 									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wfs")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								}

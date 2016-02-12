@@ -1,25 +1,29 @@
 package nl.idgis.publisher.domain.query;
 
-import java.util.Set;
+import java.util.Optional;
 
 public class PerformPublish implements DomainQuery<Boolean> {
 	
-	private static final long serialVersionUID = -3425836343101017202L;
+	private static final long serialVersionUID = 4253088083282466495L;
 
 	private final String serviceId;
 	
-	private final Set<String> environmentIds;
+	private final String environmentId;
+	
+	public PerformPublish(String serviceId) {
+		this(serviceId, null);
+	}
 
-	public PerformPublish(String serviceId, Set<String> environmentIds) {
+	public PerformPublish(String serviceId, String environmentId) {
 		this.serviceId = serviceId;
-		this.environmentIds = environmentIds;
+		this.environmentId = environmentId;
 	}
 
 	public String getServiceId() {
 		return serviceId;
 	}
 
-	public Set<String> getEnvironmentIds() {
-		return environmentIds;
+	public Optional<String> getEnvironmentId() {
+		return Optional.ofNullable(environmentId);
 	}
 }

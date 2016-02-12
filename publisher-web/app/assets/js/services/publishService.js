@@ -20,6 +20,13 @@ require ([
 	var inputs = query ('form input[type="checkbox"]'),
 		submitButton = query ('form button[type="submit"]')[0];
 	
+	// ensures that only a single checkbox is selected
+	array.forEach (inputs, function (a) {
+		 on (a, 'change', function() { 
+		 	array.forEach (inputs, function (b) { if (a != b) { b.checked = false; } });
+		 });
+	});
+	
 	function updateSubmitButton () {
 		submitButton.disabled = !array.every (inputs, function (i) { return !i.checked; });
 	}

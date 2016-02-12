@@ -4,6 +4,7 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -220,10 +221,20 @@ public class Services extends Controller {
 	public static Promise<Result> submitPublishService(String serviceId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
+		PerformPublish msg;
 		Set<String> environmentIds = new HashSet<>(request().body().asFormUrlEncoded().keySet());
+		Iterator<String> itr = environmentIds.iterator();
+		if(itr.hasNext()) {
+			msg = new PerformPublish(serviceId, itr.next());
+			if(itr.hasNext()) {
+				throw new IllegalArgumentException("multiple environments");
+			}
+		} else {
+			msg = new PerformPublish(serviceId);
+		}
 		
 		return from(database)
-			.query(new PerformPublish(serviceId, environmentIds))
+			.query(msg)
 			//.execute(result -> ok("saved: " + result));
 			.executeFlat(new Function <Boolean, Promise<Result>> () {
 				@Override

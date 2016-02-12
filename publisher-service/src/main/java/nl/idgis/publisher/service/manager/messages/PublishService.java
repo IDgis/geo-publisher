@@ -2,29 +2,32 @@ package nl.idgis.publisher.service.manager.messages;
 
 import java.io.Serializable;
 import java.util.Optional;
-import java.util.Set;
 
 import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncTransactional;
 
 public class PublishService implements Serializable, AsyncTransactional {
-
-	private static final long serialVersionUID = -8391524952091189779L;
 	
+	private static final long serialVersionUID = 7938304214996997626L;
+
 	private final AsyncTransactionRef transactionRef;
 	
 	private final String serviceId;
 	
-	private final Set<String> environmentIds;
+	private final String environmentId;
 	
-	public PublishService(String serviceId, Set<String> environmentIds) {
-		this(Optional.empty(), serviceId, environmentIds);
+	public PublishService(String serviceId) {
+		this(serviceId, Optional.empty());
+	}
+	
+	public PublishService(String serviceId, Optional<String> environmentId) {
+		this(Optional.empty(), serviceId, environmentId);
 	}
 
-	public PublishService(Optional<AsyncTransactionRef> transactionRef, String serviceId, Set<String> environmentIds) {
+	public PublishService(Optional<AsyncTransactionRef> transactionRef, String serviceId, Optional<String> environmentId) {
 		this.transactionRef = transactionRef.orElse(null);
 		this.serviceId = serviceId;
-		this.environmentIds = environmentIds;
+		this.environmentId = environmentId.orElse(null);
 	}
 	
 	@Override
@@ -36,14 +39,14 @@ public class PublishService implements Serializable, AsyncTransactional {
 		return serviceId;
 	}
 
-	public Set<String> getEnvironmentIds() {
-		return environmentIds;
+	public Optional<String> getEnvironmentId() {
+		return Optional.ofNullable(environmentId);
 	}
 
 	@Override
 	public String toString() {
 		return "PublishService [transactionRef=" + transactionRef
-				+ ", serviceId=" + serviceId + ", environmentIds="
-				+ environmentIds + "]";
+				+ ", serviceId=" + serviceId + ", environmentId="
+				+ environmentId + "]";
 	}
 }

@@ -16,6 +16,7 @@ ext {
 	jettyVersion = '9.2.2.v20140723'
 	curatorVersion = '2.7.1'
 	querydslVersion = '3.4.1'
+	mdStylesheetsVersion = '1.0.1'
 }
 
 subprojects {
@@ -233,7 +234,7 @@ project(':publisher-web') {
 	dependencies {
 		play project(':publisher-domain')
 		play project(':publisher-schemas')
-		play 'nl.idgis.geoportaal:md-stylesheets:1.0'
+		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
 		play "com.typesafe.play:play-java-jdbc_${scalaAbiVersion}:${playVersion}"
 		play "com.typesafe.play:play-cache_${scalaAbiVersion}:${playVersion}"
 		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
@@ -507,6 +508,8 @@ project(':publisher-metadata') {
 		playTest "junit:junit:${junitVersion}"
 	
 		play project(':publisher-database')
+		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
+		play "org.webjars:webjars-play_${scalaAbiVersion}:2.4.0-2"
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
 		play "com.typesafe.play:play-cache_2.11:${playVersion}"
 		play "com.typesafe.play:play-java-ws_2.11:${playVersion}"
