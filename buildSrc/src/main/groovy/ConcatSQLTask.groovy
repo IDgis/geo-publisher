@@ -40,7 +40,7 @@ class ConcatSQLTask extends DefaultTask {
 		
 		def ignorePattern = ~/.*?--.*?<(.*?)>/
 		
-		project.fileTree(dir: inputDir, includes: ['*.sql'])
+		project.fileTree(dir: new File(project.projectDir, inputDir), includes: ['*.sql'])
 			.files
 			.toSorted { it.name }
 			.each {
