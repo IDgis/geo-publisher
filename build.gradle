@@ -345,7 +345,7 @@ project(':publisher-database') {
 	}
 	
 	task generateDatabaseScript(type: ConcatSQLTask) {
-		inputDir = '/src/main/resources/nl/idgis/publisher/database'
+		inputDir = 'src/main/resources/nl/idgis/publisher/database'
 		buildDir = 'database-script'
 		destFileName = 'publisher.sql'
 		databaseType = 'H2'
