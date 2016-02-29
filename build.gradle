@@ -1,3 +1,13 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+
+	dependencies {
+		classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+	}
+}
+
 apply plugin: GitVersion
 apply plugin: 'eclipse'
 
@@ -254,9 +264,24 @@ project(':publisher-web') {
 }
 
 project(':publisher-provider:publisher-provider-app') {
-	apply plugin: 'application'
+	apply plugin: 'com.github.johnrengelman.shadow'
+	apply plugin: 'maven-publish'
 	
-	mainClassName = 'nl.idgis.publisher.provider.App'
+	jar {
+		manifest {
+			attributes('Main-Class': 'nl.idgis.publisher.provider.App')
+		}
+	}
+	
+	publishing {
+		publications {
+			shadow(MavenPublication) {
+				from components.java
+				groupId 'nl.idgis.publisher'
+				artifact shadowJar
+			}
+		}
+	}
 
 	dependencies {
 		testCompile project(':publisher-test')
@@ -459,10 +484,7 @@ project(':publisher-service') {
 }
 
 // configure distZip as publication
-configure([
-	project(':publisher-provider:publisher-provider-app'),
-	project(':publisher-service')]) {
-	
+project(':publisher-service') {	
 	apply plugin: 'maven-publish'
 	
 	publishing {
