@@ -125,10 +125,10 @@ public class JobCreator extends AbstractAdmin {
 		
 		jobManager.tell(new CreateVacuumServiceJob(true), getSelf());
 		if(environmentId.isPresent()) {
-			log.debug("not published -> not creating ensure job");
-		} else {
 			log.debug("published -> creating ensure job");
 			jobManager.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
+		} else {
+			log.debug("not published -> not creating ensure job");
 		}
 	}
 	
