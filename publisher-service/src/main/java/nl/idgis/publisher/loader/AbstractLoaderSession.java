@@ -174,7 +174,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 					} else {
 						log.warning("unexpected sequence number: {}, expected: {}", seq, lastSeq + 1);
 					}
-				} else if(msg instanceof ReceiveTimeout && retries > 0) {
+				} else if(msg instanceof ReceiveTimeout && retries > 0 && lastItemSender != null) {
 					log.warning("timemout, requesting retry");
 					lastItemSender.tell(new NextItem(lastSeq + 1), getSelf());
 					retries--;
