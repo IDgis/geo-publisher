@@ -21,7 +21,7 @@ ext {
 	jodatimeVersion = '2.3'
 	geoserverVersion = '2.6.1-gpo-3'
 	commonsIOVersion = '2.4'
-	deegreeVersion = '3.4-pre13'
+	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
 	jettyVersion = '9.2.2.v20140723'
 	curatorVersion = '2.7.1'
