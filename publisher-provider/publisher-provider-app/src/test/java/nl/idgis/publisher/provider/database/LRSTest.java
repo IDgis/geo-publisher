@@ -7,7 +7,6 @@ import java.sql.Statement;
 
 import org.deegree.geometry.Geometry;
 import org.deegree.geometry.io.WKTWriter;
-import org.deegree.sqldialect.oracle.sdo.ExtendedSDOGeometryConverter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 import org.junit.Test;
 
@@ -18,8 +17,7 @@ public class LRSTest {
 
 	// @Test
 	public void testLRS() throws Exception {
-		SDOGeometryConverter converter = new ExtendedSDOGeometryConverter();
-		//SDOGeometryConverter converter = new SDOGeometryConverter();
+		SDOGeometryConverter converter = new SDOGeometryConverter();
 		
 		Class.forName("oracle.jdbc.OracleDriver");		
 		Connection c = DriverManager.getConnection("jdbc:oracle:thin:@192.168.122.166:1521:GISBASIP", "raadpleger", "raadpleger");
