@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Before;
 
@@ -119,6 +120,8 @@ public abstract class AbstractServiceTest extends AbstractDatabaseTest {
 			.set(dataset.name, datasetName)
 			.set(dataset.sourceDatasetId, sourceDatasetId)
 			.set(dataset.filterConditions, filterConditions)
+			.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+			.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 			.executeWithKey(dataset.id);
 		
 		int index = 0;

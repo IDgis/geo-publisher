@@ -173,6 +173,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(dataset.identification, "dataset0")
 			.set(dataset.name, "dataset-name0")			
 			.set(dataset.sourceDatasetId, vectorSourceDatasetId)
+			.set(dataset.metadataIdentification, UUID.randomUUID().toString())
 			.set(dataset.metadataFileIdentification, "dataset-metadata-0")
 			.executeWithKey(dataset.id);
 		
@@ -262,6 +263,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(dataset.identification, "dataset1")
 			.set(dataset.name, "dataset-name1")			
 			.set(dataset.sourceDatasetId, rasterSourceDatasetId)
+			.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+			.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 			.executeWithKey(dataset.id);
 		
 		int rasterJobId = insert(job)
@@ -333,7 +336,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, serviceLayerId)			
+			.set(service.genericLayerId, serviceLayerId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.executeWithKey(service.id);
 		
 		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
@@ -488,6 +493,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		int serviceId = insert(service)
 			.set(service.genericLayerId, rootId)
 			.set(service.constantsId, constantsId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.executeWithKey(service.id);
 		
 		insert(serviceKeyword)
@@ -704,7 +711,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId) 
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
@@ -890,7 +899,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId) 
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
@@ -1031,11 +1042,15 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, root0Id) 
+			.set(service.genericLayerId, root0Id)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, root1Id) 
+			.set(service.genericLayerId, root1Id)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service service0 = f.ask(serviceManager, new GetService("rootgroup0"), Service.class).get();
@@ -1130,7 +1145,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 		
 		insert(service)
-			.set(service.genericLayerId, rootId) 
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 
 		Service service = f.ask(serviceManager, new GetService("rootgroup"), Service.class).get();
@@ -1191,6 +1208,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	
 		insert(service)
 			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		serviceIndex = f.ask(serviceManager, new GetServiceIndex(), ServiceIndex.class).get();
@@ -1319,10 +1338,10 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.columns(
-				service.id,				
-				service.genericLayerId)
-			.values(0, 0)
+			.set(service.id, 0)
+			.set(service.genericLayerId, 0)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 			
 		Failure failure = f.ask(serviceManager, new GetService("service"), Failure.class).get();
@@ -1511,7 +1530,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId)			
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service service = f.ask(serviceManager, new GetService("service"), Service.class).get();
@@ -1605,7 +1626,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootLayerId)			
+			.set(service.genericLayerId, rootLayerId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();
@@ -1731,7 +1754,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.executeWithKey(genericLayer.id);
 		
 		insert(service)
-			.set(service.genericLayerId, rootId)			
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		assertFalse(query().from(publishedService).exists());
@@ -1775,7 +1800,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId)			
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Tuple result = structureQuery
@@ -1838,7 +1865,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId0)			
+			.set(service.genericLayerId, rootId0)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Map<String, ServiceIndex> publishedEnvironments = getPublishedServiceIndex();
@@ -1891,7 +1920,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.executeWithKey(genericLayer.id);
 		
 		insert(service)
-			.set(service.genericLayerId, rootId1)			
+			.set(service.genericLayerId, rootId1)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		insert(layerStructure)
@@ -1962,7 +1993,9 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.execute();
 		
 		insert(service)
-			.set(service.genericLayerId, rootId)			
+			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		Service stagingService = f.ask(serviceManager, new GetService("service"), Service.class).get();

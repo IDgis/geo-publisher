@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -181,6 +182,8 @@ public class InitiatorTest extends AbstractServiceTest {
 //			.set(service.identification, "testService")
 //			.set(service.name, "testServiceName")
 			.set(service.genericLayerId, rootId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 	}
 	

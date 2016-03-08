@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
@@ -178,6 +179,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.genericLayerId, serviceLayerId)
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		insert(leafLayer)
