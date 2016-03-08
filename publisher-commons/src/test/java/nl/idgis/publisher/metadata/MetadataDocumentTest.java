@@ -386,11 +386,7 @@ public class MetadataDocumentTest {
 		i = document.removeBrowseGraphic();
 		assertEquals("There should be one removed linkage", 1, i);
 		
-		// check no node anymore
-		try {
-			document.getServiceBrowseGraphics();
-			fail("Unexpected layer found");
-		} catch(Exception e) {}
+		assertTrue(document.getServiceBrowseGraphics().isEmpty());
 	}
 	
 	

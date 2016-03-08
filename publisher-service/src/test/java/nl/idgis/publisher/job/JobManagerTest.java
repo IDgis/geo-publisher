@@ -146,7 +146,9 @@ public class JobManagerTest extends AbstractServiceTest {
 			insert(dataset)
 				.set(dataset.name, "My Test Dataset")
 				.set(dataset.identification, "testDataset")
-				.set(dataset.sourceDatasetId, sourceDatasetId)				
+				.set(dataset.sourceDatasetId, sourceDatasetId)
+				.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+				.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 				.executeWithKey(dataset.id);
 		
 		insert(datasetColumn)
@@ -274,7 +276,9 @@ public class JobManagerTest extends AbstractServiceTest {
 		insert(dataset)
 			.set(dataset.name, "My Test Dataset")
 			.set(dataset.identification, "testDataset")
-			.set(dataset.sourceDatasetId, sourceDatasetId)			
+			.set(dataset.sourceDatasetId, sourceDatasetId)
+			.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+			.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		f.ask(jobManager, new CreateImportJob("testDataset"), Failure.class).get();
@@ -322,7 +326,9 @@ public class JobManagerTest extends AbstractServiceTest {
 			insert(dataset)
 				.set(dataset.name, "My Test Dataset")
 				.set(dataset.identification, "testDataset")
-				.set(dataset.sourceDatasetId, sourceDatasetId)				
+				.set(dataset.sourceDatasetId, sourceDatasetId)
+				.set(dataset.metadataIdentification, UUID.randomUUID().toString())
+				.set(dataset.metadataFileIdentification, UUID.randomUUID().toString())
 				.executeWithKey(dataset.id);
 		
 		for(int i = 0; i < 10; i++) {

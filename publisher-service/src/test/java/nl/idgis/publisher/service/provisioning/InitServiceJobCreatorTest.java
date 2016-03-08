@@ -1,8 +1,8 @@
 package nl.idgis.publisher.service.provisioning;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +51,8 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		
 		insert(service)
 			.set(service.genericLayerId, genericLayerId)
+			.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
+			.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 			.execute();
 		
 		insert(environment)
