@@ -527,7 +527,8 @@ project(':publisher-metadata') {
 	}
 	
 	dependencies {
-		playTest "junit:junit:${junitVersion}"
+		playTest project(':publisher-test')
+		playTest 'com.github.lookfirst:sardine:5.7'
 	
 		play project(':publisher-database')
 		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
