@@ -87,6 +87,29 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
       block
   }
   
+  def resources(depth: String, namePrefix: String = ""): Seq[ResourceDescription] = {
+    val root = new DefaultResourceDescription(namePrefix, new DefaultResourceProperties(true))
+    
+    if(depth == "0") {
+      Seq(root)
+    } else {
+      Seq(root) ++ 
+        (if(depth == "1") {
+          directories.map(directory =>
+            new DefaultResourceDescription(
+              directory.prefix.substring(prefix.length()),
+              new DefaultResourceProperties(true)))
+        } else {
+          directories.flatMap(directory => directory.resources(depth, 
+              namePrefix + directory.prefix.substring(prefix.length())))
+        }) ++ 
+          descriptions().iterator().map(description => 
+            new DefaultResourceDescription(
+                namePrefix + description.name(), 
+                description.properties()))
+    }
+  }
+  
   def folderRoutes: Router.Routes = {
     // fetch resource
     case rh: RequestHeader if rh.method == "GET"
@@ -103,26 +126,23 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
     
     case rh: RequestHeader if rh.method == "PROPFIND" 
         && rh.path.startsWith(prefix) => ActionWithJContext(rh) {
-      
-      Results.Status(207) {
-        if(rh.path == prefix) {
-          // list all resources in folder
-          val root = new DefaultResourceDescription("", new DefaultResourceProperties(true)) 
           
-          val folders: Seq[ResourceDescription] =
-          for(directory <- directories)
-            yield new DefaultResourceDescription(
-                directory.prefix,
-                new DefaultResourceProperties(true))
-          
-          dav.descriptions.render(rh.path, concat(of(root), concat(of(folders:_*), descriptions())))
-        } else {
-          // fetch resource properties
-          dav.properties.render(rh.path, properties(resourceName(rh.path)))
-        }
-      } withHeaders(
-         ("Content-Type", "application/xml;charset=utf-8"), 
-         ("DAV", "1"))
+      val depth = rh.headers.get("Depth").getOrElse("1")
+      if(depth == "0" || depth == "1" || depth == "infinity") {
+        Results.MultiStatus {
+          if(rh.path == prefix) {
+            // list all resources in folder
+            dav.descriptions.render(rh.path, of(resources(depth):_*))
+          } else {
+            // fetch resource properties
+            dav.properties.render(rh.path, properties(resourceName(rh.path)))
+          }
+        } withHeaders(
+           ("Content-Type", "application/xml;charset=utf-8"), 
+           ("DAV", "1"))
+      } else {
+        Results.InternalServerError
+      }
     }
   } 
 }

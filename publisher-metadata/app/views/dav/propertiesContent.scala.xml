@@ -3,8 +3,8 @@
 	@if(resourceProperties.collection()) {
 		<D:collection/>
 	}
+	</D:resourcetype>
 	@if(resourceProperties.lastModifiedAsRFC2822().isPresent()) {
 		<D:getlastmodified>@resourceProperties.lastModifiedAsRFC2822().get()</D:getlastmodified>
 	}
-	</D:resourcetype>
 </D:prop>
