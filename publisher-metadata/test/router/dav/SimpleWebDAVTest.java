@@ -8,11 +8,14 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.net.URL;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 
 import org.junit.Test;
+import org.openqa.selenium.io.IOUtils;
 
 import com.github.sardine.DavResource;
 import com.github.sardine.Sardine;
@@ -71,6 +74,8 @@ public class SimpleWebDAVTest {
 		
 		assertFalse(i.hasNext());
 		
+		assertEquals("Hello, world!", IOUtils.readFully(new URL("http://localhost:7000/test/file").openStream()));
+		
 		server.stop();
 	}
 	
@@ -90,19 +95,20 @@ public class SimpleWebDAVTest {
 						HTTP_PORT);
 		
 		Sardine sardine = SardineFactory.begin();
-		
+ 
 		Iterator<DavResource> i = sardine.list("http://localhost:7000/test/").iterator();
 		assertTrue(i.hasNext());
 		
 		DavResource dr = i.next();
 		assertNotNull(dr);
 		assertTrue(dr.isDirectory());
+		assertEquals(new URI("/test/"), dr.getHref());
 		
 		assertTrue(i.hasNext());
 		
 		dr = i.next();
 		assertNotNull(dr);
-		assertEquals("directory", dr.getName());
+		assertEquals(new URI("/test/directory/"), dr.getHref());
 		assertTrue(dr.isDirectory());
 		
 		assertFalse(i.hasNext());
@@ -112,16 +118,53 @@ public class SimpleWebDAVTest {
 		
 		dr = i.next();
 		assertNotNull(dr);
+		assertEquals(new URI("/test/directory/"), dr.getHref());
 		assertTrue(dr.isDirectory());
 		
 		assertTrue(i.hasNext());
 		
 		dr = i.next();
 		assertNotNull(dr);
-		assertEquals("file", dr.getName());
+		assertEquals(new URI("/test/directory/file"), dr.getHref());
 		assertFalse(dr.isDirectory());
 		
 		assertFalse(i.hasNext());
+ 
+		i = sardine.list("http://localhost:7000/test/", 0).iterator();
+		assertTrue(i.hasNext());
+		
+		dr = i.next();
+		assertNotNull(dr);
+		assertEquals(new URI("/test/"), dr.getHref());
+		assertTrue(dr.isDirectory());
+		
+		assertFalse(i.hasNext());
+
+		i = sardine.list("http://localhost:7000/test/", -1).iterator();
+		assertTrue(i.hasNext());
+		
+		dr = i.next();
+		assertNotNull(dr);
+		assertEquals(new URI("/test/"), dr.getHref());
+		assertTrue(dr.isDirectory());
+		
+		assertTrue(i.hasNext());
+		
+		dr = i.next();
+		assertNotNull(dr);
+		assertEquals(new URI("/test/directory/"), dr.getHref());
+		assertTrue(dr.isDirectory());
+		
+		assertTrue(i.hasNext());
+		
+		dr = i.next();
+		assertNotNull(dr);
+		assertEquals(new URI("/test/directory/file"), dr.getHref());
+		assertFalse(dr.isDirectory());
+		
+		assertFalse(i.hasNext());
+		
+		assertEquals("Hello, world!", IOUtils.readFully(new URL("http://localhost:7000/test/directory/file").openStream()));
 		
 		server.stop();
 	}
