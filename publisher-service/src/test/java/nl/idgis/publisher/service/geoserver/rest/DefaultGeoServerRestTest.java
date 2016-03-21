@@ -120,13 +120,14 @@ public class DefaultGeoServerRestTest {
 					new Attribute("test"),
 					new Attribute("the_geom")))).get();
 		
+		// remove column that's in use by configured FeatureType
 		try(Connection connection = getConnection()) {		
 			try(Statement stmt = connection.createStatement()) {
 				stmt.execute("alter table \"public\".\"test_table\" drop column \"test\"");
 			}
 		}
 		
-		// FeatureType attribute information is being cached		
+		// FeatureType attribute information is being cached
 		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
 		assertNotNull(featureTypes);
 		assertEquals(1, featureTypes.size());
@@ -141,7 +142,7 @@ public class DefaultGeoServerRestTest {
 				.collect(Collectors.toList()));
 		
 		// empty cache
-		service.reload().get();
+		service.reset().get();
 		
 		// FeatureType attribute information is lost
 		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
@@ -151,6 +152,29 @@ public class DefaultGeoServerRestTest {
 		featureType = featureTypes.get(0);
 		assertNotNull(featureType);
 		assertTrue(featureType.getAttributes().isEmpty());
+		
+		// remove missing attribute from configuration
+		service.putFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("the_geom")))).get();
+		
+		// attribute information should be available again
+		featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		assertNotNull(featureTypes);
+		assertEquals(1, featureTypes.size());
+		
+		featureType = featureTypes.get(0);
+		assertNotNull(featureType);
+		
+		assertEquals(
+			Arrays.asList("id", "the_geom"),
+			featureType.getAttributes().stream()
+				.map(Attribute::getName)
+				.collect(Collectors.toList()));
 	}
 
 	@Test

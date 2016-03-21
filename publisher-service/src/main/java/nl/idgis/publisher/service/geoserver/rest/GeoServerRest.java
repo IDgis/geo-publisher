@@ -104,5 +104,7 @@ public interface GeoServerRest extends Closeable {
 
 	CompletableFuture<Void> deleteCoverageStore(Workspace workspace, CoverageStore coverageStore);
 
-	CompletableFuture<Void> reload();	
+	CompletableFuture<Void> reload();
+	
+	CompletableFuture<Void> reset();
 }

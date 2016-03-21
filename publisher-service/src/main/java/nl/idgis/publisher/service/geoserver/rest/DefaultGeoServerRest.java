@@ -1595,4 +1595,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> reload() {
 		return post(restLocation + "reload", new byte[]{}, "text/xml", HttpURLConnection.HTTP_OK);
 	}
+	
+	@Override
+	public CompletableFuture<Void> reset() {
+		return post(restLocation + "reset", new byte[]{}, "text/xml", HttpURLConnection.HTTP_OK);
+	}
 }
