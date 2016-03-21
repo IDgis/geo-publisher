@@ -294,6 +294,10 @@ public class XMLUtils {
 		return xpath(document, Optional.empty());
 	}
 	
+	public static XPathHelper xpath(Document document, Map<String, String> namespaces) {
+		return xpath(document, Optional.of(namespaces));
+	}
+	
 	public static XPathHelper xpath(Document document, Optional<Map<String, String>> optionalNamespaces) {
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		

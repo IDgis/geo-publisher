@@ -12,6 +12,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -31,6 +32,7 @@ import nl.idgis.publisher.service.raster.TestRaster;
 import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.Logging;
+import nl.idgis.publisher.utils.XMLUtils;
 
 import org.h2.server.pg.PgServer;
 import org.h2.server.pg.PgServerThread;
@@ -65,7 +67,14 @@ public class DefaultGeoServerRestTest {
 				stmt.execute("select AddGeometryColumn ('public', 'test_table', 'the_geom', 4326, 'GEOMETRY', 2)");
 				stmt.execute("create schema \"b0\"");
 				stmt.execute("create table \"b0\".\"another_test_table\"(\"id\" serial, \"test\" integer)");
-			}		
+				stmt.execute("create table public.gt_pk_metadata("
+						+ "table_schema text not null, "
+						+ "table_name text not null, "
+						+ "pk_column text not null, "
+						+ "pk_column_idx integer, "
+						+ "pk_policy text, "
+						+ "pk_sequence text)");
+			}
 		}
 	}
 	
@@ -73,6 +82,7 @@ public class DefaultGeoServerRestTest {
 	public void cleanDb() throws Exception {
 		try(Connection connection = getConnection()) {		
 			try(Statement stmt = connection.createStatement()) {
+				stmt.execute("drop table public.gt_pk_metadata");
 				stmt.execute("drop schema \"public\"");
 				stmt.execute("drop schema \"b0\"");
 			}
@@ -101,6 +111,93 @@ public class DefaultGeoServerRestTest {
 	@AfterClass
 	public static void stopServers() throws Exception {
 		h.stop();
+	}
+	
+	@Test
+	public void testFeatureTypeId() throws Exception {
+		final int numberOfFeatures = 10;
+		
+		// insert some test features
+		try(
+			Connection c = getConnection(); 
+			PreparedStatement stmt = c.prepareStatement("insert into \"public\".\"test_table\"(\"test\") values(?)")) {
+			 
+			for(int i = 0; i < numberOfFeatures; i++) {
+				stmt.setInt(1, i);
+				assertEquals(1, stmt.executeUpdate());
+			}
+		}
+		
+		// configure feature type
+		Workspace workspace = new Workspace("testWorkspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		service.postFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("test"),
+					new Attribute("the_geom")))).get();
+		
+		Map<String, String> ns = new HashMap<>();
+		ns.put("wfs", "http://www.opengis.net/wfs");
+		ns.put("gml", "http://www.opengis.net/gml");
+		ns.put("testWorkspace", "http://testWorkspace");
+		
+		// assert that ids are random
+		Document featureCollection = h.getFeature("testWorkspace", "test");
+		
+		List<String[]> ids = XMLUtils.xpath(featureCollection, ns).map(
+				"/wfs:FeatureCollection//testWorkspace:test[@gml:id]", n -> new String[] {
+					n.string("testWorkspace:id/text()").get(),
+					n.string("@gml:id").get() });
+			
+		assertEquals(numberOfFeatures, ids.size());
+		
+		for(String[] id : ids) {
+			assertTrue(id[1].startsWith("test."));
+			assertNotEquals("test." + id[0], id[1]);
+		}
+		
+		// configure id column
+		try(
+			Connection c = getConnection();
+			Statement stmt = c.createStatement()) {
+			
+			stmt.executeUpdate("insert into public.gt_pk_metadata("
+					+ "table_schema,"
+					+ "table_name,"
+					+ "pk_column,"
+					+ "pk_column_idx,"
+					+ "pk_policy) values("
+					+ "'public',"
+					+ "'test_table',"
+					+ "'id',"
+					+ "0,"
+					+ "'assigned')");
+		}
+		
+		// empty cache
+		service.reset().get();		
+		
+		// assert that ids are based on id column
+		featureCollection = h.getFeature("testWorkspace", "test");
+		
+		ids = XMLUtils.xpath(featureCollection, ns).map(
+			"/wfs:FeatureCollection//testWorkspace:test[@gml:id]", n -> new String[] {
+				n.string("testWorkspace:id/text()").get(),
+				n.string("@gml:id").get() });
+		
+		assertEquals(numberOfFeatures, ids.size());
+		
+		for(String[] id : ids) {
+			assertEquals("test." + id[0], id[1]);
+		}
 	}
 	
 	@Test
@@ -361,6 +458,7 @@ public class DefaultGeoServerRestTest {
 		connectionParameters.put("passwd", "postgres");
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("schema", "public");
+		connectionParameters.put("Expose primary keys", "true");
 		return connectionParameters;
 	}
 	
