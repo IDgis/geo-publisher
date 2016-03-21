@@ -110,6 +110,10 @@ public class GeoServerTestHelper {
 	}
 	
 	public static String encode(byte[] b, String method) {
+		if(b == null) {
+			return null;
+		}
+		
 		return Base64.encode(b);
 	}
 	
