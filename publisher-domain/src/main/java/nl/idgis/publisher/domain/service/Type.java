@@ -6,5 +6,6 @@ public enum Type {
 	NUMERIC,
 	DATE,
 	GEOMETRY, 
-	BOOLEAN
+	BOOLEAN,
+	SERIAL
 }

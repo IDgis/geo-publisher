@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
@@ -56,6 +57,7 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.DatasetLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.RasterDataset;
@@ -229,7 +231,12 @@ public class DatasetManager extends UntypedActor {
 		log.debug("preparing table: {}", msg);
 		
 		String datasetId = msg.getDatasetId();
-		List<Column> columns = msg.getColumns();
+		List<Column> columns = 
+			Stream
+				.concat(
+					msg.getColumns().stream(), 
+					Stream.of(new Column(datasetId + "_id", Type.SERIAL)))
+				.collect(Collectors.toList());
 		
 		return db.transactional(msg, tx ->
 			fetchViewInfo(tx, datasetId).thenCompose(viewColumns ->
