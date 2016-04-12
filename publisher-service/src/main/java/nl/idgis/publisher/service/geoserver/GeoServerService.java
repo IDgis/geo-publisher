@@ -98,6 +98,7 @@ public class GeoServerService extends UntypedActor {
 		Map<String, String> connectionParameters = new HashMap<>();
 		connectionParameters.put("dbtype", "postgis");
 		connectionParameters.put("jndiReferenceName", "java:comp/env/jdbc/db");
+		connectionParameters.put("fetch size", "1000");
 		connectionParameters.put("schema", schema);
 		
 		return Props.create(GeoServerService.class, serviceUrl, serviceUser, servicePassword, connectionParameters, rasterFolder);
