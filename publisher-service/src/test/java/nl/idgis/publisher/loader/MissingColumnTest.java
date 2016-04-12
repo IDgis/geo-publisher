@@ -163,7 +163,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(Ack.class)
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));		
 		
-		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1", datasetId + "_id");
 		assertRelNotExists("data", datasetId);
 				
 		// create layer and service
@@ -213,7 +213,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0", "col1");
 		
-		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1", datasetId + "_id");
 		assertDatasetView(datasetId, "col0", "col1");
 		
 		// drop second column ('col1')
@@ -278,8 +278,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 		assertFalse(notificationsItr.hasNext());
 		
 		// expected: no change yet
-		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1");
-		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", "col1", datasetId + "_id");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1", datasetId + "_id");
 		assertDatasetView(datasetId, "col0", "col1");
 		
 		// accept structure change
@@ -317,8 +317,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 		service = f.ask(serviceManager, new GetService("testService"), Service.class).get();
 		assertService(service, "col0");
 		
-		assertDatasetRel(datasetId, "staging_data", 1, "col0");
-		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", datasetId + "_id");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1", datasetId + "_id");
 		assertDatasetCopy(datasetId, "col0", "col1");
 		
 		// start (yet) another import, should succeed
@@ -339,8 +339,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.assertNext(Ack.class)
 			.assertNext(JobFinished.class, msg -> assertEquals(JobState.SUCCEEDED, msg.getJobState()));
 		
-		assertDatasetRel(datasetId, "staging_data", 1, "col0");
-		assertDatasetRel(datasetId, "data", 1, "col0", "col1");
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", datasetId + "_id");
+		assertDatasetRel(datasetId, "data", 1, "col0", "col1", datasetId + "_id");
 		assertDatasetCopy(datasetId, "col0", "col1");
 		
 		f.ask(
@@ -403,8 +403,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0");
 		
-		assertDatasetRel(datasetId, "staging_data", 1, "col0");
-		assertDatasetRel(datasetId, "data", 1, "col0");
+		assertDatasetRel(datasetId, "staging_data", 1, "col0", datasetId + "_id");
+		assertDatasetRel(datasetId, "data", 1, "col0", datasetId + "_id");
 		assertDatasetView(datasetId, "col0");
 	}
 

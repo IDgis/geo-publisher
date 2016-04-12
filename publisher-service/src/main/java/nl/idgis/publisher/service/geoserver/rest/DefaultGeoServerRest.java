@@ -490,7 +490,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeEndElement();
 				sw.writeStartElement("connectionParameters");
 					for(Map.Entry<String, String> connectionParameter : dataStore.getConnectionParameters().entrySet()) {
-						sw.writeStartElement(connectionParameter.getKey());
+						sw.writeStartElement("entry");
+						sw.writeAttribute("key", connectionParameter.getKey());
 						sw.writeCharacters(connectionParameter.getValue());
 						sw.writeEndElement();
 					}
@@ -1594,5 +1595,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> reload() {
 		return post(restLocation + "reload", new byte[]{}, "text/xml", HttpURLConnection.HTTP_OK);
+	}
+	
+	@Override
+	public CompletableFuture<Void> reset() {
+		return post(restLocation + "reset", new byte[]{}, "text/xml", HttpURLConnection.HTTP_OK);
 	}
 }
