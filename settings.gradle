@@ -8,5 +8,4 @@ include 'publisher-test',
 	'publisher-provider:publisher-provider-protocol',
 	'publisher-database',
 	'publisher-service',
-	'publisher-metadata',
-	'play-simple-webdav'
+	'publisher-metadata'

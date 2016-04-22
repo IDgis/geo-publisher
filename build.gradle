@@ -90,7 +90,7 @@ subprojects {
 }
 
 // base configuration for all non Play subprojects
-configure(subprojects - project(':publisher-web') - project(':publisher-metadata') - project(':play-simple-webdav')) {
+configure(subprojects - project(':publisher-web') - project(':publisher-metadata')) {
 	apply plugin: 'java'
 	apply plugin: 'eclipse'
 	
@@ -523,7 +523,7 @@ project(':publisher-metadata') {
 		playTest 'com.github.lookfirst:sardine:5.7'
 	
 		play project(':publisher-database')
-		play project(':play-simple-webdav')
+		play "nl.idgis.dav:play-simple-webdav_${scalaAbiVersion}:1.0.0"
 		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
 		play "org.webjars:webjars-play_${scalaAbiVersion}:2.4.0-2"
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
