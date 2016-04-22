@@ -90,7 +90,7 @@ subprojects {
 }
 
 // base configuration for all non Play subprojects
-configure(subprojects - project(':publisher-web') - project(':publisher-metadata')) {
+configure(subprojects - project(':publisher-web') - project(':publisher-metadata') - project(':play-simple-webdav')) {
 	apply plugin: 'java'
 	apply plugin: 'eclipse'
 	
