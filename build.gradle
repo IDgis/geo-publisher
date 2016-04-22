@@ -514,14 +514,6 @@ project(':publisher-metadata') {
 			play {
 				platform play: playVersion, java: '1.8'
 				injectedRoutesGenerator = true
-				
-				sources {
-					twirlTemplates {
-						source {
-							include "**/*.xml"
-						}
-					}
-				}
 			}
 		}
 	}
@@ -531,6 +523,7 @@ project(':publisher-metadata') {
 		playTest 'com.github.lookfirst:sardine:5.7'
 	
 		play project(':publisher-database')
+		play project(':play-simple-webdav')
 		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
 		play "org.webjars:webjars-play_${scalaAbiVersion}:2.4.0-2"
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"

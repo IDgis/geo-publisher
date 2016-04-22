@@ -1,0 +1,66 @@
+apply plugin: 'scala'
+
+sourceSets {
+	main {
+		scala {
+			srcDirs += 'build/twirl'
+		}
+	}
+}
+
+dependencies {
+	compile 'org.scala-lang:scala-library:2.11.8'
+	compile 'com.typesafe.play:play-java_2.11:2.4.3'
+}
+
+task compilePlayTwirlTemplates(type: TwirlCompile) {
+	
+	setPlatform([
+		getJavaPlatform: {'1.8'},
+		getPlayVersion: {'2.4.3'},
+		getScalaPlatform: {[
+			getScalaCompatibilityVersion: {'2.11'},
+			getScalaVersion: {'2.11.8'}
+		] as ScalaPlatform}
+	] as PlayPlatform)
+	
+	source = files('src/main/twirl')
+	include '**/*.scala.xml'
+	
+	outputDirectory = file('build/twirl')
+}
+
+task fixTwirlTemplates {
+	dependsOn compilePlayTwirlTemplates
+}
+
+fixTwirlTemplates << {
+	fileTree(dir: 'build/twirl', include: '**/*.scala').visit { item ->
+		if(!item.isDirectory()) {		
+			def sourceLines = item.file.readLines();
+
+			sourceLines.remove(6);
+
+			['import play.api.templates.PlayMagic._',
+			'import models._',
+			'import controllers._',
+			'import java.lang._',
+			'import java.util._',
+			'import scala.collection.JavaConversions._',
+			'import scala.collection.JavaConverters._',
+			'import play.api.i18n._',
+			'import play.core.j.PlayMagicForJava._',
+			'import play.mvc._',
+			'import play.data._',
+			'import play.api.data.Field',
+			'import play.mvc.Http.Context.Implicit._',
+			'import views.html._'].eachWithIndex { line, lineNo ->
+				sourceLines.add(6 + lineNo, line)
+			}
+
+			item.file.write(sourceLines.join('\n'))
+		}
+	}
+}
+
+compileScala.dependsOn(fixTwirlTemplates)
