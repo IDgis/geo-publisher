@@ -5,7 +5,7 @@ import java.net.UnknownHostException;
 import java.util.Optional;
 
 import play.Logger;
-import router.dav.SimpleWebDAV;
+import nl.idgis.dav.router.SimpleWebDAV;
 
 import util.InetFilter;
 import util.MetadataConfig;

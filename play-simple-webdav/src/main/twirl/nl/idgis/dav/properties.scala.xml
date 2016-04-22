@@ -1,4 +1,4 @@
-@(path: String, properties: Optional[model.dav.ResourceProperties])<D:multistatus xmlns:D="DAV:">
+@(path: String, properties: Optional[nl.idgis.dav.model.ResourceProperties])<D:multistatus xmlns:D="DAV:">
 	<D:response>
 		<D:href>@path</D:href>
 		<D:propstat>

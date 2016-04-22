@@ -1,4 +1,4 @@
-package model.dav;
+package nl.idgis.dav.model;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import javax.inject.Inject;
 
-import router.dav.SimpleWebDAV;
+import nl.idgis.dav.router.SimpleWebDAV;
 
 public class Index extends SimpleWebDAV {
 	

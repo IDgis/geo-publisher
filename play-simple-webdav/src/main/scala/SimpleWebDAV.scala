@@ -1,12 +1,11 @@
-package router.dav
+package nl.idgis.dav.router
 
 import play.api.routing._
 import play.api.mvc._
 import play.mvc.Http.{Context => JContext, Request => JRequest, RequestImpl => JRequestImpl}
 
-import views.xml.dav
-
-import model.dav._
+import nl.idgis.dav.xml
+import nl.idgis.dav.model._
 
 import java.util.stream.{Stream => JStream}
 import java.util.stream.Stream.{concat, empty => emptyJStream}
@@ -132,10 +131,10 @@ abstract class SimpleWebDAV(val prefix: String, val directories: JList[SimpleWeb
         Results.MultiStatus {
           if(rh.path == prefix) {
             // list all resources in folder
-            dav.descriptions.render(rh.path, of(resources(depth):_*))
+            xml.descriptions.render(rh.path, of(resources(depth):_*))
           } else {
             // fetch resource properties
-            dav.properties.render(rh.path, properties(resourceName(rh.path)))
+            xml.properties.render(rh.path, properties(resourceName(rh.path)))
           }
         } withHeaders(
            ("Content-Type", "application/xml;charset=utf-8"), 

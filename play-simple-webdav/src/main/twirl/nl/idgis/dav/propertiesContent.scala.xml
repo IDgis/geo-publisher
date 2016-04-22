@@ -1,4 +1,4 @@
-@(resourceProperties: model.dav.ResourceProperties)<D:prop>
+@(resourceProperties: nl.idgis.dav.model.ResourceProperties)<D:prop>
 	<D:resourcetype>
 	@if(resourceProperties.collection()) {
 		<D:collection/>

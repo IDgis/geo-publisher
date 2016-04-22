@@ -1,4 +1,4 @@
-@(path: String, descriptions: java.util.stream.Stream[model.dav.ResourceDescription])<D:multistatus xmlns:D="DAV:">
+@(path: String, descriptions: java.util.stream.Stream[nl.idgis.dav.model.ResourceDescription])<D:multistatus xmlns:D="DAV:">
 	@for(description <- descriptions.iterator()) {
 		<D:response>
 			<D:href>@path@description.name()</D:href>

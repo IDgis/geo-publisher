@@ -8,13 +8,13 @@ import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
 
-import model.dav.Resource;
-import model.dav.ResourceDescription;
-import model.dav.ResourceProperties;
+import nl.idgis.dav.model.Resource;
+import nl.idgis.dav.model.ResourceDescription;
+import nl.idgis.dav.model.ResourceProperties;
 
-import model.dav.DefaultResource;
-import model.dav.DefaultResourceDescription;
-import model.dav.DefaultResourceProperties;
+import nl.idgis.dav.model.DefaultResource;
+import nl.idgis.dav.model.DefaultResourceDescription;
+import nl.idgis.dav.model.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
@@ -25,7 +25,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import router.dav.SimpleWebDAV;
 import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;

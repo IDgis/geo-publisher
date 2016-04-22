@@ -1,4 +1,4 @@
-package model.dav;
+package nl.idgis.dav.model;
 
 import java.util.Date;
 import java.util.Optional;

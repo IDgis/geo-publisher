@@ -1,4 +1,4 @@
-package model.dav;
+package nl.idgis.dav.model;
 
 public class DefaultResource implements Resource {
 	
