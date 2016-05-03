@@ -15,6 +15,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceData
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
 import static nl.idgis.publisher.utils.StreamUtils.index;
 
+import java.security.MessageDigest;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
@@ -612,9 +613,9 @@ public class DatasetManager extends UntypedActor {
 	}
 	
 	private CompletableFuture<Void> updateMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
-		log.debug("updating metadata");
-		
 		if(metadata.isPresent()) {
+			log.debug("updating metadata");
+			
 			try {
 				byte[] newDocument = metadata.get().getContent();
 				
@@ -637,12 +638,22 @@ public class DatasetManager extends UntypedActor {
 								.set(sourceDatasetMetadata.sourceDatasetId, id)
 								.execute().thenApply(insertResult -> null);
 							} else {
-								log.debug("metadata document found -> update");
-								
-								return tx.update(sourceDatasetMetadata)
-								.set(sourceDatasetMetadata.document, newDocument)
-								.where(sourceDatasetMetadata.sourceDatasetId.eq(id))
-								.execute().thenApply(updateResult -> null);
+								log.debug("metadata document found");
+								try {
+									MessageDigest md = MessageDigest.getInstance("MD5");
+									if(Arrays.equals(md.digest(newDocument), md.digest(currentDocument))) {
+										log.debug("same hash -> no nothing");
+										return f.successful(null);
+									}
+									
+									log.debug("different hash -> update");
+									return tx.update(sourceDatasetMetadata)
+									.set(sourceDatasetMetadata.document, newDocument)
+									.where(sourceDatasetMetadata.sourceDatasetId.eq(id))
+									.execute().thenApply(updateResult -> null);
+								} catch(Exception e) {
+									return f.failed(e);
+								}
 							}
 						}
 							
@@ -653,6 +664,7 @@ public class DatasetManager extends UntypedActor {
 				return f.successful(null);
 			}
 		} else {
+			log.debug("dataset doesn't have metadata");
 			return f.successful(null);
 		}
 	}
