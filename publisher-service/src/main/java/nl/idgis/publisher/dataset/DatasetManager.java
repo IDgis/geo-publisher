@@ -611,29 +611,42 @@ public class DatasetManager extends UntypedActor {
 			.execute();
 	}
 	
-	private CompletableFuture<Void> storeMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
+	private CompletableFuture<Void> updateMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
+		log.debug("updating metadata");
+		
 		if(metadata.isPresent()) {
 			try {
-				byte[] document = metadata.get().getContent(); 
+				byte[] newDocument = metadata.get().getContent();
 				
 				return tx.query().from(sourceDataset)
-					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))					
-					.where(sourceDataset.externalIdentification.eq(identification))
+					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.leftJoin(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 					.where(dataSource.identification.eq(dataSourceIdentification))
-					.singleResult(sourceDataset.id).thenCompose(id -> {
-						return tx.update(sourceDatasetMetadata)
-							.set(sourceDatasetMetadata.document, document)
-							.where(sourceDatasetMetadata.sourceDatasetId.eq(id.get()))
-							.execute().thenCompose(updateResult -> {
-								if(updateResult == 0) {
-									return tx.insert(sourceDatasetMetadata)
-										.set(sourceDatasetMetadata.document, document)
-										.set(sourceDatasetMetadata.sourceDatasetId, id.get())
-										.execute().thenApply(insertResult -> null);
-								} else {
-									return f.successful(null);
-								}
-							});
+					.where(sourceDataset.externalIdentification.eq(identification))
+					.singleResult(sourceDataset.id, sourceDatasetMetadata.document).thenCompose(optionalCurrentInfo -> {
+						if(optionalCurrentInfo.isPresent()) {
+							Tuple currentInfo = optionalCurrentInfo.get();
+							int id = currentInfo.get(sourceDataset.id);
+							byte[] currentDocument = currentInfo.get(sourceDatasetMetadata.document);
+							
+							if(currentDocument == null) {
+								log.debug("no metadata document found -> insert");
+								
+								return tx.insert(sourceDatasetMetadata)
+								.set(sourceDatasetMetadata.document, newDocument)
+								.set(sourceDatasetMetadata.sourceDatasetId, id)
+								.execute().thenApply(insertResult -> null);
+							} else {
+								log.debug("metadata document found -> update");
+								
+								return tx.update(sourceDatasetMetadata)
+								.set(sourceDatasetMetadata.document, newDocument)
+								.where(sourceDatasetMetadata.sourceDatasetId.eq(id))
+								.execute().thenApply(updateResult -> null);
+							}
+						}
+							
+						return f.failed(new IllegalStateException("source dataset not found"));
 					});
 			} catch(Exception e) {
 				log.error("failed to store metadata for source dataset: {}, exception: {}", e);
@@ -661,7 +674,7 @@ public class DatasetManager extends UntypedActor {
 					: insertSourceDataset(tx, dataSourceIdentification, dataset));
 			
 			return registerResult.thenCompose(result -> {
-				return storeMetadata(tx, dataSourceIdentification, identification, dataset.getMetadata())
+				return updateMetadata(tx, dataSourceIdentification, identification, dataset.getMetadata())
 					.thenApply(n -> result); 
 			});
 		});
