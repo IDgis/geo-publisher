@@ -1002,4 +1002,13 @@ public class MetadataDocument {
 		xmlDocument.setStylesheet(stylesheet);
 	}
 	
+	public List<String> getSupplementalInformation() {
+		return xpath().strings(
+			"/gmd:MD_Metadata"
+			+ "/gmd:identificationInfo"
+			+ "/gmd:MD_DataIdentification"
+			+ "/gmd:supplementalInformation"
+			+ "/gco:CharacterString");
+	}
+	
 }

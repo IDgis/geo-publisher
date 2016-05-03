@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -72,6 +73,10 @@ public class MetadataDocumentTest {
 		
 		result = document.getMetaDataCreationDate();
 		assertTrue("wrong MetaDataCreationDate", result.startsWith("2014-04-11"));
+		
+		List<String> results = document.getSupplementalInformation();
+		assertNotNull(results);
+		assertEquals("wrong SupplementalInformation", Arrays.asList("layerfile| http:\\\\gisopenbaar.overijssel.nl\\GeoPortal\\MIS4GIS\\lyr\\gemgrens_polygon.lyr"), results);
 	}
 	
 	@Test(expected=NotParseable.class)
