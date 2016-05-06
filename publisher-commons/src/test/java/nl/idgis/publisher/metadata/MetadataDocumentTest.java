@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.InputStream;
 import java.util.Arrays;
@@ -535,5 +536,17 @@ public class MetadataDocumentTest {
 		
 		// should fail (raise NotFound exception)
 		document.getDatasetRevisionDate();
+	}
+	
+	@Test
+	public void testUpdateSupplementalInformation() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		String current = document.getSupplementalInformation().get(0);
+		assertNotEquals("Hello, world!", current);
+		
+		document.updateSupplementalInformation(current, "Hello, world!");
+		String updated = document.getSupplementalInformation().get(0);
+		assertEquals("Hello, world!", updated);
 	}
 }

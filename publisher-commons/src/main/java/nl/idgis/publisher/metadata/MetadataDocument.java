@@ -1011,4 +1011,15 @@ public class MetadataDocument {
 			+ "/gco:CharacterString");
 	}
 	
+	public void updateSupplementalInformation(String existingSupplementalInformation, String newSupplementalInformation) {
+		xpath()
+			.node(
+				"/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:supplementalInformation"
+				+ "/gco:CharacterString[text() = '" + existingSupplementalInformation + "']")
+			.ifPresent(node -> node.setTextContent(newSupplementalInformation));
+	}
+	
 }
