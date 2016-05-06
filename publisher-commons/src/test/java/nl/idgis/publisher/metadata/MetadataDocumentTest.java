@@ -549,4 +549,16 @@ public class MetadataDocumentTest {
 		String updated = document.getSupplementalInformation().get(0);
 		assertEquals("Hello, world!", updated);
 	}
+	
+	@Test
+	public void testUpdateDatasetBrowseGraphics() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		String current = document.getDatasetBrowseGraphics().get(0);
+		assertNotEquals("Hello, world!", current);
+		
+		document.updateDatasetBrowseGraphic(current, "Hello, world!");
+		String updated = document.getDatasetBrowseGraphics().get(0);
+		assertEquals("Hello, world!", updated);
+	}
 }

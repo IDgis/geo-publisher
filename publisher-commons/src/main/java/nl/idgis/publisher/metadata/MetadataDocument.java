@@ -790,6 +790,18 @@ public class MetadataDocument {
 	public List<String> getDatasetBrowseGraphics() {
 		return xpath().strings(getDatasetGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
 	}
+	
+	public void updateDatasetBrowseGraphic(String currentBrowseGraphic, String newBrowseGraphic) {
+		xpath()
+			.node(
+				getDatasetGraphicOverviewPath()
+				+ "/gmd:MD_BrowseGraphic"
+				+ "/gmd:fileName"
+				+ "/gco:CharacterString['"
+				+ currentBrowseGraphic
+				+ "']")
+			.ifPresent(node -> node.setTextContent(newBrowseGraphic));
+	}
 
 	/**
 	 * Service metadata: Service Endpoint
