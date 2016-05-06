@@ -181,12 +181,14 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			query().from(sourceDatasetMetadata)
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadata.sourceDatasetId))
 			.exists());
-				
-		assertTrue(
+		
+		// expect two attachment (graphicOverview and supplementalInformation)
+		assertEquals(
+			2,
 			query().from(sourceDatasetMetadataAttachment)
 			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
 			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
-			.exists());
+			.count());
 		
 		// remove metadata attachments
 		delete(sourceDatasetMetadataAttachment)

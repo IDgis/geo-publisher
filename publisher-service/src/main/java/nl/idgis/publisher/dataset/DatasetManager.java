@@ -704,11 +704,26 @@ public class DatasetManager extends UntypedActor {
 					if(separator != -1) {
 						String urlPart = supplementalInformation.substring(separator + 1).trim().replace("\\", "/");
 						try {
-							log.debug("valid url found");
 							pendingDownloads.add(downloadMetadataAttachment(tx, sourceDatasetId, supplementalInformation, new URL(urlPart)));
 						} catch(MalformedURLException e) {
 							log.warning("not a valid url: " + urlPart, e);
 						}
+					}
+				}
+				
+				for(String browseGraphic : metadata.getDatasetBrowseGraphics()) {
+					log.debug("browse graphic: " + browseGraphic);
+					
+					if(existingIds.contains(browseGraphic)) {
+						log.debug("attachment already downloaded -> skip");
+						continue;
+					}
+					
+					try {
+						String url = browseGraphic.trim().replace("\\", "/");
+						pendingDownloads.add(downloadMetadataAttachment(tx, sourceDatasetId, browseGraphic, new URL(url)));
+					} catch(MalformedURLException e) {
+						log.warning("not a valid url: " + browseGraphic, e);
 					}
 				}
 				
