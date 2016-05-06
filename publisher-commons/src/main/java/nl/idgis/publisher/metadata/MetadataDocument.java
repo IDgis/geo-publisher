@@ -783,11 +783,11 @@ public class MetadataDocument {
 			);		
 	}
 	
-	public List<String> getServiceBrowseGraphics() throws QueryFailure {
+	public List<String> getServiceBrowseGraphics() {
 		return xpath().strings(getServiceGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
 	}
 	
-	public List<String> getDatasetBrowseGraphics() throws QueryFailure {
+	public List<String> getDatasetBrowseGraphics() {
 		return xpath().strings(getDatasetGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
 	}
 
