@@ -159,6 +159,25 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				List<String> browseGraphics = metadataDocument.getDatasetBrowseGraphics();
+				for(String browseGraphic : browseGraphics) {
+					if(attachments.containsKey(browseGraphic)) {
+						String url = browseGraphic.trim().replace('\\', '/');
+						
+						String fileName;
+						Matcher urlMatcher = urlPattern.matcher(url);
+						if(urlMatcher.find()) {
+							fileName = urlMatcher.group(1);
+						} else {
+							fileName = "preview";
+						}
+						
+						String updatedbrowseGraphic =
+							routes.Attachment.get(attachments.get(browseGraphic).toString(), fileName)
+							.absoluteURL(false, config.getHost());
+						
+						metadataDocument.updateDatasetBrowseGraphic(browseGraphic, updatedbrowseGraphic);
+					}
+				}
 				
 				metadataDocument.removeServiceLinkage();
 				for(Tuple serviceTuple : serviceTuples) {
