@@ -19,6 +19,7 @@ import nl.idgis.dav.model.DefaultResourceProperties;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
+import play.Logger;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
 import play.libs.Json;
@@ -33,6 +34,7 @@ import util.QueryDSL.Transaction;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
@@ -40,7 +42,10 @@ import static nl.idgis.publisher.database.QEnvironment.environment;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
@@ -49,6 +54,8 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final static String stylesheet = "datasets/intern/metadata.xsl";
 		
 	private final MetadataDocumentFactory mdf;
+	
+	private final Pattern urlPattern;
 	
 	@Inject
 	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
@@ -59,6 +66,7 @@ public class DatasetMetadata extends AbstractMetadata {
 		super(webJarAssets, filter, config, q, prefix);
 		
 		this.mdf = mdf;
+		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
 	}
 	
 	@Override
@@ -91,13 +99,25 @@ public class DatasetMetadata extends AbstractMetadata {
 					.singleResult(
 						dataset.id,
 						dataset.metadataIdentification,
+						sourceDatasetMetadata.sourceDatasetId,
 						sourceDatasetMetadata.document);
 				
 				if(datasetTuple == null) {
 					return Optional.<Resource>empty();
 				}
 				
+				int sourceDatasetId = datasetTuple.get(sourceDatasetMetadata.sourceDatasetId);
 				int datasetId = datasetTuple.get(dataset.id);
+				
+				Map<String, Integer> attachments = tx.query().from(sourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment)
+					.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
+					.list(
+						sourceDatasetMetadataAttachment.id,
+						sourceDatasetMetadataAttachment.identification)
+					.stream()
+					.collect(Collectors.toMap(
+						t -> t.get(sourceDatasetMetadataAttachment.identification),
+						t -> t.get(sourceDatasetMetadataAttachment.id)));
 				
 				List<Tuple> serviceTuples = tx.query().from(publishedService)
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
@@ -112,6 +132,31 @@ public class DatasetMetadata extends AbstractMetadata {
 				
 				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
 				metadataDocument.setFileIdentifier(id);
+				
+				for(String supplementalInformation : metadataDocument.getSupplementalInformation()) {
+					int separator = supplementalInformation.indexOf("|");
+					if(separator != -1 && attachments.containsKey(supplementalInformation)) {
+						String type = supplementalInformation.substring(0, separator);
+						String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
+						
+						String fileName;
+						Matcher urlMatcher = urlPattern.matcher(url);
+						if(urlMatcher.find()) {
+							fileName = urlMatcher.group(1);
+						} else {
+							fileName = "download";
+						}
+						
+						String updatedSupplementalInformation = 
+							type + "|" + 
+								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
+								.absoluteURL(false, config.getHost());
+						
+						metadataDocument.updateSupplementalInformation(
+							supplementalInformation,
+							updatedSupplementalInformation);
+					}
+				}
 				
 				List<String> browseGraphics = metadataDocument.getDatasetBrowseGraphics();
 				
