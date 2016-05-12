@@ -11,6 +11,7 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachmentError.sourceDatasetMetadataAttachmentError;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
@@ -653,7 +654,15 @@ public class DatasetManager extends UntypedActor {
 							});
 					} else {
 						log.warning("unexpected http status code: " + statusCode);
-						future.complete(null);
+						
+						tx.insert(sourceDatasetMetadataAttachmentError)
+							.set(sourceDatasetMetadataAttachmentError.identification, identification)
+							.set(sourceDatasetMetadataAttachmentError.sourceDatasetId, sourceDatasetId)
+							.set(sourceDatasetMetadataAttachmentError.httpStatus, statusCode)
+							.execute().thenRun(() -> {
+								log.debug("metadata attachment error stored");
+								future.complete(null); 
+							});
 					}
 					
 					return response;
@@ -662,7 +671,14 @@ public class DatasetManager extends UntypedActor {
 				@Override
 				public void onThrowable(Throwable t) {
 					log.warning("metadata attachment download failed");
-					future.complete(null);
+
+					tx.insert(sourceDatasetMetadataAttachmentError)
+						.set(sourceDatasetMetadataAttachmentError.identification, identification)
+						.set(sourceDatasetMetadataAttachmentError.sourceDatasetId, sourceDatasetId)
+						.execute().thenRun(() -> {
+							log.debug("metadata attachment error stored");
+							future.complete(null); 
+						});
 				}
 				
 			});
@@ -672,6 +688,11 @@ public class DatasetManager extends UntypedActor {
 	
 	private CompletableFuture<Void> updateMetadataAttachments(AsyncHelper tx, boolean removeExisting, int sourceDatasetId, MetadataDocument metadata) {
 		log.debug("updating metadata attachments");
+		
+		final CompletableFuture<Void> deletePreviousErrors =
+			tx.delete(sourceDatasetMetadataAttachmentError)
+				.where(sourceDatasetMetadataAttachmentError.sourceDatasetId.eq(sourceDatasetId))
+				.execute().thenApply(result -> null);
 		
 		final CompletableFuture<Set<String>> determineExistingIds;
 		if(removeExisting) {
@@ -690,7 +711,9 @@ public class DatasetManager extends UntypedActor {
 				});
 		}
 		
-		return determineExistingIds.thenCompose(existingIds -> {
+		return deletePreviousErrors.thenCompose(previousErrorsDeleted ->
+		
+		determineExistingIds.thenCompose(existingIds -> {
 				ArrayList<CompletableFuture<Void>> pendingDownloads = new ArrayList<>();
 				for(String supplementalInformation : metadata.getSupplementalInformation()) {
 					log.debug("supplemental information: " + supplementalInformation);
@@ -731,7 +754,7 @@ public class DatasetManager extends UntypedActor {
 					log.debug("all metadata attachment downloads completed");
 					return null;
 				});
-		});
+		}));
 	}
 	
 	private CompletableFuture<Void> updateMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
