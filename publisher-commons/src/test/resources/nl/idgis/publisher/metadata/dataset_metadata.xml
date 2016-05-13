@@ -251,7 +251,7 @@ Deze wijziging is vastgesteld bij besluit van Gedeputeerde staten van Overijssel
       <graphicOverview>
         <MD_BrowseGraphic>
           <fileName>
-            <gco:CharacterString> http:\\gisopenbaar.overijssel.nl\GeoPortal\MIS4GIS\preview\gemgrens.jpg</gco:CharacterString>
+            <gco:CharacterString> http:\\localhost:7000\GeoPortal\MIS4GIS\preview\gemgrens.jpg</gco:CharacterString>
           </fileName>
         </MD_BrowseGraphic>
       </graphicOverview>
@@ -424,7 +424,7 @@ Deze wijziging is vastgesteld bij besluit van Gedeputeerde staten van Overijssel
         </EX_Extent>
       </extent>
       <supplementalInformation>
-        <gco:CharacterString>layerfile| http:\\gisopenbaar.overijssel.nl\GeoPortal\MIS4GIS\lyr\gemgrens_polygon.lyr</gco:CharacterString>
+        <gco:CharacterString>layerfile| http:\\localhost:7000\GeoPortal\MIS4GIS\lyr\gemgrens_polygon.lyr</gco:CharacterString>
       </supplementalInformation>
     </MD_DataIdentification>
   </identificationInfo>

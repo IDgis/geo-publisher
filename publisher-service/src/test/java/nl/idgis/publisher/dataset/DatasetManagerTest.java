@@ -3,6 +3,8 @@ package nl.idgis.publisher.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachmentError.sourceDatasetMetadataAttachmentError;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
 
@@ -12,6 +14,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,10 +25,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
 import com.mysema.query.types.expr.DateTimeExpression;
 
@@ -46,9 +59,38 @@ import nl.idgis.publisher.AbstractServiceTest;
 
 public class DatasetManagerTest extends AbstractServiceTest {
 	
+	private Server jettyServer;
+
 	@Before
 	public void dataSource() {
 		insertDataSource();
+	}
+	
+	private int httpStatus = 200;
+	
+	// http server is hosting (fake) metadata attachments
+	@Before
+	public void startHttpServer() throws Exception {
+		jettyServer = new Server(7000);
+		jettyServer.setHandler(new AbstractHandler() {
+
+			@Override
+			public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+				response.setStatus(httpStatus);
+				response.setContentType("text/plain");
+				
+				try(PrintWriter writer = response.getWriter()) {
+					writer.println("Hello, world!");
+				}
+			}
+			
+		});
+		jettyServer.start();
+	}
+	
+	@After
+	public void stopHttpServer() throws Exception {
+		jettyServer.stop();
 	}
 	
 	@Test
@@ -136,15 +178,53 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		}
 		
 		VectorDataset dataset = createVectorDataset();		
-		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();		
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
+	
+		assertTrue(
+			query().from(sourceDatasetMetadata)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadata.sourceDatasetId))
+			.exists());
+		
+		// expect two attachment (graphicOverview and supplementalInformation)
+		assertEquals(
+			2,
+			query().from(sourceDatasetMetadataAttachment)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.count());
+		
+		// remove metadata attachments
+		delete(sourceDatasetMetadataAttachment)
+			.where(new SQLSubQuery()
+				.from(sourceDataset)
+				.where(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.exists())
+			.execute();
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
+		
+		// dataset manager should have restored missing attachment
+		assertTrue(
+			query().from(sourceDatasetMetadataAttachment)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.exists());
 		
 		Thread.sleep(1000); // createTestDataset() uses current time as revision date
 		
 		// destroy metadata
 		update(sourceDatasetMetadata)
 			.set(sourceDatasetMetadata.document, "Hello, world!".getBytes("utf-8"))
+			.execute();
+		
+		// remove metadata attachments
+		delete(sourceDatasetMetadataAttachment)
+			.where(new SQLSubQuery()
+				.from(sourceDataset)
+				.where(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.exists())
 			.execute();
 		
 		VectorDataset updatedDataset = createVectorDataset();
@@ -189,6 +269,39 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		
 		// updating the dataset should have restored the metadata
 		assertNotEquals("Hello, world!", new String(metadataDocument, "utf-8"));
+		assertTrue(
+			query().from(sourceDatasetMetadataAttachment)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.exists());
+		assertFalse(
+			query().from(sourceDatasetMetadataAttachmentError)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachmentError.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.exists());
+		
+		httpStatus = 404; // disable mock http service
+		delete(sourceDatasetMetadataAttachment) // remove downloaded attachments
+			.where(new SQLSubQuery()
+				.from(sourceDataset)
+				.where(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+				.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+				.exists())
+			.execute();
+		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), AlreadyRegistered.class).get();
+		
+		// couldn't redownload attachment
+		assertFalse(
+			query().from(sourceDatasetMetadataAttachment)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachment.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.exists());
+		
+		assertTrue(
+			query().from(sourceDatasetMetadataAttachmentError)
+			.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetMetadataAttachmentError.sourceDatasetId))
+			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
+			.exists());
 	}
 	
 	@Test

@@ -783,12 +783,24 @@ public class MetadataDocument {
 			);		
 	}
 	
-	public List<String> getServiceBrowseGraphics() throws QueryFailure {
+	public List<String> getServiceBrowseGraphics() {
 		return xpath().strings(getServiceGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
 	}
 	
-	public List<String> getDatasetBrowseGraphics() throws QueryFailure {
+	public List<String> getDatasetBrowseGraphics() {
 		return xpath().strings(getDatasetGraphicOverviewPath () + "/gmd:MD_BrowseGraphic/gmd:fileName/gco:CharacterString");
+	}
+	
+	public void updateDatasetBrowseGraphic(String currentBrowseGraphic, String newBrowseGraphic) {
+		xpath()
+			.node(
+				getDatasetGraphicOverviewPath()
+				+ "/gmd:MD_BrowseGraphic"
+				+ "/gmd:fileName"
+				+ "/gco:CharacterString['"
+				+ currentBrowseGraphic
+				+ "']")
+			.ifPresent(node -> node.setTextContent(newBrowseGraphic));
 	}
 
 	/**
@@ -1000,6 +1012,26 @@ public class MetadataDocument {
 	
 	public void setStylesheet(String stylesheet) {
 		xmlDocument.setStylesheet(stylesheet);
+	}
+	
+	public List<String> getSupplementalInformation() {
+		return xpath().strings(
+			"/gmd:MD_Metadata"
+			+ "/gmd:identificationInfo"
+			+ "/gmd:MD_DataIdentification"
+			+ "/gmd:supplementalInformation"
+			+ "/gco:CharacterString");
+	}
+	
+	public void updateSupplementalInformation(String existingSupplementalInformation, String newSupplementalInformation) {
+		xpath()
+			.node(
+				"/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:supplementalInformation"
+				+ "/gco:CharacterString[text() = '" + existingSupplementalInformation + "']")
+			.ifPresent(node -> node.setTextContent(newSupplementalInformation));
 	}
 	
 }

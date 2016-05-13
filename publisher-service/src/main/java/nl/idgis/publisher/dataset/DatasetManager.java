@@ -10,13 +10,20 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
+import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachmentError.sourceDatasetMetadataAttachmentError;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
 import static nl.idgis.publisher.utils.StreamUtils.index;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.MessageDigest;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -78,10 +85,15 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.expr.DateTimeExpression;
 import com.mysema.query.types.query.ListSubQuery;
+import com.ning.http.client.AsyncCompletionHandler;
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Response;
 
 public class DatasetManager extends UntypedActor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final AsyncHttpClient asyncHttpClient;
 
 	private final ActorRef database;
 	
@@ -95,6 +107,7 @@ public class DatasetManager extends UntypedActor {
 		this.database = database;
 		
 		mdf = new MetadataDocumentFactory();
+		asyncHttpClient = new AsyncHttpClient();
 	}
 
 	public static Props props(ActorRef database) {
@@ -611,35 +624,192 @@ public class DatasetManager extends UntypedActor {
 			.execute();
 	}
 	
-	private CompletableFuture<Void> storeMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
+	private CompletableFuture<Void> downloadMetadataAttachment(AsyncHelper tx, int sourceDatasetId, String identification, URL url) {
+		log.debug("downloading metadata attachment: " + url);
+		
+		CompletableFuture<Void> future = new CompletableFuture<>();
+		
+		asyncHttpClient.prepareGet(url.toExternalForm())
+			.execute(new AsyncCompletionHandler<Response>() {
+
+				@Override
+				public Response onCompleted(Response response) throws Exception {
+					int statusCode = response.getStatusCode();
+					if(statusCode == 200) {
+						log.debug("metadata attachment download completed");
+						
+						String contentType = response.getContentType();
+						String contentDisposition = response.getHeader("Content-Disposition");
+						byte[] content = response.getResponseBodyAsBytes();
+						
+						tx.insert(sourceDatasetMetadataAttachment)
+							.set(sourceDatasetMetadataAttachment.identification, identification)
+							.set(sourceDatasetMetadataAttachment.sourceDatasetId, sourceDatasetId)
+							.set(sourceDatasetMetadataAttachment.contentType, contentType)
+							.set(sourceDatasetMetadataAttachment.contentDisposition, contentDisposition)
+							.set(sourceDatasetMetadataAttachment.content, content)
+							.execute().thenRun(() -> {
+								log.debug("metadata attachment stored");
+								future.complete(null); 
+							});
+					} else {
+						log.warning("unexpected http status code: " + statusCode);
+						
+						tx.insert(sourceDatasetMetadataAttachmentError)
+							.set(sourceDatasetMetadataAttachmentError.identification, identification)
+							.set(sourceDatasetMetadataAttachmentError.sourceDatasetId, sourceDatasetId)
+							.set(sourceDatasetMetadataAttachmentError.httpStatus, statusCode)
+							.execute().thenRun(() -> {
+								log.debug("metadata attachment error stored");
+								future.complete(null); 
+							});
+					}
+					
+					return response;
+				}
+				
+				@Override
+				public void onThrowable(Throwable t) {
+					log.warning("metadata attachment download failed");
+
+					tx.insert(sourceDatasetMetadataAttachmentError)
+						.set(sourceDatasetMetadataAttachmentError.identification, identification)
+						.set(sourceDatasetMetadataAttachmentError.sourceDatasetId, sourceDatasetId)
+						.execute().thenRun(() -> {
+							log.debug("metadata attachment error stored");
+							future.complete(null); 
+						});
+				}
+				
+			});
+		
+		return future;
+	}
+	
+	private CompletableFuture<Void> updateMetadataAttachments(AsyncHelper tx, boolean removeExisting, int sourceDatasetId, MetadataDocument metadata) {
+		log.debug("updating metadata attachments");
+		
+		final CompletableFuture<Void> deletePreviousErrors =
+			tx.delete(sourceDatasetMetadataAttachmentError)
+				.where(sourceDatasetMetadataAttachmentError.sourceDatasetId.eq(sourceDatasetId))
+				.execute().thenApply(result -> null);
+		
+		final CompletableFuture<Set<String>> determineExistingIds;
+		if(removeExisting) {
+			determineExistingIds = tx.delete(sourceDatasetMetadataAttachment)
+			.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
+			.execute().thenApply(deleteResult -> { 
+				log.debug("existing metadata attachments deleted");
+				return Collections.emptySet();
+			});
+		} else {
+			determineExistingIds = tx.query().from(sourceDatasetMetadataAttachment)
+				.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
+				.list(sourceDatasetMetadataAttachment.identification).thenApply(typedList -> {
+					log.debug("existing metadata attachment ids retrieved");
+					return typedList.list().stream().collect(Collectors.toSet()); 
+				});
+		}
+		
+		return deletePreviousErrors.thenCompose(previousErrorsDeleted ->
+		
+		determineExistingIds.thenCompose(existingIds -> {
+				ArrayList<CompletableFuture<Void>> pendingDownloads = new ArrayList<>();
+				for(String supplementalInformation : metadata.getSupplementalInformation()) {
+					log.debug("supplemental information: " + supplementalInformation);
+					
+					if(existingIds.contains(supplementalInformation)) {
+						log.debug("attachment already downloaded -> skip");
+						continue;
+					}
+					
+					int separator = supplementalInformation.indexOf("|");
+					if(separator != -1) {
+						String urlPart = supplementalInformation.substring(separator + 1).trim().replace("\\", "/");
+						try {
+							pendingDownloads.add(downloadMetadataAttachment(tx, sourceDatasetId, supplementalInformation, new URL(urlPart)));
+						} catch(MalformedURLException e) {
+							log.warning("not a valid url: " + urlPart, e);
+						}
+					}
+				}
+				
+				for(String browseGraphic : metadata.getDatasetBrowseGraphics()) {
+					log.debug("browse graphic: " + browseGraphic);
+					
+					if(existingIds.contains(browseGraphic)) {
+						log.debug("attachment already downloaded -> skip");
+						continue;
+					}
+					
+					try {
+						String url = browseGraphic.trim().replace("\\", "/");
+						pendingDownloads.add(downloadMetadataAttachment(tx, sourceDatasetId, browseGraphic, new URL(url)));
+					} catch(MalformedURLException e) {
+						log.warning("not a valid url: " + browseGraphic, e);
+					}
+				}
+				
+				return f.sequence(pendingDownloads).thenApply(downloadResults -> {
+					log.debug("all metadata attachment downloads completed");
+					return null;
+				});
+		}));
+	}
+	
+	private CompletableFuture<Void> updateMetadata(AsyncHelper tx, String dataSourceIdentification, String identification, Optional<MetadataDocument> metadata) {
 		if(metadata.isPresent()) {
+			log.debug("updating metadata");
+			
 			try {
-				byte[] document = metadata.get().getContent(); 
+				byte[] newDocument = metadata.get().getContent();
 				
 				return tx.query().from(sourceDataset)
-					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))					
-					.where(sourceDataset.externalIdentification.eq(identification))
+					.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
+					.leftJoin(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 					.where(dataSource.identification.eq(dataSourceIdentification))
-					.singleResult(sourceDataset.id).thenCompose(id -> {
-						return tx.update(sourceDatasetMetadata)
-							.set(sourceDatasetMetadata.document, document)
-							.where(sourceDatasetMetadata.sourceDatasetId.eq(id.get()))
-							.execute().thenCompose(updateResult -> {
-								if(updateResult == 0) {
-									return tx.insert(sourceDatasetMetadata)
-										.set(sourceDatasetMetadata.document, document)
-										.set(sourceDatasetMetadata.sourceDatasetId, id.get())
-										.execute().thenApply(insertResult -> null);
-								} else {
-									return f.successful(null);
+					.where(sourceDataset.externalIdentification.eq(identification))
+					.singleResult(sourceDataset.id, sourceDatasetMetadata.document).thenCompose(optionalCurrentInfo -> {
+						if(optionalCurrentInfo.isPresent()) {
+							Tuple currentInfo = optionalCurrentInfo.get();
+							int id = currentInfo.get(sourceDataset.id);
+							byte[] currentDocument = currentInfo.get(sourceDatasetMetadata.document);
+							
+							if(currentDocument == null) {
+								log.debug("no metadata document found -> insert");
+								
+								return tx.insert(sourceDatasetMetadata)
+								.set(sourceDatasetMetadata.document, newDocument)
+								.set(sourceDatasetMetadata.sourceDatasetId, id)
+								.execute().thenCompose(insertResult -> updateMetadataAttachments(tx, true, id, metadata.get()));
+							} else {
+								log.debug("metadata document found");
+								try {
+									MessageDigest md = MessageDigest.getInstance("MD5");
+									if(Arrays.equals(md.digest(newDocument), md.digest(currentDocument))) {
+										log.debug("same hash -> only download missing attachments");
+										return updateMetadataAttachments(tx, false, id, metadata.get());
+									}
+									
+									log.debug("different hash -> update");
+									return tx.update(sourceDatasetMetadata)
+									.set(sourceDatasetMetadata.document, newDocument)
+									.where(sourceDatasetMetadata.sourceDatasetId.eq(id))
+									.execute().thenCompose(updateResult -> updateMetadataAttachments(tx, true, id, metadata.get()));
+								} catch(Exception e) {
+									return f.failed(e);
 								}
-							});
+							}
+						}
+							
+						return f.failed(new IllegalStateException("source dataset not found"));
 					});
 			} catch(Exception e) {
 				log.error("failed to store metadata for source dataset: {}, exception: {}", e);
 				return f.successful(null);
 			}
 		} else {
+			log.debug("dataset doesn't have metadata");
 			return f.successful(null);
 		}
 	}
@@ -661,7 +831,7 @@ public class DatasetManager extends UntypedActor {
 					: insertSourceDataset(tx, dataSourceIdentification, dataset));
 			
 			return registerResult.thenCompose(result -> {
-				return storeMetadata(tx, dataSourceIdentification, identification, dataset.getMetadata())
+				return updateMetadata(tx, dataSourceIdentification, identification, dataset.getMetadata())
 					.thenApply(n -> result); 
 			});
 		});

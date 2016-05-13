@@ -5,8 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -72,6 +74,10 @@ public class MetadataDocumentTest {
 		
 		result = document.getMetaDataCreationDate();
 		assertTrue("wrong MetaDataCreationDate", result.startsWith("2014-04-11"));
+		
+		List<String> results = document.getSupplementalInformation();
+		assertNotNull(results);
+		assertEquals("wrong SupplementalInformation", Arrays.asList("layerfile| http:\\\\localhost:7000\\GeoPortal\\MIS4GIS\\lyr\\gemgrens_polygon.lyr"), results);
 	}
 	
 	@Test(expected=NotParseable.class)
@@ -530,5 +536,29 @@ public class MetadataDocumentTest {
 		
 		// should fail (raise NotFound exception)
 		document.getDatasetRevisionDate();
+	}
+	
+	@Test
+	public void testUpdateSupplementalInformation() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		String current = document.getSupplementalInformation().get(0);
+		assertNotEquals("Hello, world!", current);
+		
+		document.updateSupplementalInformation(current, "Hello, world!");
+		String updated = document.getSupplementalInformation().get(0);
+		assertEquals("Hello, world!", updated);
+	}
+	
+	@Test
+	public void testUpdateDatasetBrowseGraphics() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		String current = document.getDatasetBrowseGraphics().get(0);
+		assertNotEquals("Hello, world!", current);
+		
+		document.updateDatasetBrowseGraphic(current, "Hello, world!");
+		String updated = document.getDatasetBrowseGraphics().get(0);
+		assertEquals("Hello, world!", updated);
 	}
 }
