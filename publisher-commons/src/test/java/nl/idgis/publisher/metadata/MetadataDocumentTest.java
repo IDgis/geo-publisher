@@ -77,7 +77,7 @@ public class MetadataDocumentTest {
 		
 		List<String> results = document.getSupplementalInformation();
 		assertNotNull(results);
-		assertEquals("wrong SupplementalInformation", Arrays.asList("layerfile| http:\\\\gisopenbaar.overijssel.nl\\GeoPortal\\MIS4GIS\\lyr\\gemgrens_polygon.lyr"), results);
+		assertEquals("wrong SupplementalInformation", Arrays.asList("layerfile| http:\\\\localhost:7000\\GeoPortal\\MIS4GIS\\lyr\\gemgrens_polygon.lyr"), results);
 	}
 	
 	@Test(expected=NotParseable.class)
