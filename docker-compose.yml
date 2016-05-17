@@ -1,0 +1,58 @@
+version: '2'
+
+volumes:
+  db_data:
+  db_logs:
+  service_raster:
+  service_sslconf:
+  
+services:
+  db:
+    image: idgis/geo-publisher-postgis:1.4.0
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql
+      - db_logs:/var/log/postgresql
+    
+  service:
+    image: idgis/geo-publisher-service:1.4.0
+    restart: always
+    volumes:
+      - service_raster:/var/lib/geo-publisher/raster
+      - service_sslconf:/etc/geo-publisher/ssl
+      
+  web:
+    image: idgis/geo-publisher-web:1.4.0
+    restart: always
+    
+  dav:
+    image: idgis/geo-publisher-dav:1.4.0
+    restart: always
+    
+  geoserver_public:
+    image: idgis/geo-publisher-geoserver:1.4.0
+    restart: always
+    
+  geoserver_staging:
+    image: idgis/geo-publisher-geoserver:1.4.0
+    restart: always
+    
+  geoserver_secure:
+    image: idgis/geo-publisher-geoserver:1.4.0
+    restart: always
+    
+  geoserver_guaranteed:
+    image: idgis/geo-publisher-geoserver:1.4.0
+    restart: always
+    
+  viewer_public:
+    image: idgis/geo-publisher-viewer:1.4.0
+    restart: always
+      
+  viewer_secure:
+    image: idgis/geo-publisher-viewer:1.4.0
+    restart: always
+    
+  viewer_guaranteed:
+    image: idgis/geo-publisher-viewer:1.4.0
+    restart: always
