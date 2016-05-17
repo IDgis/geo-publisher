@@ -543,11 +543,14 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
 		String current = document.getSupplementalInformation().get(0);
-		assertNotEquals("Hello, world!", current);
+		String replacement = "Hello, ' world!";
+		assertNotEquals(replacement, current);
 		
-		document.updateSupplementalInformation(current, "Hello, world!");
+		document.updateSupplementalInformation(current, replacement);
 		String updated = document.getSupplementalInformation().get(0);
-		assertEquals("Hello, world!", updated);
+		assertEquals(replacement, updated);
+		
+		document.updateSupplementalInformation(replacement, current);
 	}
 	
 	@Test
@@ -555,10 +558,13 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
 		String current = document.getDatasetBrowseGraphics().get(0);
-		assertNotEquals("Hello, world!", current);
+		String replacement = "Hello, ' world!";
+		assertNotEquals(replacement, current);
 		
-		document.updateDatasetBrowseGraphic(current, "Hello, world!");
+		document.updateDatasetBrowseGraphic(current, replacement);
 		String updated = document.getDatasetBrowseGraphics().get(0);
-		assertEquals("Hello, world!", updated);
+		assertEquals(replacement, updated);
+		
+		document.updateDatasetBrowseGraphic(replacement, current);
 	}
 }

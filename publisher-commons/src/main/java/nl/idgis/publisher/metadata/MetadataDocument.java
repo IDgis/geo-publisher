@@ -793,13 +793,14 @@ public class MetadataDocument {
 	
 	public void updateDatasetBrowseGraphic(String currentBrowseGraphic, String newBrowseGraphic) {
 		xpath()
-			.node(
+			.nodes(
 				getDatasetGraphicOverviewPath()
 				+ "/gmd:MD_BrowseGraphic"
 				+ "/gmd:fileName"
-				+ "/gco:CharacterString['"
-				+ currentBrowseGraphic
-				+ "']")
+				+ "/gco:CharacterString")
+			.stream()
+			.filter(node -> node.string().map(str -> str.equals(currentBrowseGraphic)).orElse(false))
+			.findAny()
 			.ifPresent(node -> node.setTextContent(newBrowseGraphic));
 	}
 
@@ -1025,12 +1026,15 @@ public class MetadataDocument {
 	
 	public void updateSupplementalInformation(String existingSupplementalInformation, String newSupplementalInformation) {
 		xpath()
-			.node(
+			.nodes(
 				"/gmd:MD_Metadata"
 				+ "/gmd:identificationInfo"
 				+ "/gmd:MD_DataIdentification"
 				+ "/gmd:supplementalInformation"
-				+ "/gco:CharacterString[text() = '" + existingSupplementalInformation + "']")
+				+ "/gco:CharacterString")
+			.stream()
+			.filter(node -> node.string().map(str -> str.equals(existingSupplementalInformation)).orElse(false))
+			.findAny()
 			.ifPresent(node -> node.setTextContent(newSupplementalInformation));
 	}
 	
