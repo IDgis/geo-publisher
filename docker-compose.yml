@@ -21,6 +21,13 @@ services:
       - service_raster:/var/lib/geo-publisher/raster
       - service_sslconf:/etc/geo-publisher/ssl
       
+  proxy:
+    build: publisher-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    
   web:
     image: idgis/geo-publisher-web:1.4.0
     restart: always
