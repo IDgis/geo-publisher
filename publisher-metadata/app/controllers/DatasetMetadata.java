@@ -50,8 +50,6 @@ import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 public class DatasetMetadata extends AbstractMetadata {
-	
-	private final static String stylesheet = "datasets/intern/metadata.xsl";
 		
 	private final MetadataDocumentFactory mdf;
 	
@@ -72,6 +70,14 @@ public class DatasetMetadata extends AbstractMetadata {
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
 		return new DatasetMetadata(webJarAssets, filter, config, q, mdf, prefix);
+	}
+	
+	private String stylesheet() {
+		if(isTrusted()) {
+			return "datasets/intern/metadata.xsl";
+		} else {
+			return "datasets/extern/metadata.xsl";
+		}
 	}
 	
 	private SQLQuery fromDataset(Transaction tx) {
@@ -210,7 +216,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 				
-				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet)).url());
+				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
 				
 				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

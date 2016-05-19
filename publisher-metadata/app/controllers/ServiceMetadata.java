@@ -61,8 +61,6 @@ public class ServiceMetadata extends AbstractMetadata {
 	private static final String ENDPOINT_CODE_LIST = "http://www.isotc211.org/2005/iso19119/resources/Codelist/gmxCodelists.xml#DCPList";
 
 	private static final String ENDPOINT_OPERATION_NAME = "GetCapabilitities";
-	
-	private final static String stylesheet = "services/intern/metadata.xsl";
 		
 	private final MetadataDocument template;
 	
@@ -89,6 +87,14 @@ public class ServiceMetadata extends AbstractMetadata {
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
 		return new ServiceMetadata(webJarAssets, filter, config, q, template, prefix);
+	}
+	
+	private String stylesheet() {
+		if(isTrusted()) {
+			return "services/intern/metadata.xsl";
+		} else {
+			return "services/extern/metadata.xsl";
+		}
 	}
 	
 	private SQLQuery fromService(Transaction tx) {
@@ -231,7 +237,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
-			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet)).url());
+			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
