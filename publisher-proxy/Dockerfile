@@ -1,5 +1,6 @@
 FROM eboraas/apache
 
-COPY admin.conf /etc/apache2/sites-available
+COPY *.conf /etc/apache2/sites-available/
 
-RUN a2enmod proxy_http && a2enmod headers && a2ensite admin
+RUN a2enmod proxy_http headers \
+	&& a2ensite admin services staging-services secure-services guaranteed-services
