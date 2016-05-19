@@ -27,6 +27,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - GP_DOMAIN_PREFIX=
+      - GP_DOMAIN_SUFFIX=
     
   web:
     image: idgis/geo-publisher-web:1.4.0
