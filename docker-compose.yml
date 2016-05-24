@@ -13,6 +13,10 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
       - db_logs:/var/log/postgresql
+  
+  zookeeper:
+    image: jplock/zookeeper
+    restart: always
     
   service:
     image: idgis/geo-publisher-service:1.4.0
