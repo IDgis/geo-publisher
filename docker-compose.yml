@@ -10,6 +10,9 @@ services:
   db:
     image: idgis/geo-publisher-postgis:1.4.0
     restart: always
+    environment:
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
     volumes:
       - db_data:/var/lib/postgresql
       - db_logs:/var/log/postgresql
@@ -21,6 +24,18 @@ services:
   service:
     image: idgis/geo-publisher-service:1.4.0
     restart: always
+    environment:
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+      - PUBLISHER_SERVICE_AKKA_LOGLEVEL=DEBUG
+      - PUBLISHER_GEOSERVER_USER=
+      - PUBLISHER_GEOSERVER_PASSWORD=
+      - PUBLISHER_GEOSERVER_SCHEMA=
+      - PUBLISHER_SERVICE_HARVESTER_SSL_PRIVATE_PASSWORD=
+      - PUBLISHER_SERVICE_HARVESTER_SSL_TRUSTED_PASSWORD=
+      - PUBLISHER_DAV_DOMAIN=metadata
+      - PUBLISHER_SERVICE_MONITOR_SHOWTREES=false
+      - ZOOKEEPER_HOSTS=zookeeper
     volumes:
       - service_raster:/var/lib/geo-publisher/raster
       - service_sslconf:/etc/geo-publisher/ssl
