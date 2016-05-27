@@ -338,9 +338,13 @@ project(':publisher-provider:publisher-provider-protocol') {
 	}
 }
 
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
 project(':publisher-database') {
 	// publish jar (includes required *.sql files)
 	apply plugin: 'maven-publish'
+	apply plugin: DockerRemoteConfig
 		
 	publishing {
 		publications {
@@ -427,6 +431,47 @@ project(':publisher-database') {
 				srcDir new File(project.buildDir, 'metamodel')
 			}
 		}
+	}
+	
+	task copySql(type: Copy) {
+		from 'src/main/resources/nl/idgis/publisher/database'
+		into "${project.buildDir}/docker/sql"
+	}
+	
+	task copyStartScript(type: Copy) {
+		from 'src/main/bash/start.sh'
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = project.file("${project.buildDir}/docker/Dockerfile")
+		from 'ubuntu:xenial'
+		runCommand '''\
+			apt-get update && \
+			apt-get -qy install \
+				postgresql-9.5 \
+				postgresql-client-9.5 \
+				postgresql-9.5-postgis-2.2
+			'''
+		copyFile 'sql', '/opt/sql'
+		copyFile 'start.sh', '/opt/'
+		runCommand 'chmod u+x /opt/start.sh'
+		user 'postgres'
+		runCommand 'echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/9.5/main/pg_hba.conf'
+		runCommand 'echo "listen_addresses=\'*\'" >> /etc/postgresql/9.5/main/postgresql.conf'
+		environmentVariable 'PG_DATABASE', 'publisher'
+		environmentVariable 'PG_USER', 'publisher'
+		environmentVariable 'PG_PASSWORD', 'publisher'
+		environmentVariable 'PG_VERSION_SCHEMA', 'publisher'
+		environmentVariable 'PG_VERSION_TABLE', 'version'
+		exposePort 5432
+		defaultCommand '/bin/bash', '-c', '/opt/start.sh'
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn createDockerfile, copySql, copyStartScript
+		inputDir = project.file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_database:${project.version}"
 	}
 }
 
