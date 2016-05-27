@@ -431,7 +431,7 @@ project(':publisher-database') {
 }
 
 project(':publisher-service') {
-	apply plugin: 'application'
+	apply plugin: DockerApplication
 	
 	mainClassName = 'nl.idgis.publisher.ServiceApp'
 
