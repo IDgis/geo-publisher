@@ -228,8 +228,6 @@ project(':publisher-schemas') {
 
 project(':publisher-web') {
 	apply plugin: PublisherPlay
-	apply plugin: PlayDistPublish
-	apply plugin: 'maven-publish'
 	
 	def playVersion = '2.3.4'
 	
@@ -544,9 +542,6 @@ project(':publisher-service') {
 
 project(':publisher-metadata') {
 	apply plugin: PublisherPlay
-	apply plugin: PlayDistPublish
-	apply plugin: 'maven-publish'
-	apply plugin: CustomPlayHttpPort
 	
 	def playVersion = '2.4.3'
 	
