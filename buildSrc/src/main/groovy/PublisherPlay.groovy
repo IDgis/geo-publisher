@@ -14,7 +14,6 @@ import com.github.houbie.gradle.lesscss.LesscTask
   *
   * - extract less: extracts all less source files from webjars.
   * - compile less: compiles all less source files.
-  * - fix twirlTemplates: replaces scala imports with java imports.
   */
 class PublisherPlay implements Plugin<Project> {
 
@@ -71,54 +70,6 @@ class PublisherPlay implements Plugin<Project> {
 							binary.assets.addAssetDir destinationDir
 							binary.assets.builtBy task
 							dependsOn extractLessTask
-						}
-					
-						def fixTask = project.tasks.create(tasks.taskName('fix', 'twirlTemplates')) {
-							description = 'Replaces scala imports with java imports'
-						}
-											
-						fixTask << {
-							binary.generatedScala.each { generated ->
-								if(generated.key.name == 'twirlTemplates') {
-									generated.value.source.visit { item ->
-										if(!item.isDirectory()) {
-											def sourceLines = item.file.readLines();
-
-											sourceLines.remove(6);
-
-											['import play.api.templates.PlayMagic._',
-											'import models._',
-											'import controllers._',
-											'import java.lang._',
-											'import java.util._',
-											'import scala.collection.JavaConversions._',
-											'import scala.collection.JavaConverters._',
-											'import play.api.i18n._',
-											'import play.core.j.PlayMagicForJava._',
-											'import play.mvc._',
-											'import play.data._',
-											'import play.api.data.Field',
-											'import play.mvc.Http.Context.Implicit._',
-											'import views.html._'].eachWithIndex { line, lineNo ->
-												sourceLines.add(6 + lineNo, line)
-											}
-
-											item.file.write(sourceLines.join('\n'))
-										}
-									}
-								}
-							}
-						}
-
-						// inserts fixTask between compile twirlTemplates and compile scala
-						tasks.whenObjectAdded { task ->
-							if(task.name == tasks.taskName('compile', 'twirlTemplates')) {
-								fixTask.dependsOn(task)
-							}
-
-							if(task.name == tasks.taskName('compile', 'scala')) {
-								task.dependsOn(fixTask)
-							}
 						}
 					}
 				}

@@ -235,6 +235,12 @@ project(':publisher-web') {
 		components {
 			play {
 				platform play: playVersion, java: '1.8'
+				
+				sources {
+					twirlTemplates {
+						defaultImports = TwirlImports.JAVA
+					}
+				}
 			}
 		}
 	}
