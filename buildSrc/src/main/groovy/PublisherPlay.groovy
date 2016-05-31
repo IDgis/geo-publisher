@@ -9,6 +9,9 @@ import org.gradle.play.plugins.PlayPlugin
 
 import com.github.houbie.gradle.lesscss.LesscTask
 
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
 /**
   * Applies standard Gradle Play plugin and adds the following additional tasks:
   *
@@ -20,6 +23,7 @@ class PublisherPlay implements Plugin<Project> {
 	void apply(Project project) {
 		project.pluginManager.apply(JavaBasePlugin)
 		project.pluginManager.apply(PlayPlugin)
+		project.pluginManager.apply(DockerRemoteConfig)
 		
 		project.model {
 			components {
@@ -85,6 +89,32 @@ class PublisherPlay implements Plugin<Project> {
 							}
 						}
 					}
+				}
+			}
+			
+			tasks {
+				copyTar(Copy) {
+					dependsOn createPlayBinaryTarDist
+					from project.tarTree("${project.buildDir}/distributions/playBinary.tar")
+					into "${project.buildDir}/docker"
+				}
+
+				createDockerfile(Dockerfile) {
+					dependsOn copyTar
+					destFile = project.file('build/docker/Dockerfile')
+					from 'java'
+					copyFile 'playBinary', '/opt'
+					runCommand 'chmod u+x /opt/bin/playBinary'
+					exposePort 9000
+					defaultCommand "/opt/bin/playBinary"
+				}
+
+				buildImage(DockerBuildImage) {
+					def moduleName = project.name.substring(project.name.indexOf('-') + 1)
+				
+					dependsOn createDockerfile
+					inputDir = project.file('build/docker')
+					tag = "idgis/geopublisher_${moduleName}:${project.version}"
 				}
 			}
 		}
