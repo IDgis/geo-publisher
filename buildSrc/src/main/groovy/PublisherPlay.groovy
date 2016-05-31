@@ -74,6 +74,19 @@ class PublisherPlay implements Plugin<Project> {
 					}
 				}
 			}
+			
+			distributions {
+				playBinary {
+					project.tasks.withType(org.gradle.jvm.tasks.Jar) {
+						manifest {
+							attributes("Implementation-Title": project.name)
+							if(project.version) {
+								attributes("Implementation-Version": project.version)
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }
