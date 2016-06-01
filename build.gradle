@@ -532,20 +532,6 @@ project(':publisher-service') {
 	processTestResources.dependsOn(extractWebapp)
 }
 
-// configure distZip as publication
-project(':publisher-service') {	
-	apply plugin: 'maven-publish'
-	
-	publishing {
-		publications {
-			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'
-				artifact distZip
-			}
-		}
-	}
-}
-
 project(':publisher-metadata') {
 	apply plugin: PublisherPlay
 	
