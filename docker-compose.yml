@@ -1,0 +1,87 @@
+version: '2'
+
+volumes:
+  db_data:
+  db_logs:
+  service_raster:
+  service_sslconf:
+  
+services:
+  db:
+    image: idgis/geopublisher_database
+    restart: always
+    environment:
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+    volumes:
+      - db_data:/var/lib/postgresql
+      - db_logs:/var/log/postgresql
+  
+  zookeeper:
+    image: jplock/zookeeper
+    restart: always
+    
+  service:
+    image: idgis/geopublisher_service
+    restart: always
+    environment:
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+      - PUBLISHER_SERVICE_AKKA_LOGLEVEL=DEBUG
+      - PUBLISHER_GEOSERVER_USER=
+      - PUBLISHER_GEOSERVER_PASSWORD=
+      - PUBLISHER_GEOSERVER_SCHEMA=
+      - PUBLISHER_SERVICE_HARVESTER_SSL_PRIVATE_PASSWORD=
+      - PUBLISHER_SERVICE_HARVESTER_SSL_TRUSTED_PASSWORD=
+      - PUBLISHER_DAV_DOMAIN=metadata
+      - PUBLISHER_SERVICE_MONITOR_SHOWTREES=false
+      - ZOOKEEPER_HOSTS=zookeeper
+    volumes:
+      - service_raster:/var/lib/geo-publisher/raster
+      - service_sslconf:/etc/geo-publisher/ssl
+      
+  proxy:
+    build: publisher-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - GP_DOMAIN_PREFIX=
+      - GP_DOMAIN_SUFFIX=
+    
+  web:
+    image: idgis/geopublisher_web
+    restart: always
+    
+  metadata:
+    image: idgis/geopublisher_metadata
+    restart: always
+    
+  geoserver_public:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    
+  geoserver_staging:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    
+  geoserver_secure:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    
+  geoserver_guaranteed:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    
+  viewer_public:
+    image: idgis/geopublisher_viewer:1.2
+    restart: always
+      
+  viewer_secure:
+    image: idgis/geopublisher_viewer:1.2
+    restart: always
+    
+  viewer_guaranteed:
+    image: idgis/geopublisher_viewer:1.2
+    restart: always
