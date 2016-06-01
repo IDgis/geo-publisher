@@ -5,14 +5,17 @@ import org.gradle.api.plugins.ApplicationPlugin
 
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
 
 class DockerApplication implements Plugin<Project> {
 
 	void apply(Project project) {
+		def moduleName = project.name.substring(project.name.indexOf('-') + 1)
+	
 		project.pluginManager.apply(ApplicationPlugin)
 		project.pluginManager.apply(DockerRemoteConfig)
 		
-		def copyTar = project.tasks.create('copyTar', Copy, {
+		def unpackTar = project.tasks.create('copyTar', Copy, {
 			def distTar = project.tasks.getByName('distTar')
 		
 			dependsOn distTar
@@ -22,8 +25,6 @@ class DockerApplication implements Plugin<Project> {
 		})
 		
 		def createDockerfile = project.tasks.create('createDockerfile', Dockerfile, {
-			dependsOn copyTar
-			
 			destFile = project.file("${project.buildDir}/docker/Dockerfile")
 			from 'java'
 			copyFile "${project.name}-${project.version}", '/opt'
@@ -31,10 +32,13 @@ class DockerApplication implements Plugin<Project> {
 			defaultCommand "/opt/bin/${project.name}"
 		})
 		
-		def buildImage = project.tasks.create('buildImage', DockerBuildImage, {
-			def moduleName = project.name.substring(project.name.indexOf('-') + 1)
+		def pullBaseImage = project.tasks.create('pullBaseImage', DockerPullImage, {
+			repository 'java'
+			tag 'latest'
+		})
 		
-			dependsOn createDockerfile
+		def buildImage = project.tasks.create('buildImage', DockerBuildImage, {
+			dependsOn createDockerfile, pullBaseImage, unpackTar
 			
 			inputDir = project.file("${project.buildDir}/docker")
 			tag = "idgis/geopublisher_${moduleName}:${project.version}"
