@@ -14,7 +14,7 @@ services:
       - "5432:5432"
     environment:
       - PG_USER=publisher
-      - PG_PASSWORD=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql
       - db_logs:/var/log/postgresql
@@ -33,13 +33,13 @@ services:
       - PG_PORT=5432
       - PG_DBNAME=publisher
       - PG_USER=publisher
-      - PG_PASSWORD=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
       - GEOSERVER_USER=admin
-      - GEOSERVER_PASSWORD=geoserver
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
       - AKKA_HOSTNAME=service
       - AKKA_LOGLEVEL=DEBUG
       - ZOOKEEPER_HOSTS=zookeeper
-      - METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/dataset/
+      - METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/dataset/
       - SSL_CONFIG=/etc/geo-publisher/ssl
       - RASTER_DIR=/var/lib/geo-publisher/raster
     volumes:
@@ -53,8 +53,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - GP_DOMAIN_PREFIX=
-      - GP_DOMAIN_SUFFIX=.geopublisher.local
+      - DOMAIN_PREFIX=${DOMAIN_PREFIX}
+      - DOMAIN_SUFFIX=${DOMAIN_SUFFIX}
     
   web:
     image: idgis/geopublisher_web
@@ -62,8 +62,8 @@ services:
     environment:
       - AKKA_HOSTNAME=web
       - SERVICE_HOST=service
-      - DATASET_METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/dataset/
-      - SERVICE_METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/service/
+      - DATASET_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/dataset/
+      - SERVICE_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/service/
     
   metadata:
     image: idgis/geopublisher_metadata
@@ -73,57 +73,57 @@ services:
       - PG_PORT=5432
       - PG_DBNAME=publisher
       - PG_USER=publisher
-      - PG_PASSWORD=publisher
-      - METADATA_HOST=metadata.geopublisher.local
+      - PG_PASSWORD=${PG_PASSWORD}
+      - METADATA_HOST=${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}
     
   geoserver_staging:
     image: idgis/geopublisher_geoserver
     restart: always
     environment:
       - GEOSERVER_USER=admin
-      - GEOSERVER_PASSWORD=geoserver
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
       - PG_HOST=db
       - PG_PORT=5432
       - PG_DBNAME=publisher
       - PG_USER=publisher
-      - PG_PASSWORD=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
       - ZOOKEEPER_HOSTS=zookeeper
       - SERVICE_IDENTIFICATION=geoserver-staging
-      - SERVICE_DOMAIN=staging-services.geopublisher.local
+      - SERVICE_DOMAIN=${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
     
   viewer_staging:
     image: idgis/geopublisher_viewer:1.2
     restart: always
     environment:
       - VIEWER_CONTEXT=/viewer
-      - VIEWER_ENVIRONMENT_URL=http://staging-services.geopublisher.local/geoserver/
+      - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}/geoserver/
       - VIEWER_USERNAME=admin
       - VIEWER_PASSWORD=geoserver
     links:
-      - proxy:staging-services.geopublisher.local
+      - proxy:${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
 
   geoserver_public:
     image: idgis/geopublisher_geoserver
     restart: always
     environment:
       - GEOSERVER_USER=admin
-      - GEOSERVER_PASSWORD=geoserver
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
       - PG_HOST=db
       - PG_PORT=5432
       - PG_DBNAME=publisher
       - PG_USER=publisher
-      - PG_PASSWORD=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
       - ZOOKEEPER_HOSTS=zookeeper
       - SERVICE_IDENTIFICATION=geoserver-public
-      - SERVICE_DOMAIN=services.geopublisher.local
+      - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
     
   viewer_public:
     image: idgis/geopublisher_viewer:1.2
     restart: always
     environment:
       - VIEWER_CONTEXT=/viewer
-      - VIEWER_ENVIRONMENT_URL=http://services.geopublisher.local/geoserver/
+      - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}/geoserver/
       - VIEWER_USERNAME=admin
       - VIEWER_PASSWORD=geoserver
     links:
-      - proxy:services.geopublisher.local
+      - proxy:${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
