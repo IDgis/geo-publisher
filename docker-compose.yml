@@ -10,6 +10,8 @@ services:
   db:
     image: idgis/geopublisher_database
     restart: always
+    ports:
+      - "5432:5432"
     environment:
       - PG_USER=publisher
       - PG_PASSWORD=publisher
@@ -24,18 +26,22 @@ services:
   service:
     image: idgis/geopublisher_service
     restart: always
+    ports:
+      - "4242:4242"
     environment:
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
       - PG_USER=publisher
       - PG_PASSWORD=publisher
-      - PUBLISHER_SERVICE_AKKA_LOGLEVEL=DEBUG
-      - PUBLISHER_GEOSERVER_USER=
-      - PUBLISHER_GEOSERVER_PASSWORD=
-      - PUBLISHER_GEOSERVER_SCHEMA=
-      - PUBLISHER_SERVICE_HARVESTER_SSL_PRIVATE_PASSWORD=
-      - PUBLISHER_SERVICE_HARVESTER_SSL_TRUSTED_PASSWORD=
-      - PUBLISHER_DAV_DOMAIN=metadata
-      - PUBLISHER_SERVICE_MONITOR_SHOWTREES=false
+      - GEOSERVER_USER=admin
+      - GEOSERVER_PASSWORD=geoserver
+      - AKKA_HOSTNAME=service
+      - AKKA_LOGLEVEL=DEBUG
       - ZOOKEEPER_HOSTS=zookeeper
+      - METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/dataset/
+      - SSL_CONFIG=/etc/geo-publisher/ssl
+      - RASTER_DIR=/var/lib/geo-publisher/raster
     volumes:
       - service_raster:/var/lib/geo-publisher/raster
       - service_sslconf:/etc/geo-publisher/ssl
@@ -48,20 +54,76 @@ services:
       - "443:443"
     environment:
       - GP_DOMAIN_PREFIX=
-      - GP_DOMAIN_SUFFIX=
+      - GP_DOMAIN_SUFFIX=.geopublisher.local
     
   web:
     image: idgis/geopublisher_web
     restart: always
+    environment:
+      - AKKA_HOSTNAME=web
+      - SERVICE_HOST=service
+      - DATASET_METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/dataset/
+      - SERVICE_METADATA_URL_PREFIX=http://metadata.geopublisher.local/metadata/service/
     
   metadata:
     image: idgis/geopublisher_metadata
     restart: always
+    environment:
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+      - METADATA_HOST=metadata.geopublisher.local
     
-  geoserver:
+  geoserver_staging:
     image: idgis/geopublisher_geoserver
     restart: always
+    environment:
+      - GEOSERVER_USER=admin
+      - GEOSERVER_PASSWORD=geoserver
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+      - ZOOKEEPER_HOSTS=zookeeper
+      - SERVICE_IDENTIFICATION=geoserver-staging
+      - SERVICE_DOMAIN=staging-services.geopublisher.local
     
-  viewer:
+  viewer_staging:
     image: idgis/geopublisher_viewer:1.2
     restart: always
+    environment:
+      - VIEWER_CONTEXT=/viewer
+      - VIEWER_ENVIRONMENT_URL=http://staging-services.geopublisher.local/geoserver/
+      - VIEWER_USERNAME=admin
+      - VIEWER_PASSWORD=geoserver
+    links:
+      - proxy:staging-services.geopublisher.local
+
+  geoserver_public:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    environment:
+      - GEOSERVER_USER=admin
+      - GEOSERVER_PASSWORD=geoserver
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
+      - PG_USER=publisher
+      - PG_PASSWORD=publisher
+      - ZOOKEEPER_HOSTS=zookeeper
+      - SERVICE_IDENTIFICATION=geoserver-public
+      - SERVICE_DOMAIN=services.geopublisher.local
+    
+  viewer_public:
+    image: idgis/geopublisher_viewer:1.2
+    restart: always
+    environment:
+      - VIEWER_CONTEXT=/viewer
+      - VIEWER_ENVIRONMENT_URL=http://services.geopublisher.local/geoserver/
+      - VIEWER_USERNAME=admin
+      - VIEWER_PASSWORD=geoserver
+    links:
+      - proxy:services.geopublisher.local

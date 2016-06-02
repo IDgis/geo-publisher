@@ -8,8 +8,15 @@ buildscript {
 	}
 }
 
-apply plugin: GitVersion
+
 apply plugin: 'eclipse'
+
+if(hasProperty('latest')) {
+	project.version = 'latest'
+} else {
+	apply plugin: GitVersion
+}
+
 
 ext {
 	junitVersion = '4.11'
@@ -489,7 +496,8 @@ project(':publisher-database') {
 }
 
 project(':publisher-service') {
-	apply plugin: DockerApplication
+	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
 	
 	mainClassName = 'nl.idgis.publisher.ServiceApp'
 
@@ -539,6 +547,36 @@ project(':publisher-service') {
 	}
 	
 	processTestResources.dependsOn(extractWebapp)
+	
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task copyContext(type: Copy) {
+		from 'src/main/docker'
+		into "${project.buildDir}/docker"
+	}
+
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'java'
+		copyFile "publisher-service-${project.version}", '/opt'
+		copyFile 'start.sh', '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-service && chmod +x /opt/start.sh'
+		exposePort 2552
+		exposePort 4242
+		defaultCommand "/opt/start.sh"
+	}
+
+	task buildImage(type: DockerBuildImage) {
+		dependsOn createDockerfile, unpackTar, copyContext
+
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_service:${project.version}"
+	}
 }
 
 project(':publisher-metadata') {
