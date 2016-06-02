@@ -58,30 +58,10 @@ services:
     image: idgis/geopublisher_metadata
     restart: always
     
-  geoserver_public:
+  geoserver:
     image: idgis/geopublisher_geoserver
     restart: always
     
-  geoserver_staging:
-    image: idgis/geopublisher_geoserver
-    restart: always
-    
-  geoserver_secure:
-    image: idgis/geopublisher_geoserver
-    restart: always
-    
-  geoserver_guaranteed:
-    image: idgis/geopublisher_geoserver
-    restart: always
-    
-  viewer_public:
-    image: idgis/geopublisher_viewer:1.2
-    restart: always
-      
-  viewer_secure:
-    image: idgis/geopublisher_viewer:1.2
-    restart: always
-    
-  viewer_guaranteed:
+  viewer:
     image: idgis/geopublisher_viewer:1.2
     restart: always
