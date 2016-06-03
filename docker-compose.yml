@@ -75,6 +75,8 @@ services:
     environment:
       - AKKA_HOSTNAME=web
       - SERVICE_HOST=service
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GEOSERVER_DOMAIN=${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
       - DATASET_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/dataset/
       - SERVICE_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/service/
     
