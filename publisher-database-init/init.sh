@@ -4,7 +4,7 @@ echo $PG_HOST:$PG_PORT:$PG_DBNAME:$PG_USER:$PG_PASSWORD > ~/.pgpass
 chmod 0600 ~/.pgpass
 
 exec_sql() {
-	psql -h $PG_HOST -p $PG_PORT -U $PG_USER -c "$*" $PG_DBNAME 
+	psql -q -h $PG_HOST -p $PG_PORT -U $PG_USER -c "$*" $PG_DBNAME 
 }
 
 ensure_environment() {
@@ -24,6 +24,15 @@ ensure_datasource() {
 		on conflict\(identification\) do update \
 		set name = excluded.name
 }
+
+echo initializing database...
+
+while ! exec_sql select 1 > /dev/null 2>&1; do
+	echo database not yet available
+	sleep 1
+done
+
+echo database available
 
 ensure_environment geoserver-public "Publieke services" false "http://${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}/geoserver/"
 ensure_datasource overijssel-gisbasip "Overijssel vectordata"

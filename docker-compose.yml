@@ -21,6 +21,8 @@ services:
       
   db_init:
     build: publisher-database-init
+    depends_on:
+      - db
     environment:
       - PG_HOST=db
       - PG_PORT=5432
