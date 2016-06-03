@@ -18,6 +18,17 @@ services:
     volumes:
       - db_data:/var/lib/postgresql
       - db_logs:/var/log/postgresql
+      
+  db_init:
+    build: publisher-database-init
+    environment:
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
+      - PG_USER=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
+      - DOMAIN_PREFIX=${DOMAIN_PREFIX}
+      - DOMAIN_SUFFIX=${DOMAIN_SUFFIX}
   
   zookeeper:
     image: jplock/zookeeper
