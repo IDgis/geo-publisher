@@ -132,6 +132,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.list(
 						publishedService.content,
 						environment.identification,
+						environment.url,
 						publishedServiceDataset.layerName);
 				
 				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
@@ -192,6 +193,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					String serviceName = serviceInfo.get("name").asText();
 					String environmentId = serviceTuple.get(environment.identification);
 					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
+					String environmentUrl = serviceTuple.get(environment.url);
 					
 					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
 						try {
@@ -204,12 +206,12 @@ public class DatasetMetadata extends AbstractMetadata {
 					// we only automatically generate browseGraphics 
 					// when none where provided by the source. 
 					if(browseGraphics.isEmpty()) {
-						String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
+						String linkage = getServiceLinkage(environmentUrl, serviceName, ServiceType.WMS);
 						metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
 					}
 					
 					for(ServiceType serviceType : ServiceType.values()) {
-						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
 						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);

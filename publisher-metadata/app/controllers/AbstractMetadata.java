@@ -75,8 +75,8 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		}
 	}
 	
-	protected String getServiceLinkage(String environmentId, String serviceName, ServiceType serviceType) {
-		return config.getEnvironmentUrlPrefix(environmentId).orElse("/") + serviceName + "/" + serviceType.name().toLowerCase();
+	protected String getServiceLinkage(String environmentUrl, String serviceName, ServiceType serviceType) {
+		return environmentUrl + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 	
 	protected boolean isTrusted() {		
