@@ -68,6 +68,7 @@ services:
     environment:
       - INTERNAL_ADDR_DOCKER=172.18.0.0/16
       - TRUSTED_ADDR_0=192.168.99.1/32
+      - TRUSTED_HEADER=GeoPublisher-trusted
       - DOMAIN_PREFIX=${DOMAIN_PREFIX}
       - DOMAIN_SUFFIX=${DOMAIN_SUFFIX}
     
@@ -91,6 +92,7 @@ services:
       - PG_DBNAME=publisher
       - PG_USER=publisher
       - PG_PASSWORD=${PG_PASSWORD}
+      - TRUSTED_HEADER=GeoPublisher-trusted
       - METADATA_HOST=${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}
     
   geoserver_staging:

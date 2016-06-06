@@ -31,7 +31,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 import util.QueryDSL.Transaction;
@@ -65,12 +64,12 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, filter, config, q, getTemplate(), "/");
+	public ServiceMetadata(WebJarAssets webJarAssets,MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, config, q, getTemplate(), "/");
 	}
 	
-	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(webJarAssets, filter, config, q, prefix);
+	public ServiceMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(webJarAssets, config, q, prefix);
 		
 		this.template = template;
 	}
@@ -86,7 +85,7 @@ public class ServiceMetadata extends AbstractMetadata {
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(webJarAssets, filter, config, q, template, prefix);
+		return new ServiceMetadata(webJarAssets, config, q, template, prefix);
 	}
 	
 	private String stylesheet() {

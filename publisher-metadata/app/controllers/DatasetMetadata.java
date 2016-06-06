@@ -26,7 +26,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 import util.QueryDSL.Transaction;
@@ -56,12 +55,12 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final Pattern urlPattern;
 	
 	@Inject
-	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, filter, config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(webJarAssets, filter, config, q, prefix);
+	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(webJarAssets, config, q, prefix);
 		
 		this.mdf = mdf;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
@@ -69,7 +68,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(webJarAssets, filter, config, q, mdf, prefix);
+		return new DatasetMetadata(webJarAssets, config, q, mdf, prefix);
 	}
 	
 	private String stylesheet() {

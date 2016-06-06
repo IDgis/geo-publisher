@@ -8,7 +8,7 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedAddresses, downloadUrlPrefix;
+	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedHeader, downloadUrlPrefix;
 	
 	@Inject
 	public MetadataConfig(Configuration config) {
@@ -21,7 +21,7 @@ public class MetadataConfig {
 		zooKeeperHosts = config.getString("zooKeeper.hosts");
 		zooKeeperNamespace = config.getString("zooKeeper.namespace");
 		
-		trustedAddresses = metadata.getString("trusted-addresses", "");
+		trustedHeader = metadata.getString("trusted-header");
 		
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
@@ -48,8 +48,8 @@ public class MetadataConfig {
 		return Optional.ofNullable(zooKeeperNamespace);
 	}
 	
-	public String getTrustedAddresses() {
-		return trustedAddresses;
+	public String getTrustedHeader() {
+		return trustedHeader;
 	}
 	
 	public Optional<String> getDownloadUrlPrefix() {
