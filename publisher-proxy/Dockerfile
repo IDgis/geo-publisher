@@ -15,6 +15,7 @@ RUN \
 		admin \
 		services \
 		staging-services \
+		secure-services \
 		metadata\
 	&& chmod +x /opt/start.sh
 	

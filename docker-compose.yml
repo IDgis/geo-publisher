@@ -146,3 +146,29 @@ services:
       - VIEWER_PASSWORD=geoserver
     links:
       - proxy:${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
+      
+  geoserver_secure:
+    image: idgis/geopublisher_geoserver
+    restart: always
+    environment:
+      - GEOSERVER_USER=admin
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DBNAME=publisher
+      - PG_USER=publisher
+      - PG_PASSWORD=${PG_PASSWORD}
+      - ZOOKEEPER_HOSTS=zookeeper
+      - SERVICE_IDENTIFICATION=geoserver-secure
+      - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
+    
+  viewer_secure:
+    image: idgis/geopublisher_viewer:1.2
+    restart: always
+    environment:
+      - VIEWER_CONTEXT=/viewer
+      - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}secure-services${DOMAIN_SUFFIX}/geoserver/
+      - VIEWER_USERNAME=admin
+      - VIEWER_PASSWORD=geoserver
+    links:
+      - proxy:${DOMAIN_PREFIX}secure-services${DOMAIN_SUFFIX}

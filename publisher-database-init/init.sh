@@ -34,6 +34,8 @@ done
 
 echo database available
 
-ensure_environment geoserver-public "Publieke services" false "http://${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}/geoserver/"
+ensure_environment geoserver-public "Public services" false "http://${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}/geoserver/"
+ensure_environment geoserver-secure "Secure services" true "http://${DOMAIN_PREFIX}secure-services${DOMAIN_SUFFIX}/geoserver/"
+
 ensure_datasource overijssel-gisbasip "Overijssel vectordata"
 ensure_datasource overijssel-raster "Overijssel rasterdata"
