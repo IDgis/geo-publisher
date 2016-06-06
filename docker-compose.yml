@@ -66,6 +66,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
+      - INTERNAL_ADDR_DOCKER=172.18.0.0/16
+      - TRUSTED_ADDR_0=192.168.99.1/32
       - DOMAIN_PREFIX=${DOMAIN_PREFIX}
       - DOMAIN_SUFFIX=${DOMAIN_SUFFIX}
     

@@ -5,6 +5,7 @@ RUN \
 	&& apt-get -qy install apache2
 
 COPY *.conf /etc/apache2/sites-available/
+COPY start.sh /opt/start.sh
 
 RUN \
 	a2enmod \
@@ -14,6 +15,7 @@ RUN \
 		admin \
 		services \
 		staging-services \
-		metadata
+		metadata\
+	&& chmod +x /opt/start.sh
 	
-CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+CMD ["/opt/start.sh"]
