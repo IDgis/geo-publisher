@@ -11,7 +11,10 @@ RUN \
 	a2enmod \
 		proxy_http \
 		headers \
+		ssl \
+		rewrite \
 	&& a2ensite \
+		default-ssl \
 		admin \
 		services \
 		staging-services \
