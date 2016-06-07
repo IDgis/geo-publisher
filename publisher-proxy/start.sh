@@ -2,7 +2,7 @@
 
 # test if any environment variable
 # exists with name starting with $1
-# and terminates if none are round
+# and terminates if none are found
 assert_environment_variables() {
 	if [ $( \
 		( set -o posix ; set ) \
@@ -35,6 +35,11 @@ create_expression() {
 	done
 	echo $EXPR
 }
+
+if [ -z $TRUSTED_HEADER ]; then
+	echo TRUSTED_HEADER environment variable missing >&2
+	exit 1
+fi
 
 assert_environment_variables INTERNAL_ADDR
 assert_environment_variables TRUSTED_ADDR
