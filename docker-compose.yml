@@ -5,6 +5,9 @@ volumes:
   db_logs:
   service_raster:
   service_sslconf:
+  geoserver_staging_data:
+  geoserver_public_data:
+  geoserver_secure_data: 
   
 services:
   db:
@@ -113,6 +116,8 @@ services:
       - SERVICE_IDENTIFICATION=geoserver-staging
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
       - JAVA_OPTS=-Xmx128M
+    volumes:
+      - geoserver_staging_data:/var/lib/geo-publisher/geoserver
     
   viewer_staging:
     image: idgis/geopublisher_viewer:1.2
@@ -141,6 +146,8 @@ services:
       - SERVICE_IDENTIFICATION=geoserver-public
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
       - JAVA_OPTS=-Xmx128M
+    volumes:
+      - geoserver_public_data:/var/lib/geo-publisher/geoserver
     
   viewer_public:
     image: idgis/geopublisher_viewer:1.2
@@ -169,6 +176,8 @@ services:
       - SERVICE_IDENTIFICATION=geoserver-secure
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
       - JAVA_OPTS=-Xmx128M
+    volumes:
+      - geoserver_secure_data:/var/lib/geo-publisher/geoserver
     
   viewer_secure:
     image: idgis/geopublisher_viewer:1.2
