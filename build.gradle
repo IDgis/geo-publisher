@@ -610,10 +610,6 @@ project(':publisher-metadata') {
 		play "com.typesafe.play:play-java-ws_2.11:${playVersion}"
 		play "com.typesafe.play:play-jdbc-evolutions_2.11:${playVersion}"
 		play "org.postgresql:postgresql:9.4.1207.jre7"
-		play ("nl.idgis.sys:provisioning-registration:${provisionRegistrationVersion}") {
-			exclude module: "ch.qos.logback"
-			exclude module: "logback-classic"
-		}
 	}
 }
 
