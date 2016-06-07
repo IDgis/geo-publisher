@@ -13,6 +13,7 @@ if [ "$ZOOKEEPER_NAMESPACE" != "" ]; then
 	JAVA_OPTS="$JAVA_OPTS -DzooKeeper.namespace=$ZOOKEEPER_NAMESPACE"
 fi
 
+JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
 JAVA_OPTS="$JAVA_OPTS -Dservice.identification=$SERVICE_IDENTIFICATION"
 JAVA_OPTS="$JAVA_OPTS -Dservice.domain=$SERVICE_DOMAIN"
 JAVA_OPTS="$JAVA_OPTS -Dservice.ajpPort=$SERVICE_AJP_PORT"

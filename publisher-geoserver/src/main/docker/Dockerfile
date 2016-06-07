@@ -21,7 +21,6 @@ ENV CATALINA_BASE="/var/lib/tomcat7"
 ENV CATALINA_HOME="/usr/share/tomcat7"
 ENV CATALINA_TMPDIR="/var/lib/tomcat7/tmp"
 ENV PATH="$CATALINA_HOME/bin:$PATH"
-ENV JAVA_OPTS="-Djava.awt.headless=true -Xmx512m -XX:MaxPermSize=256m"
 
 # Copy webapps, jars, start script and tomcat configuration:
 COPY /webapps/geoserver /var/lib/tomcat7/webapps/geoserver
