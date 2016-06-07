@@ -55,6 +55,7 @@ services:
       - METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/dataset/
       - SSL_CONFIG=/etc/geo-publisher/ssl
       - RASTER_DIR=/var/lib/geo-publisher/raster
+      - JAVA_OPTS=-Xmx256M
     volumes:
       - service_raster:/var/lib/geo-publisher/raster
       - service_sslconf:/etc/geo-publisher/ssl
@@ -82,6 +83,7 @@ services:
       - GEOSERVER_DOMAIN=${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
       - DATASET_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/dataset/
       - SERVICE_METADATA_URL_PREFIX=http://${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}/metadata/service/
+      - JAVA_OPTS=-Xmx32M
     
   metadata:
     image: idgis/geopublisher_metadata
@@ -94,6 +96,7 @@ services:
       - PG_PASSWORD=${PG_PASSWORD}
       - TRUSTED_HEADER=GeoPublisher-trusted
       - METADATA_HOST=${DOMAIN_PREFIX}metadata${DOMAIN_SUFFIX}
+      - JAVA_OPTS=-Xmx32M
     
   geoserver_staging:
     image: idgis/geopublisher_geoserver
@@ -109,6 +112,7 @@ services:
       - ZOOKEEPER_HOSTS=zookeeper
       - SERVICE_IDENTIFICATION=geoserver-staging
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
+      - JAVA_OPTS=-Xmx128M
     
   viewer_staging:
     image: idgis/geopublisher_viewer:1.2
@@ -118,6 +122,7 @@ services:
       - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}/geoserver/
       - VIEWER_USERNAME=admin
       - VIEWER_PASSWORD=geoserver
+      - JAVA_OPTS=-Xmx32M
     links:
       - proxy:${DOMAIN_PREFIX}staging-services${DOMAIN_SUFFIX}
 
@@ -135,6 +140,7 @@ services:
       - ZOOKEEPER_HOSTS=zookeeper
       - SERVICE_IDENTIFICATION=geoserver-public
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
+      - JAVA_OPTS=-Xmx128M
     
   viewer_public:
     image: idgis/geopublisher_viewer:1.2
@@ -144,6 +150,7 @@ services:
       - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}/geoserver/
       - VIEWER_USERNAME=admin
       - VIEWER_PASSWORD=geoserver
+      - JAVA_OPTS=-Xmx32M
     links:
       - proxy:${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
       
@@ -161,6 +168,7 @@ services:
       - ZOOKEEPER_HOSTS=zookeeper
       - SERVICE_IDENTIFICATION=geoserver-secure
       - SERVICE_DOMAIN=${DOMAIN_PREFIX}services${DOMAIN_SUFFIX}
+      - JAVA_OPTS=-Xmx128M
     
   viewer_secure:
     image: idgis/geopublisher_viewer:1.2
@@ -170,5 +178,6 @@ services:
       - VIEWER_ENVIRONMENT_URL=http://${DOMAIN_PREFIX}secure-services${DOMAIN_SUFFIX}/geoserver/
       - VIEWER_USERNAME=admin
       - VIEWER_PASSWORD=geoserver
+      - JAVA_OPTS=-Xmx32M
     links:
       - proxy:${DOMAIN_PREFIX}secure-services${DOMAIN_SUFFIX}
