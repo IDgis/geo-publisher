@@ -270,16 +270,10 @@ project(':publisher-web') {
 		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
 		play "org.webjars:webjars-play_${scalaAbiVersion}:2.3.0"
 		play 'org.webjars:bootstrap:3.2.0'
-  		play 'org.webjars:dojo:1.10.0'
-  		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
-  		play 'org.pegdown:pegdown:1.5.0'
-		play('org.apache.zookeeper:zookeeper:3.4.5') {
-			exclude group: 'javax.jms', module: 'jms'
-			exclude group: 'com.sun.jdmk', module: 'jmxtools'
-			exclude group: 'com.sun.jmx', module: 'jmxri'
-			exclude group: 'org.jboss.netty', module: 'netty'
-		}
-  		play 'org.webjars:ace:01.08.2014'
+		play 'org.webjars:dojo:1.10.0'
+		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+		play 'org.pegdown:pegdown:1.5.0'
+		play 'org.webjars:ace:01.08.2014'
 	}
 }
 
