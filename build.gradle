@@ -556,7 +556,7 @@ project(':publisher-service') {
 
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
-		from 'java'
+		from 'azul/zulu-openjdk'
 		copyFile "publisher-service-${project.version}", '/opt'
 		copyFile 'start.sh', '/opt'
 		runCommand 'chmod +x /opt/bin/publisher-service && chmod +x /opt/start.sh'

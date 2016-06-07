@@ -102,7 +102,7 @@ class PublisherPlay implements Plugin<Project> {
 				createDockerfile(Dockerfile) {
 					dependsOn copyTar
 					destFile = project.file('build/docker/Dockerfile')
-					from 'java'
+					from 'azul/zulu-openjdk'
 					copyFile 'playBinary', '/opt'
 					runCommand 'chmod u+x /opt/bin/playBinary'
 					exposePort 9000
