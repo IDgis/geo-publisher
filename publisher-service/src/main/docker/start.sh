@@ -2,37 +2,34 @@
 
 echo Checking ssl keys...
 
-if [ -d /etc/geo-publisher/ssl ]; then
-	echo Config directory exists
-else
-	mkdir -p /etc/geo-publisher/ssl
-	echo Config directory created
-fi
-
-if [ -a /etc/geo-publisher/ssl/private.jks ]; then
+if [ -a $SSL_PRIVATE_KEYSTORE ]; then
 	echo Private keystore found
 else
+	mkdir -p $(dirname $SSL_TRUSTED_KEYSTORE)
+
 	keytool \
 		-genkeypair \
 		-keyalg RSA \
 		-dname 'cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL' \
-		-keystore /etc/geo-publisher/ssl/private.jks \
-		-storepass 'harvester' \
-		-keypass 'harvester' \
+		-keystore $SSL_PRIVATE_KEYSTORE \
+		-storepass '$SSL_PRIVATE_KEYSTORE_PASSWORD' \
+		-keypass '$SSL_PRIVATE_KEYSTORE_PASSWORD' \
 		-alias 'private'
 	echo Private keystore created
 fi
 
-if [ -a /etc/geo-publisher/ssl/trusted.jks ]; then
-	echo Trusted keystore found	
+if [ -a $SSL_TRUSTED_KEYSTORE ]; then
+	echo Trusted keystore found
 else
+	mkdir -p $(dirname $SSL_TRUSTED_KEYSTORE)
+
 	keytool \
 		-genkeypair \
 		-keyalg RSA \
 		-dname 'cn=IDgis Developers, ou=None, L=Rijssen, ST=Overijssel, o=IDgis bv, c=NL' \
-		-keystore /etc/geo-publisher/ssl/trusted.jks \
-		-storepass 'harvester' \
-		-keypass 'harvester' \
+		-keystore $SSL_TRUSTED_KEYSTORE \
+		-storepass '$SSL_TRUSTED_KEYSTORE_PASSWORD' \
+		-keypass '$SSL_TRUSTED_KEYSTORE_PASSWORD' \
 		-alias 'trusted'
 	echo Trusted keystore created
 fi
