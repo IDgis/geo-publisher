@@ -44,6 +44,10 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
@@ -94,7 +98,11 @@ public class DefaultGeoServerRestTest {
 		h = new GeoServerTestHelper();
 		h.start();
 		
-		ActorSystem actorSystem = ActorSystem.create();
+		Config akkaConfig = ConfigFactory.empty()
+			.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+		
+		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
 		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
 	}
