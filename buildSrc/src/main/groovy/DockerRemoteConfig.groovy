@@ -23,7 +23,7 @@ class DockerRemoteConfig implements Plugin<Project> {
 						certPath = project.file "$env.DOCKER_CERT_PATH"
 					}
 				} else {
-					url = "http://${dockerHost}:2375"
+					url = "http://${project.dockerHost}:2375"
 				}
 		}
 	}
