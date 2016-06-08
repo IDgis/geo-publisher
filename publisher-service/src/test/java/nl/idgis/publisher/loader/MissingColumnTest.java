@@ -206,6 +206,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 		insert(environment)
 			.set(environment.identification, "testEnvironment")
 			.set(environment.confidential, false)
+			.set(environment.url, "http://test-environment.example/")
 			.execute();
 		
 		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), Ack.class).get();
