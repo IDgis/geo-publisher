@@ -17,6 +17,18 @@ if(hasProperty('latest')) {
 	apply plugin: GitVersion
 }
 
+repositories {
+	mavenCentral()
+}
+
+apply plugin: DockerRemoteConfig
+
+import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
+
+task pullImage(type: DockerPullImage) {
+	repository 'azul/zulu-openjdk'
+	tag 'latest'
+}
 
 ext {
 	junitVersion = '4.11'
@@ -483,7 +495,7 @@ project(':publisher-database') {
 	}
 	
 	task buildImage(type: DockerBuildImage) {
-		dependsOn createDockerfile, copySql, copyStartScript
+		dependsOn rootProject.pullImage, createDockerfile, copySql, copyStartScript
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_database:${project.version}"
 	}
@@ -566,7 +578,7 @@ project(':publisher-service') {
 	}
 
 	task buildImage(type: DockerBuildImage) {
-		dependsOn createDockerfile, unpackTar, copyContext
+		dependsOn rootProject.pullImage, createDockerfile, unpackTar, copyContext
 
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_service:${project.version}"
@@ -693,7 +705,7 @@ project(':publisher-geoserver') {
 	}
 	
 	task buildImage(type: DockerBuildImage) {
-		dependsOn prepareDockerContext
+		dependsOn rootProject.pullImage, prepareDockerContext
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_geoserver:${project.version}"
 	}
