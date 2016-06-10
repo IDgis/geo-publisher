@@ -35,6 +35,7 @@
     <string>3785</string>
     <string>3857</string>
   </srs>
+  <bboxForEachCRS>true</bboxForEachCRS>
   <watermark>
     <enabled>false</enabled>
     <position>BOT_RIGHT</position>
