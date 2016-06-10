@@ -24,6 +24,17 @@
     <entry key="svgAntiAlias">true</entry>
     <entry key="svgRenderer">Batik</entry>
   </metadata>
+  <srs>
+    <string>4326</string>
+    <string>4258</string>
+    <string>28992</string>
+    <string>25830</string>
+    <string>25831</string>
+    <string>25832</string>
+    <string>900913</string>
+    <string>3785</string>
+    <string>3857</string>
+  </srs>
   <watermark>
     <enabled>false</enabled>
     <position>BOT_RIGHT</position>
