@@ -1,6 +1,7 @@
 package controllers;
 
 import javax.inject.Inject;
+import javax.xml.namespace.QName;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
@@ -39,7 +40,9 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -229,13 +232,22 @@ public class DatasetMetadata extends AbstractMetadata {
 				fromDataset(tx)
 				.list(
 					dataset.metadataFileIdentification, 
+					sourceDatasetVersion.confidential,
 					sourceDatasetVersion.revision).stream()
-					.map(datasetTuple ->
-						new DefaultResourceDescription(
+					.map(datasetTuple -> {
+						Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
+						Map<QName, String> customProperties = new HashMap<QName, String>();
+						customProperties.put(
+							new QName("http://idgis.nl/geopublisher", "confidential"), 
+							datasetTuple.get(sourceDatasetVersion.confidential).toString());
+						
+						return new DefaultResourceDescription(
 							getName(datasetTuple.get(dataset.metadataFileIdentification)),
 							new DefaultResourceProperties(
 								false,
-								datasetTuple.get(sourceDatasetVersion.revision)))));
+								createTime,
+								customProperties));
+					}));
 	}
 
 	@Override
@@ -244,15 +256,22 @@ public class DatasetMetadata extends AbstractMetadata {
 			q.withTransaction(tx -> {
 				Tuple datasetTuple = fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(new QTuple(sourceDatasetVersion.revision));
+					.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.confidential);
 				
 				if(datasetTuple == null) {
 					return Optional.<ResourceProperties>empty();
 				} else {
+					Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
+					Map<QName, String> customProperties = new HashMap<QName, String>();
+					customProperties.put(
+						new QName("http://idgis.nl/geopublisher", "confidential"), 
+						datasetTuple.get(sourceDatasetVersion.confidential).toString());
+					
 					return Optional.<ResourceProperties>of(
 						new DefaultResourceProperties(
 							false, 
-							datasetTuple.get(sourceDatasetVersion.revision)));
+							createTime,
+							customProperties));
 				}
 		}));
 	}
