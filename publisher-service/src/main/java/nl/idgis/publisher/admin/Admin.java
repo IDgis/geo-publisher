@@ -374,6 +374,8 @@ private String getEnumName(Enum e){
 								CompletableFuture<Object> dsi;
 								String datasetId = job.getDatasetId();
 								if(!datasetInfos.containsKey(datasetId)) {
+									// TODO: stop using this database message and start using
+									// the stuff in DatasetAdmin.handleListDatasets
 									dsi = f.ask(database, new GetDatasetInfo(datasetId));
 									
 									datasetInfos.put(datasetId, dsi);

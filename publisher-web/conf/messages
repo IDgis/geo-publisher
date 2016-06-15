@@ -365,9 +365,14 @@ web.application.page.datasets.form.tab.filters.condition.all=Alle onderstaande c
 web.application.page.datasets.form.tab.filters.or=Of
 
 web.application.page.datasets.list.delete.warning.body=Weet u zeker dat u deze dataset wilt verwijderen? Gekoppelde lagen worden ook verwijderd, tevens worden de onderliggende data en filters verwijderd.
+
 web.application.page.datasets.list.layerCount=lagen
 web.application.page.datasets.list.layerCountSingle=1 laag
 web.application.page.datasets.list.layerCountNone=Geen lagen
+
+web.application.page.datasets.list.publishedServiceCount=Gepubliceerd in {0} services
+web.application.page.datasets.list.publishedServiceCountSingle=Gepubliceerd in 1 service
+web.application.page.datasets.list.publishedServiceCountNone=Niet gepubliceerd
 
 
 # General management

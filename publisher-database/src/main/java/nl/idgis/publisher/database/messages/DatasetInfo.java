@@ -21,6 +21,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final JobState lastImportJobState;
 	private final List<StoredNotification> notifications;	
 	private final long layerCount;
+	private final long publishedServiceCount;
 	private final boolean confidential;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
@@ -32,6 +33,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final String lastImportJobState,
 			final List<StoredNotification> notifications,
 			final long layerCount,
+			final long publishedServiceCount,
 			final boolean confidential,
 			final String metadataFileId) {
 		super(id, name);
@@ -47,6 +49,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.lastImportJobState = toJobState(lastImportJobState);		
 		this.notifications = notifications == null ? Collections.<StoredNotification>emptyList () : new ArrayList<> (notifications);
 		this.layerCount = layerCount;
+		this.publishedServiceCount = publishedServiceCount;
 		this.confidential = confidential;
 		this.metadataFileId = metadataFileId;
 	}
@@ -102,7 +105,11 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	public long getLayerCount () {
 		return layerCount;
 	}
-
+	
+	public long getPublishedServiceCount () {
+		return publishedServiceCount;
+	}
+	
 	public boolean isConfidential () {
 		return confidential;
 	}

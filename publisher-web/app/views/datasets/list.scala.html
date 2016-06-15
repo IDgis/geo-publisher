@@ -241,6 +241,17 @@
 											</a>
 										</p>
 									}
+									@if(dataset.publishedServiceCount == 0) {
+										<p class="text-muted">@Domain.message("web.application.page.datasets.list.publishedServiceCountNone")</p>
+									} else {
+										<p>
+											@if(dataset.publishedServiceCount == 1) {
+												@Domain.message("web.application.page.datasets.list.publishedServiceCountSingle")
+											} else {
+												@Domain.message("web.application.page.datasets.list.publishedServiceCount", dataset.publishedServiceCount)
+											}
+										</p>
+									}
 								</div>
 								<div class="col-md-2">
 									<div class="btn-group pull-right">
@@ -250,10 +261,17 @@
 									<div class="pull-left gp-btn-spacer"></div>
 									<div class="btn-group gp-btn pull-right">
 										<a href="#" class="btn btn-default js-dataset-refresh" title="@Domain.message("web.application.page.datasets.list.button.refresh")"><span class="js-icon glyphicon glyphicon-refresh"></span></a>
-										<a data-toggle="modal" data-target="#js-delete-warning"
-											class="btn btn-warning js-delete-button" title="@Domain.message("web.application.page.datasets.list.button.remove")">
-											<span class="glyphicon glyphicon-remove"></span>
-										</a>
+										@if(dataset.publishedServiceCount == 0) {
+											<a data-toggle="modal" data-target="#js-delete-warning"
+												class="btn btn-warning js-delete-button" title="@Domain.message("web.application.page.datasets.list.button.remove")">
+												<span class="glyphicon glyphicon-remove"></span>
+											</a>
+										} else {
+											<a data-toggle="modal" data-target="#js-delete-warning"
+												class="btn btn-warning js-delete-button disabled" title="@Domain.message("web.application.page.datasets.list.button.remove")">
+												<span class="glyphicon glyphicon-remove"></span>
+											</a>
+										}
 									</div>
 								</div>
 							</div>

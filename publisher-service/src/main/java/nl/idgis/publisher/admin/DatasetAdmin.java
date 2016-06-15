@@ -16,6 +16,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
+import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -78,7 +79,9 @@ import com.mysema.query.types.path.PathBuilder;
 
 public class DatasetAdmin extends AbstractAdmin {
 	
-	private final static PathBuilder<Long> layerCountPath = new PathBuilder<Long> (Long.class, "layouerCount");
+	private final static PathBuilder<Long> layerCountPath = new PathBuilder<Long> (Long.class, "layerCount");
+	private final static PathBuilder<Long> publishedServiceCountPath = new PathBuilder<Long> (Long.class, "publishedServiceCount");
+	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 
 	public DatasetAdmin(ActorRef database) {
@@ -173,6 +176,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				new EntityRef (EntityType.SOURCE_DATASET, datasetInfo.getSourceDatasetId(), datasetInfo.getSourceDatasetName()),
 				objectMapper.readValue (datasetInfo.getFilterConditions (), Filter.class),
 				datasetInfo.getLayerCount (),
+				datasetInfo.getPublishedServiceCount(),
 				datasetInfo.isConfidential (),
 				datasetInfo.getMetadataFileId ()
 		);
@@ -193,6 +197,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				t.get (lastImportJob.finishState),
 				notifications,
 				t.get (layerCountPath),
+				t.get (publishedServiceCountPath),
 				t.get (sourceDatasetVersion.confidential),
 				t.get (dataset.metadataFileIdentification)
 			);
@@ -279,6 +284,7 @@ public class DatasetAdmin extends AbstractAdmin {
 			datasetActiveNotification.jobId,
 			datasetActiveNotification.jobType,
 			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
+			new SQLSubQuery ().from (publishedServiceDataset).where (publishedServiceDataset.datasetId.eq (dataset.id)).count ().as (publishedServiceCountPath),
 			sourceDatasetVersion.confidential
 		};
 	}
@@ -396,6 +402,8 @@ public class DatasetAdmin extends AbstractAdmin {
 	private CompletableFuture<Optional<Dataset>> handleGetDataset (String datasetId) {
 		log.debug ("handleDataset");
 		
+		// TODO: stop using this database message and start using
+		// the stuff in DatasetAdmin.handleListDatasets
 		return f.ask(database, new GetDatasetInfo(datasetId)).thenApply(msg -> {
 			try {
 				if(msg instanceof DatasetInfo) {
