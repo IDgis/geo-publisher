@@ -19,6 +19,7 @@ public final class Dataset extends Identifiable {
 	private final EntityRef sourceDataset;
 	private final Filter filterConditions;
 	private final long layerCount;
+	private final long publishedServiceCount;
 	private final boolean confidential;
 	
 	@JsonCreator
@@ -31,6 +32,7 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("sourceDataset") EntityRef sourceDataset,
 			final @JsonProperty("filterConditions") Filter filterConditions,
 			final @JsonProperty("layerCount") long layerCount,
+			final @JsonProperty("publishedServiceCount") long publishedServiceCount,
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("metadataFileId") String metadataFileId) {
 		
@@ -43,6 +45,7 @@ public final class Dataset extends Identifiable {
 		this.sourceDataset = sourceDataset;
 		this.filterConditions = filterConditions;
 		this.layerCount = layerCount;
+		this.publishedServiceCount = publishedServiceCount;
 		this.confidential = confidential;
 		this.metadataFileId = metadataFileId;
 	}
@@ -80,6 +83,11 @@ public final class Dataset extends Identifiable {
 	@JsonGetter
 	public long layerCount () {
 		return this.layerCount;
+	}
+	
+	@JsonGetter
+	public long publishedServiceCount () {
+		return this.publishedServiceCount;
 	}
 	
 	@JsonGetter

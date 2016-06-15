@@ -565,6 +565,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (lastImportJob.finishState),
 				notifications,
 				t.get (layerCountPath),
+				Long.MAX_VALUE, // dummy value
 				t.get (sourceDatasetVersion.confidential),
 				t.get (dataset.metadataFileIdentification)
 			);
