@@ -58,6 +58,7 @@ public class InitServiceJobCreatorTest extends AbstractServiceTest {
 		insert(environment)
 			.set(environment.identification, "environment-id")
 			.set(environment.name, "environment-name")
+			.set(environment.url, "http://environment.example/")
 			.execute();
 		
 		f.ask(serviceManager, new PublishService("service-id", Optional.of("environment-id")), Ack.class).get();

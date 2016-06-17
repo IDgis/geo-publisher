@@ -8,8 +8,27 @@ buildscript {
 	}
 }
 
-apply plugin: GitVersion
+
 apply plugin: 'eclipse'
+
+if(hasProperty('latest')) {
+	project.version = 'latest'
+} else {
+	apply plugin: GitVersion
+}
+
+repositories {
+	mavenCentral()
+}
+
+apply plugin: DockerRemoteConfig
+
+import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
+
+task pullImage(type: DockerPullImage) {
+	repository 'azul/zulu-openjdk'
+	tag 'latest'
+}
 
 ext {
 	junitVersion = '4.11'
@@ -19,7 +38,7 @@ ext {
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
-	geoserverVersion = '2.6.1-gpo-3'
+	geoserverVersion = '2.6.1-gpo-4'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -27,16 +46,15 @@ ext {
 	curatorVersion = '2.7.1'
 	querydslVersion = '3.4.1'
 	mdStylesheetsVersion = '1.0.11'
+	provisionRegistrationVersion = '1.1.3'
 }
 
-subprojects {
-	apply plugin: 'publishing'
-
-	version = rootProject.version
-
+configure([
+	project(':publisher-web'),
+	project(':publisher-metadata')]) {
+	
 	repositories {
 		jcenter()
-		mavenCentral()
 		maven {
 			name "typesafe-maven-release"
 			url "https://repo.typesafe.com/typesafe/maven-releases"
@@ -46,6 +64,16 @@ subprojects {
 			url "https://repo.typesafe.com/typesafe/ivy-releases"
 			layout "ivy"
 		}
+	}
+}
+
+subprojects {
+	apply plugin: 'publishing'
+
+	version = rootProject.version
+
+	repositories {	
+		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/']
 		maven {
 			name "idgis-public"
 			url "http://nexus.idgis.eu/content/groups/public/"
@@ -228,8 +256,6 @@ project(':publisher-schemas') {
 
 project(':publisher-web') {
 	apply plugin: PublisherPlay
-	apply plugin: PlayDistPublish
-	apply plugin: 'maven-publish'
 	
 	def playVersion = '2.3.4'
 	
@@ -237,6 +263,12 @@ project(':publisher-web') {
 		components {
 			play {
 				platform play: playVersion, java: '1.8'
+				
+				sources {
+					twirlTemplates {
+						defaultImports = TwirlImports.JAVA
+					}
+				}
 			}
 		}
 	}
@@ -250,16 +282,10 @@ project(':publisher-web') {
 		play "com.typesafe.play:play-java-ws_${scalaAbiVersion}:${playVersion}"
 		play "org.webjars:webjars-play_${scalaAbiVersion}:2.3.0"
 		play 'org.webjars:bootstrap:3.2.0'
-  		play 'org.webjars:dojo:1.10.0'
-  		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
-  		play 'org.pegdown:pegdown:1.5.0'
-		play('org.apache.zookeeper:zookeeper:3.4.5') {
-			exclude group: 'javax.jms', module: 'jms'
-			exclude group: 'com.sun.jdmk', module: 'jmxtools'
-			exclude group: 'com.sun.jmx', module: 'jmxri'
-			exclude group: 'org.jboss.netty', module: 'netty'
-		}
-  		play 'org.webjars:ace:01.08.2014'
+		play 'org.webjars:dojo:1.10.0'
+		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
+		play 'org.pegdown:pegdown:1.5.0'
+		play 'org.webjars:ace:01.08.2014'
 	}
 }
 
@@ -338,9 +364,13 @@ project(':publisher-provider:publisher-provider-protocol') {
 	}
 }
 
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
 project(':publisher-database') {
 	// publish jar (includes required *.sql files)
 	apply plugin: 'maven-publish'
+	apply plugin: DockerRemoteConfig
 		
 	publishing {
 		publications {
@@ -428,10 +458,52 @@ project(':publisher-database') {
 			}
 		}
 	}
+	
+	task copySql(type: Copy) {
+		from 'src/main/resources/nl/idgis/publisher/database'
+		into "${project.buildDir}/docker/sql"
+	}
+	
+	task copyStartScript(type: Copy) {
+		from 'src/main/bash/start.sh'
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = project.file("${project.buildDir}/docker/Dockerfile")
+		from 'ubuntu:xenial'
+		runCommand '''\
+			apt-get update && \
+			apt-get -qy install \
+				postgresql-9.5 \
+				postgresql-client-9.5 \
+				postgresql-9.5-postgis-2.2
+			'''
+		copyFile 'sql', '/opt/sql'
+		copyFile 'start.sh', '/opt/'
+		runCommand 'chmod u+x /opt/start.sh'
+		user 'postgres'
+		runCommand 'echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/9.5/main/pg_hba.conf'
+		runCommand 'echo "listen_addresses=\'*\'" >> /etc/postgresql/9.5/main/postgresql.conf'
+		environmentVariable 'PG_DATABASE', 'publisher'
+		environmentVariable 'PG_USER', 'publisher'
+		environmentVariable 'PG_PASSWORD', 'publisher'
+		environmentVariable 'PG_VERSION_SCHEMA', 'publisher'
+		environmentVariable 'PG_VERSION_TABLE', 'version'
+		exposePort 5432
+		defaultCommand '/bin/bash', '-c', '/opt/start.sh'
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullImage, createDockerfile, copySql, copyStartScript
+		inputDir = project.file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_database:${project.version}"
+	}
 }
 
 project(':publisher-service') {
 	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
 	
 	mainClassName = 'nl.idgis.publisher.ServiceApp'
 
@@ -481,27 +553,40 @@ project(':publisher-service') {
 	}
 	
 	processTestResources.dependsOn(extractWebapp)
-}
-
-// configure distZip as publication
-project(':publisher-service') {	
-	apply plugin: 'maven-publish'
 	
-	publishing {
-		publications {
-			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'
-				artifact distZip
-			}
-		}
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task copyContext(type: Copy) {
+		from 'src/main/docker'
+		into "${project.buildDir}/docker"
+	}
+
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk'
+		copyFile "publisher-service-${project.version}", '/opt'
+		copyFile 'start.sh', '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-service && chmod +x /opt/start.sh'
+		exposePort 2552
+		exposePort 4242
+		defaultCommand "/opt/start.sh"
+	}
+
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullImage, createDockerfile, unpackTar, copyContext
+
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_service:${project.version}"
 	}
 }
 
 project(':publisher-metadata') {
 	apply plugin: PublisherPlay
-	apply plugin: PlayDistPublish
-	apply plugin: 'maven-publish'
-	apply plugin: CustomPlayHttpPort
 	
 	def playVersion = '2.4.3'
 	
@@ -523,7 +608,7 @@ project(':publisher-metadata') {
 		playTest 'com.github.lookfirst:sardine:5.7'
 	
 		play project(':publisher-database')
-		play "nl.idgis.dav:play-simple-webdav_${scalaAbiVersion}:1.0.0"
+		play "nl.idgis.dav:play-simple-webdav_${scalaAbiVersion}:1.1.0"
 		play "nl.idgis.geoportaal:md-stylesheets:${mdStylesheetsVersion}"
 		play "org.webjars:webjars-play_${scalaAbiVersion}:2.4.0-2"
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
@@ -531,10 +616,6 @@ project(':publisher-metadata') {
 		play "com.typesafe.play:play-java-ws_2.11:${playVersion}"
 		play "com.typesafe.play:play-jdbc-evolutions_2.11:${playVersion}"
 		play "org.postgresql:postgresql:9.4.1207.jre7"
-		play ("nl.idgis.sys:provisioning-registration:1.1.3") {
-			exclude module: "ch.qos.logback"
-			exclude module: "logback-classic"
-		}
 	}
 }
 
@@ -564,6 +645,69 @@ configure([
 		it.project {
 			natures 'org.scala-ide.sdt.core.scalanature', 'org.eclipse.jdt.core.javanature'
 		}
+	}
+}
+
+project(':publisher-geoserver') {
+	apply plugin: DockerRemoteConfig
+
+	configurations {
+		geoserverWebapp
+		provisioningWebapp
+		geoserver
+	}
+	
+	dependencies {
+		geoserverWebapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
+		provisioningWebapp "nl.idgis.sys:provisioning-registration-war:${provisionRegistrationVersion}@war"
+		
+		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
+		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
+	}
+
+	task copyDockerContext(type: Copy) {
+		from 'src/main/docker'
+		into "${project.buildDir}/docker"
+	}
+	
+	task copyProvisioningWebapp(type: Copy) {
+		from configurations.provisioningWebapp.collect { zipTree(it) }
+		into "${project.buildDir}/docker/webapps/provisioning-registration-war"
+	}
+	
+	task copyGeoserverWebapp(type: Copy) {
+		from configurations.geoserverWebapp.collect { zipTree(it) }
+		into "${project.buildDir}/docker/webapps/geoserver"
+	}
+	
+	task copyGeoserverDependencies(type: Copy) {
+		dependsOn copyGeoserverWebapp
+	
+		from configurations.geoserver
+		into "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib"
+	}
+	
+	task moveJdbcDriver {
+		dependsOn copyGeoserverWebapp
+		
+		doLast {
+			def jdbcDriver = fileTree(
+				dir: "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib", 
+				include: 'postgresql*').singleFile
+				
+			file("${project.buildDir}/docker/lib").mkdirs()			
+			jdbcDriver.renameTo("${project.buildDir}/docker/lib/${jdbcDriver.name}")
+		}
+	}
+	
+	task prepareDockerContext {
+		dependsOn copyDockerContext, copyProvisioningWebapp, copyGeoserverDependencies, moveJdbcDriver
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullImage, prepareDockerContext
+		inputDir = project.file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_geoserver:${project.version}"
 	}
 }
 

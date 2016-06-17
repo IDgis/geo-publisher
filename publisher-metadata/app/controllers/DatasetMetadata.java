@@ -1,6 +1,7 @@
 package controllers;
 
 import javax.inject.Inject;
+import javax.xml.namespace.QName;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
@@ -26,7 +27,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 import util.QueryDSL.Transaction;
@@ -40,7 +40,9 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,12 +58,12 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final Pattern urlPattern;
 	
 	@Inject
-	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, filter, config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(webJarAssets, filter, config, q, prefix);
+	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(webJarAssets, config, q, prefix);
 		
 		this.mdf = mdf;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
@@ -69,7 +71,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(webJarAssets, filter, config, q, mdf, prefix);
+		return new DatasetMetadata(webJarAssets, config, q, mdf, prefix);
 	}
 	
 	private String stylesheet() {
@@ -132,6 +134,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.list(
 						publishedService.content,
 						environment.identification,
+						environment.url,
 						publishedServiceDataset.layerName);
 				
 				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
@@ -192,6 +195,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					String serviceName = serviceInfo.get("name").asText();
 					String environmentId = serviceTuple.get(environment.identification);
 					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
+					String environmentUrl = serviceTuple.get(environment.url);
 					
 					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
 						try {
@@ -204,12 +208,12 @@ public class DatasetMetadata extends AbstractMetadata {
 					// we only automatically generate browseGraphics 
 					// when none where provided by the source. 
 					if(browseGraphics.isEmpty()) {
-						String linkage = getServiceLinkage(environmentId, serviceName, ServiceType.WMS);
+						String linkage = getServiceLinkage(environmentUrl, serviceName, ServiceType.WMS);
 						metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
 					}
 					
 					for(ServiceType serviceType : ServiceType.values()) {
-						String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
 						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
@@ -228,13 +232,22 @@ public class DatasetMetadata extends AbstractMetadata {
 				fromDataset(tx)
 				.list(
 					dataset.metadataFileIdentification, 
+					sourceDatasetVersion.confidential,
 					sourceDatasetVersion.revision).stream()
-					.map(datasetTuple ->
-						new DefaultResourceDescription(
+					.map(datasetTuple -> {
+						Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
+						Map<QName, String> customProperties = new HashMap<QName, String>();
+						customProperties.put(
+							new QName("http://idgis.nl/geopublisher", "confidential"), 
+							datasetTuple.get(sourceDatasetVersion.confidential).toString());
+						
+						return new DefaultResourceDescription(
 							getName(datasetTuple.get(dataset.metadataFileIdentification)),
 							new DefaultResourceProperties(
 								false,
-								datasetTuple.get(sourceDatasetVersion.revision)))));
+								createTime,
+								customProperties));
+					}));
 	}
 
 	@Override
@@ -243,15 +256,22 @@ public class DatasetMetadata extends AbstractMetadata {
 			q.withTransaction(tx -> {
 				Tuple datasetTuple = fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(new QTuple(sourceDatasetVersion.revision));
+					.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.confidential);
 				
 				if(datasetTuple == null) {
 					return Optional.<ResourceProperties>empty();
 				} else {
+					Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
+					Map<QName, String> customProperties = new HashMap<QName, String>();
+					customProperties.put(
+						new QName("http://idgis.nl/geopublisher", "confidential"), 
+						datasetTuple.get(sourceDatasetVersion.confidential).toString());
+					
 					return Optional.<ResourceProperties>of(
 						new DefaultResourceProperties(
 							false, 
-							datasetTuple.get(sourceDatasetVersion.revision)));
+							createTime,
+							customProperties));
 				}
 		}));
 	}

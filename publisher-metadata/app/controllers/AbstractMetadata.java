@@ -1,13 +1,11 @@
 package controllers;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 
 import play.Logger;
 import nl.idgis.dav.router.SimpleWebDAV;
 
-import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 
@@ -22,17 +20,14 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected final WebJarAssets webJarAssets;
 	
-	protected final InetFilter filter;
-	
 	protected final MetadataConfig config;
 	
 	protected final QueryDSL q;
 	
-	protected AbstractMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, String prefix) {
+	protected AbstractMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);
 		
 		this.webJarAssets = webJarAssets;
-		this.filter = filter;
 		this.config = config;
 		this.q = q;
 	}
@@ -75,18 +70,14 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		}
 	}
 	
-	protected String getServiceLinkage(String environmentId, String serviceName, ServiceType serviceType) {
-		return config.getEnvironmentUrlPrefix(environmentId).orElse("/") + serviceName + "/" + serviceType.name().toLowerCase();
+	protected String getServiceLinkage(String environmentUrl, String serviceName, ServiceType serviceType) {
+		return environmentUrl + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 	
-	protected boolean isTrusted() {		
-		try {
-			InetAddress inetAddress = InetAddress.getByName(request().remoteAddress());
-			return filter.isAllowed(inetAddress);
-		} catch(UnknownHostException e) {
-			Logger.warn("Couldn't determine if request is from a trusted address", e);
-		}
+	protected boolean isTrusted() {
+		String trustedHeaderName = config.getTrustedHeader();
+		String trustedHeader = request().getHeader(trustedHeaderName);
 		
-		return false;
+		return "1".equals(trustedHeader);
 	}
 }

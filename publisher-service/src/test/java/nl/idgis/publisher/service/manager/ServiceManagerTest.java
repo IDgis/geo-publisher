@@ -295,6 +295,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			insert(environment)
 				.set(environment.identification, environmentId)
 				.set(environment.name, environmentId + "-name")
+				.set(environment.url, "http://" + environmentId + ".example/")
 				.execute();
 		}
 	}

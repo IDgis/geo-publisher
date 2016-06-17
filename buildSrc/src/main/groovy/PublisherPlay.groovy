@@ -9,18 +9,21 @@ import org.gradle.play.plugins.PlayPlugin
 
 import com.github.houbie.gradle.lesscss.LesscTask
 
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
 /**
   * Applies standard Gradle Play plugin and adds the following additional tasks:
   *
   * - extract less: extracts all less source files from webjars.
   * - compile less: compiles all less source files.
-  * - fix twirlTemplates: replaces scala imports with java imports.
   */
 class PublisherPlay implements Plugin<Project> {
 
 	void apply(Project project) {
 		project.pluginManager.apply(JavaBasePlugin)
 		project.pluginManager.apply(PlayPlugin)
+		project.pluginManager.apply(DockerRemoteConfig)
 		
 		project.model {
 			components {
@@ -72,55 +75,46 @@ class PublisherPlay implements Plugin<Project> {
 							binary.assets.builtBy task
 							dependsOn extractLessTask
 						}
-					
-						def fixTask = project.tasks.create(tasks.taskName('fix', 'twirlTemplates')) {
-							description = 'Replaces scala imports with java imports'
-						}
-											
-						fixTask << {
-							binary.generatedScala.each { generated ->
-								if(generated.key.name == 'twirlTemplates') {
-									generated.value.source.visit { item ->
-										if(!item.isDirectory()) {
-											def sourceLines = item.file.readLines();
-
-											sourceLines.remove(6);
-
-											['import play.api.templates.PlayMagic._',
-											'import models._',
-											'import controllers._',
-											'import java.lang._',
-											'import java.util._',
-											'import scala.collection.JavaConversions._',
-											'import scala.collection.JavaConverters._',
-											'import play.api.i18n._',
-											'import play.core.j.PlayMagicForJava._',
-											'import play.mvc._',
-											'import play.data._',
-											'import play.api.data.Field',
-											'import play.mvc.Http.Context.Implicit._',
-											'import views.html._'].eachWithIndex { line, lineNo ->
-												sourceLines.add(6 + lineNo, line)
-											}
-
-											item.file.write(sourceLines.join('\n'))
-										}
-									}
-								}
-							}
-						}
-
-						// inserts fixTask between compile twirlTemplates and compile scala
-						tasks.whenObjectAdded { task ->
-							if(task.name == tasks.taskName('compile', 'twirlTemplates')) {
-								fixTask.dependsOn(task)
-							}
-
-							if(task.name == tasks.taskName('compile', 'scala')) {
-								task.dependsOn(fixTask)
+					}
+				}
+			}
+			
+			distributions {
+				playBinary {
+					project.tasks.withType(org.gradle.jvm.tasks.Jar) {
+						manifest {
+							attributes("Implementation-Title": project.name)
+							if(project.version) {
+								attributes("Implementation-Version": project.version)
 							}
 						}
 					}
+				}
+			}
+			
+			tasks {
+				copyTar(Copy) {
+					dependsOn createPlayBinaryTarDist
+					from project.tarTree("${project.buildDir}/distributions/playBinary.tar")
+					into "${project.buildDir}/docker"
+				}
+
+				createDockerfile(Dockerfile) {
+					dependsOn copyTar
+					destFile = project.file('build/docker/Dockerfile')
+					from 'azul/zulu-openjdk'
+					copyFile 'playBinary', '/opt'
+					runCommand 'chmod u+x /opt/bin/playBinary'
+					exposePort 9000
+					defaultCommand "/opt/bin/playBinary"
+				}
+
+				buildImage(DockerBuildImage) {
+					def moduleName = project.name.substring(project.name.indexOf('-') + 1)
+				
+					dependsOn project.rootProject.pullImage, createDockerfile
+					inputDir = project.file('build/docker')
+					tag = "idgis/geopublisher_${moduleName}:${project.version}"
 				}
 			}
 		}

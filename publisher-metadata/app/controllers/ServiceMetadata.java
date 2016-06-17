@@ -1,6 +1,7 @@
 package controllers;
 
 import javax.inject.Inject;
+import javax.xml.namespace.QName;
 
 import org.apache.commons.io.IOUtils;
 
@@ -31,7 +32,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import util.InetFilter;
 import util.MetadataConfig;
 import util.QueryDSL;
 import util.QueryDSL.Transaction;
@@ -49,7 +49,9 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 
 import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
@@ -65,12 +67,12 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, filter, config, q, getTemplate(), "/");
+	public ServiceMetadata(WebJarAssets webJarAssets,MetadataConfig config, QueryDSL q) throws Exception {
+		this(webJarAssets, config, q, getTemplate(), "/");
 	}
 	
-	public ServiceMetadata(WebJarAssets webJarAssets, InetFilter filter, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(webJarAssets, filter, config, q, prefix);
+	public ServiceMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(webJarAssets, config, q, prefix);
 		
 		this.template = template;
 	}
@@ -86,7 +88,7 @@ public class ServiceMetadata extends AbstractMetadata {
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(webJarAssets, filter, config, q, template, prefix);
+		return new ServiceMetadata(webJarAssets, config, q, template, prefix);
 	}
 	
 	private String stylesheet() {
@@ -249,17 +251,22 @@ public class ServiceMetadata extends AbstractMetadata {
 			fromService(tx)
 			.list(
 				publishedService.createTime,
+				environment.confidential,
 				service.wmsMetadataFileIdentification, 
 				service.wfsMetadataFileIdentification).stream()
 			.flatMap(serviceTuple -> {
 				Timestamp createTime = serviceTuple.get(publishedService.createTime);
+				Map<QName, String> customProperties = new HashMap<QName, String>();
+				customProperties.put(
+					new QName("http://idgis.nl/geopublisher", "confidential"), 
+					serviceTuple.get(environment.confidential).toString());
 				
 				return Stream.of(
 					serviceTuple.get(service.wmsMetadataFileIdentification),
 					serviceTuple.get(service.wfsMetadataFileIdentification))
 						.map(id ->
 							new DefaultResourceDescription(getName(id), 
-								new DefaultResourceProperties(false, createTime)));
+								new DefaultResourceProperties(false, createTime, customProperties)));
 			}));
 	}
 
@@ -270,14 +277,20 @@ public class ServiceMetadata extends AbstractMetadata {
 				Tuple serviceTuple = fromService(tx)
 					.where(service.wmsMetadataFileIdentification.eq(id)
 						.or(service.wfsMetadataFileIdentification.eq(id)))
-					.singleResult(new QTuple(publishedService.createTime));
+					.singleResult(publishedService.createTime, environment.confidential);
 				
-				if(serviceTuple == null) {				
+				Timestamp createTime = serviceTuple.get(publishedService.createTime);
+				Map<QName, String> customProperties = new HashMap<QName, String>();
+				customProperties.put(
+					new QName("http://idgis.nl/geopublisher", "confidential"), 
+					serviceTuple.get(environment.confidential).toString());
+				
+				if(serviceTuple == null) {
 					return Optional.<ResourceProperties>empty();
 				} else {
 					return Optional.<ResourceProperties>of(
 						new DefaultResourceProperties(
-							false, serviceTuple.get(publishedService.createTime)));
+							false, createTime, customProperties));
 				}
 		}));
 	}
