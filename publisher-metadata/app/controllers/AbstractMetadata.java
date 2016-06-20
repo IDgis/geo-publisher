@@ -46,7 +46,7 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected static enum ServiceType {
 		
-		WMS("download", "GetFeature"), WFS("view", "GetMap");
+		WFS("download", "GetFeature"), WMS("view", "GetMap");
 		
 		private final String name;
 		
