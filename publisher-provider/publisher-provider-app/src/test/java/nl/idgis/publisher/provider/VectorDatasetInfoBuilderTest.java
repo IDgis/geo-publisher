@@ -70,7 +70,7 @@ public class VectorDatasetInfoBuilderTest {
 		MetadataDocument metadataDocument = mdf.parseDocument(metadata);
 		assertNotNull(metadataDocument);
 		
-		assertEquals("alleen voor intern gebruik", metadataDocument.getOtherConstraints());
+		assertEquals(Arrays.asList("alleen voor intern gebruik"), metadataDocument.getOtherConstraints());
 		
 		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
 		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database).props(recorder, Collections.emptySet()), "builder");
