@@ -38,12 +38,6 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	protected void processMetadata() {
 		categoryId = "raster";
 		
-		if(title == null) {
-			reportedTitle = alternateTitle;
-		} else {
-			reportedTitle = title;
-		}
-		
 		if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {
 			fileName = ProviderUtils.getRasterFile(alternateTitle);
 			folder.tell(new GetFileSize(Paths.get(fileName)), getSelf());
