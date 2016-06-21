@@ -144,6 +144,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			
 			processMetadata();
 		} catch(Exception e) {
+			log.error(e, "couldn't process metadata");
 			sendUnavailable();
 		}
 	}
