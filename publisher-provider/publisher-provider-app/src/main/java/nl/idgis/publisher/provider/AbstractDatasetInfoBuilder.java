@@ -2,6 +2,7 @@ package nl.idgis.publisher.provider;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -126,6 +127,14 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 				addMetadataParsingError(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
+			if(title == null) {
+				reportedTitle = alternateTitle;
+			} else {
+				reportedTitle = title;
+			}
+			
+			log.debug("reportedTitle: {}", reportedTitle);
+			
 			try {
 				revisionDate = metadataDocument.getDatasetRevisionDate();
 				log.debug("revisionDate: {}", revisionDate);
@@ -134,9 +143,9 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			}
 			
 			try {
-				String otherConstraints = metadataDocument.getOtherConstraints();
+				List<String> otherConstraints = metadataDocument.getOtherConstraints();
 				log.debug("other constraints: {}", otherConstraints);
-				confidential = "alleen voor intern gebruik".equals(otherConstraints);
+				confidential = otherConstraints.contains("alleen voor intern gebruik");
 				log.debug("confidential: {}", confidential);
 			} catch(NotFound nf) {
 				log.debug("other constraints not found");
@@ -144,6 +153,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			
 			processMetadata();
 		} catch(Exception e) {
+			log.error(e, "couldn't process metadata");
 			sendUnavailable();
 		}
 	}
