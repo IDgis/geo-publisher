@@ -60,8 +60,10 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 
 	protected void processMetadata() {
 		tableName = ProviderUtils.getTableName(alternateTitle);
+		log.debug("tableName: {}", tableName);
 		
 		categoryId = ProviderUtils.getCategoryId(tableName);
+		log.debug("categoryId: {}", categoryId);
 		
 		if(title == null) {
 			reportedTitle = alternateTitle;
