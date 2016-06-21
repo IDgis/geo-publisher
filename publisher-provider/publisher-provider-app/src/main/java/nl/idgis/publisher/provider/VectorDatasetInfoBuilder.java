@@ -20,7 +20,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	private final ActorRef database;
 	
-	private String tableName, reportedTitle;
+	private String tableName;
 	
 	private TableInfo tableInfo;
 	
@@ -64,12 +64,6 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 		
 		categoryId = ProviderUtils.getCategoryId(tableName);
 		log.debug("categoryId: {}", categoryId);
-		
-		if(title == null) {
-			reportedTitle = alternateTitle;
-		} else {
-			reportedTitle = title;
-		}
 		
 		if(logs.isEmpty()) {		
 			if(tableName != null && !tableName.trim().isEmpty()) {

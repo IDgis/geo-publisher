@@ -126,6 +126,14 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 				addMetadataParsingError(MetadataField.ALTERNATE_TITLE, MetadataLogType.NOT_FOUND, null);				
 			}
 			
+			if(title == null) {
+				reportedTitle = alternateTitle;
+			} else {
+				reportedTitle = title;
+			}
+			
+			log.debug("reportedTitle: {}", reportedTitle);
+			
 			try {
 				revisionDate = metadataDocument.getDatasetRevisionDate();
 				log.debug("revisionDate: {}", revisionDate);
