@@ -564,8 +564,10 @@ public class MetadataDocument {
 				+ "/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
 	}
 	
-	public String getOtherConstraints() throws NotFound {
-		return xmlDocument.getString(namespaces, getOtherconstraintsPath());		
+	public List<String> getOtherConstraints() throws NotFound {
+		return xmlDocument
+			.xpath(Optional.of(namespaces))
+			.strings(getOtherconstraintsPath());
 	}
 	
 
