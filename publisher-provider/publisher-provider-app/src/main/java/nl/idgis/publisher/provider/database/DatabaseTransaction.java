@@ -143,7 +143,15 @@ public class DatabaseTransaction extends JdbcTransaction {
 		String separator = "";
 		for(ColumnInfo columnInfo : msg.getColumnInfos()) {
 			sb.append(separator);
-			sb.append(columnInfo.getName());
+			if(columnInfo.getType() == Type.GEOMETRY) {
+				sb
+					.append("SDO_UTIL.TO_WKBGEOMETRY")
+					.append("(")
+					.append(columnInfo.getName())
+					.append(")");
+			} else {
+				sb.append(columnInfo.getName());
+			}
 			
 			separator = ", ";
 		}

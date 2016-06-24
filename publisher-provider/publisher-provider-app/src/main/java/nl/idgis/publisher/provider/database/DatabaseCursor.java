@@ -1,5 +1,6 @@
 package nl.idgis.publisher.provider.database;
 
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -7,10 +8,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import oracle.sql.STRUCT;
-
-import org.deegree.geometry.io.WKBWriter;
-import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
@@ -24,13 +21,10 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-@SuppressWarnings("deprecation")
 public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
-	private final SDOGeometryConverter converter = new SDOGeometryConverter();
-	
+		
 	private final FetchTable fetchTable;
 	
 	private final ExecutorService executorService;
@@ -48,7 +42,18 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private Object convert(ColumnInfo columnInfo, Object value) throws Exception {
 		if(columnInfo.getType() == Type.GEOMETRY) {
-			return new WKBGeometry(WKBWriter.write(converter.toGeometry((STRUCT) value, null)));
+			if(value instanceof Blob) {
+				Blob blob = (Blob)value;
+				if(blob.length() > Integer.MAX_VALUE) {
+					log.error("blob value too large: {}", blob.length());
+					return null;
+				} else {
+					return new WKBGeometry(blob.getBytes(1l, (int)blob.length()));
+				}
+			} else {
+				log.error("unsupported value: {}", value.getClass().getCanonicalName());
+				return null;
+			}
 		} else {
 			return value;
 		}
