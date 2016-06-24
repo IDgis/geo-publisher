@@ -14,6 +14,7 @@ import oracle.sql.STRUCT;
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
+import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.UnsupportedType;
@@ -31,19 +32,19 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final SDOGeometryConverter converter = new SDOGeometryConverter();
 	
-	private final int messageSize;
+	private final FetchTable fetchTable;
 	
 	private final ExecutorService executorService;
 
-	public DatabaseCursor(ResultSet t, int messageSize, ExecutorService executorService) {
+	public DatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
-		this.messageSize = messageSize;
+		this.fetchTable = fetchTable;
 		this.executorService = executorService;
 	}
 	
-	public static Props props(ResultSet t, int messageSize, ExecutorService executorService) {
-		return Props.create(DatabaseCursor.class, t, messageSize, executorService);
+	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+		return Props.create(DatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
 	private Object convert(Object value) throws Exception {
@@ -79,6 +80,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		
 		CompletableFuture<Records> future = new CompletableFuture<>();
 		
+		int messageSize = fetchTable.getMessageSize();
 		executorService.execute(() -> {
 			try {
 				List<Record> records = new ArrayList<>();
