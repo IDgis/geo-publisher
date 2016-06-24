@@ -10,17 +10,16 @@ import java.util.stream.Collectors;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
-import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.utils.FutureUtils;
 
@@ -142,15 +141,15 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 					
 					ActorRef transaction = ((TransactionCreated)msg).getActor();
 					f.ask(transaction, new DescribeTable(tableName)).thenAccept(describeTableResult -> {
-						if(describeTableResult instanceof TableInfo) {
+						if(describeTableResult instanceof DatabaseTableInfo) {
 							log.debug("table info received: {}", describeTableResult);
 							
-							TableInfo tableInfo = (TableInfo)describeTableResult;
-							Map<String, Type> columnTypes = Arrays.asList(tableInfo.getColumns()).stream()
-								.collect(Collectors.toMap(ColumnInfo::getName, ColumnInfo::getType));
+							DatabaseTableInfo tableInfo = (DatabaseTableInfo)describeTableResult;
+							Map<String, String> columnTypes = Arrays.asList(tableInfo.getColumns()).stream()
+								.collect(Collectors.toMap(DatabaseColumnInfo::getName, DatabaseColumnInfo::getTypeName));
 							
-							List<ColumnInfo> columnInfos = request.getColumnNames().stream()
-								.map(columnName -> new ColumnInfo(columnName, columnTypes.get(columnName)))
+							List<DatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
+								.map(columnName -> new DatabaseColumnInfo(columnName, columnTypes.get(columnName)))
 								.collect(Collectors.toList());
 							
 							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());

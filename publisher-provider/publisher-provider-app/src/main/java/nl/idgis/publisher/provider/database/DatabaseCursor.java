@@ -10,8 +10,8 @@ import java.util.concurrent.ExecutorService;
 
 
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
@@ -42,7 +42,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		return Props.create(DatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
-	private Object convert(ColumnInfo columnInfo, Object value) throws Exception {
+	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
 		if(columnInfo.getType() == Type.GEOMETRY) {
 			if(value instanceof Blob) {
 				Blob blob = (Blob)value;
@@ -67,7 +67,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		List<Object> values = new ArrayList<>();
 		
 		int j = 1;
-		for(ColumnInfo columnInfo : fetchTable.getColumnInfos()) {
+		for(DatabaseColumnInfo columnInfo : fetchTable.getColumns()) {
 			Object value = t.getObject(j++);
 			values.add(convert(columnInfo, value));
 		}

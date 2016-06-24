@@ -25,6 +25,8 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
@@ -67,7 +69,7 @@ import akka.actor.ActorSystem;
 
 public class VectorProviderTest {
 	
-	private static TableInfo tableInfo;
+	private static DatabaseTableInfo databaseTableInfo;
 	
 	private static List<Record> tableContent;
 	
@@ -83,8 +85,8 @@ public class VectorProviderTest {
 	
 	@BeforeClass
 	public static void initStatics() {
-		ColumnInfo[] columns = new ColumnInfo[]{new ColumnInfo("id", Type.NUMERIC), new ColumnInfo("title", Type.TEXT)};
-		tableInfo = new TableInfo(columns);
+		DatabaseColumnInfo[] columns = new DatabaseColumnInfo[]{new DatabaseColumnInfo("id", "NUMBER"), new DatabaseColumnInfo("title", "CHAR")};
+		databaseTableInfo = new DatabaseTableInfo(columns);
 		
 		tableContent = new ArrayList<>();
 		for(int i = 0; i < 42; i++) {
@@ -254,7 +256,7 @@ public class VectorProviderTest {
 			.assertDatabaseInteraction(firstTableName)			
 			.assertNotHasNext();
 		
-		f.ask(database, new PutTable(firstTableName, tableInfo, tableContent), Ack.class).get();
+		f.ask(database, new PutTable(firstTableName, databaseTableInfo, tableContent), Ack.class).get();
 		
 		clearRecording();
 		
@@ -263,7 +265,8 @@ public class VectorProviderTest {
 		Item<VectorDatasetInfo> vectorDatasetInfoItem = vectorDatasetInfoWithSender.getMessage();
 		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoItem.getContent();
 		assertEquals("first", vectorDatasetInfo.getIdentification());
-		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
+		assertTableInfo(vectorDatasetInfo.getTableInfo());
+		
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		
 		f.ask(vectorDatasetInfoWithSender.getSender(), new NextItem(), End.class);		
@@ -299,6 +302,20 @@ public class VectorProviderTest {
 			.assertNext(GetAllMetadata.class)
 			.assertDatabaseInteraction(firstTableName, secondTableName)
 			.assertNotHasNext();
+	}
+
+	private void assertTableInfo(TableInfo tableInfo) {
+		assertNotNull(tableInfo);
+		
+		ColumnInfo[] columnInfos = tableInfo.getColumns();
+		assertNotNull(columnInfos);
+		assertEquals(2, columnInfos.length);
+		
+		assertEquals("id", columnInfos[0].getName());
+		assertEquals(Type.NUMERIC, columnInfos[0].getType());
+		
+		assertEquals("title", columnInfos[1].getName());
+		assertEquals(Type.TEXT, columnInfos[1].getType());
 	}	
 	
 	@Test
@@ -326,12 +343,12 @@ public class VectorProviderTest {
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
 		
-		f.ask(database, new PutTable(getTable(), tableInfo, tableContent), Ack.class).get();
+		f.ask(database, new PutTable(getTable(), databaseTableInfo, tableContent), Ack.class).get();
 		
 		VectorDatasetInfo vectorDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class).get();
 		assertEquals("test", vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
-		assertEquals(tableInfo, vectorDatasetInfo.getTableInfo());
+		assertTableInfo(vectorDatasetInfo.getTableInfo());
 	}
 	
 	@Test
@@ -347,7 +364,7 @@ public class VectorProviderTest {
 		assertEquals("test", notAvailable.getIdentification());
 		
 		final String tableName = getTable();		
-		f.ask(database, new PutTable(tableName, tableInfo, tableContent), Ack.class).get();
+		f.ask(database, new PutTable(tableName, databaseTableInfo, tableContent), Ack.class).get();
 		
 		AskResponse<Item> resultRecordsWithSender = f.askWithSender(provider, getVectorDataset, Item.class).get();
 		Item<Records> item = (Item<Records>)resultRecordsWithSender.getMessage();
