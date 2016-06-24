@@ -1,9 +1,7 @@
 package nl.idgis.publisher.provider.database;
 
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -14,10 +12,11 @@ import oracle.sql.STRUCT;
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.UnsupportedType;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.stream.StreamCursor;
 
@@ -47,28 +46,21 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		return Props.create(DatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
-	private Object convert(Object value) throws Exception {
-		if(value == null 
-				|| value instanceof String
-				|| value instanceof Number
-				|| value instanceof Date
-				|| value instanceof Timestamp) {
-			
-			return value;
-		} else if(value instanceof STRUCT) {
+	private Object convert(ColumnInfo columnInfo, Object value) throws Exception {
+		if(columnInfo.getType() == Type.GEOMETRY) {
 			return new WKBGeometry(WKBWriter.write(converter.toGeometry((STRUCT) value, null)));
+		} else {
+			return value;
 		}
-		
-		return new UnsupportedType(value.getClass().getCanonicalName());
 	}
 	
 	private Record toRecord() throws Exception {
-		int columnCount = t.getMetaData().getColumnCount();
-		
 		List<Object> values = new ArrayList<>();
-		for(int j = 0; j < columnCount; j++) {
-			Object o = t.getObject(j + 1);
-			values.add(convert(o));
+		
+		int j = 1;
+		for(ColumnInfo columnInfo : fetchTable.getColumnInfos()) {
+			Object value = t.getObject(j++);
+			values.add(convert(columnInfo, value));
 		}
 		
 		return new Record(values);
