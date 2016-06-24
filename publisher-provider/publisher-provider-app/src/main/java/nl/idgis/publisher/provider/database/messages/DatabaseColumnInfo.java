@@ -37,6 +37,7 @@ public class DatabaseColumnInfo implements Serializable {
 			case "CHAR":
 				return Type.TEXT;
 			case "SDO_GEOMETRY":
+			case "ST_GEOMETRY":
 				return Type.GEOMETRY;
 		}
 		

@@ -119,9 +119,17 @@ public class DatabaseTransaction extends JdbcTransaction {
 		String separator = "";
 		for(DatabaseColumnInfo columnInfo : msg.getColumns()) {
 			sb.append(separator);
-			if("SDO_GEOMETRY".equals(columnInfo.getTypeName())) {
+			
+			String typeName = columnInfo.getTypeName();
+			if("SDO_GEOMETRY".equals(typeName)) {
 				sb
 					.append("SDO_UTIL.TO_WKBGEOMETRY")
+					.append("(")
+					.append(columnInfo.getName())
+					.append(")");
+			} else if("ST_GEOMETRY".equals(typeName)) {
+				sb
+					.append("SDE.ST_ASBINARY")
 					.append("(")
 					.append(columnInfo.getName())
 					.append(")");
