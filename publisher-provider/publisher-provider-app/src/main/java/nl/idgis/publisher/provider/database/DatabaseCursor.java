@@ -28,6 +28,8 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	private final FetchTable fetchTable;
 	
 	private final ExecutorService executorService;
+	
+	private Boolean currentHasNext = null;
 
 	public DatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
@@ -60,6 +62,8 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	private Record toRecord() throws Exception {
+		currentHasNext = null;
+		
 		List<Object> values = new ArrayList<>();
 		
 		int j = 1;
@@ -81,10 +85,9 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		executorService.execute(() -> {
 			try {
 				List<Record> records = new ArrayList<>();
-				records.add(toRecord());
 				
-				for(int i = 1; i < messageSize; i++) {
-					if(!t.next()) {
+				for(int i = 0; i < messageSize; i++) {
+					if(!hasNext()) {
 						break;
 					}
 					
@@ -103,8 +106,12 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 
 	@Override
-	protected boolean hasNext() throws Exception {		
-		return t.next();
+	protected boolean hasNext() throws Exception {
+		if(currentHasNext == null) {
+			currentHasNext = t.next();
+		}
+		
+		return currentHasNext;
 	}
 	
 	@Override
