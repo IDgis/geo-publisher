@@ -4,18 +4,19 @@ import java.util.Collections;
 import java.util.List;
 
 import nl.idgis.publisher.database.messages.StreamingQuery;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 
-public class FetchTable extends StreamingQuery {
-	
-	private static final long serialVersionUID = -4715978918212247943L;
+public class FetchTable extends StreamingQuery {		
+
+	private static final long serialVersionUID = -2891224433843529687L;
 	
 	private final String tableName;
-	private final List<String> columnNames;
+	private final List<ColumnInfo> columnInfos;
 	private final int messageSize;
 	
-	public FetchTable(String tableName, List<String> columnNames, int messageSize) {
+	public FetchTable(String tableName, List<ColumnInfo> columnInfos, int messageSize) {
 		this.tableName = tableName;
-		this.columnNames = columnNames;
+		this.columnInfos = columnInfos;
 		this.messageSize = messageSize;
 	}
 	
@@ -23,8 +24,8 @@ public class FetchTable extends StreamingQuery {
 		return tableName;
 	}
 	
-	public List<String> getColumnNames() {
-		return Collections.unmodifiableList(columnNames);
+	public List<ColumnInfo> getColumnInfos() {
+		return Collections.unmodifiableList(columnInfos);
 	}
 	
 	public int getMessageSize() {
@@ -33,8 +34,8 @@ public class FetchTable extends StreamingQuery {
 
 	@Override
 	public String toString() {
-		return "FetchTable [tableName=" + tableName + ", columnNames="
-				+ columnNames + ", messageSize=" + messageSize + "]";
+		return "FetchTable [tableName=" + tableName + ", columnInfos="
+				+ columnInfos + ", messageSize=" + messageSize + "]";
 	}
 	
 }

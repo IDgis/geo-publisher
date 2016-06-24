@@ -141,9 +141,9 @@ public class DatabaseTransaction extends JdbcTransaction {
 		StringBuilder sb = new StringBuilder("select ");
 		
 		String separator = "";
-		for(String columnName : msg.getColumnNames()) {
+		for(ColumnInfo columnInfo : msg.getColumnInfos()) {
 			sb.append(separator);
-			sb.append(columnName);
+			sb.append(columnInfo.getName());
 			
 			separator = ", ";
 		}

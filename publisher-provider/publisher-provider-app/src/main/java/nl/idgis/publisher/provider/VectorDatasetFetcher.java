@@ -1,19 +1,28 @@
 package nl.idgis.publisher.provider;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetVectorDataset;
+import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.utils.FutureUtils;
 
 import scala.concurrent.duration.Duration;
 
@@ -26,6 +35,8 @@ import akka.japi.Procedure;
 public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDataset> {
 	
 	private final ActorRef database;
+	
+	private FutureUtils f;
 		
 	public VectorDatasetFetcher(ActorRef sender, ActorRef database, GetVectorDataset request) {
 		super(sender, request);
@@ -40,6 +51,7 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 	@Override
 	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(Duration.create(15, TimeUnit.SECONDS));
+		f = new FutureUtils(getContext());
 	}
 	
 	private Procedure<Object> waitingForAck() {
@@ -128,8 +140,27 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 				} else if(msg instanceof TransactionCreated) {
 					log.debug("transaction created");
 					
-					ActorRef transaction = ((TransactionCreated)msg).getActor();					
-					transaction.tell(new FetchTable(tableName, request.getColumnNames(), request.getMessageSize()), getSelf());
+					ActorRef transaction = ((TransactionCreated)msg).getActor();
+					f.ask(transaction, new DescribeTable(tableName)).thenAccept(describeTableResult -> {
+						if(describeTableResult instanceof TableInfo) {
+							log.debug("table info received: {}", describeTableResult);
+							
+							TableInfo tableInfo = (TableInfo)describeTableResult;
+							Map<String, Type> columnTypes = Arrays.asList(tableInfo.getColumns()).stream()
+								.collect(Collectors.toMap(ColumnInfo::getName, ColumnInfo::getType));
+							
+							List<ColumnInfo> columnInfos = request.getColumnNames().stream()
+								.map(columnName -> new ColumnInfo(columnName, columnTypes.get(columnName)))
+								.collect(Collectors.toList());
+							
+							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());
+						} else if(describeTableResult instanceof TableNotFound) {
+							getSelf().tell(describeTableResult, getSelf());
+						} else {
+							log.error("unexpected describe table result: {}", describeTableResult);
+						}
+					});
+					
 					getContext().become(fetchingData(transaction));
 				} else {
 					unhandled(msg);
