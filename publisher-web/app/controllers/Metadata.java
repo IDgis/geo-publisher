@@ -17,6 +17,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.ProcessingInstruction;
 
+import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 
 import nl.idgis.publisher.domain.query.GetMetadata;
@@ -27,7 +28,9 @@ import play.libs.F.Promise;
 import play.libs.ws.WS;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
+@Security.Authenticated (DefaultAuthenticator.class)
 public class Metadata extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
