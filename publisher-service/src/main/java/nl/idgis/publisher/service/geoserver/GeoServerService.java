@@ -198,6 +198,7 @@ public class GeoServerService extends UntypedActor {
 			String workspaceId = ensureWorkspace.getWorkspaceId();
 			
 			toSelf(
+				rest.reset().thenCompose(reset -> 
 				rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
 					if(optionalWorkspace.isPresent()) {
 						log.debug("existing workspace found: {}", workspaceId);
@@ -247,7 +248,7 @@ public class GeoServerService extends UntypedActor {
 								new EnsuringWorkspace(workspace, dataStore));
 						});
 					});
-				}));
+				})));
 			
 			getContext().become(ensuring(initiator));
 		} else {
