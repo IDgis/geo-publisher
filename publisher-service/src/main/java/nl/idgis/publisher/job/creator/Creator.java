@@ -86,7 +86,6 @@ public class Creator extends UntypedActor {
 			
 			log.debug("dataset imported: {}", datasetId);
 			
-			ActorRef jobSystem = getContext().parent();
 			f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
 				log.debug("service ids fetched");
 				
@@ -94,7 +93,7 @@ public class Creator extends UntypedActor {
 					.forEach(serviceId -> {
 						log.debug("creating ensure job for service: {}", serviceId);
 						
-						jobSystem.tell(new CreateEnsureServiceJob(serviceId), getSelf());
+						jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 					});
 			});
 				
