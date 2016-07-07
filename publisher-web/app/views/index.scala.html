@@ -7,6 +7,10 @@
 @import org.joda.time.LocalDateTime
 @import nl.idgis.publisher.domain.web.MessageContext
 
+@clientUrl() = @{
+	play.Play.application().configuration().getString("publisher.client.url") 
+}
+
 @layout.application(
 	title = Domain.message("web.application.title"),
 	jsMain = routes.Assets.at("js/dashboard/main.js").url,
@@ -20,8 +24,9 @@
 			</div>
 			<div class="col-lg-4">
 				<div class="well">
-					<a href="http://www.overijssel.nl">
-						<img class="img-responsive" alt="Overijssel" src="@routes.Assets.at("images/logo-overijssel.png")">
+					<a href="@clientUrl()">
+						<img class="img-responsive" alt="logo" 
+							src="@routes.Assets.at(play.Play.application().configuration().getString("publisher.client.logo"))">
 					</a>
 				</div>
 			</div>
