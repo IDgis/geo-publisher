@@ -13,9 +13,11 @@ import static play.mvc.Controller.request;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
+	protected static final String bbox = play.Play.application().configuration().getString("publisher.metadata.bbox");
+	
 	protected static final String BROWSE_GRAPHIC_WMS_REQUEST =  
 			"?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992"
-			+ "&bbox=180000,459000,270000,540000&width=600&height=662&"
+			+ "&bbox=" + bbox + "&width=600&height=662&"
 			+ "format=image/png&styles=&layers=";
 	
 	protected final WebJarAssets webJarAssets;

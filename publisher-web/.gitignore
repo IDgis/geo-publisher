@@ -1,2 +1,5 @@
 .history
 logs
+target
+.cache-main
+.cache-tests
