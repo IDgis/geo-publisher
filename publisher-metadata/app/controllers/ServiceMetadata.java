@@ -140,7 +140,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					constants.email,
 					service.wmsMetadataFileIdentification,
 					service.wfsMetadataFileIdentification,
-					environment.identification);
+					environment.url);
 			
 			if(serviceTuple == null) {
 				return Optional.<Resource>empty();
@@ -221,9 +221,9 @@ public class ServiceMetadata extends AbstractMetadata {
 			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
 			String serviceName = serviceInfo.get("name").asText();
 			
-			String environmentId = serviceTuple.get(environment.identification);
+			String environmentUrl = serviceTuple.get(environment.url);
 			
-			String linkage = getServiceLinkage(environmentId, serviceName, serviceType);
+			String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 			
 			metadataDocument.addServiceType(serviceType.getName());
 			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
