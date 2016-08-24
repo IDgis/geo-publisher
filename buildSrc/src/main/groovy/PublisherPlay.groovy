@@ -112,7 +112,7 @@ class PublisherPlay implements Plugin<Project> {
 				buildImage(DockerBuildImage) {
 					def moduleName = project.name.substring(project.name.indexOf('-') + 1)
 				
-					dependsOn project.rootProject.pullImage, createDockerfile
+					dependsOn project.rootProject.pullJavaImage, createDockerfile
 					inputDir = project.file('build/docker')
 					tag = "idgis/geopublisher_${moduleName}:${project.version}"
 				}

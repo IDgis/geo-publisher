@@ -25,7 +25,7 @@ apply plugin: DockerRemoteConfig
 
 import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
 
-task pullImage(type: DockerPullImage) {
+task pullJavaImage(type: DockerPullImage) {
 	repository 'azul/zulu-openjdk'
 	tag 'latest'
 }
@@ -496,8 +496,13 @@ project(':publisher-database') {
 		defaultCommand '/bin/bash', '-c', '/opt/start.sh'
 	}
 	
+	task pullUbuntuImage(type: DockerPullImage) {
+		repository 'ubuntu'
+		tag 'xenial'
+	}
+	
 	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullImage, createDockerfile, copySql, copyStartScript
+		dependsOn pullUbuntuImage, createDockerfile, copySql, copyStartScript
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_database:${project.version}"
 	}
@@ -580,7 +585,7 @@ project(':publisher-service') {
 	}
 
 	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullImage, createDockerfile, unpackTar, copyContext
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar, copyContext
 
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_service:${project.version}"
@@ -707,7 +712,7 @@ project(':publisher-geoserver') {
 	}
 	
 	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullImage, prepareDockerContext
+		dependsOn rootProject.pullJavaImage, prepareDockerContext
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_geoserver:${project.version}"
 	}
