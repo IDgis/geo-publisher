@@ -158,6 +158,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(sourceDatasetVersion.name, "sourcedataset-name0")
 			.set(sourceDatasetVersion.type, "VECTOR")
 			.set(sourceDatasetVersion.confidential, false)
+			.set(sourceDatasetVersion.metadataConfidential, false)
 			.executeWithKey(sourceDatasetVersion.id);
 		
 		for(int i = 0; i < 2; i++) {
@@ -257,6 +258,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(sourceDatasetVersion.name, "sourcedataset-name1")
 			.set(sourceDatasetVersion.type, "RASTER")
 			.set(sourceDatasetVersion.confidential, false)
+			.set(sourceDatasetVersion.metadataConfidential, false)
 			.executeWithKey(sourceDatasetVersion.id);
 		
 		rasterDatasetId = insert(dataset)
@@ -2088,10 +2090,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.columns(
 				sourceDatasetVersion.type,
 				sourceDatasetVersion.confidential,
+				sourceDatasetVersion.metadataConfidential,
 				sourceDatasetVersion.sourceDatasetId)
 			.select(new SQLSubQuery().from(dataset)
 				.list(
 					"UNAVAILABLE", 
+					false,
 					false,
 					dataset.sourceDatasetId))
 			.execute();

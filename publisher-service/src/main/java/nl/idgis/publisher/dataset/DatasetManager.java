@@ -521,6 +521,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.categoryId, categoryId.orElse(null))
 				.set(sourceDatasetVersion.revision, revision)
 				.set(sourceDatasetVersion.confidential, confidential)
+				.set(sourceDatasetVersion.metadataConfidential, true)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);

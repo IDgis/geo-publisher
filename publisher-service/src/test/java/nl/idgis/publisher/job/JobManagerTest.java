@@ -133,6 +133,7 @@ public class JobManagerTest extends AbstractServiceTest {
 				.set(sourceDatasetVersion.type, SourceDatasetType.VECTOR.name())				
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
 				.set(sourceDatasetVersion.confidential, true)
+				.set(sourceDatasetVersion.metadataConfidential, true)
 				.executeWithKey(sourceDatasetVersion.id);
 				
 		insert(sourceDatasetVersionColumn)
@@ -173,6 +174,7 @@ public class JobManagerTest extends AbstractServiceTest {
 				.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())				
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
 				.set(sourceDatasetVersion.confidential, true)
+				.set(sourceDatasetVersion.metadataConfidential, true)
 				.executeWithKey(sourceDatasetVersion.id);
 		
 		int jobId =
@@ -271,6 +273,7 @@ public class JobManagerTest extends AbstractServiceTest {
 			.set(sourceDatasetVersion.type, SourceDatasetType.UNAVAILABLE.name())				
 			.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)				
 			.set(sourceDatasetVersion.confidential, true)
+			.set(sourceDatasetVersion.metadataConfidential, true)
 			.executeWithKey(sourceDatasetVersion.id);
 		 
 		insert(dataset)
@@ -311,6 +314,7 @@ public class JobManagerTest extends AbstractServiceTest {
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
 				.set(sourceDatasetVersion.categoryId, categoryId)
 				.set(sourceDatasetVersion.confidential, true)
+				.set(sourceDatasetVersion.metadataConfidential, true)
 				.executeWithKey(sourceDatasetVersion.id);
 		
 		for(int i = 0; i < 10; i++) {
