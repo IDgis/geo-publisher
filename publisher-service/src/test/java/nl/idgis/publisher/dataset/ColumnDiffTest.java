@@ -145,6 +145,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),
 			false,
+			false,
 			null,
 			newTable);
 		
@@ -179,6 +180,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			testSourceDataset.getCategoryId(),			
 			testSourceDataset.getRevisionDate(),
 			Collections.<Log>emptySet(),
+			false,
 			false,
 			null,
 			newTable);

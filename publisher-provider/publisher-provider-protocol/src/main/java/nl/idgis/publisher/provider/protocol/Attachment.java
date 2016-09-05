@@ -16,17 +16,21 @@ public class Attachment implements Serializable {
 	
 	private final AttachmentType attachmentType;
 	
+	private final boolean confidential;
+	
 	private final Object content;
 	
 	/**
 	 * Creates an attachments.
 	 * @param identification the identifier for this attachment.
 	 * @param attachmentType the attachment type.
+	 * @param confidential whether or not this attachment is confidential
 	 * @param content the actual attachment value.
 	 */
-	public Attachment(String identification, AttachmentType attachmentType, Object content) {		
+	public Attachment(String identification, AttachmentType attachmentType, boolean confidential, Object content) {
 		this.identification = identification;
 		this.attachmentType = attachmentType;
+		this.confidential = confidential;
 		this.content = content;
 	}
 	
@@ -44,6 +48,14 @@ public class Attachment implements Serializable {
 	 */
 	public AttachmentType getAttachmentType() {
 		return attachmentType;
+	}
+	
+	/**
+	 * 
+	 * @return whether or not this attachment is confidential
+	 */
+	public boolean isConfidential() {
+		return confidential;
 	}
 
 	/**

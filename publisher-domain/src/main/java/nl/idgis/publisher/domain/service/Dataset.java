@@ -10,7 +10,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 
-	private static final long serialVersionUID = 8702342730651338264L;
+	private static final long serialVersionUID = 7077746350747354835L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -20,11 +20,11 @@ public abstract class Dataset implements Serializable {
 	
 	protected final Set<Log> logs;
 	
-	protected final boolean confidential;
+	protected final boolean confidential, metadataConfidential;
 	
 	protected final MetadataDocument metadata;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, MetadataDocument metadata) {
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, MetadataDocument metadata) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -32,6 +32,7 @@ public abstract class Dataset implements Serializable {
 		this.revisionDate = revisionDate;
 		this.logs = logs;
 		this.confidential = confidential;
+		this.metadataConfidential = metadataConfidential;
 		this.metadata = metadata;
 	}
 
@@ -62,6 +63,10 @@ public abstract class Dataset implements Serializable {
 	public boolean isConfidential() {
 		return confidential;
 	}
+	
+	public boolean isMetadataConfidential() {
+		return metadataConfidential;
+	}
 
 	@Override
 	public int hashCode() {
@@ -74,6 +79,7 @@ public abstract class Dataset implements Serializable {
 		result = prime * result + (confidential ? 1231 : 1237);
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((logs == null) ? 0 : logs.hashCode());
+		result = prime * result + (metadataConfidential ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((revisionDate == null) ? 0 : revisionDate.hashCode());
@@ -114,6 +120,8 @@ public abstract class Dataset implements Serializable {
 			if (other.logs != null)
 				return false;
 		} else if (!logs.equals(other.logs))
+			return false;
+		if (metadataConfidential != other.metadataConfidential)
 			return false;
 		if (name == null) {
 			if (other.name != null)

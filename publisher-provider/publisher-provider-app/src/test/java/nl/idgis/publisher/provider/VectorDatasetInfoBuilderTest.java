@@ -3,6 +3,9 @@ package nl.idgis.publisher.provider;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -14,6 +17,8 @@ import com.typesafe.config.ConfigValueFactory;
 
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
+import nl.idgis.publisher.provider.protocol.Attachment;
+import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.recorder.AnyRecorder;
 import nl.idgis.publisher.recorder.Recorder;
@@ -59,40 +64,48 @@ public class VectorDatasetInfoBuilderTest {
 		return IOUtils.toByteArray(inputStream);
 	}
 	
-	private byte[] confidentialMetadata() throws Exception {
-		return metadata("confidential_metadata.xml");
-	}
-	
-	private byte[] notConfidentialMetadata() throws Exception {
-		return metadata("not_confidential_metadata.xml");
-	}
-	
 	@Test
-	public void testUnavailableNotConfidential() throws Exception {
+	public void testDataNotConfidential() throws Exception {
 		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
-		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database).props(recorder, Collections.emptySet()), "builder");
+		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database)
+			.props(recorder, Collections.singleton(AttachmentType.METADATA)), "builder");
 		
-		builder.tell(new MetadataItem("id", notConfidentialMetadata()), ActorRef.noSender());
+		builder.tell(new MetadataItem("id", metadata("data_not_confidential_metadata.xml")), ActorRef.noSender());
 		
 		f.ask(recorder, new Wait(1), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(UnavailableDatasetInfo.class, (datasetInfo, sender) -> {
 				assertFalse(datasetInfo.isConfidential());
+				
+				Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
+						.collect(Collectors.toMap(
+							Attachment::getAttachmentType,
+							Function.identity()));
+				assertTrue(attachments.containsKey(AttachmentType.METADATA));
+				assertTrue(attachments.get(AttachmentType.METADATA).isConfidential());
 			})
 			.assertNotHasNext();
 	}
 	
 	@Test
-	public void testUnavailableConfidential() throws Exception {
+	public void testMetadataNotConfidential() throws Exception {
 		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
-		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database).props(recorder, Collections.emptySet()), "builder");
+		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database)
+			.props(recorder, Collections.singleton(AttachmentType.METADATA)), "builder");
 		
-		builder.tell(new MetadataItem("id", confidentialMetadata()), ActorRef.noSender());
+		builder.tell(new MetadataItem("id", metadata("metadata_not_confidential_metadata.xml")), ActorRef.noSender());
 		
 		f.ask(recorder, new Wait(1), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(UnavailableDatasetInfo.class, (datasetInfo, sender) -> {
 				assertTrue(datasetInfo.isConfidential());
+				
+				Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
+						.collect(Collectors.toMap(
+							Attachment::getAttachmentType,
+							Function.identity()));
+				assertTrue(attachments.containsKey(AttachmentType.METADATA));
+				assertFalse(attachments.get(AttachmentType.METADATA).isConfidential());
 			})
 			.assertNotHasNext();
 	}

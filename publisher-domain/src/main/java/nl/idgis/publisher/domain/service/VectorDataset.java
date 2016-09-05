@@ -7,13 +7,13 @@ import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class VectorDataset extends Dataset {	
-
-	private static final long serialVersionUID = 391878045683152106L;
+	
+	private static final long serialVersionUID = -1371616824844706623L;
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, MetadataDocument metadata, Table table) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, MetadataDocument metadata, Table table) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata);
 		
 		this.table = table;
 	}
@@ -49,9 +49,8 @@ public final class VectorDataset extends Dataset {
 
 	@Override
 	public String toString() {
-		return "VectorDataset [table=" + table + ", id=" + id + ", name="
-				+ name + ", alternateTitle=" + alternateTitle + ", categoryId="
-				+ categoryId + ", revisionDate=" + revisionDate + ", logs="
-				+ logs + ", confidential=" + confidential + "]";
-	}	
+		return "VectorDataset [table=" + table + ", id=" + id + ", name=" + name + ", alternateTitle=" + alternateTitle
+				+ ", categoryId=" + categoryId + ", revisionDate=" + revisionDate + ", logs=" + logs + ", confidential="
+				+ confidential + ", metadataConfidential=" + metadataConfidential + ", metadata=" + metadata + "]";
+	}
 }
