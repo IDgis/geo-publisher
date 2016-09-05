@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet  type="text/xsl" href="../GeoSticker.xsl"?>
+<MD_Metadata xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gco="http://www.isotc211.org/2005/gco" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd" xmlns="http://www.isotc211.org/2005/gmd">
+  <fileIdentifier>
+    <gco:CharacterString>5f3763ee-47d3-489d-83ee-332bbccac943</gco:CharacterString>
+  </fileIdentifier>
+  <language>
+    <gco:CharacterString>dut</gco:CharacterString>
+  </language>
+  <characterSet>
+    <MD_CharacterSetCode codeList="./resources/codeList.xml#MD_CharacterSetCode" codeListValue="utf8" />
+  </characterSet>
+  <hierarchyLevel>
+    <MD_ScopeCode codeList="./resources/codeList.xml#MD_ScopeCode" codeListValue="dataset">dataset</MD_ScopeCode>
+  </hierarchyLevel>
+  <contact>
+    <CI_ResponsibleParty>
+      <individualName>
+        <gco:CharacterString>team Beleidsinformatie</gco:CharacterString>
+      </individualName>
+      <organisationName>
+        <gco:CharacterString>Provincie Overijssel</gco:CharacterString>
+      </organisationName>
+      <positionName>
+        <gco:CharacterString>beheerder</gco:CharacterString>
+      </positionName>
+      <contactInfo>
+        <CI_Contact>
+          <address>
+            <CI_Address>
+              <deliveryPoint>
+                <gco:CharacterString>Postbus 10078</gco:CharacterString>
+              </deliveryPoint>
+              <city>
+                <gco:CharacterString>Zwolle</gco:CharacterString>
+              </city>
+              <administrativeArea>
+                <gco:CharacterString>Overijssel</gco:CharacterString>
+              </administrativeArea>
+              <postalCode>
+                <gco:CharacterString>8000 GB</gco:CharacterString>
+              </postalCode>
+              <country>
+                <gco:CharacterString>The Netherlands</gco:CharacterString>
+              </country>
+              <electronicMailAddress>
+                <gco:CharacterString>beleidsinformatie@overijssel.nl</gco:CharacterString>
+              </electronicMailAddress>
+            </CI_Address>
+          </address>
+          <onlineResource>
+            <CI_OnlineResource>
+              <linkage>
+                <URL>www.overijssel.nl</URL>
+              </linkage>
+            </CI_OnlineResource>
+          </onlineResource>
+        </CI_Contact>
+      </contactInfo>
+      <role>
+        <CI_RoleCode codeList="./resources/codeList.xml#CI_RoleCode" codeListValue="custodian" />
+      </role>
+    </CI_ResponsibleParty>
+  </contact>
+  <dateStamp>
+    <gco:Date>2014-05-15</gco:Date>
+  </dateStamp>
+  <metadataStandardName>
+    <gco:CharacterString>ISO 19115</gco:CharacterString>
+  </metadataStandardName>
+  <metadataStandardVersion>
+    <gco:CharacterString>Nederlandse metadata profiel op ISO 19115 voor geografie 1.2</gco:CharacterString>
+  </metadataStandardVersion>
+  <referenceSystemInfo>
+    <MD_ReferenceSystem>
+      <referenceSystemIdentifier>
+        <RS_Identifier>
+          <code>
+            <gco:CharacterString>28992</gco:CharacterString>
+          </code>
+          <codeSpace>
+            <gco:CharacterString>EPSG</gco:CharacterString>
+          </codeSpace>
+        </RS_Identifier>
+      </referenceSystemIdentifier>
+    </MD_ReferenceSystem>
+  </referenceSystemInfo>
+  <identificationInfo>
+    <MD_DataIdentification>
+      <citation>
+        <CI_Citation>
+          <title>
+            <gco:CharacterString>WION Mantelbuis_vlakken</gco:CharacterString>
+          </title>
+          <alternateTitle>
+            <gco:CharacterString>B2.WION_mantelbuis_polygon  (b2\b26)</gco:CharacterString>
+          </alternateTitle>
+          <date>
+            <CI_Date>
+              <date>
+                <gco:Date>2014-02-06</gco:Date>
+              </date>
+              <dateType>
+                <CI_DateTypeCode codeList="./resources/codeList.xml#CI_DateTypeCode" codeListValue="creation" />
+              </dateType>
+            </CI_Date>
+          </date>
+          <date>
+            <CI_Date>
+              <date>
+                <gco:Date>2014-05-15</gco:Date>
+              </date>
+              <dateType>
+                <CI_DateTypeCode codeList="./resources/codeList.xml#CI_DateTypeCode" codeListValue="publication" />
+              </dateType>
+            </CI_Date>
+          </date>
+          <date>
+            <CI_Date>
+              <date>
+                <gco:Date>2014-05-15</gco:Date>
+              </date>
+              <dateType>
+                <CI_DateTypeCode codeList="./resources/codeList.xml#CI_DateTypeCode" codeListValue="revision" />
+              </dateType>
+            </CI_Date>
+          </date>
+          <edition>
+            <gco:CharacterString> mei 2014</gco:CharacterString>
+          </edition>
+          <identifier>
+            <MD_Identifier>
+              <code>
+                <gco:CharacterString>4af48cf3-d9eb-417e-b637-fb493a1d432b</gco:CharacterString>
+              </code>
+            </MD_Identifier>
+          </identifier>
+          <series>
+            <CI_Series />
+          </series>
+        </CI_Citation>
+      </citation>
+      <abstract>
+        <gco:CharacterString>Vlakkenbestand van mantelbuizen in beheer bij de provincie Overijssel. Een mantelbuis is een buis bestemd voor de doorvoer van kabels. Meestal worden deze gebruikt daar waar kabels onder verhardingen liggen. De gegevens zijn de basis voor de wettelijke registratie WION (Wet Informatie-uitwisseling Ondergrondse Netten).
+Hiervoor is een (wettelijk) extract van de tabel opgenomen in een database van de leverancier van de WION-applicatie (Geodan van den Berg). Dit extract wordt extern beheerd door Geodan van den Berg.
+De objecten hebben dezelfde nauwkeurigheid als de kabel die er in ligt.
+</gco:CharacterString>
+      </abstract>
+      <purpose>
+        <gco:CharacterString>Basisdata</gco:CharacterString>
+      </purpose>
+      <status>
+        <MD_ProgressCode codeList="./resources/codeList.xml#MD_ProgressCode" codeListValue="completed" />
+      </status>
+      <pointOfContact>
+        <CI_ResponsibleParty>
+          <individualName>
+            <gco:CharacterString>team Beleidsinformatie</gco:CharacterString>
+          </individualName>
+          <organisationName>
+            <gco:CharacterString>Provincie Overijssel</gco:CharacterString>
+          </organisationName>
+          <positionName>
+            <gco:CharacterString>beheerder</gco:CharacterString>
+          </positionName>
+          <contactInfo>
+            <CI_Contact>
+              <address>
+                <CI_Address>
+                  <deliveryPoint>
+                    <gco:CharacterString>Postbus 10078</gco:CharacterString>
+                  </deliveryPoint>
+                  <city>
+                    <gco:CharacterString>Zwolle</gco:CharacterString>
+                  </city>
+                  <administrativeArea>
+                    <gco:CharacterString>Overijssel</gco:CharacterString>
+                  </administrativeArea>
+                  <postalCode>
+                    <gco:CharacterString>8000 GB</gco:CharacterString>
+                  </postalCode>
+                  <country>
+                    <gco:CharacterString>The Netherlands</gco:CharacterString>
+                  </country>
+                  <electronicMailAddress>
+                    <gco:CharacterString>beleidsinformatie@overijssel.nl</gco:CharacterString>
+                  </electronicMailAddress>
+                </CI_Address>
+              </address>
+              <onlineResource>
+                <CI_OnlineResource>
+                  <linkage>
+                    <URL>www.overijssel.nl</URL>
+                  </linkage>
+                </CI_OnlineResource>
+              </onlineResource>
+            </CI_Contact>
+          </contactInfo>
+          <role>
+            <CI_RoleCode codeList="./resources/codeList.xml#CI_RoleCode" codeListValue="custodian" />
+          </role>
+        </CI_ResponsibleParty>
+      </pointOfContact>
+      <pointOfContact>
+        <CI_ResponsibleParty>
+          <individualName>
+            <gco:CharacterString>Bouwhuis, J (Jan)</gco:CharacterString>
+          </individualName>
+          <organisationName>
+            <gco:CharacterString>Provincie Overijssel: eenheid Publieke Dienstverlening</gco:CharacterString>
+          </organisationName>
+          <positionName>
+            <gco:CharacterString>eigenaar</gco:CharacterString>
+          </positionName>
+          <contactInfo>
+            <CI_Contact>
+              <address>
+                <CI_Address>
+                  <deliveryPoint>
+                    <gco:CharacterString>Postbus 10078</gco:CharacterString>
+                  </deliveryPoint>
+                  <city>
+                    <gco:CharacterString>Zwolle</gco:CharacterString>
+                  </city>
+                  <administrativeArea>
+                    <gco:CharacterString>Overijssel</gco:CharacterString>
+                  </administrativeArea>
+                  <postalCode>
+                    <gco:CharacterString>8000 GB</gco:CharacterString>
+                  </postalCode>
+                  <country>
+                    <gco:CharacterString>The Netherlands</gco:CharacterString>
+                  </country>
+                  <electronicMailAddress>
+                    <gco:CharacterString>J.Bouwhuis@overijssel.nl</gco:CharacterString>
+                  </electronicMailAddress>
+                </CI_Address>
+              </address>
+              <onlineResource>
+                <CI_OnlineResource>
+                  <linkage>
+                    <URL>http://www.overijssel.nl</URL>
+                  </linkage>
+                </CI_OnlineResource>
+              </onlineResource>
+            </CI_Contact>
+          </contactInfo>
+          <role>
+            <CI_RoleCode codeList="./resources/codeList.xml#CI_RoleCode" codeListValue="owner" />
+          </role>
+        </CI_ResponsibleParty>
+      </pointOfContact>
+      <resourceMaintenance>
+        <MD_MaintenanceInformation>
+          <maintenanceAndUpdateFrequency>
+            <MD_MaintenanceFrequencyCode codeList="./resources/codeList.xml#MD_MaintenanceFrequencyCode" codeListValue="asNeeded" />
+          </maintenanceAndUpdateFrequency>
+        </MD_MaintenanceInformation>
+      </resourceMaintenance>
+      <graphicOverview>
+        <MD_BrowseGraphic>
+          <fileName>
+            <gco:CharacterString>http:\\gisopenbaar.overijssel.nl\GeoPortal\MIS4GIS\Preview\wion_mantelb_poly.jpg</gco:CharacterString>
+          </fileName>
+        </MD_BrowseGraphic>
+      </graphicOverview>
+      <descriptiveKeywords>
+        <MD_Keywords>
+          <keyword>
+            <gco:CharacterString>gasleidingen</gco:CharacterString>
+          </keyword>
+          <keyword>
+            <gco:CharacterString>kabels en leidingen</gco:CharacterString>
+          </keyword>
+          <keyword>
+            <gco:CharacterString>leidingen</gco:CharacterString>
+          </keyword>
+          <keyword>
+            <gco:CharacterString>waterleidingen</gco:CharacterString>
+          </keyword>
+          <thesaurusName>
+            <CI_Citation>
+              <title>
+                <gco:CharacterString>Interprovinciale thesaurus</gco:CharacterString>
+              </title>
+              <date>
+                <CI_Date>
+                  <date>
+                    <gco:Date>2013-09-11</gco:Date>
+                  </date>
+                  <dateType>
+                    <CI_DateTypeCode codeList="./resources/codeList.xml#CI_DateTypeCode" codeListValue="publication" />
+                  </dateType>
+                </CI_Date>
+              </date>
+            </CI_Citation>
+          </thesaurusName>
+        </MD_Keywords>
+      </descriptiveKeywords>
+      <resourceSpecificUsage>
+        <MD_Usage>
+          <specificUsage>
+            <gco:CharacterString>Basisdata </gco:CharacterString>
+          </specificUsage>
+          <userContactInfo />
+        </MD_Usage>
+      </resourceSpecificUsage>
+      <resourceConstraints>
+        <MD_Constraints>
+          <useLimitation>
+            <gco:CharacterString>Data mag niet uitgeleverd worden</gco:CharacterString>
+          </useLimitation>
+        </MD_Constraints>
+      </resourceConstraints>
+      <resourceConstraints>
+        <MD_LegalConstraints>
+          <accessConstraints>
+            <MD_RestrictionCode codeList="./resources/codeList.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
+          </accessConstraints>
+          <otherConstraints>
+            <gco:CharacterString>Geoportaal extern</gco:CharacterString>
+          </otherConstraints>
+          <otherConstraints>
+            <gco:CharacterString>Downloadable data</gco:CharacterString>
+          </otherConstraints>
+        </MD_LegalConstraints>
+      </resourceConstraints>
+      <aggregationInfo>
+        <MD_AggregateInformation>
+          <aggregateDataSetName>
+            <CI_Citation>
+              <title>
+                <gco:CharacterString>4af48cf3-d9eb-417e-b637-fb493a1d432b</gco:CharacterString>
+              </title>
+              <date>
+                <CI_Date>
+                  <date>
+                    <gco:Date>2013-11-13</gco:Date>
+                  </date>
+                  <dateType>
+                    <CI_DateTypeCode codeList="./resources/codeList.xml#CI_DateTypeCode" codeListValue="creation" />
+                  </dateType>
+                </CI_Date>
+              </date>
+            </CI_Citation>
+          </aggregateDataSetName>
+          <associationType>
+            <DS_AssociationTypeCode codeList="./resources/codeList.xml#DS_AssociationTypeCode" codeListValue="crossReference" />
+          </associationType>
+        </MD_AggregateInformation>
+      </aggregationInfo>
+      <spatialRepresentationType>
+        <MD_SpatialRepresentationTypeCode codeList="./resources/codeList.xml#MD_SpatialRepresentationTypeCode" codeListValue="vector" />
+      </spatialRepresentationType>
+      <language>
+        <gco:CharacterString>dut</gco:CharacterString>
+      </language>
+      <characterSet>
+        <MD_CharacterSetCode codeList="./resources/codeList.xml#MD_CharacterSetCode" codeListValue="utf8" />
+      </characterSet>
+      <topicCategory>
+        <MD_TopicCategoryCode>utilitiesCommunication</MD_TopicCategoryCode>
+      </topicCategory>
+      <topicCategory>
+        <MD_TopicCategoryCode>transportation</MD_TopicCategoryCode>
+      </topicCategory>
+      <extent>
+        <EX_Extent>
+          <geographicElement>
+            <EX_GeographicBoundingBox>
+              <westBoundLongitude>
+                <gco:Decimal>0</gco:Decimal>
+              </westBoundLongitude>
+              <eastBoundLongitude>
+                <gco:Decimal>0</gco:Decimal>
+              </eastBoundLongitude>
+              <southBoundLatitude>
+                <gco:Decimal>0</gco:Decimal>
+              </southBoundLatitude>
+              <northBoundLatitude>
+                <gco:Decimal>0</gco:Decimal>
+              </northBoundLatitude>
+            </EX_GeographicBoundingBox>
+          </geographicElement>
+          <geographicElement>
+            <EX_GeographicDescription>
+              <geographicIdentifier>
+                <MD_Identifier>
+                  <code>
+                    <gco:CharacterString>Provincie Overijssel</gco:CharacterString>
+                  </code>
+                </MD_Identifier>
+              </geographicIdentifier>
+            </EX_GeographicDescription>
+          </geographicElement>
+          <temporalElement>
+            <EX_TemporalExtent>
+              <extent>
+                <gml:TimePeriod gml:id="tp1">
+                  <gml:begin>
+                    <gml:TimeInstant gml:id="ti1">
+                      <gml:timePosition>2013-11-13</gml:timePosition>
+                    </gml:TimeInstant>
+                  </gml:begin>
+                  <gml:end>
+                    <gml:TimeInstant gml:id="ti2">
+                      <gml:timePosition>2013-11-13</gml:timePosition>
+                    </gml:TimeInstant>
+                  </gml:end>
+                </gml:TimePeriod>
+              </extent>
+            </EX_TemporalExtent>
+          </temporalElement>
+        </EX_Extent>
+      </extent>
+      <supplementalInformation>
+        <gco:CharacterString>layerfile|http:\\gisopenbaar.overijssel.nl\Geoportal\MIS4GIS\Lyr\WION_mantelbuis_polygon.lyr</gco:CharacterString>
+      </supplementalInformation>
+    </MD_DataIdentification>
+  </identificationInfo>
+  <distributionInfo>
+    <MD_Distribution>
+      <distributor>
+        <MD_Distributor>
+          <distributorContact>
+            <CI_ResponsibleParty>
+              <individualName>
+                <gco:CharacterString>team Beleidsinformatie</gco:CharacterString>
+              </individualName>
+              <organisationName>
+                <gco:CharacterString>Provincie Overijssel</gco:CharacterString>
+              </organisationName>
+              <positionName>
+                <gco:CharacterString />
+              </positionName>
+              <contactInfo>
+                <CI_Contact>
+                  <address>
+                    <CI_Address />
+                  </address>
+                  <onlineResource>
+                    <CI_OnlineResource>
+                      <linkage>
+                        <URL>www.overijssel.nl</URL>
+                      </linkage>
+                    </CI_OnlineResource>
+                  </onlineResource>
+                </CI_Contact>
+              </contactInfo>
+              <role>
+                <CI_RoleCode codeList="./resources/codeList.xml#CI_RoleCode" codeListValue="distributor" />
+              </role>
+            </CI_ResponsibleParty>
+          </distributorContact>
+        </MD_Distributor>
+      </distributor>
+      <transferOptions>
+        <MD_DigitalTransferOptions>
+          <onLine />
+          <offLine>
+            <MD_Medium>
+              <name>
+                <MD_MediumNameCode codeList="./resources/codeList.xml#MD_MediumNameCode" codeListValue="" />
+              </name>
+            </MD_Medium>
+          </offLine>
+        </MD_DigitalTransferOptions>
+      </transferOptions>
+    </MD_Distribution>
+  </distributionInfo>
+  <dataQualityInfo>
+    <DQ_DataQuality>
+      <scope>
+        <DQ_Scope>
+          <level>
+            <MD_ScopeCode codeList="./resources/codeList.xml#MD_ScopeCode" codeListValue="dataset" />
+          </level>
+        </DQ_Scope>
+      </scope>
+      <lineage>
+        <LI_Lineage>
+          <statement>
+            <gco:CharacterString>De gegevens in deze featureclass zijn ingewonnen door, of in opdracht van, aannemers die de leidingen aangelegd hebben. </gco:CharacterString>
+          </statement>
+        </LI_Lineage>
+      </lineage>
+    </DQ_DataQuality>
+  </dataQualityInfo>
+</MD_Metadata>

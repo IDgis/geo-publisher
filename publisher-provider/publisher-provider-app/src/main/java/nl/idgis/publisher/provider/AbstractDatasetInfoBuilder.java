@@ -32,6 +32,8 @@ import akka.event.LoggingAdapter;
 
 public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 
+	protected static final String NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
+
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final Set<AttachmentType> requestedAttachmentTypes;
@@ -145,7 +147,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			try {
 				List<String> otherConstraints = metadataDocument.getOtherConstraints();
 				log.debug("other constraints: {}", otherConstraints);
-				confidential = otherConstraints.contains("alleen voor intern gebruik");
+				confidential = !otherConstraints.contains(NOT_CONFIDENTIAL_CONSTRAINT_VALUE);
 				log.debug("confidential: {}", confidential);
 			} catch(NotFound nf) {
 				log.debug("other constraints not found");

@@ -318,7 +318,7 @@ De objecten hebben dezelfde nauwkeurigheid als de kabel die er in ligt.
             <MD_RestrictionCode codeList="./resources/codeList.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
           </accessConstraints>
           <otherConstraints>
-            <gco:CharacterString>alleen voor intern gebruik</gco:CharacterString>
+            <gco:CharacterString>Geoportaal extern</gco:CharacterString>
           </otherConstraints>
         </MD_LegalConstraints>
       </resourceConstraints>
