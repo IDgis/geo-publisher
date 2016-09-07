@@ -127,10 +127,17 @@ public class DatasetMetadata extends AbstractMetadata {
 						t -> t.get(sourceDatasetMetadataAttachment.identification),
 						t -> t.get(sourceDatasetMetadataAttachment.id)));
 				
-				List<Tuple> serviceTuples = tx.query().from(publishedService)
+				SQLQuery serviceQuery = tx.query().from(publishedService)
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
-					.join(environment).on(environment.id.eq(publishedService.environmentId))
-					.where(publishedServiceDataset.datasetId.eq(datasetId))
+					.join(environment).on(environment.id.eq(publishedService.environmentId));
+				
+				if(!isTrusted()) {
+					// do not generate links to services with confidential content as these are inaccessible.
+					
+					serviceQuery.where(environment.confidential.isFalse());
+				}
+				
+				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,
 						environment.identification,
