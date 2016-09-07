@@ -144,20 +144,20 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			}
 			
 			try {
-				Set<String> otherConstraints = new HashSet<>(metadataDocument.getOtherConstraints());
-				log.debug("other constraints: {}", otherConstraints);
+				Set<String> useLimitations = new HashSet<>(metadataDocument.getUseLimitations());
+				log.debug("use limitations: {}", useLimitations);
 				
-				if(otherConstraints.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
+				if(useLimitations.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
 					confidential = false;
 				}
 				log.debug("confidential: {}", confidential);
 				
-				if(otherConstraints.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
+				if(useLimitations.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
 					metadataConfidential = false;
 				}
 				log.debug("metadataConfidential: {}", metadataConfidential);
 			} catch(NotFound nf) {
-				log.debug("other constraints not found");
+				log.debug("use limitations not found");
 			}
 			
 			if(requestedAttachmentTypes.contains(AttachmentType.METADATA)) {

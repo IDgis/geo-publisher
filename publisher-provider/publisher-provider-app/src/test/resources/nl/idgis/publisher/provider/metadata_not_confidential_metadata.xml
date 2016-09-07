@@ -308,7 +308,7 @@ De objecten hebben dezelfde nauwkeurigheid als de kabel die er in ligt.
       <resourceConstraints>
         <MD_Constraints>
           <useLimitation>
-            <gco:CharacterString>Data mag niet uitgeleverd worden</gco:CharacterString>
+            <gco:CharacterString>Geoportaal extern</gco:CharacterString>
           </useLimitation>
         </MD_Constraints>
       </resourceConstraints>
@@ -317,9 +317,6 @@ De objecten hebben dezelfde nauwkeurigheid als de kabel die er in ligt.
           <accessConstraints>
             <MD_RestrictionCode codeList="./resources/codeList.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
           </accessConstraints>
-          <otherConstraints>
-            <gco:CharacterString>Geoportaal extern</gco:CharacterString>
-          </otherConstraints>
         </MD_LegalConstraints>
       </resourceConstraints>
       <aggregationInfo>

@@ -555,6 +555,17 @@ public class MetadataDocument {
 		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
 	}
 	
+	protected String getUseLimitationsPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
+				+ "/gmd:MD_Constraints/gmd:useLimitation/gco:CharacterString";
+	}
+	
+	public List<String> getUseLimitations() throws NotFound {
+		return xmlDocument
+			.xpath(Optional.of(namespaces))
+			.strings(getUseLimitationsPath());
+	}
+	
 	/*
 	 * other constraints
 	 * 
