@@ -92,7 +92,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				.list(sourceDatasetVersion.id.max())));
 		
 		if(!isTrusted()) {
-			query.where(sourceDatasetVersion.confidential.isFalse());
+			query.where(sourceDatasetVersion.metadataConfidential.isFalse());
 		}
 		
 		return query;
@@ -127,10 +127,17 @@ public class DatasetMetadata extends AbstractMetadata {
 						t -> t.get(sourceDatasetMetadataAttachment.identification),
 						t -> t.get(sourceDatasetMetadataAttachment.id)));
 				
-				List<Tuple> serviceTuples = tx.query().from(publishedService)
+				SQLQuery serviceQuery = tx.query().from(publishedService)
 					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
-					.join(environment).on(environment.id.eq(publishedService.environmentId))
-					.where(publishedServiceDataset.datasetId.eq(datasetId))
+					.join(environment).on(environment.id.eq(publishedService.environmentId));
+				
+				if(!isTrusted()) {
+					// do not generate links to services with confidential content as these are inaccessible.
+					
+					serviceQuery.where(environment.confidential.isFalse());
+				}
+				
+				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,
 						environment.identification,
@@ -232,14 +239,14 @@ public class DatasetMetadata extends AbstractMetadata {
 				fromDataset(tx)
 				.list(
 					dataset.metadataFileIdentification, 
-					sourceDatasetVersion.confidential,
+					sourceDatasetVersion.metadataConfidential,
 					sourceDatasetVersion.revision).stream()
 					.map(datasetTuple -> {
 						Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
 						Map<QName, String> customProperties = new HashMap<QName, String>();
 						customProperties.put(
 							new QName("http://idgis.nl/geopublisher", "confidential"), 
-							datasetTuple.get(sourceDatasetVersion.confidential).toString());
+							datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
 						
 						return new DefaultResourceDescription(
 							getName(datasetTuple.get(dataset.metadataFileIdentification)),
@@ -256,7 +263,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			q.withTransaction(tx -> {
 				Tuple datasetTuple = fromDataset(tx)
 					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.confidential);
+					.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential);
 				
 				if(datasetTuple == null) {
 					return Optional.<ResourceProperties>empty();
@@ -265,7 +272,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					Map<QName, String> customProperties = new HashMap<QName, String>();
 					customProperties.put(
 						new QName("http://idgis.nl/geopublisher", "confidential"), 
-						datasetTuple.get(sourceDatasetVersion.confidential).toString());
+						datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
 					
 					return Optional.<ResourceProperties>of(
 						new DefaultResourceProperties(

@@ -326,7 +326,8 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.type,
 						category.identification,
 						sourceDatasetVersion.revision,
-						sourceDatasetVersion.confidential))
+						sourceDatasetVersion.confidential,
+						sourceDatasetVersion.metadataConfidential))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -350,6 +351,7 @@ public class DatasetManager extends UntypedActor {
 						String categoryId = baseInfo.get(category.identification);
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
 						boolean confidential = baseInfo.get(sourceDatasetVersion.confidential);
+						boolean metadataConfidential = baseInfo.get(sourceDatasetVersion.metadataConfidential);
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
 						
 						MetadataDocument metadata;
@@ -407,6 +409,7 @@ public class DatasetManager extends UntypedActor {
 									revisionDate, 
 									logs, 
 									confidential,
+									metadataConfidential,
 									metadata,
 									new Table(columnInfo.list()));
 								break;
@@ -419,6 +422,7 @@ public class DatasetManager extends UntypedActor {
 									revisionDate,
 									logs,
 									confidential,
+									metadataConfidential,
 									metadata);
 								break;
 							default:
@@ -430,6 +434,7 @@ public class DatasetManager extends UntypedActor {
 									revisionDate,
 									logs,
 									confidential,
+									metadataConfidential,
 									metadata);
 								break;
 						}
@@ -512,6 +517,7 @@ public class DatasetManager extends UntypedActor {
 			String name = dataset.getName();
 			String alternateTitle = dataset.getAlternateTitle();
 			boolean confidential = dataset.isConfidential();
+			boolean metadataConfidential = dataset.isMetadataConfidential();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -521,6 +527,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.categoryId, categoryId.orElse(null))
 				.set(sourceDatasetVersion.revision, revision)
 				.set(sourceDatasetVersion.confidential, confidential)
+				.set(sourceDatasetVersion.metadataConfidential, metadataConfidential)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);

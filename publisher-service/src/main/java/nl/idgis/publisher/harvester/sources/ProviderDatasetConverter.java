@@ -5,9 +5,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -25,6 +26,7 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
@@ -80,26 +82,29 @@ public class ProviderDatasetConverter extends StreamConverter {
 			Set<Log> logs = datasetInfo.getLogs();
 			boolean confidential = datasetInfo.isConfidential();
 			
-			MetadataDocument metadata= datasetInfo.getAttachments().stream()
-				.filter(attachment -> 
-					attachment
-						.getAttachmentType()
-						.equals(AttachmentType.METADATA))
-				.flatMap(attachment -> {
-					Object content = attachment.getContent();
-					if(content instanceof byte[]) {					
-						try {
-							return Stream.of(
-								mdf.parseDocument((byte[])attachment.getContent()));
-						} catch(Exception e) {
-							return Stream.empty();
-						}
-					} else {
-						return Stream.empty();
+			Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
+				.collect(Collectors.toMap(
+					Attachment::getAttachmentType,
+					Function.identity()));
+			
+			boolean metadataConfidential = false;
+			MetadataDocument metadata;
+			if(attachments.containsKey(AttachmentType.METADATA)) {
+				Attachment attachment = attachments.get(AttachmentType.METADATA);
+				Object content = attachment.getContent();
+				if(content instanceof byte[]) {
+					try {
+						metadata = mdf.parseDocument((byte[])attachment.getContent());
+						metadataConfidential = attachment.isConfidential();
+					} catch(Exception e) {
+						metadata = null;
 					}
-				})
-				.findAny()
-				.orElse(null);
+				} else {
+					metadata = null;
+				}
+			} else {
+				metadata = null;
+			}
 			
 			final Dataset dataset;
 			if(datasetInfo instanceof VectorDatasetInfo) {
@@ -113,15 +118,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata, table);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata, table);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadata);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

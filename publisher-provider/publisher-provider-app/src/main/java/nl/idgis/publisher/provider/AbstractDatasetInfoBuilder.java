@@ -2,7 +2,6 @@ package nl.idgis.publisher.provider;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +31,10 @@ import akka.event.LoggingAdapter;
 
 public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 
+	protected static final String DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
+	
+	protected static final String METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Geoportaal extern";
+
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final Set<AttachmentType> requestedAttachmentTypes;
@@ -46,7 +49,9 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected Date revisionDate;
 	
-	protected boolean confidential = false;
+	protected boolean confidential = true;
+	
+	protected boolean metadataConfidential = true;
 	
 	private final ActorRef sender;
 	
@@ -105,10 +110,6 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 		identification = metadataItem.getIdentification();
 		byte[] content = metadataItem.getContent();
 		
-		if(requestedAttachmentTypes.contains(AttachmentType.METADATA)) {
-			attachments.add(new Attachment(identification, AttachmentType.METADATA, content));
-		}
-		
 		try {
 			log.debug("parsing metadata");
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
@@ -143,12 +144,24 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			}
 			
 			try {
-				List<String> otherConstraints = metadataDocument.getOtherConstraints();
-				log.debug("other constraints: {}", otherConstraints);
-				confidential = otherConstraints.contains("alleen voor intern gebruik");
+				Set<String> useLimitations = new HashSet<>(metadataDocument.getUseLimitations());
+				log.debug("use limitations: {}", useLimitations);
+				
+				if(useLimitations.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
+					confidential = false;
+				}
 				log.debug("confidential: {}", confidential);
+				
+				if(useLimitations.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
+					metadataConfidential = false;
+				}
+				log.debug("metadataConfidential: {}", metadataConfidential);
 			} catch(NotFound nf) {
-				log.debug("other constraints not found");
+				log.debug("use limitations not found");
+			}
+			
+			if(requestedAttachmentTypes.contains(AttachmentType.METADATA)) {
+				attachments.add(new Attachment(identification, AttachmentType.METADATA, metadataConfidential, content));
 			}
 			
 			processMetadata();

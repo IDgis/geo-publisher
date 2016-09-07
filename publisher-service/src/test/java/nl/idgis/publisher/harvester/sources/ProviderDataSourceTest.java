@@ -80,7 +80,7 @@ public class ProviderDataSourceTest {
 		byte[] metadataContent = IOUtils.toByteArray(inputStream);
 		
 		Set<Attachment> attachments = new HashSet<>();
-		attachments.add(new Attachment("metadata", AttachmentType.METADATA, metadataContent));
+		attachments.add(new Attachment("metadata", AttachmentType.METADATA, false, metadataContent));
 		
 		Set<Log> logs = new HashSet<>();
 		
