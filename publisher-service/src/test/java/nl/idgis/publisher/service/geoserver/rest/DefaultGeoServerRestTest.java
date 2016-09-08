@@ -221,7 +221,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
-				"EPSG:28992",
+				"EPSG:4326",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
@@ -265,7 +265,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
-				"EPSG:28992",
+				"EPSG:4326",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("the_geom")))).get();
