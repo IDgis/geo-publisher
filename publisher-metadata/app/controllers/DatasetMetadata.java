@@ -20,6 +20,7 @@ import nl.idgis.dav.model.DefaultResourceProperties;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
+import nl.idgis.publisher.xml.exceptions.QueryFailure;
 import play.Logger;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
@@ -40,6 +41,7 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
@@ -102,184 +104,214 @@ public class DatasetMetadata extends AbstractMetadata {
 	public Optional<Resource> resource(String name) {
 		return getId(name).flatMap(id ->
 			q.withTransaction(tx -> {
-				Tuple datasetTuple = fromDataset(tx)
-					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(
-						dataset.id,
-						dataset.metadataIdentification,
-						sourceDatasetMetadata.sourceDatasetId,
-						sourceDatasetMetadata.document);
-				
-				if(datasetTuple == null) {
-					return Optional.<Resource>empty();
+				Optional<Resource> optionalDataset = datasetResource(id, tx);
+				if(optionalDataset.isPresent()) {
+					return optionalDataset;
+				} else {
+					return sourceDatasetResource(id, tx);
 				}
-				
-				int sourceDatasetId = datasetTuple.get(sourceDatasetMetadata.sourceDatasetId);
-				int datasetId = datasetTuple.get(dataset.id);
-				
-				Map<String, Integer> attachments = tx.query().from(sourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment)
-					.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
-					.list(
-						sourceDatasetMetadataAttachment.id,
-						sourceDatasetMetadataAttachment.identification)
-					.stream()
-					.collect(Collectors.toMap(
-						t -> t.get(sourceDatasetMetadataAttachment.identification),
-						t -> t.get(sourceDatasetMetadataAttachment.id)));
-				
-				SQLQuery serviceQuery = tx.query().from(publishedService)
-					.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
-					.join(environment).on(environment.id.eq(publishedService.environmentId));
-				
-				if(!isTrusted()) {
-					// do not generate links to services with confidential content as these are inaccessible.
-					
-					serviceQuery.where(environment.confidential.isFalse());
-				}
-				
-				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
-					.list(
-						publishedService.content,
-						environment.identification,
-						environment.url,
-						publishedServiceDataset.layerName);
-				
-				MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
-				
-				metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
-				metadataDocument.setFileIdentifier(id);
-				
-				for(String supplementalInformation : metadataDocument.getSupplementalInformation()) {
-					int separator = supplementalInformation.indexOf("|");
-					if(separator != -1 && attachments.containsKey(supplementalInformation)) {
-						String type = supplementalInformation.substring(0, separator);
-						String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
-						
-						String fileName;
-						Matcher urlMatcher = urlPattern.matcher(url);
-						if(urlMatcher.find()) {
-							fileName = urlMatcher.group(1);
-						} else {
-							fileName = "download";
-						}
-						
-						String updatedSupplementalInformation = 
-							type + "|" + 
-								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
-								.absoluteURL(false, config.getHost());
-						
-						metadataDocument.updateSupplementalInformation(
-							supplementalInformation,
-							updatedSupplementalInformation);
-					}
-				}
-				
-				List<String> browseGraphics = metadataDocument.getDatasetBrowseGraphics();
-				for(String browseGraphic : browseGraphics) {
-					if(attachments.containsKey(browseGraphic)) {
-						String url = browseGraphic.trim().replace('\\', '/');
-						
-						String fileName;
-						Matcher urlMatcher = urlPattern.matcher(url);
-						if(urlMatcher.find()) {
-							fileName = urlMatcher.group(1);
-						} else {
-							fileName = "preview";
-						}
-						
-						String updatedbrowseGraphic =
-							routes.Attachment.get(attachments.get(browseGraphic).toString(), fileName)
-							.absoluteURL(false, config.getHost());
-						
-						metadataDocument.updateDatasetBrowseGraphic(browseGraphic, updatedbrowseGraphic);
-					}
-				}
-				
-				metadataDocument.removeServiceLinkage();
-				for(Tuple serviceTuple : serviceTuples) {
-					JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
-					
-					String serviceName = serviceInfo.get("name").asText();
-					String environmentId = serviceTuple.get(environment.identification);
-					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
-					String environmentUrl = serviceTuple.get(environment.url);
-					
-					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(downloadUrlPrefix + id, "download", serviceTuple.get(publishedServiceDataset.layerName));
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
-						}
-					});
-					
-					// we only automatically generate browseGraphics 
-					// when none where provided by the source. 
-					if(browseGraphics.isEmpty()) {
-						String linkage = getServiceLinkage(environmentUrl, serviceName, ServiceType.WMS);
-						metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
-					}
-					
-					for(ServiceType serviceType : ServiceType.values()) {
-						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
-						String protocol = serviceType.getProtocol();
-						
-						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
-					}
-				}
-				
-				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
-				
-				return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
+	}
+	
+	private Optional<Resource> sourceDatasetResource(String id, Transaction tx) {
+		return Optional.empty();
+	}
+
+	private Optional<Resource> datasetResource(String id, Transaction tx) throws Exception {
+		Tuple datasetTuple = fromDataset(tx)
+			.where(dataset.metadataFileIdentification.eq(id))
+			.singleResult(
+				dataset.id,
+				dataset.metadataIdentification,
+				sourceDatasetMetadata.sourceDatasetId,
+				sourceDatasetMetadata.document);
+		
+		if(datasetTuple == null) {
+			return Optional.<Resource>empty();
+		}
+		
+		int sourceDatasetId = datasetTuple.get(sourceDatasetMetadata.sourceDatasetId);
+		int datasetId = datasetTuple.get(dataset.id);
+		
+		Map<String, Integer> attachments = tx.query().from(sourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment)
+			.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
+			.list(
+				sourceDatasetMetadataAttachment.id,
+				sourceDatasetMetadataAttachment.identification)
+			.stream()
+			.collect(Collectors.toMap(
+				t -> t.get(sourceDatasetMetadataAttachment.identification),
+				t -> t.get(sourceDatasetMetadataAttachment.id)));
+		
+		SQLQuery serviceQuery = tx.query().from(publishedService)
+			.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
+			.join(environment).on(environment.id.eq(publishedService.environmentId));
+		
+		if(!isTrusted()) {
+			// do not generate links to services with confidential content as these are inaccessible.
+			
+			serviceQuery.where(environment.confidential.isFalse());
+		}
+		
+		List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
+			.list(
+				publishedService.content,
+				environment.identification,
+				environment.url,
+				publishedServiceDataset.layerName);
+		
+		MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+		
+		metadataDocument.setDatasetIdentifier(datasetTuple.get(dataset.metadataIdentification));
+		metadataDocument.setFileIdentifier(id);
+		
+		for(String supplementalInformation : metadataDocument.getSupplementalInformation()) {
+			int separator = supplementalInformation.indexOf("|");
+			if(separator != -1 && attachments.containsKey(supplementalInformation)) {
+				String type = supplementalInformation.substring(0, separator);
+				String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
+				
+				String fileName;
+				Matcher urlMatcher = urlPattern.matcher(url);
+				if(urlMatcher.find()) {
+					fileName = urlMatcher.group(1);
+				} else {
+					fileName = "download";
+				}
+				
+				String updatedSupplementalInformation = 
+					type + "|" + 
+						routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
+						.absoluteURL(false, config.getHost());
+				
+				metadataDocument.updateSupplementalInformation(
+					supplementalInformation,
+					updatedSupplementalInformation);
+			}
+		}
+		
+		List<String> browseGraphics = metadataDocument.getDatasetBrowseGraphics();
+		for(String browseGraphic : browseGraphics) {
+			if(attachments.containsKey(browseGraphic)) {
+				String url = browseGraphic.trim().replace('\\', '/');
+				
+				String fileName;
+				Matcher urlMatcher = urlPattern.matcher(url);
+				if(urlMatcher.find()) {
+					fileName = urlMatcher.group(1);
+				} else {
+					fileName = "preview";
+				}
+				
+				String updatedbrowseGraphic =
+					routes.Attachment.get(attachments.get(browseGraphic).toString(), fileName)
+					.absoluteURL(false, config.getHost());
+				
+				metadataDocument.updateDatasetBrowseGraphic(browseGraphic, updatedbrowseGraphic);
+			}
+		}
+		
+		metadataDocument.removeServiceLinkage();
+		for(Tuple serviceTuple : serviceTuples) {
+			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
+			
+			String serviceName = serviceInfo.get("name").asText();
+			String environmentId = serviceTuple.get(environment.identification);
+			String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
+			String environmentUrl = serviceTuple.get(environment.url);
+			
+			config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
+				try {
+					metadataDocument.addServiceLinkage(downloadUrlPrefix + id, "download", serviceTuple.get(publishedServiceDataset.layerName));
+				} catch(NotFound nf) {
+					throw new RuntimeException(nf);
+				}
+			});
+			
+			// we only automatically generate browseGraphics 
+			// when none where provided by the source. 
+			if(browseGraphics.isEmpty()) {
+				String linkage = getServiceLinkage(environmentUrl, serviceName, ServiceType.WMS);
+				metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
+			}
+			
+			for(ServiceType serviceType : ServiceType.values()) {
+				String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
+				String protocol = serviceType.getProtocol();
+				
+				metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+			}
+		}
+		
+		metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
+		
+		return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 	}
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
-		return q.withTransaction(tx -> 
-				fromDataset(tx)
-				.list(
-					dataset.metadataFileIdentification, 
-					sourceDatasetVersion.metadataConfidential,
-					sourceDatasetVersion.revision).stream()
-					.map(datasetTuple -> {
-						Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
-						Map<QName, String> customProperties = new HashMap<QName, String>();
-						customProperties.put(
-							new QName("http://idgis.nl/geopublisher", "confidential"), 
-							datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
-						
-						return new DefaultResourceDescription(
-							getName(datasetTuple.get(dataset.metadataFileIdentification)),
-							new DefaultResourceProperties(
-								false,
-								createTime,
-								customProperties));
-					}));
+		return q.withTransaction(tx -> Stream.concat(
+			datasetDescriptions(tx), 
+			sourceDatasetDescriptions(tx)));
 	}
-
-	@Override
-	public Optional<ResourceProperties> properties(String name) {
-		return getId(name).flatMap(id ->
-			q.withTransaction(tx -> {
-				Tuple datasetTuple = fromDataset(tx)
-					.where(dataset.metadataFileIdentification.eq(id))
-					.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential);
-				
-				if(datasetTuple == null) {
-					return Optional.<ResourceProperties>empty();
-				} else {
+	
+	public Stream<ResourceDescription> sourceDatasetDescriptions(Transaction tx) {
+		return Stream.empty();
+	}
+	
+	public Stream<ResourceDescription> datasetDescriptions(Transaction tx) {
+		return fromDataset(tx).list(
+				dataset.metadataFileIdentification, 
+				sourceDatasetVersion.metadataConfidential,
+				sourceDatasetVersion.revision).stream()
+				.map(datasetTuple -> {
 					Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
 					Map<QName, String> customProperties = new HashMap<QName, String>();
 					customProperties.put(
 						new QName("http://idgis.nl/geopublisher", "confidential"), 
 						datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
 					
-					return Optional.<ResourceProperties>of(
+					return new DefaultResourceDescription(
+						getName(datasetTuple.get(dataset.metadataFileIdentification)),
 						new DefaultResourceProperties(
-							false, 
+							false,
 							createTime,
 							customProperties));
+				});
+	}
+
+	@Override
+	public Optional<ResourceProperties> properties(String name) {
+		return getId(name).flatMap(id ->
+			q.withTransaction(tx -> {
+				Optional<ResourceProperties> optionalProperties = datasetProperties(id, tx);
+				if(optionalProperties.isPresent()) {
+					return optionalProperties;
+				} else {
+					return sourceDatasetProperties(id, tx);
 				}
 		}));
+	}
+	
+	private Optional<ResourceProperties> sourceDatasetProperties(String id, Transaction tx) {
+		return Optional.empty();
+	}
+
+	private Optional<ResourceProperties> datasetProperties(String id, Transaction tx) {
+		return Optional.ofNullable(fromDataset(tx)
+			.where(dataset.metadataFileIdentification.eq(id))
+			.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential))
+			.map(datasetTuple -> {
+				Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
+				Map<QName, String> customProperties = new HashMap<QName, String>();
+				customProperties.put(
+					new QName("http://idgis.nl/geopublisher", "confidential"), 
+					datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
+				
+				return new DefaultResourceProperties(
+						false, 
+						createTime,
+						customProperties);
+			});
 	}
 }
