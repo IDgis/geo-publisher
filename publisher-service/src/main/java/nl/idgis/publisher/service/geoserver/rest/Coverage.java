@@ -4,7 +4,7 @@ import java.util.List;
 
 public class Coverage extends Dataset {	
 	
-	public Coverage(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks) {
-		super(name, nativeName, title, abstr, keywords, metadataLinks);
+	public Coverage(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks, String srs) {
+		super(name, nativeName, title, abstr, keywords, metadataLinks, srs);
 	}
 }

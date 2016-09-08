@@ -6,8 +6,8 @@ public class FeatureType extends Dataset {
 	
 	private final List<Attribute> attributes;
 	
-	public FeatureType(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks, List<Attribute> attributes) {
-		super(name, nativeName, title, abstr, keywords, metadataLinks);
+	public FeatureType(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks, String srs, List<Attribute> attributes) {
+		super(name, nativeName, title, abstr, keywords, metadataLinks, srs);
 		
 		this.attributes = attributes;
 	}	

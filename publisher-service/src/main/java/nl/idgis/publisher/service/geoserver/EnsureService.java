@@ -174,6 +174,7 @@ public class EnsureService extends UntypedActor {
 										layer.getAbstract(), 
 										layer.getKeywords(),
 										metadataLinks,
+										"EPSG:28992",
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
@@ -193,6 +194,7 @@ public class EnsureService extends UntypedActor {
 										layer.getAbstract(), 
 										layer.getKeywords(),
 										metadataLinks,
+										"EPSG:28992",
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()

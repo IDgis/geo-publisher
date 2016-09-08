@@ -535,6 +535,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 								metadataLink.string("type").get(), 
 								metadataLink.string("metadataType").get(), 
 								metadataLink.string("content").get()))),
+					featureType.string("srs").get(),
 					Collections.unmodifiableList(
 						featureType.map("attributes/attribute/name", 
 							name -> new Attribute(name.string().get()))));
@@ -564,7 +565,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 							metadataLink -> new MetadataLink(
 								metadataLink.string("type").get(), 
 								metadataLink.string("metadataType").get(), 
-								metadataLink.string("content").get()))));
+								metadataLink.string("content").get()))),
+					coverage.string("srs").get());
 			}));
 	}
 	
@@ -673,6 +675,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeEndElement();
 			sw.writeEndElement();
 		}
+		sw.writeEndElement();
+		
+		sw.writeStartElement("srs");
+			sw.writeCharacters(dataset.getSrs());
 		sw.writeEndElement();
 		
 		sw.writeStartElement("enabled");
