@@ -122,6 +122,8 @@ public class JobManagerTest extends AbstractServiceTest {
 		int sourceDatasetId = 
 			insert(sourceDataset)
 				.set(sourceDataset.dataSourceId, dataSourceId)
+				.set(sourceDataset.metadataIdentification, UUID.randomUUID().toString())
+				.set(sourceDataset.metadataFileIdentification, UUID.randomUUID().toString())
 				.set(sourceDataset.identification, UUID.randomUUID().toString())
 				.set(sourceDataset.externalIdentification, "testSourceDataset")
 				.executeWithKey(sourceDataset.id);
@@ -265,6 +267,8 @@ public class JobManagerTest extends AbstractServiceTest {
 			insert(sourceDataset)
 				.set(sourceDataset.dataSourceId, dataSourceId)
 				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.metadataIdentification, UUID.randomUUID().toString())
+				.set(sourceDataset.metadataFileIdentification, UUID.randomUUID().toString())
 				.set(sourceDataset.externalIdentification, "testSourceDataset")
 				.executeWithKey(sourceDataset.id);
 		
@@ -295,6 +299,8 @@ public class JobManagerTest extends AbstractServiceTest {
 			insert(sourceDataset)
 				.set(sourceDataset.dataSourceId, dataSourceId)
 				.set(sourceDataset.identification, UUID.randomUUID().toString())
+				.set(sourceDataset.metadataIdentification, UUID.randomUUID().toString())
+				.set(sourceDataset.metadataFileIdentification, UUID.randomUUID().toString())
 				.set(sourceDataset.externalIdentification, "testSourceDataset")
 				.executeWithKey(sourceDataset.id);
 		

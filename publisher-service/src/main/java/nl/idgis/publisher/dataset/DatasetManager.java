@@ -611,13 +611,17 @@ public class DatasetManager extends UntypedActor {
 				.columns(
 					sourceDataset.dataSourceId,
 					sourceDataset.externalIdentification,
-					sourceDataset.identification)
+					sourceDataset.identification,
+					sourceDataset.metadataIdentification,
+					sourceDataset.metadataFileIdentification)
 				.select(new SQLSubQuery()
 					.from(dataSource)
 					.where(dataSource.identification.eq(dataSourceIdentification))
 					.list(
 						dataSource.id, 
 						dataset.getId(),
+						UUID.randomUUID().toString(),
+						UUID.randomUUID().toString(),
 						UUID.randomUUID().toString()))
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
 					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());

@@ -148,6 +148,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		int vectorSourceDatasetId = insert(sourceDataset)
 			.set(sourceDataset.identification, UUID.randomUUID().toString())
+			.set(sourceDataset.metadataIdentification, UUID.randomUUID().toString())
+			.set(sourceDataset.metadataFileIdentification, UUID.randomUUID().toString())
 			.set(sourceDataset.externalIdentification, "sourcedataset0")
 			.set(sourceDataset.dataSourceId, dataSourceId)
 			.executeWithKey(sourceDataset.id);
@@ -248,6 +250,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		int rasterSourceDatasetId = insert(sourceDataset)
 			.set(sourceDataset.identification, UUID.randomUUID().toString())
+			.set(sourceDataset.metadataIdentification, UUID.randomUUID().toString())
+			.set(sourceDataset.metadataFileIdentification, UUID.randomUUID().toString())
 			.set(sourceDataset.externalIdentification, "sourcedataset1")
 			.set(sourceDataset.dataSourceId, dataSourceId)
 			.executeWithKey(sourceDataset.id);
