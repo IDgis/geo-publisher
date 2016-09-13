@@ -311,7 +311,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			sourceDataset.metadataFileIdentification,
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
-			.map(tuple -> tupleToDatasetDescription(tuple, sourceDataset.metadataFileIdentification));
+			.map(tuple -> tupleToDatasetDescription(tuple, sourceDataset.metadataFileIdentification, false));
 	}
 	
 	public Stream<ResourceDescription> datasetDescriptions(Transaction tx) {
@@ -319,22 +319,19 @@ public class DatasetMetadata extends AbstractMetadata {
 			dataset.metadataFileIdentification, 
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
-			.map(tuple -> tupleToDatasetDescription(tuple, dataset.metadataFileIdentification));
+			.map(tuple -> tupleToDatasetDescription(tuple, dataset.metadataFileIdentification, true));
 	}
 
-	private ResourceDescription tupleToDatasetDescription(Tuple tuple, Expression<String> identificationExpression) {
+	private ResourceDescription tupleToDatasetDescription(Tuple tuple, Expression<String> identificationExpression, boolean published) {
 		Timestamp createTime = tuple.get(sourceDatasetVersion.revision);
-		Map<QName, String> customProperties = new HashMap<QName, String>();
-		customProperties.put(
-			new QName("http://idgis.nl/geopublisher", "confidential"), 
-			tuple.get(sourceDatasetVersion.metadataConfidential).toString());
+		boolean confidential = tuple.get(sourceDatasetVersion.metadataConfidential);
 		
 		return new DefaultResourceDescription(
 			getName(tuple.get(identificationExpression)),
 			new DefaultResourceProperties(
 				false,
 				createTime,
-				customProperties));
+				resourceProperties(confidential, published)));
 	}
 
 	@Override
@@ -351,29 +348,35 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 	
 	private Optional<ResourceProperties> sourceDatasetProperties(String id, Transaction tx) {
-		return tupleToDatasetProperties(fromSourceDataset(tx)
-			.where(sourceDataset.metadataFileIdentification.eq(id)));
+		return tupleToDatasetProperties(
+			fromSourceDataset(tx).where(sourceDataset.metadataFileIdentification.eq(id)),
+			false);
 	}
 
 	private Optional<ResourceProperties> datasetProperties(String id, Transaction tx) {
-		return tupleToDatasetProperties(fromDataset(tx)
-			.where(dataset.metadataFileIdentification.eq(id)));
+		return tupleToDatasetProperties(
+			fromDataset(tx).where(dataset.metadataFileIdentification.eq(id)),
+			true);
 	}
 	
-	private Optional<ResourceProperties> tupleToDatasetProperties(SQLQuery query) {
+	private Optional<ResourceProperties> tupleToDatasetProperties(SQLQuery query, boolean published) {
 		return Optional.ofNullable(query
 			.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential))
 			.map(datasetTuple -> {
 				Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
-				Map<QName, String> customProperties = new HashMap<QName, String>();
-				customProperties.put(
-					new QName("http://idgis.nl/geopublisher", "confidential"), 
-					datasetTuple.get(sourceDatasetVersion.metadataConfidential).toString());
+				boolean confidential = datasetTuple.get(sourceDatasetVersion.metadataConfidential);
 				
 				return new DefaultResourceProperties(
-						false, 
-						createTime,
-						customProperties);
+					false, 
+					createTime,
+					resourceProperties(confidential, published));
 			});
+	}
+
+	private Map<QName, String> resourceProperties(boolean confidential, boolean published) {
+		Map<QName, String> properties = new HashMap<QName, String>();
+		properties.put(new QName("http://idgis.nl/geopublisher", "confidential"), "" + confidential);
+		properties.put(new QName("http://idgis.nl/geopublisher", "published"), "" + published);
+		return properties;
 	}
 }
