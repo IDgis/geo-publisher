@@ -45,7 +45,7 @@ ext {
 	jettyVersion = '9.2.2.v20140723'
 	curatorVersion = '2.7.1'
 	querydslVersion = '3.4.1'
-	mdStylesheetsVersion = '1.0.11'
+	mdStylesheetsVersion = '1.0.12'
 	provisionRegistrationVersion = '1.1.3'
 }
 
