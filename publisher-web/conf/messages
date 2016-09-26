@@ -18,6 +18,8 @@ nl.idgis.publisher.domain.web.JobStatusType.FAILED=Foutsituatie
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar kolommen die niet meer bestaan
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
 
+nl.idgis.publisher.domain.web.MiscNotificationType.TEST=Test notification message
+
 nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=Structuurwijziging in de brontabel
 
 nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum

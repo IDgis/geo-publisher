@@ -41,6 +41,7 @@ import nl.idgis.publisher.database.messages.InfoList;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.database.messages.StoredNotification;
 import nl.idgis.publisher.domain.EntityType;
+import nl.idgis.publisher.domain.StatusType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
@@ -59,9 +60,12 @@ import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
 import nl.idgis.publisher.domain.web.DatasetStatusType;
+import nl.idgis.publisher.domain.web.DefaultMessageProperties;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Message;
+import nl.idgis.publisher.domain.web.MiscNotificationType;
+import nl.idgis.publisher.domain.web.MiscStatusType;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.Status;
@@ -431,6 +435,17 @@ public class DatasetAdmin extends AbstractAdmin {
 		
 		return notifications.thenApply(msg -> {
 			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
+			
+			dashboardNotifications.add(
+				new Notification(
+					"test-notification-id", 
+					new Message(
+						MiscNotificationType.TEST, 
+						new DefaultMessageProperties(
+							EntityType.NOTIFICATION, 
+							"test-notification-message-id", 
+							"test notification title",
+							MiscStatusType.TEST))));
 			
 			@SuppressWarnings("unchecked")
 			final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
