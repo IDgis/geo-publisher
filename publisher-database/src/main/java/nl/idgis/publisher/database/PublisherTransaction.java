@@ -61,6 +61,7 @@ import nl.idgis.publisher.database.messages.QDataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceStatus;
 import nl.idgis.publisher.database.messages.QDatasetStatusInfo;
 import nl.idgis.publisher.database.messages.Query;
+import nl.idgis.publisher.database.messages.ReplaceTable;
 import nl.idgis.publisher.database.messages.StoreNotificationResult;
 import nl.idgis.publisher.database.messages.StoredJobLog;
 import nl.idgis.publisher.database.messages.StoredNotification;
@@ -190,10 +191,23 @@ public class PublisherTransaction extends QueryDSLTransaction {
 			return executeDropTable((DropTable)query);
 		} else if (query instanceof CreateIndices) {
 			return executeCreateIndices((CreateIndices)query);
+		} else if (query instanceof ReplaceTable) {
+			return executeReplaceTable((ReplaceTable)query);
 		} else {
 			return null;
 		}
 	}	
+
+	private Object executeReplaceTable(ReplaceTable query) throws SQLException {
+		String schemaName = query.getSchemaName();
+		String fromTable = query.getFromTable();
+		String toTable = query.getToTable();
+		
+		execute("drop table if exists \"" + schemaName + "\".\"" + toTable + "\"");
+		execute("alter table \"" + schemaName + "\".\"" + fromTable + "\" rename to \"" + toTable + "\"");
+		
+		return new Ack();
+	}
 
 	private Object executeCreateIndices(CreateIndices query) throws Exception {
 		String schemaName = query.getSchemaName();

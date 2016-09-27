@@ -4,6 +4,8 @@ import java.util.concurrent.CompletableFuture;
 
 import com.mysema.query.sql.RelationalPath;
 
+import akka.actor.ActorRef;
+
 public interface AsyncHelper {
 
 	AsyncSQLQuery query();
@@ -17,4 +19,6 @@ public interface AsyncHelper {
 	AsyncTransactionRef getTransactionRef();
 	
 	CompletableFuture<Object> ask(Object message);
+
+	void tell(Object message, ActorRef sender);
 }
