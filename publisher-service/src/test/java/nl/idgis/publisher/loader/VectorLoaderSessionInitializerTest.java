@@ -29,6 +29,7 @@ import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 
 import nl.idgis.publisher.database.messages.CreateIndices;
+import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 import nl.idgis.publisher.database.messages.InsertRecords;
@@ -101,6 +102,10 @@ public class VectorLoaderSessionInitializerTest {
 				getSender().tell(new Ack(), getSelf());
 			} else if(query instanceof CreateIndices) {
 				log.debug("create indices");
+				
+				getSender().tell(new Ack(), getSelf());
+			} else if(query instanceof CreateTable) {
+				log.debug("create table");
 				
 				getSender().tell(new Ack(), getSelf());
 			} else {

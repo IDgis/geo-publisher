@@ -33,15 +33,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.messages.CopyTable;
-import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DropTable;
 import nl.idgis.publisher.database.messages.DropView;
+import nl.idgis.publisher.database.messages.ReplaceTable;
 import nl.idgis.publisher.database.projections.QColumn;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
@@ -64,7 +63,6 @@ import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.DatasetLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Table;
-import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
 import nl.idgis.publisher.domain.service.RasterDataset;
@@ -203,7 +201,7 @@ public class DatasetManager extends UntypedActor {
 				importJobColumn.dataType);
 	}
 	
-	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String datasetId, List<Column> columns) {
+	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String tmpTable, String datasetId) {
 		log.debug("making dataset copy");
 		
 		return tx.ask(new DropView("data", datasetId)).thenCompose(dropViewResult ->
@@ -224,16 +222,16 @@ public class DatasetManager extends UntypedActor {
 										datasetCopy.dataType)
 									.select(subselectDatasetColumns(datasetId))
 									.execute().thenCompose(cnt -> 
-										tx.ask(new CreateTable("staging_data", datasetId, columns))))
+										tx.ask(new ReplaceTable("staging_data", tmpTable, datasetId))))
 				: f.successful(dropViewResult));
 	}
 	
-	private CompletableFuture<Object> keepDatasetView(AsyncHelper tx, String datasetId, List<Column> columns) {
+	private CompletableFuture<Object> keepDatasetView(AsyncHelper tx, String tmpTable, String datasetId) {
 		log.debug("keeping dataset view");
 		
 		return tx.ask(new DropView("data", datasetId)).thenCompose(dropViewResult ->
 			dropViewResult instanceof Ack
-				? tx.ask(new CreateTable("staging_data", datasetId, columns)).thenCompose(createTableResult ->
+				? tx.ask(new ReplaceTable("staging_data", tmpTable, datasetId)).thenCompose(createTableResult ->
 					createTableResult instanceof Ack
 						? tx.ask(new CreateView("data", datasetId, "staging_data", datasetId))
 						: f.successful(createTableResult))
@@ -243,21 +241,17 @@ public class DatasetManager extends UntypedActor {
 	private CompletableFuture<Object> handlePrepareTable(PrepareTable msg) {
 		log.debug("preparing table: {}", msg);
 		
+		String tmpTable = msg.getTmpTable();
 		String datasetId = msg.getDatasetId();
-		List<Column> columns = 
-			Stream
-				.concat(
-					msg.getColumns().stream(), 
-					Stream.of(new Column(datasetId + "_id", Type.SERIAL)))
-				.collect(Collectors.toList());
+		List<Column> columns = msg.getColumns();
 		
 		return db.transactional(msg, tx ->
 			fetchViewInfo(tx, datasetId).thenCompose(viewColumns ->
 				viewColumns.isEmpty() // view present?
-					? tx.ask(new CreateTable("staging_data", datasetId, columns)) 
+					? tx.ask(new ReplaceTable("staging_data", tmpTable, datasetId)) 
 					: viewColumns.equals(columns) // same columns?
-						? keepDatasetView(tx, datasetId, columns)
-						: makeDatasetCopy(tx, datasetId, columns)));
+						? keepDatasetView(tx, tmpTable, datasetId)
+						: makeDatasetCopy(tx, tmpTable, datasetId)));
 	}
 
 	private CompletableFuture<List<Column>> fetchViewInfo(AsyncHelper tx, String datasetId) {

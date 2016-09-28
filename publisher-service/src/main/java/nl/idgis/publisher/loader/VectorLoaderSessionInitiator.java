@@ -8,12 +8,14 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncTransactionHelper;
+import nl.idgis.publisher.database.messages.CreateTable;
 import nl.idgis.publisher.database.messages.DatasetStatusInfo;
 import nl.idgis.publisher.database.messages.GetDatasetStatus;
 
@@ -28,10 +30,10 @@ import nl.idgis.publisher.domain.job.load.ImportLogType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.job.load.MissingColumnsLog;
 import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.web.Filter;
 import nl.idgis.publisher.domain.web.Filter.FilterExpression;
 
-import nl.idgis.publisher.dataset.messages.PrepareTable;
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.job.context.messages.AddJobNotification;
 import nl.idgis.publisher.job.context.messages.RemoveJobNotification;
@@ -292,32 +294,34 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		};
 	}
 	
-	private void startLoaderSession(AsyncTransactionHelper tx) throws Exception {
+	private void startLoaderSession(AsyncTransactionHelper tx, String tmpTable) throws Exception {
 		log.debug("requesting columns: " + requestColumnNames);
 		
 		startLoaderSession(new FetchVectorDataset(
 			currentJob.getExternalSourceDatasetId(), 
 			requestColumnNames, 
-			VectorLoaderSession.props(								
+			VectorLoaderSession.props(
 				getContext().parent(), // loader
 				currentJob,
+				tmpTable,
 				importColumns,
+				datasetManager,
 				filterEvaluator,
 				tx, 
 				jobContext)));
 	}
 	
-	private Procedure<Object> waitingForTablePrepared(AsyncTransactionHelper tx) {
+	private Procedure<Object> waitingForTmpTableCreated(AsyncTransactionHelper tx, String tmpTable) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					log.debug("table prepared");					
+					log.debug("tmp table created");
 					
-					deleteMissingColumns(tx);
+					deleteMissingColumns(tx, tmpTable);
 				} else if(msg instanceof Failure) {
-					log.error("table preparation failed: {}", msg);
+					log.error("tmp table creation failed: {}", msg);
 					
 					tx.rollback().thenRun(() -> {
 						jobContext.tell(new Ack(), getSelf()); // TODO: feels redundant...
@@ -391,16 +395,16 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 	
 	private void startTransaction() {
 		db.transaction().thenAccept(tx -> {
-			prepareTable(tx);
+			createTmpTable(tx);
 		});
 		
 	}
 
-	private void deleteMissingColumns(AsyncTransactionHelper tx) throws Exception {
+	private void deleteMissingColumns(AsyncTransactionHelper tx, String tmpTable) throws Exception {
 		if(missingColumns.isEmpty()) {
 			log.debug("no missing columns");
 			
-			startLoaderSession(tx);
+			startLoaderSession(tx, tmpTable);
 		} else {
 			log.debug("missing columns");
 			
@@ -427,17 +431,17 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 							getSelf().tell(new Ack(), getSelf());
 						}));
 			
-			become("deleting columns", waitingForColumnsDeleted(tx));
+			become("deleting columns", waitingForColumnsDeleted(tx, tmpTable));
 		}
 	}
 	
-	private Procedure<Object> waitingForColumnsDeleted(AsyncTransactionHelper tx) {
+	private Procedure<Object> waitingForColumnsDeleted(AsyncTransactionHelper tx, String tmpTable) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof Ack) {
-					startLoaderSession(tx);
+					startLoaderSession(tx, tmpTable);
 				} else {
 					unhandled(msg);
 				}
@@ -446,17 +450,25 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		};
 	}	
 
-	private void prepareTable(AsyncTransactionHelper tx) {
-		log.debug("preparing table");
+	private void createTmpTable(AsyncTransactionHelper tx) {
+		log.debug("creating tmp table");
 		
-		datasetManager.tell(
-			new PrepareTable(
-				Optional.of(tx.getTransactionRef()),
-				currentJob.getDatasetId(), 
-				importColumns), 
+		String tmpTable = UUID.randomUUID().toString();
+		List<Column> columns = 
+			Stream
+				.concat(
+					importColumns.stream(), 
+					Stream.of(new Column(currentJob.getDatasetId() + "_id", Type.SERIAL)))
+				.collect(Collectors.toList());
+		
+		tx.tell(
+			new CreateTable(
+				"staging_data",
+				tmpTable, 
+				columns), 
 			getSelf());
 		
-		become("preparing table", waitingForTablePrepared(tx));
+		become("creating tmp tabl", waitingForTmpTableCreated(tx, tmpTable));
 	}
 	
 	protected void dataSourceReceived() {

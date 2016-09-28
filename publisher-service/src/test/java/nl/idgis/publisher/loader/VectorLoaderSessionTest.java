@@ -68,7 +68,7 @@ public class VectorLoaderSessionTest {
 	
 	ActorSystem actorSystem;
 	
-	ActorRef transaction, loader, loaderSession, jobContext;
+	ActorRef transaction, datasetManager, loader, loaderSession, jobContext;
 	
 	FutureUtils f;
 	
@@ -103,6 +103,8 @@ public class VectorLoaderSessionTest {
 		
 		transaction = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
 		
+		datasetManager = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
+		
 		loader = actorSystem.actorOf(LoaderRecorder.props());
 		
 		jobContext = actorSystem.actorOf(AnyAckRecorder.props(new Ack()));
@@ -130,7 +132,7 @@ public class VectorLoaderSessionTest {
 			f,
 			Logging.getLogger());
 
-		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, importJob.getColumns(), null /* filterEvaluator */, tx, jobContext));
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, UUID.randomUUID().toString() /* tmpTable*/, importJob.getColumns(), datasetManager, null /* filterEvaluator */, tx, jobContext));
 	}
 	
 	@Test
