@@ -281,7 +281,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					// when none where provided by the source. 
 					if(browseGraphics.isEmpty()) {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, ServiceType.WMS);
-						metadataDocument.addDatasetBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
+						metadataDocument.addDatasetBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 					}
 					
 					for(ServiceType serviceType : ServiceType.values()) {

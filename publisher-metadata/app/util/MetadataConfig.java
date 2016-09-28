@@ -8,7 +8,7 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedHeader, downloadUrlPrefix;
+	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedHeader, downloadUrlPrefix, browseGraphicWmsRequest;
 	
 	@Inject
 	public MetadataConfig(Configuration config) {
@@ -26,6 +26,10 @@ public class MetadataConfig {
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
 		downloadUrlPrefix = metadata.getString("download-url-prefix");
+		
+		browseGraphicWmsRequest = "?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992&bbox=" 
+			+ metadata.getString("bbox", "180000,459000,270000,540000")
+			+ "&width=600&height=662&format=image/png&styles=&layers=";
 	}
 	
 	public String getHost() {
@@ -54,5 +58,9 @@ public class MetadataConfig {
 	
 	public Optional<String> getDownloadUrlPrefix() {
 		return Optional.ofNullable(downloadUrlPrefix);
+	}
+	
+	public String getBrowseGraphicWmsRequest() {
+		return browseGraphicWmsRequest;
 	}
 }

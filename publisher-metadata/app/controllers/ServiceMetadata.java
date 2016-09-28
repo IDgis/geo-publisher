@@ -244,7 +244,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
 				
 				if(serviceType == ServiceType.WMS) {
-					metadataDocument.addServiceBrowseGraphic(linkage + BROWSE_GRAPHIC_WMS_REQUEST + scopedName);
+					metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 				}
 				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
