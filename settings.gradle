@@ -9,4 +9,5 @@ include 'publisher-test',
 	'publisher-database',
 	'publisher-service',
 	'publisher-metadata',
-	'publisher-geoserver'
+	'publisher-geoserver',
+	'publisher-monitor'

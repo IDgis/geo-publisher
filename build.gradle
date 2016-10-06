@@ -508,6 +508,41 @@ project(':publisher-database') {
 	}
 }
 
+project(':publisher-monitor') {
+	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
+	
+	mainClassName = 'nl.idgis.publisher.monitor.WMSTest'
+	
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk'
+		copyFile "publisher-monitor-${project.version}", '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-monitor'
+		entryPoint '/opt/bin/publisher-monitor'
+	}
+
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar
+
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_monitor:${project.version}"
+	}
+	
+	dependencies {
+		compile 'org.springframework:spring-core:4.3.3.RELEASE'
+		compile 'org.postgresql:postgresql:9.4.1211.jre7'
+		compile 'commons-io:commons-io:2.5'
+	}
+}
+
 project(':publisher-service') {
 	apply plugin: 'application'
 	apply plugin: DockerRemoteConfig
