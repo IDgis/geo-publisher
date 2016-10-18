@@ -6,16 +6,19 @@ GIS publicatieomgeving
 Inhoudsopgave
 -------------
 
+
  *  [Dashboard](dashboard.md)
  *  Databeheer
-    -  [Datasets](datasets/list.md)
     -  [Brongegevens](datasources/list.md)
+    -  [Datasets](datasets/list.md)
  *  Servicebeheer
     -  [Services](services/list.md)
     -  [Lagen](layers/list.md)
     -  [Groepen](groups/list.md)
     -  [Stijlen](styles/list.md)
  *  Logging
+    -  [Systeemtaken logboek](logging/tasks.md)
     -  [Foutmeldingen logboek](logging/messages.md)
  *  Algemeen beheer
-    -  [Gegevens](constants/form.md)
+    -  [Organisatiekenmerken](constants/form.md)
+    -  [Categorieën](categories/form.md)
