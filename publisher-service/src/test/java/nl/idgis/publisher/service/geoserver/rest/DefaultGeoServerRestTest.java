@@ -281,6 +281,59 @@ public class DefaultGeoServerRestTest {
 				.map(Attribute::getName)
 				.collect(Collectors.toList()));
 	}
+	
+	@Test
+	public void testFeatureTypeSpecialCharInAttribute() throws Exception {
+		Workspace workspace = new Workspace("testWorkspace");
+		service.postWorkspace(workspace).get();
+		
+		DataStore dataStore = new DataStore("testDataStore", getConnectionParameters());
+		service.postDataStore(workspace, dataStore).get();
+		
+		service.postFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("test"),
+					new Attribute("the_geom")))).get();
+		
+		// add column
+		try(Connection connection = getConnection()) {		
+			try(Statement stmt = connection.createStatement()) {
+				stmt.execute("alter table \"public\".\"test_table\" add column \"Ö\" integer");
+			}
+		}
+		
+		// empty cache
+		service.reset().get();
+		
+		// add attribute to configuration
+		service.putFeatureType(workspace, dataStore, new FeatureType(
+			"test", "test_table", "title", "abstract", 
+				Arrays.asList("keyword0", "keyword1"),
+				Collections.emptyList(),
+				Arrays.asList(
+					new Attribute("id"),
+					new Attribute("test"),
+					new Attribute("the_geom"),
+					new Attribute("Ö")))).get();
+		
+		// new attribute should be available now
+		List<FeatureType> featureTypes = service.getFeatureTypes(workspace, dataStore).get();
+		assertNotNull(featureTypes);
+		assertEquals(1, featureTypes.size());
+		
+		FeatureType featureType = featureTypes.get(0);
+		assertNotNull(featureType);
+		
+		assertEquals(
+			Arrays.asList("id", "test", "the_geom", "Ö"),
+			featureType.getAttributes().stream()
+				.map(Attribute::getName)
+				.collect(Collectors.toList()));
+	}
 
 	@Test
 	public void testFeatureType() throws Exception {
