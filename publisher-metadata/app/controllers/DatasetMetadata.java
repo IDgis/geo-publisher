@@ -259,7 +259,17 @@ public class DatasetMetadata extends AbstractMetadata {
 						publishedService.content,
 						environment.identification,
 						environment.url,
-						publishedServiceDataset.layerName);		
+						publishedServiceDataset.layerName);
+				
+				if(!serviceTuples.isEmpty()) {
+					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				}
 				
 				for(Tuple serviceTuple : serviceTuples) {
 					JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
@@ -268,14 +278,6 @@ public class DatasetMetadata extends AbstractMetadata {
 					String environmentId = serviceTuple.get(environment.identification);
 					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
 					String environmentUrl = serviceTuple.get(environment.url);
-					
-					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", serviceTuple.get(publishedServiceDataset.layerName));
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
-						}
-					});
 					
 					// we only automatically generate browseGraphics 
 					// when none where provided by the source. 
