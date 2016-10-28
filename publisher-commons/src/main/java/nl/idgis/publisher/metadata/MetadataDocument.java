@@ -618,7 +618,9 @@ public class MetadataDocument {
 		String parentPath = xmlDocument.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
 		xmlDocument.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		xmlDocument.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
-		xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+		if(name != null) {
+			xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+		}
 	}
 	
 	private XPathHelper xpath() {
