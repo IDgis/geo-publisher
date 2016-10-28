@@ -162,6 +162,9 @@ public class ServiceMetadata extends AbstractMetadata {
 				serviceDatasetQuery
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
+							.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.list(sourceDatasetVersion.id.max())))
 					.where(sourceDatasetVersion.metadataConfidential.isFalse());
 			}
 			
