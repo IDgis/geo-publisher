@@ -90,7 +90,11 @@ public class DatasetMetadata extends AbstractMetadata {
 	private SQLQuery fromSourceDataset(Transaction tx) {
 		return joinSourceDatasetVersion(
 			tx.query().from(sourceDataset)
-				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id)));
+				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
+				.where(new SQLSubQuery().from(dataset)
+					.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+					.where(isPublished())
+					.notExists()));
 	}
 
 	private SQLQuery joinSourceDatasetVersion(SQLQuery query) {
