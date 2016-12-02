@@ -119,16 +119,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 
 	private BooleanExpression isPublished() {
-		SQLSubQuery isPublishedQuery = new SQLSubQuery().from(publishedServiceDataset);
-		
-		if(!isTrusted()) {
-			isPublishedQuery
-				.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset.serviceId))
-				.join(environment).on(publishedService.environmentId.eq(environment.id))
-				.where(environment.confidential.isFalse());
-		}
-		
-		return isPublishedQuery
+		return new SQLSubQuery().from(publishedServiceDataset)
 			.where(publishedServiceDataset.datasetId.eq(dataset.id))
 			.exists();
 	}
