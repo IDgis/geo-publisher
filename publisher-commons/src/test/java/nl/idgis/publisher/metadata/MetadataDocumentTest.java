@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,6 +23,7 @@ import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
 import nl.idgis.publisher.metadata.MetadataDocument.OperatesOn;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
+import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
 
@@ -566,5 +568,42 @@ public class MetadataDocumentTest {
 		assertEquals(replacement, updated);
 		
 		document.updateDatasetBrowseGraphic(replacement, current);
+	}
+	
+	@Test
+	public void testRemoveAdditionalPointOfContacts() throws Exception {
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		
+		List<XPathHelper> pointOfContacts = document.xmlDocument
+			.xpath(Optional.of(document.namespaces))
+			.nodes("/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:pointOfContact");
+		
+		assertEquals(2, pointOfContacts.size());
+		
+		String firstIndividualName = pointOfContacts.get(0).stringOrNull(
+			"gmd:CI_ResponsibleParty"
+			+ "/gmd:individualName"
+			+ "/gco:CharacterString"
+			+ "/text()");
+		assertNotNull(firstIndividualName);
+		
+		document.removeAdditionalPointOfContacts();
+		
+		pointOfContacts = document.xmlDocument
+			.xpath(Optional.of(document.namespaces))
+			.nodes("/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:pointOfContact");
+		
+		assertEquals(1, pointOfContacts.size());
+		assertEquals(firstIndividualName, pointOfContacts.get(0).stringOrNull(
+				"gmd:CI_ResponsibleParty"
+				+ "/gmd:individualName"
+				+ "/gco:CharacterString"
+				+ "/text()"));
 	}
 }

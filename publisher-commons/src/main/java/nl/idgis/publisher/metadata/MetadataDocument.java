@@ -1053,4 +1053,16 @@ public class MetadataDocument {
 			.ifPresent(node -> node.setTextContent(newSupplementalInformation));
 	}
 	
+	public void removeAdditionalPointOfContacts() {
+		xpath()
+			.nodes(
+				"/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:pointOfContact")
+			.stream()
+			.skip(1)
+			.forEach(XPathHelper::remove);
+	}
+	
 }
