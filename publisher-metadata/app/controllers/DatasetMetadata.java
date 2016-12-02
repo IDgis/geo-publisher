@@ -177,6 +177,10 @@ public class DatasetMetadata extends AbstractMetadata {
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
 			
+			if(!isTrusted()) {
+				metadataDocument.removeAdditionalPointOfContacts();
+			}
+			
 			Map<String, Integer> attachments = tx.query().from(sourceDatasetMetadataAttachment)
 				.where(sourceDatasetMetadataAttachment.sourceDatasetId.eq(sourceDatasetId))
 				.list(
