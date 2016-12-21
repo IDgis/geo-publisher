@@ -77,7 +77,7 @@ public class VectorProviderTest {
 		
 	private ActorRef recorder, provider;
 	
-	private ActorSelection metadata, database;
+	private ActorSelection datasetInfoSource, database;
 	
 	private FutureUtils f;
 	
@@ -106,9 +106,13 @@ public class VectorProviderTest {
 		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
-		provider = actorSystem.actorOf(VectorProvider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
+		provider = actorSystem.actorOf(
+			VectorProvider.props(
+				DatabaseMock.props(recorder), 
+				new MetadataItemDatasetInfoSourceDesc(MetadataMock.props(recorder))), 
+			"provider");
 		
-		metadata = ActorSelection.apply(provider, "metadata");
+		datasetInfoSource = ActorSelection.apply(provider, "datasetInfoSource");
 		database = ActorSelection.apply(provider, "database");
 		
 		f = new FutureUtils(actorSystem);
@@ -239,7 +243,7 @@ public class VectorProviderTest {
 			.assertNotHasNext();
 		
 		final String firstTableName = getTable();
-		f.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class).get();
+		f.ask(datasetInfoSource, new PutMetadata("first", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
@@ -281,7 +285,7 @@ public class VectorProviderTest {
 		
 		assertEquals("test_schema.test_table", secondTableName);
 		
-		f.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class).get();
+		f.ask(datasetInfoSource, new PutMetadata("second", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
@@ -329,7 +333,7 @@ public class VectorProviderTest {
 			})			
 			.assertNotHasNext();
 		
-		f.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
+		f.ask(datasetInfoSource, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
@@ -358,7 +362,7 @@ public class VectorProviderTest {
 		DatasetNotFound notFound = f.ask(provider, getVectorDataset, DatasetNotFound.class).get();
 		assertEquals("test", notFound.getIdentification());
 		
-		f.ask(metadata, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
+		f.ask(datasetInfoSource, new PutMetadata("test", metadataDocument.getContent()), Ack.class).get();
 		
 		DatasetNotAvailable notAvailable = f.ask(provider, getVectorDataset, DatasetNotAvailable.class).get();
 		assertEquals("test", notAvailable.getIdentification());

@@ -11,16 +11,16 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.stream.StreamCursor;
 
-public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
+public class MetadataFileCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	public MetadataCursor(Iterator<File> t) {
+	public MetadataFileCursor(Iterator<File> t) {
 		super(t);	
 	}
 	
 	public static Props props(Iterator<File> t) {
-		return Props.create(MetadataCursor.class, t);
+		return Props.create(MetadataFileCursor.class, t);
 	}
 
 	@Override

@@ -67,7 +67,7 @@ public class VectorDatasetInfoBuilderTest {
 	@Test
 	public void testDataNotConfidential() throws Exception {
 		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
-		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database)
+		ActorRef builder = actorSystem.actorOf(MetadataItemVectorDatasetInfoBuilder.props(database)
 			.props(recorder, Collections.singleton(AttachmentType.METADATA)), "builder");
 		
 		builder.tell(new MetadataItem("id", metadata("data_not_confidential_metadata.xml")), ActorRef.noSender());
@@ -90,7 +90,7 @@ public class VectorDatasetInfoBuilderTest {
 	@Test
 	public void testMetadataNotConfidential() throws Exception {
 		ActorRef recorder = actorSystem.actorOf(AnyRecorder.props(), "recorder");		
-		ActorRef builder = actorSystem.actorOf(VectorDatasetInfoBuilder.props(database)
+		ActorRef builder = actorSystem.actorOf(MetadataItemVectorDatasetInfoBuilder.props(database)
 			.props(recorder, Collections.singleton(AttachmentType.METADATA)), "builder");
 		
 		builder.tell(new MetadataItem("id", metadata("metadata_not_confidential_metadata.xml")), ActorRef.noSender());

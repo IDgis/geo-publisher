@@ -13,14 +13,14 @@ public class RasterProvider extends AbstractProvider {
 	
 	private ActorRef folder;
 	
-	public RasterProvider(Props folderProps, Props metadataProps) {
-		super(metadataProps);
+	public RasterProvider(Props folderProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		super(datasetInfoSourceDesc);
 		
 		this.folderProps = folderProps;		
 	}
 
-	public static Props props(Props folderProps, Props metadataProps) {
-		return Props.create(RasterProvider.class, folderProps, metadataProps);
+	public static Props props(Props folderProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		return Props.create(RasterProvider.class, folderProps, datasetInfoSourceDesc);
 	}
 	
 	@Override
@@ -30,7 +30,7 @@ public class RasterProvider extends AbstractProvider {
 
 	@Override
 	protected DatasetInfoBuilderPropsFactory getDatasetInfoBuilder() { 
-		return RasterDatasetInfoBuilder.props(folder);
+		return MetadataItemRasterDatasetInfoBuilder.props(folder);
 	}
 
 	@Override

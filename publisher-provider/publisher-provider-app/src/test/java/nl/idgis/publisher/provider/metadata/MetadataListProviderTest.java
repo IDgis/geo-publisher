@@ -48,7 +48,7 @@ public class MetadataListProviderTest {
 	public void testDirectoryUnavailable() throws Exception {
 		File tmpDir = Files.createTempDirectory("metadata-test").toFile();
 		
-		ActorRef metadataListProvider = actorSystem.actorOf(MetadataListProvider.props(tmpDir), "metadata-list-provider");
+		ActorRef metadataListProvider = actorSystem.actorOf(MetadataDirectoryListProvider.props(tmpDir), "metadata-list-provider");
 		f.ask(metadataListProvider, new GetAllMetadata(), End.class).get();
 		
 		tmpDir.delete();

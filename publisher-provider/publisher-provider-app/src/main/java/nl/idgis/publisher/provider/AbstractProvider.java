@@ -3,7 +3,6 @@ package nl.idgis.publisher.provider;
 import java.util.Optional;
 
 import nl.idgis.publisher.protocol.messages.Hello;
-import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
 import nl.idgis.publisher.provider.protocol.AbstractGetDatasetRequest;
 import nl.idgis.publisher.provider.protocol.EchoRequest;
 import nl.idgis.publisher.provider.protocol.EchoResponse;
@@ -25,12 +24,12 @@ public abstract class AbstractProvider extends UntypedActor {
 	
 	protected final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 
-	private final Props metadataProps;
+	private final DatasetInfoSourceDesc datasetInfoSourceDesc;
 	
-	protected ActorRef metadata;
+	protected ActorRef datasetInfoSource;
 	
-	public AbstractProvider(Props metadataProps) {
-		this.metadataProps = metadataProps;
+	public AbstractProvider(DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		this.datasetInfoSourceDesc = datasetInfoSourceDesc;
 	}
 	
 	protected void preStartProvider() throws Exception {
@@ -39,7 +38,7 @@ public abstract class AbstractProvider extends UntypedActor {
 	
 	@Override
 	public final void preStart() throws Exception {
-		metadata = getContext().actorOf(metadataProps, "metadata");
+		datasetInfoSource = getContext().actorOf(datasetInfoSourceDesc.getProps(), "datasetInfoSource");
 		
 		preStartProvider();
 	}
@@ -89,7 +88,7 @@ public abstract class AbstractProvider extends UntypedActor {
 				optionalProps.get(), 
 				nameGenerator.getName(AbstractDatasetFetcher.class));
 			
-			metadata.tell(new GetMetadata(msg.getIdentification()), fetcher);
+			datasetInfoSource.tell(datasetInfoSourceDesc.getRequest(msg.getIdentification()), fetcher);
 		} else {
 			unhandled(msg);
 		}
@@ -100,19 +99,24 @@ public abstract class AbstractProvider extends UntypedActor {
 	private void handleGetDatasetInfo(GetDatasetInfo msg) {
 		log.debug("get dataset info");
 		
-		ActorRef builder = getContext().actorOf(
-				getDatasetInfoBuilder().props(getSender(), msg.getAttachmentTypes()),
-				nameGenerator.getName(AbstractDatasetInfoBuilder.class));
+		Props datasetInfoBuilderProps = getDatasetInfoBuilder().props(getSender(), msg.getAttachmentTypes());
+		ActorRef datasetInfoBuilder = getContext().actorOf(
+				datasetInfoBuilderProps,
+				nameGenerator.getName(datasetInfoBuilderProps.actorClass()));
 		
-		metadata.tell(new GetMetadata(msg.getIdentification()), builder);
+		datasetInfoSource.tell(datasetInfoSourceDesc.getRequest(msg.getIdentification()), datasetInfoBuilder);
 	}
 	
 	private void handleListDatasetInfo(ListDatasetInfo msg) {
 		log.debug("list dataset info");
 		
 		ActorRef converter = getContext().actorOf(
-				DatasetInfoConverter.props(msg.getAttachmentTypes(), metadata, getDatasetInfoBuilder()),
-				nameGenerator.getName(DatasetInfoConverter.class));
+				DatasetInfoSourceStreamConverter.props(
+					datasetInfoSourceDesc.getType(), 
+					msg.getAttachmentTypes(), 
+					datasetInfoSource, 
+					getDatasetInfoBuilder()),
+				nameGenerator.getName(DatasetInfoSourceStreamConverter.class));
 		
 		converter.forward(msg, getContext());
 	}

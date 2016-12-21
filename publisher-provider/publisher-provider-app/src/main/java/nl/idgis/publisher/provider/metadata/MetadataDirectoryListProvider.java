@@ -9,16 +9,16 @@ import nl.idgis.publisher.stream.StreamProvider;
 
 import akka.actor.Props;
 
-public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
+public class MetadataDirectoryListProvider extends StreamProvider<GetAllMetadata> {
 
 	private final File metadataDirectory;
 
-	public MetadataListProvider(File metadataDirectory) {
+	public MetadataDirectoryListProvider(File metadataDirectory) {
 		this.metadataDirectory = metadataDirectory;
 	}
 
 	public static Props props(File metadataDirectory) {
-		return Props.create(MetadataListProvider.class, metadataDirectory);
+		return Props.create(MetadataDirectoryListProvider.class, metadataDirectory);
 	}
 	
 	@Override
@@ -28,7 +28,7 @@ public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 
 	@Override
 	protected Props start(GetAllMetadata msg) {
-		return MetadataCursor.props(
+		return MetadataFileCursor.props(
 			Arrays.asList(metadataDirectory.listFiles()).stream()
 				.filter(File::isFile)
 				.collect(Collectors.toList()).iterator());

@@ -17,13 +17,13 @@ import nl.idgis.publisher.provider.protocol.RasterFormat;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
+public class MetadataItemRasterDatasetInfoBuilder extends AbstractMetadataItemDatasetInfoBuilder {
 	
 	private final ActorRef folder;
 	
 	private String fileName;
 
-	public RasterDatasetInfoBuilder(ActorRef sender, ActorRef folder, Set<AttachmentType> requestedAttachmentTypes) {
+	public MetadataItemRasterDatasetInfoBuilder(ActorRef sender, ActorRef folder, Set<AttachmentType> requestedAttachmentTypes) {
 		super(sender, requestedAttachmentTypes);
 		
 		this.folder = folder;
@@ -31,7 +31,7 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	public static DatasetInfoBuilderPropsFactory props(ActorRef folder) {
 		return (sender, requestedAttachmentTypes) ->
-			Props.create(RasterDatasetInfoBuilder.class, sender, folder, requestedAttachmentTypes);
+			Props.create(MetadataItemRasterDatasetInfoBuilder.class, sender, folder, requestedAttachmentTypes);
 	}
 
 	@Override

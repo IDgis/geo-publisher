@@ -3,7 +3,6 @@ package nl.idgis.publisher.provider;
 import java.util.Set;
 
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
-import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
@@ -13,33 +12,36 @@ import nl.idgis.publisher.utils.UniqueNameGenerator;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class DatasetInfoConverter extends StreamConverter {
+public class DatasetInfoSourceStreamConverter extends StreamConverter {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
+	private final Class<?> datasetInfoSourceType;
+	
 	private final Set<AttachmentType> requestedAttachmentTypes;
 	
-	private final ActorRef metadata;
+	private final ActorRef datasetInfoSource;
 	
 	private final DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory;
 
-	public DatasetInfoConverter(Set<AttachmentType> requestedAttachmentTypes, ActorRef metadata, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {		
+	public DatasetInfoSourceStreamConverter(Class<?> datasetInfoSourceType, Set<AttachmentType> requestedAttachmentTypes, ActorRef datasetInfoSource, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {		
+		this.datasetInfoSourceType = datasetInfoSourceType;
 		this.requestedAttachmentTypes = requestedAttachmentTypes;
-		this.metadata = metadata;
+		this.datasetInfoSource = datasetInfoSource;
 		this.datasetInfoBuilderPropsFactory = datasetInfoBuilderPropsFactory;
 	}
 	
-	public static Props props(Set<AttachmentType> attachmentTypes, ActorRef metadata, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {
-		return Props.create(DatasetInfoConverter.class, attachmentTypes, metadata, datasetInfoBuilderPropsFactory);
+	public static Props props(Class<?> datasetInfoSourceType, Set<AttachmentType> attachmentTypes, ActorRef datasetInfoSource, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {
+		return Props.create(DatasetInfoSourceStreamConverter.class, datasetInfoSourceType, attachmentTypes, datasetInfoSource, datasetInfoBuilderPropsFactory);
 	}
 
 	@Override
 	protected boolean convert(Object msg) {
-		if(msg instanceof MetadataItem) {
+		if(datasetInfoSourceType.isInstance(msg)) {
 			log.debug("converting metadata item to dataset info");
 			
 			Props datasetInfoBuilderProps = datasetInfoBuilderPropsFactory.props(getSelf(), requestedAttachmentTypes);
-			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName(VectorDatasetInfoBuilder.class));
+			ActorRef datasetInfoBuilder = getContext().actorOf(datasetInfoBuilderProps, nameGenerator.getName(datasetInfoBuilderProps.actorClass()));
 			datasetInfoBuilder.tell(msg, getSelf());
 			
 			return true;
@@ -51,7 +53,7 @@ public class DatasetInfoConverter extends StreamConverter {
 	@Override
 	protected void start(Start msg) throws Exception {
 		if(msg instanceof ListDatasetInfo) {
-			metadata.tell(new GetAllMetadata(), getSelf());
+			datasetInfoSource.tell(new GetAllMetadata(), getSelf());
 		} else {
 			unhandled(msg);
 		}

@@ -13,14 +13,14 @@ public class VectorProvider extends AbstractProvider {
 	
 	private ActorRef database;
 	
-	public VectorProvider(Props databaseProps, Props metadataProps) {
-		super(metadataProps);
+	public VectorProvider(Props databaseProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		super(datasetInfoSourceDesc);
 		
 		this.databaseProps = databaseProps;		
 	}
 	
-	public static Props props(Props databaseProps, Props metadataProps) {
-		return Props.create(VectorProvider.class, databaseProps, metadataProps);
+	public static Props props(Props databaseProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		return Props.create(VectorProvider.class, databaseProps, datasetInfoSourceDesc);
 	}
 	
 	@Override
@@ -35,6 +35,6 @@ public class VectorProvider extends AbstractProvider {
 	
 	@Override
 	protected DatasetInfoBuilderPropsFactory getDatasetInfoBuilder() {
-		return VectorDatasetInfoBuilder.props(database);
+		return MetadataItemVectorDatasetInfoBuilder.props(database);
 	}
 }

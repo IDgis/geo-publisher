@@ -7,7 +7,7 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.provider.database.Database;
-import nl.idgis.publisher.provider.metadata.Metadata;
+import nl.idgis.publisher.provider.metadata.MetadataDirectory;
 
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
@@ -21,7 +21,7 @@ public class ProviderPropsFactory {
 	}
 	
 	private Props metadata(Config providerConfig) {
-		return Metadata.props(new File(providerConfig.getString("metadata.folder")));		
+		return MetadataDirectory.props(new File(providerConfig.getString("metadata.folder")));		
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
@@ -30,7 +30,7 @@ public class ProviderPropsFactory {
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, VectorProvider.props(database, metadata));
+		return new ProviderProps(name, VectorProvider.props(database, new MetadataItemDatasetInfoSourceDesc(metadata)));
 	}	
 	
 	private ProviderProps raster(String name, Config providerConfig) {
@@ -39,7 +39,7 @@ public class ProviderPropsFactory {
 		
 		log.info("creating raster provider: {}", name);
 		
-		return new ProviderProps(name, RasterProvider.props(folder, metadata)); 
+		return new ProviderProps(name, RasterProvider.props(folder, new MetadataItemDatasetInfoSourceDesc(metadata))); 
 	}
 
 	public Optional<ProviderProps> props(Config providerConfig) {

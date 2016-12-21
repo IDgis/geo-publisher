@@ -21,7 +21,7 @@ import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
-public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
+public class MetadataItemVectorDatasetInfoBuilder extends AbstractMetadataItemDatasetInfoBuilder {
 	
 	private final ActorRef database;
 	
@@ -31,7 +31,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	private Long numberOfRecords;
 
-	public VectorDatasetInfoBuilder(ActorRef sender, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
+	public MetadataItemVectorDatasetInfoBuilder(ActorRef sender, ActorRef database, Set<AttachmentType> requestedAttachmentTypes) {			
 		super(sender, requestedAttachmentTypes);
 		
 		this.database = database;
@@ -39,7 +39,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	
 	public static DatasetInfoBuilderPropsFactory props(ActorRef database) {
 		return (sender, requestedAttachmentTypes) ->		
-			Props.create(VectorDatasetInfoBuilder.class, sender, database, requestedAttachmentTypes);
+			Props.create(MetadataItemVectorDatasetInfoBuilder.class, sender, database, requestedAttachmentTypes);
 	}
 	
 	protected void onReceiveElse(Object msg) throws Exception {

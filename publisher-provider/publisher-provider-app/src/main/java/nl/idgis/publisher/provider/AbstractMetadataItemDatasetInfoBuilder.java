@@ -29,7 +29,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
+public abstract class AbstractMetadataItemDatasetInfoBuilder extends UntypedActor {
 
 	protected static final String DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
 	
@@ -55,7 +55,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	private final ActorRef sender;
 	
-	protected AbstractDatasetInfoBuilder(ActorRef sender, Set<AttachmentType> requestedAttachmentTypes) {
+	protected AbstractMetadataItemDatasetInfoBuilder(ActorRef sender, Set<AttachmentType> requestedAttachmentTypes) {
 		this.sender = sender;
 		this.requestedAttachmentTypes = requestedAttachmentTypes;
 	}
