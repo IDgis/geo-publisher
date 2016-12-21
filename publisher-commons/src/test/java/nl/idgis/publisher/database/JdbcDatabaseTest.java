@@ -373,7 +373,8 @@ public class JdbcDatabaseTest {
 		}		
 		
 		int i = 0;
-		for(Object o : f.sequence(futures).get()) {					
+		for(Object o : f.sequence(futures).get()) {
+			assertNotNull(o);
 			assertTrue(o instanceof TypedList);
 			TypedList<?> records = (TypedList<?>)o;
 			assertTrue(records.contains(TypedList.class));
