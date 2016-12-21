@@ -1,15 +1,20 @@
 package nl.idgis.publisher.provider;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
+import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 
@@ -43,10 +48,21 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			
 			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog(tableName)));
 			sendUnavailable();
-		} else if(msg instanceof TableInfo) {
+		} else if(msg instanceof DatabaseTableInfo) {
 			log.debug("table info");
 			
-			tableInfo = (TableInfo)msg;
+			ArrayList<ColumnInfo> columns = new ArrayList<>();
+			for(DatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
+				Type type = columnInfo.getType();
+				
+				if(type == null) {
+					log.debug("unknown data type: " + columnInfo.getTypeName());
+				} else {
+					columns.add(new ColumnInfo(columnInfo.getName(), type));
+				}
+			}
+			
+			tableInfo = new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
 			sendResponse();
 		} else if(msg instanceof Long) {
 			log.debug("number of records");

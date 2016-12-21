@@ -318,38 +318,6 @@ project(':publisher-provider:publisher-provider-app') {
 		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'com.fasterxml:aalto-xml:0.9.9'
 		compile 'com.oracle:ojdbc7:12.1.0.1.0'
-		compile("org.deegree:deegree-sqldialect-oracle:${deegreeVersion}") {
-			exclude group: 'org.deegree', module: 'deegree-sqldialect-commons'
-			exclude group: 'org.deegree', module: 'deegree-core-db'
-		}
-		compile("org.deegree:deegree-core-geometry:${deegreeVersion}") {
-			// dependencies of deegree-core-commons
-			exclude group: 'org.deegree', module: 'deegree-core-workspace'
-			exclude group: 'org.codehaus.woodstox', module: 'woodstox-core-lgpl'
-			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-impl'
-			exclude group: 'org.apache.ws.commons.axiom', module: 'axiom-api'
-			exclude group: 'com.sun.xml.fastinfoset', module: 'FastInfoset'
-			exclude group: 'jaxen', module: 'jaxen'
-			exclude group: 'xerces', module: 'xercesImpl'
-			exclude group: 'commons-dbcp', module: 'commons-dbcp'
-			exclude group: 'org.apache.httpcomponents', module: 'httpclient'
-			exclude group: 'commons-pool', module: 'commons-pool'
-			exclude group: 'jogl', module: 'jogl'
-			exclude group: 'commons-cli', module: 'commons-cli'
-			exclude group: 'org.reflections', module: 'org.reflections'
-			exclude group: 'com.google.code.gson', module: 'gson'
-			exclude group: 'org.deegree', module: 'deegree-ogcschemas'
-			exclude group: 'xalan', module: 'xalan'
-			exclude group: 'xalan', module: 'serializer'
-			
-			// dependencies of deegree-core-cs
-			exclude group: 'org.deegree', module: 'deegree-core-annotations'
-			exclude group: 'jai', module: 'jai-core'
-			exclude group: 'jgridshift', module: 'jgridshift'
-			exclude group: 'junit', module: 'junit'
-			exclude group: 'org.postgis', module: 'postgis-jdbc'
-			exclude group: 'postgresql', module: 'postgresql'
-		}
 		compile "ch.qos.logback:logback-classic:${logbackVersion}"
 		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
 		

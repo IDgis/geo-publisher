@@ -14,13 +14,12 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StreamingQuery;
-import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.provider.protocol.ColumnInfo;
-import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 public class DatabaseTransaction extends JdbcTransaction {
@@ -77,36 +76,13 @@ public class DatabaseTransaction extends JdbcTransaction {
 		
 		Statement stmt = connection.createStatement();
 		
-		ArrayList<ColumnInfo> columns = new ArrayList<>();
+		ArrayList<DatabaseColumnInfo> columns = new ArrayList<>();
 		
 		ResultSet rs = stmt.executeQuery(sql);
 		while(rs.next()) {
 			String name = rs.getString(1);
 			String typeName = rs.getString(2);
-			
-			Type type;
-			switch(typeName.toUpperCase()) {
-				case "NUMBER":
-					type = Type.NUMERIC;
-					break;
-				case "DATE":
-					type = Type.DATE;
-					break;
-				case "VARCHAR2":
-				case "NVARCHAR2":
-				case "NCHAR":
-				case "CHAR":
-					type = Type.TEXT;
-					break;
-				case "SDO_GEOMETRY":
-					type = Type.GEOMETRY;
-					break;
-				default:
-					log.debug("unknown data type: " + typeName);
-					continue;
-			}
-			
-			columns.add(new ColumnInfo(name, type));
+			columns.add(new DatabaseColumnInfo(name, typeName));
 		}
 		
 		rs.close();		
@@ -115,7 +91,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		if(columns.isEmpty()) {
 			return new TableNotFound();
 		} else {
-			return new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
+			return new DatabaseTableInfo(columns.toArray(new DatabaseColumnInfo[columns.size()]));
 		}
 	}
 	
@@ -141,9 +117,25 @@ public class DatabaseTransaction extends JdbcTransaction {
 		StringBuilder sb = new StringBuilder("select ");
 		
 		String separator = "";
-		for(String columnName : msg.getColumnNames()) {
+		for(DatabaseColumnInfo columnInfo : msg.getColumns()) {
 			sb.append(separator);
-			sb.append(columnName);
+			
+			String typeName = columnInfo.getTypeName();
+			if("SDO_GEOMETRY".equals(typeName)) {
+				sb
+					.append("SDO_UTIL.TO_WKBGEOMETRY")
+					.append("(")
+					.append(columnInfo.getName())
+					.append(")");
+			} else if("ST_GEOMETRY".equals(typeName)) {
+				sb
+					.append("SDE.ST_ASBINARY")
+					.append("(")
+					.append(columnInfo.getName())
+					.append(")");
+			} else {
+				sb.append(columnInfo.getName());
+			}
 			
 			separator = ", ";
 		}
@@ -155,7 +147,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 		ResultSet rs = stmt.executeQuery(sb.toString());
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseCursor.props(rs, msg.getMessageSize(), executorService), 
+				DatabaseCursor.props(rs, msg, executorService), 
 				nameGenerator.getName(DatabaseCursor.class));
 		
 		return cursor;

@@ -1,22 +1,19 @@
 package nl.idgis.publisher.provider.database;
 
-import java.sql.Date;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import oracle.sql.STRUCT;
 
-import org.deegree.geometry.io.WKBWriter;
-import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
-
+import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.UnsupportedType;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import nl.idgis.publisher.stream.StreamCursor;
 
@@ -24,50 +21,55 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-@SuppressWarnings("deprecation")
 public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
-	private final SDOGeometryConverter converter = new SDOGeometryConverter();
-	
-	private final int messageSize;
+		
+	private final FetchTable fetchTable;
 	
 	private final ExecutorService executorService;
+	
+	private Boolean currentHasNext = null;
 
-	public DatabaseCursor(ResultSet t, int messageSize, ExecutorService executorService) {
+	public DatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
-		this.messageSize = messageSize;
+		this.fetchTable = fetchTable;
 		this.executorService = executorService;
 	}
 	
-	public static Props props(ResultSet t, int messageSize, ExecutorService executorService) {
-		return Props.create(DatabaseCursor.class, t, messageSize, executorService);
+	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+		return Props.create(DatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
-	private Object convert(Object value) throws Exception {
-		if(value == null 
-				|| value instanceof String
-				|| value instanceof Number
-				|| value instanceof Date
-				|| value instanceof Timestamp) {
-			
+	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+		if(columnInfo.getType() == Type.GEOMETRY) {
+			if(value instanceof Blob) {
+				Blob blob = (Blob)value;
+				if(blob.length() > Integer.MAX_VALUE) {
+					log.error("blob value too large: {}", blob.length());
+					return null;
+				} else {
+					return new WKBGeometry(blob.getBytes(1l, (int)blob.length()));
+				}
+			} else {
+				log.error("unsupported value: {}", value.getClass().getCanonicalName());
+				return null;
+			}
+		} else {
 			return value;
-		} else if(value instanceof STRUCT) {
-			return new WKBGeometry(WKBWriter.write(converter.toGeometry((STRUCT) value, null)));
 		}
-		
-		return new UnsupportedType(value.getClass().getCanonicalName());
 	}
 	
 	private Record toRecord() throws Exception {
-		int columnCount = t.getMetaData().getColumnCount();
+		currentHasNext = null;
 		
 		List<Object> values = new ArrayList<>();
-		for(int j = 0; j < columnCount; j++) {
-			Object o = t.getObject(j + 1);
-			values.add(convert(o));
+		
+		int j = 1;
+		for(DatabaseColumnInfo columnInfo : fetchTable.getColumns()) {
+			Object value = t.getObject(j++);
+			values.add(convert(columnInfo, value));
 		}
 		
 		return new Record(values);
@@ -79,13 +81,13 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		
 		CompletableFuture<Records> future = new CompletableFuture<>();
 		
+		int messageSize = fetchTable.getMessageSize();
 		executorService.execute(() -> {
 			try {
 				List<Record> records = new ArrayList<>();
-				records.add(toRecord());
 				
-				for(int i = 1; i < messageSize; i++) {
-					if(!t.next()) {
+				for(int i = 0; i < messageSize; i++) {
+					if(!hasNext()) {
 						break;
 					}
 					
@@ -104,8 +106,12 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 
 	@Override
-	protected boolean hasNext() throws Exception {		
-		return t.next();
+	protected boolean hasNext() throws Exception {
+		if(currentHasNext == null) {
+			currentHasNext = t.next();
+		}
+		
+		return currentHasNext;
 	}
 	
 	@Override
