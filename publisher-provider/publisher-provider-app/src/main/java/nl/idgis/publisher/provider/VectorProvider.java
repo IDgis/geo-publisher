@@ -8,24 +8,17 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public class VectorProvider extends AbstractProvider {
+		
+	private final ActorRef database;
 	
-	private final Props databaseProps;
-	
-	private ActorRef database;
-	
-	public VectorProvider(Props databaseProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+	public VectorProvider(ActorRef database, DatasetInfoSourceDesc datasetInfoSourceDesc) {
 		super(datasetInfoSourceDesc);
 		
-		this.databaseProps = databaseProps;		
+		this.database = database;		
 	}
 	
-	public static Props props(Props databaseProps, DatasetInfoSourceDesc datasetInfoSourceDesc) {
-		return Props.create(VectorProvider.class, databaseProps, datasetInfoSourceDesc);
-	}
-	
-	@Override
-	public void preStartProvider() {
-		database = getContext().actorOf(databaseProps, "database");		
+	public static Props props(ActorRef database, DatasetInfoSourceDesc datasetInfoSourceDesc) {
+		return Props.create(VectorProvider.class, database, datasetInfoSourceDesc);
 	}
 	
 	@Override

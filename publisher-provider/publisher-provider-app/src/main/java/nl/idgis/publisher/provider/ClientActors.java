@@ -1,6 +1,9 @@
 package nl.idgis.publisher.provider;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import com.typesafe.config.Config;
@@ -8,6 +11,7 @@ import com.typesafe.config.Config;
 import nl.idgis.publisher.protocol.MessageProtocolActors;
 import nl.idgis.publisher.protocol.messages.GetMessagePackager;
 import nl.idgis.publisher.protocol.messages.Hello;
+import nl.idgis.publisher.provider.database.Database;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -61,7 +65,17 @@ public class ClientActors extends MessageProtocolActors {
 	private void createProviders(ActorRef harvester) {
 		log.debug("creating providers");
 		
-		ProviderPropsFactory factory = new ProviderPropsFactory(log);
+		Map<String, ActorRef> databases = new HashMap<>();
+		for(Config databaseConfig : config.getConfigList("databases")) {
+			String name = databaseConfig.getString("name");
+			log.info("creating database actor: {}", name);
+			
+			Props databaseProps = Database.props(databaseConfig, name);
+			ActorRef databaseRef = getContext().actorOf(databaseProps, "database-" + name);
+			databases.put(name, databaseRef);
+		}
+		
+		ProviderPropsFactory factory = new ProviderPropsFactory(log, Collections.unmodifiableMap(databases));
 		config.getConfigList("instances").stream()
 			.map(factory::props)
 			.filter(Optional::isPresent)

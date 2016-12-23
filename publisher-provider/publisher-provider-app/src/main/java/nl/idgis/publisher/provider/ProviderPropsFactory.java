@@ -1,14 +1,15 @@
 package nl.idgis.publisher.provider;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Optional;
 
 import com.typesafe.config.Config;
 
 import nl.idgis.publisher.folder.Folder;
-import nl.idgis.publisher.provider.database.Database;
 import nl.idgis.publisher.provider.metadata.MetadataDirectory;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
 
@@ -16,16 +17,28 @@ public class ProviderPropsFactory {
 	
 	private final LoggingAdapter log;
 	
-	public ProviderPropsFactory(LoggingAdapter log) {
+	private final Map<String, ActorRef> databases;
+	
+	public ProviderPropsFactory(LoggingAdapter log, Map<String, ActorRef> databases) {
 		this.log = log;
+		this.databases = databases;
 	}
 	
 	private Props metadata(Config providerConfig) {
 		return MetadataDirectory.props(new File(providerConfig.getString("metadata.folder")));		
 	}
+	
+	private ActorRef getDatabase(String name) {
+		if(databases.containsKey(name)) {
+			log.info("using database: {}", name);
+			return databases.get(name);
+		} else {
+			throw new IllegalArgumentException("unknown database: " + name);
+		}
+	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
-		Props database = Database.props(providerConfig.getConfig("database"), name);
+		ActorRef database = getDatabase(providerConfig.getString("database"));
 		Props metadata = metadata(providerConfig);
 		
 		log.info("creating vector provider: {}", name);

@@ -75,9 +75,9 @@ public class VectorProviderTest {
 	
 	private static Set<AttachmentType> metadataType;
 		
-	private ActorRef recorder, provider;
+	private ActorRef recorder, provider, database;
 	
-	private ActorSelection datasetInfoSource, database;
+	private ActorSelection datasetInfoSource;
 	
 	private FutureUtils f;
 	
@@ -106,14 +106,14 @@ public class VectorProviderTest {
 		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
+		database = actorSystem.actorOf(DatabaseMock.props(recorder));
 		provider = actorSystem.actorOf(
 			VectorProvider.props(
-				DatabaseMock.props(recorder), 
+				database, 
 				new MetadataItemDatasetInfoSourceDesc(MetadataMock.props(recorder))), 
 			"provider");
 		
 		datasetInfoSource = ActorSelection.apply(provider, "datasetInfoSource");
-		database = ActorSelection.apply(provider, "database");
 		
 		f = new FutureUtils(actorSystem);
 	}
