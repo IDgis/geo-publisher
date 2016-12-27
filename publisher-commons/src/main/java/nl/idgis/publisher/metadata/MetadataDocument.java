@@ -1039,6 +1039,19 @@ public class MetadataDocument {
 			+ "/gco:CharacterString");
 	}
 	
+	public void removeSupplementalInformation(String supplementalInformation) {
+		xpath()
+			.nodes(
+				"/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:supplementalInformation"
+				+ "/gco:CharacterString")
+			.stream()
+			.filter(node -> node.string().map(str -> str.equals(supplementalInformation)).orElse(false))
+			.forEach(XPathHelper::remove);
+	}
+	
 	public void updateSupplementalInformation(String existingSupplementalInformation, String newSupplementalInformation) {
 		xpath()
 			.nodes(

@@ -193,7 +193,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			for(String supplementalInformation : metadataDocument.getSupplementalInformation()) {
 				int separator = supplementalInformation.indexOf("|");
-				if(separator != -1 && attachments.containsKey(supplementalInformation)) {
+				if(separator != -1) {
 					String type = supplementalInformation.substring(0, separator);
 					String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
 					
@@ -205,14 +205,19 @@ public class DatasetMetadata extends AbstractMetadata {
 						fileName = "download";
 					}
 					
-					String updatedSupplementalInformation = 
-						type + "|" + 
-							routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
-							.absoluteURL(false, config.getHost());
+					if(attachments.containsKey(supplementalInformation)) {
+						String updatedSupplementalInformation = 
+							type + "|" + 
+								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
+								.absoluteURL(false, config.getHost());
 					
-					metadataDocument.updateSupplementalInformation(
-						supplementalInformation,
-						updatedSupplementalInformation);
+						metadataDocument.updateSupplementalInformation(
+							supplementalInformation,
+							updatedSupplementalInformation);
+					} else {
+						metadataDocument.removeSupplementalInformation(supplementalInformation);
+					}
+					
 				}
 			}
 			
