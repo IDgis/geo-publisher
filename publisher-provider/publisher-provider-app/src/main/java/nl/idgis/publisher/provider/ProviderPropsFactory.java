@@ -24,8 +24,16 @@ public class ProviderPropsFactory {
 		this.databases = databases;
 	}
 	
-	private Props metadata(Config providerConfig) {
-		return MetadataDirectory.props(new File(providerConfig.getString("metadata.folder")));		
+	private Props datasetInfo(Config providerConfig) {
+		Config datasetInfoConfig = providerConfig.getConfig("datasetInfo");
+		String type = datasetInfoConfig.getString("type");
+		
+		switch(type) {
+			case "metadata-folder":
+				return MetadataDirectory.props(new File(datasetInfoConfig.getString("folder")));
+			default:
+				throw new IllegalArgumentException("unknown datasetInfo type: " + type);
+		}
 	}
 	
 	private ActorRef getDatabase(String name) {
@@ -39,20 +47,20 @@ public class ProviderPropsFactory {
 
 	private ProviderProps vector(String name, Config providerConfig) {
 		ActorRef database = getDatabase(providerConfig.getString("database"));
-		Props metadata = metadata(providerConfig);
+		Props datasetInfo = datasetInfo(providerConfig);
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, VectorProvider.props(database, new MetadataItemDatasetInfoSourceDesc(metadata)));
+		return new ProviderProps(name, VectorProvider.props(database, new MetadataItemDatasetInfoSourceDesc(datasetInfo)));
 	}	
 	
 	private ProviderProps raster(String name, Config providerConfig) {
 		Props folder = Folder.props(providerConfig.getString("data.folder"));
-		Props metadata = metadata(providerConfig);
+		Props datasetInfo = datasetInfo(providerConfig);
 		
 		log.info("creating raster provider: {}", name);
 		
-		return new ProviderProps(name, RasterProvider.props(folder, new MetadataItemDatasetInfoSourceDesc(metadata))); 
+		return new ProviderProps(name, RasterProvider.props(folder, new MetadataItemDatasetInfoSourceDesc(datasetInfo))); 
 	}
 
 	public Optional<ProviderProps> props(Config providerConfig) {
