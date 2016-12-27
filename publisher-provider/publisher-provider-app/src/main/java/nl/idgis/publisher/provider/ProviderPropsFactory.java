@@ -8,6 +8,7 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.provider.metadata.MetadataDirectory;
+import nl.idgis.publisher.provider.sde.GeodatabaseItems;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -24,13 +25,17 @@ public class ProviderPropsFactory {
 		this.databases = databases;
 	}
 	
-	private Props datasetInfo(Config providerConfig) {
+	private DatasetInfoSourceDesc datasetInfo(Config providerConfig) {
 		Config datasetInfoConfig = providerConfig.getConfig("datasetInfo");
 		String type = datasetInfoConfig.getString("type");
 		
 		switch(type) {
 			case "metadata-folder":
-				return MetadataDirectory.props(new File(datasetInfoConfig.getString("folder")));
+				return new MetadataItemDatasetInfoSourceDesc(
+					MetadataDirectory.props(new File(datasetInfoConfig.getString("folder"))));
+			case "oracle-geodatabase":
+				return new GeodatabaseItemDatasetInfoSourceDesc(
+					GeodatabaseItems.props(getDatabase(datasetInfoConfig.getString("database"))));
 			default:
 				throw new IllegalArgumentException("unknown datasetInfo type: " + type);
 		}
@@ -47,20 +52,20 @@ public class ProviderPropsFactory {
 
 	private ProviderProps vector(String name, Config providerConfig) {
 		ActorRef database = getDatabase(providerConfig.getString("database"));
-		Props datasetInfo = datasetInfo(providerConfig);
+		DatasetInfoSourceDesc datasetInfo = datasetInfo(providerConfig);
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, VectorProvider.props(database, new MetadataItemDatasetInfoSourceDesc(datasetInfo)));
+		return new ProviderProps(name, VectorProvider.props(database, datasetInfo));
 	}	
 	
 	private ProviderProps raster(String name, Config providerConfig) {
 		Props folder = Folder.props(providerConfig.getString("data.folder"));
-		Props datasetInfo = datasetInfo(providerConfig);
+		DatasetInfoSourceDesc datasetInfo = datasetInfo(providerConfig);
 		
 		log.info("creating raster provider: {}", name);
 		
-		return new ProviderProps(name, RasterProvider.props(folder, new MetadataItemDatasetInfoSourceDesc(datasetInfo))); 
+		return new ProviderProps(name, RasterProvider.props(folder, datasetInfo)); 
 	}
 
 	public Optional<ProviderProps> props(Config providerConfig) {
