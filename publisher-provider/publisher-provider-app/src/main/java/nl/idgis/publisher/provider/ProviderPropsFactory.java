@@ -23,12 +23,20 @@ public class ProviderPropsFactory {
 	private Props metadata(Config providerConfig) {
 		return Metadata.props(new File(providerConfig.getString("metadata.folder")));		
 	}
+	
+	private ProviderProps sdeVector(String name, Config providerConfig) {
+		Props database = Database.props(providerConfig.getConfig("database"), name);
+		
+		log.info("creating vector provider: {}", name);
+		
+		return new ProviderProps(name, SDEProvider.props(database));
+	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
 		Props database = Database.props(providerConfig.getConfig("database"), name);
 		Props metadata = metadata(providerConfig);
 		
-		log.info("creating vector provider: {}", name);
+		log.info("creating sde vector provider: {}", name);
 		
 		return new ProviderProps(name, VectorProvider.props(database, metadata));
 	}	
@@ -47,6 +55,8 @@ public class ProviderPropsFactory {
 		String type = providerConfig.getString("type");
 		
 		switch(type) {
+			case "SDE":
+				return Optional.of(sdeVector(name, providerConfig));
 			case "VECTOR":
 				return Optional.of(vector(name, providerConfig));
 			case "RASTER":

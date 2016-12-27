@@ -14,11 +14,15 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StreamingQuery;
+import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.CompoundFilter;
 import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.database.messages.Filter;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
+import nl.idgis.publisher.provider.database.messages.ColumnFilter;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -111,10 +115,49 @@ public class DatabaseTransaction extends JdbcTransaction {
 		return retval;
 	}
 	
+	private static void writeFilter(Filter filter, StringBuilder sb) {
+		if(filter instanceof CompoundFilter) {
+			CompoundFilter compoundFilter = (CompoundFilter)filter;
+			String filterSeparator = " " + compoundFilter.getOperator() + " ";
+			
+			String separator = "";
+			for(Filter compoundFilterItem : compoundFilter.getFilters()) {
+				sb
+					.append(separator)
+					.append("(");
+				writeFilter(compoundFilterItem, sb);
+				sb.append(")");
+				
+				separator = filterSeparator;
+			}
+		} else if(filter instanceof ColumnFilter) {
+			ColumnFilter columnFilter = (ColumnFilter)filter;
+			DatabaseColumnInfo column = columnFilter.getColumn();
+			
+			sb
+				.append("\"")
+				.append(column.getName())
+				.append("\" ")
+				.append(columnFilter.getOperator())
+				.append(" ");
+			
+			if(column.getType() == Type.TEXT) {
+				sb
+					.append("'")
+					.append(columnFilter.getValue().toString().replace("'", "''"))
+					.append("'");
+			} else {
+				sb.append(columnFilter.getValue());
+			}
+		} else {
+			throw new IllegalArgumentException("unknown filter type: " + filter.getClass().getCanonicalName());
+		}
+	}
+	
 	private ActorRef handleFetchTable(FetchTable msg) throws SQLException {
 		log.debug("fetch table: " + msg);
 		
-		StringBuilder sb = new StringBuilder("select ");
+		StringBuilder sb = new StringBuilder("SELECT ");
 		
 		String separator = "";
 		for(DatabaseColumnInfo columnInfo : msg.getColumns()) {
@@ -124,27 +167,51 @@ public class DatabaseTransaction extends JdbcTransaction {
 			if("SDO_GEOMETRY".equals(typeName)) {
 				sb
 					.append("SDO_UTIL.TO_WKBGEOMETRY")
-					.append("(")
+					.append("(\"")
 					.append(columnInfo.getName())
-					.append(")");
+					.append("\")");
 			} else if("ST_GEOMETRY".equals(typeName)) {
 				sb
 					.append("SDE.ST_ASBINARY")
-					.append("(")
+					.append("(\"")
 					.append(columnInfo.getName())
-					.append(")");
+					.append("\")");
 			} else {
-				sb.append(columnInfo.getName());
+				sb
+					.append("\"")
+					.append(columnInfo.getName())
+					.append("\"");
 			}
 			
 			separator = ", ";
 		}
 		
-		sb.append(" from ");
-		sb.append(msg.getTableName());
+		sb.append(" FROM \"");
+		
+		String tableName = msg.getTableName();
+		int separatorIdx = tableName.indexOf(".");
+		if(separatorIdx == -1) {
+			sb.append(tableName);
+		} else {
+			sb
+				.append(tableName.substring(0, separatorIdx))
+				.append("\".\"")
+				.append(tableName.substring(separatorIdx + 1));
+		}
+		
+		sb.append("\"");
+		
+		msg.getFilter().ifPresent(filter -> {
+			sb.append(" WHERE ");
+			writeFilter(filter, sb);
+		});
+		
+		String query = sb.toString();
+		
+		log.debug("executing query: {}", query);
 		
 		Statement stmt = connection.createStatement();
-		ResultSet rs = stmt.executeQuery(sb.toString());
+		ResultSet rs = stmt.executeQuery(query);
 		
 		ActorRef cursor = getContext().actorOf(
 				DatabaseCursor.props(rs, msg, executorService), 
