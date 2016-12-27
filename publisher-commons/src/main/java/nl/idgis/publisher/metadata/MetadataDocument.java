@@ -1030,6 +1030,16 @@ public class MetadataDocument {
 		xmlDocument.setStylesheet(stylesheet);
 	}
 	
+	public List<String> getSpatialSchema() {
+		return xpath().strings(
+			"/gmd:MD_Metadata"
+			+ "/gmd:identificationInfo"
+			+ "/gmd:MD_DataIdentification"
+			+ "/gmd:spatialRepresentationType"
+			+ "/gmd:MD_SpatialRepresentationTypeCode"
+			+ "/@codeListValue");
+	}
+	
 	public List<String> getSupplementalInformation() {
 		return xpath().strings(
 			"/gmd:MD_Metadata"

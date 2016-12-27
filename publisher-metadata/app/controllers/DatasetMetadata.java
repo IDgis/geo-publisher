@@ -290,7 +290,11 @@ public class DatasetMetadata extends AbstractMetadata {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
+							if(spatialSchema.equals("vector") || protocol.equals("OGC:WMS")) {
+								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+							}
+						}
 					}
 				}
 			}
